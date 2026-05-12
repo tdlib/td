@@ -69,6 +69,11 @@ AdministratorRights::AdministratorRights(bool is_anonymous, bool can_manage_dial
       can_manage_direct_messages = false;
       break;
     case ChannelType::Unknown:
+      // Fail closed for basic-group/admin parsing paths: channel-only rights are not applicable.
+      can_post_messages = false;
+      can_edit_messages = false;
+      can_manage_direct_messages = false;
+      can_manage_topics = false;
       break;
   }
   flags_ = (static_cast<uint64>(can_manage_dialog) * CAN_MANAGE_DIALOG) |
@@ -215,9 +220,16 @@ RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_audios,
                                    bool can_send_polls, bool can_change_info_and_settings, bool can_invite_users,
                                    bool can_pin_messages, bool can_manage_topics, bool can_edit_rank,
                                    ChannelType channel_type) {
-  if (channel_type == ChannelType::Broadcast) {
-    flags_ = 0;
-    return;
+  switch (channel_type) {
+    case ChannelType::Broadcast:
+      flags_ = 0;
+      return;
+    case ChannelType::Unknown:
+      // Fail closed for basic-group/default-permission parsing: topic rights are not applicable.
+      can_manage_topics = false;
+      break;
+    case ChannelType::Megagroup:
+      break;
   }
   flags_ = (static_cast<uint64>(can_send_messages) * CAN_SEND_MESSAGES) |
            (static_cast<uint64>(can_send_audios) * CAN_SEND_AUDIOS) |

@@ -1,14 +1,15 @@
 # Upstream Wave 2 Decision Report
 
 Date: 2026-05-08
-Last updated: 2026-05-09
+Last updated: 2026-05-10
 Document role: execution template and decision log for the Wave 2 shortlist
 Preflight reference: `UPSTREAM_WAVE_2_PREFLIGHT_2026-05-08.md`
 Scope freeze: W2-001 through W2-003 only
 
 Historical scope note: this report records the 2026-05-08 Wave 2 decision cycle only. Any later
-branch-local W2-003 or W3-P work must be tracked and merged as separate lanes and must not be
-interpreted as part of this completed Wave 2 decision.
+W2-003 or W3-P work must be tracked as separate lanes and must not be interpreted as part of this
+completed Wave 2 decision. Those later lanes were merged to `master` separately in PR #18 and
+remain outside this report.
 
 Use this document during execution. No candidate may be re-bundled, widened, or replaced here; if
 scope changes, the preflight annex must be revised first.
@@ -302,9 +303,9 @@ W2-003 remains deferred. The commit class is correct (lifetime/use-after-move ha
 local fork has broad divergence across the touched surfaces and this wave is intentionally scoped to
 the bounded W2-001/W2-002 semantics bundle. No W2-003 code was merged in this decision cycle.
 
-Post-decision branch-state note (2026-05-09): the current local branch now contains a separate
-W2-003 source-and-test lane prepared for independent review. Those changes are outside this decision
-record and must not be merged or squashed into the completed W2-001/W2-002 lane.
+Post-decision merged-state note (2026-05-10): a separate W2-003 source-and-test lane was later
+merged to `master` via PR #18 (`258125992`). Those changes remain outside this decision cycle and
+must not be read as part of the completed W2-001/W2-002 lane.
 
 #### 4.3.2 Contracts Touched
 

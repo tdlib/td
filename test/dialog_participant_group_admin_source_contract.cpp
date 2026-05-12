@@ -52,4 +52,44 @@ TEST(DialogParticipantGroupAdminSourceContract, GroupAdministratorUsesNamedLegac
   ASSERT_TRUE(region.find("legacy_group_administrator_rights()") != td::string::npos);
 }
 
+TEST(DialogParticipantGroupAdminSourceContract, UnknownChannelAdministratorRightsFailClosedOnManageTopics) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/DialogParticipant.cpp");
+  auto region = extract_region(source, "AdministratorRights::AdministratorRights(bool is_anonymous",
+                               "telegram_api::object_ptr<telegram_api::chatAdminRights>");
+
+  const auto unknown_branch_pos = region.find("case ChannelType::Unknown:");
+  const auto clear_topics_pos = unknown_branch_pos == td::string::npos
+                                    ? td::string::npos
+                                    : region.find("can_manage_topics = false;", unknown_branch_pos);
+
+  ASSERT_TRUE(unknown_branch_pos != td::string::npos);
+  ASSERT_TRUE(clear_topics_pos != td::string::npos);
+  ASSERT_TRUE(clear_topics_pos > unknown_branch_pos);
+}
+
+TEST(DialogParticipantGroupAdminSourceContract, UnknownChannelAdministratorRightsFailClosedOnChannelOnlyFlags) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/DialogParticipant.cpp");
+  auto region = extract_region(source, "AdministratorRights::AdministratorRights(bool is_anonymous",
+                               "telegram_api::object_ptr<telegram_api::chatAdminRights>");
+
+  const auto unknown_branch_pos = region.find("case ChannelType::Unknown:");
+  const auto clear_post_pos = unknown_branch_pos == td::string::npos
+                                  ? td::string::npos
+                                  : region.find("can_post_messages = false;", unknown_branch_pos);
+  const auto clear_edit_pos = unknown_branch_pos == td::string::npos
+                                  ? td::string::npos
+                                  : region.find("can_edit_messages = false;", unknown_branch_pos);
+  const auto clear_direct_messages_pos = unknown_branch_pos == td::string::npos
+                                             ? td::string::npos
+                                             : region.find("can_manage_direct_messages = false;", unknown_branch_pos);
+
+  ASSERT_TRUE(unknown_branch_pos != td::string::npos);
+  ASSERT_TRUE(clear_post_pos != td::string::npos);
+  ASSERT_TRUE(clear_edit_pos != td::string::npos);
+  ASSERT_TRUE(clear_direct_messages_pos != td::string::npos);
+  ASSERT_TRUE(clear_post_pos > unknown_branch_pos);
+  ASSERT_TRUE(clear_edit_pos > unknown_branch_pos);
+  ASSERT_TRUE(clear_direct_messages_pos > unknown_branch_pos);
+}
+
 }  // namespace

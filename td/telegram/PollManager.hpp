@@ -7,10 +7,10 @@
 #pragma once
 
 #include "td/telegram/MessageContent.h"
-#include "td/telegram/MessageEntity.hpp"
+#include "td/telegram/MessageEntity.hpp"  // IWYU pragma: keep
 #include "td/telegram/MinChannel.hpp"
 #include "td/telegram/PollManager.h"
-#include "td/telegram/PollOption.hpp"
+#include "td/telegram/PollOption.hpp"  // IWYU pragma: keep
 #include "td/telegram/UserId.h"
 #include "td/telegram/Version.h"
 
@@ -61,6 +61,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   STORE_FLAG(has_explanation_media);
   STORE_FLAG(has_option_min_channels);
   STORE_FLAG(has_recent_option_voter_min_channels);
+  STORE_FLAG(can_view_stats_);
   END_STORE_FLAGS();
 
   store(question_.text, storer);
@@ -147,6 +148,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   PARSE_FLAG(has_explanation_media);
   PARSE_FLAG(has_option_min_channels);
   PARSE_FLAG(has_recent_option_voter_min_channels);
+  PARSE_FLAG(can_view_stats_);
   END_PARSE_FLAGS();
   is_anonymous_ = !is_public;
 
@@ -357,7 +359,10 @@ PollId PollManager::parse_poll(ParserT &parser) {
     vector<vector<MessageEntity>> option_entities;
     if (has_option_entities) {
       parse(option_entities, parser);
-      CHECK(option_entities.size() == option_texts.size());
+      if (option_entities.size() != option_texts.size()) {
+        parser.set_error("Wrong number of poll option entity vectors");
+        return PollId();
+      }
     } else {
       option_entities.resize(option_texts.size());
     }

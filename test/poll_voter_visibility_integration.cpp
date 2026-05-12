@@ -26,7 +26,7 @@ TEST(PollVoterVisibilityIntegration, MessagePollSerializationUsesPollManagerPoll
   auto region = extract_region(source, "td_api::object_ptr<td_api::MessageContent> get_message_content_object(",
                                "td_api::object_ptr<td_api::upgradeGiftResult>");
 
-  ASSERT_TRUE(region.find("td->poll_manager_->get_poll_object(m->poll_id)") != td::string::npos);
+  ASSERT_TRUE(region.find("poll_manager->get_poll_object(m->poll_id)") != td::string::npos);
 }
 
 TEST(PollVoterVisibilityIntegration, PublicPollObjectPathDelegatesToSharedBuilder) {

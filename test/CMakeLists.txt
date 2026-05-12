@@ -56,15 +56,51 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_group_admin_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_group_admin_source_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_group_admin_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_restricted_rights_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_restricted_rights_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_restricted_rights_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_restricted_rights_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_restricted_rights_source_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_restricted_rights_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/w2_use_after_move_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/w2_use_after_move_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/w2_use_after_move_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_reply_and_username_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_reply_and_username_runtime_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_reply_and_username_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_reply_and_username_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_reply_and_username_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_reply_and_username_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_media_send_guard_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_media_send_guard_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_media_send_guard_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_media_send_guard_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_media_send_guard_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/forwarded_poll_statistics_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/forwarded_poll_statistics_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/forwarded_poll_statistics_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_unread_votes_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_unread_votes_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_unread_votes_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_unread_votes_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_unread_votes_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_restriction_reason_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_restriction_reason_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_restriction_reason_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_restriction_reason_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_restriction_reason_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_state_runtime_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_state_runtime_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_voter_visibility_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_voter_visibility_adversarial.cpp

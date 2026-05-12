@@ -1,14 +1,13 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/PollManager.h"
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ChainId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
@@ -24,7 +23,6 @@
 #include "td/telegram/OnlineManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PollId.hpp"
-#include "td/telegram/PollManager.hpp"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -83,7 +81,7 @@ class GetPollResultsQuery final : public Td::ResultHandler {
         telegram_api::messages_getPollResults(std::move(input_peer), message_id, hash)));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::messages_getPollResults>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -92,7 +90,7 @@ class GetPollResultsQuery final : public Td::ResultHandler {
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     if (!td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "GetPollResultsQuery")) {
       LOG(ERROR) << "Receive " << status << ", while trying to get results of " << poll_id_;
     }
@@ -130,7 +128,7 @@ class GetPollVotersQuery final : public Td::ResultHandler {
         flags, std::move(input_peer), message_id, std::move(option), offset, limit)));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::messages_getPollVotes>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -139,7 +137,7 @@ class GetPollVotersQuery final : public Td::ResultHandler {
     promise_.set_value(result_ptr.move_as_ok());
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetPollVotersQuery") &&
         status.message() != "MESSAGE_ID_INVALID") {
       LOG(ERROR) << "Receive " << status << ", while trying to get voters of " << poll_id_;
@@ -169,7 +167,7 @@ class AddPollAnswerQuery final : public Td::ResultHandler {
         {{dialog_id_}}));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::messages_addPollAnswer>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -180,7 +178,7 @@ class AddPollAnswerQuery final : public Td::ResultHandler {
     td_->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "AddPollAnswerQuery");
     promise_.set_error(std::move(status));
   }
@@ -206,7 +204,7 @@ class DeletePollAnswerQuery final : public Td::ResultHandler {
         {{dialog_id_}}));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::messages_deletePollAnswer>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -217,7 +215,7 @@ class DeletePollAnswerQuery final : public Td::ResultHandler {
     td_->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeletePollAnswerQuery");
     promise_.set_error(std::move(status));
   }
@@ -231,7 +229,7 @@ class SendVoteQuery final : public Td::ResultHandler {
   explicit SendVoteQuery(Promise<tl_object_ptr<telegram_api::Updates>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(MessageFullId message_full_id, vector<BufferSlice> &&options, PollId poll_id, uint64 generation,
+  void send(MessageFullId message_full_id, vector<BufferSlice> &&options, PollId poll_id, uint64 /*generation*/,
             NetQueryRef *query_ref) {
     dialog_id_ = message_full_id.get_dialog_id();
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
@@ -248,7 +246,7 @@ class SendVoteQuery final : public Td::ResultHandler {
     send_query(std::move(query));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::messages_sendVote>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -259,7 +257,7 @@ class SendVoteQuery final : public Td::ResultHandler {
     promise_.set_value(std::move(result));
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendVoteQuery");
     promise_.set_error(std::move(status));
   }
@@ -273,7 +271,7 @@ class StopPollQuery final : public Td::ResultHandler {
   explicit StopPollQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(MessageFullId message_full_id, unique_ptr<ReplyMarkup> &&reply_markup, PollId poll_id) {
+  void send(MessageFullId message_full_id, unique_ptr<ReplyMarkup> reply_markup, PollId poll_id) {
     dialog_id_ = message_full_id.get_dialog_id();
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Edit);
     if (input_peer == nullptr) {
@@ -300,7 +298,7 @@ class StopPollQuery final : public Td::ResultHandler {
         {{poll_id}, {dialog_id_}}));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::messages_editMessage>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -311,7 +309,7 @@ class StopPollQuery final : public Td::ResultHandler {
     td_->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     if (!td_->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
       return promise_.set_value(Unit());
     }
@@ -340,7 +338,7 @@ void PollManager::start_up() {
    public:
     explicit StateCallback(ActorId<PollManager> parent) : parent_(std::move(parent)) {
     }
-    bool on_online(bool is_online) final {
+    bool on_online(bool is_online) override {
       if (is_online) {
         send_closure(parent_, &PollManager::on_online);
       }
@@ -442,13 +440,13 @@ void PollManager::notify_on_poll_update(PollId poll_id) {
   }
 
   if (server_poll_messages_.count(poll_id) > 0) {
-    server_poll_messages_[poll_id].foreach([&](const MessageFullId &message_full_id) {
+    server_poll_messages_[poll_id].foreach([this](const MessageFullId &message_full_id) {
       td_->messages_manager_->on_external_update_message_content(message_full_id, "notify_on_poll_update 1");
     });
   }
 
   if (other_poll_messages_.count(poll_id) > 0) {
-    other_poll_messages_[poll_id].foreach([&](const MessageFullId &message_full_id) {
+    other_poll_messages_[poll_id].foreach([this](const MessageFullId &message_full_id) {
       td_->messages_manager_->on_external_update_message_content(message_full_id, "notify_on_poll_update 2");
     });
   }
@@ -460,7 +458,7 @@ void PollManager::notify_on_poll_has_unread_votes_update(PollId poll_id, bool ha
   }
 
   if (server_poll_messages_.count(poll_id) > 0) {
-    server_poll_messages_[poll_id].foreach([&](const MessageFullId &message_full_id) {
+    server_poll_messages_[poll_id].foreach([this, has_unread_votes](const MessageFullId &message_full_id) {
       td_->messages_manager_->on_update_poll_has_unread_votes(message_full_id, has_unread_votes);
     });
   }
@@ -488,26 +486,23 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
   loaded_from_database_polls_.insert(poll_id);
 
   LOG(INFO) << "Successfully loaded " << poll_id << " of size " << value.size() << " from database";
-  //  G()->td_db()->get_sqlite_pmc()->erase(get_poll_database_key(poll_id), Auto());
-  //  return;
-
   CHECK(!have_poll(poll_id));
   if (!value.empty()) {
     auto poll = make_unique<Poll>();
     if (log_event_parse(*poll, value).is_error()) {
       return;
     }
-    for (const auto &min_channel : poll->option_min_channels_) {
-      LOG(INFO) << "Add min option " << min_channel.first;
-      td_->chat_manager_->add_min_channel(min_channel.first, min_channel.second);
+    for (const auto &[channel_id, min_channel] : poll->option_min_channels_) {
+      LOG(INFO) << "Add min option " << channel_id;
+      td_->chat_manager_->add_min_channel(channel_id, min_channel);
     }
-    for (const auto &min_channel : poll->recent_option_voter_min_channels_) {
-      LOG(INFO) << "Add min recent option voter " << min_channel.first;
-      td_->chat_manager_->add_min_channel(min_channel.first, min_channel.second);
+    for (const auto &[channel_id, min_channel] : poll->recent_option_voter_min_channels_) {
+      LOG(INFO) << "Add min recent option voter " << channel_id;
+      td_->chat_manager_->add_min_channel(channel_id, min_channel);
     }
-    for (const auto &min_channel : poll->recent_voter_min_channels_) {
-      LOG(INFO) << "Add min voted " << min_channel.first;
-      td_->chat_manager_->add_min_channel(min_channel.first, min_channel.second);
+    for (const auto &[channel_id, min_channel] : poll->recent_voter_min_channels_) {
+      LOG(INFO) << "Add min voted " << channel_id;
+      td_->chat_manager_->add_min_channel(channel_id, min_channel);
     }
 
     auto my_user_id = td_->user_manager_->get_my_id();
@@ -544,9 +539,12 @@ bool PollManager::have_poll_force(PollId poll_id) {
 }
 
 PollManager::Poll *PollManager::get_poll_force(PollId poll_id) {
-  auto poll = get_poll_editable(poll_id);
-  if (poll != nullptr) {
+  if (auto *poll = get_poll_editable(poll_id); poll != nullptr) {
     return poll;
+  }
+  if (td_ == nullptr) {
+    LOG(ERROR) << "Fail-closed poll state lookup: Td is unavailable for " << poll_id;
+    return nullptr;
   }
   if (!G()->use_message_database()) {
     return nullptr;
@@ -789,11 +787,14 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     }
   }
 
+  auto vote_restriction_reason =
+      get_poll_vote_restriction_reason_object(poll->hide_results_until_close_ && !can_get_voters);
+
   return td_api::make_object<td_api::poll>(
       poll_id.get(), get_formatted_text_object(nullptr, poll->question_, true, -1), std::move(poll_options),
       total_voter_count, std::move(recent_voters), can_get_voters && !poll->is_anonymous_, poll->is_anonymous_,
       poll->allow_multiple_answers_, !poll->has_revoting_disabled_, std::move(option_order), std::move(poll_type),
-      open_period, close_date, poll->is_closed_);
+      open_period, close_date, poll->is_closed_, std::move(vote_restriction_reason));
 }
 
 PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> &&options, bool is_anonymous,
@@ -945,13 +946,19 @@ void PollManager::schedule_poll_unload(PollId poll_id) {
 
 bool PollManager::get_poll_is_closed(PollId poll_id) const {
   auto poll = get_poll(poll_id);
-  CHECK(poll != nullptr);
+  if (poll == nullptr) {
+    LOG(ERROR) << "Fail-closed poll closed-state lookup for " << poll_id << ": poll state is unavailable";
+    return true;
+  }
   return poll->is_closed_;
 }
 
 bool PollManager::get_poll_is_anonymous(PollId poll_id) const {
   auto poll = get_poll(poll_id);
-  CHECK(poll != nullptr);
+  if (poll == nullptr) {
+    LOG(ERROR) << "Fail-closed poll anonymity lookup for " << poll_id << ": poll state is unavailable";
+    return true;
+  }
   return poll->is_anonymous_;
 }
 
@@ -960,20 +967,38 @@ bool PollManager::get_poll_can_add_option(PollId poll_id) const {
     return false;
   }
   auto poll = get_poll(poll_id);
-  CHECK(poll != nullptr);
+  if (poll == nullptr) {
+    LOG(ERROR) << "Fail-closed poll add-option capability lookup for " << poll_id << ": poll state is unavailable";
+    return false;
+  }
   return poll->has_open_answers_ && !poll->is_closed_ &&
          static_cast<int64>(poll->options_.size()) < td_->option_manager_->get_option_integer("poll_answer_count_max");
 }
 
+bool PollManager::get_poll_can_view_stats(PollId poll_id) const {
+  auto poll = get_poll(poll_id);
+  if (poll == nullptr) {
+    LOG(ERROR) << "Fail-closed poll stats-visibility lookup for " << poll_id << ": poll state is unavailable";
+    return false;
+  }
+  return poll->can_view_stats_;
+}
+
 bool PollManager::get_poll_has_unread_votes(PollId poll_id) const {
   auto poll = get_poll(poll_id);
-  CHECK(poll != nullptr);
+  if (poll == nullptr) {
+    LOG(ERROR) << "Fail-closed poll unread-vote state lookup for " << poll_id << ": poll state is unavailable";
+    return false;
+  }
   return poll->has_unread_votes_;
 }
 
 void PollManager::remove_poll_has_unread_votes(PollId poll_id) {
   auto poll = get_poll_editable(poll_id);
-  CHECK(poll != nullptr);
+  if (poll == nullptr) {
+    LOG(ERROR) << "Fail-closed poll unread-vote clear for " << poll_id << ": poll state is unavailable";
+    return;
+  }
   if (!poll->has_unread_votes_) {
     return;
   }
@@ -1062,6 +1087,10 @@ vector<FileId> PollManager::get_poll_file_ids(PollId poll_id) const {
     poll_option.append_file_ids(td_, result);
   }
   return result;
+}
+
+bool PollManager::has_poll(PollId poll_id) const {
+  return have_poll(poll_id);
 }
 
 void PollManager::add_poll_option(MessageFullId message_full_id, td_api::object_ptr<td_api::inputPollOption> &&option,
@@ -1829,16 +1858,42 @@ PollId PollManager::dup_poll(DialogId dialog_id, PollId poll_id) {
 
 bool PollManager::has_input_media(PollId poll_id) const {
   auto poll = get_poll(poll_id);
-  CHECK(poll != nullptr);
-  if (poll->is_quiz_ && poll->correct_option_ids_.empty()) {
+  if (poll == nullptr) {
+    LOG(ERROR) << "Fail-closed poll input media availability check for " << poll_id << ": poll state is unavailable";
     return false;
+  }
+  if (!get_poll_file_ids(poll_id).empty()) {
+    return false;
+  }
+  if (poll->is_quiz_) {
+    if (poll->correct_option_ids_.empty()) {
+      LOG(ERROR) << "Fail-closed poll input media availability check for " << poll_id
+                 << ": quiz poll has no correct options";
+      return false;
+    }
+    for (auto correct_option_id : poll->correct_option_ids_) {
+      if (correct_option_id < 0 || static_cast<size_t>(correct_option_id) >= poll->options_.size()) {
+        LOG(ERROR) << "Fail-closed poll input media availability check for " << poll_id
+                   << ": quiz poll has out-of-range correct option " << correct_option_id;
+        return false;
+      }
+    }
   }
   return true;
 }
 
 tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll_id) const {
   auto poll = get_poll(poll_id);
-  CHECK(poll != nullptr);
+  if (poll == nullptr) {
+    LOG(ERROR) << "Fail-closed poll input media generation for " << poll_id << ": poll state is unavailable";
+    return nullptr;
+  }
+
+  if (!get_poll_file_ids(poll_id).empty()) {
+    LOG(ERROR) << "Fail-closed poll input media generation for " << poll_id
+               << ": poll contains media fields that aren't supported in inputMediaPoll";
+    return nullptr;
+  }
 
   int32 poll_flags = 0;
   if (poll->open_period_ != 0) {
@@ -1852,9 +1907,16 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
   vector<int32> correct_answers;
   if (poll->is_quiz_) {
     flags |= telegram_api::inputMediaPoll::CORRECT_ANSWERS_MASK;
-    CHECK(!poll->correct_option_ids_.empty());
+    if (poll->correct_option_ids_.empty()) {
+      LOG(ERROR) << "Fail-closed poll input media generation for " << poll_id << ": quiz poll has no correct options";
+      return nullptr;
+    }
     for (auto correct_option_id : poll->correct_option_ids_) {
-      CHECK(static_cast<size_t>(correct_option_id) < poll->options_.size());
+      if (correct_option_id < 0 || static_cast<size_t>(correct_option_id) >= poll->options_.size()) {
+        LOG(ERROR) << "Fail-closed poll input media generation for " << poll_id
+                   << ": quiz poll has out-of-range correct option " << correct_option_id;
+        return nullptr;
+      }
       correct_answers.push_back(correct_option_id);
     }
 
@@ -2172,6 +2234,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       need_save_to_database = true;
       notify_on_poll_has_unread_votes_update(poll_id, poll->has_unread_votes_);
     }
+  }
+  if (!is_min && poll_results->can_view_stats_ != poll->can_view_stats_) {
+    poll->can_view_stats_ = poll_results->can_view_stats_;
+    is_changed = true;
   }
 
   auto explanation = get_formatted_text(td_->user_manager_.get(), std::move(poll_results->solution_),

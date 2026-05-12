@@ -19,6 +19,8 @@ td::uint64 next_value(td::uint64 &state) {
 }
 
 TEST(PollOptionEntitiesLightFuzz, RandomizedEntityMixAlwaysProducesCustomEmojiOnlyInputEntities) {
+  using enum td::MessageEntity::Type;
+
   td::uint64 state = 0xC0FFEE1234ULL;
 
   for (int iteration = 0; iteration < 4000; iteration++) {
@@ -32,20 +34,20 @@ TEST(PollOptionEntitiesLightFuzz, RandomizedEntityMixAlwaysProducesCustomEmojiOn
 
       switch (selector) {
         case 0:
-          text.entities.emplace_back(td::MessageEntity::Type::CustomEmoji, offset, 1,
+          text.entities.emplace_back(CustomEmoji, offset, 1,
                                      td::CustomEmojiId(td::int64{1000 + static_cast<td::int64>(i)}));
           break;
         case 1:
-          text.entities.emplace_back(td::MessageEntity::Type::Bold, offset, 1, td::string());
+          text.entities.emplace_back(Bold, offset, 1, td::string());
           break;
         case 2:
-          text.entities.emplace_back(td::MessageEntity::Type::Italic, offset, 1, td::string());
+          text.entities.emplace_back(Italic, offset, 1, td::string());
           break;
         case 3:
-          text.entities.emplace_back(td::MessageEntity::Type::Underline, offset, 1, td::string());
+          text.entities.emplace_back(Underline, offset, 1, td::string());
           break;
         default:
-          text.entities.emplace_back(td::MessageEntity::Type::Strikethrough, offset, 1, td::string());
+          text.entities.emplace_back(Strikethrough, offset, 1, td::string());
           break;
       }
     }

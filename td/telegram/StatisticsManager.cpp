@@ -196,7 +196,7 @@ class GetMegagroupStatsQuery final : public Td::ResultHandler {
         telegram_api::stats_getMegagroupStats(0, is_dark, std::move(input_channel)), {}, dc_id));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::stats_getMegagroupStats>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -205,7 +205,7 @@ class GetMegagroupStatsQuery final : public Td::ResultHandler {
     promise_.set_value(convert_megagroup_stats(td_, result_ptr.move_as_ok()));
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetMegagroupStatsQuery");
     promise_.set_error(std::move(status));
   }
@@ -230,7 +230,7 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
         telegram_api::stats_getBroadcastStats(0, is_dark, std::move(input_channel)), {}, dc_id));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::stats_getBroadcastStats>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -255,7 +255,7 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
     promise_.set_value(std::move(result));
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastStatsQuery");
     promise_.set_error(std::move(status));
   }
@@ -306,7 +306,7 @@ class GetDialogRevenueStatsQuery final : public Td::ResultHandler {
         telegram_api::payments_getStarsRevenueStats(0, is_dark, true, std::move(input_peer))));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::payments_getStarsRevenueStats>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -323,7 +323,7 @@ class GetDialogRevenueStatsQuery final : public Td::ResultHandler {
     promise_.set_value(convert_ton_revenue_stats(std::move(ptr)));
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetDialogRevenueStatsQuery");
     promise_.set_error(std::move(status));
   }
@@ -349,7 +349,7 @@ class GetTonRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
         0, true, std::move(input_peer), 0, std::move(input_check_password))));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::payments_getStarsRevenueWithdrawalUrl>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -358,7 +358,7 @@ class GetTonRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
     promise_.set_value(std::move(result_ptr.ok_ref()->url_));
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetTonRevenueWithdrawalUrlQuery");
     promise_.set_error(std::move(status));
   }
@@ -383,7 +383,7 @@ class GetTonRevenueTransactionsQuery final : public Td::ResultHandler {
         0, false, false, false, true, string(), std::move(input_peer), offset, limit)));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::payments_getStarsTransactions>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -500,7 +500,7 @@ class GetTonRevenueTransactionsQuery final : public Td::ResultHandler {
         ton_amount.get_ton_amount(), std::move(transactions), result->next_offset_));
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetTonRevenueTransactionsQuery");
     promise_.set_error(std::move(status));
   }
@@ -536,7 +536,7 @@ class GetMessageStatsQuery final : public Td::ResultHandler {
                                         {}, dc_id));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::stats_getMessageStats>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -545,7 +545,7 @@ class GetMessageStatsQuery final : public Td::ResultHandler {
     promise_.set_value(convert_message_stats(result_ptr.move_as_ok()));
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetMessageStatsQuery");
     promise_.set_error(std::move(status));
   }
@@ -578,7 +578,7 @@ class GetStoryStatsQuery final : public Td::ResultHandler {
         telegram_api::stats_getStoryStats(0, is_dark, std::move(input_peer), story_id.get()), {}, dc_id));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::stats_getStoryStats>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -587,8 +587,44 @@ class GetStoryStatsQuery final : public Td::ResultHandler {
     promise_.set_value(convert_story_stats(result_ptr.move_as_ok()));
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetStoryStatsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetPollStatsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::pollVoteStatistics>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetPollStatsQuery(Promise<td_api::object_ptr<td_api::pollVoteStatistics>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id, bool is_dark) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::stats_getPollStats(0, is_dark, std::move(input_peer), message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::stats_getPollStats>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    promise_.set_value(
+        td_api::make_object<td_api::pollVoteStatistics>(convert_stats_graph(std::move(ptr->votes_graph_))));
+  }
+
+  void on_error(Status status) override {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetPollStatsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -609,7 +645,7 @@ class LoadAsyncGraphQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(telegram_api::stats_loadAsyncGraph(flags, token, x), {}, dc_id));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::stats_loadAsyncGraph>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -619,7 +655,7 @@ class LoadAsyncGraphQuery final : public Td::ResultHandler {
     promise_.set_value(convert_stats_graph(std::move(result)));
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     promise_.set_error(std::move(status));
   }
 };
@@ -645,7 +681,7 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
         {}, dc_id));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::stats_getMessagePublicForwards>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -655,7 +691,7 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
                                                                 "GetMessagePublicForwardsQuery");
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetMessagePublicForwardsQuery");
     promise_.set_error(std::move(status));
   }
@@ -684,7 +720,7 @@ class GetStoryPublicForwardsQuery final : public Td::ResultHandler {
                                         {}, dc_id));
   }
 
-  void on_result(BufferSlice packet) final {
+  void on_result(BufferSlice packet) override {
     auto result_ptr = fetch_result<telegram_api::stats_getStoryPublicForwards>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -694,7 +730,7 @@ class GetStoryPublicForwardsQuery final : public Td::ResultHandler {
                                                                 "GetStoryPublicForwardsQuery");
   }
 
-  void on_error(Status status) final {
+  void on_error(Status status) override {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetStoryPublicForwardsQuery");
     promise_.set_error(std::move(status));
   }
@@ -847,6 +883,18 @@ void StatisticsManager::send_get_channel_story_stats_query(
   CHECK(dialog_id.get_type() == DialogType::Channel);
   td_->create_handler<GetStoryStatsQuery>(std::move(promise))
       ->send(dialog_id.get_channel_id(), story_full_id.get_story_id(), is_dark, dc_id);
+}
+
+void StatisticsManager::get_poll_statistics(MessageFullId message_full_id, bool is_dark,
+                                            Promise<td_api::object_ptr<td_api::pollVoteStatistics>> &&promise) {
+  if (!td_->messages_manager_->have_message_force(message_full_id, "get_poll_statistics")) {
+    return promise.set_error(400, "Message not found");
+  }
+  if (!td_->messages_manager_->can_get_message_poll_vote_statistics(message_full_id)) {
+    return promise.set_error(400, "Poll statistics are inaccessible");
+  }
+  td_->create_handler<GetPollStatsQuery>(std::move(promise))
+      ->send(message_full_id.get_dialog_id(), message_full_id.get_message_id(), is_dark);
 }
 
 void StatisticsManager::load_statistics_graph(DialogId dialog_id, string token, int64 x,

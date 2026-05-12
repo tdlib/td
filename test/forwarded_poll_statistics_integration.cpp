@@ -34,4 +34,26 @@ TEST(ForwardedPollStatisticsIntegration, StatisticsManagerQueriesReuseMessageSta
   ASSERT_TRUE(public_forwards_region.find("can_get_message_statistics(message_full_id)") != td::string::npos);
 }
 
+TEST(ForwardedPollStatisticsIntegration, StatisticsManagerHasDedicatedFailClosedPollStatsPath) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/StatisticsManager.cpp");
+  auto region =
+      extract_region(source, "void StatisticsManager::get_poll_statistics(MessageFullId message_full_id, bool is_dark,",
+                     "void StatisticsManager::load_statistics_graph(DialogId dialog_id, string token, int64 x,");
+
+  ASSERT_TRUE(region.find("have_message_force(message_full_id, \"get_poll_statistics\")") != td::string::npos);
+  ASSERT_TRUE(region.find("can_get_message_poll_vote_statistics(message_full_id)") != td::string::npos);
+  ASSERT_TRUE(region.find("Poll statistics are inaccessible") != td::string::npos);
+  ASSERT_TRUE(region.find("create_handler<GetPollStatsQuery>") != td::string::npos);
+}
+
+TEST(ForwardedPollStatisticsIntegration, RequestsRoutePollVoteStatisticsToStatisticsManager) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/Requests.cpp");
+  auto region = extract_region(source, "void Requests::on_request(uint64 id, const td_api::getPollVoters &request) {",
+                               "void Requests::on_request(uint64 id, td_api::stopPoll &request) {");
+
+  ASSERT_TRUE(region.find("void Requests::on_request(uint64 id, const td_api::getPollVoteStatistics &request)") !=
+              td::string::npos);
+  ASSERT_TRUE(region.find("td_->statistics_manager_->get_poll_statistics") != td::string::npos);
+}
+
 }  // namespace

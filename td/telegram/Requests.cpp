@@ -164,7 +164,6 @@
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/Support.h"
-#include "td/telegram/SynchronousRequests.h"
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TermsOfServiceManager.h"
@@ -7807,6 +7806,13 @@ void Requests::on_request(uint64 id, const td_api::getPollVoters &request) {
   CREATE_REQUEST_PROMISE();
   td_->poll_manager_->get_poll_voters({DialogId(request.chat_id_), MessageId(request.message_id_)}, request.option_id_,
                                       request.offset_, request.limit_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::getPollVoteStatistics &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->statistics_manager_->get_poll_statistics({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                request.is_dark_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::stopPoll &request) {

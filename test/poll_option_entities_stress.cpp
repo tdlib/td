@@ -14,23 +14,25 @@
 namespace {
 
 TEST(PollOptionEntitiesStress, LargeEntityPayloadsRemainDeterministicAcrossRepeatedConstruction) {
+  using enum td::MessageEntity::Type;
+
   td::FormattedText base_text;
   base_text.text = td::string(1024, 'x');
 
   for (td::int32 i = 0; i < 1024; i++) {
     if ((i % 7) == 0) {
-      base_text.entities.emplace_back(td::MessageEntity::Type::CustomEmoji, i, 1,
+      base_text.entities.emplace_back(CustomEmoji, i, 1,
                                       td::CustomEmojiId(td::int64{900000 + static_cast<td::int64>(i)}));
     } else if ((i % 2) == 0) {
-      base_text.entities.emplace_back(td::MessageEntity::Type::Bold, i, 1, td::string());
+      base_text.entities.emplace_back(Bold, i, 1, td::string());
     } else {
-      base_text.entities.emplace_back(td::MessageEntity::Type::Italic, i, 1, td::string());
+      base_text.entities.emplace_back(Italic, i, 1, td::string());
     }
   }
 
   td::size_t expected_custom_count = 0;
   for (const auto &entity : base_text.entities) {
-    if (entity.type == td::MessageEntity::Type::CustomEmoji) {
+    if (entity.type == CustomEmoji) {
       expected_custom_count++;
     }
   }

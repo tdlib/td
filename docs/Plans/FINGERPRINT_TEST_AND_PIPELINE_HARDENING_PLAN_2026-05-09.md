@@ -9,7 +9,8 @@ telemt: https://t.me/telemtrs
 
 **Plan ID:** fingerprint-test-and-pipeline-hardening-2026-05-09  
 **Date:** 2026-05-09  
-**Status:** Planning Only, TDD-Ready  
+**Last updated:** 2026-05-10  
+**Status:** Partially Executed (initial runtime/test/tooling hardening merged; pipeline-wide baseline and matcher work still pending)  
 **Primary Goal:** Close the structural validation gaps that allowed a real Apple/iOS `supported_versions` regression to evade the broad fingerprint test stack, and harden the full reviewed-fixture pipeline from raw extraction through release-gating test suites.  
 **Threat Context:** high-budget adaptive DPI performing multi-feature correlation across TLS structure, extension semantics, route behavior, and family-level wire-image consistency.
 
@@ -30,7 +31,7 @@ The verified failure chain is:
 5. The Apple iOS multi-dump stats lane is advisory-tier and explicitly skips exact/distributional gates when invariants are empty.
 6. Apple iOS family classification is too coarse, so list-valued exact invariants are already hollowed out by intersection across mixed families.
 7. The nightly Monte Carlo lane only checks counts, envelope, and ECH presence, not the exact version vector.
-8. The exact Safari/iOS `supported_versions` assertions now present in the dirty worktree are post-incident follow-up tests, not proof that the old safety net worked.
+8. The exact Safari/iOS `supported_versions` assertions now merged on `master` are useful post-incident follow-up tests, not proof that the old safety net worked.
 
 This plan exists to harden the pipeline end-to-end so that a regression of this class fails in multiple independent places before release.
 
@@ -59,16 +60,23 @@ The reviewed fixture corpus already contains enough evidence to catch the bug.
 2. That body corresponds to GREASE + TLS 1.3 + TLS 1.2 only.
 3. The failure was therefore not a data-collection failure. It was a pipeline modeling failure.
 
-### 1.3 Current Dirty-Tree Reality
+### 1.3 Current Merged Reality (2026-05-10)
 
-The workspace currently contains:
+`master` now contains the first bounded hardening response from PR #18:
 
 1. a runtime fix in `td/mtproto/BrowserProfile.cpp` restricting Apple TLS `supported_versions` to `{772, 771}`;
 2. exact-vector follow-up tests in:
    - `test/stealth/test_tls_corpus_safari26_3_invariance_1k.cpp`
    - `test/stealth/test_tls_corpus_ios_apple_tls_1k.cpp`
+3. extractor/tooling compatibility fixes in `test/analysis/extract_client_hello_fixtures.py` plus
+   the added contract coverage for `tshark` TCP option-kind fallback and hexadecimal `ip.id`
+   parsing;
+4. reviewed ServerHello fixture refreshes and this planning document.
 
-These are useful immediate regressions, but they do **not** solve the underlying pipeline gap by themselves. This plan treats them as provisional local repairs that must be absorbed into a broader hardening program.
+These merged changes are useful immediate regressions and tooling hardening, but they do **not**
+solve the underlying pipeline gap by themselves. This plan treats them as the first landed slice of
+the response, with the broader baseline, matcher, family-classification, and nightly-gating work
+still pending.
 
 ---
 
@@ -242,7 +250,7 @@ These are useful immediate regressions, but they do **not** solve the underlying
 
 **Tasks:**
 
-1. Commit and keep the new exact-vector Safari/iOS assertions as permanent regressions.
+1. Keep the merged exact-vector Safari/iOS assertions as permanent regressions.
 2. Add multi-dump exact checks for `supported_versions` in baseline suites.
 3. Add adversarial tests that explicitly reject TLS 1.1 / TLS 1.0 reintroduction for Apple TLS families.
 4. Add cross-family disjointness checks so Apple/WebKit iOS, Firefox iOS, and iOS Chromium cannot silently converge on the wrong lane.
@@ -380,6 +388,6 @@ The fingerprint stack remains release-blocked until:
 
 ## 11. Noticed But Not Touching
 
-1. The current workspace contains unrelated staged and unstaged changes outside this plan's scope.
-2. This plan does not authorize unrelated cleanup in Telegram-core or fixture refreshes beyond what is required for fingerprint hardening.
+1. The initial merged slice in PR #18 does not authorize broader stealth or protocol refactors outside this plan.
+2. This plan does not authorize unrelated Telegram-core cleanup or fixture refreshes beyond what is required for fingerprint hardening.
 3. The exact final family names for the iOS split should be decided only after the reviewed corpus audit in Workstream C.

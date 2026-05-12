@@ -1938,6 +1938,19 @@ void ChatManager::Chat::parse(ParserT &parser) {
     // Normalize persisted basic-group admin state to the canonical least-privilege legacy profile.
     status = DialogParticipantStatus::GroupAdministrator(false, string(status.get_rank()));
   }
+  if (default_permissions.can_manage_topics()) {
+    // Normalize persisted basic-group default permissions to a no-topics profile.
+    default_permissions =
+        RestrictedRights(default_permissions.can_send_messages(), default_permissions.can_send_audios(),
+                         default_permissions.can_send_documents(), default_permissions.can_send_photos(),
+                         default_permissions.can_send_videos(), default_permissions.can_send_video_notes(),
+                         default_permissions.can_send_voice_notes(), default_permissions.can_send_stickers(),
+                         default_permissions.can_send_animations(), default_permissions.can_send_games(),
+                         default_permissions.can_use_inline_bots(), default_permissions.can_add_web_page_previews(),
+                         default_permissions.can_send_polls(), default_permissions.can_change_info_and_settings(),
+                         default_permissions.can_invite_users(), default_permissions.can_pin_messages(), false,
+                         default_permissions.can_edit_rank(), ChannelType::Unknown);
+  }
 }
 
 template <class StorerT>

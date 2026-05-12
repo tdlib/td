@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/MessageContent.h"
 
@@ -12,7 +12,6 @@
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AudiosManager.hpp"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/Birthdate.h"
 #include "td/telegram/Birthdate.hpp"
 #include "td/telegram/CallActor.h"
@@ -59,6 +58,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessageExtendedMedia.h"
+#include "td/telegram/MessageExtendedMedia.hpp"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageSender.h"
@@ -125,7 +125,6 @@
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
 
-#include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
 
 #include "td/utils/algorithm.h"
@@ -4951,6 +4950,9 @@ static Result<InputMessageContent> create_input_message_content(
         close_date = 0;
       }
       bool is_closed = is_bot ? input_poll->is_closed_ : false;
+      if (td->poll_manager_ == nullptr) {
+        return Status::Error(500, "Internal poll manager is unavailable");
+      }
       content = make_unique<MessagePoll>(
           td->poll_manager_->create_poll(std::move(question), std::move(options), input_poll->is_anonymous_,
                                          input_poll->allows_multiple_answers_, has_open_answers,
@@ -5132,12 +5134,36 @@ Status check_message_group_message_contents(const vector<InputMessageContent> &m
   return Status::OK();
 }
 
+static const PollManager *get_poll_manager_for_content_access(const Td *td, PollId poll_id, Slice source) {
+  if (td == nullptr) {
+    LOG(ERROR) << "Fail-closed poll access in " << source << ": Td is unavailable";
+    return nullptr;
+  }
+  if (td->poll_manager_ == nullptr) {
+    LOG(ERROR) << "Fail-closed poll access in " << source << ": PollManager is unavailable";
+    return nullptr;
+  }
+  if (!poll_id.is_valid() || !td->poll_manager_->has_poll(poll_id)) {
+    LOG(ERROR) << "Fail-closed poll access in " << source << ": unknown poll " << poll_id;
+    return nullptr;
+  }
+  return td->poll_manager_.get();
+}
+
+static PollManager *get_poll_manager_for_content_access(Td *td, PollId poll_id, Slice source) {
+  return const_cast<PollManager *>(get_poll_manager_for_content_access(static_cast<const Td *>(td), poll_id, source));
+}
+
 bool can_message_content_have_input_media(const Td *td, const MessageContent *content, bool is_server) {
   switch (content->get_type()) {
     case MessageContentType::Game:
       return is_server || static_cast<const MessageGame *>(content)->game.has_input_media();
-    case MessageContentType::Poll:
-      return td->poll_manager_->has_input_media(static_cast<const MessagePoll *>(content)->poll_id);
+    case MessageContentType::Poll: {
+      const auto *poll = static_cast<const MessagePoll *>(content);
+      auto *poll_manager =
+          get_poll_manager_for_content_access(td, poll->poll_id, "can_message_content_have_input_media");
+      return poll_manager != nullptr && poll_manager->has_input_media(poll->poll_id);
+    }
     case MessageContentType::Story: {
       auto story_full_id = static_cast<const MessageStory *>(content)->story_full_id;
       auto dialog_id = story_full_id.get_dialog_id();
@@ -5492,7 +5518,11 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     }
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
-      return td->poll_manager_->get_input_media(m->poll_id);
+      auto *poll_manager = get_poll_manager_for_content_access(td, m->poll_id, "get_message_content_input_media");
+      if (poll_manager == nullptr) {
+        return nullptr;
+      }
+      return poll_manager->get_input_media(m->poll_id);
     }
     case MessageContentType::Sticker: {
       const auto *m = static_cast<const MessageSticker *>(content);
@@ -5954,10 +5984,13 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       if (!permissions.can_send_polls()) {
         return Status::Error(400, "Not enough rights to send polls to the chat");
       }
+      if (message_content_poll_has_media(content, td)) {
+        return Status::Error(400, "Polls with media can't be sent yet");
+      }
       if (dialog_type == DialogType::Channel) {
         auto channel_id = dialog_id.get_channel_id();
         if (td->chat_manager_->is_broadcast_channel(channel_id) &&
-            !td->poll_manager_->get_poll_is_anonymous(static_cast<const MessagePoll *>(content)->poll_id)) {
+            !get_message_content_poll_is_anonymous(td, content)) {
           return Status::Error(400, "Non-anonymous polls can't be sent to channel chats");
         }
         if (td->chat_manager_->is_monoforum_channel(channel_id)) {
@@ -6115,16 +6148,25 @@ bool can_forward_message_content(const Td *td, const MessageContent *content, bo
     return !is_empty_string(text->text.text) || text->web_page_id.is_valid() || !text->web_page_url.empty();
   }
   if (content_type == MessageContentType::Poll) {
-    auto *poll = static_cast<const MessagePoll *>(content);
-    return !PollManager::is_local_poll_id(poll->poll_id);
+    if (message_content_poll_has_media(content, td)) {
+      return false;
+    }
+
+    auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+    if (PollManager::is_local_poll_id(poll_id)) {
+      return false;
+    }
+
+    if (is_copy) {
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "can_forward_message_content");
+      if (poll_manager == nullptr || !poll_manager->has_input_media(poll_id)) {
+        return false;
+      }
+    }
   }
   if (is_copy) {
     if (content_type == MessageContentType::Giveaway || content_type == MessageContentType::GiveawayWinners ||
         content_type == MessageContentType::PaidMedia || content_type == MessageContentType::Invoice) {
-      return false;
-    }
-    if (content_type == MessageContentType::Poll &&
-        !td->poll_manager_->has_input_media(static_cast<const MessagePoll *>(content)->poll_id)) {
       return false;
     }
   }
@@ -6820,6 +6862,9 @@ int32 get_message_content_live_location_period(const MessageContent *content) {
 }
 
 PollId get_message_content_poll_id(const MessageContent *content) {
+  if (content == nullptr) {
+    return PollId();
+  }
   switch (content->get_type()) {
     case MessageContentType::Poll:
       return static_cast<const MessagePoll *>(content)->poll_id;
@@ -6828,55 +6873,137 @@ PollId get_message_content_poll_id(const MessageContent *content) {
   }
 }
 
-bool message_content_poll_has_attached_media(const MessageContent *content) {
-  switch (content->get_type()) {
-    case MessageContentType::Poll:
-      return static_cast<const MessagePoll *>(content)->attached_media != nullptr;
-    default:
-      return false;
+bool message_content_poll_has_media(const MessageContent *content, const Td *td) {
+  if (content == nullptr) {
+    return false;
   }
+  if (content->get_type() != MessageContentType::Poll) {
+    return false;
+  }
+  if (td == nullptr) {
+    LOG(ERROR) << "Fail-closed poll media check for quick reply: Td is unavailable";
+    return true;
+  }
+
+  auto poll = static_cast<const MessagePoll *>(content);
+  if (poll->attached_media != nullptr) {
+    return true;
+  }
+
+  auto *poll_manager = get_poll_manager_for_content_access(td, poll->poll_id, "message_content_poll_has_media");
+  if (poll_manager == nullptr) {
+    return true;
+  }
+
+  return !poll_manager->get_poll_file_ids(poll->poll_id).empty();
 }
 
 bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content) {
+  if (content == nullptr) {
+    return false;
+  }
   switch (content->get_type()) {
-    case MessageContentType::Poll:
-      return td->poll_manager_->get_poll_is_anonymous(static_cast<const MessagePoll *>(content)->poll_id);
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "get_message_content_poll_is_anonymous");
+      return poll_manager != nullptr && poll_manager->get_poll_is_anonymous(poll_id);
+    }
     default:
       return false;
   }
 }
 
 bool get_message_content_poll_is_closed(const Td *td, const MessageContent *content) {
+  if (content == nullptr) {
+    return true;
+  }
   switch (content->get_type()) {
-    case MessageContentType::Poll:
-      return td->poll_manager_->get_poll_is_closed(static_cast<const MessagePoll *>(content)->poll_id);
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "get_message_content_poll_is_closed");
+      return poll_manager == nullptr || poll_manager->get_poll_is_closed(poll_id);
+    }
     default:
       return true;
   }
 }
 
 bool get_message_content_poll_can_add_option(const Td *td, const MessageContent *content) {
+  if (content == nullptr) {
+    return false;
+  }
   switch (content->get_type()) {
-    case MessageContentType::Poll:
-      return td->poll_manager_->get_poll_can_add_option(static_cast<const MessagePoll *>(content)->poll_id);
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "get_message_content_poll_can_add_option");
+      return poll_manager != nullptr && poll_manager->get_poll_can_add_option(poll_id);
+    }
+    default:
+      return false;
+  }
+}
+
+bool get_message_content_poll_can_view_stats(const Td *td, const MessageContent *content) {
+  if (content == nullptr) {
+    return false;
+  }
+  switch (content->get_type()) {
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "get_message_content_poll_can_view_stats");
+      return poll_manager != nullptr && poll_manager->get_poll_can_view_stats(poll_id);
+    }
     default:
       return false;
   }
 }
 
 bool get_message_content_poll_has_unread_votes(const Td *td, const MessageContent *content) {
+  if (content == nullptr) {
+    return false;
+  }
   switch (content->get_type()) {
-    case MessageContentType::Poll:
-      return td->poll_manager_->get_poll_has_unread_votes(static_cast<const MessagePoll *>(content)->poll_id);
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager =
+          get_poll_manager_for_content_access(td, poll_id, "get_message_content_poll_has_unread_votes");
+      return poll_manager != nullptr && poll_manager->get_poll_has_unread_votes(poll_id);
+    }
     default:
       return false;
   }
 }
 
+td_api::object_ptr<td_api::PollVoteRestrictionReason> get_poll_vote_restriction_reason_object(int32 legacy_reason_tag) {
+  switch (legacy_reason_tag) {
+    case 0:
+      return nullptr;
+    case 1:
+      return td_api::make_object<td_api::pollVoteRestrictionReasonMembershipRequired>();
+    default:
+      return td_api::make_object<td_api::pollVoteRestrictionReasonOther>();
+  }
+}
+
+td_api::object_ptr<td_api::PollVoteRestrictionReason> get_poll_vote_restriction_reason_object(
+    bool is_membership_required) {
+  return get_poll_vote_restriction_reason_object(is_membership_required ? 1 : 0);
+}
+
 void remove_message_content_poll_has_unread_votes(Td *td, const MessageContent *content) {
+  if (content == nullptr) {
+    return;
+  }
   switch (content->get_type()) {
-    case MessageContentType::Poll:
-      return td->poll_manager_->remove_poll_has_unread_votes(static_cast<const MessagePoll *>(content)->poll_id);
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager =
+          get_poll_manager_for_content_access(td, poll_id, "remove_message_content_poll_has_unread_votes");
+      if (poll_manager == nullptr) {
+        return;
+      }
+      return poll_manager->remove_poll_has_unread_votes(poll_id);
+    }
     default:
       return;
   }
@@ -6887,10 +7014,19 @@ void get_message_content_poll_option_properties(Td *td, const MessageContent *co
                                                 bool can_be_replied_in_another_chat, bool can_get_link, bool is_forward,
                                                 bool is_outgoing,
                                                 Promise<td_api::object_ptr<td_api::pollOptionProperties>> &&promise) {
-  CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->get_poll_option_properties(static_cast<const MessagePoll *>(content)->poll_id, option_id,
-                                                dialog_id, message_id, can_be_replied, can_be_replied_in_another_chat,
-                                                can_get_link, is_forward, is_outgoing, std::move(promise));
+  if (content == nullptr || content->get_type() != MessageContentType::Poll) {
+    promise.set_error(Status::Error(400, "Message content is not a poll"));
+    return;
+  }
+  auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+  auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "get_message_content_poll_option_properties");
+  if (poll_manager == nullptr) {
+    promise.set_error(Status::Error(400, "Poll is unavailable"));
+    return;
+  }
+  poll_manager->get_poll_option_properties(poll_id, option_id, dialog_id, message_id, can_be_replied,
+                                           can_be_replied_in_another_chat, can_get_link, is_forward, is_outgoing,
+                                           std::move(promise));
 }
 
 bool get_message_content_to_do_list_others_can_append(const MessageContent *content) {
@@ -8307,9 +8443,14 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
     case MessageContentType::VoiceNote:
       return td->transcription_manager_->register_voice(static_cast<const MessageVoiceNote *>(content)->file_id,
                                                         content_type, message_full_id, source);
-    case MessageContentType::Poll:
-      return td->poll_manager_->register_poll(static_cast<const MessagePoll *>(content)->poll_id, message_full_id,
-                                              source);
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "register_message_content");
+      if (poll_manager == nullptr) {
+        return;
+      }
+      return poll_manager->register_poll(poll_id, message_full_id, source);
+    }
     case MessageContentType::Dice: {
       auto dice = static_cast<const MessageDice *>(content);
       return td->stickers_manager_->register_dice(dice->emoji, dice->dice_value, message_full_id, {}, source);
@@ -8516,9 +8657,14 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
     case MessageContentType::VoiceNote:
       return td->transcription_manager_->unregister_voice(static_cast<const MessageVoiceNote *>(content)->file_id,
                                                           content_type, message_full_id, source);
-    case MessageContentType::Poll:
-      return td->poll_manager_->unregister_poll(static_cast<const MessagePoll *>(content)->poll_id, message_full_id,
-                                                source);
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "unregister_message_content");
+      if (poll_manager == nullptr) {
+        return;
+      }
+      return poll_manager->unregister_poll(poll_id, message_full_id, source);
+    }
     case MessageContentType::Dice: {
       auto dice = static_cast<const MessageDice *>(content);
       return td->stickers_manager_->unregister_dice(dice->emoji, dice->dice_value, message_full_id, {}, source);
@@ -8575,8 +8721,14 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
 
 void register_reply_message_content(Td *td, const MessageContent *content) {
   switch (content->get_type()) {
-    case MessageContentType::Poll:
-      return td->poll_manager_->register_reply_poll(static_cast<const MessagePoll *>(content)->poll_id);
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "register_reply_message_content");
+      if (poll_manager == nullptr) {
+        return;
+      }
+      return poll_manager->register_reply_poll(poll_id);
+    }
     default:
       return;
   }
@@ -8584,8 +8736,14 @@ void register_reply_message_content(Td *td, const MessageContent *content) {
 
 void unregister_reply_message_content(Td *td, const MessageContent *content) {
   switch (content->get_type()) {
-    case MessageContentType::Poll:
-      return td->poll_manager_->unregister_reply_poll(static_cast<const MessagePoll *>(content)->poll_id);
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "unregister_reply_message_content");
+      if (poll_manager == nullptr) {
+        return;
+      }
+      return poll_manager->unregister_reply_poll(poll_id);
+    }
     default:
       return;
   }
@@ -8604,8 +8762,14 @@ void register_quick_reply_message_content(Td *td, const MessageContent *content,
       }
       return;
     }
-    case MessageContentType::Poll:
-      return td->poll_manager_->register_reply_poll(static_cast<const MessagePoll *>(content)->poll_id);
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "register_quick_reply_message_content");
+      if (poll_manager == nullptr) {
+        return;
+      }
+      return poll_manager->register_reply_poll(poll_id);
+    }
     case MessageContentType::Dice: {
       auto dice = static_cast<const MessageDice *>(content);
       return td->stickers_manager_->register_dice(dice->emoji, dice->dice_value, {}, message_full_id, source);
@@ -8631,8 +8795,14 @@ void unregister_quick_reply_message_content(Td *td, const MessageContent *conten
       }
       return;
     }
-    case MessageContentType::Poll:
-      return td->poll_manager_->unregister_reply_poll(static_cast<const MessagePoll *>(content)->poll_id);
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "unregister_quick_reply_message_content");
+      if (poll_manager == nullptr) {
+        return;
+      }
+      return poll_manager->unregister_reply_poll(poll_id);
+    }
     case MessageContentType::Dice: {
       auto dice = static_cast<const MessageDice *>(content);
       return td->stickers_manager_->unregister_dice(dice->emoji, dice->dice_value, {}, message_full_id, source);
@@ -8784,7 +8954,7 @@ static auto secret_to_telegram_document(secret_api::decryptedMessageMediaExterna
 template <class ToT, class FromT>
 static tl_object_ptr<ToT> secret_to_telegram(FromT &from) {
   tl_object_ptr<ToT> res;
-  downcast_call(from, [&](auto &p) { res = secret_to_telegram(p); });
+  secret_api::downcast_call(from, [&](auto &p) { res = secret_to_telegram(p); });
   return res;
 }
 
@@ -9552,7 +9722,11 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       auto message_poll = static_cast<const MessagePoll *>(content);
       auto poll_id = message_poll->poll_id;
       if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
-        poll_id = td->poll_manager_->dup_poll(dialog_id, poll_id);
+        auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "dup_message_content");
+        if (poll_manager == nullptr) {
+          return nullptr;
+        }
+        poll_id = poll_manager->dup_poll(dialog_id, poll_id);
       }
       unique_ptr<MessageContent> attached_media;
       if (message_poll->attached_media != nullptr) {
@@ -10812,6 +10986,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
+      auto *poll_manager = get_poll_manager_for_content_access(td, m->poll_id, "get_message_content_object");
+      if (poll_manager == nullptr) {
+        return make_tl_object<td_api::messageUnsupported>();
+      }
       td_api::object_ptr<td_api::MessageContent> media;
       if (m->attached_media != nullptr) {
         media = get_message_content_object(m->attached_media.get(), td, dialog_id, message_id, is_outgoing, is_forward,
@@ -10819,9 +10997,9 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       }
       auto can_add_option = !td->auth_manager_->is_bot() && !is_forward && message_id.is_server() &&
                             td->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) &&
-                            td->poll_manager_->get_poll_can_add_option(m->poll_id);
-      return make_tl_object<td_api::messagePoll>(td->poll_manager_->get_poll_object(m->poll_id),
-                                                 get_text_object(m->caption), std::move(media), can_add_option);
+                            poll_manager->get_poll_can_add_option(m->poll_id);
+      return make_tl_object<td_api::messagePoll>(poll_manager->get_poll_object(m->poll_id), get_text_object(m->caption),
+                                                 std::move(media), can_add_option);
     }
     case MessageContentType::Dice: {
       const auto *m = static_cast<const MessageDice *>(content);
@@ -11888,7 +12066,11 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     }
     case MessageContentType::Poll: {
       auto poll = static_cast<const MessagePoll *>(content);
-      auto result = td->poll_manager_->get_poll_file_ids(poll->poll_id);
+      vector<FileId> result;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll->poll_id, "get_message_content_file_ids");
+      if (poll_manager != nullptr) {
+        result = poll_manager->get_poll_file_ids(poll->poll_id);
+      }
       if (poll->attached_media != nullptr) {
         append(result, get_message_content_file_ids(poll->attached_media.get(), td));
       }
@@ -11952,7 +12134,11 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     }
     case MessageContentType::Poll: {
       const auto *poll = static_cast<const MessagePoll *>(content);
-      return PSTRING() << td->poll_manager_->get_poll_search_text(poll->poll_id) << ' ' << poll->caption.text;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll->poll_id, "get_message_content_search_text");
+      if (poll_manager == nullptr) {
+        return poll->caption.text;
+      }
+      return PSTRING() << poll_manager->get_poll_search_text(poll->poll_id) << ' ' << poll->caption.text;
     }
     case MessageContentType::TopicCreate: {
       const auto *topic_create = static_cast<const MessageTopicCreate *>(content);
@@ -12280,7 +12466,11 @@ void update_failed_to_send_message_content(Td *td, unique_ptr<MessageContent> &c
     case MessageContentType::Poll: {
       const auto *message_poll = static_cast<const MessagePoll *>(content.get());
       if (PollManager::is_local_poll_id(message_poll->poll_id)) {
-        td->poll_manager_->stop_local_poll(message_poll->poll_id);
+        auto *poll_manager =
+            get_poll_manager_for_content_access(td, message_poll->poll_id, "update_failed_to_send_message_content");
+        if (poll_manager != nullptr) {
+          poll_manager->stop_local_poll(message_poll->poll_id);
+        }
       }
       break;
     }

@@ -49,4 +49,57 @@ TEST(DialogParticipantGroupAdminAdversarial, CreatorContextKeepsRankWhileBlockin
   ASSERT_FALSE(participant.status_.can_promote_members());
 }
 
+TEST(DialogParticipantGroupAdminAdversarial, UnknownChannelRightsInjectionCannotEscalateManageTopics) {
+  auto rights =
+      td::AdministratorRights(false, true, true, false, false, true, true, true, true, true /* can_manage_topics */,
+                              false, true, false, false, false, false, true, td::ChannelType::Unknown);
+
+  auto status = td::DialogParticipantStatus::Administrator(std::move(rights), "inject", false);
+
+  ASSERT_TRUE(status.is_administrator());
+  ASSERT_FALSE(status.can_edit_topics());
+  ASSERT_FALSE(status.can_pin_topics());
+  ASSERT_FALSE(status.can_create_topics());
+}
+
+TEST(DialogParticipantGroupAdminAdversarial, UnknownChannelTopicScrubMustNotClearManageTags) {
+  auto rights = td::AdministratorRights(false, true, true, false, false, true, true, true, true,
+                                        true /* attacker-controlled can_manage_topics */, false, true, false, false,
+                                        false, false, true /* can_manage_tags */, td::ChannelType::Unknown);
+
+  auto status = td::DialogParticipantStatus::Administrator(std::move(rights), "inject", false);
+
+  ASSERT_TRUE(status.is_administrator());
+  ASSERT_FALSE(status.can_edit_topics());
+  ASSERT_FALSE(status.can_pin_topics());
+  ASSERT_FALSE(status.can_create_topics());
+  ASSERT_TRUE(status.can_manage_ranks());
+
+  td::string rank;
+  auto status_object = status.get_chat_member_status_object(&rank);
+  ASSERT_TRUE(status_object != nullptr);
+  ASSERT_EQ(status_object->get_id(), td::td_api::chatMemberStatusAdministrator::ID);
+
+  const auto *administrator = static_cast<const td::td_api::chatMemberStatusAdministrator *>(status_object.get());
+  ASSERT_TRUE(administrator->rights_ != nullptr);
+  ASSERT_FALSE(administrator->rights_->can_manage_topics_);
+  ASSERT_TRUE(administrator->rights_->can_manage_tags_);
+}
+
+TEST(DialogParticipantGroupAdminAdversarial, UnknownChannelRightsInjectionCannotRetainChannelOnlyFlags) {
+  auto rights = td::AdministratorRights(
+      false, true, true, true /* attacker-controlled can_post_messages */,
+      true /* attacker-controlled can_edit_messages */, true, true, true, true, true, false, true, true, true,
+      true /* attacker-controlled can_manage_direct_messages */, true, true, td::ChannelType::Unknown);
+
+  auto status = td::DialogParticipantStatus::Administrator(std::move(rights), "inject", true);
+
+  ASSERT_TRUE(status.is_administrator());
+  ASSERT_FALSE(status.can_post_messages());
+  ASSERT_FALSE(status.can_edit_messages());
+  ASSERT_FALSE(status.can_manage_direct_messages());
+  ASSERT_FALSE(status.can_edit_topics());
+  ASSERT_TRUE(status.can_manage_ranks());
+}
+
 }  // namespace

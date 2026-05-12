@@ -25,8 +25,7 @@ td::string normalize_for_contract(td::Slice source) {
   td::string normalized;
   normalized.reserve(source.size());
   for (auto c : source) {
-    auto byte = static_cast<unsigned char>(c);
-    if (byte == ' ' || byte == '\t' || byte == '\r' || byte == '\n') {
+    if (auto byte = static_cast<unsigned char>(c); byte == ' ' || byte == '\t' || byte == '\r' || byte == '\n') {
       continue;
     }
     normalized.push_back(c);

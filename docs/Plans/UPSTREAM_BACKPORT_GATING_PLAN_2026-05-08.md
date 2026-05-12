@@ -9,18 +9,18 @@ telemt: https://t.me/telemtrs
 
 **Plan ID:** upstream-backport-gate-2026-05-08
 **Date:** 2026-05-08
-**Last updated:** 2026-05-09
-**Status:** Execution in Progress (Wave 2 core completed; branch-local lane split pending before merge/squash)
+**Last updated:** 2026-05-11
+**Status:** Execution in Progress (W2/W2-003/W3-P split lanes and initial fingerprint hardening merged to master; Wave 3 critical intake reassessed; remaining waves still planning)
 **Primary Goal:** Decide and execute backports from upstream tdlib only when they improve this codebase and pass strict quality/security/TDD/C++23 gates.
 **Threat Context:** Active DPI adversary with very high budget and adaptive blocking behavior (ECH blocking and selective QUIC blocking). Every transport-facing decision must be adversarially validated.
-**Current Stage Goal:** Keep remaining waves in planning mode, keep the docs aligned with the actual branch state, and split branch-local work into lane-specific commits before any merge or squash.
+**Current Stage Goal:** Keep remaining waves in planning mode, preserve truthful post-merge records, and use the canonical manifest plus decision logs to steer any further backlog intake.
 
 ---
 
-## 0. Execution Delta vs Upstream (2026-05-09)
+## 0. Execution Delta vs Upstream (2026-05-10)
 
-Compared against upstream range `original..upstream/master` and the current staged changes in this
-fork:
+Compared against upstream range `original..upstream/master` and the merged `master` state in this
+fork after PR #18 (`258125992`):
 
 1. Implemented and adapted:
     - `a09adfc63` (`Fix reply_to_top_id.`) in `td/telegram/MessageReplyHeader.cpp`, adapted via
@@ -31,22 +31,22 @@ fork:
        explicit least-privilege legacy rights seams.
     - `1a9ef3d68` (`Repair group administrator rights on load.`) in
        `td/telegram/ChatManager.cpp`, adapted as rank-preserving load normalization.
-2. Branch-local overlap currently present and requiring lane separation before merge/squash:
-      - `5340472b0` (`Fix possible use after move.`) currently overlaps this branch in
-         `td/telegram/CommonDialogManager.cpp`, `td/telegram/DialogManager.cpp`,
-         `td/telegram/MessagesManager.cpp`, `td/telegram/RecentDialogList.cpp`,
-         `td/telegram/SecretChatActor.cpp`, and `td/telegram/StickersManager.cpp`. Keep it as a
-         standalone W2-003 lifetime-hardening lane; do not fold it into the completed W2-001/W2-002
+2. Merged to `master` as separate lanes via PR #18:
+      - `5340472b0` (`Fix possible use after move.`) shipped as a standalone W2-003
+         lifetime-hardening lane across `td/telegram/CommonDialogManager.cpp`,
+         `td/telegram/DialogManager.cpp`, `td/telegram/MessagesManager.cpp`,
+         `td/telegram/RecentDialogList.cpp`, `td/telegram/SecretChatActor.cpp`, and
+         `td/telegram/StickersManager.cpp`. It was not folded into the completed W2-001/W2-002
          semantics lane.
-      - W3-P poll hardening currently overlaps this branch via `21275249c` in
+      - Bounded W3-P poll hardening shipped separately via `21275249c` in
          `td/telegram/PollManager.cpp`, `c81e6da9f` in `td/telegram/QuickReplyManager.cpp`,
          `3e78ebcd8` in `td/telegram/MessagesManager.cpp`, and a supporting local seam in
-         `td/telegram/MessageContent.cpp` / `td/telegram/MessageContent.h`. Keep it as a standalone
-         W3-P lane; do not fold it into W2.
-      - Separate fingerprint/tooling work is also present locally in `td/mtproto/BrowserProfile.cpp`,
-         `test/analysis/extract_client_hello_fixtures.py`, reviewed ServerHello fixture refreshes, and
-         `docs/Plans/FINGERPRINT_TEST_AND_PIPELINE_HARDENING_PLAN_2026-05-09.md`. Keep it isolated
-         from upstream-backport lanes.
+         `td/telegram/MessageContent.cpp` / `td/telegram/MessageContent.h`. It was not folded into
+         Wave 2.
+      - Separate fingerprint/tooling work also landed independently in
+         `td/mtproto/BrowserProfile.cpp`, `test/analysis/extract_client_hello_fixtures.py`, the
+         reviewed ServerHello fixture refreshes, and
+         `docs/Plans/FINGERPRINT_TEST_AND_PIPELINE_HARDENING_PLAN_2026-05-09.md`.
 3. Historical wave-level outcome:
       - W2-001 and W2-002 are completed as `Accept with Repair`.
       - The 2026-05-08 Wave 2 decision report records W2-003 as `Defer` within that wave.
@@ -901,15 +901,16 @@ For each research item classified above, in order:
 2. Implemented and adapted in this fork:
    - `a09adfc63` (`Fix reply_to_top_id.`) as W2-001, classified `Accept with Repair`.
    - `386eca6fe` + `1a9ef3d68` as W2-002, classified `Accept with Repair`.
-3. Deferred from the original Wave 2 decision and requiring its own lane if retained:
-    - `5340472b0` (`Fix possible use after move.`), classified `Defer` for separate lifetime-focused
-       hunk-by-hunk work. Current branch-local overlap must remain a standalone W2-003 lane instead of
-       being merged or squashed into W2-001/W2-002.
+3. Deferred from the original Wave 2 decision and later merged separately:
+    - `5340472b0` (`Fix possible use after move.`), classified `Defer` for the original W2 cycle and
+       later merged to `master` via PR #18 as its own W2-003 lifetime-focused lane. It remains outside
+       the completed W2-001/W2-002 semantics decision record.
 4. Wave 2 closeout evidence and gate decisions are recorded in
    `docs/Plans/UPSTREAM_WAVE_2_DECISION_2026-05-08.md`.
 5. Remaining backlog work in this gating plan now starts from Wave 2B onward; no feature-wave
-   activation is allowed without approved preflight and charter inputs, and any current branch-local
-   W3-P overlap must remain isolated until it has its own approved lane.
+   activation is allowed without approved preflight and charter inputs. The bounded W3-P slice already
+   merged on `master` does not authorize reopening the full Wave 3 capability bundle without a separate
+   charter.
 
 ## 10.4 Wave 2B (Residual Micro-Correctness Queue)
 
@@ -924,6 +925,8 @@ so it is not lost inside the large `td/telegram` backlog.
 6. Execution rule: one commit or tightly coupled pair per branch. No queue-wide batching.
 7. If any candidate turns out to depend on schema/API churn or large feature assumptions, eject it from
    Wave 2B and move it to the relevant later capability wave.
+8. Bounded closure evidence for this queue is recorded in
+   `docs/Plans/UPSTREAM_WAVE_2B_CLOSURE_NOTE_2026-05-11.md`.
 
 ## 10.5 Wave 3 (Poll and Poll-Media Capability Bundle)
 
@@ -937,8 +940,9 @@ easy cherry-picks.
 3. Planning class: Defer until there is an explicit product objective for poll/media parity.
 4. Cherry-picking individual poll/media commits is forbidden by default because the lane mixes schema,
    storage, upload, quick-reply restrictions, file-reference handling, voter-visibility rules, and
-   forwarded-message semantics. If the current branch-local overlap is retained, it must ship as a
-   standalone W3-P lane and must not be merged or squashed into any Wave 2 branch.
+   forwarded-message semantics. A bounded W3-P hardening slice has already landed separately on
+   `master` via PR #18, but that does not authorize queue-wide poll/media intake or any folding back
+   into Wave 2 work.
 5. Any future Wave 3 charter must split the capability into at least these sub-bundles:
    - poll restrictions, voters, and statistics
    - poll local storage and option/state normalization
@@ -948,6 +952,96 @@ easy cherry-picks.
    for poll-media payload parsing, and stress tests for attachment-heavy poll flows.
 7. Poll/media is intentionally sequenced after correctness waves because it has the largest message-content
    blast radius in the whole backlog.
+
+### 10.5.1 Critical Intake Assessment (2026-05-11)
+
+This section records a commit-level decision for the most security-relevant Wave 3 upstream changes.
+It is intentionally strict: Wave 3 is not complete in this fork and must not be treated as implicitly approved.
+
+1. **Already imported and adapted (bounded W3-P hardening lane):**
+   - `21275249c` (hide recent voters when unavailable)
+   - `c81e6da9f` (disallow polls with media in quick replies)
+   - `3e78ebcd8` (forwarded poll statistics path)
+   - Local strengthening beyond upstream is already present and required to keep:
+     fail-closed media helper usage in `MessageContent`/`QuickReplyManager`, and fail-closed
+     unknown-poll handling in `PollManager` input-media accessors.
+
+2. **Reject for direct import (feature/capability expansion with high blast radius):**
+   - `b2fd2e468` (`inputMessagePoll.media`)
+   - `8ff835b82` (`inputPollTypeQuiz.explanation_media`)
+   - `410f57214` (`inputPollOption.media`)
+   - `bf4bfcf8e` (multiple media upload in polls)
+   - `d59ef0167`, `65b967524`, `8104480e0`, `50d50976f`
+   Reason: these commits expand schema, input-media, upload, file-reference, and runtime message-content
+   surfaces together. In this fork, direct import would materially increase attack surface without a
+   dedicated capability charter and fail-closed redesign.
+
+3. **Defer (charter-gated, not rejected forever):**
+   - statistics/restrictions/unread-state lane, including `7d56f9c58`, `f654c5c81`, `bcd2c683c`,
+     `1eaf2481e`, `d6ef00fa9`, `084707e99`, `bb6574d9f`, `b00c67763`, `0b9e9829b`,
+     `d51464eb2`, `c6411b9c9`, `dc470c164`, `02473d316`, `aaea672ae`
+   Reason: these change API shape, permission semantics, update behavior, and user-visible poll policy.
+   They are capability work, not isolated hardening.
+
+4. **Assessment conclusion:**
+   - Wave 3 remains **partially implemented** in this fork.
+   - The merged subset is a defensive lane, not feature parity with upstream Wave 3.
+   - Any claim that Wave 3 is complete is incorrect unless a dedicated charter executes the deferred
+     capability bundles through full TDD and security gates.
+
+### 10.5.2 Adaptation Rules For Any Future Wave 3 Intake
+
+If a deferred Wave 3 commit is reconsidered, adaptation must follow these rules (direct cherry-pick is forbidden):
+
+1. Preserve fail-closed behavior as the first invariant:
+   - missing/unknown poll state must deny operation and never trigger crash-oriented control flow;
+   - runtime media detection must use central helper seams rather than ad-hoc file-id scans at call sites.
+2. Keep schema and runtime changes decoupled:
+   - no `td_api.tl` expansion may be merged in the same branch as storage/upload/runtime rewires;
+   - each sub-bundle must have its own contract and risk register before code changes.
+3. Require C++23 adaptation for touched seams:
+   - no C++14/17-style carry-over where modern safer alternatives already exist in this codebase.
+4. Deny-by-default for new policy states:
+   - ambiguous voter/statistics/eligibility states must be blocked, not permissively inferred.
+
+### 10.5.3 Mandatory Test Matrix For Wave 3 Adaptation Branches
+
+For every accepted Wave 3 adaptation branch, tests must be written first and include all categories below:
+
+1. **Contract tests:**
+   - source-level seam pinning for quick-reply/media/send/forward statistics gates.
+2. **Adversarial tests:**
+   - malformed or stale poll IDs, missing manager state, inconsistent persisted poll payloads,
+     and forwarded/imported edge semantics.
+3. **Integration tests:**
+   - runtime parse/store boundaries and cross-manager guard enforcement.
+4. **Light fuzz tests:**
+   - randomized probe coverage for guard invariants and forbidden legacy paths.
+5. **Stress tests:**
+   - repeated source/runtime invariance checks for fail-closed behavior under sustained load.
+
+At minimum, adapted branches must keep the existing Wave 3 suite families green and extend them when
+new seam risk is introduced: `quick_reply_poll_media_*`, `poll_media_send_guard_*`,
+`forwarded_poll_statistics_*`, and `poll_state_runtime_*`.
+
+### 10.5.4 Published Capability Charter
+
+Wave 3 now has a dedicated capability charter:
+
+`docs/Plans/UPSTREAM_WAVE_3_CHARTER_2026-05-11.md`
+
+The charter freezes exact commit membership split into sub-bundles, schema/runtime ownership tables,
+and per-bundle kill-switch criteria. Wave 3 remains deferred until explicit product-objective approval
+and a Wave 3 preflight annex activate one bounded sub-bundle at a time.
+
+### 10.5.5 Published Preflight Annex (W3-B2)
+
+The first bounded Wave 3 preflight annex is published for W3-B2 policy/voter/statistics/unread scope:
+
+`docs/Plans/UPSTREAM_WAVE_3_PREFLIGHT_2026-05-11.md`
+
+This annex freezes exact W3-B2 row membership, contract snapshot boundaries, risk register, and
+RED test IDs. Execution remains blocked until product objective approval.
 
 ## 10.6 Wave 4 (Guest-Bot and Personal-Chat Capability Bundle)
 

@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -21,7 +21,6 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
-#include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"
 
 #include "td/utils/buffer.h"
@@ -49,7 +48,7 @@ class PollManager final : public Actor {
   PollManager &operator=(const PollManager &) = delete;
   PollManager(PollManager &&) = delete;
   PollManager &operator=(PollManager &&) = delete;
-  ~PollManager() final;
+  ~PollManager() override;
 
   static bool is_local_poll_id(PollId poll_id);
 
@@ -77,6 +76,8 @@ class PollManager final : public Actor {
 
   bool get_poll_can_add_option(PollId poll_id) const;
 
+  bool get_poll_can_view_stats(PollId poll_id) const;
+
   bool get_poll_has_unread_votes(PollId poll_id) const;
 
   void remove_poll_has_unread_votes(PollId poll_id);
@@ -89,6 +90,8 @@ class PollManager final : public Actor {
   string get_poll_search_text(PollId poll_id) const;
 
   vector<FileId> get_poll_file_ids(PollId poll_id) const;
+
+  bool has_poll(PollId poll_id) const;
 
   void add_poll_option(MessageFullId message_full_id, td_api::object_ptr<td_api::inputPollOption> &&option,
                        Promise<Unit> &&promise);
@@ -157,6 +160,7 @@ class PollManager final : public Actor {
     bool is_closed_ = false;
     bool is_updated_after_close_ = false;
     bool is_creator_ = false;
+    bool can_view_stats_ = false;
     bool has_unread_votes_ = false;
     mutable bool was_saved_ = false;
 
@@ -179,8 +183,8 @@ class PollManager final : public Actor {
   class SetPollAnswerLogEvent;
   class StopPollLogEvent;
 
-  void start_up() final;
-  void tear_down() final;
+  void start_up() override;
+  void tear_down() override;
 
   static void on_update_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
 

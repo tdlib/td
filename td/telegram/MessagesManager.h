@@ -76,7 +76,6 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
-#include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
 #include "td/actor/MultiTimeout.h"
 #include "td/actor/SignalSlot.h"
@@ -92,7 +91,6 @@
 #include "td/utils/Hints.h"
 #include "td/utils/List.h"
 #include "td/utils/Promise.h"
-#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/WaitFreeHashMap.h"
@@ -586,6 +584,8 @@ class MessagesManager final : public Actor {
   Status can_get_message_viewers(MessageFullId message_full_id) TD_WARN_UNUSED_RESULT;
 
   bool can_get_message_statistics(MessageFullId message_full_id);
+
+  bool can_get_message_poll_vote_statistics(MessageFullId message_full_id);
 
   bool can_add_message_tasks(MessageFullId message_full_id, int32 task_count);
 
@@ -1122,6 +1122,7 @@ class MessagesManager final : public Actor {
     bool disable_notification = false;
     bool contains_mention = false;
     bool contains_unread_mention = false;
+    bool contains_unread_poll_votes = false;
     bool hide_edit_date = false;
     bool had_reply_markup = false;  // had non-inline reply markup?
     bool had_forward_info = false;
@@ -1966,6 +1967,8 @@ class MessagesManager final : public Actor {
 
   bool can_get_message_statistics(DialogId dialog_id, const Message *m) const;
 
+  bool can_get_message_poll_vote_statistics(DialogId dialog_id, const Message *m) const;
+
   Status can_get_message_embedding_code(DialogId dialog_id, const Message *m) const;
 
   struct CanDeleteDialog {
@@ -2064,6 +2067,9 @@ class MessagesManager final : public Actor {
   void on_unread_message_mention_removed(Dialog *d, const Message *m, const char *source);
 
   bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);
+
+  bool update_message_contains_unread_poll_votes(Dialog *d, Message *m, bool contains_unread_poll_votes,
+                                                 const char *source);
 
   void on_unread_message_reaction_added(Dialog *d, const Message *m, const char *source);
 
@@ -2385,6 +2391,9 @@ class MessagesManager final : public Actor {
   void send_update_message_mention_read(DialogId dialog_id, const Message *m, int32 unread_mention_count) const;
 
   void send_update_message_unread_reactions(DialogId dialog_id, const Message *m, int32 unread_reaction_count) const;
+
+  void send_update_message_contains_unread_poll_votes(DialogId dialog_id, const Message *m,
+                                                      int32 unread_poll_vote_count) const;
 
   void send_update_message_live_location_viewed(MessageFullId message_full_id);
 

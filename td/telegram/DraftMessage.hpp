@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -71,17 +71,25 @@ void DraftMessage::parse(ParserT &parser) {
     has_legacy_reply_to_message_id = true;
     has_input_message_text = true;
   }
+  auto clear_same_chat_yet_unsent_reply = [this]() {
+    auto message_id = message_input_reply_to_.get_same_chat_reply_to_message_id();
+    if ((message_id.is_valid() || message_id.is_valid_scheduled()) && message_id.is_yet_unsent()) {
+      message_input_reply_to_ = {};
+    }
+  };
   td::parse(date_, parser);
   if (has_legacy_reply_to_message_id) {
     MessageId legacy_reply_to_message_id;
     td::parse(legacy_reply_to_message_id, parser);
     message_input_reply_to_ = MessageInputReplyTo::regular(legacy_reply_to_message_id);
+    clear_same_chat_yet_unsent_reply();
   }
   if (has_input_message_text) {
     td::parse(input_message_text_, parser);
   }
   if (has_message_input_reply_to) {
     td::parse(message_input_reply_to_, parser);
+    clear_same_chat_yet_unsent_reply();
   }
   if (has_local_content) {
     parse_draft_message_content(local_content_, parser);

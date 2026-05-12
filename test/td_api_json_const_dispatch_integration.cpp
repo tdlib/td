@@ -22,6 +22,17 @@ td::string load_repo_text(td::Slice relative_path) {
   return td::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
+td::string load_td_api_json_all_shards_text() {
+  td::string text = load_repo_text("td/generate/auto/td/telegram/td_api_json_1.cpp");
+  text += '\n';
+  text += load_repo_text("td/generate/auto/td/telegram/td_api_json_2.cpp");
+  text += '\n';
+  text += load_repo_text("td/generate/auto/td/telegram/td_api_json_3.cpp");
+  text += '\n';
+  text += load_repo_text("td/generate/auto/td/telegram/td_api_json_4.cpp");
+  return text;
+}
+
 }  // namespace
 
 TEST(TdApiJsonConstDispatchIntegration, first_ten_level1_json_sites_do_not_use_const_cast) {
@@ -52,123 +63,143 @@ TEST(TdApiJsonConstDispatchIntegration, first_ten_level1_json_sites_use_const_ov
 }
 
 TEST(TdApiJsonConstDispatchIntegration, second_ten_level1_json_sites_do_not_use_const_cast) {
-  const auto td_api_json_2 = load_repo_text("td/generate/auto/td/telegram/td_api_json_2.cpp");
+  const auto td_api_json_all = load_td_api_json_all_shards_text();
 
-  ASSERT_EQ(td::string::npos, td_api_json_2.find("const_cast<td_api::BlockList &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_2.find("const_cast<td_api::CanSendMessageToUserResult &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_2.find("const_cast<td_api::ChatAvailableReactions &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_2.find("const_cast<td_api::ChatBoostSource &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_2.find("const_cast<td_api::ChatMemberStatus &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_2.find("const_cast<td_api::ChatPhotoStickerType &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_2.find("const_cast<td_api::ChatStatistics &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_2.find("const_cast<td_api::CheckChatUsernameResult &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_2.find("const_cast<td_api::GiveawayPrize &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_2.find("const_cast<td_api::InlineKeyboardButtonType &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::BlockList &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::CanSendMessageToUserResult &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::ChatAvailableReactions &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::ChatBoostSource &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::ChatMemberStatus &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::ChatPhotoStickerType &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::ChatStatistics &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::CheckChatUsernameResult &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::GiveawayPrize &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::InlineKeyboardButtonType &>(object)"));
 }
 
 TEST(TdApiJsonConstDispatchIntegration, second_ten_level1_json_sites_use_const_overload_dispatch) {
-  const auto td_api_json_2 = load_repo_text("td/generate/auto/td/telegram/td_api_json_2.cpp");
+  const auto td_api_json_all = load_td_api_json_all_shards_text();
 
-  ASSERT_NE(td::string::npos,
-            td_api_json_2.find("to_json(JsonValueScope &jv, const td_api::BlockList &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_2.find("to_json(JsonValueScope &jv, const td_api::CanSendMessageToUserResult &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_2.find("to_json(JsonValueScope &jv, const td_api::ChatAvailableReactions &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_2.find("to_json(JsonValueScope &jv, const td_api::ChatBoostSource &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_2.find("to_json(JsonValueScope &jv, const td_api::ChatMemberStatus &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_2.find("to_json(JsonValueScope &jv, const td_api::ChatPhotoStickerType &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_2.find("to_json(JsonValueScope &jv, const td_api::ChatStatistics &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_2.find("to_json(JsonValueScope &jv, const td_api::CheckChatUsernameResult &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_2.find("to_json(JsonValueScope &jv, const td_api::GiveawayPrize &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_2.find("to_json(JsonValueScope &jv, const td_api::InlineKeyboardButtonType &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::BlockList &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::CanSendMessageToUserResult &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::ChatAvailableReactions &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::ChatBoostSource &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::ChatMemberStatus &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::ChatPhotoStickerType &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::ChatStatistics &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::CheckChatUsernameResult &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::GiveawayPrize &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::InlineKeyboardButtonType &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
 }
 
 TEST(TdApiJsonConstDispatchIntegration, third_ten_level1_json_sites_do_not_use_const_cast) {
-  const auto td_api_json_3 = load_repo_text("td/generate/auto/td/telegram/td_api_json_3.cpp");
+  const auto td_api_json_all = load_td_api_json_all_shards_text();
 
-  ASSERT_EQ(td::string::npos, td_api_json_3.find("const_cast<td_api::BackgroundFill &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_3.find("const_cast<td_api::BotWriteAccessAllowReason &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_3.find("const_cast<td_api::CanTransferOwnershipResult &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_3.find("const_cast<td_api::CheckStickerSetNameResult &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_3.find("const_cast<td_api::DiceStickers &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_3.find("const_cast<td_api::EmailAddressResetState &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_3.find("const_cast<td_api::InlineQueryResult &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_3.find("const_cast<td_api::InviteLinkChatType &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_3.find("const_cast<td_api::LanguagePackStringValue &>(object)"));
-  ASSERT_EQ(td::string::npos, td_api_json_3.find("const_cast<td_api::MessageSendingState &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::BackgroundFill &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::BotWriteAccessAllowReason &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::CanTransferOwnershipResult &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::CheckStickerSetNameResult &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::DiceStickers &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::EmailAddressResetState &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::InlineQueryResult &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::InviteLinkChatType &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::LanguagePackStringValue &>(object)"));
+  ASSERT_EQ(td::string::npos, td_api_json_all.find("const_cast<td_api::MessageSendingState &>(object)"));
 }
 
 TEST(TdApiJsonConstDispatchIntegration, third_ten_level1_json_sites_use_const_overload_dispatch) {
-  const auto td_api_json_3 = load_repo_text("td/generate/auto/td/telegram/td_api_json_3.cpp");
+  const auto td_api_json_all = load_td_api_json_all_shards_text();
 
-  ASSERT_NE(td::string::npos,
-            td_api_json_3.find("to_json(JsonValueScope &jv, const td_api::BackgroundFill &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_3.find("to_json(JsonValueScope &jv, const td_api::BotWriteAccessAllowReason &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_3.find("to_json(JsonValueScope &jv, const td_api::CanTransferOwnershipResult &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_3.find("to_json(JsonValueScope &jv, const td_api::CheckStickerSetNameResult &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_3.find("to_json(JsonValueScope &jv, const td_api::DiceStickers &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_3.find("to_json(JsonValueScope &jv, const td_api::EmailAddressResetState &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_3.find("to_json(JsonValueScope &jv, const td_api::InlineQueryResult &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_3.find("to_json(JsonValueScope &jv, const td_api::InviteLinkChatType &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_3.find("to_json(JsonValueScope &jv, const td_api::LanguagePackStringValue &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
-  ASSERT_NE(td::string::npos,
-            td_api_json_3.find("to_json(JsonValueScope &jv, const td_api::MessageSendingState &object) {\n"
-                               "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
-                               "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::BackgroundFill &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::BotWriteAccessAllowReason &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::CanTransferOwnershipResult &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::CheckStickerSetNameResult &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::DiceStickers &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::EmailAddressResetState &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::InlineQueryResult &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::InviteLinkChatType &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::LanguagePackStringValue &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
+  ASSERT_NE(
+      td::string::npos,
+      td_api_json_all.find("to_json(JsonValueScope &jv, const td_api::MessageSendingState &object) {\n"
+                           "  td_api::downcast_call(object, [&jv](const auto &object) { to_json(jv, object); });\n"
+                           "}"));
 }
 
 TEST(TdApiJsonConstDispatchIntegration, fourth_batch_json1_sites_do_not_use_const_cast) {

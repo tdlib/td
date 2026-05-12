@@ -2235,7 +2235,7 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
 
   auto content = is_edit ? m->edited_content.get() : m->content.get();
   CHECK(content != nullptr);
-  if (message_content_poll_has_attached_media(content)) {
+  if (message_content_poll_has_media(content, td_)) {
     auto error = Status::Error(400, "Can't send polls with media from quick replies");
     if (is_edit) {
       return fail_edit_quick_reply_message(m->shortcut_id, m->message_id, m->edit_generation, FileUploadId(),
@@ -3272,7 +3272,7 @@ Result<vector<QuickReplyManager::QuickReplyMessageContent>> QuickReplyManager::g
     if (!message->message_id.is_server()) {
       continue;
     }
-    if (message_content_poll_has_attached_media(message->content.get())) {
+    if (message_content_poll_has_media(message->content.get(), td_)) {
       return Status::Error(400, "Can't send polls with media from quick replies");
     }
     auto content = dup_message_content(td_, dialog_id, message->content.get(), MessageContentDupType::ServerCopy,
@@ -3478,7 +3478,11 @@ Result<InputMessageContent> QuickReplyManager::process_input_message_content(
     return Status::Error(400, "Can't add live location as a quick reply");
   }
   // update addQuickReplyShortcutMessage documentation
-  return get_input_message_content(DialogId(), std::move(input_message_content), td_, true);
+  TRY_RESULT(content, get_input_message_content(DialogId(), std::move(input_message_content), td_, true));
+  if (message_content_poll_has_media(content.content.get(), td_)) {
+    return Status::Error(400, "Can't send polls with media from quick replies");
+  }
+  return std::move(content);
 }
 
 MessageId QuickReplyManager::get_next_message_id(Shortcut *s, MessageType type) const {

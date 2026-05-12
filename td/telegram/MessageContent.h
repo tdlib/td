@@ -192,7 +192,7 @@ int32 get_message_content_live_location_period(const MessageContent *content);
 
 PollId get_message_content_poll_id(const MessageContent *content);
 
-bool message_content_poll_has_attached_media(const MessageContent *content);
+bool message_content_poll_has_media(const MessageContent *content, const Td *td);
 
 bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content);
 
@@ -200,7 +200,14 @@ bool get_message_content_poll_is_closed(const Td *td, const MessageContent *cont
 
 bool get_message_content_poll_can_add_option(const Td *td, const MessageContent *content);
 
+bool get_message_content_poll_can_view_stats(const Td *td, const MessageContent *content);
+
 bool get_message_content_poll_has_unread_votes(const Td *td, const MessageContent *content);
+
+td_api::object_ptr<td_api::PollVoteRestrictionReason> get_poll_vote_restriction_reason_object(int32 legacy_reason_tag);
+
+td_api::object_ptr<td_api::PollVoteRestrictionReason> get_poll_vote_restriction_reason_object(
+    bool is_membership_required);
 
 void remove_message_content_poll_has_unread_votes(Td *td, const MessageContent *content);
 
