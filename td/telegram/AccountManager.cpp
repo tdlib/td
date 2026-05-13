@@ -638,8 +638,12 @@ class AccountManager::UnconfirmedAuthorization {
       : hash_(hash), date_(date), device_(std::move(device)), location_(std::move(location)) {
   }
 
-  int64 get_hash() const {
-    return hash_;
+  bool is_valid() const {
+    return hash_ != 0;
+  }
+
+  bool is_same(const UnconfirmedAuthorization &other) const {
+    return hash_ == other.hash_;
   }
 
   int32 get_date() const {
@@ -684,12 +688,12 @@ class AccountManager::UnconfirmedAuthorizations {
   }
 
   bool add_authorization(UnconfirmedAuthorization &&unconfirmed_authorization, bool &is_first_changed) {
-    if (unconfirmed_authorization.get_hash() == 0) {
+    if (!unconfirmed_authorization.is_valid()) {
       LOG(ERROR) << "Receive empty unconfirmed authorization";
       return false;
     }
     for (const auto &authorization : authorizations_) {
-      if (authorization.get_hash() == unconfirmed_authorization.get_hash()) {
+      if (authorization.is_same(unconfirmed_authorization)) {
         return false;
       }
     }
@@ -702,9 +706,9 @@ class AccountManager::UnconfirmedAuthorizations {
     return true;
   }
 
-  bool delete_authorization(int64 hash, bool &is_first_changed) {
+  bool delete_authorization(UnconfirmedAuthorization &&deleted_authorization, bool &is_first_changed) {
     auto it = authorizations_.begin();
-    while (it != authorizations_.end() && it->get_hash() != hash) {
+    while (it != authorizations_.end() && !it->is_same(deleted_authorization)) {
       ++it;
     }
     if (it == authorizations_.end()) {
@@ -1235,7 +1239,7 @@ void AccountManager::on_new_unconfirmed_authorization(int64 hash, int32 date, st
 bool AccountManager::on_confirm_authorization(int64 hash) {
   bool is_first_changed = false;
   if (unconfirmed_authorizations_ != nullptr &&
-      unconfirmed_authorizations_->delete_authorization(hash, is_first_changed)) {
+      unconfirmed_authorizations_->delete_authorization({hash, 0, string(), string()}, is_first_changed)) {
     if (unconfirmed_authorizations_->is_empty()) {
       unconfirmed_authorizations_ = nullptr;
     }
