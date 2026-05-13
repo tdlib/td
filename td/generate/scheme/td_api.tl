@@ -8521,6 +8521,17 @@ accountTtl days:int32 = AccountTtl;
 messageAutoDeleteTime time:int32 = MessageAutoDeleteTime;
 
 
+//@class SessionType @description Describes type of a user session
+
+//@description A regular session from a device
+//@session_id Unique identifier of the session. Use terminateSession to terminate it or confirmSession to confirm it if it isn't confirmed yet
+sessionTypeDevice session_id:int64 = SessionType;
+
+//@description A business bot connected to the current user's account
+//@bot_user_id User identifier of the bot. Use deleteBusinessConnectedBot to remove it or confirmBusinessConnectedBot to confirm it if it isn't confirmed yet
+sessionTypeConnectedBot bot_user_id:int53 = SessionType;
+
+
 //@class SessionDeviceType @description Represents the type of device from which session was created
 
 //@description The session is running on an Android device
@@ -8599,12 +8610,13 @@ session id:int64 is_current:Bool is_password_pending:Bool is_unconfirmed:Bool ca
 //@description Contains a list of sessions @sessions List of sessions @inactive_session_ttl_days Number of days of inactivity before sessions will automatically be terminated; 1-366 days
 sessions sessions:vector<session> inactive_session_ttl_days:int32 = Sessions;
 
+
 //@description Contains information about an unconfirmed session
-//@id Session identifier
-//@log_in_date Point in time (Unix timestamp) when the user has logged in
+//@type Session type
+//@date Point in time (Unix timestamp) when the user has logged in or the business bot was connected
 //@device_model Model of the device that was used for the session creation, as provided by the application
 //@location A human-readable description of the location from which the session was created, based on the IP address
-unconfirmedSession id:int64 log_in_date:int32 device_model:string location:string = UnconfirmedSession;
+unconfirmedSession type:SessionType date:int32 device_model:string location:string = UnconfirmedSession;
 
 
 //@description Contains information about one website the current user is logged in with Telegram

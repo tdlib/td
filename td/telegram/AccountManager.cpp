@@ -8,6 +8,7 @@
 
 #include "td/telegram/AgeVerificationParameters.hpp"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
@@ -306,7 +307,7 @@ class GetAuthorizationsQuery final : public Td::ResultHandler {
               });
     for (auto &session : results->sessions_) {
       if (!session->is_current_ && !session->is_unconfirmed_) {
-        td_->account_manager_->on_confirm_authorization(session->id_);
+        td_->account_manager_->on_confirm_authorization(false, session->id_, UserId());
       }
     }
 
@@ -627,51 +628,81 @@ class InvalidateSignInCodesQuery final : public Td::ResultHandler {
 };
 
 class AccountManager::UnconfirmedAuthorization {
+  bool is_bot_ = false;
   int64 hash_ = 0;
+  UserId bot_user_id_;
   int32 date_ = 0;
   string device_;
   string location_;
 
  public:
   UnconfirmedAuthorization() = default;
-  UnconfirmedAuthorization(int64 hash, int32 date, string &&device, string &&location)
-      : hash_(hash), date_(date), device_(std::move(device)), location_(std::move(location)) {
+  UnconfirmedAuthorization(bool is_bot, int64 hash, UserId bot_user_id, int32 date, string &&device, string &&location)
+      : is_bot_(is_bot)
+      , hash_(hash)
+      , bot_user_id_(bot_user_id)
+      , date_(date)
+      , device_(std::move(device))
+      , location_(std::move(location)) {
   }
 
   bool is_valid() const {
-    return hash_ != 0;
+    return is_bot_ ? bot_user_id_.is_valid() : hash_ != 0;
   }
 
   bool is_same(const UnconfirmedAuthorization &other) const {
-    return hash_ == other.hash_;
+    return is_bot_ == other.is_bot_ && hash_ == other.hash_ && bot_user_id_ == other.bot_user_id_;
   }
 
   int32 get_date() const {
     return date_;
   }
 
-  td_api::object_ptr<td_api::unconfirmedSession> get_unconfirmed_session_object() const {
-    return td_api::make_object<td_api::unconfirmedSession>(hash_, date_, device_, location_);
+  td_api::object_ptr<td_api::unconfirmedSession> get_unconfirmed_session_object(Td *td) const {
+    auto type = [&]() -> td_api::object_ptr<td_api::SessionType> {
+      if (is_bot_) {
+        return td_api::make_object<td_api::sessionTypeConnectedBot>(
+            td->user_manager_->get_user_id_object(bot_user_id_, "sessionTypeConnectedBot"));
+      }
+      return td_api::make_object<td_api::sessionTypeDevice>(hash_);
+    }();
+    return td_api::make_object<td_api::unconfirmedSession>(std::move(type), date_, device_, location_);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const {
+    dependencies.add(bot_user_id_);
   }
 
   template <class StorerT>
   void store(StorerT &storer) const {
+    bool has_bot_user_id = bot_user_id_.is_valid();
     BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_bot_);
+    STORE_FLAG(has_bot_user_id);
     END_STORE_FLAGS();
     td::store(hash_, storer);
     td::store(date_, storer);
     td::store(device_, storer);
     td::store(location_, storer);
+    if (has_bot_user_id) {
+      td::store(bot_user_id_, storer);
+    }
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
+    bool has_bot_user_id;
     BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_bot_);
+    PARSE_FLAG(has_bot_user_id);
     END_PARSE_FLAGS();
     td::parse(hash_, parser);
     td::parse(date_, parser);
     td::parse(device_, parser);
     td::parse(location_, parser);
+    if (has_bot_user_id) {
+      td::parse(bot_user_id_, parser);
+    }
   }
 };
 
@@ -737,9 +768,15 @@ class AccountManager::UnconfirmedAuthorizations {
     return authorizations_[0].get_date() + get_authorization_autoconfirm_period();
   }
 
-  td_api::object_ptr<td_api::unconfirmedSession> get_first_unconfirmed_session_object() const {
+  td_api::object_ptr<td_api::unconfirmedSession> get_first_unconfirmed_session_object(Td *td) const {
     CHECK(!authorizations_.empty());
-    return authorizations_[0].get_unconfirmed_session_object();
+    return authorizations_[0].get_unconfirmed_session_object(td);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const {
+    for (const auto &authorization : authorizations_) {
+      authorization.add_dependencies(dependencies);
+    }
   }
 
   template <class StorerT>
@@ -767,6 +804,14 @@ void AccountManager::start_up() {
     CHECK(unconfirmed_authorizations_ != nullptr);
     if (delete_expired_unconfirmed_authorizations()) {
       save_unconfirmed_authorizations();
+    }
+    if (unconfirmed_authorizations_ != nullptr) {
+      Dependencies dependencies;
+      unconfirmed_authorizations_->add_dependencies(dependencies);
+      if (!dependencies.resolve_force(td_, "UnconfirmedAuthorizations", true)) {
+        unconfirmed_authorizations_ = nullptr;
+        save_unconfirmed_authorizations();
+      }
     }
     if (unconfirmed_authorizations_ != nullptr) {
       update_unconfirmed_authorization_timeout(false);
@@ -941,7 +986,7 @@ void AccountManager::reset_authorization_on_server(int64 hash, uint64 log_event_
 }
 
 void AccountManager::terminate_session(int64 session_id, Promise<Unit> &&promise) {
-  on_confirm_authorization(session_id);
+  on_confirm_authorization(false, session_id, UserId());
   reset_authorization_on_server(session_id, 0, std::move(promise));
 }
 
@@ -1038,7 +1083,7 @@ void AccountManager::change_authorization_settings_on_server(int64 hash, bool se
 }
 
 void AccountManager::confirm_session(int64 session_id, Promise<Unit> &&promise) {
-  if (!on_confirm_authorization(session_id)) {
+  if (!on_confirm_authorization(false, session_id, UserId())) {
     // the authorization can be from the list of active authorizations, but the update could have been lost
     // return promise.set_value(Unit());
   }
@@ -1211,7 +1256,8 @@ void AccountManager::invalidate_authentication_codes(vector<string> &&authentica
   invalidate_sign_in_codes_on_server(std::move(authentication_codes), 0);
 }
 
-void AccountManager::on_new_unconfirmed_authorization(int64 hash, int32 date, string &&device, string &&location) {
+void AccountManager::on_new_unconfirmed_authorization(bool is_bot, int64 hash, UserId bot_user_id, int32 date,
+                                                      string &&device, string &&location) {
   if (td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive unconfirmed session by a bot";
     return;
@@ -1225,8 +1271,8 @@ void AccountManager::on_new_unconfirmed_authorization(int64 hash, int32 date, st
     unconfirmed_authorizations_ = make_unique<UnconfirmedAuthorizations>();
   }
   bool is_first_changed = false;
-  if (unconfirmed_authorizations_->add_authorization({hash, date, std::move(device), std::move(location)},
-                                                     is_first_changed)) {
+  if (unconfirmed_authorizations_->add_authorization(
+          {is_bot, hash, bot_user_id, date, std::move(device), std::move(location)}, is_first_changed)) {
     CHECK(!unconfirmed_authorizations_->is_empty());
     if (is_first_changed) {
       update_unconfirmed_authorization_timeout(false);
@@ -1236,10 +1282,11 @@ void AccountManager::on_new_unconfirmed_authorization(int64 hash, int32 date, st
   }
 }
 
-bool AccountManager::on_confirm_authorization(int64 hash) {
+bool AccountManager::on_confirm_authorization(bool is_bot, int64 hash, UserId bot_user_id) {
   bool is_first_changed = false;
   if (unconfirmed_authorizations_ != nullptr &&
-      unconfirmed_authorizations_->delete_authorization({hash, 0, string(), string()}, is_first_changed)) {
+      unconfirmed_authorizations_->delete_authorization({is_bot, hash, bot_user_id, 0, string(), string()},
+                                                        is_first_changed)) {
     if (unconfirmed_authorizations_->is_empty()) {
       unconfirmed_authorizations_ = nullptr;
     }
@@ -1293,7 +1340,7 @@ td_api::object_ptr<td_api::updateUnconfirmedSession> AccountManager::get_update_
     return td_api::make_object<td_api::updateUnconfirmedSession>(nullptr);
   }
   return td_api::make_object<td_api::updateUnconfirmedSession>(
-      unconfirmed_authorizations_->get_first_unconfirmed_session_object());
+      unconfirmed_authorizations_->get_first_unconfirmed_session_object(td_));
 }
 
 void AccountManager::send_update_unconfirmed_session() const {

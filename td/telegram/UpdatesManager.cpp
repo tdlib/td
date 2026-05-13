@@ -4863,10 +4863,20 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStoryID> update
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorization> update, Promise<Unit> &&promise) {
   if (update->unconfirmed_) {
-    td_->account_manager_->on_new_unconfirmed_authorization(update->hash_, update->date_, std::move(update->device_),
-                                                            std::move(update->location_));
+    td_->account_manager_->on_new_unconfirmed_authorization(false, update->hash_, UserId(), update->date_,
+                                                            std::move(update->device_), std::move(update->location_));
   } else {
-    td_->account_manager_->on_confirm_authorization(update->hash_);
+    td_->account_manager_->on_confirm_authorization(false, update->hash_, UserId());
+  }
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewBotConnection> update, Promise<Unit> &&promise) {
+  if (!update->confirmed_) {
+    td_->account_manager_->on_new_unconfirmed_authorization(true, 0, UserId(update->bot_id_), update->date_,
+                                                            std::move(update->device_), std::move(update->location_));
+  } else {
+    td_->account_manager_->on_confirm_authorization(true, 0, UserId(update->bot_id_));
   }
   promise.set_value(Unit());
 }
@@ -4979,10 +4989,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReactio
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateJoinChatWebViewDecision> update,
                                Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewBotConnection> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

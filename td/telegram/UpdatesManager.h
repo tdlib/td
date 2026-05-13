@@ -724,6 +724,8 @@ class UpdatesManager final : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateNewAuthorization> update, Promise<Unit> &&promise);
 
+  void on_update(tl_object_ptr<telegram_api::updateNewBotConnection> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateSmsJob> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateQuickReplies> update, Promise<Unit> &&promise);
@@ -755,8 +757,6 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateJoinChatWebViewDecision> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updateNewBotConnection> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateWebBrowserSettings> update, Promise<Unit> &&promise);
 
