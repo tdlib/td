@@ -14308,13 +14308,13 @@ setMessageSenderBotVerification bot_user_id:int53 verified_id:MessageSender cust
 removeMessageSenderBotVerification bot_user_id:int53 verified_id:MessageSender = Ok;
 
 
-//@description Returns all active sessions of the current user
+//@description Returns all active sessions of the current user. Additionally, getBusinessConnectedBot must be used to show the bot on top of active sessions
 getActiveSessions = Sessions;
 
 //@description Terminates a session of the current user @session_id Session identifier
 terminateSession session_id:int64 = Ok;
 
-//@description Terminates all other sessions of the current user
+//@description Terminates all other sessions of the current user. Additionally, the user must be suggested to delete the connected business bot using deleteBusinessConnectedBot if there is any
 terminateAllOtherSessions = Ok;
 
 //@description Confirms an unconfirmed session of the current user from another device @session_id Session identifier
