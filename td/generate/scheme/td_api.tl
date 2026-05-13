@@ -8521,58 +8521,58 @@ accountTtl days:int32 = AccountTtl;
 messageAutoDeleteTime time:int32 = MessageAutoDeleteTime;
 
 
-//@class SessionType @description Represents the type of session
+//@class SessionDeviceType @description Represents the type of device from which session was created
 
 //@description The session is running on an Android device
-sessionTypeAndroid = SessionType;
+sessionDeviceTypeAndroid = SessionDeviceType;
 
 //@description The session is running on a generic Apple device
-sessionTypeApple = SessionType;
+sessionDeviceTypeApple = SessionDeviceType;
 
 //@description The session is running on the Brave browser
-sessionTypeBrave = SessionType;
+sessionDeviceTypeBrave = SessionDeviceType;
 
 //@description The session is running on the Chrome browser
-sessionTypeChrome = SessionType;
+sessionDeviceTypeChrome = SessionDeviceType;
 
 //@description The session is running on the Edge browser
-sessionTypeEdge = SessionType;
+sessionDeviceTypeEdge = SessionDeviceType;
 
 //@description The session is running on the Firefox browser
-sessionTypeFirefox = SessionType;
+sessionDeviceTypeFirefox = SessionDeviceType;
 
 //@description The session is running on an iPad device
-sessionTypeIpad = SessionType;
+sessionDeviceTypeIpad = SessionDeviceType;
 
 //@description The session is running on an iPhone device
-sessionTypeIphone = SessionType;
+sessionDeviceTypeIphone = SessionDeviceType;
 
 //@description The session is running on a Linux device
-sessionTypeLinux = SessionType;
+sessionDeviceTypeLinux = SessionDeviceType;
 
 //@description The session is running on a Mac device
-sessionTypeMac = SessionType;
+sessionDeviceTypeMac = SessionDeviceType;
 
 //@description The session is running on the Opera browser
-sessionTypeOpera = SessionType;
+sessionDeviceTypeOpera = SessionDeviceType;
 
 //@description The session is running on the Safari browser
-sessionTypeSafari = SessionType;
+sessionDeviceTypeSafari = SessionDeviceType;
 
 //@description The session is running on an Ubuntu device
-sessionTypeUbuntu = SessionType;
+sessionDeviceTypeUbuntu = SessionDeviceType;
 
 //@description The session is running on an unknown type of device
-sessionTypeUnknown = SessionType;
+sessionDeviceTypeUnknown = SessionDeviceType;
 
 //@description The session is running on the Vivaldi browser
-sessionTypeVivaldi = SessionType;
+sessionDeviceTypeVivaldi = SessionDeviceType;
 
 //@description The session is running on a Windows device
-sessionTypeWindows = SessionType;
+sessionDeviceTypeWindows = SessionDeviceType;
 
 //@description The session is running on an Xbox console
-sessionTypeXbox = SessionType;
+sessionDeviceTypeXbox = SessionDeviceType;
 
 
 //@description Contains information about one session in a Telegram application used by the current user. Sessions must be shown to the user in the returned order
@@ -8582,7 +8582,7 @@ sessionTypeXbox = SessionType;
 //@is_unconfirmed True, if the session wasn't confirmed from another session
 //@can_accept_secret_chats True, if incoming secret chats can be accepted by the session
 //@can_accept_calls True, if incoming calls can be accepted by the session
-//@type Session type based on the system and application version, which can be used to display a corresponding icon
+//@device_type Session device type based on the system and application version, which can be used to display a corresponding icon
 //@api_id Telegram API identifier, as provided by the application
 //@application_name Name of the application, as provided by the application
 //@application_version The version of the application, as provided by the application
@@ -8594,7 +8594,7 @@ sessionTypeXbox = SessionType;
 //@last_active_date Point in time (Unix timestamp) when the session was last used
 //@ip_address IP address from which the session was created, in human-readable format
 //@location A human-readable description of the location from which the session was created, based on the IP address
-session id:int64 is_current:Bool is_password_pending:Bool is_unconfirmed:Bool can_accept_secret_chats:Bool can_accept_calls:Bool type:SessionType api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip_address:string location:string = Session;
+session id:int64 is_current:Bool is_password_pending:Bool is_unconfirmed:Bool can_accept_secret_chats:Bool can_accept_calls:Bool device_type:SessionDeviceType api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip_address:string location:string = Session;
 
 //@description Contains a list of sessions @sessions List of sessions @inactive_session_ttl_days Number of days of inactivity before sessions will automatically be terminated; 1-366 days
 sessions sessions:vector<session> inactive_session_ttl_days:int32 = Sessions;

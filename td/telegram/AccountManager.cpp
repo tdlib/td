@@ -37,7 +37,7 @@
 
 namespace td {
 
-static td_api::object_ptr<td_api::SessionType> get_session_type_object(
+static td_api::object_ptr<td_api::SessionDeviceType> get_session_device_type_object(
     const tl_object_ptr<telegram_api::authorization> &authorization) {
   auto contains = [](const string &str, const char *substr) {
     return str.find(substr) != string::npos;
@@ -49,7 +49,7 @@ static td_api::object_ptr<td_api::SessionType> get_session_type_object(
   auto system_version = to_lower(authorization->system_version_);
 
   if (device_model.find("xbox") != string::npos) {
-    return td_api::make_object<td_api::sessionTypeXbox>();
+    return td_api::make_object<td_api::sessionDeviceTypeXbox>();
   }
 
   bool is_web = [&] {
@@ -65,45 +65,45 @@ static td_api::object_ptr<td_api::SessionType> get_session_type_object(
 
   if (is_web) {
     if (contains(device_model, "brave")) {
-      return td_api::make_object<td_api::sessionTypeBrave>();
+      return td_api::make_object<td_api::sessionDeviceTypeBrave>();
     } else if (contains(device_model, "vivaldi")) {
-      return td_api::make_object<td_api::sessionTypeVivaldi>();
+      return td_api::make_object<td_api::sessionDeviceTypeVivaldi>();
     } else if (contains(device_model, "opera") || contains(device_model, "opr")) {
-      return td_api::make_object<td_api::sessionTypeOpera>();
+      return td_api::make_object<td_api::sessionDeviceTypeOpera>();
     } else if (contains(device_model, "edg")) {
-      return td_api::make_object<td_api::sessionTypeEdge>();
+      return td_api::make_object<td_api::sessionDeviceTypeEdge>();
     } else if (contains(device_model, "chrome")) {
-      return td_api::make_object<td_api::sessionTypeChrome>();
+      return td_api::make_object<td_api::sessionDeviceTypeChrome>();
     } else if (contains(device_model, "firefox") || contains(device_model, "fxios")) {
-      return td_api::make_object<td_api::sessionTypeFirefox>();
+      return td_api::make_object<td_api::sessionDeviceTypeFirefox>();
     } else if (contains(device_model, "safari")) {
-      return td_api::make_object<td_api::sessionTypeSafari>();
+      return td_api::make_object<td_api::sessionDeviceTypeSafari>();
     }
   }
 
   if (begins_with(platform, "android") || contains(system_version, "android")) {
-    return td_api::make_object<td_api::sessionTypeAndroid>();
+    return td_api::make_object<td_api::sessionDeviceTypeAndroid>();
   } else if (begins_with(platform, "windows") || contains(system_version, "windows")) {
-    return td_api::make_object<td_api::sessionTypeWindows>();
+    return td_api::make_object<td_api::sessionDeviceTypeWindows>();
   } else if (begins_with(platform, "ubuntu") || contains(system_version, "ubuntu")) {
-    return td_api::make_object<td_api::sessionTypeUbuntu>();
+    return td_api::make_object<td_api::sessionDeviceTypeUbuntu>();
   } else if (begins_with(platform, "linux") || contains(system_version, "linux")) {
-    return td_api::make_object<td_api::sessionTypeLinux>();
+    return td_api::make_object<td_api::sessionDeviceTypeLinux>();
   }
 
   auto is_ios = begins_with(platform, "ios") || contains(system_version, "ios");
   auto is_macos = begins_with(platform, "macos") || contains(system_version, "macos");
   if (is_ios && contains(device_model, "iphone")) {
-    return td_api::make_object<td_api::sessionTypeIphone>();
+    return td_api::make_object<td_api::sessionDeviceTypeIphone>();
   } else if (is_ios && contains(device_model, "ipad")) {
-    return td_api::make_object<td_api::sessionTypeIpad>();
+    return td_api::make_object<td_api::sessionDeviceTypeIpad>();
   } else if (is_macos && contains(device_model, "mac")) {
-    return td_api::make_object<td_api::sessionTypeMac>();
+    return td_api::make_object<td_api::sessionDeviceTypeMac>();
   } else if (is_ios || is_macos) {
-    return td_api::make_object<td_api::sessionTypeApple>();
+    return td_api::make_object<td_api::sessionDeviceTypeApple>();
   }
 
-  return td_api::make_object<td_api::sessionTypeUnknown>();
+  return td_api::make_object<td_api::sessionDeviceTypeUnknown>();
 }
 
 static td_api::object_ptr<td_api::session> convert_authorization_object(
@@ -112,7 +112,7 @@ static td_api::object_ptr<td_api::session> convert_authorization_object(
   return td_api::make_object<td_api::session>(
       authorization->hash_, authorization->current_, authorization->password_pending_, authorization->unconfirmed_,
       !authorization->encrypted_requests_disabled_, !authorization->call_requests_disabled_,
-      get_session_type_object(authorization), authorization->api_id_, authorization->app_name_,
+      get_session_device_type_object(authorization), authorization->api_id_, authorization->app_name_,
       authorization->app_version_, authorization->official_app_, authorization->device_model_, authorization->platform_,
       authorization->system_version_, authorization->date_created_, authorization->date_active_, authorization->ip_,
       authorization->country_);
