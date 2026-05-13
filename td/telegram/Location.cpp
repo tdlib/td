@@ -146,9 +146,16 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Location &locatio
 Result<InputMessageLocation> process_input_message_location(
     tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
   CHECK(input_message_content != nullptr);
-  CHECK(input_message_content->get_id() == td_api::inputMessageLocation::ID);
-  auto input_location = static_cast<const td_api::inputMessageLocation *>(input_message_content.get());
-
+  if (input_message_content->get_id() == td_api::inputMessageLocation::ID) {
+    auto input_location = static_cast<const td_api::inputMessageLocation *>(input_message_content.get());
+    Location location(input_location->location_);
+    if (location.empty()) {
+      return Status::Error(400, "Wrong location specified");
+    }
+    return InputMessageLocation(std::move(location), 0, 0, 0);
+  }
+  CHECK(input_message_content->get_id() == td_api::inputMessageLiveLocation::ID);
+  auto input_location = static_cast<const td_api::inputMessageLiveLocation *>(input_message_content.get());
   Location location(input_location->location_);
   if (location.empty()) {
     return Status::Error(400, "Wrong location specified");
@@ -158,7 +165,7 @@ Result<InputMessageLocation> process_input_message_location(
   constexpr int32 MAX_LIVE_LOCATION_PERIOD = 86400;  // seconds, server-side limit
 
   auto period = input_location->live_period_;
-  if (period != 0 && period != std::numeric_limits<int32>::max() &&
+  if (period != std::numeric_limits<int32>::max() &&
       (period < MIN_LIVE_LOCATION_PERIOD || period > MAX_LIVE_LOCATION_PERIOD)) {
     return Status::Error(400, "Wrong live location period specified");
   }

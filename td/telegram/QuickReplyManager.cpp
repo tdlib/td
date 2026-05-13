@@ -3456,8 +3456,7 @@ Result<InputMessageContent> QuickReplyManager::process_input_message_content(
   if (message_content_id == td_api::inputMessagePaidMedia::ID) {
     return Status::Error(400, "Can't add paid media as a quick reply");
   }
-  if (message_content_id == td_api::inputMessageLocation::ID &&
-      static_cast<const td_api::inputMessageLocation *>(input_message_content.get())->live_period_ != 0) {
+  if (message_content_id == td_api::inputMessageLiveLocation::ID) {
     return Status::Error(400, "Can't add live location as a quick reply");
   }
   // update addQuickReplyShortcutMessage documentation

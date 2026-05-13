@@ -4860,14 +4860,15 @@ static Result<InputMessageContent> create_input_message_content(
       content = make_unique<MessageVoiceNote>(file_id, std::move(caption), false);
       break;
     }
+    case td_api::inputMessageLiveLocation::ID: {
+      TRY_RESULT(location, process_input_message_location(std::move(input_message_content)));
+      content = make_unique<MessageLiveLocation>(std::move(location.location), location.live_period, location.heading,
+                                                 location.proximity_alert_radius);
+      break;
+    }
     case td_api::inputMessageLocation::ID: {
       TRY_RESULT(location, process_input_message_location(std::move(input_message_content)));
-      if (location.live_period == 0) {
-        content = make_unique<MessageLocation>(std::move(location.location));
-      } else {
-        content = make_unique<MessageLiveLocation>(std::move(location.location), location.live_period, location.heading,
-                                                   location.proximity_alert_radius);
-      }
+      content = make_unique<MessageLocation>(std::move(location.location));
       break;
     }
     case td_api::inputMessageVenue::ID: {

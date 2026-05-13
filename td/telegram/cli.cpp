@@ -6830,8 +6830,8 @@ class CliClient final : public Actor {
       string longitude;
       string accuracy;
       get_args(args, chat_id, latitude, longitude, accuracy);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(
-                                as_location(latitude, longitude, accuracy), 0, 0, 0));
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessageLocation>(as_location(latitude, longitude, accuracy)));
     } else if (op == "sll") {
       ChatId chat_id;
       int32 period;
@@ -6841,7 +6841,7 @@ class CliClient final : public Actor {
       int32 heading;
       int32 proximity_alert_radius;
       get_args(args, chat_id, period, latitude, longitude, accuracy, heading, proximity_alert_radius);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(
+      send_message(chat_id, td_api::make_object<td_api::inputMessageLiveLocation>(
                                 as_location(latitude, longitude, accuracy), period, heading, proximity_alert_radius));
     } else if (op == "spoll" || op == "spollp" || op == "squiz") {
       ChatId chat_id;
