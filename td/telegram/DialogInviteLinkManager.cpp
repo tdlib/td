@@ -80,8 +80,13 @@ class ImportChatInviteQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for ImportChatInviteQuery: " << to_string(ptr);
+    auto join_result_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ImportChatInviteQuery: " << to_string(join_result_ptr);
+    if (join_result_ptr->get_id() != telegram_api::messages_chatInviteJoinResultOk::ID) {
+      return on_error(Status::Error(500, "Unsupported"));
+    }
+    auto join_result = telegram_api::move_object_as<telegram_api::messages_chatInviteJoinResultOk>(join_result_ptr);
+    auto ptr = std::move(join_result->updates_);
 
     auto dialog_ids = UpdatesManager::get_chat_dialog_ids(ptr.get());
     if (dialog_ids.size() != 1u) {

@@ -194,7 +194,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
             message_->noforwards_, false, message_->invert_media_, false, std::move(input_peer), std::move(reply_to),
             message_text->text, message_->random_id_,
             get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_), std::move(entities), 0, 0,
-            nullptr, nullptr, message_->effect_id_.get(), 0, nullptr),
+            nullptr, nullptr, message_->effect_id_.get(), 0, nullptr, nullptr),
         td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
         {{message_->dialog_id_}}));
   }
@@ -451,7 +451,7 @@ class BusinessConnectionManager::EditBusinessMessageQuery final : public Td::Res
         telegram_api::messages_editMessage(flags, disable_web_page_preview, invert_media, std::move(input_peer),
                                            server_message_id, text == nullptr ? string() : text->text,
                                            std::move(input_media), std::move(input_reply_markup), std::move(entities),
-                                           0, 0, 0),
+                                           0, 0, 0, nullptr),
         td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id_), {{dialog_id}}));
   }
 
@@ -507,7 +507,8 @@ class BusinessConnectionManager::StopBusinessPollQuery final : public Td::Result
         business_connection_id.get_invoke_prefix(),
         telegram_api::messages_editMessage(flags, false, false, std::move(input_peer), server_message_id, string(),
                                            std::move(input_media), std::move(input_reply_markup),
-                                           vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), 0, 0, 0),
+                                           vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), 0, 0, 0,
+                                           nullptr),
         td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id), {{dialog_id}}));
   }
 

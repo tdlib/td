@@ -753,6 +753,14 @@ class UpdatesManager final : public Actor {
   // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateJoinChatWebViewDecision> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateNewBotConnection> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateWebBrowserSettings> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateWebBrowserException> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

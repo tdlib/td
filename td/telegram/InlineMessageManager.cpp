@@ -116,7 +116,7 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
         telegram_api::messages_editInlineBotMessage(flags, disable_web_page_preview, invert_media,
                                                     std::move(input_bot_inline_message_id),
                                                     text == nullptr ? string() : text->text, std::move(input_media),
-                                                    std::move(input_reply_markup), std::move(entities)),
+                                                    std::move(input_reply_markup), std::move(entities), nullptr),
         {}, dc_id));
   }
 

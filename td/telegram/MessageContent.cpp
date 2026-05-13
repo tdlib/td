@@ -4445,6 +4445,12 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       result.invert_media = inline_message->invert_media_;
       break;
     }
+    case telegram_api::botInlineMessageRichMessage::ID: {
+      auto inline_message = telegram_api::move_object_as<telegram_api::botInlineMessageRichMessage>(bot_inline_message);
+      result.message_content = td::make_unique<MessageText>();
+      reply_markup = std::move(inline_message->reply_markup_);
+      break;
+    }
     case telegram_api::botInlineMessageMediaInvoice::ID: {
       auto inline_message =
           telegram_api::move_object_as<telegram_api::botInlineMessageMediaInvoice>(bot_inline_message);

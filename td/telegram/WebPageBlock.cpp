@@ -1960,6 +1960,20 @@ RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
       result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
       break;
     }
+    case telegram_api::textMath::ID:
+    case telegram_api::textCustomEmoji::ID:
+    case telegram_api::textSpoiler::ID:
+    case telegram_api::textMention::ID:
+    case telegram_api::textHashtag::ID:
+    case telegram_api::textBotCommand::ID:
+    case telegram_api::textCashtag::ID:
+    case telegram_api::textAutoUrl::ID:
+    case telegram_api::textAutoEmail::ID:
+    case telegram_api::textAutoPhone::ID:
+    case telegram_api::textBankCard::ID:
+    case telegram_api::textMentionName::ID:
+    case telegram_api::textDate::ID:
+      break;
     default:
       UNREACHABLE();
   }
@@ -2314,6 +2328,26 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       return make_unique<WebPageBlockMap>(std::move(location), zoom, dimensions,
                                           get_page_block_caption(std::move(page_block->caption_), documents));
     }
+    case telegram_api::pageBlockHeading1::ID:
+      return nullptr;
+    case telegram_api::pageBlockHeading2::ID:
+      return nullptr;
+    case telegram_api::pageBlockHeading3::ID:
+      return nullptr;
+    case telegram_api::pageBlockHeading4::ID:
+      return nullptr;
+    case telegram_api::pageBlockHeading5::ID:
+      return nullptr;
+    case telegram_api::pageBlockHeading6::ID:
+      return nullptr;
+    case telegram_api::pageBlockMath::ID:
+      return nullptr;
+    case telegram_api::pageBlockThinking::ID:
+      return nullptr;
+    case telegram_api::inputPageBlockMap::ID:
+      return nullptr;
+    case telegram_api::pageBlockBlockquoteBlocks::ID:
+      return nullptr;
     default:
       UNREACHABLE();
   }

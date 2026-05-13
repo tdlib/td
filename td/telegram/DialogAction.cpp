@@ -216,6 +216,13 @@ DialogAction::DialogAction(const UserManager *user_manager,
            get_formatted_text(user_manager, std::move(action->text_), true, false, "sendMessageTextDraftAction"));
       break;
     }
+    case telegram_api::sendMessageRichMessageDraftAction::ID:
+      init(Type::Typing);
+      break;
+    case telegram_api::inputSendMessageRichMessageDraftAction::ID:
+      LOG(ERROR) << "Receive " << to_string(action_ptr);
+      init(Type::Cancel);
+      break;
     default:
       UNREACHABLE();
       break;

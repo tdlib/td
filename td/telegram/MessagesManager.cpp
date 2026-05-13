@@ -1230,7 +1230,7 @@ class SendMessageQuery final : public Td::ResultHandler {
             flags, false, false, false, false, false, false, false, false, std::move(input_peer), std::move(reply_to),
             text.text, random_id, get_input_reply_markup(td_->user_manager_.get(), reply_markup), std::move(entities),
             schedule_date, schedule_repeat_period, std::move(as_input_peer), nullptr, effect_id.get(),
-            paid_message_star_count, std::move(post)),
+            paid_message_star_count, std::move(post), nullptr),
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
@@ -1881,7 +1881,7 @@ class EditMessageQuery final : public Td::ResultHandler {
         telegram_api::messages_editMessage(flags, disable_web_page_preview, invert_media, std::move(input_peer),
                                            server_message_id, text == nullptr ? string() : text->text,
                                            std::move(input_media), std::move(input_reply_markup), std::move(entities),
-                                           schedule_date, schedule_repeat_period, 0),
+                                           schedule_date, schedule_repeat_period, 0, nullptr),
         {{dialog_id}}));
   }
 
