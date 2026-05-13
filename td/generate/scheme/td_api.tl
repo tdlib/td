@@ -14129,6 +14129,9 @@ getBusinessConnectedBot = BusinessConnectedBotInfo;
 //@description Adds or changes business bot that is connected to the current user account @bot Connection settings for the bot
 setBusinessConnectedBot bot:businessConnectedBot = Ok;
 
+//@description Confirms an unconfirmed business connection of the current user from another device @bot_user_id User identifier of the bot
+confirmBusinessConnectedBot bot_user_id:int53 = Ok;
+
 //@description Deletes the business bot that is connected to the current user account @bot_user_id Unique user identifier for the bot
 deleteBusinessConnectedBot bot_user_id:int53 = Ok;
 

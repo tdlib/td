@@ -32,6 +32,8 @@ class BusinessManager final : public Actor {
 
   void set_business_connected_bot(td_api::object_ptr<td_api::businessConnectedBot> &&bot, Promise<Unit> &&promise);
 
+  void confirm_business_connected_bot(UserId bot_user_id, Promise<Unit> &&promise);
+
   void delete_business_connected_bot(UserId bot_user_id, Promise<Unit> &&promise);
 
   void toggle_business_connected_bot_dialog_is_paused(DialogId dialog_id, bool is_paused, Promise<Unit> &&promise);

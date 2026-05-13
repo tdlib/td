@@ -7940,6 +7940,10 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::removeBusinessConnectedBotFromChat>(chat_id));
+    } else if (op == "cbcb") {
+      UserId bot_user_id;
+      get_args(args, bot_user_id);
+      send_request(td_api::make_object<td_api::confirmBusinessConnectedBot>(bot_user_id));
     } else if (op == "dbcb") {
       UserId bot_user_id;
       get_args(args, bot_user_id);

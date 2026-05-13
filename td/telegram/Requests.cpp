@@ -6979,6 +6979,12 @@ void Requests::on_request(uint64 id, td_api::setBusinessConnectedBot &request) {
   td_->business_manager_->set_business_connected_bot(std::move(request.bot_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::confirmBusinessConnectedBot &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->business_manager_->confirm_business_connected_bot(UserId(request.bot_user_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::deleteBusinessConnectedBot &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
