@@ -883,11 +883,18 @@ businessGreetingMessageSettings shortcut_id:int32 recipients:businessRecipients 
 //@can_manage_stories True, if the bot can post, edit and delete stories
 businessBotRights can_reply:Bool can_read_messages:Bool can_delete_sent_messages:Bool can_delete_all_messages:Bool can_edit_name:Bool can_edit_bio:Bool can_edit_profile_photo:Bool can_edit_username:Bool can_view_gifts_and_stars:Bool can_sell_gifts:Bool can_change_gift_settings:Bool can_transfer_and_upgrade_gifts:Bool can_transfer_stars:Bool can_manage_stories:Bool = BusinessBotRights;
 
-//@description Describes a bot connected to a business account
+//@description Describes a business bot connected to an account
 //@bot_user_id User identifier of the bot
 //@recipients Private chats that will be accessible to the bot
 //@rights Rights of the bot
 businessConnectedBot bot_user_id:int53 recipients:businessRecipients rights:businessBotRights = BusinessConnectedBot;
+
+//@description Describes a connection of a bot to an account
+//@bot Information about the bot
+//@connection_date Point in time (Unix timestamp) when the bot was added; may be 0 if unknown
+//@device_model Model of the device that was used for the bot connection, as provided by the application; may be empty if unknown
+//@location A human-readable description of the location from which the bot was connected, based on the IP address; may be empty if unknown
+businessConnectedBotInfo bot:businessConnectedBot connection_date:int32 device_model:string location:string = BusinessConnectedBotInfo;
 
 //@description Describes settings for a business account start page
 //@title Title text of the start page
@@ -14104,8 +14111,8 @@ resendPhoneNumberCode reason:ResendCodeReason = AuthenticationCodeInfo;
 checkPhoneNumberCode code:string = Ok;
 
 
-//@description Returns the business bot that is connected to the current user account. Returns a 404 error if there is no connected bot
-getBusinessConnectedBot = BusinessConnectedBot;
+//@description Returns information about the business bot that is connected to the current user account. Returns a 404 error if there is no connected bot
+getBusinessConnectedBot = BusinessConnectedBotInfo;
 
 //@description Adds or changes business bot that is connected to the current user account @bot Connection settings for the bot
 setBusinessConnectedBot bot:businessConnectedBot = Ok;

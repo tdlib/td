@@ -33,10 +33,10 @@
 namespace td {
 
 class GetConnectedBotsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::businessConnectedBot>> promise_;
+  Promise<td_api::object_ptr<td_api::businessConnectedBotInfo>> promise_;
 
  public:
-  explicit GetConnectedBotsQuery(Promise<td_api::object_ptr<td_api::businessConnectedBot>> &&promise)
+  explicit GetConnectedBotsQuery(Promise<td_api::object_ptr<td_api::businessConnectedBotInfo>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -64,7 +64,7 @@ class GetConnectedBotsQuery final : public Td::ResultHandler {
     if (!bot.is_valid()) {
       return on_error(Status::Error(500, "Receive invalid bot"));
     }
-    promise_.set_value(bot.get_business_connected_bot_object(td_));
+    promise_.set_value(bot.get_business_connected_bot_info_object(td_));
   }
 
   void on_error(Status status) final {
@@ -534,7 +534,8 @@ void BusinessManager::tear_down() {
   parent_.reset();
 }
 
-void BusinessManager::get_business_connected_bot(Promise<td_api::object_ptr<td_api::businessConnectedBot>> &&promise) {
+void BusinessManager::get_business_connected_bot(
+    Promise<td_api::object_ptr<td_api::businessConnectedBotInfo>> &&promise) {
   td_->create_handler<GetConnectedBotsQuery>(std::move(promise))->send();
 }
 
