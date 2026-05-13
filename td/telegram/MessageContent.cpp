@@ -3026,6 +3026,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       } else {
         m->proximity_alert_radius = 0;
       }
+      if (m->period <= 0) {
+        is_bad = true;
+      }
       content = std::move(m);
       break;
     }
@@ -10864,16 +10867,17 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::LiveLocation: {
       const auto *m = static_cast<const MessageLiveLocation *>(content);
+      CHECK(m->period > 0);
       auto passed = max(G()->unix_time() - message_date, 0);
       auto expires_in = m->period == std::numeric_limits<int32>::max() ? m->period : max(0, m->period - passed);
       auto heading = expires_in == 0 ? 0 : m->heading;
       auto proximity_alert_radius = expires_in == 0 ? 0 : m->proximity_alert_radius;
-      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), m->period, expires_in, heading,
-                                                     proximity_alert_radius);
+      return make_tl_object<td_api::messageLiveLocation>(m->location.get_location_object(), m->period, expires_in,
+                                                         heading, proximity_alert_radius);
     }
     case MessageContentType::Location: {
       const auto *m = static_cast<const MessageLocation *>(content);
-      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), 0, 0, 0, 0);
+      return make_tl_object<td_api::messageLocation>(m->location.get_location_object());
     }
     case MessageContentType::Photo: {
       const auto *m = static_cast<const MessagePhoto *>(content);

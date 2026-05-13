@@ -4868,13 +4868,16 @@ messageExpiredVideoNote = MessageContent;
 //@description A self-destructed voice note message
 messageExpiredVoiceNote = MessageContent;
 
-//@description A message with a location
-//@location The location description
+//@description A message with a live location
+//@location The current location
 //@live_period Time relative to the message send date, for which the location can be updated, in seconds; if 0x7FFFFFFF, then location can be updated forever
 //@expires_in Left time for which the location can be updated, in seconds. If 0, then the location can't be updated anymore. The update updateMessageContent is not sent when this field changes
-//@heading For live locations, a direction in which the location moves, in degrees; 1-360. If 0 the direction is unknown
-//@proximity_alert_radius For live locations, a maximum distance to another chat member for proximity alerts, in meters (0-100000). 0 if the notification is disabled. Available only to the message sender
-messageLocation location:location live_period:int32 expires_in:int32 heading:int32 proximity_alert_radius:int32 = MessageContent;
+//@heading The direction in which the location moves, in degrees; 1-360. If 0, then the direction is unknown
+//@proximity_alert_radius The maximum distance to another chat member for proximity alerts, in meters (0-100000). 0 if the notification is disabled. Available only to the message sender
+messageLiveLocation location:location live_period:int32 expires_in:int32 heading:int32 proximity_alert_radius:int32 = MessageContent;
+
+//@description A message with a location @location The location
+messageLocation location:location = MessageContent;
 
 //@description A message with information about a venue @venue The venue description
 messageVenue venue:venue = MessageContent;
@@ -11324,7 +11327,7 @@ clearSearchedForTags clear_cashtags:Bool = Ok;
 //@description Deletes all call messages @revoke Pass true to delete the messages for all users
 deleteAllCallMessages revoke:Bool = Ok;
 
-//@description Returns information about the recent locations of chat members that were sent to the chat. Returns up to 1 location message per user @chat_id Chat identifier @limit The maximum number of messages to be returned
+//@description Returns information about the recent live locations of chat members that were sent to the chat. Returns at most one live location message per user @chat_id Chat identifier @limit The maximum number of messages to be returned
 searchChatRecentLocationMessages chat_id:int53 limit:int32 = Messages;
 
 //@description Returns the last message sent in a chat no later than the specified date. Returns a 404 error if such message doesn't exist

@@ -2597,8 +2597,7 @@ void MessageQueryManager::on_get_recent_locations(DialogId dialog_id, int32 limi
   auto result =
       td_->messages_manager_->get_messages_object(total_count, dialog_id, message_ids, true, "on_get_recent_locations");
   td::remove_if(result->messages_, [&](const auto &message) {
-    if (message->content_->get_id() != td_api::messageLocation::ID ||
-        static_cast<const td_api::messageLocation *>(message->content_.get())->live_period_ <= 0) {
+    if (message->content_->get_id() != td_api::messageLiveLocation::ID) {
       result->total_count_--;
       return true;
     }
