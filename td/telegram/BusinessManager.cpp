@@ -7,6 +7,7 @@
 #include "td/telegram/BusinessManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AccountManager.h"
 #include "td/telegram/BusinessAwayMessage.h"
 #include "td/telegram/BusinessChatLink.h"
 #include "td/telegram/BusinessConnectedBot.h"
@@ -551,6 +552,7 @@ void BusinessManager::set_business_connected_bot(td_api::object_ptr<td_api::busi
 
 void BusinessManager::delete_business_connected_bot(UserId bot_user_id, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+  td_->account_manager_->on_confirm_authorization(true, 0, bot_user_id);
   td_->create_handler<UpdateConnectedBotQuery>(std::move(promise))->send(std::move(input_user));
 }
 
