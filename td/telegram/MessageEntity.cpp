@@ -4062,6 +4062,11 @@ vector<MessageEntity> get_message_entities(const UserManager *user_manager,
                               date_flags);
         break;
       }
+      case telegram_api::messageEntityDiffInsert::ID:
+      case telegram_api::messageEntityDiffReplace::ID:
+      case telegram_api::messageEntityDiffDelete::ID:
+        LOG(ERROR) << "Receive " << to_string(server_entity);
+        continue;
       default:
         UNREACHABLE();
     }
@@ -4968,6 +4973,7 @@ bool is_allowed_quote_entity_type(MessageEntity::Type type) {
     case MessageEntity::Type::Strikethrough:
     case MessageEntity::Type::Spoiler:
     case MessageEntity::Type::CustomEmoji:
+    case MessageEntity::Type::FormattedDate:
       return true;
     default:
       return false;
@@ -5018,6 +5024,17 @@ void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialo
   if (!td->dialog_manager_->can_use_premium_custom_emoji_in_dialog(dialog_id)) {
     remove_premium_custom_emoji_entities(td, text.entities, true);
   }
+}
+
+bool remove_unallowed_quote_entities(FormattedText &text) {
+  return td::remove_if(text.entities, [](const auto &entity) { return !is_allowed_quote_entity_type(entity.type); });
+}
+
+bool remove_unallowed_quote_user_entities(FormattedText &text, bool skip_bot_commands, bool skip_media_timestamps) {
+  return td::remove_if(text.entities, [skip_bot_commands, skip_media_timestamps](const MessageEntity &entity) {
+    return !is_allowed_quote_entity_type(entity.type) &&
+           !is_found_entity_type(entity.type, skip_bot_commands, skip_media_timestamps);
+  });
 }
 
 }  // namespace td

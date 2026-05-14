@@ -163,6 +163,36 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
   }
 };
 
+class SetBotGuestChatResultQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::inlineMessageId>> promise_;
+
+ public:
+  explicit SetBotGuestChatResultQuery(Promise<td_api::object_ptr<td_api::inlineMessageId>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 query_id, telegram_api::object_ptr<telegram_api::InputBotInlineResult> &&result) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_setBotGuestChatResult(query_id, std::move(result))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_setBotGuestChatResult>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SetBotGuestChatResultQuery: " << to_string(ptr);
+    promise_.set_value(
+        td_api::make_object<td_api::inlineMessageId>(InlineQueriesManager::get_inline_message_id(std::move(ptr))));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SavePreparedInlineMessageQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::preparedInlineMessageId>> promise_;
 
@@ -230,6 +260,75 @@ class GetPreparedInlineMessageQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->inline_queries_manager_->on_get_prepared_inline_message(bot_user_id_, query_hash_, nullptr, Auto());
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SavePreparedKeyboardButtonQuery final : public Td::ResultHandler {
+  Promise<string> promise_;
+
+ public:
+  explicit SavePreparedKeyboardButtonQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user, const KeyboardButton &keyboard_button) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_requestWebViewButton(std::move(input_user), get_input_keyboard_button(keyboard_button))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_requestWebViewButton>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SavePreparedKeyboardButtonQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr->webapp_req_id_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetRequestedWebViewButtonQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::keyboardButton>> promise_;
+  UserId bot_user_id_;
+  string prepared_button_id_;
+
+ public:
+  explicit GetRequestedWebViewButtonQuery(Promise<td_api::object_ptr<td_api::keyboardButton>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
+            const string &prepared_button_id) {
+    bot_user_id_ = bot_user_id;
+    prepared_button_id_ = prepared_button_id;
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_getRequestedWebViewButton(std::move(input_user), prepared_button_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_getRequestedWebViewButton>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetRequestedWebViewButtonQuery: " << to_string(ptr);
+    if (ptr->get_id() != telegram_api::keyboardButtonRequestPeer::ID) {
+      LOG(ERROR) << to_string(ptr);
+      return on_error(Status::Error(500, "Receive invalid button type"));
+    }
+    auto keyboard_button = get_keyboard_button(std::move(ptr));
+    td_->inline_queries_manager_->on_get_requested_web_view_button(bot_user_id_, prepared_button_id_,
+                                                                   keyboard_button.requested_dialog_type.get());
+    promise_.set_value(get_keyboard_button_object(keyboard_button));
+  }
+
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -322,10 +421,10 @@ class SendWebViewDataQuery final : public Td::ResultHandler {
 };
 
 class SendWebViewResultMessageQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::sentWebAppMessage>> promise_;
+  Promise<td_api::object_ptr<td_api::inlineMessageId>> promise_;
 
  public:
-  explicit SendWebViewResultMessageQuery(Promise<td_api::object_ptr<td_api::sentWebAppMessage>> &&promise)
+  explicit SendWebViewResultMessageQuery(Promise<td_api::object_ptr<td_api::inlineMessageId>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -342,7 +441,7 @@ class SendWebViewResultMessageQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendWebViewResultMessageQuery: " << to_string(ptr);
-    promise_.set_value(td_api::make_object<td_api::sentWebAppMessage>(
+    promise_.set_value(td_api::make_object<td_api::inlineMessageId>(
         InlineQueriesManager::get_inline_message_id(std::move(ptr->msg_id_))));
   }
 
@@ -635,6 +734,14 @@ void InlineQueriesManager::answer_inline_query(
              std::move(results), cache_time, next_offset);
 }
 
+void InlineQueriesManager::answer_guest_query(int64 guest_query_id,
+                                              td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
+                                              Promise<td_api::object_ptr<td_api::inlineMessageId>> &&promise) const {
+  TRY_RESULT_PROMISE(promise, result, get_input_bot_inline_result(std::move(input_result), nullptr, nullptr));
+
+  td_->create_handler<SetBotGuestChatResultQuery>(std::move(promise))->send(guest_query_id, std::move(result));
+}
+
 void InlineQueriesManager::save_prepared_inline_message(
     UserId user_id, td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
     td_api::object_ptr<td_api::targetChatTypes> &&chat_types,
@@ -676,6 +783,40 @@ void InlineQueriesManager::get_prepared_inline_message(
       ->send(bot_user_id, std::move(input_user), prepared_message_id, query_hash);
 }
 
+void InlineQueriesManager::save_prepared_keyboard_button(UserId user_id,
+                                                         td_api::object_ptr<td_api::keyboardButton> &&button,
+                                                         Promise<string> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, keyboard_button, get_keyboard_button(std::move(button), true));
+
+  td_->create_handler<SavePreparedKeyboardButtonQuery>(std::move(promise))
+      ->send(std::move(input_user), keyboard_button);
+}
+
+void InlineQueriesManager::get_prepared_keyboard_button(UserId bot_user_id, const string &prepared_button_id,
+                                                        Promise<td_api::object_ptr<td_api::keyboardButton>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+  td_->create_handler<GetRequestedWebViewButtonQuery>(std::move(promise))
+      ->send(bot_user_id, std::move(input_user), prepared_button_id);
+}
+
+void InlineQueriesManager::on_get_requested_web_view_button(UserId bot_user_id, const string &prepared_button_id,
+                                                            const RequestedDialogType *requested_dialog_type) {
+  CHECK(requested_dialog_type != nullptr);
+  last_requested_web_view_button_bot_user_id_ = bot_user_id;
+  last_requested_web_view_button_prepared_button_id_ = prepared_button_id;
+  last_requested_web_view_button_requested_dialog_type_ = make_unique<RequestedDialogType>(*requested_dialog_type);
+}
+
+const RequestedDialogType *InlineQueriesManager::get_requested_dialog_type(UserId bot_user_id,
+                                                                           const string &prepared_button_id) {
+  if (bot_user_id == last_requested_web_view_button_bot_user_id_ &&
+      prepared_button_id == last_requested_web_view_button_prepared_button_id_ && !prepared_button_id.empty()) {
+    return last_requested_web_view_button_requested_dialog_type_.get();
+  }
+  return nullptr;
+}
+
 void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&url,
                                                    const WebAppOpenParameters &parameters, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
@@ -701,9 +842,9 @@ void InlineQueriesManager::send_web_view_data(UserId bot_user_id, string &&butto
       ->send(std::move(input_user), random_id, button_text, data);
 }
 
-void InlineQueriesManager::answer_web_view_query(
-    const string &web_view_query_id, td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
-    Promise<td_api::object_ptr<td_api::sentWebAppMessage>> &&promise) const {
+void InlineQueriesManager::answer_web_view_query(const string &web_view_query_id,
+                                                 td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
+                                                 Promise<td_api::object_ptr<td_api::inlineMessageId>> &&promise) const {
   CHECK(td_->auth_manager_->is_bot());
 
   TRY_RESULT_PROMISE(promise, result, get_input_bot_inline_result(std::move(input_result), nullptr, nullptr));
@@ -1740,7 +1881,7 @@ td_api::object_ptr<td_api::InlineQueryResult> InlineQueriesManager::get_inline_q
         CHECK(document_id == telegram_api::document::ID);
 
         auto parsed_document = td_->documents_manager_->on_get_document(
-            telegram_api::move_object_as<telegram_api::document>(document_ptr), DialogId(), false);
+            telegram_api::move_object_as<telegram_api::document>(document_ptr), DialogId(), false, false);
         switch (parsed_document.type) {
           case Document::Type::Animation: {
             LOG_IF(WARNING, result->type_ != "gif") << "Wrong result type " << result->type_;
@@ -2030,7 +2171,7 @@ td_api::object_ptr<td_api::InlineQueryResult> InlineQueriesManager::get_inline_q
            get_web_document_photo_size(td_->file_manager_.get(), FileType::Thumbnail, DialogId(),
                                        std::move(result->thumb_)),
            std::move(attributes)},
-          DialogId(), false, nullptr, default_document_type);
+          DialogId(), false, false, nullptr, default_document_type);
       auto file_id = parsed_document.file_id;
       if (!file_id.is_valid()) {
         break;

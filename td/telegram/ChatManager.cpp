@@ -1899,6 +1899,9 @@ void ChatManager::Chat::parse(ParserT &parser) {
   if (use_new_rights) {
     parse(status, parser);
     parse(default_permissions, parser);
+    if (status.is_administrator() && !status.is_creator()) {
+      status = DialogParticipantStatus::GroupAdministrator(false, string(status.get_rank()));
+    }
   } else {
     if (can_edit != (is_creator || is_administrator || everyone_is_administrator)) {
       LOG(ERROR) << "Have wrong can_edit flag";
@@ -1917,7 +1920,7 @@ void ChatManager::Chat::parse(ParserT &parser) {
     }
     default_permissions = RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true,
                                            everyone_is_administrator, everyone_is_administrator,
-                                           everyone_is_administrator, false, false, ChannelType::Unknown);
+                                           everyone_is_administrator, false, false, true, ChannelType::Unknown);
   }
   if (has_default_permissions_version) {
     parse(default_permissions_version, parser);
@@ -2289,7 +2292,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
     } else {
       default_permissions =
           RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, false,
-                           anyone_can_invite, false, false, false, ChannelType::Megagroup);
+                           anyone_can_invite, false, false, false, true, ChannelType::Megagroup);
     }
   }
   if (has_cache_version) {
@@ -2996,7 +2999,7 @@ RestrictedRights ChatManager::get_chat_default_permissions(ChatId chat_id) const
   auto c = get_chat(chat_id);
   if (c == nullptr) {
     return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, false, false, false, ChannelType::Unknown);
+                            false, false, false, false, false, false, ChannelType::Unknown);
   }
   return c->default_permissions;
 }
@@ -3005,7 +3008,7 @@ RestrictedRights ChatManager::get_channel_default_permissions(ChannelId channel_
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, false, false, false, ChannelType::Unknown);
+                            false, false, false, false, false, false, ChannelType::Unknown);
   }
   return c->default_permissions;
 }
@@ -3878,7 +3881,7 @@ bool ChatManager::can_convert_channel_to_gigagroup(ChannelId channel_id) const {
          c->is_gigagroup ||
          c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false, false,
                                                     false, false, false, false, false, false, false, false, false,
-                                                    ChannelType::Unknown);
+                                                    false, ChannelType::Unknown);
 }
 
 void ChatManager::report_channel_spam(ChannelId channel_id, const vector<MessageId> &message_ids,
@@ -5401,7 +5404,7 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
   if (c->is_default_permissions_changed) {
     td_->messages_manager_->on_dialog_default_permissions_updated(DialogId(channel_id));
     if (c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false, false, false,
-                                                   false, false, false, false, false, false, false, false,
+                                                   false, false, false, false, false, false, false, false, false,
                                                    ChannelType::Unknown)) {
       td_->suggested_action_manager_->remove_dialog_suggested_action(
           SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
@@ -5537,8 +5540,7 @@ void ChatManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, const ch
     vector<UserId> bot_user_ids;
     for (const auto &participant : chat_full->participants) {
       if (participant.status_.is_administrator() && participant.dialog_id_.get_type() == DialogType::User) {
-        administrators.emplace_back(participant.dialog_id_.get_user_id(), participant.status_.get_rank(),
-                                    participant.status_.is_creator());
+        administrators.emplace_back(participant.dialog_id_.get_user_id(), participant.status_);
       }
       if (participant.dialog_id_.get_type() == DialogType::User) {
         auto user_id = participant.dialog_id_.get_user_id();

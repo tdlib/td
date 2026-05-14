@@ -28,6 +28,8 @@ CSlice get_top_dialog_category_name(TopDialogCategory category) {
       return CSlice("forward_chats");
     case TopDialogCategory::BotApp:
       return CSlice("bot_app");
+    case TopDialogCategory::BotGuest:
+      return CSlice("bot_guest");
     default:
       UNREACHABLE();
       return CSlice();
@@ -55,6 +57,8 @@ TopDialogCategory get_top_dialog_category(const td_api::object_ptr<td_api::TopCh
       return TopDialogCategory::ForwardUsers;
     case td_api::topChatCategoryWebAppBots::ID:
       return TopDialogCategory::BotApp;
+    case td_api::topChatCategoryGuestBots::ID:
+      return TopDialogCategory::BotGuest;
     default:
       UNREACHABLE();
       return TopDialogCategory::Size;
@@ -82,6 +86,8 @@ TopDialogCategory get_top_dialog_category(const telegram_api::object_ptr<telegra
       return TopDialogCategory::ForwardChats;
     case telegram_api::topPeerCategoryBotsApp::ID:
       return TopDialogCategory::BotApp;
+    case telegram_api::topPeerCategoryBotsGuestChat::ID:
+      return TopDialogCategory::BotGuest;
     default:
       UNREACHABLE();
       return TopDialogCategory::Size;
@@ -108,6 +114,8 @@ telegram_api::object_ptr<telegram_api::TopPeerCategory> get_input_top_peer_categ
       return make_tl_object<telegram_api::topPeerCategoryForwardChats>();
     case TopDialogCategory::BotApp:
       return make_tl_object<telegram_api::topPeerCategoryBotsApp>();
+    case TopDialogCategory::BotGuest:
+      return make_tl_object<telegram_api::topPeerCategoryBotsGuestChat>();
     default:
       UNREACHABLE();
       return nullptr;

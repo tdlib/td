@@ -578,9 +578,9 @@ class FileManager final : public Actor {
   Result<FileId> get_audio_thumbnail_file_id(string title, string performer, bool is_small,
                                              DialogId owner_dialog_id) TD_WARN_UNUSED_RESULT;
 
-  FileType guess_file_type(const tl_object_ptr<td_api::InputFile> &file);
+  FileType guess_file_type(const td_api::object_ptr<td_api::InputFile> &file);
 
-  vector<tl_object_ptr<telegram_api::InputDocument>> get_input_documents(const vector<FileId> &file_ids);
+  vector<tl_object_ptr<telegram_api::InputDocument>> get_input_documents(const vector<FileId> &file_ids) const;
 
   static bool extract_was_uploaded(const telegram_api::object_ptr<telegram_api::InputMedia> &input_media);
 
@@ -971,6 +971,16 @@ class FileManager final : public Actor {
   FullRemoteFileLocation *get_remote(int32 key);
 
   FlatHashSet<FileId, FileIdHash> get_main_file_ids(const vector<FileId> &file_ids);
+
+  static vector<const telegram_api::InputMedia *> get_poll_media(const telegram_api::InputMedia *input_media);
+
+  static bool extract_was_uploaded(const telegram_api::InputMedia *input_media);
+
+  static bool extract_was_thumbnail_uploaded(const telegram_api::InputMedia *input_media);
+
+  static string extract_file_reference(const telegram_api::InputMedia *input_media);
+
+  static string extract_cover_file_reference(const telegram_api::InputMedia *input_media);
 
   void hangup() final;
   void tear_down() final;

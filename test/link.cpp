@@ -468,6 +468,12 @@ static auto qr_code_authentication() {
   return td::td_api::make_object<td::td_api::internalLinkTypeQrCodeAuthentication>();
 }
 
+static auto request_managed_bot(const td::string &manager_bot_username, const td::string &suggested_bot_username,
+                                const td::string &suggested_bot_name) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeRequestManagedBot>(
+      manager_bot_username, suggested_bot_username, suggested_bot_name);
+}
+
 static auto restore_purchases() {
   return td::td_api::make_object<td::td_api::internalLinkTypeRestorePurchases>();
 }
@@ -494,6 +500,10 @@ static auto story(const td::string &poster_username, td::int32 story_id) {
 
 static auto story_album(const td::string &owner_username, td::int32 story_album_id) {
   return td::td_api::make_object<td::td_api::internalLinkTypeStoryAlbum>(owner_username, story_album_id);
+}
+
+static auto text_composition_style(const td::string &style_name) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeTextCompositionStyle>(style_name);
 }
 
 static auto theme(const td::string &theme_name) {
@@ -1316,6 +1326,28 @@ TEST(Link, parse_internal_link_part3) {
   parse_internal_link("tg:addtheme?slug=abc%2Fef", theme("abc/ef"));
   parse_internal_link("tg://addtheme?slug=", unknown_deep_link("tg://addtheme?slug="));
 
+  parse_internal_link("t.me/addstyle?slug=abcdefabc", nullptr);
+  parse_internal_link("t.me/addstyle", nullptr);
+  parse_internal_link("t.me/addstyle/", nullptr);
+  parse_internal_link("t.me/addstyle//abcdefabc", nullptr);
+  parse_internal_link("t.me/addstyle?/abcdefabc", nullptr);
+  parse_internal_link("t.me/addstyle/?abcdefabc", nullptr);
+  parse_internal_link("t.me/addstyle/#abcdefabc", nullptr);
+  parse_internal_link("t.me/addstyle/abacaba", nullptr);
+  parse_internal_link("t.me/addstyle/abacabaabc", text_composition_style("abacabaabc"));
+  parse_internal_link("t.me/addstyle/aba%30abaabc", text_composition_style("aba0abaabc"));
+  parse_internal_link("t.me/addstyle/aba%2Fabaabc", nullptr);
+  parse_internal_link("t.me/addstyle/123456aabc", text_composition_style("123456aabc"));
+  parse_internal_link("t.me/addstyle/12345678901", text_composition_style("12345678901"));
+  parse_internal_link("t.me/addstyle/123456abc", text_composition_style("123456abc"));
+  parse_internal_link("t.me/addstyle/123456abc/123123/12/31/a/s//21w/?asdas#test", text_composition_style("123456abc"));
+
+  parse_internal_link("tg:addstyle?slug=abcdefabc", text_composition_style("abcdefabc"));
+  parse_internal_link("tg:addstyle?slug=abc%30efabc", text_composition_style("abc0efabc"));
+  parse_internal_link("tg:addstyle?slug=abc%20efabc", unknown_deep_link("tg://addstyle?slug=abc%20efabc"));
+  parse_internal_link("tg:addstyle?slug=abc%2Fefabc", unknown_deep_link("tg://addstyle?slug=abc%2Fefabc"));
+  parse_internal_link("tg://addstyle?slug=", unknown_deep_link("tg://addstyle?slug="));
+
   parse_internal_link("t.me/proxy?server=1.2.3.4&port=80&secret=1234567890abcdef1234567890ABCDEF",
                       proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890abcdef"));
   parse_internal_link("t.me/proxy?server=1.2.3.4&port=80adasdas&secret=1234567890abcdef1234567890ABCDEF",
@@ -1343,6 +1375,16 @@ TEST(Link, parse_internal_link_part3) {
       proxy_mtproto("google.com", 80, "7hI0VniQq83vEjRWeJCrze8BAQEBAQEBAQE"));
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7tAAAAAAAAAAAAAAAAAAAAAAAAcuZ29vZ2xlLmNvbQ",
                       proxy_mtproto("google.com", 80, "7tAAAAAAAAAAAAAAAAAAAAAAAAcuZ29vZ2xlLmNvbQ"));
+  parse_internal_link(
+      "t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2BSj5pyZnaXRodWIuY29t",
+      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t"));  // invalid, but accepted
+  parse_internal_link(
+      "t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2FSj5pyZnaXRodWIuY29t",
+      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J_Sj5pyZnaXRodWIuY29t"));  // invalid, but accepted
+  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t",
+                      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t"));
+  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J_Sj5pyZnaXRodWIuY29t",
+                      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J_Sj5pyZnaXRodWIuY29t"));
   parse_internal_link("t.me/proxy", unsupported_proxy());
   parse_internal_link("t.me/proxy?server=&port=80&secret=1234567890abcdef1234567890ABCDEF", unsupported_proxy());
   parse_internal_link("t.me/proxy?server=%FF&port=80&secret=1234567890abcdef1234567890ABCDEF", unsupported_proxy());
@@ -1819,6 +1861,24 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg:premium_multigift?ref=abcde%ff", unknown_deep_link("tg://premium_multigift?ref=abcde%ff"));
   parse_internal_link("tg://premium_multigift?ref=", premium_gift_purchase(""));
 
+  parse_internal_link("t.me/newbot/0manager/tesager?name=", public_chat("newbot"));
+  parse_internal_link("t.me/newbot/manager/0testbot?name=", public_chat("newbot"));
+  parse_internal_link("t.me/newbot/manager", request_managed_bot("manager", "bot", ""));
+  parse_internal_link("t.me/newbot/manager?name=asd", request_managed_bot("manager", "bot", "asd"));
+  parse_internal_link("t.me/newbot/manager/a?name=asd", request_managed_bot("manager", "abot", "asd"));
+  parse_internal_link("t.me/newbot/manager/testbot?name=", request_managed_bot("manager", "testbot", ""));
+  parse_internal_link("t.me/newbot/manager/testbot?name=asd", request_managed_bot("manager", "testbot", "asd"));
+  parse_internal_link("t.me/newbot/manager/testBot?name=asd", request_managed_bot("manager", "testBot", "asd"));
+  parse_internal_link("t.me/newbot/manager/testbOt?name=asd", request_managed_bot("manager", "testbOt", "asd"));
+
+  parse_internal_link("tg:newbot?manager=managerot&username=testbot&name=asd",
+                      request_managed_bot("managerot", "testbot", "asd"));
+  parse_internal_link("tg:newbot?manager=managerot&username=testbot", request_managed_bot("managerot", "testbot", ""));
+  parse_internal_link("tg:newbot?manager=0manager&username=testbot",
+                      unknown_deep_link("tg://newbot?manager=0manager&username=testbot"));
+  parse_internal_link("tg:newbot?manager=managerot&username=0testbot",
+                      unknown_deep_link("tg://newbot?manager=managerot&username=0testbot"));
+
   parse_internal_link("tg://settings", settings());
   parse_internal_link("tg://setting", unknown_deep_link("tg://setting"));
   parse_internal_link("tg://settings?asdsa?D?SADasD?asD", settings());
@@ -1999,6 +2059,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("addemoji.t.me", nullptr);
   parse_internal_link("addlist.t.me", nullptr);
   parse_internal_link("addstickers.t.me", nullptr);
+  parse_internal_link("addstyle.t.me", nullptr);
   parse_internal_link("addtheme.t.me", nullptr);
   parse_internal_link("auction.t.me", nullptr);
   parse_internal_link("auth.t.me", nullptr);

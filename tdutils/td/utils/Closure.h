@@ -46,7 +46,7 @@
 // Tmp->Ref          + / move->+
 // Var->Val       copy / copy->move
 // Var->CnstRef      + / copy->
-// Var->Ref          + / copy->+   // khm. It will complile, but won't work
+// Var->Ref          + / copy->+   // khm. It will compile, but won't work
 //
 // So I will use common idiom: forward references
 // If delay is needed, just std::forward data to temporary storage, and std::move them when call is executed.

@@ -91,7 +91,12 @@ class CheckChannelUsernameQuery final : public Td::ResultHandler {
   explicit CheckChannelUsernameQuery(Promise<bool> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, const string &username) {
+  void send(ChannelId channel_id, const string &username, bool is_bot) {
+    if (is_bot) {
+      CHECK(channel_id == ChannelId());
+      send_query(G()->net_query_creator().create(telegram_api::bots_checkUsername(username), {{"me"}}));
+      return;
+    }
     channel_id_ = channel_id;
     telegram_api::object_ptr<telegram_api::InputChannel> input_channel;
     if (channel_id.is_valid()) {
@@ -101,10 +106,13 @@ class CheckChannelUsernameQuery final : public Td::ResultHandler {
     }
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::channels_checkUsername(std::move(input_channel), username),
-                                               {{"me"}}));
+                                               {{"me"}, {channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::bots_checkUsername::ReturnType,
+                               telegram_api::channels_checkUsername::ReturnType>::value,
+                  "");
     auto result_ptr = fetch_result<telegram_api::channels_checkUsername>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -750,9 +758,9 @@ class GetBlockedDialogsQuery final : public Td::ResultHandler {
 
         td_->user_manager_->on_get_users(std::move(blocked_peers->users_), "GetBlockedDialogsQuery");
         td_->chat_manager_->on_get_chats(std::move(blocked_peers->chats_), "GetBlockedDialogsQuery");
-        td_->dialog_manager_->on_get_blocked_dialogs(offset_, limit_,
-                                                     narrow_cast<int32>(blocked_peers->blocked_.size()),
-                                                     std::move(blocked_peers->blocked_), std::move(promise_));
+        auto total_count = narrow_cast<int32>(blocked_peers->blocked_.size());
+        td_->dialog_manager_->on_get_blocked_dialogs(offset_, limit_, total_count, std::move(blocked_peers->blocked_),
+                                                     std::move(promise_));
         break;
       }
       case telegram_api::contacts_blockedSlice::ID: {
@@ -2143,7 +2151,7 @@ RestrictedRights DialogManager::get_dialog_default_permissions(DialogId dialog_i
     default:
       UNREACHABLE();
       return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                              false, false, false, false, false, ChannelType::Unknown);
+                              false, false, false, false, false, false, ChannelType::Unknown);
   }
 }
 
@@ -2949,7 +2957,7 @@ void DialogManager::on_dialog_usernames_received(DialogId dialog_id, const Usern
   }
 }
 
-void DialogManager::check_dialog_username(DialogId dialog_id, const string &username,
+void DialogManager::check_dialog_username(DialogId dialog_id, const string &username, bool is_bot,
                                           Promise<CheckDialogUsernameResult> &&promise) {
   if (dialog_id != DialogId() && dialog_id.get_type() != DialogType::User &&
       !have_dialog_force(dialog_id, "check_dialog_username")) {
@@ -2987,7 +2995,7 @@ void DialogManager::check_dialog_username(DialogId dialog_id, const string &user
   }
 
   if (username.empty()) {
-    return promise.set_value(CheckDialogUsernameResult::Ok);
+    return promise.set_value(is_bot ? CheckDialogUsernameResult::Invalid : CheckDialogUsernameResult::Ok);
   }
 
   if (!is_allowed_username(username) && username.size() != 4) {
@@ -3006,10 +3014,10 @@ void DialogManager::check_dialog_username(DialogId dialog_id, const string &user
       if (error.message() == "USERNAME_INVALID") {
         return promise.set_value(CheckDialogUsernameResult::Invalid);
       }
+      if (error.message() == "USERNAME_OCCUPIED") {
+        return promise.set_value(CheckDialogUsernameResult::Occupied);
+      }
       if (error.message() == "USERNAME_PURCHASE_AVAILABLE") {
-        if (begins_with(G()->get_option_string("my_phone_number"), "1")) {
-          return promise.set_value(CheckDialogUsernameResult::Invalid);
-        }
         return promise.set_value(CheckDialogUsernameResult::Purchasable);
       }
       return promise.set_error(std::move(error));
@@ -3023,9 +3031,10 @@ void DialogManager::check_dialog_username(DialogId dialog_id, const string &user
       return td_->create_handler<CheckUsernameQuery>(std::move(request_promise))->send(username);
     case DialogType::Channel:
       return td_->create_handler<CheckChannelUsernameQuery>(std::move(request_promise))
-          ->send(dialog_id.get_channel_id(), username);
+          ->send(dialog_id.get_channel_id(), username, is_bot);
     case DialogType::None:
-      return td_->create_handler<CheckChannelUsernameQuery>(std::move(request_promise))->send(ChannelId(), username);
+      return td_->create_handler<CheckChannelUsernameQuery>(std::move(request_promise))
+          ->send(ChannelId(), username, is_bot);
     case DialogType::Chat:
     case DialogType::SecretChat:
     default:

@@ -1624,8 +1624,8 @@ void SecretChatActor::on_outbound_send_message_error(uint64 state_id, Status err
       need_sync = true;
     }
   } else if (error.code() != 429) {
-    return on_fatal_error(std::move(error),
-                          (error.code() == 400 && error.message() == "ENCRYPTION_DECLINED") || error.code() == 403);
+    auto is_expected = (error.code() == 400 && error.message() == "ENCRYPTION_DECLINED") || error.code() == 403;
+    return on_fatal_error(std::move(error), is_expected);
   }
   auto query = create_net_query(*state->message);
   state->net_query_id = query->id();

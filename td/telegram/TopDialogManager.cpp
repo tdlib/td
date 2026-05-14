@@ -50,7 +50,7 @@ class GetTopPeersQuery final : public Td::ResultHandler {
 
   void send(int64 hash) {
     send_query(G()->net_query_creator().create(telegram_api::contacts_getTopPeers(
-        0, true, true, true, true, true, true, true, true, true, 0 /*offset*/, 100 /*limit*/, hash)));
+        0, true, true, true, true, true, true, true, true, true, true, 0 /*offset*/, 100 /*limit*/, hash)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -457,7 +457,8 @@ void TopDialogManager::on_load_dialogs(GetTopDialogsQuery &&query, vector<Dialog
         LOG(INFO) << "Skip self " << user_id;
         continue;
       }
-      if (query.category == TopDialogCategory::BotInline || query.category == TopDialogCategory::BotPM) {
+      if (query.category == TopDialogCategory::BotInline || query.category == TopDialogCategory::BotGuest ||
+          query.category == TopDialogCategory::BotPM) {
         auto r_bot_info = td_->user_manager_->get_bot_data(user_id);
         if (r_bot_info.is_error()) {
           LOG(INFO) << "Skip not a bot " << user_id;
@@ -465,7 +466,12 @@ void TopDialogManager::on_load_dialogs(GetTopDialogsQuery &&query, vector<Dialog
         }
         if (query.category == TopDialogCategory::BotInline &&
             (r_bot_info.ok().username.empty() || !r_bot_info.ok().is_inline)) {
-          LOG(INFO) << "Skip not inline bot " << user_id;
+          LOG(INFO) << "Skip non-inline bot " << user_id;
+          continue;
+        }
+        if (query.category == TopDialogCategory::BotGuest &&
+            (r_bot_info.ok().username.empty() || !r_bot_info.ok().is_guestchat_bot)) {
+          LOG(INFO) << "Skip non-guest bot " << user_id;
           continue;
         }
       }

@@ -28,8 +28,8 @@ class ProxyChecker final : public NetQueryCallback {
   explicit ProxyChecker(ActorShared<> parent);
   ProxyChecker(const ProxyChecker &) = delete;
   ProxyChecker &operator=(const ProxyChecker &) = delete;
-  ProxyChecker(ProxyChecker &&other) = delete;
-  ProxyChecker &operator=(ProxyChecker &&other) = delete;
+  ProxyChecker(ProxyChecker &&) = delete;
+  ProxyChecker &operator=(ProxyChecker &&) = delete;
   ~ProxyChecker() final = default;
 
   void test_proxy(Proxy &&proxy, int32 dc_id, double timeout, Promise<Unit> &&promise);

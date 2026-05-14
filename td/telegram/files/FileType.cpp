@@ -57,6 +57,10 @@ FileType get_file_type(const td_api::FileType &file_type) {
       return FileType::SelfDestructingVideoNote;
     case td_api::fileTypeSelfDestructingVoiceNote::ID:
       return FileType::SelfDestructingVoiceNote;
+    case td_api::fileTypeLivePhotoVideo::ID:
+      return FileType::LivePhoto;
+    case td_api::fileTypeSelfDestructingLivePhotoVideo::ID:
+      return FileType::SelfDestructingLivePhoto;
     case td_api::fileTypeNone::ID:
       return FileType::None;
     default:
@@ -120,6 +124,10 @@ tl_object_ptr<td_api::FileType> get_file_type_object(FileType file_type) {
       return make_tl_object<td_api::fileTypeSelfDestructingVideoNote>();
     case FileType::SelfDestructingVoiceNote:
       return make_tl_object<td_api::fileTypeSelfDestructingVoiceNote>();
+    case FileType::LivePhoto:
+      return make_tl_object<td_api::fileTypeLivePhotoVideo>();
+    case FileType::SelfDestructingLivePhoto:
+      return make_tl_object<td_api::fileTypeSelfDestructingLivePhotoVideo>();
     case FileType::None:
       return make_tl_object<td_api::fileTypeNone>();
     default:
@@ -151,6 +159,8 @@ CSlice get_file_type_name(FileType file_type) {
       return CSlice("profile_photos");
     case FileType::Photo:
     case FileType::SelfDestructingPhoto:
+    case FileType::LivePhoto:
+    case FileType::SelfDestructingLivePhoto:
       return CSlice("photos");
     case FileType::VoiceNote:
     case FileType::SelfDestructingVoiceNote:
@@ -223,6 +233,8 @@ FileTypeClass get_file_type_class(FileType file_type) {
     case FileType::SelfDestructingVideo:
     case FileType::SelfDestructingVideoNote:
     case FileType::SelfDestructingVoiceNote:
+    case FileType::LivePhoto:
+    case FileType::SelfDestructingLivePhoto:
       return FileTypeClass::Document;
     case FileType::SecureDecrypted:
     case FileType::SecureEncrypted:
@@ -297,6 +309,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, FileType file_type) {
       return string_builder << "SelfDestructingVideoNote";
     case FileType::SelfDestructingVoiceNote:
       return string_builder << "SelfDestructingVoiceNote";
+    case FileType::LivePhoto:
+      return string_builder << "LivePhotoVideo";
+    case FileType::SelfDestructingLivePhoto:
+      return string_builder << "SelfDestructingLivePhotoVideo";
     case FileType::Size:
     case FileType::None:
     default:
@@ -323,6 +339,7 @@ FileDirType get_file_dir_type(FileType file_type) {
     case FileType::SelfDestructingVideo:
     case FileType::SelfDestructingVideoNote:
     case FileType::SelfDestructingVoiceNote:
+    case FileType::SelfDestructingLivePhoto:
       return FileDirType::Secure;
     default:
       return FileDirType::Common;
@@ -338,6 +355,8 @@ bool is_file_big(FileType file_type, int64 expected_size) {
     case FileType::Ringtone:
     case FileType::CallLog:
     case FileType::VideoStory:
+    case FileType::LivePhoto:
+    case FileType::SelfDestructingLivePhoto:
       return false;
     default:
       break;
@@ -359,6 +378,7 @@ bool can_reuse_remote_file(FileType file_type) {
     case FileType::SelfDestructingVideo:
     case FileType::SelfDestructingVideoNote:
     case FileType::SelfDestructingVoiceNote:
+    case FileType::SelfDestructingLivePhoto:
       return false;
     default:
       return true;

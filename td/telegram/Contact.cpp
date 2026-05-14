@@ -7,7 +7,6 @@
 #include "td/telegram/Contact.h"
 
 #include "td/telegram/DialogId.h"
-#include "td/telegram/MessageQuote.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/Td.h"
@@ -146,7 +145,7 @@ Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::importedContact> 
   }
   bool edit_note = contact->note_ != nullptr;
   TRY_RESULT(note_text, get_formatted_text(td, DialogId(), std::move(contact->note_), false, true, true, false));
-  MessageQuote::remove_unallowed_quote_entities(note_text);
+  remove_unallowed_quote_entities(note_text);
 
   auto result = Contact(std::move(contact->phone_number_), std::move(contact->first_name_),
                         std::move(contact->last_name_), edit_note, std::move(note_text));

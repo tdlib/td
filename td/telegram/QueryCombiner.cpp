@@ -24,7 +24,7 @@ void QueryCombiner::add_query(int64 query_id, Promise<Promise<Unit>> &&send_quer
   if (promise) {
     query.promises.push_back(std::move(promise));
   } else if (min_delay_ > 0 && !query.is_sent) {
-    // if there is no promise, then noone waits for response
+    // if there is no promise, then no one waits for response
     // we can delay query to not exceed any flood limit
     if (query.send_query) {
       // the query is already delayed

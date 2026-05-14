@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
-project(TDLib VERSION 1.8.62 LANGUAGES CXX C)
+project(TDLib VERSION 1.8.64 LANGUAGES CXX C)
 
 if (NOT DEFINED CMAKE_MODULE_PATH)
   set(CMAKE_MODULE_PATH "")
@@ -344,6 +344,8 @@ set(TDLIB_SOURCE_PART1
   td/telegram/ActiveStoryState.cpp
   td/telegram/AffiliateType.cpp
   td/telegram/AgeVerificationParameters.cpp
+  td/telegram/AiComposeTone.cpp
+  td/telegram/AiComposeToneExample.cpp
   td/telegram/AlarmManager.cpp
   td/telegram/AnimationsManager.cpp
   td/telegram/Application.cpp
@@ -359,6 +361,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/BaseTheme.cpp
   td/telegram/Birthdate.cpp
   td/telegram/BoostManager.cpp
+  td/telegram/BotAccessSettings.cpp
   td/telegram/BotCommand.cpp
   td/telegram/BotCommandScope.cpp
   td/telegram/BotInfoManager.cpp
@@ -422,6 +425,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/DialogParticipantManager.cpp
   td/telegram/DialogPhoto.cpp
   td/telegram/DialogSource.cpp
+  td/telegram/DiffText.cpp
   td/telegram/Dimensions.cpp
   td/telegram/DisallowedGiftsSettings.cpp
   td/telegram/Document.cpp
@@ -573,6 +577,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/PhotoSize.cpp
   td/telegram/PhotoSizeSource.cpp
   td/telegram/PollManager.cpp
+  td/telegram/PollOption.cpp
   td/telegram/Premium.cpp
   td/telegram/PremiumGiftOption.cpp
   td/telegram/PrivacyManager.cpp
@@ -699,6 +704,8 @@ set(TDLIB_SOURCE_PART2
   td/telegram/AffectedHistory.h
   td/telegram/AffiliateType.h
   td/telegram/AgeVerificationParameters.h
+  td/telegram/AiComposeTone.h
+  td/telegram/AiComposeToneExample.h
   td/telegram/AlarmManager.h
   td/telegram/AnimationsManager.h
   td/telegram/Application.h
@@ -718,6 +725,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/BotVerifierSettings.h
   td/telegram/BlockListId.h
   td/telegram/BoostManager.h
+  td/telegram/BotAccessSettings.h
   td/telegram/BotCommand.h
   td/telegram/BotCommandScope.h
   td/telegram/BotInfoManager.h
@@ -791,6 +799,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/DialogParticipantManager.h
   td/telegram/DialogPhoto.h
   td/telegram/DialogSource.h
+  td/telegram/DiffText.h
   td/telegram/Dimensions.h
   td/telegram/DisallowedGiftsSettings.h
   td/telegram/Document.h
@@ -978,6 +987,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/PhotoSizeType.h
   td/telegram/PollId.h
   td/telegram/PollManager.h
+  td/telegram/PollOption.h
   td/telegram/Premium.h
   td/telegram/PremiumGiftOption.h
   td/telegram/PrivacyManager.h
@@ -1121,6 +1131,8 @@ set(TDLIB_SOURCE_PART2
   td/telegram/WebPagesManager.h
 
   td/telegram/AgeVerificationParameters.hpp
+  td/telegram/AiComposeTone.hpp
+  td/telegram/AiComposeToneExample.hpp
   td/telegram/AnimationsManager.hpp
   td/telegram/AudiosManager.hpp
   td/telegram/AuthManager.hpp
@@ -1190,6 +1202,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/PhotoSizeType.hpp
   td/telegram/PollId.hpp
   td/telegram/PollManager.hpp
+  td/telegram/PollOption.hpp
   td/telegram/PremiumGiftOption.hpp
   td/telegram/ReactionManager.hpp
   td/telegram/ReactionNotificationSettings.hpp

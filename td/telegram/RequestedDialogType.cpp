@@ -8,8 +8,11 @@
 
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
+
+#include "td/utils/logging.h"
 
 namespace td {
 
@@ -45,6 +48,20 @@ RequestedDialogType::RequestedDialogType(td_api::object_ptr<td_api::keyboardButt
   request_name_ = request_dialog->request_title_;
   request_username_ = request_dialog->request_username_;
   request_photo_ = request_dialog->request_photo_;
+}
+
+RequestedDialogType::RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestManagedBot> &&request) {
+  CHECK(request != nullptr);
+  type_ = Type::CreateBot;
+  button_id_ = request->id_;
+  suggested_name_ = request->suggested_name_;
+  suggested_username_ = request->suggested_username_;
+  if (!clean_input_string(suggested_name_)) {
+    suggested_name_.clear();
+  }
+  if (!clean_input_string(suggested_username_)) {
+    suggested_username_.clear();
+  }
 }
 
 RequestedDialogType::RequestedDialogType(telegram_api::object_ptr<telegram_api::RequestPeerType> &&peer_type,
@@ -89,6 +106,20 @@ RequestedDialogType::RequestedDialogType(telegram_api::object_ptr<telegram_api::
       bot_administrator_rights_ = AdministratorRights(type->bot_admin_rights_, ChannelType::Broadcast);
       break;
     }
+    case telegram_api::requestPeerTypeCreateBot::ID: {
+      auto type = telegram_api::move_object_as<telegram_api::requestPeerTypeCreateBot>(peer_type);
+      if (type->bot_managed_) {
+        type_ = Type::CreateBot;
+        suggested_name_ = std::move(type->suggested_name_);
+        suggested_username_ = std::move(type->suggested_username_);
+      } else {
+        LOG(ERROR) << "Receive request to create an unmanaged bot " << to_string(type);
+        type_ = Type::User;
+        restrict_is_bot_ = true;
+        is_bot_ = true;
+      }
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -99,6 +130,9 @@ td_api::object_ptr<td_api::KeyboardButtonType> RequestedDialogType::get_keyboard
     return td_api::make_object<td_api::keyboardButtonTypeRequestUsers>(
         button_id_, restrict_is_bot_, is_bot_, restrict_is_premium_, is_premium_, max_quantity_, request_name_,
         request_username_, request_photo_);
+  } else if (type_ == Type::CreateBot) {
+    return td_api::make_object<td_api::keyboardButtonTypeRequestManagedBot>(button_id_, suggested_name_,
+                                                                            suggested_username_);
   } else {
     auto user_administrator_rights = restrict_user_administrator_rights_
                                          ? user_administrator_rights_.get_chat_administrator_rights_object()
@@ -164,6 +198,17 @@ telegram_api::object_ptr<telegram_api::RequestPeerType> RequestedDialogType::get
           restrict_bot_administrator_rights_ ? bot_administrator_rights_.get_chat_admin_rights() : nullptr;
       return telegram_api::make_object<telegram_api::requestPeerTypeBroadcast>(
           flags, is_created_, has_username_, std::move(user_admin_rights), std::move(bot_admin_rights));
+    }
+    case Type::CreateBot: {
+      int32 flags = 0;
+      if (!suggested_name_.empty()) {
+        flags |= telegram_api::requestPeerTypeCreateBot::SUGGESTED_NAME_MASK;
+      }
+      if (!suggested_username_.empty()) {
+        flags |= telegram_api::requestPeerTypeCreateBot::SUGGESTED_USERNAME_MASK;
+      }
+      return telegram_api::make_object<telegram_api::requestPeerTypeCreateBot>(flags, true, suggested_name_,
+                                                                               suggested_username_);
     }
     default:
       UNREACHABLE();

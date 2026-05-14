@@ -260,7 +260,9 @@ class UserManager final : public Actor {
     bool has_main_app = false;
     bool has_bot_forum_view = false;
     bool can_bot_create_topics = false;
+    bool can_manage_bots = false;
     bool is_inline = false;
+    bool is_guestchat_bot = false;
     bool is_business = false;
     bool need_location = false;
     bool can_be_added_to_attach_menu = false;
@@ -451,6 +453,13 @@ class UserManager final : public Actor {
 
   void is_saved_music(FileId file_id, Promise<Unit> &&promise);
 
+  void add_new_saved_music(const td_api::object_ptr<td_api::InputFile> &audio, int32 duration, const string &title,
+                           const string &performer, Promise<Unit> &&promise);
+
+  void on_uploaded_saved_music_file(FileUploadId file_upload_id, bool is_url,
+                                    telegram_api::object_ptr<telegram_api::MessageMedia> media,
+                                    Promise<Unit> &&promise);
+
   void add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise);
 
   void on_add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise);
@@ -630,7 +639,9 @@ class UserManager final : public Actor {
     bool has_main_app = false;
     bool has_bot_forum_view = false;
     bool can_bot_create_topics = false;
+    bool can_manage_bots = false;
     bool is_inline_bot = false;
+    bool is_guestchat_bot = false;
     bool is_business_bot = false;
     bool need_location_bot = false;
     bool is_scam = false;
@@ -696,6 +707,7 @@ class UserManager final : public Actor {
     AdministratorRights broadcast_administrator_rights;
     ReferralProgramInfo referral_program_info;
     unique_ptr<BotVerifierSettings> verifier_settings;
+    UserId manager_bot_user_id;
 
     string placeholder_path;
     int32 background_color = -1;
@@ -755,6 +767,7 @@ class UserManager final : public Actor {
     bool has_preview_medias = false;
     bool can_view_revenue = false;
     bool can_manage_emoji_status = false;
+    bool unofficial_security_risk = false;
 
     bool is_common_chat_count_changed = true;
     bool is_pending_star_rating_changed = true;
@@ -1069,6 +1082,15 @@ class UserManager final : public Actor {
 
   void apply_pending_user_photo(User *u, UserId user_id, const char *source);
 
+  void upload_saved_music(FileId file_id, Promise<Unit> &&promise);
+
+  void on_upload_saved_music(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+
+  void on_upload_saved_music_error(FileUploadId file_upload_id, Status status);
+
+  void do_upload_saved_music(FileUploadId file_upload_id,
+                             telegram_api::object_ptr<telegram_api::InputFile> &&input_file, Promise<Unit> &&promise);
+
   void send_get_user_saved_music_query(UserId user_id, const UserSavedMusic *user_saved_music,
                                        const vector<PendingGetSavedMusicRequest> &requests);
 
@@ -1275,6 +1297,7 @@ class UserManager final : public Actor {
   QueryMerger get_is_premium_required_to_contact_queries_{"GetIsPremiumRequiredToContactMerger", 3, 100};
 
   QueryCombiner get_user_full_queries_{"GetUserFullCombiner", 2.0};
+
   class UploadProfilePhotoCallback;
   std::shared_ptr<UploadProfilePhotoCallback> upload_profile_photo_callback_;
 
@@ -1299,6 +1322,11 @@ class UserManager final : public Actor {
     }
   };
   FlatHashMap<FileUploadId, UploadedProfilePhoto, FileUploadIdHash> being_uploaded_profile_photos_;
+
+  class UploadSavedMusicCallback;
+  std::shared_ptr<UploadSavedMusicCallback> upload_saved_music_callback_;
+
+  FlatHashMap<FileUploadId, Promise<Unit>, FileUploadIdHash> being_uploaded_saved_music_files_;
 
   struct ImportContactsTask {
     Promise<Unit> promise_;
@@ -1334,7 +1362,7 @@ class UserManager final : public Actor {
   FlatHashMap<UserId, int64, UserIdHash> user_full_contact_price_;  // -1 - premium required
 
   FlatHashMap<MessageFullId, int32, MessageFullIdHash> noforwards_request_ids_;
-  FlatHashMap<int32, MessageFullId> noforwards_request_message_ids_;
+  FlatHashMap<int32, MessageFullId> noforwards_request_message_full_ids_;
 
   WaitFreeHashSet<UserId, UserIdHash> restricted_user_ids_;
 

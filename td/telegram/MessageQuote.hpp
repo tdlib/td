@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageQuote.h"
 
 #include "td/utils/tl_helpers.h"

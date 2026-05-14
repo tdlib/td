@@ -62,17 +62,17 @@ std::string lambda_serialize(F &&f) {
   return td::serialize(LambdaStorer<F>{std::forward<F>(f)});
 }
 
-void CallVerificationChain::on_new_main_block(const Blockchain &blockhain) {
+void CallVerificationChain::on_new_main_block(const Blockchain &blockchain) {
   state_ = Commit;
-  CHECK(blockhain.get_height() > height_);
-  height_ = td::narrow_cast<td::int32>(blockhain.get_height());
-  last_block_hash_ = blockhain.last_block_hash_;
+  CHECK(blockchain.get_height() > height_);
+  height_ = td::narrow_cast<td::int32>(blockchain.get_height());
+  last_block_hash_ = blockchain.last_block_hash_;
   verification_state_ = {};
   verification_state_.height = height_;
 
   verification_words_ =
       CallVerificationWords{height_, Mnemonic::generate_verification_words(last_block_hash_.as_slice())};
-  auto &group_state = *blockhain.state_.group_state_;
+  auto &group_state = *blockchain.state_.group_state_;
   committed_ = {};
   revealed_ = {};
 

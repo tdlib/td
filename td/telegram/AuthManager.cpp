@@ -37,6 +37,7 @@
 #include "td/telegram/TermsOfServiceManager.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TopDialogManager.h"
+#include "td/telegram/TranslationManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
 #include "td/telegram/Version.h"
@@ -67,6 +68,7 @@ struct AuthManager::DbState {
   string store_product_id_;
   string support_email_address_;
   string support_email_subject_;
+  int32 premium_day_count_ = 0;
 
   // WaitEmailAddress and WaitEmailCode
   bool allow_apple_id_ = false;
@@ -96,12 +98,13 @@ struct AuthManager::DbState {
 
   static DbState wait_premium_purchase(int32 api_id, string api_hash, string store_product_id,
                                        string support_email_address, string support_email_subject,
-                                       SendCodeHelper send_code_helper) {
+                                       int32 premium_day_count, SendCodeHelper send_code_helper) {
     DbState state(State::WaitPremiumPurchase, api_id, std::move(api_hash));
     state.send_code_helper_ = std::move(send_code_helper);
     state.store_product_id_ = std::move(store_product_id);
     state.support_email_address_ = std::move(support_email_address);
     state.support_email_subject_ = std::move(support_email_subject);
+    state.premium_day_count_ = premium_day_count;
     return state;
   }
 
@@ -226,6 +229,7 @@ void AuthManager::DbState::store(StorerT &storer) const {
     store(store_product_id_, storer);
     store(support_email_address_, storer);
     store(support_email_subject_, storer);
+    store(premium_day_count_, storer);
   } else if (state_ == State::WaitEmailAddress) {
     store(send_code_helper_, storer);
   } else if (state_ == State::WaitEmailCode) {
@@ -304,6 +308,7 @@ void AuthManager::DbState::parse(ParserT &parser) {
     parse(store_product_id_, parser);
     parse(support_email_address_, parser);
     parse(support_email_subject_, parser);
+    parse(premium_day_count_, parser);
   } else if (state_ == State::WaitEmailAddress) {
     parse(send_code_helper_, parser);
   } else if (state_ == State::WaitEmailCode) {
@@ -391,8 +396,8 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
     case State::WaitPhoneNumber:
       return make_tl_object<td_api::authorizationStateWaitPhoneNumber>();
     case State::WaitPremiumPurchase:
-      return make_tl_object<td_api::authorizationStateWaitPremiumPurchase>(store_product_id_, support_email_address_,
-                                                                           support_email_subject_);
+      return make_tl_object<td_api::authorizationStateWaitPremiumPurchase>(
+          store_product_id_, premium_day_count_, support_email_address_, support_email_subject_);
     case State::WaitEmailAddress:
       return make_tl_object<td_api::authorizationStateWaitEmailAddress>(allow_apple_id_, allow_google_id_);
     case State::WaitEmailCode: {
@@ -627,6 +632,7 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
   store_product_id_.clear();
   support_email_address_.clear();
   support_email_subject_.clear();
+  premium_day_count_ = 0;
   allow_apple_id_ = false;
   allow_google_id_ = false;
   email_address_ = {};
@@ -648,21 +654,23 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
                                               std::move(phone_number), settings, api_id_, api_hash_)));
 }
 
-void AuthManager::check_premium_purchase(uint64 query_id, string currency, int64 amount) {
+void AuthManager::check_premium_purchase(uint64 query_id, int32 premium_day_count, string currency, int64 amount) {
   if (state_ != State::WaitPremiumPurchase) {
     return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationPremiumPurchase unexpected"));
   }
   on_new_query(query_id);
 
   auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentAuthCode>(
-      0, false, send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash(), currency, amount);
+      0, false, send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash(), premium_day_count,
+      currency, amount);
   start_net_query(NetQueryType::CheckPremiumPurchase,
                   G()->net_query_creator().create_unauth(telegram_api::payments_canPurchaseStore(std::move(purpose))));
 }
 
 void AuthManager::set_premium_purchase_transaction(uint64 query_id,
                                                    td_api::object_ptr<td_api::StoreTransaction> &&transaction,
-                                                   bool is_restore, string currency, int64 amount) {
+                                                   bool is_restore, int32 premium_day_count, string currency,
+                                                   int64 amount) {
   if (state_ != State::WaitPremiumPurchase) {
     return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationPremiumPurchase unexpected"));
   }
@@ -670,7 +678,8 @@ void AuthManager::set_premium_purchase_transaction(uint64 query_id,
     return on_query_error(query_id, Status::Error(400, "Transaction must be non-empty"));
   }
   auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentAuthCode>(
-      0, is_restore, send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash(), currency, amount);
+      0, is_restore, send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash(), premium_day_count,
+      currency, amount);
   switch (transaction->get_id()) {
     case td_api::storeTransactionAppStore::ID: {
       auto type = td_api::move_object_as<td_api::storeTransactionAppStore>(transaction);
@@ -1022,6 +1031,7 @@ void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentC
       store_product_id_ = std::move(sent_code->store_product_);
       support_email_address_ = std::move(sent_code->support_email_address_);
       support_email_subject_ = std::move(sent_code->support_email_subject_);
+      premium_day_count_ = max(0, sent_code->premium_days_);
       update_state(State::WaitPremiumPurchase);
       on_current_query_ok();
       return;
@@ -1490,6 +1500,7 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   td_->terms_of_service_manager_->init();
   td_->theme_manager_->init();
   td_->top_dialog_manager_->init();
+  td_->translation_manager_->on_authorization_success();
   td_->updates_manager_->get_difference("on_get_authorization");
   if (!is_bot()) {
     G()->td_db()->get_binlog_pmc()->set("fetched_marks_as_unread", "1");
@@ -1662,6 +1673,7 @@ bool AuthManager::load_state() {
     store_product_id_ = std::move(db_state.store_product_id_);
     support_email_address_ = std::move(db_state.support_email_address_);
     support_email_subject_ = std::move(db_state.support_email_subject_);
+    premium_day_count_ = db_state.premium_day_count_;
     send_code_helper_ = std::move(db_state.send_code_helper_);
   } else if (db_state.state_ == State::WaitEmailAddress) {
     allow_apple_id_ = db_state.allow_apple_id_;
@@ -1706,7 +1718,7 @@ void AuthManager::save_state() {
   DbState db_state = [&] {
     if (state_ == State::WaitPremiumPurchase) {
       return DbState::wait_premium_purchase(api_id_, api_hash_, store_product_id_, support_email_address_,
-                                            support_email_subject_, send_code_helper_);
+                                            support_email_subject_, premium_day_count_, send_code_helper_);
     } else if (state_ == State::WaitEmailAddress) {
       return DbState::wait_email_address(api_id_, api_hash_, allow_apple_id_, allow_google_id_, send_code_helper_);
     } else if (state_ == State::WaitEmailCode) {

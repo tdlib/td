@@ -54,17 +54,17 @@ struct CallFullId {
   }
 };
 
-static vector<CallFullId> load_recent_call_ids() {
+static vector<CallFullId> load_recent_call_full_ids() {
   auto log_event_string = G()->td_db()->get_binlog_pmc()->get("recent_call_ids");
-  vector<CallFullId> recent_call_ids;
+  vector<CallFullId> recent_call_full_ids;
   if (!log_event_string.empty()) {
-    log_event_parse(recent_call_ids, log_event_string).ensure();
+    log_event_parse(recent_call_full_ids, log_event_string).ensure();
   }
-  return recent_call_ids;
+  return recent_call_full_ids;
 }
 
-static void save_recent_call_ids(const vector<CallFullId> &recent_call_ids) {
-  G()->td_db()->get_binlog_pmc()->set("recent_call_ids", log_event_store(recent_call_ids).as_slice().str());
+static void save_recent_call_full_ids(const vector<CallFullId> &recent_call_full_ids) {
+  G()->td_db()->get_binlog_pmc()->set("recent_call_ids", log_event_store(recent_call_full_ids).as_slice().str());
 }
 
 CallProtocol::CallProtocol(const telegram_api::phoneCallProtocol &protocol)
@@ -224,8 +224,8 @@ CallActor::CallActor(Td *td, CallId call_id, ActorShared<> parent, Promise<int64
 }
 
 int64 CallActor::get_recent_call_access_hash(int64 call_id) {
-  auto recent_call_ids = load_recent_call_ids();
-  for (const auto &call_full_id : recent_call_ids) {
+  auto recent_call_full_ids = load_recent_call_full_ids();
+  for (const auto &call_full_id : recent_call_full_ids) {
     if (call_full_id.call_id_ == call_id) {
       return call_full_id.access_hash_;
     }
@@ -571,19 +571,19 @@ void CallActor::on_get_call_id() {
     call_id_promise_ = {};
   }
   if (!is_call_id_saved_) {
-    auto recent_call_ids = load_recent_call_ids();
+    auto recent_call_full_ids = load_recent_call_full_ids();
     bool is_found = false;
-    for (const auto &call_full_id : recent_call_ids) {
+    for (const auto &call_full_id : recent_call_full_ids) {
       if (call_full_id.call_id_ == call_id_) {
         is_found = true;
       }
     }
     if (!is_found) {
-      recent_call_ids.emplace_back(call_id_, call_access_hash_);
-      if (recent_call_ids.size() > 10u) {
-        recent_call_ids.erase(recent_call_ids.begin());
+      recent_call_full_ids.emplace_back(call_id_, call_access_hash_);
+      if (recent_call_full_ids.size() > 10u) {
+        recent_call_full_ids.erase(recent_call_full_ids.begin());
       }
-      save_recent_call_ids(recent_call_ids);
+      save_recent_call_full_ids(recent_call_full_ids);
     }
     is_call_id_saved_ = true;
   }

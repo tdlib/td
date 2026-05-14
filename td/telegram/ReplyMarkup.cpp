@@ -189,7 +189,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ReplyMarkup &repl
   return reply_markup.print(string_builder);
 }
 
-static KeyboardButton get_keyboard_button(tl_object_ptr<telegram_api::KeyboardButton> &&keyboard_button_ptr) {
+KeyboardButton get_keyboard_button(tl_object_ptr<telegram_api::KeyboardButton> &&keyboard_button_ptr) {
   CHECK(keyboard_button_ptr != nullptr);
 
   KeyboardButton button;
@@ -461,8 +461,8 @@ unique_ptr<ReplyMarkup> get_reply_markup(tl_object_ptr<telegram_api::ReplyMarkup
   return reply_markup;
 }
 
-static Result<KeyboardButton> get_keyboard_button(td_api::object_ptr<td_api::keyboardButton> &&button,
-                                                  bool request_buttons_allowed) {
+Result<KeyboardButton> get_keyboard_button(td_api::object_ptr<td_api::keyboardButton> &&button,
+                                           bool request_buttons_allowed) {
   CHECK(button != nullptr);
 
   if (!clean_input_string(button->text_)) {
@@ -541,6 +541,15 @@ static Result<KeyboardButton> get_keyboard_button(td_api::object_ptr<td_api::key
         return Status::Error(400, "Chats can be requested in private chats only");
       }
       auto button_type = move_tl_object_as<td_api::keyboardButtonTypeRequestChat>(button->type_);
+      current_button.type = KeyboardButton::Type::RequestDialog;
+      current_button.requested_dialog_type = td::make_unique<RequestedDialogType>(std::move(button_type));
+      break;
+    }
+    case td_api::keyboardButtonTypeRequestManagedBot::ID: {
+      if (!request_buttons_allowed) {
+        return Status::Error(400, "Managed bots can be requested in private chats only");
+      }
+      auto button_type = move_tl_object_as<td_api::keyboardButtonTypeRequestManagedBot>(button->type_);
       current_button.type = KeyboardButton::Type::RequestDialog;
       current_button.requested_dialog_type = td::make_unique<RequestedDialogType>(std::move(button_type));
       break;
@@ -864,7 +873,8 @@ unique_ptr<ReplyMarkup> dup_reply_markup(const unique_ptr<ReplyMarkup> &reply_ma
   return result;
 }
 
-static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(const KeyboardButton &keyboard_button) {
+telegram_api::object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
+    const KeyboardButton &keyboard_button) {
   int32 flags = 0;
   auto style = keyboard_button.style.get_input_keyboard_button_style();
   if (style != nullptr) {
@@ -1024,7 +1034,7 @@ tl_object_ptr<telegram_api::ReplyMarkup> ReplyMarkup::get_input_reply_markup(Use
   }
 }
 
-static tl_object_ptr<td_api::keyboardButton> get_keyboard_button_object(const KeyboardButton &keyboard_button) {
+td_api::object_ptr<td_api::keyboardButton> get_keyboard_button_object(const KeyboardButton &keyboard_button) {
   td_api::object_ptr<td_api::KeyboardButtonType> type;
   switch (keyboard_button.type) {
     case KeyboardButton::Type::Text:
@@ -1157,26 +1167,15 @@ tl_object_ptr<td_api::ReplyMarkup> ReplyMarkup::get_reply_markup_object(UserMana
   }
 }
 
-Status ReplyMarkup::check_shared_dialog(Td *td, int32 button_id, DialogId dialog_id) const {
+const RequestedDialogType *ReplyMarkup::get_requested_dialog_type(int32 button_id) const {
   for (auto &row : keyboard) {
     for (auto &button : row) {
       if (button.requested_dialog_type != nullptr && button.requested_dialog_type->get_button_id() == button_id) {
-        return button.requested_dialog_type->check_shared_dialog(td, dialog_id);
+        return button.requested_dialog_type.get();
       }
     }
   }
-  return Status::Error(400, "Button not found");
-}
-
-Status ReplyMarkup::check_shared_dialog_count(int32 button_id, size_t count) const {
-  for (auto &row : keyboard) {
-    for (auto &button : row) {
-      if (button.requested_dialog_type != nullptr && button.requested_dialog_type->get_button_id() == button_id) {
-        return button.requested_dialog_type->check_shared_dialog_count(count);
-      }
-    }
-  }
-  return Status::Error(400, "Button not found");
+  return nullptr;
 }
 
 tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(UserManager *user_manager,

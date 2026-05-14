@@ -10,6 +10,6 @@
 
 namespace td {
 
-enum class ReactionUnavailabilityReason : int32 { None, AnonymousAdministrator, Guest };
+enum class ReactionUnavailabilityReason : int32 { None, AnonymousAdministrator, Guest, Restricted };
 
 }  // namespace td

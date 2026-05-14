@@ -40,6 +40,16 @@ class BotInfoManager final : public Actor {
   BotInfoManager &operator=(BotInfoManager &&) = delete;
   ~BotInfoManager() final;
 
+  void create_bot(UserId manager_bot_user_id, const string &name, const string &username, bool via_deeplink,
+                  Promise<td_api::object_ptr<td_api::user>> &&promise);
+
+  void get_bot_token(UserId bot_user_id, bool revoke, Promise<string> &&promise);
+
+  void get_bot_access_settings(UserId bot_user_id, Promise<td_api::object_ptr<td_api::botAccessSettings>> &&promise);
+
+  void set_bot_access_settings(UserId bot_user_id, td_api::object_ptr<td_api::botAccessSettings> &&settings,
+                               Promise<Unit> &&promise);
+
   void get_owned_bots(Promise<td_api::object_ptr<td_api::users>> &&promise);
 
   void set_default_group_administrator_rights(AdministratorRights administrator_rights, Promise<Unit> &&promise);

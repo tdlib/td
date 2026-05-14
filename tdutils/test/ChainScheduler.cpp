@@ -139,7 +139,7 @@ TEST(ChainScheduler, Stress) {
     int chain_n = rnd.fast(1, ChainsN);
     td::vector<ChainId> chain_ids(ChainsN);
     std::iota(chain_ids.begin(), chain_ids.end(), 1);
-    td::rand_shuffle(td::as_mutable_span(chain_ids), rnd);
+    td::Random::shuffle(td::as_mutable_span(chain_ids), rnd);
     chain_ids.resize(chain_n);
     for (auto chain_id : chain_ids) {
       chains[td::narrow_cast<size_t>(chain_id)].push_back(query);

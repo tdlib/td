@@ -15,7 +15,6 @@
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/ConnectionManager.h"
-#include "td/mtproto/Handshake.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/TransportType.h"
 
@@ -71,7 +70,7 @@ class ConnectionCreator final : public NetQueryCallback {
   void set_net_stats_callback(std::shared_ptr<NetStatsCallback> common_callback,
                               std::shared_ptr<NetStatsCallback> media_callback);
 
-  void add_proxy(int32 old_proxy_id, td_api::object_ptr<td_api::proxy> proxy, bool enable,
+  void add_proxy(int32 old_proxy_id, td_api::object_ptr<td_api::proxy> proxy, bool enable, string comment,
                  Promise<td_api::object_ptr<td_api::addedProxy>> promise);
 
   void enable_proxy(int32 proxy_id, Promise<Unit> promise);
@@ -96,7 +95,7 @@ class ConnectionCreator final : public NetQueryCallback {
   bool is_inited_ = false;
 
   static constexpr int32 MAX_PROXY_LAST_USED_SAVE_DELAY = 60;
-  std::map<int32, Proxy> proxies_;
+  std::map<int32, std::pair<Proxy, string>> proxies_;
   FlatHashMap<int32, int32> proxy_last_used_date_;
   FlatHashMap<int32, int32> proxy_last_used_saved_date_;
   int32 max_proxy_id_ = 0;
@@ -188,11 +187,14 @@ class ConnectionCreator final : public NetQueryCallback {
 
   ActorShared<ConnectionCreator> create_reference(int64 token);
 
+  static void set_proxy_comment(int32 proxy_id, string &comment, string &new_comment);
+
   void set_active_proxy_id(int32 proxy_id, bool from_binlog = false);
   void enable_proxy_impl(int32 proxy_id);
   void disable_proxy_impl();
   void on_proxy_changed(bool from_db);
   static string get_proxy_database_key(int32 proxy_id);
+  static string get_proxy_comment_database_key(int32 proxy_id);
   static string get_proxy_used_database_key(int32 proxy_id);
   void save_proxy_last_used_date(int32 delay);
   td_api::object_ptr<td_api::addedProxy> get_added_proxy_object(int32 proxy_id) const;

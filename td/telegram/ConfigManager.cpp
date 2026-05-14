@@ -267,9 +267,10 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
   }
 
   static const string payload = generate_firebase_remote_config_payload();
-  string url =
-      "https://firebaseremoteconfig.googleapis.com/v1/projects/peak-vista-421/namespaces/"
-      "firebase:fetch?key=AIzaSyC2-kAkpDsroixRXw-sTw-Wfqo4NxjMwwM";
+  auto url =
+      PSTRING()
+      << "https://firebaseremoteconfig.googleapis.com/v1/projects/peak-vista-421/namespaces/firebase:fetch?key="
+      << hex_decode("41497a61537943322d6b416b704473726f69785258772d7354772d5766716f344e786a4d77774d").move_as_ok();
   auto get_config = [](HttpQuery &http_query) -> Result<string> {
     TRY_RESULT(json, json_decode(http_query.get_arg("entries")));
     if (json.type() != JsonValue::Type::Object) {
@@ -1361,6 +1362,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string whitelisted_bots;
   string ton_stakedice_stake_suggested_amounts;
   string gift_craft_probabilities;
+  string music_search_username;
 
   // {"stories_all_hidden", "archive_all_stories"}
   static const FlatHashMap<Slice, Slice, SliceHash> bool_keys = {
@@ -1376,6 +1378,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"video_ignore_alt_documents", ""}};
 
   static const FlatHashMap<Slice, Slice, SliceHash> integer_keys = {
+      {"aicompose_tone_examples_num", "text_composition_style_example_count"},
+      {"aicompose_tone_prompt_length_max", "text_composition_style_prompt_length_max"},
+      {"aicompose_tone_title_length_max", "text_composition_style_title_length_max"},
       {"authorization_autoconfirm_period", ""},
       {"boosts_channel_level_max", "chat_boost_level_max"},
       {"boosts_per_sent_gift", "premium_gift_boost_count"},
@@ -1414,7 +1419,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"no_forwards_request_expire_period", "has_protected_content_disable_request_duration"},
       {"passkeys_account_passkeys_max", "login_passkey_count_max"},
       {"pm_read_date_expire_period", ""},
+      {"poll_answer_delete_period", ""},
       {"poll_answers_max", "poll_answer_count_max"},
+      {"poll_close_period_max", "poll_open_period_max"},
+      {"poll_countries_max", "poll_country_count_max"},
       {"quick_replies_limit", "quick_reply_shortcut_count_max"},
       {"quick_reply_messages_limit", "quick_reply_shortcut_message_count_max"},
       {"quote_length_max", "message_reply_quote_length_max"},
@@ -2034,6 +2042,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "music_search_username") {
+        music_search_username = get_json_value_string(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "phone_country_iso2") {
+        G()->set_option_string("phone_country_iso2", get_json_value_string(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2079,6 +2095,12 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_string("restriction_add_platforms", restriction_add_platforms);
   }
   options.set_option_string("whitelisted_bots", whitelisted_bots);
+
+  if (music_search_username.empty()) {
+    options.set_option_empty("audio_search_bot_username");
+  } else {
+    G()->set_option_string("audio_search_bot_username", music_search_username);
+  }
 
   if (!dice_emojis.empty()) {
     vector<string> dice_success_values(dice_emojis.size());

@@ -26,7 +26,7 @@ do
     echo $platform
     cd Python-Apple-support
     #NB: -j will fail
-    make OpenSSL-$platform || exit 1
+    SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1 make OpenSSL-$platform || exit 1
     cd ..
     rm -rf third_party/openssl/$platform || exit 1
     mkdir -p third_party/openssl/$platform/lib || exit 1

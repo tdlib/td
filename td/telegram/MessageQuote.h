@@ -67,8 +67,6 @@ class MessageQuote {
 
   td_api::object_ptr<td_api::textQuote> get_text_quote_object(const UserManager *user_manager) const;
 
-  static void remove_unallowed_quote_entities(FormattedText &text);
-
   template <class StorerT>
   void store(StorerT &storer) const;
 

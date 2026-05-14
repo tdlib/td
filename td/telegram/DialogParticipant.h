@@ -190,6 +190,7 @@ class RestrictedRights {
   static constexpr uint64 CAN_PIN_MESSAGES = 1 << 26;
   static constexpr uint64 CAN_MANAGE_TOPICS = 1 << 12;
   static constexpr uint64 CAN_EDIT_RANK = static_cast<uint64>(1) << 38;
+  static constexpr uint64 CAN_SEND_REACTIONS = static_cast<uint64>(1) << 39;
 
   static constexpr uint64 ALL_ADMIN_PERMISSION_RIGHTS =
       CAN_CHANGE_INFO_AND_SETTINGS | CAN_INVITE_USERS | CAN_PIN_MESSAGES | CAN_MANAGE_TOPICS;
@@ -197,7 +198,8 @@ class RestrictedRights {
   static constexpr uint64 ALL_RESTRICTED_RIGHTS =
       CAN_SEND_MESSAGES | CAN_SEND_STICKERS | CAN_SEND_ANIMATIONS | CAN_SEND_GAMES | CAN_USE_INLINE_BOTS |
       CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS | ALL_ADMIN_PERMISSION_RIGHTS | CAN_SEND_AUDIOS | CAN_SEND_DOCUMENTS |
-      CAN_SEND_PHOTOS | CAN_SEND_VIDEOS | CAN_SEND_VIDEO_NOTES | CAN_SEND_VOICE_NOTES | CAN_EDIT_RANK;
+      CAN_SEND_PHOTOS | CAN_SEND_VIDEOS | CAN_SEND_VIDEO_NOTES | CAN_SEND_VOICE_NOTES | CAN_EDIT_RANK |
+      CAN_SEND_REACTIONS;
 
   uint64 flags_;
 
@@ -211,12 +213,13 @@ class RestrictedRights {
 
   RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights, ChannelType channel_type);
 
+  // increase Chat cache version when a new right is added
   RestrictedRights(bool can_send_messages, bool can_send_audios, bool can_send_documents, bool can_send_photos,
                    bool can_send_videos, bool can_send_video_notes, bool can_send_voice_notes, bool can_send_stickers,
                    bool can_send_animations, bool can_send_games, bool can_use_inline_bots,
                    bool can_add_web_page_previews, bool can_send_polls, bool can_change_info_and_settings,
                    bool can_invite_users, bool can_pin_messages, bool can_manage_topics, bool can_edit_rank,
-                   ChannelType channel_type);
+                   bool can_send_reactions, ChannelType channel_type);
 
   td_api::object_ptr<td_api::chatPermissions> get_chat_permissions_object() const;
 
@@ -292,6 +295,10 @@ class RestrictedRights {
 
   bool can_edit_rank() const {
     return (flags_ & CAN_EDIT_RANK) != 0;
+  }
+
+  bool can_send_reactions() const {
+    return (flags_ & CAN_SEND_REACTIONS) != 0;
   }
 
   template <class StorerT>
@@ -371,10 +378,10 @@ class DialogParticipantStatus {
   static DialogParticipantStatus Banned(int32 banned_until_date, string &&rank);
 
   // legacy rights
-  static DialogParticipantStatus GroupAdministrator(bool is_creator, string &&rank);
+  static DialogParticipantStatus GroupAdministrator(bool is_current_user_creator, string &&rank);
 
   // legacy rights
-  static DialogParticipantStatus ChannelAdministrator(bool is_creator, bool is_megagroup);
+  static DialogParticipantStatus ChannelAdministrator(bool is_current_user_creator, bool is_megagroup);
 
   // forcely returns an administrator
   DialogParticipantStatus(bool can_be_edited, tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights, string rank,
@@ -551,6 +558,10 @@ class DialogParticipantStatus {
     return get_restricted_rights().can_edit_rank();
   }
 
+  bool can_send_reactions() const {
+    return get_restricted_rights().can_send_reactions();
+  }
+
   void set_is_member(bool is_member) {
     if (is_member) {
       flags_ |= IS_MEMBER;
@@ -683,7 +694,7 @@ struct DialogParticipant {
   DialogParticipant(DialogId dialog_id, UserId inviter_user_id, int32 joined_date, DialogParticipantStatus status);
 
   DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant> &&participant_ptr, int32 chat_creation_date,
-                    bool is_creator);
+                    bool is_current_user_creator);
 
   DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr, ChannelType channel_type);
 

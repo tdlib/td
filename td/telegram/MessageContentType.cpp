@@ -192,6 +192,12 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "NoForwardsToggle";
     case MessageContentType::NoForwardsRequest:
       return string_builder << "NoForwardsRequest";
+    case MessageContentType::ManagedBotCreated:
+      return string_builder << "ManagedBotCreated";
+    case MessageContentType::PollAppendAnswer:
+      return string_builder << "PollAppendAnswer";
+    case MessageContentType::PollDeleteAnswer:
+      return string_builder << "PollDeleteAnswer";
     default:
       return string_builder << "Invalid type " << static_cast<int32>(content_type);
   }
@@ -302,6 +308,9 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
+    case MessageContentType::PollDeleteAnswer:
       return false;
     default:
       UNREACHABLE();
@@ -311,6 +320,45 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
 
 bool is_homogenous_media_group_content(MessageContentType content_type) {
   return content_type == MessageContentType::Audio || content_type == MessageContentType::Document;
+}
+
+bool is_allowed_poll_content(MessageContentType content_type) {
+  switch (content_type) {
+    case MessageContentType::Animation:
+    case MessageContentType::Audio:
+    case MessageContentType::Document:
+    case MessageContentType::Location:
+    case MessageContentType::Photo:
+    case MessageContentType::Venue:
+    case MessageContentType::Video:
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool is_allowed_poll_option_content(MessageContentType content_type) {
+  switch (content_type) {
+    case MessageContentType::Animation:
+    case MessageContentType::Location:
+    case MessageContentType::Photo:
+    case MessageContentType::Sticker:
+    case MessageContentType::Venue:
+    case MessageContentType::Video:
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool can_message_content_have_multiple_files(MessageContentType content_type) {
+  switch (content_type) {
+    case MessageContentType::PaidMedia:
+    case MessageContentType::Poll:
+      return true;
+    default:
+      return false;
+  }
 }
 
 bool can_be_secret_message_content(MessageContentType content_type) {
@@ -406,6 +454,9 @@ bool can_be_secret_message_content(MessageContentType content_type) {
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
+    case MessageContentType::PollDeleteAnswer:
       return false;
     default:
       UNREACHABLE();
@@ -506,6 +557,9 @@ bool can_be_local_message_content(MessageContentType content_type) {
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
+    case MessageContentType::PollDeleteAnswer:
       return false;
     default:
       UNREACHABLE();
@@ -606,6 +660,9 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
+    case MessageContentType::PollDeleteAnswer:
       return true;
     default:
       UNREACHABLE();
@@ -706,6 +763,9 @@ bool is_editable_message_content(MessageContentType content_type) {
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
+    case MessageContentType::PollDeleteAnswer:
       return false;
     default:
       UNREACHABLE();
@@ -871,6 +931,9 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
+    case MessageContentType::PollDeleteAnswer:
       return false;
     default:
       UNREACHABLE();
@@ -973,6 +1036,9 @@ bool can_send_message_content_to_secret_chat(MessageContentType content_type) {
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
+    case MessageContentType::PollDeleteAnswer:
     default:
       UNREACHABLE();
       return false;
@@ -1090,6 +1156,9 @@ bool get_default_service_message_content_reactions_are_possible(MessageContentTy
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
+    case MessageContentType::PollDeleteAnswer:
       return true;
     default:
       UNREACHABLE();

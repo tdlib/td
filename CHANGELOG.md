@@ -463,7 +463,7 @@ Changes in 1.7.0 (28 Nov 2020):
     call library versions.
 * Added support for multiple pinned messages and the ability to pin messages in private chats:
   - Added the ability to pin messages in all private chats.
-  - Added the ability to pin mutiple messages in all chats.
+  - Added the ability to pin multiple messages in all chats.
   - Added the field `is_pinned` to the class `message`.
   - Added the update `updateMessageIsPinned`.
   - Added the parameter `only_for_self` to the method `pinChatMessage`, allowing to pin messages in private chats for

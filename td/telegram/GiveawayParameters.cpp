@@ -55,7 +55,8 @@ Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(Td *td,
     return Status::Error(400, "Giveaway date is in the past");
   }
   for (auto &country_code : parameters->country_codes_) {
-    if (country_code.size() != 2 || country_code[0] < 'A' || country_code[0] > 'Z') {
+    if (country_code.size() != 2 || country_code[0] < 'A' || country_code[0] > 'Z' || country_code[1] < 'A' ||
+        country_code[1] > 'Z') {
       return Status::Error(400, "Invalid country code specified");
     }
   }

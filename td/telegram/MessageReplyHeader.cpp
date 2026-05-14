@@ -37,6 +37,11 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
   bool can_have_thread = td->dialog_manager_->can_dialog_have_threads(dialog_id);
   if (!message_id.is_scheduled() && can_have_thread) {
     is_topic_message_ = reply_header->forum_topic_;
+    if (reply_header->reply_to_top_id_ == 0 && is_topic_message_ && reply_header->reply_from_ != nullptr &&
+        reply_header->reply_to_peer_id_ == nullptr && reply_header->reply_to_msg_id_ != 0) {
+      reply_header->reply_to_top_id_ = reply_header->reply_to_msg_id_;
+      reply_header->reply_to_msg_id_ = 0;
+    }
     if (reply_header->reply_to_top_id_ != 0) {
       top_thread_message_id_ = MessageId(ServerMessageId(reply_header->reply_to_top_id_));
       if (!top_thread_message_id_.is_valid()) {

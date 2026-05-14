@@ -92,7 +92,8 @@ int Clocks::tz_offset() {
 }
 
 namespace detail {
-int init_tz_offset_private = Clocks::tz_offset();
+// may cause static initialization order fiasco for some implementations of std::localtime
+// int init_tz_offset_private = Clocks::tz_offset();
 }  // namespace detail
 
 }  // namespace td

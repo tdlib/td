@@ -649,6 +649,9 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
     case ReactionUnavailabilityReason::Guest:
       reason = td_api::make_object<td_api::reactionUnavailabilityReasonGuest>();
       break;
+    case ReactionUnavailabilityReason::Restricted:
+      reason = td_api::make_object<td_api::reactionUnavailabilityReasonRestricted>();
+      break;
     default:
       UNREACHABLE();
   }

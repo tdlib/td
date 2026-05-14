@@ -14,6 +14,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/utf8.h"
@@ -30,7 +31,9 @@ MessageQuote::MessageQuote(Td *td,
   }
   text_ = get_formatted_text(td->user_manager_.get(), std::move(input_reply_to_message->quote_text_),
                              std::move(input_reply_to_message->quote_entities_), true, false, "inputReplyToMessage");
-  remove_unallowed_quote_entities(text_);
+  if (remove_unallowed_quote_entities(text_)) {
+    LOG(ERROR) << "Receive a quote with unexpected entities";
+  }
   position_ = max(0, input_reply_to_message->quote_offset_);
 }
 
@@ -41,7 +44,9 @@ MessageQuote::MessageQuote(Td *td, telegram_api::object_ptr<telegram_api::messag
   }
   text_ = get_formatted_text(td->user_manager_.get(), std::move(reply_header->quote_text_),
                              std::move(reply_header->quote_entities_), true, false, "messageReplyHeader");
-  remove_unallowed_quote_entities(text_);
+  if (remove_unallowed_quote_entities(text_)) {
+    LOG(ERROR) << "Receive a quote with unexpected entities";
+  }
   position_ = max(0, reply_header->quote_offset_);
   is_manual_ = reply_header->quote_;
 }
@@ -156,10 +161,6 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageQuote &quo
     }
   }
   return string_builder;
-}
-
-void MessageQuote::remove_unallowed_quote_entities(FormattedText &text) {
-  td::remove_if(text.entities, [](const auto &entity) { return !is_allowed_quote_entity_type(entity.type); });
 }
 
 int32 MessageQuote::search_quote(FormattedText &&text, FormattedText &&quote, int32 quote_position) {

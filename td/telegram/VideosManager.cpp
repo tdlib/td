@@ -7,7 +7,9 @@
 #include "td/telegram/VideosManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/PhotoFormat.h"
@@ -398,6 +400,41 @@ telegram_api::object_ptr<telegram_api::InputMedia> VideosManager::get_story_docu
       flags, true, false, false,
       telegram_api::make_object<telegram_api::inputFileStoryDocument>(main_remote_location->as_input_document()),
       nullptr, mime_type, std::move(attributes), std::move(added_stickers), nullptr, 0, 0);
+}
+
+telegram_api::object_ptr<telegram_api::InputMedia> VideosManager::get_video_cover_input_media(
+    FileId file_id, bool force, bool allow_external) const {
+  auto input_media = get_input_media(file_id, nullptr, nullptr, Photo(), 0, 0, false);
+  if (input_media == nullptr || (!allow_external && input_media->get_id() != telegram_api::inputMediaDocument::ID)) {
+    return nullptr;
+  }
+  auto file_reference = FileManager::extract_file_reference(input_media);
+  if (file_reference == FileReferenceView::invalid_file_reference()) {
+    if (!force) {
+      LOG(INFO) << "Have invalid file reference for video cover " << file_id;
+      return nullptr;
+    }
+  }
+  return input_media;
+}
+
+FileId VideosManager::get_live_photo_video_file_id(telegram_api::object_ptr<telegram_api::Document> document,
+                                                   DialogId owner_dialog_id, bool is_self_destructing) const {
+  CHECK(document != nullptr);
+  int32 video_id = document->get_id();
+  if (video_id == telegram_api::documentEmpty::ID) {
+    LOG(ERROR) << "Receive empty video document in a live photo";
+    return FileId();
+  }
+  CHECK(video_id == telegram_api::document::ID);
+  auto video = telegram_api::move_object_as<telegram_api::document>(document);
+  auto parsed_file = td_->documents_manager_->on_get_document(std::move(video), owner_dialog_id, is_self_destructing,
+                                                              true, nullptr, Document::Type::Video);
+  if (parsed_file.empty() || parsed_file.type != Document::Type::Video) {
+    LOG(ERROR) << "Receive invalid live photo video " << parsed_file;
+    return FileId();
+  }
+  return parsed_file.file_id;
 }
 
 string VideosManager::get_video_search_text(FileId file_id) const {

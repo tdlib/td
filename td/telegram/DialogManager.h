@@ -251,7 +251,8 @@ class DialogManager final : public Actor {
     PublicDialogsTooMany,
     PublicGroupsUnavailable
   };
-  void check_dialog_username(DialogId dialog_id, const string &username, Promise<CheckDialogUsernameResult> &&promise);
+  void check_dialog_username(DialogId dialog_id, const string &username, bool is_bot,
+                             Promise<CheckDialogUsernameResult> &&promise);
 
   static td_api::object_ptr<td_api::CheckChatUsernameResult> get_check_chat_username_result_object(
       CheckDialogUsernameResult result);

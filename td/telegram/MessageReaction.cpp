@@ -571,34 +571,12 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
       auto peer_reaction_type = ReactionType(peer_reaction->reaction_);
       if (peer_reaction_type == reaction_type) {
         DialogId dialog_id(peer_reaction->peer_id_);
-        if (!dialog_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << dialog_id << " as a recent chooser for " << reaction_type;
-          continue;
-        }
         if (!recent_choosers.insert(dialog_id).second) {
           LOG(ERROR) << "Receive duplicate " << dialog_id << " as a recent chooser for " << reaction_type;
           continue;
         }
-        if (!td->dialog_manager_->have_dialog_info(dialog_id)) {
-          auto dialog_type = dialog_id.get_type();
-          if (dialog_type == DialogType::User) {
-            auto user_id = dialog_id.get_user_id();
-            if (!td->user_manager_->have_min_user(user_id)) {
-              LOG(ERROR) << "Receive unknown " << user_id;
-              continue;
-            }
-          } else if (dialog_type == DialogType::Channel) {
-            auto channel_id = dialog_id.get_channel_id();
-            auto min_channel = td->chat_manager_->get_min_channel(channel_id);
-            if (min_channel == nullptr) {
-              LOG(ERROR) << "Receive unknown reacted " << channel_id;
-              continue;
-            }
-            recent_chooser_min_channels.emplace_back(channel_id, *min_channel);
-          } else {
-            LOG(ERROR) << "Receive unknown reacted " << dialog_id;
-            continue;
-          }
+        if (!check_min_message_sender(td, dialog_id, recent_chooser_min_channels)) {
+          continue;
         }
 
         recent_chooser_dialog_ids.push_back(dialog_id);

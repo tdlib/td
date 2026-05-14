@@ -22,6 +22,8 @@ struct MessageLinkInfo {
   MessageId message_id;
   bool is_single = false;
   int32 media_timestamp = 0;
+  int32 todo_item_id = 0;
+  string poll_option_id;
 
   MessageId top_thread_message_id;
 

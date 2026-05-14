@@ -19,7 +19,7 @@ namespace td {
 class Td;
 
 class RequestedDialogType {
-  enum class Type : int32 { User, Group, Channel };
+  enum class Type : int32 { User, Group, Channel, CreateBot };
   Type type_ = Type::User;
   int32 button_id_ = 0;
   int32 max_quantity_ = 1;            // User only
@@ -43,6 +43,9 @@ class RequestedDialogType {
   AdministratorRights user_administrator_rights_;    // Group and Channel only
   AdministratorRights bot_administrator_rights_;     // Group and Channel only
 
+  string suggested_name_;      // CreateBot only
+  string suggested_username_;  // CreateBot only
+
   telegram_api::object_ptr<telegram_api::RequestPeerType> get_input_request_peer_type_object() const;
 
  public:
@@ -51,6 +54,8 @@ class RequestedDialogType {
   explicit RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestUsers> &&request_users);
 
   explicit RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestChat> &&request_dialog);
+
+  explicit RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestManagedBot> &&request_dialog);
 
   RequestedDialogType(telegram_api::object_ptr<telegram_api::RequestPeerType> &&peer_type, int32 button_id,
                       int32 max_quantity);

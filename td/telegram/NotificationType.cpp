@@ -340,6 +340,9 @@ class NotificationTypePushMessage final : public NotificationType {
         if (key == "MESSAGE_POLL") {
           return td_api::make_object<td_api::pushMessageContentPoll>(arg, true, is_pinned);
         }
+        if (key == "MESSAGE_POLL_APPEND") {
+          return td_api::make_object<td_api::pushMessageContentPollOptionAdded>(arg);
+        }
         if (key == "MESSAGE_PROXIMITY") {
           return td_api::make_object<td_api::pushMessageContentProximityAlertTriggered>(to_integer<int32>(arg));
         }

@@ -11,7 +11,6 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
-#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
@@ -48,35 +47,14 @@ MessageReplyInfo::MessageReplyInfo(Td *td, tl_object_ptr<telegram_api::messageRe
   if (is_comment_) {
     for (const auto &peer : reply_info->recent_repliers_) {
       DialogId dialog_id(peer);
-      if (!dialog_id.is_valid()) {
-        LOG(ERROR) << "Receive " << dialog_id << " as a recent replier";
-        continue;
-      }
       if (td::contains(recent_replier_dialog_ids_, dialog_id)) {
         LOG(ERROR) << "Receive duplicate " << dialog_id << " as a recent replier";
         continue;
       }
-      if (!td->dialog_manager_->have_dialog_info(dialog_id)) {
-        auto dialog_type = dialog_id.get_type();
-        if (dialog_type == DialogType::User) {
-          auto replier_user_id = dialog_id.get_user_id();
-          if (!td->user_manager_->have_min_user(replier_user_id)) {
-            LOG(ERROR) << "Receive unknown replied " << replier_user_id;
-            continue;
-          }
-        } else if (dialog_type == DialogType::Channel) {
-          auto replier_channel_id = dialog_id.get_channel_id();
-          auto min_channel = td->chat_manager_->get_min_channel(replier_channel_id);
-          if (min_channel == nullptr) {
-            LOG(ERROR) << "Receive unknown replied " << replier_channel_id;
-            continue;
-          }
-          replier_min_channels_.emplace_back(replier_channel_id, *min_channel);
-        } else {
-          LOG(ERROR) << "Receive unknown replied " << dialog_id;
-          continue;
-        }
+      if (!check_min_message_sender(td, dialog_id, replier_min_channels_)) {
+        continue;
       }
+
       recent_replier_dialog_ids_.push_back(dialog_id);
       if (recent_replier_dialog_ids_.size() == MAX_RECENT_REPLIERS) {
         break;

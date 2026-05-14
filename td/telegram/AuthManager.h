@@ -41,10 +41,10 @@ class AuthManager final : public NetActor {
   void set_phone_number(uint64 query_id, string phone_number,
                         td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings);
 
-  void check_premium_purchase(uint64 query_id, string currency, int64 amount);
+  void check_premium_purchase(uint64 query_id, int32 premium_day_count, string currency, int64 amount);
 
   void set_premium_purchase_transaction(uint64 query_id, td_api::object_ptr<td_api::StoreTransaction> &&transaction,
-                                        bool is_restore, string currency, int64 amount);
+                                        bool is_restore, int32 premium_day_count, string currency, int64 amount);
 
   void set_firebase_token(uint64 query_id, string token);
 
@@ -190,6 +190,7 @@ class AuthManager final : public NetActor {
   string store_product_id_;
   string support_email_address_;
   string support_email_subject_;
+  int32 premium_day_count_ = 0;
 
   // State::WaitEmailAddress
   bool allow_apple_id_ = false;

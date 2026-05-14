@@ -17,28 +17,38 @@ namespace td {
 template <class StorerT>
 void ReactionNotificationSettings::store(StorerT &storer) const {
   bool has_sound = sound_ != nullptr;
+  bool has_poll_votes = poll_votes_ != ReactionNotificationsFrom();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_sound);
   STORE_FLAG(show_preview_);
+  STORE_FLAG(has_poll_votes);
   END_STORE_FLAGS();
   td::store(message_reactions_, storer);
   td::store(story_reactions_, storer);
   if (has_sound) {
     td::store(sound_, storer);
   }
+  if (has_poll_votes) {
+    td::store(poll_votes_, storer);
+  }
 }
 
 template <class ParserT>
 void ReactionNotificationSettings::parse(ParserT &parser) {
   bool has_sound;
+  bool has_poll_votes;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_sound);
   PARSE_FLAG(show_preview_);
+  PARSE_FLAG(has_poll_votes);
   END_PARSE_FLAGS();
   td::parse(message_reactions_, parser);
   td::parse(story_reactions_, parser);
   if (has_sound) {
     parse_notification_sound(sound_, parser);
+  }
+  if (has_poll_votes) {
+    td::parse(poll_votes_, parser);
   }
 }
 

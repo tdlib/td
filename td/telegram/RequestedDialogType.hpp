@@ -15,6 +15,8 @@ namespace td {
 template <class StorerT>
 void RequestedDialogType::store(StorerT &storer) const {
   bool has_max_quantity = max_quantity_ != 1;
+  bool has_suggested_name = !suggested_name_.empty();
+  bool has_suggested_username = !suggested_username_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(restrict_is_bot_);
   STORE_FLAG(is_bot_);
@@ -29,6 +31,8 @@ void RequestedDialogType::store(StorerT &storer) const {
   STORE_FLAG(restrict_user_administrator_rights_);
   STORE_FLAG(restrict_bot_administrator_rights_);
   STORE_FLAG(has_max_quantity);
+  STORE_FLAG(has_suggested_name);
+  STORE_FLAG(has_suggested_username);
   END_STORE_FLAGS();
   td::store(type_, storer);
   td::store(button_id_, storer);
@@ -41,11 +45,19 @@ void RequestedDialogType::store(StorerT &storer) const {
   if (has_max_quantity) {
     td::store(max_quantity_, storer);
   }
+  if (has_suggested_name) {
+    td::store(suggested_name_, storer);
+  }
+  if (has_suggested_username) {
+    td::store(suggested_username_, storer);
+  }
 }
 
 template <class ParserT>
 void RequestedDialogType::parse(ParserT &parser) {
   bool has_max_quantity;
+  bool has_suggested_name;
+  bool has_suggested_username;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(restrict_is_bot_);
   PARSE_FLAG(is_bot_);
@@ -60,6 +72,8 @@ void RequestedDialogType::parse(ParserT &parser) {
   PARSE_FLAG(restrict_user_administrator_rights_);
   PARSE_FLAG(restrict_bot_administrator_rights_);
   PARSE_FLAG(has_max_quantity);
+  PARSE_FLAG(has_suggested_name);
+  PARSE_FLAG(has_suggested_username);
   END_PARSE_FLAGS();
   td::parse(type_, parser);
   td::parse(button_id_, parser);
@@ -73,6 +87,12 @@ void RequestedDialogType::parse(ParserT &parser) {
     td::parse(max_quantity_, parser);
   } else {
     max_quantity_ = 1;
+  }
+  if (has_suggested_name) {
+    td::parse(suggested_name_, parser);
+  }
+  if (has_suggested_username) {
+    td::parse(suggested_username_, parser);
   }
 }
 

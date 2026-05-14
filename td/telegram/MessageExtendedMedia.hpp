@@ -108,9 +108,6 @@ void MessageExtendedMedia::parse(ParserT &parser) {
     Td *td = parser.context()->td().get_actor_unsafe();
     video_file_id_ = td->videos_manager_->parse_video(parser);
     is_bad = !video_file_id_.is_valid();
-    if (type_ != Type::Video) {
-      is_bad = true;
-    }
   } else if (type_ == Type::Video) {
     is_bad = true;
   }

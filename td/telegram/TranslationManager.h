@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/AiComposeTone.h"
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/td_api.h"
@@ -15,6 +17,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -24,22 +27,75 @@ class TranslationManager final : public Actor {
  public:
   TranslationManager(Td *td, ActorShared<> parent);
 
-  void translate_text(td_api::object_ptr<td_api::formattedText> &&text, const string &to_language_code,
-                      Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+  void on_authorization_success();
 
-  void translate_text(FormattedText text, bool skip_bot_commands, int32 max_media_timestamp,
-                      MessageFullId message_full_id, const string &to_language_code,
-                      Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+  struct InputText {
+    FormattedText text_;
+    bool skip_bot_commands_ = true;
+    int32 max_media_timestamp_ = -1;
+  };
+
+  void translate_text(td_api::object_ptr<td_api::formattedText> &&text, const string &to_language_code,
+                      const string &tone, Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+
+  void translate_text(InputText &&text, MessageFullId message_full_id, const string &to_language_code,
+                      const string &tone, Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+
+  void compose_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
+                               const string &translate_to_language_code, const string &tone, bool emojify,
+                               Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+
+  void proofread_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
+                                 Promise<td_api::object_ptr<td_api::fixedText>> &&promise);
+
+  void reload_ai_compose_tones(Promise<Unit> &&promise);
+
+  void on_get_ai_compose_tones(telegram_api::object_ptr<telegram_api::aicompose_Tones> &&tones_ptr);
+
+  void create_tone(const string &title, CustomEmojiId custom_emoji_id, const string &prompt, bool show_creator,
+                   Promise<td_api::object_ptr<td_api::textCompositionStyle>> &&promise);
+
+  void update_tone(const string &name, const string &title, CustomEmojiId custom_emoji_id, const string &prompt,
+                   bool show_creator, Promise<td_api::object_ptr<td_api::textCompositionStyle>> &&promise);
+
+  void delete_tone(const string &name, Promise<Unit> &&promise);
+
+  void search_tone(const string &name, Promise<td_api::object_ptr<td_api::textCompositionStyle>> &&promise);
+
+  void get_tone_example(const string &name, int32 num,
+                        Promise<td_api::object_ptr<td_api::textCompositionStyleExample>> &&promise);
+
+  void add_tone(const string &name, Promise<Unit> &&promise);
+
+  void remove_tone(const string &name, Promise<Unit> &&promise);
+
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
+  void start_up() final;
+
   void tear_down() final;
+
+  Result<InputText> get_input_text(td_api::object_ptr<td_api::formattedText> &&text) const;
 
   void on_get_translated_texts(vector<telegram_api::object_ptr<telegram_api::textWithEntities>> texts,
                                bool skip_bot_commands, int32 max_media_timestamp,
                                Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
+  void do_create_tone(const string &title, CustomEmojiId custom_emoji_id, const string &prompt, bool show_creator,
+                      Promise<td_api::object_ptr<td_api::textCompositionStyle>> &&promise);
+
+  void do_update_tone(const string &name, const string &title, CustomEmojiId custom_emoji_id, const string &prompt,
+                      bool show_creator, Promise<td_api::object_ptr<td_api::textCompositionStyle>> &&promise);
+
+  static string get_ai_compose_tones_key();
+
+  void send_update_text_composition_styles() const;
+
   Td *td_;
   ActorShared<> parent_;
+
+  AiComposeTones ai_compose_tones_;
 };
 
 }  // namespace td

@@ -587,7 +587,7 @@ void AnimationsManager::on_get_saved_animations(
     }
     CHECK(document_constructor_id == telegram_api::document::ID);
     auto document = td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(document_ptr),
-                                                             DialogId(), false);
+                                                             DialogId(), false, false);
     if (document.type != Document::Type::Animation) {
       LOG(ERROR) << "Receive " << document << " instead of animation as saved animation";
       continue;

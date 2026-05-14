@@ -373,10 +373,10 @@ class QuickReplyManager final : public Actor {
 
   void on_failed_send_quick_reply_messages(QuickReplyShortcutId shortcut_id, vector<int64> random_ids, Status error);
 
-  void update_sent_message_content_from_temporary_message(const QuickReplyMessage *old_message,
+  void update_sent_message_content_from_temporary_message(QuickReplyMessage *old_message,
                                                           QuickReplyMessage *new_message, bool is_edit);
 
-  void update_sent_message_content_from_temporary_message(const unique_ptr<MessageContent> &old_content,
+  void update_sent_message_content_from_temporary_message(unique_ptr<MessageContent> &old_content,
                                                           FileUploadId old_file_upload_id,
                                                           unique_ptr<MessageContent> &new_content,
                                                           bool need_merge_files);

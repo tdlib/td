@@ -23,6 +23,7 @@ bool MessageCopyOptions::is_supported_server_side(const Td *td, const MessageTop
   }
   if (input_reply_to.is_valid() &&
       (!message_topic.is_forum() || input_reply_to.has_quote() || input_reply_to.has_todo_item_id() ||
+       input_reply_to.has_poll_option_id() ||
        input_reply_to.get_same_chat_reply_to_message_id() != message_topic.get_implicit_reply_to_message_id(td))) {
     return false;
   }

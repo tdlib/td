@@ -47,6 +47,9 @@ class StatisticsManager final : public Actor {
   void get_channel_story_statistics(StoryFullId message_full_id, bool is_dark,
                                     Promise<td_api::object_ptr<td_api::storyStatistics>> &&promise);
 
+  void get_poll_statistics(MessageFullId message_full_id, bool is_dark,
+                           Promise<td_api::object_ptr<td_api::pollVoteStatistics>> &&promise);
+
   void load_statistics_graph(DialogId dialog_id, string token, int64 x,
                              Promise<td_api::object_ptr<td_api::StatisticalGraph>> &&promise);
 

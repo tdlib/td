@@ -51,6 +51,7 @@ class TlsHello {
       BeginScope,
       EndScope,
       Permutation,
+      RandomValue,
       Padding
     };
     Type type;
@@ -58,6 +59,7 @@ class TlsHello {
     int seed;
     string data;
     vector<vector<Op>> parts;
+    vector<Op> value;
 
     static Op str(Slice str) {
       Op res;
@@ -114,6 +116,13 @@ class TlsHello {
       res.parts = std::move(parts);
       return res;
     }
+    static Op random_value(vector<vector<Op>> parts) {
+      CHECK(!parts.empty());
+      Op res;
+      res.type = Type::RandomValue;
+      res.value = parts[Random::fast(0, static_cast<int>(parts.size() - 1))];
+      return res;
+    }
     static Op ech_payload() {
       Op res;
       res.type = Type::Random;
@@ -132,14 +141,23 @@ class TlsHello {
       TlsHello res;
 #if TD_DARWIN
       res.ops_ = {
-          Op::str("\x16\x03\x01\x02\x00\x01\x00\x01\xfc\x03\x03"),
+          Op::str("\x16\x03\x01"),
+          Op::begin_scope(),
+          Op::str("\x01\x00"),
+          Op::begin_scope(),
+          Op::str("\x03\x03"),
           Op::zero(32),
           Op::str("\x20"),
           Op::random(32),
-          Op::str("\x00\x2a"),
-          Op::grease(0),
-          Op::str("\x13\x01\x13\x02\x13\x03\xc0\x2c\xc0\x2b\xcc\xa9\xc0\x30\xc0\x2f\xcc\xa8\xc0\x0a\xc0\x09\xc0\x14"
-                  "\xc0\x13\x00\x9d\x00\x9c\x00\x35\x00\x2f\xc0\x08\xc0\x12\x00\x0a\x01\x00\x01\x89"),
+          Op::random_value(
+              {vector<Op>{Op::str("\x00\x1c"), Op::grease(0),
+                          Op::str("\x13\x02\x13\x01\x13\x03\xc0\x2c\xc0\x30\xc0\x2b\xcc\xa9\xc0\x2f\xcc\xa8\xc0\x0a\xc0"
+                                  "\x09\xc0\x14\xc0\x13")},
+               vector<Op>{Op::str("\x00\x2a"), Op::grease(0),
+                          Op::str("\x13\x02\x13\x03\x13\x01\xc0\x2c\xc0\x2b\xcc\xa9\xc0\x30\xc0\x2f\xcc\xa8\xc0\x0a\xc0"
+                                  "\x09\xc0\x14\xc0\x13\x00\x9d\x00\x9c\x00\x35\x00\x2f\xc0\x08\xc0\x12\x00\x0a")}}),
+          Op::str("\x01\x00"),
+          Op::begin_scope(),
           Op::grease(2),
           Op::str("\x00\x00\x00\x00"),
           Op::begin_scope(),
@@ -150,21 +168,28 @@ class TlsHello {
           Op::end_scope(),
           Op::end_scope(),
           Op::end_scope(),
-          Op::str("\x00\x17\x00\x00\xff\x01\x00\x01\x00\x00\x0a\x00\x0c\x00\x0a"),
+          Op::str("\x00\x17\x00\x00\xff\x01\x00\x01\x00\x00\x0a\x00\x0e\x00\x0c"),
           Op::grease(4),
-          Op::str(
-              "\x00\x1d\x00\x17\x00\x18\x00\x19\x00\x0b\x00\x02\x01\x00\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74"
-              "\x74\x70\x2f\x31\x2e\x31\x00\x05\x00\x05\x01\x00\x00\x00\x00\x00\x0d\x00\x16\x00\x14\x04\x03\x08\x04\x04"
-              "\x01\x05\x03\x08\x05\x08\x05\x05\x01\x08\x06\x06\x01\x02\x01\x00\x12\x00\x00\x00\x33\x00\x2b\x00\x29"),
+          Op::str("\x11\xec\x00\x1d\x00\x17\x00\x18\x00\x19\x00\x0b\x00\x02\x01\x00"),
+          Op::random_value(
+              {vector<Op>{Op::str("\x00\x10\x00\x0b\x00\x09\x08\x68\x74\x74\x70\x2f\x31\x2e\x31")},
+               vector<Op>{Op::str("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31")}}),
+          Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00\x00\x0d\x00\x16\x00\x14\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05"
+                  "\x08\x05\x05\x01\x08\x06\x06\x01\x02\x01\x00\x12\x00\x00\x00\x33\x04\xef\x04\xed"),
           Op::grease(4),
-          Op::str("\x00\x01\x00\x00\x1d\x00\x20"),
+          Op::str("\x00\x01\x00\x11\xec\x04\xc0"),
+          Op::ml_kem_768_key(),
           Op::key(),
-          Op::str("\x00\x2d\x00\x02\x01\x01\x00\x2b\x00\x0b\x0a"),
+          Op::str("\x00\x1d\x00\x20"),
+          Op::key(),
+          Op::str("\x00\x2d\x00\x02\x01\x01\x00\x2b\x00\x07\x06"),
           Op::grease(6),
-          Op::str("\x03\x04\x03\x03\x03\x02\x03\x01\x00\x1b\x00\x03\x02\x00\x01"),
+          Op::str("\x03\x04\x03\x03\x00\x1b\x00\x03\x02\x00\x01"),
           Op::grease(3),
           Op::str("\x00\x01\x00"),
-          Op::padding()};
+          Op::end_scope(),
+          Op::end_scope(),
+          Op::end_scope()};
 #else
       res.ops_ = {
           Op::str("\x16\x03\x01"),
@@ -199,8 +224,8 @@ class TlsHello {
                vector<Op>{Op::str("\x00\x33\x04\xef\x04\xed"), Op::grease(4), Op::str("\x00\x01\x00\x11\xec\x04\xc0"),
                           Op::ml_kem_768_key(), Op::key(), Op::str("\x00\x1d\x00\x20"), Op::key()},
                vector<Op>{Op::str("\x44\xcd\x00\x05\x00\x03\x02\x68\x32")},
-               vector<Op>{Op::str("\xfe\x02"), Op::begin_scope(), Op::str("\x00\x00\x01\x00\x01"), Op::random(1),
-                          Op::str("\x00\x20"), Op::random(20), Op::begin_scope(), Op::ech_payload(), Op::end_scope(),
+               vector<Op>{Op::str("\xfe\x0d"), Op::begin_scope(), Op::str("\x00\x00\x01\x00\x01"), Op::random(1),
+                          Op::str("\x00\x20"), Op::random(32), Op::begin_scope(), Op::ech_payload(), Op::end_scope(),
                           Op::end_scope()},
                vector<Op>{Op::str("\xff\x01\x00\x01\x00")}}),
           Op::grease(3),
@@ -307,14 +332,18 @@ class TlsHelloCalcLength {
         }
         break;
       }
-      case Type::Permutation: {
+      case Type::Permutation:
         for (const auto &part : op.parts) {
           for (auto &nested_op : part) {
             do_op(nested_op, context);
           }
         }
         break;
-      }
+      case Type::RandomValue:
+        for (auto &nested_op : op.value) {
+          do_op(nested_op, context);
+        }
+        break;
       case Type::Padding:
         if (size_ < 513) {
           size_ = 517;
@@ -458,6 +487,11 @@ class TlsHelloStore {
         }
         break;
       }
+      case Type::RandomValue:
+        for (auto &nested_op : op.value) {
+          do_op(nested_op, context);
+        }
+        break;
       case Type::Padding: {
         auto size = 513 - static_cast<int>(get_offset());
         if (size > 0) {

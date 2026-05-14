@@ -23,6 +23,7 @@ void ForumTopic::store(StorerT &storer) const {
   bool has_last_read_outbox_message_id = last_read_outbox_message_id_.is_valid();
   bool has_unread_mention_count = unread_mention_count_ != 0;
   bool has_unread_reaction_count = unread_reaction_count_ != 0;
+  bool has_unread_poll_vote_count = unread_poll_vote_count_ != 0;
   bool has_draft_message = draft_message_ != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_short_);
@@ -34,6 +35,7 @@ void ForumTopic::store(StorerT &storer) const {
   STORE_FLAG(has_unread_mention_count);
   STORE_FLAG(has_unread_reaction_count);
   STORE_FLAG(has_draft_message);
+  STORE_FLAG(has_unread_poll_vote_count);
   END_STORE_FLAGS();
   if (has_unread_count) {
     td::store(unread_count_, storer);
@@ -57,6 +59,9 @@ void ForumTopic::store(StorerT &storer) const {
   if (has_draft_message) {
     td::store(draft_message_, storer);
   }
+  if (has_unread_poll_vote_count) {
+    td::store(unread_poll_vote_count_, storer);
+  }
 }
 
 template <class ParserT>
@@ -68,6 +73,7 @@ void ForumTopic::parse(ParserT &parser) {
   bool has_unread_mention_count;
   bool has_unread_reaction_count;
   bool has_draft_message;
+  bool has_unread_poll_vote_count;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_short_);
   PARSE_FLAG(is_pinned_);
@@ -78,6 +84,7 @@ void ForumTopic::parse(ParserT &parser) {
   PARSE_FLAG(has_unread_mention_count);
   PARSE_FLAG(has_unread_reaction_count);
   PARSE_FLAG(has_draft_message);
+  PARSE_FLAG(has_unread_poll_vote_count);
   END_PARSE_FLAGS();
   if (has_unread_count) {
     td::parse(unread_count_, parser);
@@ -100,6 +107,9 @@ void ForumTopic::parse(ParserT &parser) {
   td::parse(notification_settings_, parser);
   if (has_draft_message) {
     td::parse(draft_message_, parser);
+  }
+  if (has_unread_poll_vote_count) {
+    td::parse(unread_poll_vote_count_, parser);
   }
 }
 
