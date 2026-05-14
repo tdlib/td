@@ -84,6 +84,8 @@ TEST(W2BGuestMessageAdversarial, LegacyReplyToStoryValidationMustNotDropBusiness
   auto normalized = normalize_for_contract(source);
 
   ASSERT_TRUE(normalized.find("if(story_dialog_id!=my_dialog_id&&story_dialog_id!=dialog_id&&"
+                              "story_dialog_id!=DialogId(sender_user_id)&&!is_business_message){") == td::string::npos);
+  ASSERT_TRUE(normalized.find("if(story_dialog_id!=my_dialog_id&&story_dialog_id!=dialog_id&&"
                               "story_dialog_id!=DialogId(sender_user_id)){") == td::string::npos);
 }
 

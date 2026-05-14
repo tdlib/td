@@ -262,6 +262,7 @@ class UserManager final : public Actor {
     bool can_bot_create_topics = false;
     bool can_manage_bots = false;
     bool is_inline = false;
+    bool is_guestchat_bot = false;
     bool is_business = false;
     bool need_location = false;
     bool can_be_added_to_attach_menu = false;
@@ -633,6 +634,7 @@ class UserManager final : public Actor {
     bool can_bot_create_topics = false;
     bool can_manage_bots = false;
     bool is_inline_bot = false;
+    bool is_guestchat_bot = false;
     bool is_business_bot = false;
     bool need_location_bot = false;
     bool is_scam = false;

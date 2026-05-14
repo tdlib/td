@@ -36,6 +36,7 @@
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
+#include "td/telegram/GuestQueryQtsUpdate.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/Location.h"
@@ -1251,9 +1252,9 @@ void UpdatesManager::on_get_updates_impl(telegram_api::object_ptr<telegram_api::
           false, false, false, false, false, 0, false, false, false, update->id_,
           telegram_api::make_object<telegram_api::peerUser>(from_id), 0, string(),
           telegram_api::make_object<telegram_api::peerUser>(update->user_id_), nullptr, std::move(update->fwd_from_),
-          update->via_bot_id_, 0, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
-          std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_, 0, 0,
-          nullptr, 0, 0, nullptr, 0, string());
+          update->via_bot_id_, 0, nullptr, std::move(update->reply_to_), update->date_, update->message_, nullptr,
+          nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_, 0,
+          0, nullptr, 0, 0, nullptr, 0, string());
       on_pending_update(telegram_api::make_object<telegram_api::updateNewMessage>(std::move(message), update->pts_,
                                                                                   update->pts_count_),
                         0, std::move(promise), "telegram_api::updateShortMessage");
@@ -1266,9 +1267,9 @@ void UpdatesManager::on_get_updates_impl(telegram_api::object_ptr<telegram_api::
           false, false, false, false, false, 0, false, false, false, update->id_,
           telegram_api::make_object<telegram_api::peerUser>(update->from_id_), 0, string(),
           telegram_api::make_object<telegram_api::peerChat>(update->chat_id_), nullptr, std::move(update->fwd_from_),
-          update->via_bot_id_, 0, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
-          std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_, 0, 0,
-          nullptr, 0, 0, nullptr, 0, string());
+          update->via_bot_id_, 0, nullptr, std::move(update->reply_to_), update->date_, update->message_, nullptr,
+          nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_, 0,
+          0, nullptr, 0, 0, nullptr, 0, string());
       on_pending_update(telegram_api::make_object<telegram_api::updateNewMessage>(std::move(message), update->pts_,
                                                                                   update->pts_count_),
                         0, std::move(promise), "telegram_api::updateShortChatMessage");
@@ -3334,6 +3335,31 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
             std::move(update->messages_));
         break;
       }
+      case telegram_api::updateBotGuestChatQuery::ID: {
+        auto update = move_tl_object_as<telegram_api::updateBotGuestChatQuery>(update_ptr);
+        auto result = dispatch_guest_query_qts_update(
+            update->query_id_, std::move(update->reference_messages_), std::move(update->message_),
+            [this](tl_object_ptr<telegram_api::Message> &&message) {
+              return td_->messages_manager_->get_guest_message_object(std::move(message), false);
+            },
+            [](int64 query_id, td_api::object_ptr<td_api::message> &&message,
+               vector<td_api::object_ptr<td_api::message>> &&reference_messages) {
+              send_closure(G()->td(), &Td::send_update,
+                           td_api::make_object<td_api::updateNewGuestQuery>(query_id, std::move(message),
+                                                                            std::move(reference_messages)));
+            });
+        switch (result) {
+          case GuestQueryQtsUpdateResult::InvalidQueryId:
+            LOG(ERROR) << "Receive invalid guest query identifier";
+            break;
+          case GuestQueryQtsUpdateResult::EmptyMessage:
+            LOG(ERROR) << "Receive empty guest message";
+            break;
+          case GuestQueryQtsUpdateResult::UpdateSent:
+            break;
+        }
+        break;
+      }
       default:
         UNREACHABLE();
         break;
@@ -4167,6 +4193,7 @@ bool UpdatesManager::is_qts_update(const telegram_api::Update *update) {
     case telegram_api::updateBotEditBusinessMessage::ID:
     case telegram_api::updateBotDeleteBusinessMessage::ID:
     case telegram_api::updateBotPurchasedPaidMedia::ID:
+    case telegram_api::updateBotGuestChatQuery::ID:
       return true;
     default:
       return false;
@@ -4205,6 +4232,8 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updateBotDeleteBusinessMessage *>(update)->qts_;
     case telegram_api::updateBotPurchasedPaidMedia::ID:
       return static_cast<const telegram_api::updateBotPurchasedPaidMedia *>(update)->qts_;
+    case telegram_api::updateBotGuestChatQuery::ID:
+      return static_cast<const telegram_api::updateBotGuestChatQuery *>(update)->qts_;
     default:
       return 0;
   }
@@ -4811,6 +4840,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMessageReact
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotPurchasedPaidMedia> update,
                                Promise<Unit> &&promise) {
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotGuestChatQuery> update, Promise<Unit> &&promise) {
   auto qts = update->qts_;
   add_pending_qts_update(std::move(update), qts, std::move(promise));
 }

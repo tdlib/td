@@ -1683,6 +1683,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::answerInlineQuery &request);
 
+  void on_request(uint64 id, td_api::answerGuestQuery &request);
+
   void on_request(uint64 id, td_api::savePreparedInlineMessage &request);
 
   void on_request(uint64 id, td_api::getPreparedInlineMessage &request);

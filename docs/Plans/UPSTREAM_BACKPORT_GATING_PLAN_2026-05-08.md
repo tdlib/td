@@ -1056,6 +1056,16 @@ RED test IDs. Execution remains blocked until product objective approval.
 6. The small commit count does not make this a small semantic change; it changes update and message
    state semantics and therefore remains outside hardening waves.
 
+### 10.6.1 Published Preflight Annex (W4-G)
+
+The bounded Wave 4 preflight annex is published for W4-G guest-bot capability scope:
+
+`docs/Plans/UPSTREAM_WAVE_4_PREFLIGHT_2026-05-14.md`
+
+This annex freezes exact W4-G row membership, contract boundaries, risk register, and the verified
+repository-resident W4 RED/Survive suite, including malformed guest-result runtime coverage. Execution
+remains blocked until product objective approval.
+
 ## 10.7 Wave 5 (AI Compose and Text-Composition Style Capability Bundle)
 
 1. Coarse size: 22 commits.

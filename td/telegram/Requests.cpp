@@ -7906,6 +7906,13 @@ void Requests::on_request(uint64 id, td_api::answerInlineQuery &request) {
                                                     request.cache_time_, request.next_offset_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::answerGuestQuery &request) {
+  CHECK_IS_BOT();
+  CREATE_REQUEST_PROMISE();
+  td_->inline_queries_manager_->answer_guest_query(request.guest_query_id_, std::move(request.result_),
+                                                   std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::savePreparedInlineMessage &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();

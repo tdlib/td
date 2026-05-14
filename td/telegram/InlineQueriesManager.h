@@ -46,6 +46,9 @@ class InlineQueriesManager final : public Actor {
                            vector<td_api::object_ptr<td_api::InputInlineQueryResult>> &&input_results, int32 cache_time,
                            const string &next_offset, Promise<Unit> &&promise) const;
 
+  void answer_guest_query(int64 guest_query_id, td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
+                          Promise<td_api::object_ptr<td_api::inlineMessageId>> &&promise) const;
+
   void save_prepared_inline_message(UserId user_id, td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
                                     td_api::object_ptr<td_api::targetChatTypes> &&chat_types,
                                     Promise<td_api::object_ptr<td_api::preparedInlineMessageId>> &&promise);

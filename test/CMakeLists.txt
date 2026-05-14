@@ -33,6 +33,41 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/http.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/http_reader_smuggling_security.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/link.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_link_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_link_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_link_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_link_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_link_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/bot_cross_chat_reply_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/bot_cross_chat_reply_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/bot_cross_chat_reply_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/bot_cross_chat_reply_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/bot_cross_chat_reply_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/phone_country_iso2_option_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/phone_country_iso2_option_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/phone_country_iso2_option_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/phone_country_iso2_option_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/phone_country_iso2_option_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ai_compose_styles_config_removal_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ai_compose_styles_config_removal_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ai_compose_styles_config_removal_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ai_compose_styles_config_removal_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ai_compose_styles_config_removal_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_example_count_option_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_example_count_option_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_example_count_option_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_example_count_option_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_example_count_option_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_content_star_count_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_content_star_count_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_content_star_count_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_content_star_count_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_content_star_count_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/paid_media_input_media_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/paid_media_input_media_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/paid_media_input_media_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/paid_media_input_media_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/paid_media_input_media_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_light_fuzz.cpp
@@ -76,6 +111,15 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_runtime_harness.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_runtime_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_server_result_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_bot_top_dialog_runtime.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_integration.cpp
@@ -102,9 +146,34 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_state_runtime_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_state_runtime_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_message_id_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_message_id_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_message_id_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_message_id_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_message_id_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_answer_voters_move_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_answer_voters_move_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_answer_voters_move_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_answer_voters_move_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_answer_voters_move_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_stop_move_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_stop_move_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_stop_move_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_stop_move_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_stop_move_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_move_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_move_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_move_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_move_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_move_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_voter_visibility_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_voter_visibility_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_voter_visibility_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_voter_count_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_voter_count_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_voter_count_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_voter_count_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_voter_count_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_entities_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_entities_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_entities_integration.cpp

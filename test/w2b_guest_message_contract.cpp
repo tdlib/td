@@ -98,7 +98,7 @@ TEST(W2BGuestMessageContract, ReplyToStoryValidationMustStayFailClosedOutsideBus
 
   ASSERT_TRUE(
       normalized.find(
-          R"(if(story_dialog_id!=my_dialog_id&&story_dialog_id!=dialog_id&&story_dialog_id!=DialogId(sender_user_id)&&!is_business_message){)") !=
+          R"(if(story_dialog_id!=my_dialog_id&&story_dialog_id!=dialog_id&&story_dialog_id!=DialogId(sender_user_id)&&story_dialog_id!=message_info.guest_bot_via_dialog_id&&!is_business_message){)") !=
       td::string::npos);
 }
 

@@ -40,7 +40,9 @@ TEST(W2BGuestMessageStress, RepeatedSourceReadsKeepGuestGuardInvariantsStable) {
                                                 "!(dialog_id==my_dialog_id&&!message_id.is_scheduled())&&"
                                                 "!(is_bot&&message_info.via_business_bot_user_id.is_valid());"));
     ASSERT_NE(td::string::npos, normalized.find("if(story_dialog_id!=my_dialog_id&&story_dialog_id!=dialog_id&&"
-                                                "story_dialog_id!=DialogId(sender_user_id)&&!is_business_message){"));
+                                                "story_dialog_id!=DialogId(sender_user_id)&&"
+                                                "story_dialog_id!=message_info.guest_bot_via_dialog_id&&!"
+                                                "is_business_message){"));
     ASSERT_NE(td::string::npos,
               normalized.find("if(message_info.is_pinned){LOG(ERROR)<<\"Receivepinned\"<<message_id<<\"in\""
                               "<<dialog_id;message_info.is_pinned=false;}"));
@@ -62,6 +64,9 @@ TEST(W2BGuestMessageStress, RepeatedSourceReadsKeepGuestGuardInvariantsStable) {
               normalized.find("boolsupposed_to_be_outgoing=sender_user_id==my_id&&"
                               "!(dialog_id==my_dialog_id&&!message_id.is_scheduled())&&"
                               "!(is_business_message&&is_bot&&message_info.via_business_bot_user_id.is_valid());"));
+    ASSERT_EQ(td::string::npos, normalized.find("if(story_dialog_id!=my_dialog_id&&story_dialog_id!=dialog_id&&"
+                                                "story_dialog_id!=DialogId(sender_user_id)&&!"
+                                                "is_business_message){"));
     ASSERT_EQ(td::string::npos, normalized.find("if(story_dialog_id!=my_dialog_id&&story_dialog_id!=dialog_id&&"
                                                 "story_dialog_id!=DialogId(sender_user_id)){"));
     ASSERT_EQ(td::string::npos, normalized.find("on_get_message(parse_telegram_api_message(td_,std::move(message_ptr),"

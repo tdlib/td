@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -821,6 +821,9 @@ class MessagesManager final : public Actor {
       telegram_api::object_ptr<telegram_api::Message> &&message,
       telegram_api::object_ptr<telegram_api::Message> &&reply_to_message);
 
+  td_api::object_ptr<td_api::message> get_guest_message_object(
+      telegram_api::object_ptr<telegram_api::Message> &&message, bool is_business_message);
+
   td_api::object_ptr<td_api::message> get_message_object(MessageFullId message_full_id, const char *source);
 
   td_api::object_ptr<td_api::messages> get_messages_object(int32 total_count, DialogId dialog_id,
@@ -1035,6 +1038,7 @@ class MessagesManager final : public Actor {
     telegram_api::object_ptr<telegram_api::messageFwdHeader> forward_header;
     MessageReplyHeader reply_header;
     UserId via_bot_user_id;
+    DialogId guest_bot_via_dialog_id;
     UserId via_business_bot_user_id;
     int32 view_count = 0;
     int32 forward_count = 0;
@@ -1107,6 +1111,7 @@ class MessagesManager final : public Actor {
     mutable vector<FileUploadId> thumbnail_file_upload_ids;  // for send_message
 
     UserId via_bot_user_id;
+    DialogId guest_bot_via_dialog_id;
     UserId via_business_bot_user_id;
 
     vector<RestrictionReason> restriction_reasons;
@@ -1685,7 +1690,7 @@ class MessagesManager final : public Actor {
                                                 bool is_scheduled, bool is_business_message, const char *source);
 
   static std::pair<DialogId, unique_ptr<Message>> create_message(Td *td, MessageInfo &&message_info,
-                                                                 bool is_channel_message, bool is_business_message,
+                                                                 bool is_channel_message, bool is_guest_message,
                                                                  const char *source);
 
   MessageId find_old_message_id(DialogId dialog_id, MessageId message_id) const;
@@ -2054,6 +2059,8 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::suggestedPostInfo> get_message_suggested_post_info_object(DialogId dialog_id,
                                                                                        const Message *m) const;
+
+  td_api::object_ptr<td_api::MessageSender> get_message_guest_sender_object(const Message *m) const;
 
   vector<td_api::object_ptr<td_api::unreadReaction>> get_unread_reactions_object(DialogId dialog_id,
                                                                                  const Message *m) const;
@@ -3450,6 +3457,7 @@ class MessagesManager final : public Actor {
   WaitFreeHashMap<MessageFullId, FileSourceId, MessageFullIdHash> message_full_id_to_file_source_id_;
 
   FlatHashMap<DialogId, int32, DialogIdHash> last_outgoing_forwarded_message_date_;
+  FlatHashMap<DialogId, int32, DialogIdHash> last_outgoing_guest_bot_message_date_;
 
   struct ViewedMessagesInfo {
     FlatHashMap<MessageId, uint64, MessageIdHash> message_id_to_view_id;

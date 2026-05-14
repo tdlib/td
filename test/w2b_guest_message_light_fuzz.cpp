@@ -36,7 +36,7 @@ TEST(W2BGuestMessageLightFuzz, RandomizedProbeOrderKeepsRequiredGuardPatternsPin
       "if(!is_business_message&&dialog_id==my_dialog_id&&(sender_user_id!=my_id||sender_dialog_id.is_valid())){",
       R"(boolsupposed_to_be_outgoing=sender_user_id==my_id&&!(dialog_id==my_dialog_id&&!message_id.is_scheduled())&&!(is_bot&&message_info.via_business_bot_user_id.is_valid());)",
       "if(story_dialog_id!=my_dialog_id&&story_dialog_id!=dialog_id&&story_dialog_id!=DialogId(sender_user_id)&&"
-      "!is_business_message){",
+      "story_dialog_id!=message_info.guest_bot_via_dialog_id&&!is_business_message){",
       R"(if(message_info.is_pinned){LOG(ERROR)<<"Receivepinned"<<message_id<<"in"<<dialog_id;message_info.is_pinned=false;})",
       "if(!is_business_message){td->messages_manager_->fix_message_topic(dialog_id,message.get(),false);}",
       "if(hide_edit_date&&(is_bot||content_type==MessageContentType::LiveLocation)){hide_edit_date=false;}",
@@ -56,10 +56,12 @@ TEST(W2BGuestMessageLightFuzz, RandomizedProbeOrderKeepsLegacyUnsafePatternsAbse
   auto source = td::mtproto::test::read_repo_text_file("td/telegram/MessagesManager.cpp");
   auto normalized = normalize_for_contract(source);
 
-  const std::array<td::string, 10> forbidden = {
+  const std::array<td::string, 11> forbidden = {
       "if(dialog_id==my_dialog_id&&(sender_user_id!=my_id||sender_dialog_id.is_valid())){",
       "boolsupposed_to_be_outgoing=sender_user_id==my_id&&!(dialog_id==my_dialog_id&&!message_id.is_scheduled());",
       R"(boolsupposed_to_be_outgoing=sender_user_id==my_id&&!(dialog_id==my_dialog_id&&!message_id.is_scheduled())&&!(is_business_message&&is_bot&&message_info.via_business_bot_user_id.is_valid());)",
+      "if(story_dialog_id!=my_dialog_id&&story_dialog_id!=dialog_id&&story_dialog_id!=DialogId(sender_user_id)&&!is_"
+      "business_message){",
       "if(story_dialog_id!=my_dialog_id&&story_dialog_id!=dialog_id&&story_dialog_id!=DialogId(sender_user_id)){",
       "boolis_pinned=message_info.is_pinned;",
       "if(hide_edit_date&&is_bot){hide_edit_date=false;}"

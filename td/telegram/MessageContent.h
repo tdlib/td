@@ -137,6 +137,9 @@ SecretInputMedia get_message_content_secret_input_media(
     BufferSlice thumbnail, int32 layer);
 
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(
+    const MessageContent *content, vector<telegram_api::object_ptr<telegram_api::InputMedia>> &&input_media);
+
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(
     const MessageContent *content, int32 media_pos, Td *td,
     telegram_api::object_ptr<telegram_api::InputFile> input_file,
     telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, FileUploadId file_upload_id,
@@ -310,8 +313,6 @@ const FormattedText *get_message_content_text(const MessageContent *content);
 const FormattedText *get_message_content_caption(const MessageContent *content);
 
 int64 get_message_content_star_count(const MessageContent *content);
-
-string get_message_content_payload(const MessageContent *content);
 
 int32 get_message_content_duration(const MessageContent *content, const Td *td);
 

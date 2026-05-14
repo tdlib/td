@@ -28,6 +28,7 @@
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PhotoFormat.h"
@@ -62,6 +63,20 @@
 #include "td/utils/tl_helpers.h"
 
 namespace td {
+
+static int32 get_inline_message_dc_id(
+    const tl_object_ptr<telegram_api::InputBotInlineMessageID> &input_bot_inline_message_id) {
+  CHECK(input_bot_inline_message_id != nullptr);
+  switch (input_bot_inline_message_id->get_id()) {
+    case telegram_api::inputBotInlineMessageID::ID:
+      return static_cast<const telegram_api::inputBotInlineMessageID *>(input_bot_inline_message_id.get())->dc_id_;
+    case telegram_api::inputBotInlineMessageID64::ID:
+      return static_cast<const telegram_api::inputBotInlineMessageID64 *>(input_bot_inline_message_id.get())->dc_id_;
+    default:
+      UNREACHABLE();
+      return 0;
+  }
+}
 
 class GetInlineBotResultsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::inlineQueryResults>> promise_;
@@ -156,6 +171,39 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Sending answer to an inline query has failed";
     }
     promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SetBotGuestChatResultQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::inlineMessageId>> promise_;
+
+ public:
+  explicit SetBotGuestChatResultQuery(Promise<td_api::object_ptr<td_api::inlineMessageId>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 query_id, telegram_api::object_ptr<telegram_api::InputBotInlineResult> &&result) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_setBotGuestChatResult(query_id, std::move(result))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_setBotGuestChatResult>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SetBotGuestChatResultQuery: " << to_string(ptr);
+    auto inline_message_id = InlineQueriesManager::get_inline_message_id(std::move(ptr));
+    if (inline_message_id.empty()) {
+      return on_error(Status::Error(500, "Receive invalid inline message identifier in guest query result"));
+    }
+    promise_.set_value(td_api::make_object<td_api::inlineMessageId>(std::move(inline_message_id)));
   }
 
   void on_error(Status status) final {
@@ -411,8 +459,11 @@ class SendWebViewResultMessageQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendWebViewResultMessageQuery: " << to_string(ptr);
-    promise_.set_value(td_api::make_object<td_api::sentWebAppMessage>(
-        InlineQueriesManager::get_inline_message_id(std::move(ptr->msg_id_))));
+    auto inline_message_id = InlineQueriesManager::get_inline_message_id(std::move(ptr->msg_id_));
+    if (inline_message_id.empty()) {
+      return on_error(Status::Error(500, "Receive invalid inline message identifier in web view result"));
+    }
+    promise_.set_value(td_api::make_object<td_api::sentWebAppMessage>(std::move(inline_message_id)));
   }
 
   void on_error(Status status) final {
@@ -500,6 +551,10 @@ void InlineQueriesManager::after_get_difference() {
 string InlineQueriesManager::get_inline_message_id(
     tl_object_ptr<telegram_api::InputBotInlineMessageID> &&input_bot_inline_message_id) {
   if (input_bot_inline_message_id == nullptr) {
+    return string();
+  }
+  if (!DcId::is_valid(get_inline_message_dc_id(input_bot_inline_message_id))) {
+    LOG(ERROR) << "Receive invalid inline message identifier: " << to_string(input_bot_inline_message_id);
     return string();
   }
   LOG(INFO) << "Receive inline message identifier: " << to_string(input_bot_inline_message_id);
@@ -702,6 +757,18 @@ void InlineQueriesManager::answer_inline_query(
   td_->create_handler<SetInlineBotResultsQuery>(std::move(promise))
       ->send(inline_query_id, is_gallery && !force_vertical, is_personal, std::move(switch_pm), std::move(web_view),
              std::move(results), cache_time, next_offset);
+}
+
+void InlineQueriesManager::answer_guest_query(int64 guest_query_id,
+                                              td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
+                                              Promise<td_api::object_ptr<td_api::inlineMessageId>> &&promise) const {
+  CHECK(td_->auth_manager_->is_bot());
+  if (guest_query_id <= 0) {
+    return promise.set_error(400, "Invalid guest_query_id specified");
+  }
+  TRY_RESULT_PROMISE(promise, result, get_input_bot_inline_result(std::move(input_result), nullptr, nullptr));
+
+  td_->create_handler<SetBotGuestChatResultQuery>(std::move(promise))->send(guest_query_id, std::move(result));
 }
 
 void InlineQueriesManager::save_prepared_inline_message(
