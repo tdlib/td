@@ -755,7 +755,8 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
 
   auto total_voter_count = poll->total_voter_count_ + voter_count_diff;
   auto can_get_voters = can_get_poll_voters(poll_id, poll, initial_dialog_id, initial_date) && is_real_message_content;
-  if (!can_get_voters && !td_->auth_manager_->is_bot()) {
+  auto can_see_results = can_get_voters || td_->auth_manager_->is_bot();
+  if (!can_see_results) {
     // hide the voter counts
     for (auto &poll_option : poll_options) {
       poll_option->voter_count_ = 0;
@@ -840,7 +841,8 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
 
   return td_api::make_object<td_api::poll>(
       poll_id.get(), get_formatted_text_object(nullptr, poll->question_, true, -1), std::move(poll_options),
-      total_voter_count, std::move(recent_voters), can_get_voters && !poll->is_anonymous_ && message_id.is_server(),
+      total_voter_count, std::move(recent_voters),
+      can_get_voters && !poll->is_anonymous_ && message_id.is_server() && !is_local_poll_id(poll_id), can_see_results,
       poll->is_anonymous_, poll->allow_multiple_answers_, !poll->has_revoting_disabled_, poll->subscribers_only_,
       vector<string>(poll->country_codes_), std::move(option_order), std::move(poll_type), open_period, close_date,
       poll->is_closed_,
@@ -1426,7 +1428,7 @@ td_api::object_ptr<td_api::pollVoters> PollManager::get_poll_voters_object(
 bool PollManager::can_get_poll_voters(PollId poll_id, const Poll *poll, DialogId initial_dialog_id,
                                       int32 initial_date) const {
   CHECK(poll != nullptr);
-  if (td_->auth_manager_->is_bot() || is_local_poll_id(poll_id)) {
+  if (td_->auth_manager_->is_bot()) {
     return false;
   }
   if (poll->is_closed_ || poll->is_creator_) {
@@ -1466,7 +1468,8 @@ void PollManager::get_poll_voters(MessageFullId message_full_id, int32 option_id
   }
 
   auto poll = get_poll(poll_id);
-  if ((!poll->subscribers_only_ && !can_get_poll_voters(poll_id, poll, DialogId(), 0)) || poll->is_anonymous_) {
+  if ((!poll->subscribers_only_ && !can_get_poll_voters(poll_id, poll, DialogId(), 0)) || poll->is_anonymous_ ||
+      is_local_poll_id(poll_id)) {
     return promise.set_error(400, "Poll results can't be received");
   }
   if (option_id < 0 || static_cast<size_t>(option_id) >= poll->options_.size()) {
