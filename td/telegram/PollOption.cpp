@@ -166,7 +166,13 @@ void PollOption::add_dependencies(Dependencies &dependencies, UserId my_user_id,
 
 bool operator==(const PollOption &lhs, const PollOption &rhs) {
   // don't compare voter_count_, recent_voter_dialog_ids_, and is_chosen_
-  // don't need to compare media_, because it can't change without data_ change
+  if (lhs.media_ == nullptr) {
+    if (rhs.media_ != nullptr) {
+      return false;
+    }
+  } else if (rhs.media_ == nullptr || rhs.media_->get_type() != lhs.media_->get_type()) {
+    return false;
+  }
   return lhs.text_ == rhs.text_ && lhs.data_ == rhs.data_ && lhs.added_by_dialog_id_ == rhs.added_by_dialog_id_ &&
          lhs.added_date_ == rhs.added_date_;
 }
