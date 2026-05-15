@@ -11633,6 +11633,12 @@ td_api::object_ptr<td_api::PollMedia> get_poll_media_object(const MessageContent
       CHECK(sticker != nullptr);
       return td_api::make_object<td_api::pollMediaSticker>(std::move(sticker));
     }
+    case MessageContentType::Text: {
+      const auto *m = static_cast<const MessageText *>(content);
+      auto web_page = td->web_pages_manager_->get_link_preview_object(
+          m->web_page_id, m->force_small_media, m->force_large_media, m->skip_web_page_confirmation, false);
+      return td_api::make_object<td_api::pollMediaLink>(m->web_page_url, std::move(web_page));
+    }
     case MessageContentType::Venue: {
       const auto *m = static_cast<const MessageVenue *>(content);
       return td_api::make_object<td_api::pollMediaVenue>(m->venue.get_venue_object());

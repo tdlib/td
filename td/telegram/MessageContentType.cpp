@@ -343,6 +343,7 @@ bool is_allowed_poll_option_content(MessageContentType content_type) {
     case MessageContentType::Location:
     case MessageContentType::Photo:
     case MessageContentType::Sticker:
+    case MessageContentType::Text:
     case MessageContentType::Venue:
     case MessageContentType::Video:
       return true;
