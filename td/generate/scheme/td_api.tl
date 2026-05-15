@@ -426,7 +426,7 @@ pollOption id:string text:formattedText media:PollMedia voter_count:int32 vote_p
 //@description Describes one answer option of a poll to be created
 //@text Option text; 1-100 characters. Only custom emoji entities are allowed to be added and only by Premium users
 //@media Option media; pass null if none; ignored in addPollOption. Must be one of the following types:
-//-inputPollMediaAnimation, inputPollMediaLocation, inputPollMediaPhoto, inputPollMediaSticker, inputPollMediaVenue, or inputPollMediaVideo without caption
+//-inputPollMediaAnimation, inputPollMediaLink, inputPollMediaLocation, inputPollMediaPhoto, inputPollMediaSticker, inputPollMediaVenue, or inputPollMediaVideo without caption
 inputPollOption text:formattedText media:InputPollMedia = InputPollOption;
 
 
@@ -5590,6 +5590,9 @@ inputPollMediaAudio audio:InputFile album_cover_thumbnail:inputThumbnail duratio
 //@thumbnail Document thumbnail; pass null to skip thumbnail uploading
 //@disable_content_type_detection Pass true to disable automatic file type detection and send the document as a file
 inputPollMediaDocument document:InputFile thumbnail:inputThumbnail disable_content_type_detection:Bool = InputPollMedia;
+
+//@description A link @url URL of the link
+inputPollMediaLink url:string = InputPollMedia;
 
 //@description A location @location Location to be sent
 inputPollMediaLocation location:location = InputPollMedia;

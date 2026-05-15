@@ -5122,8 +5122,23 @@ Result<unique_ptr<MessageContent>> get_input_poll_media(DialogId dialog_id,
   if (input_poll_media == nullptr) {
     return nullptr;
   }
+  auto input_poll_media_id = input_poll_media->get_id();
+  if (input_poll_media_id == td_api::inputPollMediaLink::ID) {
+    auto content = td_api::move_object_as<td_api::inputPollMediaLink>(input_poll_media);
+    if (!for_option) {
+      return Status::Error(400, "Invalid poll option media content specified");
+    }
+    if (content->url_.empty()) {
+      return Status::Error(400, "Poll option link must be non-empty");
+    }
+    WebPageId web_page_id;
+    if (!td->auth_manager_->is_bot()) {
+      web_page_id = td->web_pages_manager_->get_web_page_by_url(content->url_);
+    }
+    return td::make_unique<MessageText>(FormattedText(), web_page_id, false, false, false, std::move(content->url_));
+  }
   auto input_message_content = [&]() -> td_api::object_ptr<td_api::InputMessageContent> {
-    switch (input_poll_media->get_id()) {
+    switch (input_poll_media_id) {
       case td_api::inputPollMediaAnimation::ID: {
         auto content = td_api::move_object_as<td_api::inputPollMediaAnimation>(input_poll_media);
         return td_api::make_object<td_api::inputMessageAnimation>(
@@ -5588,6 +5603,12 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
       for (auto &message_content : message_contents) {
         if (message_content == nullptr) {
           input_media.push_back(nullptr);
+          continue;
+        }
+        if (message_content->get_type() == MessageContentType::Text) {
+          const auto *text = static_cast<const MessageText *>(message_content);
+          input_media.push_back(telegram_api::make_object<telegram_api::inputMediaWebPage>(
+              0, text->force_large_media, text->force_small_media, true, text->web_page_url));
           continue;
         }
         auto media = get_message_content_input_media_impl(message_content, -1, td, nullptr, nullptr, ttl, emoji);
