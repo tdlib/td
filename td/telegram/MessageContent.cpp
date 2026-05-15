@@ -11084,11 +11084,9 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
-      td_api::object_ptr<td_api::MessageContent> media;
+      td_api::object_ptr<td_api::PollMedia> media;
       if (m->attached_media != nullptr) {
-        media = get_message_content_object(m->attached_media.get(), td, dialog_id, message_id, initial_dialog_id, false,
-                                           is_outgoing, is_forward, sender_dialog_id, message_date, initial_date, false,
-                                           true, -1, false, true);
+        media = get_poll_media_object(m->attached_media.get(), td);
       }
       auto can_add_option = !td->auth_manager_->is_bot() && !is_forward && message_id.is_server() &&
                             td->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) &&
@@ -11597,6 +11595,74 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
   }
   UNREACHABLE();
   return nullptr;
+}
+
+td_api::object_ptr<td_api::PollMedia> get_poll_media_object(const MessageContent *content, Td *td) {
+  CHECK(content != nullptr);
+  switch (content->get_type()) {
+    case MessageContentType::Animation: {
+      const auto *m = static_cast<const MessageAnimation *>(content);
+      return td_api::make_object<td_api::pollMediaAnimation>(td->animations_manager_->get_animation_object(m->file_id));
+    }
+    case MessageContentType::Audio: {
+      const auto *m = static_cast<const MessageAudio *>(content);
+      return td_api::make_object<td_api::pollMediaAudio>(td->audios_manager_->get_audio_object(m->file_id));
+    }
+    case MessageContentType::Document: {
+      const auto *m = static_cast<const MessageDocument *>(content);
+      return td_api::make_object<td_api::pollMediaDocument>(
+          td->documents_manager_->get_document_object(m->file_id, PhotoFormat::Jpeg));
+    }
+    case MessageContentType::Location: {
+      const auto *m = static_cast<const MessageLocation *>(content);
+      return td_api::make_object<td_api::pollMediaLocation>(m->location.get_location_object());
+    }
+    case MessageContentType::Photo: {
+      const auto *m = static_cast<const MessagePhoto *>(content);
+      auto photo = get_photo_object(td->file_manager_.get(), m->photo);
+      if (photo == nullptr) {
+        LOG(ERROR) << "Have empty " << m->photo;
+        return nullptr;
+      }
+      return td_api::make_object<td_api::pollMediaPhoto>(std::move(photo),
+                                                         td->videos_manager_->get_video_object(m->video_file_id));
+    }
+    case MessageContentType::Sticker: {
+      const auto *m = static_cast<const MessageSticker *>(content);
+      auto sticker = td->stickers_manager_->get_sticker_object(m->file_id);
+      CHECK(sticker != nullptr);
+      return td_api::make_object<td_api::pollMediaSticker>(std::move(sticker));
+    }
+    case MessageContentType::Venue: {
+      const auto *m = static_cast<const MessageVenue *>(content);
+      return td_api::make_object<td_api::pollMediaVenue>(m->venue.get_venue_object());
+    }
+    case MessageContentType::Video: {
+      const auto *m = static_cast<const MessageVideo *>(content);
+      vector<td_api::object_ptr<td_api::alternativeVideo>> alternative_videos;
+      vector<td_api::object_ptr<td_api::videoStoryboard>> storyboards;
+      if (!td->option_manager_->get_option_boolean("video_ignore_alt_documents")) {
+        for (auto file_id : m->alternative_file_ids) {
+          auto video = td->videos_manager_->get_alternative_video_object(file_id, m->hls_file_ids);
+          if (video != nullptr) {
+            alternative_videos.push_back(std::move(video));
+          }
+        }
+        for (auto file_id : m->storyboard_file_ids) {
+          auto storyboard = td->documents_manager_->get_video_storyboard_object(file_id, m->storyboard_map_file_ids);
+          if (storyboard != nullptr) {
+            storyboards.push_back(std::move(storyboard));
+          }
+        }
+      }
+      return td_api::make_object<td_api::pollMediaVideo>(
+          td->videos_manager_->get_video_object(m->file_id, m->alternative_file_ids), std::move(alternative_videos),
+          std::move(storyboards), get_photo_object(td->file_manager_.get(), m->cover), m->start_timestamp);
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
 }
 
 td_api::object_ptr<td_api::upgradeGiftResult> get_message_content_upgrade_gift_result_object(

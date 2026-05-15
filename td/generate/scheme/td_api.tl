@@ -413,7 +413,7 @@ outline paths:vector<closedVectorPath> = Outline;
 //@description Describes one answer option of a poll
 //@id Unique identifier of the option in the poll; may be empty if yet unassigned
 //@text Option text; 1-100 characters; may contain only custom emoji entities
-//@media Option media; may be null if none. If present, currently, can be only of the types messageAnimation, messageLocation, messagePhoto, messageSticker, messageVenue, or messageVideo without caption
+//@media Option media; may be null if none. If present, currently, can be only of the types pollMediaAnimation, pollMediaLocation, pollMediaPhoto, pollMediaSticker, pollMediaVenue, or pollMediaVideo
 //@voter_count Number of voters for this option, available only for closed or voted polls, or if the current user is the creator of the poll
 //@vote_percentage The percentage of votes for this option; 0-100
 //@recent_voter_ids Identifiers of recent voters for the option, if the poll is non-anonymous and poll results are available
@@ -421,7 +421,7 @@ outline paths:vector<closedVectorPath> = Outline;
 //@is_being_chosen True, if the option is being chosen by a pending setPollAnswer request
 //@author Identifier of the user or chat who added the option; may be null if the option existed from creation of the poll
 //@addition_date Point in time (Unix timestamp) when the option was added; 0 if the option existed from creation of the poll
-pollOption id:string text:formattedText media:MessageContent voter_count:int32 vote_percentage:int32 recent_voter_ids:vector<MessageSender> is_chosen:Bool is_being_chosen:Bool author:MessageSender addition_date:int32 = PollOption;
+pollOption id:string text:formattedText media:PollMedia voter_count:int32 vote_percentage:int32 recent_voter_ids:vector<MessageSender> is_chosen:Bool is_being_chosen:Bool author:MessageSender addition_date:int32 = PollOption;
 
 //@description Describes one answer option of a poll to be created
 //@text Option text; 1-100 characters. Only custom emoji entities are allowed to be added and only by Premium users
@@ -439,8 +439,8 @@ pollTypeRegular = PollType;
 //@correct_option_ids Increasing list of 0-based identifiers of the correct answer options; empty for a yet unanswered poll
 //@explanation Text that is shown when the user chooses an incorrect answer or taps on the lamp icon; empty for a yet unanswered poll
 //@explanation_media Media that is shown when the user chooses an incorrect answer or taps on the lamp icon; may be null if none or the poll is unanswered yet.
-//-If present, currently, can be only of the types messageAnimation, messageAudio, messageDocument, messageLocation, messagePhoto, messageVenue, or messageVideo without caption
-pollTypeQuiz correct_option_ids:vector<int32> explanation:formattedText explanation_media:MessageContent = PollType;
+//-If present, currently, can be only of the types pollMediaAnimation, pollMediaAudio, pollMediaDocument, pollMediaLocation, pollMediaPhoto, pollMediaVenue, or pollMediaVideo
+pollTypeQuiz correct_option_ids:vector<int32> explanation:formattedText explanation_media:PollMedia = PollType;
 
 
 //@class InputPollType @description Describes the type of poll to send
@@ -4798,6 +4798,38 @@ inputPassportElementErrorSourceFiles file_hashes:vector<bytes> = InputPassportEl
 inputPassportElementError type:PassportElementType message:string source:InputPassportElementErrorSource = InputPassportElementError;
 
 
+//@class PollMedia @description Contains the media in a poll
+
+//@description An animation @animation The animation
+pollMediaAnimation animation:animation = PollMedia;
+
+//@description An audio @audio The audio
+pollMediaAudio audio:audio = PollMedia;
+
+//@description A document (general file) @document The document
+pollMediaDocument document:document = PollMedia;
+
+//@description A location @location The location
+pollMediaLocation location:location = PollMedia;
+
+//@description A photo @photo The photo @video The video representing the live photo; may be null if the photo is static
+pollMediaPhoto photo:photo video:video = PollMedia;
+
+//@description A sticker @sticker The sticker
+pollMediaSticker sticker:sticker = PollMedia;
+
+//@description A venue @venue The venue
+pollMediaVenue venue:venue = PollMedia;
+
+//@description A video
+//@video The video description
+//@alternative_videos Alternative qualities of the video
+//@storyboards Available storyboards for the video
+//@cover Cover of the video; may be null if none
+//@start_timestamp Timestamp from which the video playing must start, in seconds
+pollMediaVideo video:video alternative_videos:vector<alternativeVideo> storyboards:vector<videoStoryboard> cover:photo start_timestamp:int32 = PollMedia;
+
+
 //@class MessageContent @description Contains the content of a message
 
 //@description A text message
@@ -4903,9 +4935,9 @@ messageGame game:game = MessageContent;
 //@description A message with a poll
 //@poll Information about the poll
 //@param_description Description of the poll
-//@media Media attached to the poll; may be null if none. If present, currently, can be only of the types messageAnimation, messageAudio, messageDocument, messageLocation, messagePhoto, messageVenue, or messageVideo without caption
+//@media Media attached to the poll; may be null if none. If present, currently, can be only of the types pollMediaAnimation, pollMediaAudio, pollMediaDocument, pollMediaLocation, pollMediaPhoto, pollMediaVenue, or pollMediaVideo
 //@can_add_option True, if an option can be added to the poll using addPollOption
-messagePoll poll:poll description:formattedText media:MessageContent can_add_option:Bool = MessageContent;
+messagePoll poll:poll description:formattedText media:PollMedia can_add_option:Bool = MessageContent;
 
 //@description A stake dice message. The dice value is randomly generated by the server
 //@initial_state The animated stickers with the initial dice animation; may be null if unknown. The update updateMessageContent will be sent when the sticker became known

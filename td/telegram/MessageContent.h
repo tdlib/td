@@ -302,6 +302,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     int32 initial_date, bool is_content_secret, bool skip_bot_commands, int32 max_media_timestamp, bool invert_media,
     bool disable_web_page_preview);
 
+td_api::object_ptr<td_api::PollMedia> get_poll_media_object(const MessageContent *content, Td *td);
+
 td_api::object_ptr<td_api::upgradeGiftResult> get_message_content_upgrade_gift_result_object(
     const MessageContent *content, Td *td, DialogId dialog_id, MessageId message_id);
 

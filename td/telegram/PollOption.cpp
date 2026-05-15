@@ -126,10 +126,9 @@ td_api::object_ptr<td_api::pollOption> PollOption::get_poll_option_object(Td *td
                     : get_min_message_sender_object(td, added_by_dialog_id_, "pollOption");
   bool is_added = author != nullptr;
   auto recent_voter_ids = get_min_message_senders_object(td, recent_voter_dialog_ids_, "pollOption recent voter");
-  td_api::object_ptr<td_api::MessageContent> media;
+  td_api::object_ptr<td_api::PollMedia> media;
   if (media_ != nullptr) {
-    media = get_message_content_object(media_.get(), td, DialogId(), MessageId(), DialogId(), false, false, false,
-                                       DialogId(), 0, 0, false, true, -1, false, true);
+    media = get_poll_media_object(media_.get(), td);
   }
   return td_api::make_object<td_api::pollOption>(data_, get_formatted_text_object(nullptr, text_, true, -1),
                                                  std::move(media), voter_count_, 0, std::move(recent_voter_ids),

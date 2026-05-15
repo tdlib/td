@@ -793,11 +793,9 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
           vector<int32>(), get_formatted_text_object(nullptr, FormattedText(), true, -1), nullptr);
     } else {
       auto correct_option_ids = poll->correct_option_ids_;
-      td_api::object_ptr<td_api::MessageContent> explanation_media;
+      td_api::object_ptr<td_api::PollMedia> explanation_media;
       if (poll->explanation_media_ != nullptr) {
-        explanation_media = get_message_content_object(poll->explanation_media_.get(), td_, dialog_id, message_id,
-                                                       initial_dialog_id, false, false, false, DialogId(), initial_date,
-                                                       initial_date, false, true, -1, false, true);
+        explanation_media = get_poll_media_object(poll->explanation_media_.get(), td_);
       }
       poll_type = td_api::make_object<td_api::pollTypeQuiz>(
           std::move(correct_option_ids), get_formatted_text_object(nullptr, poll->explanation_, true, -1),
