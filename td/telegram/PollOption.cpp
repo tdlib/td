@@ -67,21 +67,7 @@ Result<PollOption> PollOption::get_poll_option(Td *td, DialogId dialog_id,
   if (utf8_length(text.text) > MAX_POLL_OPTION_LENGTH) {
     return Status::Error(400, PSLICE() << "Poll options length must not exceed " << MAX_POLL_OPTION_LENGTH);
   }
-  unique_ptr<MessageContent> media;
-  if (input_poll_option->media_ != nullptr) {
-    TRY_RESULT(media_content, get_input_message_content(dialog_id, std::move(input_poll_option->media_), td, false));
-    if (!is_allowed_poll_option_content(media_content.content->get_type())) {
-      return Status::Error(400, "Invalid media content specified");
-    }
-    const auto *caption = get_message_content_caption(media_content.content.get());
-    if (caption != nullptr && !caption->text.empty()) {
-      return Status::Error(400, "Media caption must be empty");
-    }
-    if (!media_content.ttl.is_empty() || media_content.via_bot_user_id != UserId()) {
-      return Status::Error(400, "Unallowed media parameters specified");
-    }
-    media = std::move(media_content.content);
-  }
+  TRY_RESULT(media, get_input_poll_media(dialog_id, std::move(input_poll_option->media_), td, true));
 
   return PollOption(std::move(text), std::move(media));
 }

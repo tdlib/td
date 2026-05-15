@@ -1948,27 +1948,6 @@ PollId PollManager::dup_poll(DialogId dialog_id, PollId poll_id) {
                      poll->open_period_ == 0 ? 0 : G()->unix_time() + poll->open_period_, false);
 }
 
-Result<unique_ptr<MessageContent>> PollManager::get_poll_media_message_content(
-    td_api::object_ptr<td_api::InputMessageContent> input_message_content, DialogId dialog_id, bool is_premium) {
-  if (input_message_content == nullptr) {
-    return nullptr;
-  }
-  TRY_RESULT(attached_media_content,
-             get_input_message_content(dialog_id, std::move(input_message_content), td_, is_premium));
-  if (!is_allowed_poll_content(attached_media_content.content->get_type())) {
-    return Status::Error(400, "Invalid media content specified");
-  }
-  const auto *caption = get_message_content_caption(attached_media_content.content.get());
-  if (caption != nullptr && !caption->text.empty()) {
-    return Status::Error(400, "Media caption must be empty");
-  }
-  if (!attached_media_content.ttl.is_empty() || attached_media_content.via_bot_user_id != UserId() ||
-      !attached_media_content.emoji.empty()) {
-    return Status::Error(400, "Unallowed media parameters specified");
-  }
-  return std::move(attached_media_content.content);
-}
-
 bool PollManager::has_input_media(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);

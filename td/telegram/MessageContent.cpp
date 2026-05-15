@@ -4912,8 +4912,7 @@ static Result<InputMessageContent> create_input_message_content(
       if (utf8_length(question.text) > MAX_POLL_QUESTION_LENGTH) {
         return Status::Error(400, PSLICE() << "Poll question length must not exceed " << MAX_POLL_QUESTION_LENGTH);
       }
-      TRY_RESULT(media, td->poll_manager_->get_poll_media_message_content(std::move(input_poll->media_), dialog_id,
-                                                                          is_premium));
+      TRY_RESULT(media, get_input_poll_media(dialog_id, std::move(input_poll->media_), td, false));
       TRY_RESULT(options, PollOption::get_poll_options(td, dialog_id, std::move(input_poll->options_)));
 
       bool is_quiz = false;
@@ -4937,8 +4936,8 @@ static Result<InputMessageContent> create_input_message_content(
           TRY_STATUS(PollManager::check_quiz_correct_option_ids(correct_option_ids, options.size(), false));
           TRY_RESULT_ASSIGN(
               explanation, get_formatted_text(td, dialog_id, std::move(type->explanation_), is_bot, true, true, false));
-          TRY_RESULT_ASSIGN(explanation_media, td->poll_manager_->get_poll_media_message_content(
-                                                   std::move(type->explanation_media_), dialog_id, is_premium));
+          TRY_RESULT_ASSIGN(explanation_media,
+                            get_input_poll_media(dialog_id, std::move(type->explanation_media_), td, false));
           break;
         }
         default:
@@ -5115,6 +5114,77 @@ Result<InputMessageContent> get_input_message_content(
       dialog_id, std::move(input_message_content), td, std::move(caption), file_id,
       get_input_thumbnail_photo_size(td->file_manager_.get(), input_thumbnail.get(), dialog_id, is_secret),
       std::move(sticker_file_ids), is_premium);
+}
+
+Result<unique_ptr<MessageContent>> get_input_poll_media(DialogId dialog_id,
+                                                        td_api::object_ptr<td_api::InputPollMedia> &&input_poll_media,
+                                                        Td *td, bool for_option) {
+  if (input_poll_media == nullptr) {
+    return nullptr;
+  }
+  auto input_message_content = [&]() -> td_api::object_ptr<td_api::InputMessageContent> {
+    switch (input_poll_media->get_id()) {
+      case td_api::inputPollMediaAnimation::ID: {
+        auto content = td_api::move_object_as<td_api::inputPollMediaAnimation>(input_poll_media);
+        return td_api::make_object<td_api::inputMessageAnimation>(
+            std::move(content->animation_), std::move(content->thumbnail_), std::move(content->added_sticker_file_ids_),
+            content->duration_, content->width_, content->height_, nullptr, false, false);
+      }
+      case td_api::inputPollMediaAudio::ID: {
+        auto content = td_api::move_object_as<td_api::inputPollMediaAudio>(input_poll_media);
+        return td_api::make_object<td_api::inputMessageAudio>(
+            std::move(content->audio_), std::move(content->album_cover_thumbnail_), content->duration_, content->title_,
+            content->performer_, nullptr);
+      }
+      case td_api::inputPollMediaDocument::ID: {
+        auto content = td_api::move_object_as<td_api::inputPollMediaDocument>(input_poll_media);
+        return td_api::make_object<td_api::inputMessageDocument>(std::move(content->document_),
+                                                                 std::move(content->thumbnail_),
+                                                                 content->disable_content_type_detection_, nullptr);
+      }
+      case td_api::inputPollMediaLocation::ID: {
+        auto content = td_api::move_object_as<td_api::inputPollMediaLocation>(input_poll_media);
+        return td_api::make_object<td_api::inputMessageLocation>(std::move(content->location_));
+      }
+      case td_api::inputPollMediaPhoto::ID: {
+        auto content = td_api::move_object_as<td_api::inputPollMediaPhoto>(input_poll_media);
+        return td_api::make_object<td_api::inputMessagePhoto>(
+            std::move(content->photo_), nullptr, std::move(content->video_),
+            std::move(content->added_sticker_file_ids_), content->width_, content->height_, nullptr, false, nullptr,
+            false);
+      }
+      case td_api::inputPollMediaSticker::ID: {
+        auto content = td_api::move_object_as<td_api::inputPollMediaSticker>(input_poll_media);
+        return td_api::make_object<td_api::inputMessageSticker>(
+            std::move(content->sticker_), std::move(content->thumbnail_), content->width_, content->height_, string());
+      }
+      case td_api::inputPollMediaVenue::ID: {
+        auto content = td_api::move_object_as<td_api::inputPollMediaVenue>(input_poll_media);
+        return td_api::make_object<td_api::inputMessageVenue>(std::move(content->venue_));
+      }
+      case td_api::inputPollMediaVideo::ID: {
+        auto content = td_api::move_object_as<td_api::inputPollMediaVideo>(input_poll_media);
+        return td_api::make_object<td_api::inputMessageVideo>(
+            std::move(content->video_), std::move(content->thumbnail_), std::move(content->cover_),
+            content->start_timestamp_, std::move(content->added_sticker_file_ids_), content->duration_, content->width_,
+            content->height_, content->supports_streaming_, nullptr, false, nullptr, false);
+      }
+      default:
+        UNREACHABLE();
+        return nullptr;
+    }
+  }();
+  TRY_RESULT(media_content, get_input_message_content(dialog_id, std::move(input_message_content), td, false));
+  if (for_option) {
+    if (!is_allowed_poll_option_content(media_content.content->get_type())) {
+      return Status::Error(400, "Invalid poll option media content specified");
+    }
+  } else {
+    if (!is_allowed_poll_content(media_content.content->get_type())) {
+      return Status::Error(400, "Invalid poll media content specified");
+    }
+  }
+  return std::move(media_content.content);
 }
 
 Status check_message_group_message_contents(const vector<InputMessageContent> &message_contents) {

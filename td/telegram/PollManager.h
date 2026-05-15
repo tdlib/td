@@ -120,9 +120,6 @@ class PollManager final : public Actor {
 
   PollId dup_poll(DialogId dialog_id, PollId poll_id);
 
-  Result<unique_ptr<MessageContent>> get_poll_media_message_content(
-      td_api::object_ptr<td_api::InputMessageContent> input_message_content, DialogId dialog_id, bool is_premium);
-
   bool has_input_media(PollId poll_id) const;
 
   telegram_api::object_ptr<telegram_api::InputMedia> get_input_media(

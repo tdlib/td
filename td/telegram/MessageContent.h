@@ -130,6 +130,10 @@ bool extract_input_invert_media(const td_api::object_ptr<td_api::InputMessageCon
 Result<InputMessageContent> get_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, bool is_premium);
 
+Result<unique_ptr<MessageContent>> get_input_poll_media(DialogId dialog_id,
+                                                        td_api::object_ptr<td_api::InputPollMedia> &&input_poll_media,
+                                                        Td *td, bool for_option);
+
 Status check_message_group_message_contents(const vector<InputMessageContent> &message_contents);
 
 bool can_message_content_have_input_media(const Td *td, const MessageContent *content, bool is_server);

@@ -426,8 +426,8 @@ pollOption id:string text:formattedText media:PollMedia voter_count:int32 vote_p
 //@description Describes one answer option of a poll to be created
 //@text Option text; 1-100 characters. Only custom emoji entities are allowed to be added and only by Premium users
 //@media Option media; pass null if none; ignored in addPollOption. Must be one of the following types:
-//-inputMessageAnimation, inputMessageLocation, inputMessagePhoto, inputMessageSticker, inputMessageVenue, or inputMessageVideo without caption
-inputPollOption text:formattedText media:InputMessageContent = InputPollOption;
+//-inputPollMediaAnimation, inputPollMediaLocation, inputPollMediaPhoto, inputPollMediaSticker, inputPollMediaVenue, or inputPollMediaVideo without caption
+inputPollOption text:formattedText media:InputPollMedia = InputPollOption;
 
 
 //@class PollType @description Describes the type of poll
@@ -452,8 +452,8 @@ inputPollTypeRegular allow_adding_options:Bool = InputPollType;
 //@correct_option_ids Increasing list of 0-based identifiers of the correct answer options; must be non-empty
 //@explanation Text that is shown when the user chooses an incorrect answer or taps on the lamp icon; 0-200 characters with at most 2 line feeds
 //@explanation_media Media that is shown when the user chooses an incorrect answer or taps on the lamp icon; pass null if none. Must be one of the following types:
-//-inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessageLocation, inputMessagePhoto, inputMessageVenue, or inputMessageVideo without caption
-inputPollTypeQuiz correct_option_ids:vector<int32> explanation:formattedText explanation_media:InputMessageContent = InputPollType;
+//-inputPollMediaAnimation, inputPollMediaAudio, inputPollMediaDocument, inputPollMediaLocation, inputPollMediaPhoto, inputPollMediaVenue, or inputPollMediaVideo without caption
+inputPollTypeQuiz correct_option_ids:vector<int32> explanation:formattedText explanation_media:InputPollMedia = InputPollType;
 
 
 //@class PollVoteRestrictionReason @description Reason of vote restriction in the poll for the current user
@@ -5566,6 +5566,65 @@ messageSendOptions suggested_post_info:inputSuggestedPostInfo disable_notificati
 messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText new_show_caption_above_media:Bool = MessageCopyOptions;
 
 
+//@class InputPollMedia @description The content of a poll media to send
+
+//@description An animation
+//@animation Animation file to be sent
+//@thumbnail Animation thumbnail; pass null to skip thumbnail uploading
+//@added_sticker_file_ids File identifiers of the stickers added to the animation, if applicable
+//@duration Duration of the animation, in seconds
+//@width Width of the animation; may be replaced by the server
+//@height Height of the animation; may be replaced by the server
+inputPollMediaAnimation animation:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 = InputPollMedia;
+
+//@description An audio
+//@audio Audio file to be sent
+//@album_cover_thumbnail Thumbnail of the cover for the album; pass null to skip thumbnail uploading
+//@duration Duration of the audio, in seconds; may be replaced by the server
+//@title Title of the audio; 0-64 characters; may be replaced by the server
+//@performer Performer of the audio; 0-64 characters, may be replaced by the server
+inputPollMediaAudio audio:InputFile album_cover_thumbnail:inputThumbnail duration:int32 title:string performer:string = InputPollMedia;
+
+//@description A document (general file)
+//@document Document to be sent
+//@thumbnail Document thumbnail; pass null to skip thumbnail uploading
+//@disable_content_type_detection Pass true to disable automatic file type detection and send the document as a file
+inputPollMediaDocument document:InputFile thumbnail:inputThumbnail disable_content_type_detection:Bool = InputPollMedia;
+
+//@description A location @location Location to be sent
+inputPollMediaLocation location:location = InputPollMedia;
+
+//@description A photo
+//@photo Photo to send. The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20
+//@video Video of the live photo; pass null if the photo isn't a live photo
+//@added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable
+//@width Photo width
+//@height Photo height
+inputPollMediaPhoto photo:InputFile video:InputFile added_sticker_file_ids:vector<int32> width:int32 height:int32 = InputPollMedia;
+
+//@description A sticker
+//@sticker Sticker to be sent
+//@thumbnail Sticker thumbnail; pass null to skip thumbnail uploading
+//@width Sticker width
+//@height Sticker height
+inputPollMediaSticker sticker:InputFile thumbnail:inputThumbnail width:int32 height:int32 = InputPollMedia;
+
+//@description A venue @venue Venue to send
+inputPollMediaVenue venue:venue = InputPollMedia;
+
+//@description A video
+//@video Video to be sent. The video is expected to be re-encoded to MPEG4 format with H.264 codec by the sender
+//@thumbnail Video thumbnail; pass null to skip thumbnail uploading
+//@cover Cover of the video; pass null to skip cover uploading
+//@start_timestamp Timestamp from which the video playing must start, in seconds
+//@added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
+//@duration Duration of the video, in seconds
+//@width Video width
+//@height Video height
+//@supports_streaming True, if the video is expected to be streamed
+inputPollMediaVideo video:InputFile thumbnail:inputThumbnail cover:InputFile start_timestamp:int32 added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 supports_streaming:Bool = InputPollMedia;
+
+
 //@class InputMessageContent @description The content of a message to send
 
 //@description A text message
@@ -5706,8 +5765,8 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@question Poll question; 1-255 characters (up to 300 characters for bots). Only custom emoji entities are allowed to be added and only by Premium users
 //@options List of poll answer options; 1-getOption("poll_answer_count_max") options
 //@param_description Poll description; pass null to use an empty description; 0-getOption("message_caption_length_max") characters
-//@media Media attached to the poll; pass null if none. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessageLocation,
-//-inputMessagePhoto, inputMessageVenue, or inputMessageVideo without caption
+//@media Media attached to the poll; pass null if none. Must be one of the following types: inputPollMediaAnimation, inputPollMediaAudio, inputPollMediaDocument, inputPollMediaLocation,
+//-inputPollMediaPhoto, inputPollMediaVenue, or inputPollMediaVideo without caption
 //@is_anonymous True, if the poll voters are anonymous. Non-anonymous polls can't be sent or forwarded to channels
 //@allows_multiple_answers True, if multiple answer options can be chosen simultaneously
 //@allows_revoting True, if the poll can be answered multiple times
@@ -5720,7 +5779,7 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@open_period Amount of time the poll will be active after creation, in seconds; 0-getOption("poll_open_period_max"); pass 0 if not specified
 //@close_date Point in time (Unix timestamp) when the poll will automatically be closed; must be 0-getOption("poll_open_period_max") seconds in the future; pass 0 if not specified
 //@is_closed True, if the poll needs to be sent already closed; for bots only
-inputMessagePoll question:formattedText options:vector<inputPollOption> description:formattedText media:InputMessageContent is_anonymous:Bool allows_multiple_answers:Bool allows_revoting:Bool members_only:Bool country_codes:vector<string> shuffle_options:Bool hide_results_until_closes:Bool type:InputPollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
+inputMessagePoll question:formattedText options:vector<inputPollOption> description:formattedText media:InputPollMedia is_anonymous:Bool allows_multiple_answers:Bool allows_revoting:Bool members_only:Bool country_codes:vector<string> shuffle_options:Bool hide_results_until_closes:Bool type:InputPollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
 
 //@description A stake dice message
 //@state_hash Hash of the stake dice state. The state hash can be used only if it was received recently enough. Otherwise, a new state must be requested using getStakeDiceState
