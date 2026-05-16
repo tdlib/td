@@ -89,7 +89,8 @@ class TdExample:
             if verbosity_level == 0:
                 sys.exit(f"TDLib fatal error: {message.decode('utf-8')}")
 
-        self._td_set_log_message_callback(2, on_log_message_callback)
+        self._log_message_callback = on_log_message_callback
+        self._td_set_log_message_callback(2, self._log_message_callback)
         self.execute(
             {"@type": "setLogVerbosityLevel", "new_verbosity_level": verbosity_level}
         )
