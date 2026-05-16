@@ -10487,7 +10487,8 @@ void MessagesManager::init() {
         continue;
       }
 
-      auto counts = transform(full_split(Slice(it.second)), to_integer_safe<int32>);
+      auto counts =
+          transform(full_split(Slice(it.second)), [](const auto &str) { return to_integer_safe<int32>(str); });
       if ((counts.size() != 4 && counts.size() != 6) || any_of(counts, [](const auto &c) { return c.is_error(); })) {
         LOG(ERROR) << "Can't parse " << it.second;
       } else {

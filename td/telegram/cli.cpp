@@ -964,7 +964,7 @@ class CliClient final : public Actor {
 
   template <class T>
   static vector<T> to_integers(Slice integers) {
-    return transform(transform(autosplit(integers), trim<Slice>), to_integer<T>);
+    return transform(autosplit(integers), [](const auto &slice) { return to_integer<T>(trim(slice)); });
   }
 
   static void get_args(string &args, string &arg) {

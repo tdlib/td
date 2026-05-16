@@ -562,7 +562,7 @@ td_api::object_ptr<td_api::Update> OptionManager::get_internal_option_update(Sli
   }
   if (name == "whitelisted_bots") {
     return td_api::make_object<td_api::updateTrustedMiniAppBots>(
-        transform(full_split(get_option_string(name), ','), to_integer<int64>));
+        transform(full_split(get_option_string(name), ','), [](const auto &str) { return to_integer<int64>(str); }));
   }
   return nullptr;
 }

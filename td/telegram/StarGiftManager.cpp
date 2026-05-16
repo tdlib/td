@@ -1830,7 +1830,7 @@ class GetCraftStarGiftsQuery final : public Td::ResultHandler {
         transform(full_split(td_->option_manager_->get_option_string("stargifts_craft_attribute_permilles",
                                                                      "100,80,400,70,350,700,60,300,600,1000"),
                              ','),
-                  to_integer<int32>);
+                  [](const auto &str) { return to_integer<int32>(str); });
     CHECK(attribute_persistence_per_mille.size() == 10u);
     vector<td_api::object_ptr<td_api::attributeCraftPersistenceProbability>> probabilities;
     for (size_t num = 1; num <= 4; num++) {

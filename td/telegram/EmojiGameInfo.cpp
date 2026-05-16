@@ -52,7 +52,7 @@ td_api::object_ptr<td_api::stakeDiceState> EmojiGameInfo::get_stake_dice_state_o
   CHECK(params_.size() == 7u);
   auto suggested_amounts =
       transform(full_split(td->option_manager_->get_option_string("ton_stakedice_stake_suggested_amounts"), ','),
-                to_integer<int64>);
+                [](const auto &str) { return to_integer<int64>(str); });
   return td_api::make_object<td_api::stakeDiceState>(game_hash_, prev_stake_, std::move(suggested_amounts),
                                                      current_streak_,
                                                      vector<int32>(params_.begin(), params_.begin() + 6), params_[6]);

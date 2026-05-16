@@ -474,8 +474,8 @@ TEST(Misc, add_to_top) {
 }
 
 static void test_unique(td::vector<int> v, const td::vector<int> &expected) {
-  auto v_str = td::transform(v, &td::to_string<int>);
-  auto expected_str = td::transform(expected, &td::to_string<int>);
+  auto v_str = td::transform(v, [](int num) { return td::to_string(num); });
+  auto expected_str = td::transform(expected, [](int num) { return td::to_string(num); });
 
   td::unique(v);
   ASSERT_EQ(expected, v);
