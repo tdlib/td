@@ -6,12 +6,16 @@
 //
 #pragma once
 
+#include "td/utils/common.h"
+
 namespace td {
 
 struct Clocks {
   static double monotonic();
 
   static double system();
+
+  static string get_debug();
 
   static int tz_offset();
 };
