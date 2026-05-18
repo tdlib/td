@@ -6,6 +6,8 @@
 //
 #include "td/utils/port/stacktrace.h"
 
+#include "td/utils/port/config.h"
+#include "td/utils/port/platform.h"
 #include "td/utils/port/signals.h"
 
 #if __GLIBC__

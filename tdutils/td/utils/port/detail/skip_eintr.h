@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/utils/port/config.h"
+
 #if TD_PORT_POSIX
 #include "td/utils/common.h"
 #include "td/utils/Time.h"

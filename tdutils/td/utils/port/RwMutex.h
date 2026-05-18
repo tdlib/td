@@ -6,9 +6,8 @@
 //
 #pragma once
 
-#include "td/utils/port/config.h"
-
 #include "td/utils/common.h"
+#include "td/utils/port/config.h"
 
 #if TD_PORT_POSIX
 #include <pthread.h>

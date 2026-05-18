@@ -6,10 +6,9 @@
 //
 #include "td/utils/port/path.h"
 
-#include "td/utils/port/config.h"
-
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/port/config.h"
 #include "td/utils/port/detail/skip_eintr.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/SliceBuilder.h"

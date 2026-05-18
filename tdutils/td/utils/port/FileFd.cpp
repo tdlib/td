@@ -17,6 +17,7 @@
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/config.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/detail/skip_eintr.h"
 #include "td/utils/port/PollFlags.h"

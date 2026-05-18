@@ -9,6 +9,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/port/config.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"

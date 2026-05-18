@@ -7,6 +7,7 @@
 #include "td/utils/port/user.h"
 
 #include "td/utils/port/config.h"
+#include "td/utils/port/platform.h"
 
 #if TD_PORT_POSIX
 #include "td/utils/SliceBuilder.h"

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/port/config.h"
 
 #ifdef TD_PORT_WINDOWS
 

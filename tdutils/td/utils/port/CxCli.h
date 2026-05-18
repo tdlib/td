@@ -7,7 +7,7 @@
 #pragma once
 
 #pragma managed(push, off)
-#include "td/utils/port/config.h"
+#include "td/utils/port/platform.h"
 #pragma managed(pop)
 
 #include "td/utils/common.h"

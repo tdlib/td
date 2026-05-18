@@ -21,6 +21,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/MpscPollableQueue.h"
+#include "td/utils/port/config.h"
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"

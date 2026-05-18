@@ -26,6 +26,7 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/config.h"
 #include "td/utils/port/sleep.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"

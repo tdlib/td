@@ -11,6 +11,7 @@
 #include "td/utils/List.h"
 #include "td/utils/logging.h"
 #include "td/utils/Observer.h"
+#include "td/utils/port/config.h"
 #include "td/utils/port/detail/NativeFd.h"
 #include "td/utils/port/Mutex.h"
 #include "td/utils/port/PollFlags.h"

@@ -9,6 +9,7 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/PathView.h"
+#include "td/utils/port/config.h"
 #include "td/utils/SliceBuilder.h"
 
 #if TD_PORT_WINDOWS

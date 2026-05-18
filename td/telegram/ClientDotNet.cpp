@@ -11,6 +11,7 @@
 #include "td/telegram/TdDotNetApi.h"
 
 #include "td/utils/port/CxCli.h"
+#include "td/utils/port/platform.h"
 
 #pragma managed(push, off)
 #include <cstdint>

@@ -8,6 +8,7 @@
 
 #include "td/utils/port/detail/NativeFd.h"
 #include "td/utils/port/detail/PollableFd.h"
+#include "td/utils/port/platform.h"
 #include "td/utils/port/SocketFd.h"
 
 #include "td/utils/Slice.h"
@@ -16,6 +17,7 @@
 #include <memory>
 
 namespace td {
+
 namespace detail {
 class ServerSocketFdImpl;
 class ServerSocketFdImplDeleter {
@@ -54,4 +56,5 @@ class ServerSocketFd {
   std::unique_ptr<detail::ServerSocketFdImpl, detail::ServerSocketFdImplDeleter> impl_;
   explicit ServerSocketFd(unique_ptr<detail::ServerSocketFdImpl> impl);
 };
+
 }  // namespace td

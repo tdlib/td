@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/port/CxCli.h"
+#include "td/utils/port/platform.h"
 
 #pragma managed(push, off)
 #include "td/telegram/td_api.h"

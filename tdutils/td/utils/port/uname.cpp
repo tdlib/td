@@ -6,12 +6,11 @@
 //
 #include "td/utils/port/uname.h"
 
-#include "td/utils/port/config.h"
-
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/config.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/SliceBuilder.h"
 

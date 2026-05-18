@@ -6,9 +6,8 @@
 //
 #include "td/utils/port/rlimit.h"
 
-#include "td/utils/port/config.h"
-
 #include "td/utils/misc.h"
+#include "td/utils/port/config.h"
 
 #if TD_PORT_POSIX
 #include <sys/resource.h>

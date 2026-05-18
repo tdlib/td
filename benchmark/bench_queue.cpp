@@ -8,6 +8,7 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/MpscPollableQueue.h"
+#include "td/utils/port/config.h"
 #include "td/utils/port/sleep.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/queue.h"

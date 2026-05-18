@@ -13,6 +13,7 @@
 #include "td/utils/Destructor.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/config.h"
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Random.h"

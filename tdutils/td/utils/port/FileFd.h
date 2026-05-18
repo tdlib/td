@@ -6,8 +6,6 @@
 //
 #pragma once
 
-#include "td/utils/port/config.h"
-
 #include "td/utils/common.h"
 #include "td/utils/port/detail/NativeFd.h"
 #include "td/utils/port/detail/PollableFd.h"

@@ -10,6 +10,7 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/optional.h"
+#include "td/utils/port/config.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/port/UdpSocketFd.h"
