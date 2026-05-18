@@ -97,6 +97,7 @@ bool ForumTopic::update_unread_poll_vote_count(int32 count, bool is_relative) {
     new_unread_poll_vote_count = 0;
   }
   if (unread_poll_vote_count_ == new_unread_poll_vote_count) {
+    LOG(INFO) << "Number of unread poll votes is still " << unread_poll_vote_count_;
     return false;
   }
   unread_poll_vote_count_ = new_unread_poll_vote_count;

@@ -1451,10 +1451,12 @@ void ForumTopicManager::on_topic_poll_vote_count_changed(DialogId dialog_id, For
             << forum_topic_id << " in " << dialog_id;
   auto dialog_topics = get_dialog_topics(dialog_id);
   if (dialog_topics == nullptr) {
+    LOG(INFO) << "Topic list of " << dialog_id << " not found";
     return;
   }
   auto topic = get_topic(dialog_topics, forum_topic_id);
   if (topic == nullptr || topic->topic_ == nullptr) {
+    LOG(INFO) << "Topic " << forum_topic_id << " not found";
     return;
   }
   if (topic->topic_->update_unread_poll_vote_count(count, is_relative)) {
