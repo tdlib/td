@@ -8955,7 +8955,7 @@ void MessagesManager::read_all_local_dialog_reactions(DialogId dialog_id, ForumT
     // remove_message_notification_id(d, m, true, false);  // must be called before unread_reactions are cleared
     m->reactions->unread_reactions_.clear();
 
-    on_unread_message_reaction_removed(d, m, nullptr);
+    on_unread_message_reaction_removed(d, m, "read_all_local_dialog_reactions");
     on_message_changed(d, m, true, "read_all_local_dialog_reactions");
   }
 }
