@@ -9464,6 +9464,14 @@ autosaveSettingsException chat_id:int53 settings:scopeAutosaveSettings = Autosav
 autosaveSettings private_chat_settings:scopeAutosaveSettings group_settings:scopeAutosaveSettings channel_settings:scopeAutosaveSettings exceptions:vector<autosaveSettingsException> = AutosaveSettings;
 
 
+//@description Describes an exception for built-in browser usage
+//@url URL for which the exception is done
+//@domain Domain of the URL
+//@title Title of the site
+//@favicon_custom_emoji_id Identifier of the custom emoji with favicon of the site; may be 0 if unknown
+webDomainException url:string domain:string title:string favicon_custom_emoji_id:int64 = WebDomainException;
+
+
 //@class ConnectionState @description Describes the current state of the connection to Telegram servers
 
 //@description Waiting for the network to become available. Use setNetworkType to change the available network type
