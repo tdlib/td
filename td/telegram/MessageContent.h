@@ -227,6 +227,8 @@ bool get_message_content_to_do_list_others_can_complete(const MessageContent *co
 
 const Venue *get_message_content_venue(const MessageContent *content);
 
+WebPageId get_message_content_web_page_id(const MessageContent *content);
+
 bool has_message_content_web_page(const MessageContent *content);
 
 void remove_message_content_web_page(MessageContent *content);

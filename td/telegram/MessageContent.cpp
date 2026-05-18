@@ -7124,6 +7124,13 @@ const Venue *get_message_content_venue(const MessageContent *content) {
   }
 }
 
+WebPageId get_message_content_web_page_id(const MessageContent *content) {
+  if (content != nullptr && content->get_type() == MessageContentType::Text) {
+    return static_cast<const MessageText *>(content)->web_page_id;
+  }
+  return WebPageId();
+}
+
 bool has_message_content_web_page(const MessageContent *content) {
   CHECK(content != nullptr);
   if (content->get_type() == MessageContentType::Text) {

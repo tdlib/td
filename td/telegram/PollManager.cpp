@@ -2499,6 +2499,18 @@ void PollManager::on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<Bu
                    std::move(positions)));
 }
 
+vector<WebPageId> PollManager::get_poll_web_page_ids(const Poll *poll) {
+  CHECK(poll != nullptr);
+  vector<WebPageId> web_page_ids;
+  for (const auto &option : poll->options_) {
+    auto web_page_id = option.get_web_page_id();
+    if (web_page_id.is_valid() && !td::contains(web_page_ids, web_page_id)) {
+      web_page_ids.push_back(web_page_id);
+    }
+  }
+  return web_page_ids;
+}
+
 void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
   if (G()->close_flag()) {
     return;

@@ -14,6 +14,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/WebPageId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
@@ -61,6 +62,8 @@ struct PollOption {
   int32 get_added_date() const {
     return added_date_;
   }
+
+  WebPageId get_web_page_id() const;
 
   PollOption dup_option(Td *td, DialogId dialog_id) const;
 

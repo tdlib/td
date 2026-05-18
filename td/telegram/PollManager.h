@@ -287,6 +287,8 @@ class PollManager final : public Actor {
 
   bool can_get_poll_voters(PollId poll_id, const Poll *poll, DialogId initial_dialog_id, int32 initial_date) const;
 
+  static vector<WebPageId> get_poll_web_page_ids(const Poll *poll);
+
   MultiTimeout update_poll_timeout_{"UpdatePollTimeout"};
   MultiTimeout close_poll_timeout_{"ClosePollTimeout"};
   MultiTimeout unload_poll_timeout_{"UnloadPollTimeout"};
