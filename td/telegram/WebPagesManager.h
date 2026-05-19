@@ -56,6 +56,8 @@ class WebPagesManager final : public Actor {
 
   static string get_web_page_url(const tl_object_ptr<telegram_api::WebPage> &web_page_ptr);
 
+  void on_load_web_page_url_from_database(WebPageId web_page_id, const string &url);
+
   WebPageId on_get_web_page(tl_object_ptr<telegram_api::WebPage> &&web_page_ptr, DialogId owner_dialog_id);
 
   void on_get_web_page_by_url(const string &url, WebPageId web_page_id, bool from_database);

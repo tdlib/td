@@ -3088,6 +3088,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       if (has_web_page_url) {
         parse(m->web_page_url, parser);
       }
+      if (has_web_page_url && has_web_page_id) {
+        td->web_pages_manager_->on_load_web_page_url_from_database(m->web_page_id, m->web_page_url);
+      }
       content = std::move(m);
       break;
     }

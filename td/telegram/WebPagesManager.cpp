@@ -567,6 +567,13 @@ string WebPagesManager::get_web_page_url(const tl_object_ptr<telegram_api::WebPa
   }
 }
 
+void WebPagesManager::on_load_web_page_url_from_database(WebPageId web_page_id, const string &url) {
+  if (url.empty() || have_web_page(web_page_id)) {
+    return;
+  }
+  pending_web_page_urls_.emplace(web_page_id, url);
+}
+
 WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> &&web_page_ptr,
                                            DialogId owner_dialog_id) {
   CHECK(web_page_ptr != nullptr);
