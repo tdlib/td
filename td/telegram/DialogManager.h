@@ -265,6 +265,8 @@ class DialogManager final : public Actor {
 
   DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
 
+  enum class DialogTypeFilter : int32 { None, Bot, Broadcast };
+
   void on_get_public_dialogs_search_result(const string &query,
                                            vector<telegram_api::object_ptr<telegram_api::Peer>> &&my_peers,
                                            vector<telegram_api::object_ptr<telegram_api::Peer>> &&peers);
@@ -348,6 +350,8 @@ class DialogManager final : public Actor {
   void on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise);
 
   void send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise);
+
+  bool is_dialog_suitable_for_type_filter(DialogId dialog_id, DialogTypeFilter type_filter) const;
 
   static uint64 save_reorder_pinned_dialogs_on_server_log_event(FolderId folder_id, const vector<DialogId> &dialog_ids);
 

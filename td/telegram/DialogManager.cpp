@@ -3250,6 +3250,20 @@ void DialogManager::drop_username(const string &username) {
   }
 }
 
+bool DialogManager::is_dialog_suitable_for_type_filter(DialogId dialog_id, DialogTypeFilter type_filter) const {
+  switch (type_filter) {
+    case DialogTypeFilter::None:
+      return true;
+    case DialogTypeFilter::Bot:
+      return dialog_id.get_type() == DialogType::User && td_->user_manager_->is_user_bot(dialog_id.get_user_id());
+    case DialogTypeFilter::Broadcast:
+      return is_broadcast_channel(dialog_id);
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 vector<DialogId> DialogManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {
   LOG(INFO) << "Search public chats with query = \"" << query << '"';
 
