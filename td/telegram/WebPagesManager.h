@@ -215,6 +215,8 @@ class WebPagesManager final : public Actor {
   ActorShared<> parent_;
   WaitFreeHashMap<WebPageId, unique_ptr<WebPage>, WebPageIdHash> web_pages_;
 
+  FlatHashMap<WebPageId, string, WebPageIdHash> pending_web_page_urls_;
+
   FlatHashMap<WebPageId, vector<Promise<Unit>>, WebPageIdHash> load_web_page_from_database_queries_;
   FlatHashSet<WebPageId, WebPageIdHash> loaded_from_database_web_pages_;
 

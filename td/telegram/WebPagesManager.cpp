@@ -605,6 +605,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
         G()->td_db()->get_sqlite_pmc()->erase(get_web_page_database_key(web_page_id), Auto());
         G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
       }
+      pending_web_page_urls_.erase(web_page_id);
 
       return WebPageId();
     }
@@ -621,6 +622,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
                 << ", now = " << G()->server_time();
 
       pending_web_pages_timeout_.add_timeout_in(web_page_id.get(), max(web_page_date - G()->server_time(), 1.0));
+      pending_web_page_urls_[web_page_id] = std::move(web_page->url_);
       return web_page_id;
     }
     case telegram_api::webPage::ID: {
@@ -790,6 +792,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
         on_get_web_page_instant_view(page.get(), std::move(web_page->cached_page_), web_page->hash_, owner_dialog_id);
       }
 
+      pending_web_page_urls_.erase(web_page_id);
       update_web_page(std::move(page), web_page_id, false, false);
       return web_page_id;
     }
@@ -2324,8 +2327,14 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
   {
     auto it = web_page_polls_.find(web_page_id);
     if (it != web_page_polls_.end()) {
-      send_closure_later(actor_id(this), &WebPagesManager::load_web_page_instant_view, web_page_id, false,
-                         Promise<WebPageId>());
+      auto url_it = pending_web_page_urls_.find(web_page_id);
+      if (url_it == pending_web_page_urls_.end()) {
+        LOG(ERROR) << "Failed to find URL for pending " << web_page_id;
+      } else {
+        send_closure_later(actor_id(this), &WebPagesManager::reload_web_page_by_url, url_it->second, false,
+                           Promise<WebPageId>());
+      }
+      count++;
     }
   }
   {
