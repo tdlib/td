@@ -32,6 +32,7 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
+#include "td/utils/Hints.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
@@ -268,6 +269,12 @@ class DialogManager final : public Actor {
 
   enum class DialogTypeFilter : int32 { None, Bot, Broadcast };
 
+  void add_dialog_to_hints(DialogId dialog_id);
+
+  void update_dialog_hints_rating(DialogId dialog_id, int64 rating);
+
+  std::pair<int32, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
+
   void on_get_public_dialogs_search_result(const string &query, DialogTypeFilter type_filter,
                                            vector<telegram_api::object_ptr<telegram_api::Peer>> &&my_peers,
                                            vector<telegram_api::object_ptr<telegram_api::Peer>> &&peers);
@@ -421,6 +428,8 @@ class DialogManager final : public Actor {
   FlatHashMap<string, vector<Promise<Unit>>> search_public_dialogs_queries_[3];
   FlatHashMap<string, vector<DialogId>> found_public_dialogs_[3];     // TODO time bound cache
   FlatHashMap<string, vector<DialogId>> found_on_server_dialogs_[3];  // TODO time bound cache
+
+  Hints dialog_hints_;  // search dialogs by title and usernames
 
   RecentDialogList recently_found_dialogs_;
   RecentDialogList recently_opened_dialogs_;

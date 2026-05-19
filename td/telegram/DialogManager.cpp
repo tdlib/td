@@ -1808,6 +1808,47 @@ void DialogManager::on_dialog_deleted(DialogId dialog_id) {
   }
 }
 
+void DialogManager::add_dialog_to_hints(DialogId dialog_id) {
+  dialog_hints_.add(-dialog_id.get(), get_dialog_search_text(dialog_id));
+}
+
+void DialogManager::update_dialog_hints_rating(DialogId dialog_id, int64 rating) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (rating == 0) {
+    LOG(INFO) << "Remove " << dialog_id << " from chat search";
+    dialog_hints_.remove(-dialog_id.get());
+  } else {
+    LOG(INFO) << "Change position of " << dialog_id << " in chat search";
+    dialog_hints_.set_rating(-dialog_id.get(), -rating);
+  }
+}
+
+std::pair<int32, vector<DialogId>> DialogManager::search_dialogs(const string &query, int32 limit,
+                                                                 Promise<Unit> &&promise) {
+  LOG(INFO) << "Search chats with query \"" << query << "\" and limit " << limit;
+  CHECK(!td_->auth_manager_->is_bot());
+
+  if (limit < 0) {
+    promise.set_error(400, "Limit must be non-negative");
+    return {};
+  }
+  if (query.empty()) {
+    return search_recently_found_dialogs(string(), nullptr, limit, std::move(promise));
+  }
+
+  auto result = dialog_hints_.search(query, limit);
+  vector<DialogId> dialog_ids;
+  dialog_ids.reserve(result.second.size());
+  for (auto key : result.second) {
+    dialog_ids.push_back(DialogId(-key));
+  }
+
+  promise.set_value(Unit());
+  return {narrow_cast<int32>(result.first), std::move(dialog_ids)};
+}
+
 std::pair<int32, vector<DialogId>> DialogManager::search_recently_found_dialogs(
     const string &query, const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter, int32 limit,
     Promise<Unit> &&promise) {

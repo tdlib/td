@@ -89,7 +89,6 @@
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/Heap.h"
-#include "td/utils/Hints.h"
 #include "td/utils/List.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
@@ -565,8 +564,6 @@ class MessagesManager final : public Actor {
                              Promise<td_api::object_ptr<td_api::chats>> &&promise);
 
   void read_all_dialogs_from_list(DialogListId dialog_list_id, Promise<Unit> &&promise, bool is_recursive = false);
-
-  std::pair<int32, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
 
   vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
 
@@ -2707,8 +2704,9 @@ class MessagesManager final : public Actor {
 
   void reload_pinned_dialogs(DialogListId dialog_list_id, Promise<Unit> &&promise);
 
-  void update_dialogs_hints(const Dialog *d);
-  void update_dialogs_hints_rating(const Dialog *d);
+  void update_dialog_hints(const Dialog *d);
+
+  void update_dialog_hints_rating(const Dialog *d);
 
   vector<FolderId> get_dialog_list_folder_ids(const DialogList &list) const;
 
@@ -3358,8 +3356,6 @@ class MessagesManager final : public Actor {
 
   Timeout live_location_expire_timeout_;
   Timeout restore_missing_messages_timeout_;
-
-  Hints dialogs_hints_;  // search dialogs by title and usernames
 
   FlatHashSet<MessageFullId, MessageFullIdHash> active_live_location_message_full_ids_;
   bool are_active_live_location_messages_loaded_ = false;

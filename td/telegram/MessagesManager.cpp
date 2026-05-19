@@ -14154,30 +14154,6 @@ void MessagesManager::reload_pinned_dialogs(DialogListId dialog_list_id, Promise
   }
 }
 
-std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string &query, int32 limit,
-                                                                   Promise<Unit> &&promise) {
-  LOG(INFO) << "Search chats with query \"" << query << "\" and limit " << limit;
-  CHECK(!td_->auth_manager_->is_bot());
-
-  if (limit < 0) {
-    promise.set_error(400, "Limit must be non-negative");
-    return {};
-  }
-  if (query.empty()) {
-    return td_->dialog_manager_->search_recently_found_dialogs(string(), nullptr, limit, std::move(promise));
-  }
-
-  auto result = dialogs_hints_.search(query, limit);
-  vector<DialogId> dialog_ids;
-  dialog_ids.reserve(result.second.size());
-  for (auto key : result.second) {
-    dialog_ids.push_back(DialogId(-key));
-  }
-
-  promise.set_value(Unit());
-  return {narrow_cast<int32>(result.first), std::move(dialog_ids)};
-}
-
 vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const {
   CHECK(!td_->auth_manager_->is_bot());
   auto fake_order = static_cast<int64>(dialog_ids.size()) + 1;
@@ -29050,7 +29026,7 @@ void MessagesManager::on_dialog_accent_colors_updated(DialogId dialog_id) {
 void MessagesManager::on_dialog_title_updated(DialogId dialog_id) {
   auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
   if (d != nullptr) {
-    update_dialogs_hints(d);
+    update_dialog_hints(d);
     if (d->is_update_new_chat_sent) {
       send_closure(G()->td(), &Td::send_update,
                    td_api::make_object<td_api::updateChatTitle>(dialog_id.get(),
@@ -29297,7 +29273,7 @@ void MessagesManager::on_dialog_usernames_updated(DialogId dialog_id, const User
 
   const auto *d = get_dialog(dialog_id);
   if (d != nullptr) {
-    update_dialogs_hints(d);
+    update_dialog_hints(d);
   }
 }
 
@@ -33170,22 +33146,16 @@ bool MessagesManager::add_pending_dialog_data(Dialog *d, unique_ptr<Message> &&l
   return was_added_last_message;
 }
 
-void MessagesManager::update_dialogs_hints(const Dialog *d) {
+void MessagesManager::update_dialog_hints(const Dialog *d) {
   if (!td_->auth_manager_->is_bot() && d->order != DEFAULT_ORDER) {
-    dialogs_hints_.add(-d->dialog_id.get(), td_->dialog_manager_->get_dialog_search_text(d->dialog_id));
+    td_->dialog_manager_->add_dialog_to_hints(d->dialog_id);
   }
 }
 
-void MessagesManager::update_dialogs_hints_rating(const Dialog *d) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-  if (d->order == DEFAULT_ORDER) {
-    LOG(INFO) << "Remove " << d->dialog_id << " from chats search";
-    dialogs_hints_.remove(-d->dialog_id.get());
-  } else {
-    LOG(INFO) << "Change position of " << d->dialog_id << " in chats search";
-    dialogs_hints_.set_rating(-d->dialog_id.get(), -get_dialog_base_order(d));
+void MessagesManager::update_dialog_hints_rating(const Dialog *d) {
+  if (!td_->auth_manager_->is_bot()) {
+    td_->dialog_manager_->update_dialog_hints_rating(d->dialog_id,
+                                                     d->order == DEFAULT_ORDER ? 0 : get_dialog_base_order(d));
   }
 }
 
@@ -33427,9 +33397,9 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   d->order = new_order;
 
   if (is_added) {
-    update_dialogs_hints(d);
+    update_dialog_hints(d);
   }
-  update_dialogs_hints_rating(d);
+  update_dialog_hints_rating(d);
 
   update_dialog_lists(d, std::move(dialog_positions), need_send_update, is_loaded_from_database, source);
 
