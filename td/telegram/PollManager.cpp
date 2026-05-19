@@ -33,6 +33,7 @@
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
+#include "td/telegram/WebPagesManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/BinlogHelper.h"
@@ -1812,6 +1813,7 @@ void PollManager::on_unload_poll_timeout(PollId poll_id) {
   poll_voters_.erase(poll_id);
   loaded_from_database_polls_.erase(poll_id);
   unload_poll_timeout_.cancel_timeout(poll_id.get());
+  td_->web_pages_manager_->register_poll_web_pages(poll_id, {});
 }
 
 void PollManager::forget_local_poll(PollId poll_id) {
@@ -2104,6 +2106,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         }
         poll_voters_.erase(it);
       }
+      td_->web_pages_manager_->register_poll_web_pages(poll_id, get_poll_web_page_ids(poll));
       is_changed = true;
     }
     auto question = get_formatted_text(nullptr, std::move(poll_server->question_), true, true, "on_get_poll");

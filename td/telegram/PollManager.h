@@ -118,6 +118,8 @@ class PollManager final : public Actor {
   unique_ptr<MessageContent> &get_individual_message_content(PollId poll_id, unique_ptr<MessageContent> &attached_media,
                                                              int32 media_pos);
 
+  void notify_on_poll_update(PollId poll_id);
+
   PollId dup_poll(DialogId dialog_id, PollId poll_id);
 
   bool has_input_media(PollId poll_id) const;
@@ -220,8 +222,6 @@ class PollManager final : public Actor {
   bool can_unload_poll(PollId poll_id);
 
   void schedule_poll_unload(PollId poll_id);
-
-  void notify_on_poll_update(PollId poll_id);
 
   void notify_on_poll_has_unread_votes_update(PollId poll_id, bool has_unread_votes);
 
