@@ -1217,6 +1217,19 @@ class CliClient final : public Actor {
         link_preview_show_above_text_);
   }
 
+  td_api::object_ptr<td_api::SearchChatTypeFilter> as_search_chat_type_filter(Slice op) {
+    if (op.empty()) {
+      return nullptr;
+    }
+    if (op.back() == 'b') {
+      return td_api::make_object<td_api::searchChatTypeFilterBot>();
+    }
+    if (op.back() == 'c') {
+      return td_api::make_object<td_api::searchChatTypeFilterChannel>();
+    }
+    return nullptr;
+  }
+
   struct ReportReason {
     string report_reason;
 
@@ -7821,8 +7834,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getOwnedBots>());
     } else if (op == "spc" || op == "su") {
       send_request(td_api::make_object<td_api::searchPublicChat>(args));
-    } else if (op == "spcs") {
-      send_request(td_api::make_object<td_api::searchPublicChats>(args));
+    } else if (op == "spcs" || op == "spcsb" || op == "spcsc") {
+      send_request(td_api::make_object<td_api::searchPublicChats>(args, as_search_chat_type_filter(op)));
     } else if (op == "sc") {
       SearchQuery query;
       get_args(args, query);

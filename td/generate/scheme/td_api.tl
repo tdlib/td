@@ -5921,7 +5921,7 @@ searchMessagesFilterFailedToSend = SearchMessagesFilter;
 searchMessagesFilterPinned = SearchMessagesFilter;
 
 
-//@class SearchMessagesChatTypeFilter @description Represents a filter for type of the chats in which to search messages
+//@class SearchMessagesChatTypeFilter @description Represents a filter for type of the chats in which to search for messages
 
 //@description Returns only messages in private chats
 searchMessagesChatTypeFilterPrivate = SearchMessagesChatTypeFilter;
@@ -5931,6 +5931,15 @@ searchMessagesChatTypeFilterGroup = SearchMessagesChatTypeFilter;
 
 //@description Returns only messages in channel chats
 searchMessagesChatTypeFilterChannel = SearchMessagesChatTypeFilter;
+
+
+//@class SearchChatTypeFilter @description Represents a filter for type of the chats to search for
+
+//@description Returns only private chats with bots
+searchChatTypeFilterBot = SearchChatTypeFilter;
+
+//@description Returns only channel chats
+searchChatTypeFilterChannel = SearchChatTypeFilter;
 
 
 //@class ChatAction @description Describes the different types of activity in a chat
@@ -11105,7 +11114,8 @@ searchPublicChat username:string = Chat;
 //@description Searches public chats by looking for specified query in their username and title. Currently, only private chats, supergroups and channels can be public. Returns a meaningful number of results.
 //-Excludes private chats with contacts and chats from the chat list from the results
 //@query Query to search for
-searchPublicChats query:string = Chats;
+//@type_filter Additional filter for type of the chat; pass null to search for chats of all types
+searchPublicChats query:string type_filter:SearchChatTypeFilter = Chats;
 
 //@description Searches for the specified query in the title and username of already known chats. This is an offline method. Returns chats in the order seen in the main chat list
 //@query Query to search for. If the query is empty, returns up to 50 recently found chats

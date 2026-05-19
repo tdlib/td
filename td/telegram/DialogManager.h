@@ -267,13 +267,15 @@ class DialogManager final : public Actor {
 
   enum class DialogTypeFilter : int32 { None, Bot, Broadcast };
 
-  void on_get_public_dialogs_search_result(const string &query,
+  void on_get_public_dialogs_search_result(const string &query, DialogTypeFilter type_filter,
                                            vector<telegram_api::object_ptr<telegram_api::Peer>> &&my_peers,
                                            vector<telegram_api::object_ptr<telegram_api::Peer>> &&peers);
 
-  void on_failed_public_dialogs_search(const string &query, Status &&error);
+  void on_failed_public_dialogs_search(const string &query, DialogTypeFilter type_filter, Status &&error);
 
-  vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
+  vector<DialogId> search_public_dialogs(const string &query,
+                                         const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter,
+                                         Promise<Unit> &&promise);
 
   vector<DialogId> search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise);
 
@@ -349,7 +351,9 @@ class DialogManager final : public Actor {
 
   void on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise);
 
-  void send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise);
+  static DialogTypeFilter get_dialog_type_filter(const td_api::object_ptr<td_api::SearchChatTypeFilter> &type_filter);
+
+  void send_search_public_dialogs_query(const string &query, DialogTypeFilter type_filter, Promise<Unit> &&promise);
 
   bool is_dialog_suitable_for_type_filter(DialogId dialog_id, DialogTypeFilter type_filter) const;
 
@@ -411,9 +415,9 @@ class DialogManager final : public Actor {
 
   FlatHashMap<string, vector<Promise<Unit>>> resolve_dialog_username_queries_;
 
-  FlatHashMap<string, vector<Promise<Unit>>> search_public_dialogs_queries_;
-  FlatHashMap<string, vector<DialogId>> found_public_dialogs_;     // TODO time bound cache
-  FlatHashMap<string, vector<DialogId>> found_on_server_dialogs_;  // TODO time bound cache
+  FlatHashMap<string, vector<Promise<Unit>>> search_public_dialogs_queries_[3];
+  FlatHashMap<string, vector<DialogId>> found_public_dialogs_[3];     // TODO time bound cache
+  FlatHashMap<string, vector<DialogId>> found_on_server_dialogs_[3];  // TODO time bound cache
 
   RecentDialogList recently_found_dialogs_;
   RecentDialogList recently_opened_dialogs_;

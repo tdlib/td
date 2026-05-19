@@ -160,12 +160,15 @@ class ResolveUsernameQuery final : public Td::ResultHandler {
 
 class SearchPublicDialogsQuery final : public Td::ResultHandler {
   string query_;
+  DialogManager::DialogTypeFilter type_filter_;
 
  public:
-  void send(const string &query) {
+  void send(const string &query, DialogManager::DialogTypeFilter type_filter) {
     query_ = query;
-    send_query(G()->net_query_creator().create(
-        telegram_api::contacts_search(0, false, false, query, 20 /* mostly ignored server-side */)));
+    type_filter_ = type_filter;
+    send_query(G()->net_query_creator().create(telegram_api::contacts_search(
+        0, type_filter_ == DialogManager::DialogTypeFilter::Broadcast,
+        type_filter_ == DialogManager::DialogTypeFilter::Bot, query, 20 /* mostly ignored server-side */)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -178,18 +181,18 @@ class SearchPublicDialogsQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for SearchPublicDialogsQuery: " << to_string(dialogs);
     td_->user_manager_->on_get_users(std::move(dialogs->users_), "SearchPublicDialogsQuery");
     td_->chat_manager_->on_get_chats(std::move(dialogs->chats_), "SearchPublicDialogsQuery");
-    td_->dialog_manager_->on_get_public_dialogs_search_result(query_, std::move(dialogs->my_results_),
+    td_->dialog_manager_->on_get_public_dialogs_search_result(query_, type_filter_, std::move(dialogs->my_results_),
                                                               std::move(dialogs->results_));
   }
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       if (status.message() == "QUERY_TOO_SHORT") {
-        return td_->dialog_manager_->on_get_public_dialogs_search_result(query_, {}, {});
+        return td_->dialog_manager_->on_get_public_dialogs_search_result(query_, type_filter_, {}, {});
       }
       LOG(ERROR) << "Receive error for SearchPublicDialogsQuery: " << status;
     }
-    td_->dialog_manager_->on_failed_public_dialogs_search(query_, std::move(status));
+    td_->dialog_manager_->on_failed_public_dialogs_search(query_, type_filter_, std::move(status));
   }
 };
 
@@ -1312,13 +1315,16 @@ DialogManager::DialogManager(Td *td, ActorShared<> parent)
 }
 
 DialogManager::~DialogManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), resolved_usernames_,
-                                              inaccessible_resolved_usernames_, found_public_dialogs_,
-                                              found_on_server_dialogs_);
+  Scheduler::instance()->destroy_on_scheduler(
+      G()->get_gc_scheduler_id(), resolved_usernames_, inaccessible_resolved_usernames_, found_public_dialogs_[0],
+      found_public_dialogs_[1], found_public_dialogs_[2], found_on_server_dialogs_[0], found_on_server_dialogs_[1],
+      found_on_server_dialogs_[2]);
 }
 
 void DialogManager::hangup() {
-  fail_promise_map(search_public_dialogs_queries_, Global::request_aborted_error());
+  for (size_t i = 0; i < 3; i++) {
+    fail_promise_map(search_public_dialogs_queries_[i], Global::request_aborted_error());
+  }
 
   stop();
 }
@@ -3264,8 +3270,27 @@ bool DialogManager::is_dialog_suitable_for_type_filter(DialogId dialog_id, Dialo
   }
 }
 
-vector<DialogId> DialogManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {
+DialogManager::DialogTypeFilter DialogManager::get_dialog_type_filter(
+    const td_api::object_ptr<td_api::SearchChatTypeFilter> &type_filter) {
+  if (type_filter == nullptr) {
+    return DialogTypeFilter::None;
+  }
+  switch (type_filter->get_id()) {
+    case td_api::searchChatTypeFilterBot::ID:
+      return DialogTypeFilter::Bot;
+    case td_api::searchChatTypeFilterChannel::ID:
+      return DialogTypeFilter::Broadcast;
+    default:
+      UNREACHABLE();
+      return DialogTypeFilter::None;
+  }
+}
+
+vector<DialogId> DialogManager::search_public_dialogs(
+    const string &query, const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter,
+    Promise<Unit> &&promise) {
   LOG(INFO) << "Search public chats with query = \"" << query << '"';
+  auto type_filter = get_dialog_type_filter(chat_type_filter);
 
   auto query_length = utf8_length(query);
   if (query_length < MIN_SEARCH_PUBLIC_DIALOG_PREFIX_LEN ||
@@ -3287,7 +3312,8 @@ vector<DialogId> DialogManager::search_public_dialogs(const string &query, Promi
 
         if (td_->messages_manager_->can_add_dialog_to_filter(dialog_id).is_error() ||
             (dialog_id.get_type() == DialogType::User &&
-             td_->user_manager_->is_user_contact(dialog_id.get_user_id()))) {
+             td_->user_manager_->is_user_contact(dialog_id.get_user_id())) ||
+            !is_dialog_suitable_for_type_filter(dialog_id, type_filter)) {
           continue;
         }
 
@@ -3299,13 +3325,14 @@ vector<DialogId> DialogManager::search_public_dialogs(const string &query, Promi
     return {};
   }
 
-  auto it = found_public_dialogs_.find(query);
-  if (it != found_public_dialogs_.end()) {
+  auto type_num = static_cast<int32>(type_filter);
+  auto it = found_public_dialogs_[type_num].find(query);
+  if (it != found_public_dialogs_[type_num].end()) {
     promise.set_value(Unit());
     return it->second;
   }
 
-  send_search_public_dialogs_query(query, std::move(promise));
+  send_search_public_dialogs_query(query, type_filter, std::move(promise));
   return {};
 }
 
@@ -3325,53 +3352,57 @@ vector<DialogId> DialogManager::search_dialogs_on_server(const string &query, in
     return {};
   }
 
-  auto it = found_on_server_dialogs_.find(query);
-  if (it != found_on_server_dialogs_.end()) {
+  auto type_num = 0;
+  auto it = found_on_server_dialogs_[type_num].find(query);
+  if (it != found_on_server_dialogs_[type_num].end()) {
     promise.set_value(Unit());
     return td_->messages_manager_->sort_dialogs_by_order(it->second, limit);
   }
 
-  send_search_public_dialogs_query(query, std::move(promise));
+  send_search_public_dialogs_query(query, DialogTypeFilter::None, std::move(promise));
   return {};
 }
 
-void DialogManager::send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise) {
+void DialogManager::send_search_public_dialogs_query(const string &query, DialogTypeFilter type_filter,
+                                                     Promise<Unit> &&promise) {
   CHECK(!query.empty());
-  auto &promises = search_public_dialogs_queries_[query];
+  auto &promises = search_public_dialogs_queries_[static_cast<int32>(type_filter)][query];
   promises.push_back(std::move(promise));
   if (promises.size() != 1) {
     // query has already been sent, just wait for the result
     return;
   }
 
-  td_->create_handler<SearchPublicDialogsQuery>()->send(query);
+  td_->create_handler<SearchPublicDialogsQuery>()->send(query, type_filter);
 }
 
-void DialogManager::on_get_public_dialogs_search_result(const string &query,
+void DialogManager::on_get_public_dialogs_search_result(const string &query, DialogTypeFilter type_filter,
                                                         vector<tl_object_ptr<telegram_api::Peer>> &&my_peers,
                                                         vector<tl_object_ptr<telegram_api::Peer>> &&peers) {
-  auto it = search_public_dialogs_queries_.find(query);
-  CHECK(it != search_public_dialogs_queries_.end());
+  auto type_num = static_cast<int32>(type_filter);
+  auto it = search_public_dialogs_queries_[type_num].find(query);
+  CHECK(it != search_public_dialogs_queries_[type_num].end());
   CHECK(!it->second.empty());
   auto promises = std::move(it->second);
-  search_public_dialogs_queries_.erase(it);
+  search_public_dialogs_queries_[type_num].erase(it);
 
   CHECK(!query.empty());
-  found_public_dialogs_[query] = get_peers_dialog_ids(std::move(peers));
-  found_on_server_dialogs_[query] = get_peers_dialog_ids(std::move(my_peers));
+  found_public_dialogs_[type_num][query] = get_peers_dialog_ids(std::move(peers));
+  found_on_server_dialogs_[type_num][query] = get_peers_dialog_ids(std::move(my_peers));
 
   set_promises(promises);
 }
 
-void DialogManager::on_failed_public_dialogs_search(const string &query, Status &&error) {
-  auto it = search_public_dialogs_queries_.find(query);
-  CHECK(it != search_public_dialogs_queries_.end());
+void DialogManager::on_failed_public_dialogs_search(const string &query, DialogTypeFilter type_filter, Status &&error) {
+  auto type_num = static_cast<int32>(type_filter);
+  auto it = search_public_dialogs_queries_[type_num].find(query);
+  CHECK(it != search_public_dialogs_queries_[type_num].end());
   CHECK(!it->second.empty());
   auto promises = std::move(it->second);
-  search_public_dialogs_queries_.erase(it);
+  search_public_dialogs_queries_[type_num].erase(it);
 
-  found_public_dialogs_[query];     // negative cache
-  found_on_server_dialogs_[query];  // negative cache
+  found_public_dialogs_[type_num][query];     // negative cache
+  found_on_server_dialogs_[type_num][query];  // negative cache
 
   fail_promises(promises, std::move(error));
 }
