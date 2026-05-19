@@ -525,7 +525,9 @@ Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
         LOG(DEBUG) << "Skipping epilogue. Have " << size << " bytes";
         content_->advance(size);
         form_data_skipped_length_ += size;
-        // TODO(now): check if form_data_skipped_length is too big
+        if (form_data_skipped_length_ > MAX_CONTENT_SIZE) {
+          return Status::Error(413, "Request Entity Too Large: multipart/form-data is too big");
+        }
         return flow_sink_.is_ready();
       }
       default:
