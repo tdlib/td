@@ -107,6 +107,8 @@ class PollManager final : public Actor {
 
   void stop_local_poll(PollId poll_id);
 
+  void delete_pending_web_page(PollId poll_id, WebPageId web_page_id);
+
   vector<unique_ptr<MessageContent>> get_individual_message_contents(PollId poll_id,
                                                                      const MessageContent *attached_media) const;
 

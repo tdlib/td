@@ -1719,6 +1719,21 @@ void PollManager::stop_local_poll(PollId poll_id) {
   notify_on_poll_update(poll_id);
 }
 
+void PollManager::delete_pending_web_page(PollId poll_id, WebPageId web_page_id) {
+  auto poll = get_poll_editable(poll_id);
+  CHECK(poll != nullptr);
+  for (auto &option : poll->options_) {
+    if (option.get_web_page_id() == web_page_id) {
+      option.remove_web_page();
+    }
+  }
+  td_->web_pages_manager_->register_poll_web_pages(poll_id, get_poll_web_page_ids(poll));
+
+  // no need to notify about poll update, because the web pages were pending
+  // notify_on_poll_update(poll_id);
+  save_poll(poll, poll_id);
+}
+
 double PollManager::get_polling_timeout() const {
   double result = td_->online_manager_->is_online() ? 60 : 30 * 60;
   return result * Random::fast(70, 100) * 0.01;

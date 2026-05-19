@@ -2212,6 +2212,32 @@ void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_p
     }
   }
   {
+    auto it = web_page_polls_.find(web_page_id);
+    if (it != web_page_polls_.end()) {
+      vector<PollId> poll_ids;
+      for (auto poll_id : it->second) {
+        poll_ids.push_back(poll_id);
+      }
+      CHECK(!poll_ids.empty());
+      for (auto poll_id : poll_ids) {
+        if (!have_web_page) {
+          td_->poll_manager_->delete_pending_web_page(poll_id, web_page_id);
+        } else {
+          td_->poll_manager_->notify_on_poll_update(poll_id);
+        }
+      }
+
+      // don't check that notify_on_poll_update doesn't load new polls
+      if (!have_web_page && web_page_polls_.count(web_page_id) != 0) {
+        vector<PollId> new_poll_ids;
+        for (auto poll_id : web_page_polls_[web_page_id]) {
+          new_poll_ids.push_back(poll_id);
+        }
+        LOG(FATAL) << poll_ids << ' ' << new_poll_ids;
+      }
+    }
+  }
+  {
     auto it = pending_get_web_pages_.find(web_page_id);
     if (it != pending_get_web_pages_.end()) {
       auto requests = std::move(it->second);

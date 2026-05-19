@@ -93,6 +93,11 @@ WebPageId PollOption::get_web_page_id() const {
   return get_message_content_web_page_id(media_.get());
 }
 
+void PollOption::remove_web_page() {
+  CHECK(media_ != nullptr);
+  remove_message_content_web_page(media_.get());
+}
+
 PollOption PollOption::dup_option(Td *td, DialogId dialog_id) const {
   PollOption result;
   result.text_ = text_;
