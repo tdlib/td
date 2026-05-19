@@ -562,7 +562,31 @@ Result<size_t> HttpReader::split_header() {
 
 void HttpReader::process_header(MutableSlice header_name, MutableSlice header_value) {
   header_name = trim(header_name);
-  header_value = trim(header_value);  // TODO need to remove "\r\n" from value
+  header_value = trim(header_value);
+
+  auto *data = header_value.data();
+  size_t write_pos = 0;
+  for (size_t read_pos = 0; read_pos < header_value.size();) {
+    if (header_value[read_pos] == '\r' && read_pos + 1 < header_value.size() &&
+        header_value[read_pos + 1] == '\n') {
+      read_pos += 2;
+
+      while (read_pos < header_value.size() &&
+             (header_value[read_pos] == ' ' || header_value[read_pos] == '\t')) {
+        read_pos++;
+      }
+
+      if (write_pos != 0 && read_pos < header_value.size()) {
+        data[write_pos++] = ' ';
+      }
+      continue;
+    }
+
+    data[write_pos++] = header_value[read_pos++];
+  }
+  
+  header_value = trim(MutableSlice(data, write_pos));
+  
   to_lower_inplace(header_name);
   LOG(DEBUG) << "Process header [" << header_name << "=>" << header_value << "]";
   query_->headers_.emplace_back(header_name, header_value);
