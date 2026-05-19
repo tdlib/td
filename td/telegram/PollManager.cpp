@@ -537,6 +537,7 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
         }
       }
     }
+    td_->web_pages_manager_->register_poll_web_pages(poll_id, get_poll_web_page_ids(poll.get()));
     polls_[poll_id] = std::move(poll);
   }
 }
