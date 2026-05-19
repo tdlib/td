@@ -277,7 +277,9 @@ class DialogManager final : public Actor {
                                          const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter,
                                          Promise<Unit> &&promise);
 
-  vector<DialogId> search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise);
+  vector<DialogId> search_dialogs_on_server(const string &query,
+                                            const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter,
+                                            int32 limit, Promise<Unit> &&promise);
 
   void reload_video_chat_on_search(const string &username);
 

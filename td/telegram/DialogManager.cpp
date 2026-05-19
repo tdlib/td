@@ -3336,8 +3336,11 @@ vector<DialogId> DialogManager::search_public_dialogs(
   return {};
 }
 
-vector<DialogId> DialogManager::search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise) {
+vector<DialogId> DialogManager::search_dialogs_on_server(
+    const string &query, const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter, int32 limit,
+    Promise<Unit> &&promise) {
   LOG(INFO) << "Search chats on server with query \"" << query << "\" and limit " << limit;
+  auto type_filter = get_dialog_type_filter(chat_type_filter);
 
   if (limit < 0) {
     promise.set_error(400, "Limit must be non-negative");
@@ -3352,14 +3355,14 @@ vector<DialogId> DialogManager::search_dialogs_on_server(const string &query, in
     return {};
   }
 
-  auto type_num = 0;
+  auto type_num = static_cast<int32>(type_filter);
   auto it = found_on_server_dialogs_[type_num].find(query);
   if (it != found_on_server_dialogs_[type_num].end()) {
     promise.set_value(Unit());
     return td_->messages_manager_->sort_dialogs_by_order(it->second, limit);
   }
 
-  send_search_public_dialogs_query(query, DialogTypeFilter::None, std::move(promise));
+  send_search_public_dialogs_query(query, type_filter, std::move(promise));
   return {};
 }
 

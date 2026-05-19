@@ -11114,7 +11114,7 @@ searchPublicChat username:string = Chat;
 //@description Searches public chats by looking for specified query in their username and title. Currently, only private chats, supergroups and channels can be public. Returns a meaningful number of results.
 //-Excludes private chats with contacts and chats from the chat list from the results
 //@query Query to search for
-//@type_filter Additional filter for type of the chat; pass null to search for chats of all types
+//@type_filter Additional filter for type of the chats to be returned; pass null to search for chats of all types
 searchPublicChats query:string type_filter:SearchChatTypeFilter = Chats;
 
 //@description Searches for the specified query in the title and username of already known chats. This is an offline method. Returns chats in the order seen in the main chat list
@@ -11122,8 +11122,11 @@ searchPublicChats query:string type_filter:SearchChatTypeFilter = Chats;
 //@limit The maximum number of chats to be returned
 searchChats query:string limit:int32 = Chats;
 
-//@description Searches for the specified query in the title and username of already known chats via request to the server. Returns chats in the order seen in the main chat list @query Query to search for @limit The maximum number of chats to be returned
-searchChatsOnServer query:string limit:int32 = Chats;
+//@description Searches for the specified query in the title and username of already known chats via request to the server. Returns chats in the order seen in the main chat list
+//@query Query to search for
+//@type_filter Additional filter for type of the chats to be returned; pass null to search for chats of all types
+//@limit The maximum number of chats to be returned
+searchChatsOnServer query:string type_filter:SearchChatTypeFilter limit:int32 = Chats;
 
 //@description Returns a list of channel chats recommended to the current user
 getRecommendedChats = Chats;

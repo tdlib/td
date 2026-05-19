@@ -459,12 +459,13 @@ class SearchChatsRequest final : public RequestActor<> {
 
 class SearchChatsOnServerRequest final : public RequestActor<> {
   string query_;
+  td_api::object_ptr<td_api::SearchChatTypeFilter> type_filter_;
   int32 limit_;
 
   vector<DialogId> dialog_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
-    dialog_ids_ = td_->dialog_manager_->search_dialogs_on_server(query_, limit_, std::move(promise));
+    dialog_ids_ = td_->dialog_manager_->search_dialogs_on_server(query_, type_filter_, limit_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -472,8 +473,12 @@ class SearchChatsOnServerRequest final : public RequestActor<> {
   }
 
  public:
-  SearchChatsOnServerRequest(ActorShared<Td> td, uint64 request_id, string query, int32 limit)
-      : RequestActor(std::move(td), request_id), query_(std::move(query)), limit_(limit) {
+  SearchChatsOnServerRequest(ActorShared<Td> td, uint64 request_id, string query,
+                             td_api::object_ptr<td_api::SearchChatTypeFilter> type_filter, int32 limit)
+      : RequestActor(std::move(td), request_id)
+      , query_(std::move(query))
+      , type_filter_(std::move(type_filter))
+      , limit_(limit) {
   }
 };
 
@@ -3350,7 +3355,7 @@ void Requests::on_request(uint64 id, td_api::searchChats &request) {
 void Requests::on_request(uint64 id, td_api::searchChatsOnServer &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
-  CREATE_REQUEST(SearchChatsOnServerRequest, request.query_, request.limit_);
+  CREATE_REQUEST(SearchChatsOnServerRequest, request.query_, std::move(request.type_filter_), request.limit_);
 }
 
 void Requests::on_request(uint64 id, const td_api::getGroupsInCommon &request) {

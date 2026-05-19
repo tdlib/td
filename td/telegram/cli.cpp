@@ -7840,10 +7840,11 @@ class CliClient final : public Actor {
       SearchQuery query;
       get_args(args, query);
       send_request(td_api::make_object<td_api::searchChats>(query.query, query.limit));
-    } else if (op == "scos") {
+    } else if (op == "scos" || op == "scosb" || op == "scosc") {
       SearchQuery query;
       get_args(args, query);
-      send_request(td_api::make_object<td_api::searchChatsOnServer>(query.query, query.limit));
+      send_request(
+          td_api::make_object<td_api::searchChatsOnServer>(query.query, as_search_chat_type_filter(op), query.limit));
     } else if (op == "sbl") {
       string latitude;
       string longitude;
