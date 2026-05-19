@@ -6848,7 +6848,11 @@ class CliClient final : public Actor {
       string question;
       get_args(args, chat_id, question, args);
       auto options = transform(autosplit_str(args), [](const string &option) {
-        return td_api::make_object<td_api::inputPollOption>(as_formatted_text(option), nullptr);
+        td_api::object_ptr<td_api::InputPollMedia> media;
+        if (begins_with(option, "https://")) {
+          media = td_api::make_object<td_api::inputPollMediaLink>(option);
+        }
+        return td_api::make_object<td_api::inputPollOption>(as_formatted_text(option), std::move(media));
       });
       td_api::object_ptr<td_api::InputPollType> poll_type;
       if (op == "squiz") {
