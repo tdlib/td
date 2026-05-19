@@ -7991,10 +7991,11 @@ class CliClient final : public Actor {
       SearchQuery query;
       get_args(args, query);
       send_request(td_api::make_object<td_api::searchContacts>(query.query, query.limit));
-    } else if (op == "srfc") {
+    } else if (op == "srfcs" || op == "srfcsb" || op == "srfcsc") {
       SearchQuery query;
       get_args(args, query);
-      send_request(td_api::make_object<td_api::searchRecentlyFoundChats>(query.query, query.limit));
+      send_request(td_api::make_object<td_api::searchRecentlyFoundChats>(query.query, as_search_chat_type_filter(op),
+                                                                         query.limit));
     } else if (op == "arfc") {
       ChatId chat_id;
       get_args(args, chat_id);

@@ -14164,7 +14164,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string 
     return {};
   }
   if (query.empty()) {
-    return td_->dialog_manager_->search_recently_found_dialogs(string(), limit, std::move(promise));
+    return td_->dialog_manager_->search_recently_found_dialogs(string(), nullptr, limit, std::move(promise));
   }
 
   auto result = dialogs_hints_.search(query, limit);

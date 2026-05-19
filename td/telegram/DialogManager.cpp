@@ -1808,9 +1808,21 @@ void DialogManager::on_dialog_deleted(DialogId dialog_id) {
   }
 }
 
-std::pair<int32, vector<DialogId>> DialogManager::search_recently_found_dialogs(const string &query, int32 limit,
-                                                                                Promise<Unit> &&promise) {
-  auto result = recently_found_dialogs_.get_dialogs(query.empty() ? limit : 50, std::move(promise));
+std::pair<int32, vector<DialogId>> DialogManager::search_recently_found_dialogs(
+    const string &query, const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter, int32 limit,
+    Promise<Unit> &&promise) {
+  auto type_filter = get_dialog_type_filter(chat_type_filter);
+  auto result = recently_found_dialogs_.get_dialogs(query.empty() && type_filter == DialogTypeFilter::None ? limit : 50,
+                                                    std::move(promise));
+  if (type_filter != DialogTypeFilter::None) {
+    td::remove_if(result.second,
+                  [&](DialogId dialog_id) { return !is_dialog_suitable_for_type_filter(dialog_id, type_filter); });
+    result.first = static_cast<int32>(result.second.size());
+    if (query.empty() && result.second.size() > limit) {
+      result.second.resize(limit);
+    }
+  }
+
   if (result.first == 0 || query.empty()) {
     return result;
   }

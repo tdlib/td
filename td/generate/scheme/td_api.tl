@@ -11165,8 +11165,9 @@ removeTopChat category:TopChatCategory chat_id:int53 = Ok;
 
 //@description Searches for the specified query in the title and username of up to 50 recently found chats. This is an offline method
 //@query Query to search for
+//@type_filter Additional filter for type of the chats to be returned; pass null to search for chats of all types
 //@limit The maximum number of chats to be returned
-searchRecentlyFoundChats query:string limit:int32 = Chats;
+searchRecentlyFoundChats query:string type_filter:SearchChatTypeFilter limit:int32 = Chats;
 
 //@description Adds a chat to the list of recently found chats. The chat is added to the beginning of the list. If the chat is already in the list, it will be removed from the list first @chat_id Identifier of the chat to add
 addRecentlyFoundChat chat_id:int53 = Ok;

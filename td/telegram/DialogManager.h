@@ -134,8 +134,9 @@ class DialogManager final : public Actor {
 
   void clear_recently_found_dialogs();
 
-  std::pair<int32, vector<DialogId>> search_recently_found_dialogs(const string &query, int32 limit,
-                                                                   Promise<Unit> &&promise);
+  std::pair<int32, vector<DialogId>> search_recently_found_dialogs(
+      const string &query, const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter, int32 limit,
+      Promise<Unit> &&promise);
 
   std::pair<int32, vector<DialogId>> get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise);
 
