@@ -166,7 +166,7 @@ passkeys passkeys:vector<passkey> = Passkeys;
 authorizationStateWaitTdlibParameters = AuthorizationState;
 
 //@description TDLib needs the user's phone number to authorize. Call setAuthenticationPhoneNumber to provide the phone number,
-//-or use requestQrCodeAuthentication, getAuthenticationPasskeyParameters, or checkAuthenticationBotToken for other authentication options
+//-or use requestQrCodeAuthentication, getAuthenticationPasskeyParameters, checkAuthenticationWebToken, or checkAuthenticationBotToken for other authentication options
 authorizationStateWaitPhoneNumber = AuthorizationState;
 
 //@description The user must buy Telegram Premium as an in-store purchase to log in. Call checkAuthenticationPremiumPurchase and then setAuthenticationPremiumPurchaseTransaction
@@ -10875,6 +10875,12 @@ getAuthenticationPasskeyParameters = Text;
 //@signature Cryptographic signature of the credential
 //@user_handle User handle of the passkey
 checkAuthenticationPasskey credential_id:string client_data:string authenticator_data:bytes signature:bytes user_handle:bytes = Ok;
+
+//@description Checks a web token to log in to the corresponding account; for official Telegram apps only. Works only when the current authorization state is
+//-authorizationStateWaitPhoneNumber or authorizationStateWaitOtherDeviceConfirmation
+//@token The token to check
+//@dc_id Identifier of the datacenter of the user
+checkAuthenticationWebToken token:string dc_id:int32 = Ok;
 
 //@description Finishes user registration. Works only when the current authorization state is authorizationStateWaitRegistration
 //@first_name The first name of the user; 1-64 characters

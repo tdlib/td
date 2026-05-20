@@ -2972,6 +2972,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkAuthenticationPasskey>(
           credential_id, client_data, base64url_decode(authenticator_data).move_as_ok(),
           base64url_decode(signature).move_as_ok(), user_handle));
+    } else if (op == "cawt") {
+      string token;
+      int32 dc_id;
+      get_args(args, token, dc_id);
+      send_request(td_api::make_object<td_api::checkAuthenticationWebToken>(token, dc_id));
     } else if (op == "cqr") {
       send_request(td_api::make_object<td_api::confirmQrCodeAuthentication>(args));
     } else if (op == "gcs") {

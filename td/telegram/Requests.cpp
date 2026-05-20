@@ -2159,6 +2159,12 @@ void Requests::on_request(uint64 id, td_api::checkAuthenticationPasskey &request
                request.client_data_, request.authenticator_data_, request.signature_, request.user_handle_);
 }
 
+void Requests::on_request(uint64 id, td_api::checkAuthenticationWebToken &request) {
+  CLEAN_INPUT_STRING(request.token_);
+  send_closure(td_->auth_manager_actor_, &AuthManager::import_web_token_authorization, id, request.token_,
+               request.dc_id_);
+}
+
 void Requests::on_request(uint64 id, const td_api::resetAuthenticationEmailAddress &request) {
   send_closure(td_->auth_manager_actor_, &AuthManager::reset_email_address, id);
 }
