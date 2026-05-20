@@ -273,7 +273,9 @@ class DialogManager final : public Actor {
 
   void update_dialog_hints_rating(DialogId dialog_id, int64 rating);
 
-  std::pair<int32, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
+  std::pair<int32, vector<DialogId>> search_dialogs(
+      const string &query, const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter, int32 limit,
+      Promise<Unit> &&promise);
 
   void on_get_public_dialogs_search_result(const string &query, DialogTypeFilter type_filter,
                                            vector<telegram_api::object_ptr<telegram_api::Peer>> &&my_peers,

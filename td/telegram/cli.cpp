@@ -1218,7 +1218,7 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::SearchChatTypeFilter> as_search_chat_type_filter(Slice op) {
-    if (op.empty()) {
+    if (op.size() <= 2) {
       return nullptr;
     }
     if (op.back() == 'b') {
@@ -7836,10 +7836,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::searchPublicChat>(args));
     } else if (op == "spcs" || op == "spcsb" || op == "spcsc") {
       send_request(td_api::make_object<td_api::searchPublicChats>(args, as_search_chat_type_filter(op)));
-    } else if (op == "sc") {
+    } else if (op == "sc" || op == "scb" || op == "scc") {
       SearchQuery query;
       get_args(args, query);
-      send_request(td_api::make_object<td_api::searchChats>(query.query, query.limit));
+      send_request(td_api::make_object<td_api::searchChats>(query.query, as_search_chat_type_filter(op), query.limit));
     } else if (op == "scos" || op == "scosb" || op == "scosc") {
       SearchQuery query;
       get_args(args, query);

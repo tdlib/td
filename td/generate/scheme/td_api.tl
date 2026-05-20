@@ -11119,8 +11119,9 @@ searchPublicChats query:string type_filter:SearchChatTypeFilter = Chats;
 
 //@description Searches for the specified query in the title and username of already known chats. This is an offline method. Returns chats in the order seen in the main chat list
 //@query Query to search for. If the query is empty, returns up to 50 recently found chats
+//@type_filter Additional filter for type of the chats to be returned; pass null to search for chats of all types
 //@limit The maximum number of chats to be returned
-searchChats query:string limit:int32 = Chats;
+searchChats query:string type_filter:SearchChatTypeFilter limit:int32 = Chats;
 
 //@description Searches for the specified query in the title and username of already known chats via request to the server. Returns chats in the order seen in the main chat list
 //@query Query to search for

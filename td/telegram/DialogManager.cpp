@@ -1825,8 +1825,9 @@ void DialogManager::update_dialog_hints_rating(DialogId dialog_id, int64 rating)
   }
 }
 
-std::pair<int32, vector<DialogId>> DialogManager::search_dialogs(const string &query, int32 limit,
-                                                                 Promise<Unit> &&promise) {
+std::pair<int32, vector<DialogId>> DialogManager::search_dialogs(
+    const string &query, const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter, int32 limit,
+    Promise<Unit> &&promise) {
   LOG(INFO) << "Search chats with query \"" << query << "\" and limit " << limit;
   CHECK(!td_->auth_manager_->is_bot());
 
@@ -1835,10 +1836,19 @@ std::pair<int32, vector<DialogId>> DialogManager::search_dialogs(const string &q
     return {};
   }
   if (query.empty()) {
-    return search_recently_found_dialogs(string(), nullptr, limit, std::move(promise));
+    return search_recently_found_dialogs(string(), chat_type_filter, limit, std::move(promise));
   }
+  auto type_filter = get_dialog_type_filter(chat_type_filter);
 
-  auto result = dialog_hints_.search(query, limit);
+  auto result = dialog_hints_.search(query, type_filter == DialogTypeFilter::None ? limit : 10000);
+  if (type_filter != DialogTypeFilter::None) {
+    td::remove_if(result.second,
+                  [&](int64 key) { return !is_dialog_suitable_for_type_filter(DialogId(-key), type_filter); });
+    result.first = static_cast<int32>(result.second.size());
+    if (static_cast<int32>(result.second.size()) > limit) {
+      result.second.resize(limit);
+    }
+  }
   vector<DialogId> dialog_ids;
   dialog_ids.reserve(result.second.size());
   for (auto key : result.second) {
@@ -1859,7 +1869,7 @@ std::pair<int32, vector<DialogId>> DialogManager::search_recently_found_dialogs(
     td::remove_if(result.second,
                   [&](DialogId dialog_id) { return !is_dialog_suitable_for_type_filter(dialog_id, type_filter); });
     result.first = static_cast<int32>(result.second.size());
-    if (query.empty() && result.second.size() > limit) {
+    if (query.empty() && static_cast<int32>(result.second.size()) > limit) {
       result.second.resize(limit);
     }
   }
