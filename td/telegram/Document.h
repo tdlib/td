@@ -26,7 +26,7 @@ struct Document {
   Document(Type type, FileId file_id) : type(type), file_id(file_id) {
   }
 
-  bool empty() const {
+  bool is_empty() const {
     return type == Type::Unknown;
   }
 

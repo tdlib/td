@@ -86,13 +86,13 @@ Status MessageCover::merge_with_media(Td *td, DialogId owner_dialog_id,
         return Status::Error(500, "Receive invalid response without photo");
       }
       auto document = telegram_api::move_object_as<telegram_api::document>(media->document_);
-      auto parsed_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false, true,
-                                                                 nullptr, Document::Type::Video);
-      if (parsed_file.empty() || parsed_file.type != Document::Type::Video) {
+      auto parsed_document = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false, true,
+                                                                     nullptr, Document::Type::Video);
+      if (parsed_document.is_empty() || parsed_document.type != Document::Type::Video) {
         return Status::Error(500, "Receive invalid live photo video");
       }
-      if (video_file_id_ != parsed_file.file_id) {
-        td->videos_manager_->merge_videos(parsed_file.file_id, video_file_id_);
+      if (video_file_id_ != parsed_document.file_id) {
+        td->videos_manager_->merge_videos(parsed_document.file_id, video_file_id_);
       }
       break;
     }

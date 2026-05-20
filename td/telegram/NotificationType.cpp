@@ -141,7 +141,7 @@ class NotificationTypePushMessage final : public NotificationType {
   }
 
   vector<FileId> get_file_ids(const Td *td) const final {
-    if (!document_.empty()) {
+    if (!document_.is_empty()) {
       return document_.get_file_ids(td);
     }
 

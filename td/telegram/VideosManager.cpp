@@ -428,13 +428,13 @@ FileId VideosManager::get_live_photo_video_file_id(telegram_api::object_ptr<tele
   }
   CHECK(video_id == telegram_api::document::ID);
   auto video = telegram_api::move_object_as<telegram_api::document>(document);
-  auto parsed_file = td_->documents_manager_->on_get_document(std::move(video), owner_dialog_id, is_self_destructing,
-                                                              true, nullptr, Document::Type::Video);
-  if (parsed_file.empty() || parsed_file.type != Document::Type::Video) {
-    LOG(ERROR) << "Receive invalid live photo video " << parsed_file;
+  auto parsed_document = td_->documents_manager_->on_get_document(
+      std::move(video), owner_dialog_id, is_self_destructing, true, nullptr, Document::Type::Video);
+  if (parsed_document.is_empty() || parsed_document.type != Document::Type::Video) {
+    LOG(ERROR) << "Receive invalid live photo video " << parsed_document;
     return FileId();
   }
-  return parsed_file.file_id;
+  return parsed_document.file_id;
 }
 
 string VideosManager::get_video_search_text(FileId file_id) const {

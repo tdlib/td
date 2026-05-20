@@ -2994,7 +2994,7 @@ Status NotificationManager::parse_push_notification_attach(DialogId dialog_id, s
         attached_document =
             td_->documents_manager_->on_get_document(telegram_api::move_object_as<telegram_api::document>(result),
                                                      dialog_id, false, ends_with(loc_key, "MESSAGE_LIVE_PHOTO"));
-        if (!attached_document.empty()) {
+        if (!attached_document.is_empty()) {
           if (ends_with(loc_key, "_NOTE")) {
             loc_key.resize(loc_key.rfind('_'));
           }
@@ -3576,7 +3576,7 @@ class NotificationManager::AddMessagePushNotificationLogEvent {
     bool has_sender_name = !sender_name_.empty();
     bool has_arg = !arg_.empty();
     bool has_photo = !photo_.is_empty();
-    bool has_document = !document_.empty();
+    bool has_document = !document_.is_empty();
     bool has_sender_dialog_id = sender_dialog_id_.is_valid();
     bool has_ringtone_id = !disable_notification_ && ringtone_id_ != -1;
     BEGIN_STORE_FLAGS();
@@ -3813,7 +3813,7 @@ class NotificationManager::EditMessagePushNotificationLogEvent {
     bool has_message_id = message_id_.is_valid();
     bool has_arg = !arg_.empty();
     bool has_photo = !photo_.is_empty();
-    bool has_document = !document_.empty();
+    bool has_document = !document_.is_empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_message_id);
     STORE_FLAG(has_arg);

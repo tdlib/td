@@ -257,7 +257,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
       auto parsed_document = td->documents_manager_->on_get_document(
           telegram_api::move_object_as<telegram_api::document>(document_ptr), owner_dialog_id, false, false, nullptr,
           Document::Type::Video, DocumentsManager::Subtype::Story);
-      if (parsed_document.empty() || parsed_document.type != Document::Type::Video) {
+      if (parsed_document.is_empty() || parsed_document.type != Document::Type::Video) {
         LOG(ERROR) << "Receive a story with " << parsed_document;
         break;
       }
@@ -274,7 +274,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
           auto parsed_alt_document = td->documents_manager_->on_get_document(
               telegram_api::move_object_as<telegram_api::document>(alt_document_ptr), owner_dialog_id, false, false,
               nullptr, Document::Type::Video, DocumentsManager::Subtype::Story);
-          if (parsed_alt_document.empty() || parsed_alt_document.type != Document::Type::Video) {
+          if (parsed_alt_document.is_empty() || parsed_alt_document.type != Document::Type::Video) {
             LOG(ERROR) << "Receive invalid alternative document " << parsed_alt_document;
           } else {
             alt_file_id = parsed_alt_document.file_id;

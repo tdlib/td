@@ -284,7 +284,7 @@ class WebPagesManager::WebPage {
     bool has_embed_dimensions = has_embed && embed_dimensions_ != Dimensions();
     bool has_duration = duration_ > 0;
     bool has_author = !author_.empty();
-    bool has_document = !document_.empty();
+    bool has_document = !document_.is_empty();
     bool has_instant_view = !instant_view_.is_empty_;
     bool is_instant_view_v2 = instant_view_.is_v2_;
     bool has_no_hash = true;
@@ -670,7 +670,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
               if (document_id == telegram_api::document::ID) {
                 auto parsed_document = td_->documents_manager_->on_get_document(
                     move_tl_object_as<telegram_api::document>(document), owner_dialog_id, false, false);
-                if (!parsed_document.empty()) {
+                if (!parsed_document.is_empty()) {
                   page->documents_.push_back(std::move(parsed_document));
                 }
               }
@@ -2327,7 +2327,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
       auto document_id = document->id_;
       auto parsed_document =
           td_->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false, false);
-      if (!parsed_document.empty() && document_id != 0) {
+      if (!parsed_document.is_empty() && document_id != 0) {
         get_map(parsed_document.type)->emplace(document_id, parsed_document.file_id);
       }
     }
@@ -2351,7 +2351,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
       LOG(ERROR) << document.type << " has no remote location";
     }
   };
-  if (!web_page->document_.empty()) {
+  if (!web_page->document_.is_empty()) {
     add_document(web_page->document_);
   }
   for (const auto &document : web_page->documents_) {
@@ -2682,7 +2682,7 @@ vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) c
   }
 
   vector<FileId> result = photo_get_file_ids(web_page->photo_);
-  if (!web_page->document_.empty()) {
+  if (!web_page->document_.is_empty()) {
     web_page->document_.append_file_ids(td_, result);
   }
   for (auto &document : web_page->documents_) {

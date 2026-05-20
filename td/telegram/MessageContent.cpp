@@ -9037,7 +9037,7 @@ static unique_ptr<MessageContent> get_document_message_content(
     vector<FileId> &&alternative_file_ids, vector<FileId> &&hls_file_ids, vector<FileId> &&storyboard_file_ids,
     vector<FileId> &&storyboard_map_file_ids, Photo &&video_cover, int32 video_timestamp) {
   auto file_id = parsed_document.file_id;
-  if (!parsed_document.empty()) {
+  if (!parsed_document.is_empty()) {
     CHECK(file_id.is_valid());
   }
   if (!alternative_file_ids.empty() && parsed_document.type != Document::Type::Video) {
@@ -9455,38 +9455,38 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           CHECK(alt_document_id == telegram_api::document::ID);
           auto document = telegram_api::move_object_as<telegram_api::document>(alt_document_ptr);
           if (document->mime_type_ == "application/x-mpegurl") {
-            auto parsed_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id,
-                                                                       is_self_destructing, false);
-            if (parsed_file.empty() || parsed_file.type != Document::Type::General) {
-              LOG(ERROR) << "Receive invalid HLS file " << parsed_file;
+            auto parsed_document = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id,
+                                                                           is_self_destructing, false);
+            if (parsed_document.is_empty() || parsed_document.type != Document::Type::General) {
+              LOG(ERROR) << "Receive invalid HLS file " << parsed_document;
             } else {
-              hls_file_ids.push_back(parsed_file.file_id);
+              hls_file_ids.push_back(parsed_document.file_id);
             }
             continue;
           }
           if (document->mime_type_ == "application/x-tgstoryboard") {
-            auto parsed_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id,
-                                                                       is_self_destructing, false);
-            if (parsed_file.empty() || parsed_file.type != Document::Type::General) {
-              LOG(ERROR) << "Receive invalid storyboard file " << parsed_file;
+            auto parsed_document = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id,
+                                                                           is_self_destructing, false);
+            if (parsed_document.is_empty() || parsed_document.type != Document::Type::General) {
+              LOG(ERROR) << "Receive invalid storyboard file " << parsed_document;
             } else {
-              storyboard_file_ids.push_back(parsed_file.file_id);
+              storyboard_file_ids.push_back(parsed_document.file_id);
             }
             continue;
           }
           if (document->mime_type_ == "application/x-tgstoryboardmap") {
-            auto parsed_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id,
-                                                                       is_self_destructing, false);
-            if (parsed_file.empty() || parsed_file.type != Document::Type::General) {
-              LOG(ERROR) << "Receive invalid storyboard map file " << parsed_file;
+            auto parsed_document = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id,
+                                                                           is_self_destructing, false);
+            if (parsed_document.is_empty() || parsed_document.type != Document::Type::General) {
+              LOG(ERROR) << "Receive invalid storyboard map file " << parsed_document;
             } else {
-              storyboard_map_file_ids.push_back(parsed_file.file_id);
+              storyboard_map_file_ids.push_back(parsed_document.file_id);
             }
             continue;
           }
           auto parsed_alt_document = td->documents_manager_->on_get_document(
               std::move(document), owner_dialog_id, is_self_destructing, false, nullptr, Document::Type::Video);
-          if (parsed_alt_document.empty() || parsed_alt_document.type != Document::Type::Video) {
+          if (parsed_alt_document.is_empty() || parsed_alt_document.type != Document::Type::Video) {
             LOG(ERROR) << "Receive invalid alternative video " << parsed_alt_document;
           } else {
             alternative_file_ids.push_back(parsed_alt_document.file_id);

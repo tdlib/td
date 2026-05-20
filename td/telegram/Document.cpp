@@ -25,7 +25,7 @@ vector<FileId> Document::get_file_ids(const Td *td) const {
 }
 
 void Document::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
-  if (!file_id.is_valid() || empty()) {
+  if (!file_id.is_valid() || is_empty()) {
     return;
   }
 

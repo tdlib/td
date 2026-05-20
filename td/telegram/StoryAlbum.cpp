@@ -38,7 +38,7 @@ StoryAlbum::StoryAlbum(Td *td, DialogId owner_dialog_id,
         auto parsed_document = td->documents_manager_->on_get_document(
             telegram_api::move_object_as<telegram_api::document>(document_ptr), owner_dialog_id, false, false, nullptr,
             Document::Type::Video, DocumentsManager::Subtype::Story);
-        if (parsed_document.empty() || parsed_document.type != Document::Type::Video) {
+        if (parsed_document.is_empty() || parsed_document.type != Document::Type::Video) {
           LOG(ERROR) << "Receive a story album with " << parsed_document;
           break;
         }
