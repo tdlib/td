@@ -10500,6 +10500,9 @@ updateAccentColors colors:vector<accentColor> available_accent_color_ids:vector<
 //@available_accent_color_ids The list of accent color identifiers, which can be set through setProfileAccentColor and setChatProfileAccentColor. The colors must be shown in the specified order
 updateProfileAccentColors colors:vector<profileAccentColor> available_accent_color_ids:vector<int32> = Update;
 
+//@description Web browser settings have been updated @settings New settings
+updateWebBrowserSettings settings:webBrowserSettings = Update;
+
 //@description Some language pack strings have been updated @localization_target Localization target to which the language pack belongs @language_pack_id Identifier of the updated language pack @strings List of changed language pack strings; empty if all strings have changed
 updateLanguagePackStrings localization_target:string language_pack_id:string strings:vector<languagePackString> = Update;
 

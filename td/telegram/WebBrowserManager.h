@@ -6,9 +6,14 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
+#include "td/telegram/WebBrowserSettings.h"
+
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -18,11 +23,21 @@ class WebBrowserManager final : public Actor {
  public:
   WebBrowserManager(Td *td, ActorShared<> parent);
 
+  void reload_web_browser_settings();
+
  private:
   void tear_down() final;
 
+  void on_get_web_browser_settings(Result<telegram_api::object_ptr<telegram_api::account_WebBrowserSettings>> result);
+
+  td_api::object_ptr<td_api::updateWebBrowserSettings> get_update_web_browser_settings_object() const;
+
+  void send_update_web_browser_settings() const;
+
   Td *td_;
   ActorShared<> parent_;
+
+  WebBrowserSettings settings_;
 };
 
 }  // namespace td

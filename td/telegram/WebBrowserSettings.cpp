@@ -23,6 +23,7 @@ WebBrowserSettings::WebBrowserSettings(
       display_close_button_ = settings->display_close_button_;
       external_exceptions_ = WebDomainException::get_web_domain_exceptions(std::move(settings->external_exceptions_));
       inapp_exceptions_ = WebDomainException::get_web_domain_exceptions(std::move(settings->inapp_exceptions_));
+      hash_ = settings->hash_;
       break;
     }
     default:
@@ -39,7 +40,7 @@ td_api::object_ptr<td_api::webBrowserSettings> WebBrowserSettings::get_web_brows
 bool operator==(const WebBrowserSettings &lhs, const WebBrowserSettings &rhs) {
   return lhs.external_exceptions_ == rhs.external_exceptions_ && lhs.inapp_exceptions_ == rhs.inapp_exceptions_ &&
          lhs.open_external_browser_ == rhs.open_external_browser_ &&
-         lhs.display_close_button_ == rhs.display_close_button_;
+         lhs.display_close_button_ == rhs.display_close_button_ && lhs.hash_ == rhs.hash_;
 }
 
 bool operator!=(const WebBrowserSettings &lhs, const WebBrowserSettings &rhs) {

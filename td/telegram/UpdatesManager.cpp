@@ -94,6 +94,7 @@
 #include "td/telegram/UserManager.h"
 #include "td/telegram/Usernames.h"
 #include "td/telegram/WebAppManager.h"
+#include "td/telegram/WebBrowserManager.h"
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/actor/MultiPromise.h"
@@ -2396,6 +2397,7 @@ void UpdatesManager::try_reload_data() {
   td_->translation_manager_->reload_ai_compose_tones(Auto());
   td_->user_manager_->reload_contact_birthdates(false);
   td_->user_manager_->reload_my_saved_music_list(Auto());
+  td_->web_browser_manager_->reload_web_browser_settings();
 
   schedule_data_reload();
 }

@@ -34,6 +34,10 @@ class WebBrowserSettings {
 
   td_api::object_ptr<td_api::webBrowserSettings> get_web_browser_settings_object() const;
 
+  int64 get_hash() const {
+    return hash_;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
