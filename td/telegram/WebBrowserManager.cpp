@@ -6,6 +6,7 @@
 //
 #include "td/telegram/WebBrowserManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 
@@ -83,6 +84,14 @@ td_api::object_ptr<td_api::updateWebBrowserSettings> WebBrowserManager::get_upda
 
 void WebBrowserManager::send_update_web_browser_settings() const {
   send_closure(G()->td(), &Td::send_update, get_update_web_browser_settings_object());
+}
+
+void WebBrowserManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  updates.push_back(get_update_web_browser_settings_object());
 }
 
 }  // namespace td

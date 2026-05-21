@@ -25,6 +25,8 @@ class WebBrowserManager final : public Actor {
 
   void reload_web_browser_settings();
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   void tear_down() final;
 
