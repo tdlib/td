@@ -105,6 +105,7 @@
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VoiceNotesManager.h"
 #include "td/telegram/WebAppManager.h"
+#include "td/telegram/WebBrowserManager.h"
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"
@@ -573,6 +574,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(videos_manager_, "VideosManager");
       reset_manager(voice_notes_manager_, "VoiceNotesManager");
       reset_manager(web_app_manager_, "WebAppManager");
+      reset_manager(web_browser_manager_, "WebBrowserManager");
       reset_manager(web_pages_manager_, "WebPagesManager");
 
       G()->set_option_manager(nullptr);
@@ -749,6 +751,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(video_notes_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(voice_notes_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(web_app_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(web_browser_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(web_pages_manager_actor_)));
   LOG(DEBUG) << "All actors were cleared" << timer;
 }
@@ -1304,6 +1307,9 @@ void Td::init_managers() {
   web_app_manager_ = make_unique<WebAppManager>(this, create_reference());
   web_app_manager_actor_ = register_actor("WebAppManager", web_app_manager_.get());
   G()->set_web_app_manager(web_app_manager_actor_.get());
+  web_browser_manager_ = make_unique<WebBrowserManager>(this, create_reference());
+  web_browser_manager_actor_ = register_actor("WebBrowserManager", web_browser_manager_.get());
+  G()->set_web_browser_manager(web_browser_manager_actor_.get());
   web_pages_manager_ = make_unique<WebPagesManager>(this, create_reference());
   web_pages_manager_actor_ = register_actor("WebPagesManager", web_pages_manager_.get());
   G()->set_web_pages_manager(web_pages_manager_actor_.get());

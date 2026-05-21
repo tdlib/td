@@ -697,6 +697,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/WebApp.cpp
   td/telegram/WebAppManager.cpp
   td/telegram/WebAppOpenParameters.cpp
+  td/telegram/WebBrowserManager.cpp
   td/telegram/WebBrowserSettings.cpp
   td/telegram/WebDomainException.cpp
   td/telegram/WebPageBlock.cpp
@@ -1132,6 +1133,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/WebApp.h
   td/telegram/WebAppManager.h
   td/telegram/WebAppOpenParameters.h
+  td/telegram/WebBrowserManager.h
   td/telegram/WebBrowserSettings.h
   td/telegram/WebDomainException.h
   td/telegram/WebPageBlock.h
