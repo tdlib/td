@@ -8,7 +8,9 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/WebBrowserSettings.hpp"
 
 #include "td/utils/buffer.h"
 #include "td/utils/Promise.h"
@@ -45,8 +47,46 @@ class GetWebBrowserSettingsQuery final : public Td::ResultHandler {
 WebBrowserManager::WebBrowserManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
+void WebBrowserManager::start_up() {
+  load_web_browser_settings();
+}
+
 void WebBrowserManager::tear_down() {
   parent_.reset();
+}
+
+void WebBrowserManager::on_authorization_success() {
+  send_update_web_browser_settings();
+  reload_web_browser_settings();
+}
+
+string WebBrowserManager::get_web_browser_settings_database_key() {
+  return "web_browser_settings";
+}
+
+void WebBrowserManager::load_web_browser_settings() {
+  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto log_event_string = G()->td_db()->get_binlog_pmc()->get(get_web_browser_settings_database_key());
+  if (!log_event_string.empty()) {
+    auto status = log_event_parse(settings_, log_event_string);
+    if (status.is_error()) {
+      LOG(ERROR) << "Failed to parse web browser settings from binlog: " << status;
+      settings_ = WebBrowserSettings();
+    }
+  }
+  send_update_web_browser_settings();
+
+  if (settings_.get_hash() == 0) {
+    reload_web_browser_settings();
+  }
+}
+
+void WebBrowserManager::save_web_browser_settings() {
+  G()->td_db()->get_binlog_pmc()->set(get_web_browser_settings_database_key(),
+                                      log_event_store(settings_).as_slice().str());
 }
 
 void WebBrowserManager::reload_web_browser_settings() {
@@ -75,6 +115,7 @@ void WebBrowserManager::on_get_web_browser_settings(
   }
   settings_ = std::move(new_settings);
 
+  save_web_browser_settings();
   send_update_web_browser_settings();
 }
 
