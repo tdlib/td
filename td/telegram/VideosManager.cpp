@@ -48,7 +48,8 @@ const string &VideosManager::get_video_mime_type(FileId file_id) const {
   return video->mime_type;
 }
 
-td_api::object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) const {
+td_api::object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id,
+                                                                  const vector<FileId> &alternative_file_ids) const {
   if (!file_id.is_valid()) {
     return nullptr;
   }
@@ -58,7 +59,32 @@ td_api::object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id
   auto thumbnail = video->animated_thumbnail.file_id.is_valid()
                        ? get_thumbnail_object(td_->file_manager_.get(), video->animated_thumbnail, PhotoFormat::Mpeg4)
                        : get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, PhotoFormat::Jpeg);
-  return td_api::make_object<td_api::video>(video->duration, video->dimensions.width, video->dimensions.height,
+  auto duration = video->duration;
+  if ((duration == 0 || thumbnail == nullptr) && !alternative_file_ids.empty()) {
+    int32 common_duration = 0;
+    for (auto alternative_file_id : alternative_file_ids) {
+      auto alternative_video = get_video(alternative_file_id);
+      CHECK(alternative_video != nullptr);
+      if (alternative_video->duration > 0) {
+        if (common_duration == 0) {
+          common_duration = alternative_video->duration;
+        } else if (common_duration != alternative_video->duration) {
+          common_duration = -1;
+        }
+      }
+      if (thumbnail == nullptr) {
+        thumbnail =
+            alternative_video->animated_thumbnail.file_id.is_valid()
+                ? get_thumbnail_object(td_->file_manager_.get(), alternative_video->animated_thumbnail,
+                                       PhotoFormat::Mpeg4)
+                : get_thumbnail_object(td_->file_manager_.get(), alternative_video->thumbnail, PhotoFormat::Jpeg);
+      }
+    }
+    if (duration == 0 && common_duration > 0) {
+      duration = common_duration;
+    }
+  }
+  return td_api::make_object<td_api::video>(duration, video->dimensions.width, video->dimensions.height,
                                             video->file_name, video->mime_type, video->has_stickers,
                                             video->supports_streaming, get_minithumbnail_object(video->minithumbnail),
                                             std::move(thumbnail), td_->file_manager_->get_file_object(file_id));

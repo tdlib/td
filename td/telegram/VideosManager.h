@@ -36,7 +36,8 @@ class VideosManager {
 
   const string &get_video_mime_type(FileId file_id) const;
 
-  td_api::object_ptr<td_api::video> get_video_object(FileId file_id) const;
+  td_api::object_ptr<td_api::video> get_video_object(FileId file_id,
+                                                     const vector<FileId> &alternative_file_ids = {}) const;
 
   td_api::object_ptr<td_api::storyVideo> get_story_video_object(FileId file_id) const;
 
