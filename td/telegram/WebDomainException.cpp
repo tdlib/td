@@ -6,7 +6,7 @@
 //
 #include "td/telegram/WebDomainException.h"
 
-#include "td/utils/common.h"
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -25,6 +25,14 @@ WebDomainException::WebDomainException(
 
 td_api::object_ptr<td_api::webDomainException> WebDomainException::get_web_domain_exception_object() const {
   return td_api::make_object<td_api::webDomainException>(url_, domain_, title_, favicon_custom_emoji_id_.get());
+}
+
+vector<WebDomainException> WebDomainException::get_web_domain_exceptions(
+    vector<telegram_api::object_ptr<telegram_api::webDomainException>> &&web_domain_exceptions) {
+  return transform(std::move(web_domain_exceptions),
+                   [](telegram_api::object_ptr<telegram_api::webDomainException> &&web_domain_exception) {
+                     return WebDomainException(std::move(web_domain_exception));
+                   });
 }
 
 bool operator==(const WebDomainException &lhs, const WebDomainException &rhs) {

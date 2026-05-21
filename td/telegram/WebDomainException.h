@@ -32,6 +32,9 @@ class WebDomainException {
 
   td_api::object_ptr<td_api::webDomainException> get_web_domain_exception_object() const;
 
+  static vector<WebDomainException> get_web_domain_exceptions(
+      vector<telegram_api::object_ptr<telegram_api::webDomainException>> &&web_domain_exceptions);
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
