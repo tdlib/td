@@ -9480,6 +9480,13 @@ autosaveSettings private_chat_settings:scopeAutosaveSettings group_settings:scop
 //@favicon_custom_emoji_id Identifier of the custom emoji with favicon of the site; may be 0 if unknown
 webDomainException url:string domain:string title:string favicon_custom_emoji_id:int64 = WebDomainException;
 
+//@description Describes web browser settings
+//@open_external_browser True, if links are opened in an external browser by default
+//@external_exceptions The list of websites which must be always opened in an external browser
+//@in_app_exceptions The list of websites which must be always opened in the in-app browser
+//@display_close_button True, if a close button must be shown in the in-app browser; for Android app only
+webBrowserSettings open_external_browser:Bool external_exceptions:vector<webDomainException> in_app_exceptions:vector<webDomainException> display_close_button:Bool = WebBrowserSettings;
+
 
 //@class ConnectionState @description Describes the current state of the connection to Telegram servers
 

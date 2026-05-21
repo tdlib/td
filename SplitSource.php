@@ -496,6 +496,8 @@ function split_file($file, $chunks, $undo) {
             'voice_notes_manager[_(-](?![.]get[(][)])|VoiceNotesManager' => 'VoiceNotesManager',
             'web_app_manager[_(-](?![.]get[(][)])|WebAppManager' => 'WebAppManager',
             'WebAppOpenParameters' => 'WebAppOpenParameters',
+            'WebBrowserSettings' => 'WebBrowserSettings',
+            'WebDomainException' => 'WebDomainException',
             'WebPageId(Hash)?' => 'WebPageId',
             'web_pages_manager[_(-](?![.]get[(][)])|WebPagesManager' => 'WebPagesManager');
 
