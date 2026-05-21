@@ -35,6 +35,13 @@ vector<WebDomainException> WebDomainException::get_web_domain_exceptions(
                    });
 }
 
+vector<td_api::object_ptr<td_api::webDomainException>> WebDomainException::get_web_domain_exceptions_object(
+    const vector<WebDomainException> &web_domain_exceptions) {
+  return transform(web_domain_exceptions, [](const WebDomainException &web_domain_exception) {
+    return web_domain_exception.get_web_domain_exception_object();
+  });
+}
+
 bool operator==(const WebDomainException &lhs, const WebDomainException &rhs) {
   return lhs.domain_ == rhs.domain_ && lhs.url_ == rhs.url_ && lhs.title_ == rhs.title_ &&
          lhs.favicon_custom_emoji_id_ == rhs.favicon_custom_emoji_id_;
