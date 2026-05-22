@@ -470,7 +470,7 @@ void TopDialogManager::on_load_dialogs(GetTopDialogsQuery &&query, vector<Dialog
           continue;
         }
         if (query.category == TopDialogCategory::BotGuest &&
-            (r_bot_info.ok().username.empty() || !r_bot_info.ok().is_guestchat_bot)) {
+            (r_bot_info.ok().username.empty() || !r_bot_info.ok().is_guestchat)) {
           LOG(INFO) << "Skip non-guest bot " << user_id;
           continue;
         }

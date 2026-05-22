@@ -768,11 +768,12 @@ userTypeDeleted = UserType;
 //@is_inline True, if the bot supports inline queries
 //@inline_query_placeholder Placeholder for inline queries (displayed on the application input field)
 //@supports_guest_queries True, if the bot can be queried by username from any non-secret chat
+//@is_guard True, if the bot can be set as a guard bot in supergroup chats
 //@need_location True, if the location of the user is expected to be sent with every inline query to this bot
 //@can_connect_to_business True, if the bot supports connection to user accounts for chat automation
 //@can_be_added_to_attachment_menu True, if the bot can be added to attachment or side menu
 //@active_user_count The number of recently active users of the bot
-userTypeBot can_be_edited:Bool can_join_groups:Bool can_read_all_group_messages:Bool has_main_web_app:Bool has_topics:Bool allows_users_to_create_topics:Bool can_manage_bots:Bool is_inline:Bool inline_query_placeholder:string supports_guest_queries:Bool need_location:Bool can_connect_to_business:Bool can_be_added_to_attachment_menu:Bool active_user_count:int32 = UserType;
+userTypeBot can_be_edited:Bool can_join_groups:Bool can_read_all_group_messages:Bool has_main_web_app:Bool has_topics:Bool allows_users_to_create_topics:Bool can_manage_bots:Bool is_inline:Bool inline_query_placeholder:string supports_guest_queries:Bool is_guard:Bool need_location:Bool can_connect_to_business:Bool can_be_added_to_attachment_menu:Bool active_user_count:int32 = UserType;
 
 //@description No information on the user besides the user identifier is available, yet this user has not been deleted. This object is extremely rare and must be handled like a deleted user. It is not possible to perform any actions on users of this type
 userTypeUnknown = UserType;
