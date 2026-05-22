@@ -3671,8 +3671,11 @@ foundWebApp web_app:webApp request_write_access:Bool skip_confirmation:Bool = Fo
 //@description Contains information about a Web App @launch_id Unique identifier for the Web App launch @url A Web App URL to open in a web view
 webAppInfo launch_id:int64 url:string = WebAppInfo;
 
-//@description Contains information about the main Web App of a bot @url URL of the Web App to open @mode The mode in which the Web App must be opened
-mainWebApp url:string mode:WebAppOpenMode = MainWebApp;
+//@description Contains information about the main Web App of a bot
+//@url URL of the Web App to open
+//@mode The mode in which the Web App must be opened
+//@require_same_origin True, if events from the Web App must be accepted only from the same origin as the URL
+mainWebApp url:string mode:WebAppOpenMode require_same_origin:Bool = MainWebApp;
 
 //@description Options to be used when a Web App is opened
 //@theme Preferred Web App theme; pass null to use the default theme

@@ -184,7 +184,7 @@ class RequestMainWebViewQuery final : public Td::ResultHandler {
     } else {
       mode = td_api::make_object<td_api::webAppOpenModeCompact>();
     }
-    promise_.set_value(td_api::make_object<td_api::mainWebApp>(ptr->url_, std::move(mode)));
+    promise_.set_value(td_api::make_object<td_api::mainWebApp>(ptr->url_, std::move(mode), ptr->same_origin_));
   }
 
   void on_error(Status status) final {
