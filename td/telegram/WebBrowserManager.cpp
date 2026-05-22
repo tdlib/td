@@ -119,6 +119,14 @@ void WebBrowserManager::on_get_web_browser_settings(
   send_update_web_browser_settings();
 }
 
+void WebBrowserManager::on_update_web_browser_settings(
+    telegram_api::object_ptr<telegram_api::updateWebBrowserSettings> &&update) {
+  if (settings_.update_from(std::move(update))) {
+    save_web_browser_settings();
+    send_update_web_browser_settings();
+  }
+}
+
 td_api::object_ptr<td_api::updateWebBrowserSettings> WebBrowserManager::get_update_web_browser_settings_object() const {
   return td_api::make_object<td_api::updateWebBrowserSettings>(settings_.get_web_browser_settings_object());
 }

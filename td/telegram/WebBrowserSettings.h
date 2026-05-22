@@ -38,6 +38,8 @@ class WebBrowserSettings {
     return hash_;
   }
 
+  bool update_from(telegram_api::object_ptr<telegram_api::updateWebBrowserSettings> &&update);
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

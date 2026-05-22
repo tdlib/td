@@ -37,6 +37,16 @@ td_api::object_ptr<td_api::webBrowserSettings> WebBrowserSettings::get_web_brows
       WebDomainException::get_web_domain_exceptions_object(inapp_exceptions_), display_close_button_);
 }
 
+bool WebBrowserSettings::update_from(telegram_api::object_ptr<telegram_api::updateWebBrowserSettings> &&update) {
+  if (open_external_browser_ == update->open_external_browser_ &&
+      display_close_button_ == update->display_close_button_) {
+    return false;
+  }
+  open_external_browser_ = update->open_external_browser_;
+  display_close_button_ = update->display_close_button_;
+  return true;
+}
+
 bool operator==(const WebBrowserSettings &lhs, const WebBrowserSettings &rhs) {
   return lhs.external_exceptions_ == rhs.external_exceptions_ && lhs.inapp_exceptions_ == rhs.inapp_exceptions_ &&
          lhs.open_external_browser_ == rhs.open_external_browser_ &&

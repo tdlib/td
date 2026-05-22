@@ -9475,7 +9475,7 @@ autosaveSettings private_chat_settings:scopeAutosaveSettings group_settings:scop
 
 //@description Describes an exception for built-in browser usage
 //@url URL for which the exception is done
-//@domain Domain of the URL
+//@domain Domain of the URL. All URLs on the domain and subdomains of the domain are subject to the exception
 //@title Title of the site
 //@favicon_custom_emoji_id Identifier of the custom emoji with favicon of the site; may be 0 if unknown
 webDomainException url:string domain:string title:string favicon_custom_emoji_id:int64 = WebDomainException;
