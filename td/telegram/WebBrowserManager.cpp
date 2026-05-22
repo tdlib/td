@@ -105,6 +105,33 @@ class ToggleWebBrowserSettingsExceptionQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteWebBrowserSettingsExceptionsQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::account_WebBrowserSettings>> promise_;
+
+ public:
+  explicit DeleteWebBrowserSettingsExceptionsQuery(
+      Promise<telegram_api::object_ptr<telegram_api::account_WebBrowserSettings>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::account_deleteWebBrowserSettingsExceptions()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_deleteWebBrowserSettingsExceptions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 WebBrowserManager::WebBrowserManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -215,6 +242,16 @@ void WebBrowserManager::add_web_browser_settings_exception(bool open_external_br
 
 void WebBrowserManager::remove_web_browser_settings_exception(const string &url, Promise<Unit> &&promise) {
   td_->create_handler<ToggleWebBrowserSettingsExceptionQuery>(std::move(promise))->send(true, false, url);
+}
+
+void WebBrowserManager::remove_all_web_browser_settings_exceptions(Promise<Unit> &&promise) {
+  auto request_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), promise = std::move(promise)](
+          Result<telegram_api::object_ptr<telegram_api::account_WebBrowserSettings>> result) mutable {
+        send_closure(actor_id, &WebBrowserManager::on_get_web_browser_settings, std::move(result), std::move(promise));
+      });
+
+  td_->create_handler<DeleteWebBrowserSettingsExceptionsQuery>(std::move(request_promise))->send();
 }
 
 td_api::object_ptr<td_api::updateWebBrowserSettings> WebBrowserManager::get_update_web_browser_settings_object() const {

@@ -15211,6 +15211,9 @@ addWebBrowserSettingsException open_external_browser:Bool url:string = Ok;
 //@description Removes a special handling for the opening of the specified URL @url URL of the website
 removeWebBrowserSettingsException url:string = Ok;
 
+//@description Removes special handling for the opening of all links
+removeAllWebBrowserSettingsExceptions = Ok;
+
 
 //@description Returns information about a bank card @bank_card_number The bank card number
 getBankCardInfo bank_card_number:string = BankCardInfo;

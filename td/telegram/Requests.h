@@ -384,6 +384,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::removeWebBrowserSettingsException &request);
 
+  void on_request(uint64 id, const td_api::removeAllWebBrowserSettingsExceptions &request);
+
   void on_request(uint64 id, const td_api::getRecommendedChats &request);
 
   void on_request(uint64 id, const td_api::getChatSimilarChats &request);

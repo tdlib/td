@@ -4730,6 +4730,8 @@ class CliClient final : public Actor {
       string url;
       get_args(args, url);
       send_request(td_api::make_object<td_api::removeWebBrowserSettingsException>(url));
+    } else if (op == "rawbse") {
+      send_request(td_api::make_object<td_api::removeAllWebBrowserSettingsExceptions>());
     } else if (op == "ansc") {
       int32 sent_bytes;
       int32 received_bytes;

@@ -37,6 +37,8 @@ class WebBrowserManager final : public Actor {
 
   void remove_web_browser_settings_exception(const string &url, Promise<Unit> &&promise);
 
+  void remove_all_web_browser_settings_exceptions(Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
