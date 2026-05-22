@@ -42,6 +42,8 @@ class WebBrowserSettings {
 
   bool update_from(telegram_api::object_ptr<telegram_api::updateWebBrowserException> &&update);
 
+  bool get_open_external_browser(Slice domain) const;
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

@@ -9488,6 +9488,15 @@ webDomainException url:string domain:string title:string favicon_custom_emoji_id
 webBrowserSettings open_external_browser:Bool external_exceptions:vector<webDomainException> in_app_exceptions:vector<webDomainException> display_close_button:Bool = WebBrowserSettings;
 
 
+//@class WebBrowserType @description Describes the type of a web browser
+
+//@description An external web browser
+webBrowserTypeExternal = WebBrowserType;
+
+//@description The in-app browser
+webBrowserTypeInApp = WebBrowserType;
+
+
 //@class ConnectionState @description Describes the current state of the connection to Telegram servers
 
 //@description Waiting for the network to become available. Use setNetworkType to change the available network type
@@ -12636,7 +12645,9 @@ getInternalLink type:InternalLinkType is_http:Bool = HttpUrl;
 //@description Returns information about the type of internal link. Returns a 404 error if the link is not internal. Can be called before authorization @link The link
 getInternalLinkType link:string = InternalLinkType;
 
-//@description Returns information about an action to be done when the current user clicks an external link. Don't use this method for links from secret chats if link preview is disabled in secret chats @link The link
+//@description Returns information about an action to be done when the current user clicks an external link. Don't use this method for links from secret chats
+//-if link preview is disabled in secret chats, and use directly getLinkWebBrowserType
+//@link The link
 getExternalLinkInfo link:string = LoginUrlInfo;
 
 //@description Returns an HTTP URL which can be used to automatically authorize the current user on a website after clicking an HTTP link.
@@ -12644,6 +12655,10 @@ getExternalLinkInfo link:string = LoginUrlInfo;
 //@link The HTTP link
 //@allow_write_access Pass true if the current user allowed the bot that was returned in getExternalLinkInfo, to send them messages
 getExternalLink link:string allow_write_access:Bool = HttpUrl;
+
+//@description Returns a type of the web browser which must be used to open the link
+//@link The HTTP link
+getLinkWebBrowserType link:string = WebBrowserType;
 
 //@description Returns information about an OAuth deep link. Use checkOauthRequestMatchCode, acceptOauthRequest or declineOauthRequest to process the link
 //@url URL of the link

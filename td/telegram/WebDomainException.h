@@ -34,6 +34,8 @@ class WebDomainException {
     return domain_ == domain;
   }
 
+  bool has_domain_or_subdomain(Slice domain) const;
+
   td_api::object_ptr<td_api::webDomainException> get_web_domain_exception_object() const;
 
   static vector<WebDomainException> get_web_domain_exceptions(

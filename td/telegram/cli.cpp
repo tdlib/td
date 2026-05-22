@@ -8302,6 +8302,9 @@ class CliClient final : public Actor {
     } else if (op == "gel" || op == "gelw") {
       const string &link = args;
       send_request(td_api::make_object<td_api::getExternalLink>(link, op == "gelw"));
+    } else if (op == "glwbt") {
+      const string &link = args;
+      send_request(td_api::make_object<td_api::getLinkWebBrowserType>(link));
     } else if (op == "goli") {
       string link;
       string in_app_origin;

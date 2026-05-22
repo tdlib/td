@@ -83,6 +83,23 @@ bool WebBrowserSettings::update_from(telegram_api::object_ptr<telegram_api::upda
   return result;
 }
 
+bool WebBrowserSettings::get_open_external_browser(Slice domain) const {
+  if (open_external_browser_) {
+    for (const auto &exception : inapp_exceptions_) {
+      if (exception.has_domain_or_subdomain(domain)) {
+        return false;
+      }
+    }
+  } else {
+    for (const auto &exception : external_exceptions_) {
+      if (exception.has_domain_or_subdomain(domain)) {
+        return true;
+      }
+    }
+  }
+  return open_external_browser_;
+}
+
 bool operator==(const WebBrowserSettings &lhs, const WebBrowserSettings &rhs) {
   return lhs.external_exceptions_ == rhs.external_exceptions_ && lhs.inapp_exceptions_ == rhs.inapp_exceptions_ &&
          lhs.open_external_browser_ == rhs.open_external_browser_ &&

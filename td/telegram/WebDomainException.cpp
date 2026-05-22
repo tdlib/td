@@ -8,6 +8,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 
 namespace td {
 
@@ -21,6 +22,11 @@ WebDomainException::WebDomainException(
     LOG(ERROR) << "Receive favicon " << favicon_custom_emoji_id_;
     favicon_custom_emoji_id_ = {};
   }
+}
+
+bool WebDomainException::has_domain_or_subdomain(Slice domain) const {
+  return ends_with(domain, domain_) &&
+         (domain.size() == domain_.size() || domain[domain.size() - domain_.size() - 1] == '.');
 }
 
 td_api::object_ptr<td_api::webDomainException> WebDomainException::get_web_domain_exception_object() const {

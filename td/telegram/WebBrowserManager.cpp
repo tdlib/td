@@ -14,6 +14,7 @@
 #include "td/telegram/WebBrowserSettings.hpp"
 
 #include "td/utils/buffer.h"
+#include "td/utils/HttpUrl.h"
 #include "td/utils/Promise.h"
 
 namespace td {
@@ -252,6 +253,20 @@ void WebBrowserManager::remove_all_web_browser_settings_exceptions(Promise<Unit>
       });
 
   td_->create_handler<DeleteWebBrowserSettingsExceptionsQuery>(std::move(request_promise))->send();
+}
+
+void WebBrowserManager::get_web_browser_type(string &&url,
+                                             Promise<td_api::object_ptr<td_api::WebBrowserType>> &&promise) {
+  auto r_http_url = parse_url(url);
+  if (r_http_url.is_error()) {
+    return promise.set_error(400, "Invalid HTTP URL specified");
+  }
+  bool open_external_browser = settings_.get_open_external_browser(r_http_url.ok().host_);
+  if (open_external_browser) {
+    promise.set_value(td_api::make_object<td_api::webBrowserTypeExternal>());
+  } else {
+    promise.set_value(td_api::make_object<td_api::webBrowserTypeInApp>());
+  }
 }
 
 td_api::object_ptr<td_api::updateWebBrowserSettings> WebBrowserManager::get_update_web_browser_settings_object() const {

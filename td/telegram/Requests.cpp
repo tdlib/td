@@ -3555,6 +3555,13 @@ void Requests::on_request(uint64 id, td_api::getExternalLink &request) {
   td_->link_manager_->get_link_login_url(request.link_, request.allow_write_access_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getLinkWebBrowserType &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.link_);
+  CREATE_REQUEST_PROMISE();
+  td_->web_browser_manager_->get_web_browser_type(std::move(request.link_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getOauthLinkInfo &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);

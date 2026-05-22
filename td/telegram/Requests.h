@@ -498,6 +498,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::getExternalLink &request);
 
+  void on_request(uint64 id, td_api::getLinkWebBrowserType &request);
+
   void on_request(uint64 id, td_api::getOauthLinkInfo &request);
 
   void on_request(uint64 id, td_api::checkOauthRequestMatchCode &request);

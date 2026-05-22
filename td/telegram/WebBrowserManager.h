@@ -39,6 +39,8 @@ class WebBrowserManager final : public Actor {
 
   void remove_all_web_browser_settings_exceptions(Promise<Unit> &&promise);
 
+  void get_web_browser_type(string &&url, Promise<td_api::object_ptr<td_api::WebBrowserType>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
