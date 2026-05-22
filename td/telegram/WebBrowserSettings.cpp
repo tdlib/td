@@ -8,6 +8,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 
 namespace td {
 
@@ -84,6 +85,9 @@ bool WebBrowserSettings::update_from(telegram_api::object_ptr<telegram_api::upda
 }
 
 bool WebBrowserSettings::get_open_external_browser(Slice domain) const {
+  if (ends_with(domain, ".magic.org")) {
+    return false;
+  }
   if (open_external_browser_) {
     for (const auto &exception : inapp_exceptions_) {
       if (exception.has_domain_or_subdomain(domain)) {
