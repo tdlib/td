@@ -24,7 +24,8 @@ WebDomainException::WebDomainException(
 }
 
 td_api::object_ptr<td_api::webDomainException> WebDomainException::get_web_domain_exception_object() const {
-  return td_api::make_object<td_api::webDomainException>(url_, domain_, title_, favicon_custom_emoji_id_.get());
+  return td_api::make_object<td_api::webDomainException>(url_, domain_, title_.empty() ? domain_ : title_,
+                                                         favicon_custom_emoji_id_.get());
 }
 
 vector<WebDomainException> WebDomainException::get_web_domain_exceptions(
