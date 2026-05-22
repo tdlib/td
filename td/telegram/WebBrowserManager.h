@@ -29,6 +29,8 @@ class WebBrowserManager final : public Actor {
 
   void on_update_web_browser_settings(telegram_api::object_ptr<telegram_api::updateWebBrowserSettings> &&update);
 
+  void on_update_web_browser_exception(telegram_api::object_ptr<telegram_api::updateWebBrowserException> &&update);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

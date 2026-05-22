@@ -30,6 +30,10 @@ class WebDomainException {
 
   explicit WebDomainException(telegram_api::object_ptr<telegram_api::webDomainException> &&web_domain_exception);
 
+  bool has_domain(const string &domain) const {
+    return domain_ == domain;
+  }
+
   td_api::object_ptr<td_api::webDomainException> get_web_domain_exception_object() const;
 
   static vector<WebDomainException> get_web_domain_exceptions(

@@ -40,6 +40,8 @@ class WebBrowserSettings {
 
   bool update_from(telegram_api::object_ptr<telegram_api::updateWebBrowserSettings> &&update);
 
+  bool update_from(telegram_api::object_ptr<telegram_api::updateWebBrowserException> &&update);
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

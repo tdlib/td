@@ -47,6 +47,42 @@ bool WebBrowserSettings::update_from(telegram_api::object_ptr<telegram_api::upda
   return true;
 }
 
+bool WebBrowserSettings::update_from(telegram_api::object_ptr<telegram_api::updateWebBrowserException> &&update) {
+  bool result = false;
+  bool is_found = false;
+  for (auto it = external_exceptions_.begin(); it != external_exceptions_.end(); ++it) {
+    if (it->has_domain(update->exception_->domain_)) {
+      if (update->delete_ || !update->open_external_browser_) {
+        external_exceptions_.erase(it);
+        result = true;
+      } else {
+        is_found = true;
+      }
+      break;
+    }
+  }
+  for (auto it = inapp_exceptions_.begin(); it != inapp_exceptions_.end(); ++it) {
+    if (it->has_domain(update->exception_->domain_)) {
+      if (update->delete_ || update->open_external_browser_) {
+        inapp_exceptions_.erase(it);
+        result = true;
+      } else {
+        is_found = true;
+      }
+      break;
+    }
+  }
+  if (!update->delete_ && !is_found) {
+    if (update->open_external_browser_) {
+      external_exceptions_.emplace_back(std::move(update->exception_));
+    } else {
+      inapp_exceptions_.emplace_back(std::move(update->exception_));
+    }
+    result = true;
+  }
+  return result;
+}
+
 bool operator==(const WebBrowserSettings &lhs, const WebBrowserSettings &rhs) {
   return lhs.external_exceptions_ == rhs.external_exceptions_ && lhs.inapp_exceptions_ == rhs.inapp_exceptions_ &&
          lhs.open_external_browser_ == rhs.open_external_browser_ &&

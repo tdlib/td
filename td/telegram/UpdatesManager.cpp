@@ -4988,6 +4988,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebBrowserSetti
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebBrowserException> update, Promise<Unit> &&promise) {
+  td_->web_browser_manager_->on_update_web_browser_exception(std::move(update));
+  promise.set_value(Unit());
+}
+
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
@@ -4996,10 +5001,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReactio
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateJoinChatWebViewDecision> update,
                                Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebBrowserException> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 
