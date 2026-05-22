@@ -2392,6 +2392,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   bool has_monoforum_channel_id = monoforum_channel_id.is_valid();
   bool has_send_paid_message_stars = send_paid_message_stars != 0;
   bool has_main_profile_tab = main_profile_tab != ProfileTab::Default;
+  bool has_guard_bot_user_id = guard_bot_user_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -2442,6 +2443,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
     STORE_FLAG(has_monoforum_channel_id);
     STORE_FLAG(has_send_paid_message_stars);
     STORE_FLAG(has_main_profile_tab);
+    STORE_FLAG(has_guard_bot_user_id);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -2518,6 +2520,9 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   if (has_main_profile_tab) {
     store(main_profile_tab, storer);
   }
+  if (has_guard_bot_user_id) {
+    store(guard_bot_user_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -2552,6 +2557,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   bool has_monoforum_channel_id = false;
   bool has_send_paid_message_stars = false;
   bool has_main_profile_tab = false;
+  bool has_guard_bot_user_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -2602,6 +2608,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
     PARSE_FLAG(has_monoforum_channel_id);
     PARSE_FLAG(has_send_paid_message_stars);
     PARSE_FLAG(has_main_profile_tab);
+    PARSE_FLAG(has_guard_bot_user_id);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -2685,6 +2692,9 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_main_profile_tab) {
     parse(main_profile_tab, parser);
+  }
+  if (has_guard_bot_user_id) {
+    parse(guard_bot_user_id, parser);
   }
 
   if (legacy_can_view_statistics) {
@@ -5083,6 +5093,7 @@ void ChatManager::on_load_channel_full_from_database(ChannelId channel_id, strin
   dependencies.add_dialog_dependencies(DialogId(channel_full->linked_channel_id));
   dependencies.add_dialog_dependencies(DialogId(channel_full->monoforum_channel_id));
   dependencies.add(channel_full->migrated_from_chat_id);
+  dependencies.add(channel_full->guard_bot_user_id);
   for (auto bot_user_id : channel_full->bot_user_ids) {
     dependencies.add(bot_user_id);
   }
@@ -6048,6 +6059,15 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
       channel_full->bot_commands = std::move(bot_commands);
       channel_full->is_changed = true;
     }
+    auto guard_bot_user_id = UserId(channel->guard_bot_id_);
+    if (guard_bot_user_id != UserId() && !guard_bot_user_id.is_valid()) {
+      LOG(ERROR) << "Receive " << guard_bot_user_id;
+      guard_bot_user_id = UserId();
+    }
+    if (channel_full->guard_bot_user_id != guard_bot_user_id) {
+      channel_full->guard_bot_user_id = guard_bot_user_id;
+      channel_full->is_changed = true;
+    }
 
     auto monoforum_channel_id = c->monoforum_channel_id;
     if (monoforum_channel_id != ChannelId()) {
@@ -6427,12 +6447,17 @@ void ChatManager::speculative_delete_channel_participant(ChannelId channel_id, U
 
   if (td_->user_manager_->is_user_bot(deleted_user_id)) {
     auto channel_full = get_channel_full_force(channel_id, true, "speculative_delete_channel_participant");
-    if (channel_full != nullptr && td::remove(channel_full->bot_user_ids, deleted_user_id)) {
-      channel_full->need_save_to_database = true;
-      update_channel_full(channel_full, channel_id, "speculative_delete_channel_participant");
+    if (channel_full != nullptr) {
+      if (td::remove(channel_full->bot_user_ids, deleted_user_id)) {
+        channel_full->need_save_to_database = true;
 
-      send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
-                         channel_full->bot_user_ids, false);
+        send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
+                           channel_full->bot_user_ids, false);
+      }
+      if (channel_full->guard_bot_user_id == deleted_user_id) {
+        channel_full->guard_bot_user_id = UserId();
+      }
+      update_channel_full(channel_full, channel_id, "speculative_delete_channel_participant");
     }
   }
 
@@ -6528,6 +6553,10 @@ void ChatManager::speculative_add_channel_user(ChannelId channel_id, UserId user
                            channel_full->bot_user_ids, false);
       }
     }
+  }
+  if (user_id == channel_full->guard_bot_user_id && !new_status.can_manage_invite_links()) {
+    channel_full->guard_bot_user_id = {};
+    channel_full->is_changed = true;
   }
 
   update_channel_full(channel_full, channel_id, "speculative_add_channel_user");
@@ -9772,8 +9801,9 @@ td_api::object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_
       channel_full->boost_count, channel_full->unrestrict_boost_count, channel_full->send_paid_message_stars,
       channel_full->sticker_set_id.get(), channel_full->emoji_sticker_set_id.get(),
       channel_full->location.get_chat_location_object(),
-      channel_full->invite_link.get_chat_invite_link_object(td_->user_manager_.get()), std::move(bot_commands),
-      std::move(bot_verification), get_profile_tab_object(channel_full->main_profile_tab),
+      channel_full->invite_link.get_chat_invite_link_object(td_->user_manager_.get()),
+      td_->user_manager_->get_user_id_object(channel_full->guard_bot_user_id, "supergroupFullInfo guard bot"),
+      std::move(bot_commands), std::move(bot_verification), get_profile_tab_object(channel_full->main_profile_tab),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

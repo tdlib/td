@@ -602,6 +602,7 @@ class ChatManager final : public Actor {
 
     vector<BotCommands> bot_commands;
     unique_ptr<BotVerification> bot_verification;
+    UserId guard_bot_user_id;
 
     uint32 speculative_version = 1;
     uint32 repair_request_version = 0;
