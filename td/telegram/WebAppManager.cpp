@@ -272,7 +272,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     LOG_IF(ERROR, ptr->query_id_ == 0) << "Receive " << to_string(ptr);
     td_->web_app_manager_->open_web_view(ptr->query_id_, dialog_id_, bot_user_id_, std::move(message_topic_),
                                          std::move(input_reply_to_), as_dialog_id_);
-    promise_.set_value(td_api::make_object<td_api::webAppInfo>(ptr->query_id_, ptr->url_));
+    promise_.set_value(td_api::make_object<td_api::webAppInfo>(ptr->query_id_, ptr->url_, ptr->same_origin_));
   }
 
   void on_error(Status status) final {

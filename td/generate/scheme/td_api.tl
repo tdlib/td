@@ -3668,8 +3668,11 @@ webAppOpenModeFullScreen = WebAppOpenMode;
 //@skip_confirmation True, if there is no need to show an ordinary open URL confirmation before opening the Web App. The field must be ignored and confirmation must be shown anyway if the Web App link was hidden
 foundWebApp web_app:webApp request_write_access:Bool skip_confirmation:Bool = FoundWebApp;
 
-//@description Contains information about a Web App @launch_id Unique identifier for the Web App launch @url A Web App URL to open in a web view
-webAppInfo launch_id:int64 url:string = WebAppInfo;
+//@description Contains information about a Web App
+//@launch_id Unique identifier for the Web App launch
+//@url A Web App URL to open in a web view
+//@require_same_origin True, if events from the Web App must be accepted only from the same origin as the URL
+webAppInfo launch_id:int64 url:string require_same_origin:Bool = WebAppInfo;
 
 //@description Contains information about the main Web App of a bot
 //@url URL of the Web App to open
