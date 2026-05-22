@@ -185,7 +185,8 @@ class RequestMainWebViewQuery final : public Td::ResultHandler {
     } else {
       mode = td_api::make_object<td_api::webAppOpenModeCompact>();
     }
-    promise_.set_value(td_api::make_object<td_api::mainWebApp>(ptr->url_, std::move(mode), ptr->same_origin_));
+    promise_.set_value(td_api::make_object<td_api::mainWebApp>(
+        td_api::make_object<td_api::webAppUrl>(ptr->url_, ptr->same_origin_), std::move(mode)));
   }
 
   void on_error(Status status) final {
@@ -273,7 +274,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     LOG_IF(ERROR, ptr->query_id_ == 0) << "Receive " << to_string(ptr);
     td_->web_app_manager_->open_web_view(ptr->query_id_, dialog_id_, bot_user_id_, std::move(message_topic_),
                                          std::move(input_reply_to_), as_dialog_id_);
-    promise_.set_value(td_api::make_object<td_api::webAppInfo>(ptr->query_id_, ptr->url_, ptr->same_origin_));
+    promise_.set_value(td_api::make_object<td_api::webAppInfo>(
+        ptr->query_id_, td_api::make_object<td_api::webAppUrl>(ptr->url_, ptr->same_origin_)));
   }
 
   void on_error(Status status) final {
