@@ -15231,7 +15231,7 @@ clearAutosaveSettingsExceptions = Ok;
 changeWebBrowserSettings open_external_browser:Bool display_close_button:Bool = Ok;
 
 //@description Adds a special handling for the opening of the specified URL
-//@open_external_browser Pass true, if the specified website must be opened in an external browser; pass false to open it in the in-app browser
+//@open_external_browser Pass true, if the specified website must be opened in an external browser; pass false to open it in the in-app browser. There can be at most 100 exceptions in each list of the exceptions
 //@url URL of the website
 addWebBrowserSettingsException open_external_browser:Bool url:string = Ok;
 
