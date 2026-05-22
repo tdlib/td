@@ -213,6 +213,10 @@ void WebBrowserManager::add_web_browser_settings_exception(bool open_external_br
       ->send(false, open_external_browser, url);
 }
 
+void WebBrowserManager::remove_web_browser_settings_exception(const string &url, Promise<Unit> &&promise) {
+  td_->create_handler<ToggleWebBrowserSettingsExceptionQuery>(std::move(promise))->send(true, false, url);
+}
+
 td_api::object_ptr<td_api::updateWebBrowserSettings> WebBrowserManager::get_update_web_browser_settings_object() const {
   return td_api::make_object<td_api::updateWebBrowserSettings>(settings_.get_web_browser_settings_object());
 }

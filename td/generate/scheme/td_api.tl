@@ -4100,7 +4100,7 @@ linkPreviewTypeAnimation animation:animation = LinkPreviewType;
 //@description The link is a link to an app at App Store or Google Play @photo Photo for the app
 linkPreviewTypeApp photo:photo = LinkPreviewType;
 
-//@description The link is a link to a web site @photo Article's main photo; may be null
+//@description The link is a link to a website @photo Article's main photo; may be null
 linkPreviewTypeArticle photo:photo = LinkPreviewType;
 
 //@description The link is a link to an audio @audio The audio description
@@ -4259,7 +4259,7 @@ linkPreviewTypeWebApp photo:photo = LinkPreviewType;
 //@description Describes a link preview
 //@url Original URL of the link
 //@display_url URL to display
-//@site_name Short name of the site (e.g., Google Docs, App Store)
+//@site_name Short name of the website (e.g., Google Docs, App Store)
 //@title Title of the content
 //@param_description Description of the content
 //@author Author of the content
@@ -9476,8 +9476,8 @@ autosaveSettings private_chat_settings:scopeAutosaveSettings group_settings:scop
 //@description Describes an exception for built-in browser usage
 //@url URL for which the exception is done
 //@domain Domain of the URL. All URLs on the domain and subdomains of the domain are subject to the exception
-//@title Title of the site
-//@favicon_custom_emoji_id Identifier of the custom emoji with favicon of the site; may be 0 if unknown
+//@title Title of the website
+//@favicon_custom_emoji_id Identifier of the custom emoji with favicon of the website; may be 0 if unknown
 webDomainException url:string domain:string title:string favicon_custom_emoji_id:int64 = WebDomainException;
 
 //@description Describes web browser settings
@@ -15204,9 +15204,12 @@ clearAutosaveSettingsExceptions = Ok;
 changeWebBrowserSettings open_external_browser:Bool display_close_button:Bool = Ok;
 
 //@description Adds a special handling for the opening of the specified URL
-//@open_external_browser Pass true, if the specified site must be opened in an external browser; pass false to open it in the in-app browser
-//@url URL of the site
+//@open_external_browser Pass true, if the specified website must be opened in an external browser; pass false to open it in the in-app browser
+//@url URL of the website
 addWebBrowserSettingsException open_external_browser:Bool url:string = Ok;
+
+//@description Removes a special handling for the opening of the specified URL @url URL of the website
+removeWebBrowserSettingsException url:string = Ok;
 
 
 //@description Returns information about a bank card @bank_card_number The bank card number
