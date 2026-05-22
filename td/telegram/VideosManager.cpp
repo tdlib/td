@@ -56,9 +56,7 @@ td_api::object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id
 
   auto video = get_video(file_id);
   CHECK(video != nullptr);
-  auto thumbnail = video->animated_thumbnail.file_id.is_valid()
-                       ? get_thumbnail_object(td_->file_manager_.get(), video->animated_thumbnail, PhotoFormat::Mpeg4)
-                       : get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, PhotoFormat::Jpeg);
+  auto thumbnail = get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, video->animated_thumbnail);
   auto duration = video->duration;
   if ((duration == 0 || thumbnail == nullptr) && !alternative_file_ids.empty()) {
     int32 common_duration = 0;
@@ -73,11 +71,8 @@ td_api::object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id
         }
       }
       if (thumbnail == nullptr) {
-        thumbnail =
-            alternative_video->animated_thumbnail.file_id.is_valid()
-                ? get_thumbnail_object(td_->file_manager_.get(), alternative_video->animated_thumbnail,
-                                       PhotoFormat::Mpeg4)
-                : get_thumbnail_object(td_->file_manager_.get(), alternative_video->thumbnail, PhotoFormat::Jpeg);
+        thumbnail = get_thumbnail_object(td_->file_manager_.get(), alternative_video->thumbnail,
+                                         alternative_video->animated_thumbnail);
       }
     }
     if (duration == 0 && common_duration > 0) {
@@ -97,9 +92,7 @@ td_api::object_ptr<td_api::storyVideo> VideosManager::get_story_video_object(Fil
 
   auto video = get_video(file_id);
   CHECK(video != nullptr);
-  auto thumbnail = video->animated_thumbnail.file_id.is_valid()
-                       ? get_thumbnail_object(td_->file_manager_.get(), video->animated_thumbnail, PhotoFormat::Mpeg4)
-                       : get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, PhotoFormat::Jpeg);
+  auto thumbnail = get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, video->animated_thumbnail);
   return td_api::make_object<td_api::storyVideo>(
       video->precise_duration, video->dimensions.width, video->dimensions.height, video->has_stickers,
       video->is_animation, get_minithumbnail_object(video->minithumbnail), std::move(thumbnail),
