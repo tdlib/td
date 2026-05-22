@@ -42,7 +42,7 @@ class WebAppManager final : public Actor {
 
   void request_app_web_view(DialogId dialog_id, UserId bot_user_id, string &&web_app_short_name,
                             string &&start_parameter, const WebAppOpenParameters &parameters, bool allow_write_access,
-                            Promise<string> &&promise);
+                            Promise<td_api::object_ptr<td_api::webAppUrl>> &&promise);
 
   void request_main_web_view(DialogId dialog_id, UserId bot_user_id, string &&start_parameter,
                              const WebAppOpenParameters &parameters,

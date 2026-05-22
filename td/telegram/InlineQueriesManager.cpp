@@ -334,10 +334,11 @@ class GetRequestedWebViewButtonQuery final : public Td::ResultHandler {
 };
 
 class RequestSimpleWebViewQuery final : public Td::ResultHandler {
-  Promise<string> promise_;
+  Promise<td_api::object_ptr<td_api::webAppUrl>> promise_;
 
  public:
-  explicit RequestSimpleWebViewQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  explicit RequestSimpleWebViewQuery(Promise<td_api::object_ptr<td_api::webAppUrl>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(tl_object_ptr<telegram_api::InputUser> &&input_user, string url, const WebAppOpenParameters &parameters) {
@@ -383,7 +384,7 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for RequestSimpleWebViewQuery: " << to_string(ptr);
     LOG_IF(ERROR, ptr->query_id_ != 0) << "Receive " << to_string(ptr);
-    promise_.set_value(std::move(ptr->url_));
+    promise_.set_value(td_api::make_object<td_api::webAppUrl>(ptr->url_, ptr->same_origin_));
   }
 
   void on_error(Status status) final {
@@ -818,7 +819,8 @@ const RequestedDialogType *InlineQueriesManager::get_requested_dialog_type(UserI
 }
 
 void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&url,
-                                                   const WebAppOpenParameters &parameters, Promise<string> &&promise) {
+                                                   const WebAppOpenParameters &parameters,
+                                                   Promise<td_api::object_ptr<td_api::webAppUrl>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
   TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
   on_dialog_used(TopDialogCategory::BotApp, DialogId(bot_user_id), G()->unix_time());

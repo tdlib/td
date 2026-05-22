@@ -3668,6 +3668,11 @@ webAppOpenModeFullScreen = WebAppOpenMode;
 //@skip_confirmation True, if there is no need to show an ordinary open URL confirmation before opening the Web App. The field must be ignored and confirmation must be shown anyway if the Web App link was hidden
 foundWebApp web_app:webApp request_write_access:Bool skip_confirmation:Bool = FoundWebApp;
 
+//@description Contains information about a Web App URL
+//@url The Web App URL to open in a web view
+//@require_same_origin True, if events from the Web App must be accepted only from the same origin as the URL
+webAppUrl url:string require_same_origin:Bool = WebAppUrl;
+
 //@description Contains information about a Web App
 //@launch_id Unique identifier for the Web App launch
 //@url A Web App URL to open in a web view
@@ -12496,7 +12501,7 @@ getWebAppPlaceholder bot_user_id:int53 = Outline;
 //@start_parameter Start parameter from internalLinkTypeWebApp
 //@allow_write_access Pass true if the current user allowed the bot to send them messages
 //@parameters Parameters to use to open the Web App
-getWebAppLinkUrl chat_id:int53 bot_user_id:int53 web_app_short_name:string start_parameter:string allow_write_access:Bool parameters:webAppOpenParameters = HttpUrl;
+getWebAppLinkUrl chat_id:int53 bot_user_id:int53 web_app_short_name:string start_parameter:string allow_write_access:Bool parameters:webAppOpenParameters = WebAppUrl;
 
 //@description Returns information needed to open the main Web App of a bot
 //@chat_id Identifier of the chat in which the Web App is opened; pass 0 if none
@@ -12509,7 +12514,7 @@ getMainWebApp chat_id:int53 bot_user_id:int53 start_parameter:string parameters:
 //@bot_user_id Identifier of the target bot. If the bot is restricted for the current user, then show an error instead of calling the method
 //@url The URL from a keyboardButtonTypeWebApp button, inlineQueryResultsButtonTypeWebApp button, or an empty string when the bot is opened from the side menu
 //@parameters Parameters to use to open the Web App
-getWebAppUrl bot_user_id:int53 url:string parameters:webAppOpenParameters = HttpUrl;
+getWebAppUrl bot_user_id:int53 url:string parameters:webAppOpenParameters = WebAppUrl;
 
 //@description Sends data received from a keyboardButtonTypeWebApp Web App to a bot
 //@bot_user_id Identifier of the target bot

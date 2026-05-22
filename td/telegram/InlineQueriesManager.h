@@ -63,7 +63,7 @@ class InlineQueriesManager final : public Actor {
                                     Promise<td_api::object_ptr<td_api::keyboardButton>> &&promise);
 
   void get_simple_web_view_url(UserId bot_user_id, string &&url, const WebAppOpenParameters &parameters,
-                               Promise<string> &&promise);
+                               Promise<td_api::object_ptr<td_api::webAppUrl>> &&promise);
 
   void send_web_view_data(UserId bot_user_id, string &&button_text, string &&data, Promise<Unit> &&promise) const;
 

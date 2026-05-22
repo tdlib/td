@@ -8119,7 +8119,7 @@ void Requests::on_request(uint64 id, td_api::getWebAppLinkUrl &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.web_app_short_name_);
   CLEAN_INPUT_STRING(request.start_parameter_);
-  CREATE_HTTP_URL_REQUEST_PROMISE();
+  CREATE_REQUEST_PROMISE();
   td_->web_app_manager_->request_app_web_view(
       DialogId(request.chat_id_), UserId(request.bot_user_id_), std::move(request.web_app_short_name_),
       std::move(request.start_parameter_), WebAppOpenParameters(std::move(request.parameters_)),
@@ -8138,7 +8138,7 @@ void Requests::on_request(uint64 id, td_api::getMainWebApp &request) {
 void Requests::on_request(uint64 id, td_api::getWebAppUrl &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
-  CREATE_HTTP_URL_REQUEST_PROMISE();
+  CREATE_REQUEST_PROMISE();
   td_->inline_queries_manager_->get_simple_web_view_url(UserId(request.bot_user_id_), std::move(request.url_),
                                                         WebAppOpenParameters(std::move(request.parameters_)),
                                                         std::move(promise));
