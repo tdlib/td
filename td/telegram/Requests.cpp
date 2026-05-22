@@ -3135,6 +3135,14 @@ void Requests::on_request(uint64 id, const td_api::changeWebBrowserSettings &req
                                                          std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::addWebBrowserSettingsException &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.url_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->web_browser_manager_->add_web_browser_settings_exception(request.open_external_browser_, request.url_,
+                                                                std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getRecommendedChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

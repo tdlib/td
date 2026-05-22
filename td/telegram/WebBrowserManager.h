@@ -33,6 +33,8 @@ class WebBrowserManager final : public Actor {
 
   void update_web_browser_settings(bool open_external_browser, bool display_close_button, Promise<Unit> &&promise);
 
+  void add_web_browser_settings_exception(bool open_external_browser, const string &url, Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

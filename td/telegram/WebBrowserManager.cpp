@@ -10,6 +10,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UpdatesManager.h"
 #include "td/telegram/WebBrowserSettings.hpp"
 
 #include "td/utils/buffer.h"
@@ -65,6 +66,38 @@ class UpdateWebBrowserSettingsQuery final : public Td::ResultHandler {
     }
 
     promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ToggleWebBrowserSettingsExceptionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ToggleWebBrowserSettingsExceptionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(bool is_deletion, bool open_external_browser, const string &url) {
+    int32 flags = 0;
+    if (!is_deletion) {
+      flags |= telegram_api::account_toggleWebBrowserSettingsException::OPEN_EXTERNAL_BROWSER_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_toggleWebBrowserSettingsException(flags, is_deletion, open_external_browser, url)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_toggleWebBrowserSettingsException>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ToggleWebBrowserSettingsExceptionQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -172,6 +205,12 @@ void WebBrowserManager::update_web_browser_settings(bool open_external_browser, 
 
   td_->create_handler<UpdateWebBrowserSettingsQuery>(std::move(request_promise))
       ->send(open_external_browser, display_close_button);
+}
+
+void WebBrowserManager::add_web_browser_settings_exception(bool open_external_browser, const string &url,
+                                                           Promise<Unit> &&promise) {
+  td_->create_handler<ToggleWebBrowserSettingsExceptionQuery>(std::move(promise))
+      ->send(false, open_external_browser, url);
 }
 
 td_api::object_ptr<td_api::updateWebBrowserSettings> WebBrowserManager::get_update_web_browser_settings_object() const {

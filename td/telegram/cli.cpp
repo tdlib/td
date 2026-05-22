@@ -4722,6 +4722,10 @@ class CliClient final : public Actor {
       bool display_close_button;
       get_args(args, open_external_browser, display_close_button);
       send_request(td_api::make_object<td_api::changeWebBrowserSettings>(open_external_browser, display_close_button));
+    } else if (op == "awbsee" || op == "awbsei") {
+      string url;
+      get_args(args, url);
+      send_request(td_api::make_object<td_api::addWebBrowserSettingsException>(op == "awbsee", url));
     } else if (op == "ansc") {
       int32 sent_bytes;
       int32 received_bytes;

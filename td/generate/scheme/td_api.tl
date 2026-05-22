@@ -15203,6 +15203,11 @@ clearAutosaveSettingsExceptions = Ok;
 //@display_close_button Pass true, if a close button must be shown in the in-app browser; for Android app only
 changeWebBrowserSettings open_external_browser:Bool display_close_button:Bool = Ok;
 
+//@description Adds a special handling for the opening of the specified URL
+//@open_external_browser Pass true, if the specified site must be opened in an external browser; pass false to open it in the in-app browser
+//@url URL of the site
+addWebBrowserSettingsException open_external_browser:Bool url:string = Ok;
+
 
 //@description Returns information about a bank card @bank_card_number The bank card number
 getBankCardInfo bank_card_number:string = BankCardInfo;

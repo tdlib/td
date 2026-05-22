@@ -380,6 +380,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::changeWebBrowserSettings &request);
 
+  void on_request(uint64 id, td_api::addWebBrowserSettingsException &request);
+
   void on_request(uint64 id, const td_api::getRecommendedChats &request);
 
   void on_request(uint64 id, const td_api::getChatSimilarChats &request);
