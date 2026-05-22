@@ -15198,6 +15198,12 @@ setAutosaveSettings scope:AutosaveSettingsScope settings:scopeAutosaveSettings =
 clearAutosaveSettingsExceptions = Ok;
 
 
+//@description Changes web browser settings
+//@open_external_browser Pass true, if links must be opened in an external browser by default
+//@display_close_button Pass true, if a close button must be shown in the in-app browser; for Android app only
+changeWebBrowserSettings open_external_browser:Bool display_close_button:Bool = Ok;
+
+
 //@description Returns information about a bank card @bank_card_number The bank card number
 getBankCardInfo bank_card_number:string = BankCardInfo;
 

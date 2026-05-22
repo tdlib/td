@@ -4717,6 +4717,11 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::scopeAutosaveSettings>(autosave_photos, autosave_videos, max_video_file_size)));
     } else if (op == "cause") {
       send_request(td_api::make_object<td_api::clearAutosaveSettingsExceptions>());
+    } else if (op == "cwbs") {
+      bool open_external_browser;
+      bool display_close_button;
+      get_args(args, open_external_browser, display_close_button);
+      send_request(td_api::make_object<td_api::changeWebBrowserSettings>(open_external_browser, display_close_button));
     } else if (op == "ansc") {
       int32 sent_bytes;
       int32 received_bytes;

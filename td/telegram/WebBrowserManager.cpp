@@ -44,6 +44,34 @@ class GetWebBrowserSettingsQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateWebBrowserSettingsQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::account_WebBrowserSettings>> promise_;
+
+ public:
+  explicit UpdateWebBrowserSettingsQuery(
+      Promise<telegram_api::object_ptr<telegram_api::account_WebBrowserSettings>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(bool open_external_browser, bool display_close_button) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_updateWebBrowserSettings(0, open_external_browser, display_close_button)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_updateWebBrowserSettings>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 WebBrowserManager::WebBrowserManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -92,31 +120,30 @@ void WebBrowserManager::save_web_browser_settings() {
 void WebBrowserManager::reload_web_browser_settings() {
   auto request_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_WebBrowserSettings>> result) {
-        send_closure(actor_id, &WebBrowserManager::on_get_web_browser_settings, std::move(result));
+        send_closure(actor_id, &WebBrowserManager::on_get_web_browser_settings, std::move(result), Promise<Unit>());
       });
 
   td_->create_handler<GetWebBrowserSettingsQuery>(std::move(request_promise))->send(settings_.get_hash());
 }
 
 void WebBrowserManager::on_get_web_browser_settings(
-    Result<telegram_api::object_ptr<telegram_api::account_WebBrowserSettings>> result) {
+    Result<telegram_api::object_ptr<telegram_api::account_WebBrowserSettings>> result, Promise<Unit> &&promise) {
   if (result.is_error()) {
-    return;
+    return promise.set_error(result.move_as_error());
   }
 
   auto web_browser_settings_ptr = result.move_as_ok();
   LOG(DEBUG) << "Receive " << to_string(web_browser_settings_ptr);
   if (web_browser_settings_ptr->get_id() == telegram_api::account_webBrowserSettingsNotModified::ID) {
-    return;
+    return promise.set_value(Unit());
   }
   auto new_settings = WebBrowserSettings(std::move(web_browser_settings_ptr));
-  if (new_settings == settings_) {
-    return;
+  if (new_settings != settings_) {
+    settings_ = std::move(new_settings);
+    save_web_browser_settings();
+    send_update_web_browser_settings();
   }
-  settings_ = std::move(new_settings);
-
-  save_web_browser_settings();
-  send_update_web_browser_settings();
+  promise.set_value(Unit());
 }
 
 void WebBrowserManager::on_update_web_browser_settings(
@@ -133,6 +160,18 @@ void WebBrowserManager::on_update_web_browser_exception(
     save_web_browser_settings();
     send_update_web_browser_settings();
   }
+}
+
+void WebBrowserManager::update_web_browser_settings(bool open_external_browser, bool display_close_button,
+                                                    Promise<Unit> &&promise) {
+  auto request_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), promise = std::move(promise)](
+          Result<telegram_api::object_ptr<telegram_api::account_WebBrowserSettings>> result) mutable {
+        send_closure(actor_id, &WebBrowserManager::on_get_web_browser_settings, std::move(result), std::move(promise));
+      });
+
+  td_->create_handler<UpdateWebBrowserSettingsQuery>(std::move(request_promise))
+      ->send(open_external_browser, display_close_button);
 }
 
 td_api::object_ptr<td_api::updateWebBrowserSettings> WebBrowserManager::get_update_web_browser_settings_object() const {

@@ -3128,6 +3128,13 @@ void Requests::on_request(uint64 id, const td_api::clearAutosaveSettingsExceptio
   td_->autosave_manager_->clear_autosave_settings_exceptions(std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::changeWebBrowserSettings &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->web_browser_manager_->update_web_browser_settings(request.open_external_browser_, request.display_close_button_,
+                                                         std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getRecommendedChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
