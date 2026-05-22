@@ -1648,7 +1648,8 @@ void DialogParticipantManager::on_update_channel_participant(
 }
 
 void DialogParticipantManager::on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about,
-                                                               int32 date, DialogInviteLink invite_link) {
+                                                               int32 date, DialogInviteLink invite_link,
+                                                               int64 query_id) {
   CHECK(td_->auth_manager_->is_bot());
   if (date <= 0 || !td_->user_manager_->have_user_force(user_id, "on_update_chat_invite_requester") ||
       !td_->dialog_manager_->have_dialog_info_force(dialog_id, "on_update_chat_invite_requester")) {
@@ -1666,7 +1667,7 @@ void DialogParticipantManager::on_update_chat_invite_requester(DialogId dialog_i
                    td_api::make_object<td_api::chatJoinRequest>(
                        td_->user_manager_->get_user_id_object(user_id, "updateNewChatJoinRequest"), date, about),
                    td_->dialog_manager_->get_chat_id_object(user_dialog_id, "updateNewChatJoinRequest 2"),
-                   invite_link.get_chat_invite_link_object(td_->user_manager_.get())));
+                   invite_link.get_chat_invite_link_object(td_->user_manager_.get()), query_id));
 }
 
 void DialogParticipantManager::get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,

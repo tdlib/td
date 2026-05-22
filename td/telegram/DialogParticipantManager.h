@@ -94,7 +94,7 @@ class DialogParticipantManager final : public Actor {
                                      telegram_api::object_ptr<telegram_api::ChannelParticipant> new_participant);
 
   void on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about, int32 date,
-                                       DialogInviteLink invite_link);
+                                       DialogInviteLink invite_link, int64 query_id);
 
   void get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
                               Promise<td_api::object_ptr<td_api::chatMember>> &&promise);
