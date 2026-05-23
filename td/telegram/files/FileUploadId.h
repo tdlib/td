@@ -36,6 +36,8 @@ class FileUploadId {
     return internal_upload_id_;
   }
 
+  static vector<FileUploadId> get_file_upload_ids(const vector<FileId> &file_ids);
+
   bool operator==(const FileUploadId &other) const {
     return file_id_ == other.file_id_ && internal_upload_id_ == other.internal_upload_id_;
   }

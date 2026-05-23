@@ -21755,12 +21755,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
         }
       }
     }
-    auto file_upload_ids = transform(file_ids, [](FileId file_id) {
-      return file_id.is_valid() ? FileUploadId(file_id, FileManager::get_internal_upload_id()) : FileUploadId();
-    });
-    auto thumbnail_file_upload_ids = transform(thumbnail_file_ids, [](FileId file_id) {
-      return file_id.is_valid() ? FileUploadId(file_id, FileManager::get_internal_upload_id()) : FileUploadId();
-    });
+    auto file_upload_ids = FileUploadId::get_file_upload_ids(file_ids);
+    auto thumbnail_file_upload_ids = FileUploadId::get_file_upload_ids(thumbnail_file_ids);
     if (is_edit) {
       edited_message->file_upload_ids_ = std::move(file_upload_ids);
       edited_message->thumbnail_file_upload_ids_ = std::move(thumbnail_file_upload_ids);
