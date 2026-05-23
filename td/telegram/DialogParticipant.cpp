@@ -242,6 +242,11 @@ RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_audios,
            (static_cast<uint64>(can_send_reactions) * CAN_SEND_REACTIONS);
 }
 
+RestrictedRights RestrictedRights::restrict_all() {
+  td_api::object_ptr<td_api::chatPermissions> default_rights;  // nullptr
+  return RestrictedRights(default_rights, ChannelType::Unknown);
+}
+
 td_api::object_ptr<td_api::chatPermissions> RestrictedRights::get_chat_permissions_object() const {
   return td_api::make_object<td_api::chatPermissions>(
       can_send_messages(), can_send_audios(), can_send_documents(), can_send_photos(), can_send_videos(),

@@ -5535,8 +5535,7 @@ RestrictedRights UserManager::get_user_default_permissions(UserId user_id) const
   auto u = get_user(user_id);
   if ((u == nullptr && user_id != get_my_id()) || user_id == get_replies_bot_user_id() ||
       user_id == get_verification_codes_bot_user_id()) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, u != nullptr, false, false, false, ChannelType::Unknown);
+    return RestrictedRights::restrict_all();
   }
   return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, false, false,
                           true, false, false, true, ChannelType::Unknown);
@@ -5545,8 +5544,7 @@ RestrictedRights UserManager::get_user_default_permissions(UserId user_id) const
 RestrictedRights UserManager::get_secret_chat_default_permissions(SecretChatId secret_chat_id) const {
   auto c = get_secret_chat(secret_chat_id);
   if (c == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, false, false, false, false, ChannelType::Unknown);
+    return RestrictedRights::restrict_all();
   }
   return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, false, false,
                           false, false, false, false, ChannelType::Unknown);

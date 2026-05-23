@@ -2150,8 +2150,7 @@ RestrictedRights DialogManager::get_dialog_default_permissions(DialogId dialog_i
     case DialogType::None:
     default:
       UNREACHABLE();
-      return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                              false, false, false, false, false, false, ChannelType::Unknown);
+      return RestrictedRights::restrict_all();
   }
 }
 

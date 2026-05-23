@@ -2998,8 +2998,7 @@ string ChatManager::get_channel_title(ChannelId channel_id, bool is_recursive) c
 RestrictedRights ChatManager::get_chat_default_permissions(ChatId chat_id) const {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, false, false, false, false, ChannelType::Unknown);
+    return RestrictedRights::restrict_all();
   }
   return c->default_permissions;
 }
@@ -3007,8 +3006,7 @@ RestrictedRights ChatManager::get_chat_default_permissions(ChatId chat_id) const
 RestrictedRights ChatManager::get_channel_default_permissions(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, false, false, false, false, ChannelType::Unknown);
+    return RestrictedRights::restrict_all();
   }
   return c->default_permissions;
 }
@@ -3878,10 +3876,7 @@ bool ChatManager::can_get_channel_story_statistics(ChannelId channel_id) const {
 bool ChatManager::can_convert_channel_to_gigagroup(ChannelId channel_id) const {
   const Channel *c = get_channel(channel_id);
   return c == nullptr || get_channel_type(c) != ChannelType::Megagroup || !get_channel_status(c).is_creator() ||
-         c->is_gigagroup ||
-         c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false, false,
-                                                    false, false, false, false, false, false, false, false, false,
-                                                    false, ChannelType::Unknown);
+         c->is_gigagroup || c->default_permissions != RestrictedRights::restrict_all();
 }
 
 void ChatManager::report_channel_spam(ChannelId channel_id, const vector<MessageId> &message_ids,
@@ -5403,9 +5398,7 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
   }
   if (c->is_default_permissions_changed) {
     td_->messages_manager_->on_dialog_default_permissions_updated(DialogId(channel_id));
-    if (c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false, false, false,
-                                                   false, false, false, false, false, false, false, false, false,
-                                                   ChannelType::Unknown)) {
+    if (c->default_permissions != RestrictedRights::restrict_all()) {
       td_->suggested_action_manager_->remove_dialog_suggested_action(
           SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
     }
