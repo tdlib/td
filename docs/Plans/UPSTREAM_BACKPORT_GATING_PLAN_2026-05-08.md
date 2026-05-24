@@ -46,7 +46,7 @@ fork after PR #18 (`258125992`):
       - Separate fingerprint/tooling work also landed independently in
          `td/mtproto/BrowserProfile.cpp`, `test/analysis/extract_client_hello_fixtures.py`, the
          reviewed ServerHello fixture refreshes, and
-         `docs/Plans/FINGERPRINT_TEST_AND_PIPELINE_HARDENING_PLAN_2026-05-09.md`.
+         `docs/Plans/FINGERPRINT_HARDENING_MASTER_PLAN_2026-05-24.md`.
 3. Historical wave-level outcome:
       - W2-001 and W2-002 are completed as `Accept with Repair`.
       - The 2026-05-08 Wave 2 decision report records W2-003 as `Defer` within that wave.

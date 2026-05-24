@@ -15,7 +15,7 @@ Total commits: 199
      seam in `td/telegram/MessageContent.*`)
    - separate fingerprint/tooling work in `td/mtproto/BrowserProfile.cpp`,
      `test/analysis/extract_client_hello_fixtures.py`, reviewed fixture refreshes, and
-     `docs/Plans/FINGERPRINT_TEST_AND_PIPELINE_HARDENING_PLAN_2026-05-09.md`
+    `docs/Plans/FINGERPRINT_HARDENING_MASTER_PLAN_2026-05-24.md`
 3. The lane and class columns below remain the historical Pass A intake record for the upstream
   backlog. The merged execution outcome does not rewrite that initial classification.
 4. W4-G remains deferred for any new intake, but its current repository-resident adaptation baseline

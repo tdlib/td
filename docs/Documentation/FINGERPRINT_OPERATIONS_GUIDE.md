@@ -499,7 +499,7 @@ Contract tests:
 - Provenance requirements: every fixture must have `source_kind: browser_capture` and a
   non-null `source_sha256` traceable to the original pcap capture.
 - Advisory profile migration plan: tracked per workstream F in
-  `docs/Plans/FINGERPRINT_DOCUMENTATION_AND_HARDENING_PLAN_2026-04-25.md`.
+  `docs/Plans/FINGERPRINT_HARDENING_MASTER_PLAN_2026-05-24.md`.
 
 ### Advisory profile migration tracking
 
