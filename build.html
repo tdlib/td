@@ -548,7 +548,7 @@
       }
     }
 
-    function onOsChanged() {
+function onOsChanged() {
       var language = document.getElementById('languageSelect').value;
       var os = document.getElementById('osSelect').value;
       var target = getTarget(language, os);
@@ -604,9 +604,9 @@
       document.getElementById('buildOptionsDiv').style.display = 'block';
 
       onOptionsChanged();
-    }
+}
 
-    function onOptionsChanged() {
+function onOptionsChanged() {
       var language = document.getElementById('languageSelect').value;
       var os = document.getElementById('osSelect').value;
       var target = getTarget(language, os);

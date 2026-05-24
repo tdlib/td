@@ -12,8 +12,7 @@ td::string normalize_no_space(td::Slice source) {
   td::string out;
   out.reserve(source.size());
   for (auto c : source) {
-    unsigned char b = static_cast<unsigned char>(c);
-    if (b == ' ' || b == '\t' || b == '\n' || b == '\r') {
+    if (auto b = static_cast<unsigned char>(c); b == ' ' || b == '\t' || b == '\n' || b == '\r') {
       continue;
     }
     out.push_back(c);
@@ -23,7 +22,7 @@ td::string normalize_no_space(td::Slice source) {
 
 }  // namespace
 
-TEST(SecurityCoreTrueIssuesIntegration, v730_wave5_cross_file_initialization_contract_holds) {
+TEST(SecurityCoreTrueIssuesIntegration, v730_cross_file_initialization_contract_holds) {
   const auto net_stats_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/net/NetStatsManager.h"));
   const auto auth_data_source = normalize_no_space(td::mtproto::test::read_repo_text_file("td/mtproto/AuthData.h"));
@@ -68,7 +67,7 @@ TEST(SecurityCoreTrueIssuesIntegration,
   ASSERT_EQ(td::string::npos, sequence_source.find("ActorShared<NetQueryCallback>callback_;"));
 }
 
-TEST(SecurityCoreTrueIssuesIntegration, v730_wave6_message_query_cross_file_initialization_contract_holds) {
+TEST(SecurityCoreTrueIssuesIntegration, v730_message_handlers_message_query_cross_file_initialization_contract_holds) {
   const auto message_query_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/MessageQueryManager.cpp"));
   const auto messages_source =
@@ -92,7 +91,7 @@ TEST(SecurityCoreTrueIssuesIntegration, v730_wave6_message_query_cross_file_init
   ASSERT_EQ(td::string::npos, messages_source.find("Promise<Unit>promise_;int64random_id_;DialogIddialog_id_;"));
 }
 
-TEST(SecurityCoreTrueIssuesIntegration, v547_v730_wave7_session_and_ctor_init_contract_holds) {
+TEST(SecurityCoreTrueIssuesIntegration, v547_v730_session_ctor_init_contract_holds) {
   const auto session_source = normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/net/Session.cpp"));
   const auto auth_data_source = normalize_no_space(td::mtproto::test::read_repo_text_file("td/mtproto/AuthData.cpp"));
   const auto net_stats_source =

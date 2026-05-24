@@ -43,7 +43,9 @@ TEST(PollUnreadVotesAdversarial, DuplicateTransitionsAreIgnoredToPreventCounterP
 
   ASSERT_TRUE(normalized.find("constboolhas_current_unread_votes=has_unread_poll_votes(d->dialog_id,m);") !=
               td::string::npos);
-  ASSERT_TRUE(normalized.find("if(has_current_unread_votes==has_unread_votes){return;") != td::string::npos);
+  ASSERT_TRUE(normalized.find("switch(dispatch_poll_unread_votes_update_action(is_supported_poll_message,"
+                              "has_current_unread_votes,has_unread_votes)){") != td::string::npos);
+  ASSERT_TRUE(normalized.find("casePollUnreadVotesUpdateAction::IgnoredDuplicateState:") != td::string::npos);
 }
 
 TEST(PollUnreadVotesAdversarial, RemovalHelperMustKeepPerMessageUnreadFlagAndCounterInSync) {
@@ -83,6 +85,49 @@ TEST(PollUnreadVotesAdversarial,
   ASSERT_EQ(normalized.find("send_update_chat_unread_poll_vote_count(d,\"update_message\");"), td::string::npos);
 }
 
+TEST(PollUnreadVotesAdversarial, ReadAllDialogPathMustNotKeepLegacyIsUpdateSentBranching) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/MessagesManager.cpp");
+  auto region = extract_region(
+      source, "void MessagesManager::read_all_dialog_poll_votes(DialogId dialog_id, ForumTopicId forum_topic_id,",
+      "void MessagesManager::read_message_content_from_updates(MessageId message_id, int32 read_date) {");
+  auto normalized = normalize_for_contract(region);
+
+  ASSERT_EQ(normalized.find("autois_update_sent=read_all_local_dialog_poll_votes(dialog_id,forum_topic_id);"),
+            td::string::npos);
+  ASSERT_EQ(normalized.find("if(!is_update_sent){"), td::string::npos);
+  ASSERT_EQ(normalized.find("send_update_chat_unread_poll_vote_count(d,\"read_all_dialog_poll_votes\");"),
+            td::string::npos);
+  ASSERT_EQ(normalized.find("on_dialog_updated(dialog_id,\"read_all_dialog_poll_votes\");"), td::string::npos);
+}
+
+TEST(PollUnreadVotesAdversarial, UnreadVoteRemovalLogMustNotUseUnguardedNullSourcePath) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/MessagesManager.cpp");
+  auto region = extract_region(
+      source, "void MessagesManager::on_unread_poll_vote_removed(Dialog *d, const Message *m, const char *source,",
+      "bool MessagesManager::remove_message_unread_poll_votes(Dialog *d, Message *m, const char *source) {");
+  auto normalized = normalize_for_contract(region);
+
+  ASSERT_EQ(normalized.find("if(is_dialog_inited(d)){"), td::string::npos);
+  ASSERT_TRUE(normalized.find("if(is_dialog_inited(d)&&source!=nullptr){") != td::string::npos);
+}
+
+TEST(PollUnreadVotesAdversarial, UnreadVoteRemovalMustNotConfinePerMessageFanoutToPositiveCounterBranchOnly) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/MessagesManager.cpp");
+  auto region = extract_region(
+      source, "void MessagesManager::on_unread_poll_vote_removed(Dialog *d, const Message *m, const char *source,",
+      "bool MessagesManager::remove_message_unread_poll_votes(Dialog *d, Message *m, const char *source) {");
+  auto normalized = normalize_for_contract(region);
+
+  ASSERT_TRUE(
+      normalized.find("}else{set_dialog_unread_poll_vote_count(d,d->unread_poll_vote_count-1);}"
+                      "send_update_message_contains_unread_poll_votes(d->dialog_id,m,d->unread_poll_vote_count);"
+                      "on_dialog_updated(d->dialog_id,\"on_unread_poll_vote_removed\");") != td::string::npos);
+  ASSERT_EQ(normalized.find("}else{set_dialog_unread_poll_vote_count(d,d->unread_poll_vote_count-1);"
+                            "send_update_message_contains_unread_poll_votes(d->dialog_id,m,d->unread_poll_vote_count);"
+                            "on_dialog_updated(d->dialog_id,\"on_unread_poll_vote_removed\");}"),
+            td::string::npos);
+}
+
 TEST(PollUnreadVotesAdversarial, UpdatePathRejectsMissingPollContentFailClosed) {
   auto source = td::mtproto::test::read_repo_text_file("td/telegram/MessagesManager.cpp");
   auto region = extract_region(
@@ -91,8 +136,9 @@ TEST(PollUnreadVotesAdversarial, UpdatePathRejectsMissingPollContentFailClosed) 
       "void MessagesManager::on_update_message_content(MessageFullId message_full_id) {");
   auto normalized = normalize_for_contract(region);
 
-  ASSERT_TRUE(normalized.find("m->content==nullptr||m->content->get_type()!=MessageContentType::Poll") !=
-              td::string::npos);
+  ASSERT_TRUE(normalized.find("constboolis_supported_poll_message=!is_message_forward(m)&&m->content!=nullptr&&"
+                              "m->content->get_type()==MessageContentType::Poll;") != td::string::npos);
+  ASSERT_TRUE(normalized.find("casePollUnreadVotesUpdateAction::IgnoredUnsupportedMessage:") != td::string::npos);
 }
 
 TEST(PollUnreadVotesAdversarial, UnreadPollVoteHelperMustNotDereferenceMissingContent) {
@@ -130,6 +176,20 @@ TEST(PollUnreadVotesAdversarial, PollManagerUnreadVoteNotifyPathMustNotDoubleFan
   auto normalized = normalize_for_contract(region);
 
   ASSERT_EQ(normalized.find("other_poll_messages_"), td::string::npos);
+}
+
+TEST(PollUnreadVotesAdversarial, PollManagerMustGateUnreadVoteFlipOnPendingReadPollVotesQueryState) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/PollManager.cpp");
+  auto region = extract_region(
+      source,
+      "if (!is_min && !td_->auth_manager_->is_bot() && poll_results->has_unread_votes_ != poll->has_unread_votes_) {",
+      "if (!is_min && poll_results->can_view_stats_ != poll->can_view_stats_) {");
+  auto normalized = normalize_for_contract(region);
+
+  ASSERT_TRUE(normalized.find("server_poll_messages_[poll_id].foreach([&](constMessageFullId&message_full_id){") !=
+              td::string::npos);
+  ASSERT_TRUE(normalized.find("has_message_pending_read_poll_votes(message_full_id)") != td::string::npos);
+  ASSERT_TRUE(normalized.find("if(!has_pending_read_poll_votes){") != td::string::npos);
 }
 
 }  // namespace

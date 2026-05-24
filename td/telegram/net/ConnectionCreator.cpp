@@ -24,6 +24,7 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdDb.h"
 
+#include "td/mtproto/ErrorStatus.h"
 #include "td/mtproto/Ping.h"
 #include "td/mtproto/ProxySecret.h"
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
@@ -1803,7 +1804,7 @@ void ConnectionCreator::client_add_connection(uint32 hash, Result<unique_ptr<mtp
                       << tag("status_message", sanitize_connection_failure_status_message_for_log(failure_status))
                       << tag("action_hint", action_hint) << ' '
                       << summarize_connection_failure_for_log(client.last_failure_classification, failure_status);
-    if (r_raw_connection.error().code() == -404 && client.auth_data &&
+    if (mtproto::is_mtproto_auth_key_not_found_status(r_raw_connection.error()) && client.auth_data &&
         client.auth_data_generation == auth_data_generation) {
       VLOG(connections) << "Drop auth data from " << tag("client", format::as_hex(hash));
       client.auth_data = nullptr;

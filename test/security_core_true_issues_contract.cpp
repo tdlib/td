@@ -226,7 +226,7 @@ TEST(SecurityCoreTrueIssuesContract, chat_manager_query_state_members_are_defaul
 
 // V730 (CWE-457): core runtime handlers must not rely on implicit/default
 // constructor state for fields read on error/retry paths.
-TEST(SecurityCoreTrueIssuesContract, core_runtime_query_members_are_default_initialized_wave3) {
+TEST(SecurityCoreTrueIssuesContract, core_runtime_query_members_are_default_initialized_core_runtime) {
   const auto sequence_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/SequenceDispatcher.h"));
   const auto reaction_source =
@@ -298,7 +298,7 @@ TEST(SecurityCoreTrueIssuesContract, reply_markup_and_sequence_dispatcher_member
 
 // V730 (CWE-457): request handlers in critical managers must initialize fields
 // that are consumed on error/retry paths before send() can fully run.
-TEST(SecurityCoreTrueIssuesContract, v730_wave4_request_handler_members_are_default_initialized) {
+TEST(SecurityCoreTrueIssuesContract, v730_request_handlers_request_handler_members_are_default_initialized) {
   const auto background_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/BackgroundManager.cpp"));
   const auto business_connection_source =
@@ -394,7 +394,7 @@ TEST(SecurityCoreTrueIssuesContract, epoch_based_memory_reclamation_pad_is_zero_
 
 // V730 (CWE-457): NetStatsManager/AuthData/BufferRaw must use deterministic
 // member initialization for error/early-callback safety.
-TEST(SecurityCoreTrueIssuesContract, v730_wave5_core_runtime_members_are_default_initialized) {
+TEST(SecurityCoreTrueIssuesContract, v730_core_runtime_members_are_default_initialized) {
   const auto net_stats_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/net/NetStatsManager.h"));
   const auto auth_data_source = normalize_no_space(td::mtproto::test::read_repo_text_file("td/mtproto/AuthData.h"));
@@ -430,7 +430,7 @@ TEST(SecurityCoreTrueIssuesContract, v730_wave5_core_runtime_members_are_default
 
 // V730 (CWE-457): message query handlers in core messaging paths must use
 // deterministic defaults for all members that can be observed by error paths.
-TEST(SecurityCoreTrueIssuesContract, v730_wave6_message_query_members_are_default_initialized) {
+TEST(SecurityCoreTrueIssuesContract, v730_message_handlers_message_query_members_are_default_initialized) {
   const auto message_query_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/MessageQueryManager.cpp"));
   const auto messages_source =
@@ -494,7 +494,7 @@ TEST(SecurityCoreTrueIssuesContract, v730_wave6_message_query_members_are_defaul
                            "int64random_id_=0;DialogIddialog_id_;") != td::string::npos);
 }
 
-TEST(SecurityCoreTrueIssuesContract, v547_v730_wave7_session_and_ctor_init_contract) {
+TEST(SecurityCoreTrueIssuesContract, v547_v730_session_ctor_init_contract) {
   const auto session_source = normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/net/Session.cpp"));
   const auto auth_data_source = normalize_no_space(td::mtproto::test::read_repo_text_file("td/mtproto/AuthData.cpp"));
   const auto net_stats_source =

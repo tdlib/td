@@ -1339,6 +1339,14 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getBotToken &request);
 
+  void on_request(uint64 id, const td_api::getManagedBotToken &request);
+
+  void on_request(uint64 id, const td_api::getManagedBotAccessSettings &request);
+
+  void on_request(uint64 id, td_api::setManagedBotAccessSettings &request);
+
+  void dispatch_get_managed_bot_token(int64 bot_user_id, bool revoke, Promise<string> &&promise);
+
   void on_request(uint64 id, td_api::setBotName &request);
 
   void on_request(uint64 id, const td_api::getBotName &request);

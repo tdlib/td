@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -242,6 +242,7 @@ class ConcurrentHashMap {
     }
   };
   TaskCreator task_creator;
+  std::atomic<size_t> migrated_slots_{0};
 
   void do_migrate(HashMap *ptr) {
     //LOG(ERROR) << "In do_migrate: " << ptr;
@@ -267,6 +268,7 @@ class ConcurrentHashMap {
 
   void finish_migrate() {
     //LOG(ERROR) << "In finish_migrate";
+    CHECK(migrated_slots_.load() == task_creator.size);
     hash_map_.store(migrate_to_hash_map_);
     hp_.retire(get_thread_id(), migrate_from_hash_map_);
     migrate_from_hash_map_ = nullptr;
@@ -288,20 +290,19 @@ class ConcurrentHashMap {
     task_creator.chunk_size = 100;
     task_creator.size = migrate_from_hash_map_->size();
     task_creator.pos = 0;
+    migrated_slots_.store(0);
   }
 
   void run_migrate() {
     //LOG(ERROR) << "In run_migrate";
-    size_t cnt = 0;
     while (true) {
       auto task = task_creator.create();
-      cnt += task.size();
       if (task.empty()) {
         break;
       }
       run_task(task);
+      migrated_slots_.fetch_add(task.size());
     }
-    //LOG(ERROR) << "In run_migrate " << cnt;
   }
 
   void run_task(Task task) {

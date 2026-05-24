@@ -6735,7 +6735,7 @@ inline constexpr EchExpectation yandex25_12_3_1140_macos26_4_47cff21e_frame410Ec
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/brave1_89_132_windows10_21h1_00fe6ad2.clienthello.json
 // fixture_id=brave1_89_132_windows10_21h1_00fe6ad2:frame76
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame76FixtureId[] = "brave1_89_132_windows10_21h1_00fe6ad2:frame76";
-inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame76SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/windows_10_21H1,_brave_1_89_132,_auto_Windows_10_0,_auto_Chromiu.pcap";
+inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame76SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/windows_10_21H1,_brave_1_89_132,_auto_Windows_10_0,_auto_Chromiu.pcap";
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame76SourceSha256[] = "9c387f64a6a041b73912c006932eb22ffce20a631ef937736b265286aa7d61d6";
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame76CaptureDateUtc[] = "2026-04-11T11:51:07Z";
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame76ParserVersion[] = "tls-clienthello-parser-v1";
@@ -6759,7 +6759,7 @@ inline constexpr EchExpectation brave1_89_132_windows10_21h1_00fe6ad2_frame76Ech
 
 // fixture_id=brave1_89_132_windows10_21h1_00fe6ad2:frame216
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame216FixtureId[] = "brave1_89_132_windows10_21h1_00fe6ad2:frame216";
-inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame216SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/windows_10_21H1,_brave_1_89_132,_auto_Windows_10_0,_auto_Chromiu.pcap";
+inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame216SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/windows_10_21H1,_brave_1_89_132,_auto_Windows_10_0,_auto_Chromiu.pcap";
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame216SourceSha256[] = "9c387f64a6a041b73912c006932eb22ffce20a631ef937736b265286aa7d61d6";
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame216CaptureDateUtc[] = "2026-04-11T11:51:07Z";
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame216ParserVersion[] = "tls-clienthello-parser-v1";
@@ -6783,7 +6783,7 @@ inline constexpr EchExpectation brave1_89_132_windows10_21h1_00fe6ad2_frame216Ec
 
 // fixture_id=brave1_89_132_windows10_21h1_00fe6ad2:frame356
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame356FixtureId[] = "brave1_89_132_windows10_21h1_00fe6ad2:frame356";
-inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame356SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/windows_10_21H1,_brave_1_89_132,_auto_Windows_10_0,_auto_Chromiu.pcap";
+inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame356SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/windows_10_21H1,_brave_1_89_132,_auto_Windows_10_0,_auto_Chromiu.pcap";
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame356SourceSha256[] = "9c387f64a6a041b73912c006932eb22ffce20a631ef937736b265286aa7d61d6";
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame356CaptureDateUtc[] = "2026-04-11T11:51:07Z";
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame356ParserVersion[] = "tls-clienthello-parser-v1";
@@ -6807,7 +6807,7 @@ inline constexpr EchExpectation brave1_89_132_windows10_21h1_00fe6ad2_frame356Ec
 
 // fixture_id=brave1_89_132_windows10_21h1_00fe6ad2:frame395
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame395FixtureId[] = "brave1_89_132_windows10_21h1_00fe6ad2:frame395";
-inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame395SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/windows_10_21H1,_brave_1_89_132,_auto_Windows_10_0,_auto_Chromiu.pcap";
+inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame395SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/windows_10_21H1,_brave_1_89_132,_auto_Windows_10_0,_auto_Chromiu.pcap";
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame395SourceSha256[] = "9c387f64a6a041b73912c006932eb22ffce20a631ef937736b265286aa7d61d6";
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame395CaptureDateUtc[] = "2026-04-11T11:51:07Z";
 inline constexpr const char brave1_89_132_windows10_21h1_00fe6ad2_frame395ParserVersion[] = "tls-clienthello-parser-v1";
@@ -6832,7 +6832,7 @@ inline constexpr EchExpectation brave1_89_132_windows10_21h1_00fe6ad2_frame395Ec
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95.clienthello.json
 // fixture_id=chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame17
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame17FixtureId[] = "chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame17";
-inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame17SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
+inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame17SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame17SourceSha256[] = "40f5dd4d2e07e04dc163de302af7af155b0753a243e95003c8439e0468c079cb";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame17CaptureDateUtc[] = "2026-04-11T13:46:21Z";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame17ParserVersion[] = "tls-clienthello-parser-v1";
@@ -6856,7 +6856,7 @@ inline constexpr EchExpectation chrome109_0_5414_120_windows7_pro_6_1_7601_356ec
 
 // fixture_id=chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame86
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame86FixtureId[] = "chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame86";
-inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame86SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
+inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame86SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame86SourceSha256[] = "40f5dd4d2e07e04dc163de302af7af155b0753a243e95003c8439e0468c079cb";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame86CaptureDateUtc[] = "2026-04-11T13:46:21Z";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame86ParserVersion[] = "tls-clienthello-parser-v1";
@@ -6880,7 +6880,7 @@ inline constexpr EchExpectation chrome109_0_5414_120_windows7_pro_6_1_7601_356ec
 
 // fixture_id=chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame111
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame111FixtureId[] = "chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame111";
-inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame111SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
+inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame111SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame111SourceSha256[] = "40f5dd4d2e07e04dc163de302af7af155b0753a243e95003c8439e0468c079cb";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame111CaptureDateUtc[] = "2026-04-11T13:46:21Z";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame111ParserVersion[] = "tls-clienthello-parser-v1";
@@ -6904,7 +6904,7 @@ inline constexpr EchExpectation chrome109_0_5414_120_windows7_pro_6_1_7601_356ec
 
 // fixture_id=chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame126
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame126FixtureId[] = "chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame126";
-inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame126SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
+inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame126SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame126SourceSha256[] = "40f5dd4d2e07e04dc163de302af7af155b0753a243e95003c8439e0468c079cb";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame126CaptureDateUtc[] = "2026-04-11T13:46:21Z";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame126ParserVersion[] = "tls-clienthello-parser-v1";
@@ -6928,7 +6928,7 @@ inline constexpr EchExpectation chrome109_0_5414_120_windows7_pro_6_1_7601_356ec
 
 // fixture_id=chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame193
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame193FixtureId[] = "chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame193";
-inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame193SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
+inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame193SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame193SourceSha256[] = "40f5dd4d2e07e04dc163de302af7af155b0753a243e95003c8439e0468c079cb";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame193CaptureDateUtc[] = "2026-04-11T13:46:21Z";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame193ParserVersion[] = "tls-clienthello-parser-v1";
@@ -6952,7 +6952,7 @@ inline constexpr EchExpectation chrome109_0_5414_120_windows7_pro_6_1_7601_356ec
 
 // fixture_id=chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame224
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame224FixtureId[] = "chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame224";
-inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame224SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
+inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame224SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame224SourceSha256[] = "40f5dd4d2e07e04dc163de302af7af155b0753a243e95003c8439e0468c079cb";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame224CaptureDateUtc[] = "2026-04-11T13:46:21Z";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame224ParserVersion[] = "tls-clienthello-parser-v1";
@@ -6976,7 +6976,7 @@ inline constexpr EchExpectation chrome109_0_5414_120_windows7_pro_6_1_7601_356ec
 
 // fixture_id=chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame287
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame287FixtureId[] = "chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame287";
-inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame287SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
+inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame287SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame287SourceSha256[] = "40f5dd4d2e07e04dc163de302af7af155b0753a243e95003c8439e0468c079cb";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame287CaptureDateUtc[] = "2026-04-11T13:46:21Z";
 inline constexpr const char chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95_frame287ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7001,7 +7001,7 @@ inline constexpr EchExpectation chrome109_0_5414_120_windows7_pro_6_1_7601_356ec
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6.clienthello.json
 // fixture_id=chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6:frame60
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame60FixtureId[] = "chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6:frame60";
-inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame60SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap";
+inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame60SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame60SourceSha256[] = "1f92bac1397503e2281510303b5bb2059488f0e3ac901c2971d93553672ec593";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame60CaptureDateUtc[] = "2026-04-11T13:36:05Z";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame60ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7025,7 +7025,7 @@ inline constexpr EchExpectation chrome109_0_54_windowsserver_2008_r2_standart_6_
 
 // fixture_id=chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6:frame64
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame64FixtureId[] = "chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6:frame64";
-inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame64SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap";
+inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame64SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame64SourceSha256[] = "1f92bac1397503e2281510303b5bb2059488f0e3ac901c2971d93553672ec593";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame64CaptureDateUtc[] = "2026-04-11T13:36:05Z";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame64ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7049,7 +7049,7 @@ inline constexpr EchExpectation chrome109_0_54_windowsserver_2008_r2_standart_6_
 
 // fixture_id=chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6:frame86
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame86FixtureId[] = "chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6:frame86";
-inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame86SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap";
+inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame86SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame86SourceSha256[] = "1f92bac1397503e2281510303b5bb2059488f0e3ac901c2971d93553672ec593";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame86CaptureDateUtc[] = "2026-04-11T13:36:05Z";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame86ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7073,7 +7073,7 @@ inline constexpr EchExpectation chrome109_0_54_windowsserver_2008_r2_standart_6_
 
 // fixture_id=chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6:frame256
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame256FixtureId[] = "chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6:frame256";
-inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame256SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap";
+inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame256SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame256SourceSha256[] = "1f92bac1397503e2281510303b5bb2059488f0e3ac901c2971d93553672ec593";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame256CaptureDateUtc[] = "2026-04-11T13:36:05Z";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame256ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7097,7 +7097,7 @@ inline constexpr EchExpectation chrome109_0_54_windowsserver_2008_r2_standart_6_
 
 // fixture_id=chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6:frame301
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame301FixtureId[] = "chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6:frame301";
-inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame301SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap";
+inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame301SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame301SourceSha256[] = "1f92bac1397503e2281510303b5bb2059488f0e3ac901c2971d93553672ec593";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame301CaptureDateUtc[] = "2026-04-11T13:36:05Z";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame301ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7121,7 +7121,7 @@ inline constexpr EchExpectation chrome109_0_54_windowsserver_2008_r2_standart_6_
 
 // fixture_id=chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6:frame317
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame317FixtureId[] = "chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6:frame317";
-inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame317SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap";
+inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame317SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame317SourceSha256[] = "1f92bac1397503e2281510303b5bb2059488f0e3ac901c2971d93553672ec593";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame317CaptureDateUtc[] = "2026-04-11T13:36:05Z";
 inline constexpr const char chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_frame317ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7146,7 +7146,7 @@ inline constexpr EchExpectation chrome109_0_54_windowsserver_2008_r2_standart_6_
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5.clienthello.json
 // fixture_id=chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame79
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame79FixtureId[] = "chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame79";
-inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame79SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap";
+inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame79SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame79SourceSha256[] = "eddc88557a4c2ef0e5893d0702a238fdd130b02654f2330cde2500344a600cac";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame79CaptureDateUtc[] = "2026-04-11T12:58:55Z";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame79ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7170,7 +7170,7 @@ inline constexpr EchExpectation chrome109_0_54_windowsserver_2012_r2_standart_6_
 
 // fixture_id=chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame95
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame95FixtureId[] = "chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame95";
-inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame95SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap";
+inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame95SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame95SourceSha256[] = "eddc88557a4c2ef0e5893d0702a238fdd130b02654f2330cde2500344a600cac";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame95CaptureDateUtc[] = "2026-04-11T12:58:55Z";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame95ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7194,7 +7194,7 @@ inline constexpr EchExpectation chrome109_0_54_windowsserver_2012_r2_standart_6_
 
 // fixture_id=chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame128
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame128FixtureId[] = "chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame128";
-inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame128SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap";
+inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame128SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame128SourceSha256[] = "eddc88557a4c2ef0e5893d0702a238fdd130b02654f2330cde2500344a600cac";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame128CaptureDateUtc[] = "2026-04-11T12:58:55Z";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame128ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7218,7 +7218,7 @@ inline constexpr EchExpectation chrome109_0_54_windowsserver_2012_r2_standart_6_
 
 // fixture_id=chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame275
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame275FixtureId[] = "chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame275";
-inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame275SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap";
+inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame275SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame275SourceSha256[] = "eddc88557a4c2ef0e5893d0702a238fdd130b02654f2330cde2500344a600cac";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame275CaptureDateUtc[] = "2026-04-11T12:58:55Z";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame275ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7242,7 +7242,7 @@ inline constexpr EchExpectation chrome109_0_54_windowsserver_2012_r2_standart_6_
 
 // fixture_id=chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame316
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame316FixtureId[] = "chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame316";
-inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame316SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap";
+inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame316SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame316SourceSha256[] = "eddc88557a4c2ef0e5893d0702a238fdd130b02654f2330cde2500344a600cac";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame316CaptureDateUtc[] = "2026-04-11T12:58:55Z";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame316ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7266,7 +7266,7 @@ inline constexpr EchExpectation chrome109_0_54_windowsserver_2012_r2_standart_6_
 
 // fixture_id=chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame361
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame361FixtureId[] = "chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame361";
-inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame361SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap";
+inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame361SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame361SourceSha256[] = "eddc88557a4c2ef0e5893d0702a238fdd130b02654f2330cde2500344a600cac";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame361CaptureDateUtc[] = "2026-04-11T12:58:55Z";
 inline constexpr const char chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5_frame361ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7291,7 +7291,7 @@ inline constexpr EchExpectation chrome109_0_54_windowsserver_2012_r2_standart_6_
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977.clienthello.json
 // fixture_id=chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977:frame62
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame62FixtureId[] = "chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977:frame62";
-inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame62SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_146_0_7680_178,_au.pcap";
+inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame62SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_146_0_7680_178,_au.pcap";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame62SourceSha256[] = "0494d8dfa8ebde89b716f918fb23a896563e9a0124b94a24e85c9511e4d76a42";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame62CaptureDateUtc[] = "2026-04-11T12:20:32Z";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame62ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7315,7 +7315,7 @@ inline constexpr EchExpectation chrome146_0_7680_178_windows10_pro_22h2_19045_64
 
 // fixture_id=chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977:frame79
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame79FixtureId[] = "chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977:frame79";
-inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame79SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_146_0_7680_178,_au.pcap";
+inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame79SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_146_0_7680_178,_au.pcap";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame79SourceSha256[] = "0494d8dfa8ebde89b716f918fb23a896563e9a0124b94a24e85c9511e4d76a42";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame79CaptureDateUtc[] = "2026-04-11T12:20:32Z";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame79ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7339,7 +7339,7 @@ inline constexpr EchExpectation chrome146_0_7680_178_windows10_pro_22h2_19045_64
 
 // fixture_id=chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977:frame95
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame95FixtureId[] = "chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977:frame95";
-inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame95SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_146_0_7680_178,_au.pcap";
+inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame95SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_146_0_7680_178,_au.pcap";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame95SourceSha256[] = "0494d8dfa8ebde89b716f918fb23a896563e9a0124b94a24e85c9511e4d76a42";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame95CaptureDateUtc[] = "2026-04-11T12:20:32Z";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame95ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7363,7 +7363,7 @@ inline constexpr EchExpectation chrome146_0_7680_178_windows10_pro_22h2_19045_64
 
 // fixture_id=chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977:frame274
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame274FixtureId[] = "chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977:frame274";
-inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame274SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_146_0_7680_178,_au.pcap";
+inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame274SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_146_0_7680_178,_au.pcap";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame274SourceSha256[] = "0494d8dfa8ebde89b716f918fb23a896563e9a0124b94a24e85c9511e4d76a42";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame274CaptureDateUtc[] = "2026-04-11T12:20:32Z";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame274ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7387,7 +7387,7 @@ inline constexpr EchExpectation chrome146_0_7680_178_windows10_pro_22h2_19045_64
 
 // fixture_id=chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977:frame344
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame344FixtureId[] = "chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977:frame344";
-inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame344SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_146_0_7680_178,_au.pcap";
+inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame344SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_146_0_7680_178,_au.pcap";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame344SourceSha256[] = "0494d8dfa8ebde89b716f918fb23a896563e9a0124b94a24e85c9511e4d76a42";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame344CaptureDateUtc[] = "2026-04-11T12:20:32Z";
 inline constexpr const char chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977_frame344ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7412,7 +7412,7 @@ inline constexpr EchExpectation chrome146_0_7680_178_windows10_pro_22h2_19045_64
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729.clienthello.json
 // fixture_id=chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729:frame111
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame111FixtureId[] = "chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729:frame111";
-inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame111SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8117,_Chrome_146_0_7680_178.pcap";
+inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame111SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_Build_26200_8117,_Chrome_146_0_7680_178.pcap";
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame111SourceSha256[] = "fcb3bed2e07349f65433618ec4298061f1a4dd2fc4603b235e60279e647681f4";
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame111CaptureDateUtc[] = "2026-04-11T13:45:33Z";
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame111ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7436,7 +7436,7 @@ inline constexpr EchExpectation chrome146_0_7680_178_windows11_version_25h2_buil
 
 // fixture_id=chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729:frame132
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame132FixtureId[] = "chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729:frame132";
-inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame132SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8117,_Chrome_146_0_7680_178.pcap";
+inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame132SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_Build_26200_8117,_Chrome_146_0_7680_178.pcap";
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame132SourceSha256[] = "fcb3bed2e07349f65433618ec4298061f1a4dd2fc4603b235e60279e647681f4";
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame132CaptureDateUtc[] = "2026-04-11T13:45:33Z";
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame132ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7460,7 +7460,7 @@ inline constexpr EchExpectation chrome146_0_7680_178_windows11_version_25h2_buil
 
 // fixture_id=chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729:frame382
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame382FixtureId[] = "chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729:frame382";
-inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame382SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8117,_Chrome_146_0_7680_178.pcap";
+inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame382SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_Build_26200_8117,_Chrome_146_0_7680_178.pcap";
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame382SourceSha256[] = "fcb3bed2e07349f65433618ec4298061f1a4dd2fc4603b235e60279e647681f4";
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame382CaptureDateUtc[] = "2026-04-11T13:45:33Z";
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame382ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7484,7 +7484,7 @@ inline constexpr EchExpectation chrome146_0_7680_178_windows11_version_25h2_buil
 
 // fixture_id=chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729:frame398
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame398FixtureId[] = "chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729:frame398";
-inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame398SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8117,_Chrome_146_0_7680_178.pcap";
+inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame398SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_Build_26200_8117,_Chrome_146_0_7680_178.pcap";
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame398SourceSha256[] = "fcb3bed2e07349f65433618ec4298061f1a4dd2fc4603b235e60279e647681f4";
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame398CaptureDateUtc[] = "2026-04-11T13:45:33Z";
 inline constexpr const char chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_frame398ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7509,7 +7509,7 @@ inline constexpr EchExpectation chrome146_0_7680_178_windows11_version_25h2_buil
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d.clienthello.json
 // fixture_id=chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d:frame83
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame83FixtureId[] = "chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d:frame83";
-inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame83SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0_Версия_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap";
+inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame83SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0_Версия_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame83SourceSha256[] = "528314ee0410569e006b9cb6ebf8d711c7f2203513a62bd3f09641c18a51d7da";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame83CaptureDateUtc[] = "2026-04-11T13:17:37Z";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame83ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7533,7 +7533,7 @@ inline constexpr EchExpectation chrome146_0_7680_17_windows10_0_version_21h2_190
 
 // fixture_id=chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d:frame98
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame98FixtureId[] = "chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d:frame98";
-inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame98SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0_Версия_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap";
+inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame98SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0_Версия_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame98SourceSha256[] = "528314ee0410569e006b9cb6ebf8d711c7f2203513a62bd3f09641c18a51d7da";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame98CaptureDateUtc[] = "2026-04-11T13:17:37Z";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame98ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7557,7 +7557,7 @@ inline constexpr EchExpectation chrome146_0_7680_17_windows10_0_version_21h2_190
 
 // fixture_id=chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d:frame132
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame132FixtureId[] = "chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d:frame132";
-inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame132SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0_Версия_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap";
+inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame132SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0_Версия_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame132SourceSha256[] = "528314ee0410569e006b9cb6ebf8d711c7f2203513a62bd3f09641c18a51d7da";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame132CaptureDateUtc[] = "2026-04-11T13:17:37Z";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame132ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7581,7 +7581,7 @@ inline constexpr EchExpectation chrome146_0_7680_17_windows10_0_version_21h2_190
 
 // fixture_id=chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d:frame327
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame327FixtureId[] = "chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d:frame327";
-inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame327SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0_Версия_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap";
+inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame327SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0_Версия_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame327SourceSha256[] = "528314ee0410569e006b9cb6ebf8d711c7f2203513a62bd3f09641c18a51d7da";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame327CaptureDateUtc[] = "2026-04-11T13:17:37Z";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame327ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7605,7 +7605,7 @@ inline constexpr EchExpectation chrome146_0_7680_17_windows10_0_version_21h2_190
 
 // fixture_id=chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d:frame351
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame351FixtureId[] = "chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d:frame351";
-inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame351SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0_Версия_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap";
+inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame351SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0_Версия_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame351SourceSha256[] = "528314ee0410569e006b9cb6ebf8d711c7f2203513a62bd3f09641c18a51d7da";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame351CaptureDateUtc[] = "2026-04-11T13:17:37Z";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame351ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7629,7 +7629,7 @@ inline constexpr EchExpectation chrome146_0_7680_17_windows10_0_version_21h2_190
 
 // fixture_id=chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d:frame379
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame379FixtureId[] = "chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d:frame379";
-inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame379SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0_Версия_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap";
+inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame379SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0_Версия_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame379SourceSha256[] = "528314ee0410569e006b9cb6ebf8d711c7f2203513a62bd3f09641c18a51d7da";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame379CaptureDateUtc[] = "2026-04-11T13:17:37Z";
 inline constexpr const char chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d_frame379ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7654,7 +7654,7 @@ inline constexpr EchExpectation chrome146_0_7680_17_windows10_0_version_21h2_190
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61.clienthello.json
 // fixture_id=chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61:frame90
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame90FixtureId[] = "chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61:frame90";
-inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame90SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap";
+inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame90SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame90SourceSha256[] = "7355cde6cee7bb4fe9e9fcb70f56de0b52ffc79bb5859f778a102798dd4fe2bf";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame90CaptureDateUtc[] = "2026-04-11T13:04:59Z";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame90ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7678,7 +7678,7 @@ inline constexpr EchExpectation chrome146_0_7680_180_windows10_pro_22h2_19045_56
 
 // fixture_id=chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61:frame92
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame92FixtureId[] = "chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61:frame92";
-inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame92SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap";
+inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame92SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame92SourceSha256[] = "7355cde6cee7bb4fe9e9fcb70f56de0b52ffc79bb5859f778a102798dd4fe2bf";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame92CaptureDateUtc[] = "2026-04-11T13:04:59Z";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame92ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7702,7 +7702,7 @@ inline constexpr EchExpectation chrome146_0_7680_180_windows10_pro_22h2_19045_56
 
 // fixture_id=chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61:frame142
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame142FixtureId[] = "chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61:frame142";
-inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame142SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap";
+inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame142SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame142SourceSha256[] = "7355cde6cee7bb4fe9e9fcb70f56de0b52ffc79bb5859f778a102798dd4fe2bf";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame142CaptureDateUtc[] = "2026-04-11T13:04:59Z";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame142ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7726,7 +7726,7 @@ inline constexpr EchExpectation chrome146_0_7680_180_windows10_pro_22h2_19045_56
 
 // fixture_id=chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61:frame365
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame365FixtureId[] = "chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61:frame365";
-inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame365SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap";
+inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame365SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame365SourceSha256[] = "7355cde6cee7bb4fe9e9fcb70f56de0b52ffc79bb5859f778a102798dd4fe2bf";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame365CaptureDateUtc[] = "2026-04-11T13:04:59Z";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame365ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7750,7 +7750,7 @@ inline constexpr EchExpectation chrome146_0_7680_180_windows10_pro_22h2_19045_56
 
 // fixture_id=chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61:frame369
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame369FixtureId[] = "chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61:frame369";
-inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame369SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap";
+inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame369SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame369SourceSha256[] = "7355cde6cee7bb4fe9e9fcb70f56de0b52ffc79bb5859f778a102798dd4fe2bf";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame369CaptureDateUtc[] = "2026-04-11T13:04:59Z";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame369ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7774,7 +7774,7 @@ inline constexpr EchExpectation chrome146_0_7680_180_windows10_pro_22h2_19045_56
 
 // fixture_id=chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61:frame431
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame431FixtureId[] = "chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61:frame431";
-inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame431SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap";
+inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame431SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame431SourceSha256[] = "7355cde6cee7bb4fe9e9fcb70f56de0b52ffc79bb5859f778a102798dd4fe2bf";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame431CaptureDateUtc[] = "2026-04-11T13:04:59Z";
 inline constexpr const char chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61_frame431ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7799,7 +7799,7 @@ inline constexpr EchExpectation chrome146_0_7680_180_windows10_pro_22h2_19045_56
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d.clienthello.json
 // fixture_id=chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame69
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame69FixtureId[] = "chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame69";
-inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame69SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap";
+inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame69SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame69SourceSha256[] = "475ac18a9a00dafe84add1fe371a76aa482c34f4127d2f21e9b1a231bc66b4a1";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame69CaptureDateUtc[] = "2026-04-11T12:47:59Z";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame69ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7823,7 +7823,7 @@ inline constexpr EchExpectation chrome146_windowsserver_2019_standart_1809_17763
 
 // fixture_id=chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame108
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame108FixtureId[] = "chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame108";
-inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame108SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap";
+inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame108SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame108SourceSha256[] = "475ac18a9a00dafe84add1fe371a76aa482c34f4127d2f21e9b1a231bc66b4a1";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame108CaptureDateUtc[] = "2026-04-11T12:47:59Z";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame108ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7847,7 +7847,7 @@ inline constexpr EchExpectation chrome146_windowsserver_2019_standart_1809_17763
 
 // fixture_id=chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame141
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame141FixtureId[] = "chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame141";
-inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame141SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap";
+inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame141SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame141SourceSha256[] = "475ac18a9a00dafe84add1fe371a76aa482c34f4127d2f21e9b1a231bc66b4a1";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame141CaptureDateUtc[] = "2026-04-11T12:47:59Z";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame141ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7871,7 +7871,7 @@ inline constexpr EchExpectation chrome146_windowsserver_2019_standart_1809_17763
 
 // fixture_id=chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame313
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame313FixtureId[] = "chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame313";
-inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame313SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap";
+inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame313SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame313SourceSha256[] = "475ac18a9a00dafe84add1fe371a76aa482c34f4127d2f21e9b1a231bc66b4a1";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame313CaptureDateUtc[] = "2026-04-11T12:47:59Z";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame313ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7895,7 +7895,7 @@ inline constexpr EchExpectation chrome146_windowsserver_2019_standart_1809_17763
 
 // fixture_id=chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame353
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame353FixtureId[] = "chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame353";
-inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame353SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap";
+inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame353SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame353SourceSha256[] = "475ac18a9a00dafe84add1fe371a76aa482c34f4127d2f21e9b1a231bc66b4a1";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame353CaptureDateUtc[] = "2026-04-11T12:47:59Z";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame353ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7919,7 +7919,7 @@ inline constexpr EchExpectation chrome146_windowsserver_2019_standart_1809_17763
 
 // fixture_id=chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame404
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame404FixtureId[] = "chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame404";
-inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame404SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap";
+inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame404SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame404SourceSha256[] = "475ac18a9a00dafe84add1fe371a76aa482c34f4127d2f21e9b1a231bc66b4a1";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame404CaptureDateUtc[] = "2026-04-11T12:47:59Z";
 inline constexpr const char chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d_frame404ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7944,7 +7944,7 @@ inline constexpr EchExpectation chrome146_windowsserver_2019_standart_1809_17763
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chrome147_0_7727_55_windows10_0_8ce44de0.clienthello.json
 // fixture_id=chrome147_0_7727_55_windows10_0_8ce44de0:frame76
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame76FixtureId[] = "chrome147_0_7727_55_windows10_0_8ce44de0:frame76";
-inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame76SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame76SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame76SourceSha256[] = "ac28b76805efeca5bd8e8c0e379e4a86c1cae82b6f394115c9962f603fdacced";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame76CaptureDateUtc[] = "2026-04-11T13:14:19Z";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame76ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7968,7 +7968,7 @@ inline constexpr EchExpectation chrome147_0_7727_55_windows10_0_8ce44de0_frame76
 
 // fixture_id=chrome147_0_7727_55_windows10_0_8ce44de0:frame93
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame93FixtureId[] = "chrome147_0_7727_55_windows10_0_8ce44de0:frame93";
-inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame93SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame93SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame93SourceSha256[] = "ac28b76805efeca5bd8e8c0e379e4a86c1cae82b6f394115c9962f603fdacced";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame93CaptureDateUtc[] = "2026-04-11T13:14:19Z";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame93ParserVersion[] = "tls-clienthello-parser-v1";
@@ -7992,7 +7992,7 @@ inline constexpr EchExpectation chrome147_0_7727_55_windows10_0_8ce44de0_frame93
 
 // fixture_id=chrome147_0_7727_55_windows10_0_8ce44de0:frame110
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame110FixtureId[] = "chrome147_0_7727_55_windows10_0_8ce44de0:frame110";
-inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame110SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame110SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame110SourceSha256[] = "ac28b76805efeca5bd8e8c0e379e4a86c1cae82b6f394115c9962f603fdacced";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame110CaptureDateUtc[] = "2026-04-11T13:14:19Z";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame110ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8016,7 +8016,7 @@ inline constexpr EchExpectation chrome147_0_7727_55_windows10_0_8ce44de0_frame11
 
 // fixture_id=chrome147_0_7727_55_windows10_0_8ce44de0:frame280
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame280FixtureId[] = "chrome147_0_7727_55_windows10_0_8ce44de0:frame280";
-inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame280SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame280SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame280SourceSha256[] = "ac28b76805efeca5bd8e8c0e379e4a86c1cae82b6f394115c9962f603fdacced";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame280CaptureDateUtc[] = "2026-04-11T13:14:19Z";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame280ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8040,7 +8040,7 @@ inline constexpr EchExpectation chrome147_0_7727_55_windows10_0_8ce44de0_frame28
 
 // fixture_id=chrome147_0_7727_55_windows10_0_8ce44de0:frame298
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame298FixtureId[] = "chrome147_0_7727_55_windows10_0_8ce44de0:frame298";
-inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame298SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame298SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame298SourceSha256[] = "ac28b76805efeca5bd8e8c0e379e4a86c1cae82b6f394115c9962f603fdacced";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame298CaptureDateUtc[] = "2026-04-11T13:14:19Z";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame298ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8064,7 +8064,7 @@ inline constexpr EchExpectation chrome147_0_7727_55_windows10_0_8ce44de0_frame29
 
 // fixture_id=chrome147_0_7727_55_windows10_0_8ce44de0:frame354
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame354FixtureId[] = "chrome147_0_7727_55_windows10_0_8ce44de0:frame354";
-inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame354SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame354SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame354SourceSha256[] = "ac28b76805efeca5bd8e8c0e379e4a86c1cae82b6f394115c9962f603fdacced";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame354CaptureDateUtc[] = "2026-04-11T13:14:19Z";
 inline constexpr const char chrome147_0_7727_55_windows10_0_8ce44de0_frame354ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8089,7 +8089,7 @@ inline constexpr EchExpectation chrome147_0_7727_55_windows10_0_8ce44de0_frame35
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355.clienthello.json
 // fixture_id=chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355:frame112
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame112FixtureId[] = "chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355:frame112";
-inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame112SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap";
+inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame112SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame112SourceSha256[] = "b0f38ea0b6f3ff64515f362afc6a8338722d5ccb62166cd58bba4b2ecd599850";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame112CaptureDateUtc[] = "2026-04-11T13:33:27Z";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame112ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8113,7 +8113,7 @@ inline constexpr EchExpectation chrome147_0_7727_55_windows10_22h2_19045_7058_b9
 
 // fixture_id=chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355:frame128
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame128FixtureId[] = "chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355:frame128";
-inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame128SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap";
+inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame128SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame128SourceSha256[] = "b0f38ea0b6f3ff64515f362afc6a8338722d5ccb62166cd58bba4b2ecd599850";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame128CaptureDateUtc[] = "2026-04-11T13:33:27Z";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame128ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8137,7 +8137,7 @@ inline constexpr EchExpectation chrome147_0_7727_55_windows10_22h2_19045_7058_b9
 
 // fixture_id=chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355:frame165
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame165FixtureId[] = "chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355:frame165";
-inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame165SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap";
+inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame165SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame165SourceSha256[] = "b0f38ea0b6f3ff64515f362afc6a8338722d5ccb62166cd58bba4b2ecd599850";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame165CaptureDateUtc[] = "2026-04-11T13:33:27Z";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame165ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8161,7 +8161,7 @@ inline constexpr EchExpectation chrome147_0_7727_55_windows10_22h2_19045_7058_b9
 
 // fixture_id=chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355:frame383
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame383FixtureId[] = "chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355:frame383";
-inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame383SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap";
+inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame383SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame383SourceSha256[] = "b0f38ea0b6f3ff64515f362afc6a8338722d5ccb62166cd58bba4b2ecd599850";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame383CaptureDateUtc[] = "2026-04-11T13:33:27Z";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame383ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8185,7 +8185,7 @@ inline constexpr EchExpectation chrome147_0_7727_55_windows10_22h2_19045_7058_b9
 
 // fixture_id=chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355:frame399
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame399FixtureId[] = "chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355:frame399";
-inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame399SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap";
+inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame399SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame399SourceSha256[] = "b0f38ea0b6f3ff64515f362afc6a8338722d5ccb62166cd58bba4b2ecd599850";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame399CaptureDateUtc[] = "2026-04-11T13:33:27Z";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame399ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8209,7 +8209,7 @@ inline constexpr EchExpectation chrome147_0_7727_55_windows10_22h2_19045_7058_b9
 
 // fixture_id=chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355:frame454
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame454FixtureId[] = "chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355:frame454";
-inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame454SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap";
+inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame454SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame454SourceSha256[] = "b0f38ea0b6f3ff64515f362afc6a8338722d5ccb62166cd58bba4b2ecd599850";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame454CaptureDateUtc[] = "2026-04-11T13:33:27Z";
 inline constexpr const char chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355_frame454ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8234,7 +8234,7 @@ inline constexpr EchExpectation chrome147_0_7727_55_windows10_22h2_19045_7058_b9
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210.clienthello.json
 // fixture_id=chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame77
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame77FixtureId[] = "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame77";
-inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame77SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap";
+inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame77SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame77SourceSha256[] = "c8146166f834e3a01863f117a35f3480c2c461e876453f6b85c28eebe3f6d698";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame77CaptureDateUtc[] = "2026-04-11T12:21:39Z";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame77ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8258,7 +8258,7 @@ inline constexpr EchExpectation chrome147_0_7727_56_windows10_pro_22h2_19045_645
 
 // fixture_id=chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame93
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame93FixtureId[] = "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame93";
-inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame93SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap";
+inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame93SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame93SourceSha256[] = "c8146166f834e3a01863f117a35f3480c2c461e876453f6b85c28eebe3f6d698";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame93CaptureDateUtc[] = "2026-04-11T12:21:39Z";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame93ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8282,7 +8282,7 @@ inline constexpr EchExpectation chrome147_0_7727_56_windows10_pro_22h2_19045_645
 
 // fixture_id=chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame129
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame129FixtureId[] = "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame129";
-inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame129SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap";
+inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame129SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame129SourceSha256[] = "c8146166f834e3a01863f117a35f3480c2c461e876453f6b85c28eebe3f6d698";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame129CaptureDateUtc[] = "2026-04-11T12:21:39Z";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame129ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8306,7 +8306,7 @@ inline constexpr EchExpectation chrome147_0_7727_56_windows10_pro_22h2_19045_645
 
 // fixture_id=chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame296
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame296FixtureId[] = "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame296";
-inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame296SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap";
+inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame296SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame296SourceSha256[] = "c8146166f834e3a01863f117a35f3480c2c461e876453f6b85c28eebe3f6d698";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame296CaptureDateUtc[] = "2026-04-11T12:21:39Z";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame296ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8330,7 +8330,7 @@ inline constexpr EchExpectation chrome147_0_7727_56_windows10_pro_22h2_19045_645
 
 // fixture_id=chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame312
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame312FixtureId[] = "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame312";
-inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame312SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap";
+inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame312SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame312SourceSha256[] = "c8146166f834e3a01863f117a35f3480c2c461e876453f6b85c28eebe3f6d698";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame312CaptureDateUtc[] = "2026-04-11T12:21:39Z";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame312ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8354,7 +8354,7 @@ inline constexpr EchExpectation chrome147_0_7727_56_windows10_pro_22h2_19045_645
 
 // fixture_id=chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame367
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame367FixtureId[] = "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame367";
-inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame367SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap";
+inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame367SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame367SourceSha256[] = "c8146166f834e3a01863f117a35f3480c2c461e876453f6b85c28eebe3f6d698";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame367CaptureDateUtc[] = "2026-04-11T12:21:39Z";
 inline constexpr const char chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_frame367ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8379,7 +8379,7 @@ inline constexpr EchExpectation chrome147_0_7727_56_windows10_pro_22h2_19045_645
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chromium142_windows11_23h2_2c4b2b22.clienthello.json
 // fixture_id=chromium142_windows11_23h2_2c4b2b22:frame83
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame83FixtureId[] = "chromium142_windows11_23h2_2c4b2b22:frame83";
-inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame83SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_23h2,_Chromium_142,_auto_Windows_10_0,_auto_Chromium.pcap";
+inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame83SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_23h2,_Chromium_142,_auto_Windows_10_0,_auto_Chromium.pcap";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame83SourceSha256[] = "ad59c803602c23f8ebb7377db5ffb3a26d714e3bfe6db8d4ea02323feae2e63e";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame83CaptureDateUtc[] = "2026-04-11T13:07:24Z";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame83ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8403,7 +8403,7 @@ inline constexpr EchExpectation chromium142_windows11_23h2_2c4b2b22_frame83Ech{t
 
 // fixture_id=chromium142_windows11_23h2_2c4b2b22:frame214
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame214FixtureId[] = "chromium142_windows11_23h2_2c4b2b22:frame214";
-inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame214SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_23h2,_Chromium_142,_auto_Windows_10_0,_auto_Chromium.pcap";
+inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame214SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_23h2,_Chromium_142,_auto_Windows_10_0,_auto_Chromium.pcap";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame214SourceSha256[] = "ad59c803602c23f8ebb7377db5ffb3a26d714e3bfe6db8d4ea02323feae2e63e";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame214CaptureDateUtc[] = "2026-04-11T13:07:24Z";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame214ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8427,7 +8427,7 @@ inline constexpr EchExpectation chromium142_windows11_23h2_2c4b2b22_frame214Ech{
 
 // fixture_id=chromium142_windows11_23h2_2c4b2b22:frame229
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame229FixtureId[] = "chromium142_windows11_23h2_2c4b2b22:frame229";
-inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame229SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_23h2,_Chromium_142,_auto_Windows_10_0,_auto_Chromium.pcap";
+inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame229SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_23h2,_Chromium_142,_auto_Windows_10_0,_auto_Chromium.pcap";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame229SourceSha256[] = "ad59c803602c23f8ebb7377db5ffb3a26d714e3bfe6db8d4ea02323feae2e63e";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame229CaptureDateUtc[] = "2026-04-11T13:07:24Z";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame229ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8451,7 +8451,7 @@ inline constexpr EchExpectation chromium142_windows11_23h2_2c4b2b22_frame229Ech{
 
 // fixture_id=chromium142_windows11_23h2_2c4b2b22:frame306
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame306FixtureId[] = "chromium142_windows11_23h2_2c4b2b22:frame306";
-inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame306SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_23h2,_Chromium_142,_auto_Windows_10_0,_auto_Chromium.pcap";
+inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame306SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_23h2,_Chromium_142,_auto_Windows_10_0,_auto_Chromium.pcap";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame306SourceSha256[] = "ad59c803602c23f8ebb7377db5ffb3a26d714e3bfe6db8d4ea02323feae2e63e";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame306CaptureDateUtc[] = "2026-04-11T13:07:24Z";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame306ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8475,7 +8475,7 @@ inline constexpr EchExpectation chromium142_windows11_23h2_2c4b2b22_frame306Ech{
 
 // fixture_id=chromium142_windows11_23h2_2c4b2b22:frame354
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame354FixtureId[] = "chromium142_windows11_23h2_2c4b2b22:frame354";
-inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame354SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_23h2,_Chromium_142,_auto_Windows_10_0,_auto_Chromium.pcap";
+inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame354SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_23h2,_Chromium_142,_auto_Windows_10_0,_auto_Chromium.pcap";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame354SourceSha256[] = "ad59c803602c23f8ebb7377db5ffb3a26d714e3bfe6db8d4ea02323feae2e63e";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame354CaptureDateUtc[] = "2026-04-11T13:07:24Z";
 inline constexpr const char chromium142_windows11_23h2_2c4b2b22_frame354ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8500,7 +8500,7 @@ inline constexpr EchExpectation chromium142_windows11_23h2_2c4b2b22_frame354Ech{
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45.clienthello.json
 // fixture_id=chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45:frame51
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame51FixtureId[] = "chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45:frame51";
-inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame51SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_4780,_Maxthon_7_5_2_5400_Chromium140_0.pcap";
+inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame51SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_4780,_Maxthon_7_5_2_5400_Chromium140_0.pcap";
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame51SourceSha256[] = "95e46d7572d9ff750001342579c0fa8339cfd3cc04c5d22c42e691fef830536a";
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame51CaptureDateUtc[] = "2026-04-11T12:18:44Z";
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame51ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8524,7 +8524,7 @@ inline constexpr EchExpectation chromiummaxthon_7_5_2_5400_chromium140_0_windows
 
 // fixture_id=chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45:frame151
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame151FixtureId[] = "chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45:frame151";
-inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame151SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_4780,_Maxthon_7_5_2_5400_Chromium140_0.pcap";
+inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame151SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_4780,_Maxthon_7_5_2_5400_Chromium140_0.pcap";
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame151SourceSha256[] = "95e46d7572d9ff750001342579c0fa8339cfd3cc04c5d22c42e691fef830536a";
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame151CaptureDateUtc[] = "2026-04-11T12:18:44Z";
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame151ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8548,7 +8548,7 @@ inline constexpr EchExpectation chromiummaxthon_7_5_2_5400_chromium140_0_windows
 
 // fixture_id=chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45:frame210
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame210FixtureId[] = "chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45:frame210";
-inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame210SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_4780,_Maxthon_7_5_2_5400_Chromium140_0.pcap";
+inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame210SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_4780,_Maxthon_7_5_2_5400_Chromium140_0.pcap";
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame210SourceSha256[] = "95e46d7572d9ff750001342579c0fa8339cfd3cc04c5d22c42e691fef830536a";
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame210CaptureDateUtc[] = "2026-04-11T12:18:44Z";
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame210ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8572,7 +8572,7 @@ inline constexpr EchExpectation chromiummaxthon_7_5_2_5400_chromium140_0_windows
 
 // fixture_id=chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45:frame232
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame232FixtureId[] = "chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45:frame232";
-inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame232SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_4780,_Maxthon_7_5_2_5400_Chromium140_0.pcap";
+inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame232SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_4780,_Maxthon_7_5_2_5400_Chromium140_0.pcap";
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame232SourceSha256[] = "95e46d7572d9ff750001342579c0fa8339cfd3cc04c5d22c42e691fef830536a";
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame232CaptureDateUtc[] = "2026-04-11T12:18:44Z";
 inline constexpr const char chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_frame232ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8597,7 +8597,7 @@ inline constexpr EchExpectation chromiummaxthon_7_5_2_5400_chromium140_0_windows
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/edge146_0_0_0_windows10_0_4b75427d.clienthello.json
 // fixture_id=edge146_0_0_0_windows10_0_4b75427d:frame119
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame119FixtureId[] = "edge146_0_0_0_windows10_0_4b75427d:frame119";
-inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame119SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap";
+inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame119SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame119SourceSha256[] = "5f82649c0b830dcd7661984f77ad672c6e0d5f9ca0bcdae7451d379ed7d041db";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame119CaptureDateUtc[] = "2026-04-11T13:20:52Z";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame119ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8621,7 +8621,7 @@ inline constexpr EchExpectation edge146_0_0_0_windows10_0_4b75427d_frame119Ech{t
 
 // fixture_id=edge146_0_0_0_windows10_0_4b75427d:frame143
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame143FixtureId[] = "edge146_0_0_0_windows10_0_4b75427d:frame143";
-inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame143SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap";
+inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame143SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame143SourceSha256[] = "5f82649c0b830dcd7661984f77ad672c6e0d5f9ca0bcdae7451d379ed7d041db";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame143CaptureDateUtc[] = "2026-04-11T13:20:52Z";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame143ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8645,7 +8645,7 @@ inline constexpr EchExpectation edge146_0_0_0_windows10_0_4b75427d_frame143Ech{t
 
 // fixture_id=edge146_0_0_0_windows10_0_4b75427d:frame175
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame175FixtureId[] = "edge146_0_0_0_windows10_0_4b75427d:frame175";
-inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame175SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap";
+inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame175SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame175SourceSha256[] = "5f82649c0b830dcd7661984f77ad672c6e0d5f9ca0bcdae7451d379ed7d041db";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame175CaptureDateUtc[] = "2026-04-11T13:20:52Z";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame175ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8669,7 +8669,7 @@ inline constexpr EchExpectation edge146_0_0_0_windows10_0_4b75427d_frame175Ech{t
 
 // fixture_id=edge146_0_0_0_windows10_0_4b75427d:frame415
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame415FixtureId[] = "edge146_0_0_0_windows10_0_4b75427d:frame415";
-inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame415SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap";
+inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame415SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame415SourceSha256[] = "5f82649c0b830dcd7661984f77ad672c6e0d5f9ca0bcdae7451d379ed7d041db";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame415CaptureDateUtc[] = "2026-04-11T13:20:52Z";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame415ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8693,7 +8693,7 @@ inline constexpr EchExpectation edge146_0_0_0_windows10_0_4b75427d_frame415Ech{t
 
 // fixture_id=edge146_0_0_0_windows10_0_4b75427d:frame440
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame440FixtureId[] = "edge146_0_0_0_windows10_0_4b75427d:frame440";
-inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame440SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap";
+inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame440SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame440SourceSha256[] = "5f82649c0b830dcd7661984f77ad672c6e0d5f9ca0bcdae7451d379ed7d041db";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame440CaptureDateUtc[] = "2026-04-11T13:20:52Z";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame440ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8717,7 +8717,7 @@ inline constexpr EchExpectation edge146_0_0_0_windows10_0_4b75427d_frame440Ech{t
 
 // fixture_id=edge146_0_0_0_windows10_0_4b75427d:frame488
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame488FixtureId[] = "edge146_0_0_0_windows10_0_4b75427d:frame488";
-inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame488SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap";
+inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame488SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame488SourceSha256[] = "5f82649c0b830dcd7661984f77ad672c6e0d5f9ca0bcdae7451d379ed7d041db";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame488CaptureDateUtc[] = "2026-04-11T13:20:52Z";
 inline constexpr const char edge146_0_0_0_windows10_0_4b75427d_frame488ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8742,7 +8742,7 @@ inline constexpr EchExpectation edge146_0_0_0_windows10_0_4b75427d_frame488Ech{t
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7.clienthello.json
 // fixture_id=edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7:frame104
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame104FixtureId[] = "edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7:frame104";
-inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame104SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap";
+inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame104SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame104SourceSha256[] = "31debfcccaebd7f827b9f2d8f427cb3254c3dac401a94d23a50d41d3dd6a17e4";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame104CaptureDateUtc[] = "2026-04-11T12:54:28Z";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame104ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8766,7 +8766,7 @@ inline constexpr EchExpectation edge146_0_3856_109_windows10_pro_22h2_19045_6456
 
 // fixture_id=edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7:frame125
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame125FixtureId[] = "edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7:frame125";
-inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame125SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap";
+inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame125SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame125SourceSha256[] = "31debfcccaebd7f827b9f2d8f427cb3254c3dac401a94d23a50d41d3dd6a17e4";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame125CaptureDateUtc[] = "2026-04-11T12:54:28Z";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame125ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8790,7 +8790,7 @@ inline constexpr EchExpectation edge146_0_3856_109_windows10_pro_22h2_19045_6456
 
 // fixture_id=edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7:frame156
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame156FixtureId[] = "edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7:frame156";
-inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame156SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap";
+inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame156SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame156SourceSha256[] = "31debfcccaebd7f827b9f2d8f427cb3254c3dac401a94d23a50d41d3dd6a17e4";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame156CaptureDateUtc[] = "2026-04-11T12:54:28Z";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame156ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8814,7 +8814,7 @@ inline constexpr EchExpectation edge146_0_3856_109_windows10_pro_22h2_19045_6456
 
 // fixture_id=edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7:frame342
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame342FixtureId[] = "edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7:frame342";
-inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame342SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap";
+inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame342SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame342SourceSha256[] = "31debfcccaebd7f827b9f2d8f427cb3254c3dac401a94d23a50d41d3dd6a17e4";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame342CaptureDateUtc[] = "2026-04-11T12:54:28Z";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame342ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8838,7 +8838,7 @@ inline constexpr EchExpectation edge146_0_3856_109_windows10_pro_22h2_19045_6456
 
 // fixture_id=edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7:frame358
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame358FixtureId[] = "edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7:frame358";
-inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame358SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap";
+inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame358SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame358SourceSha256[] = "31debfcccaebd7f827b9f2d8f427cb3254c3dac401a94d23a50d41d3dd6a17e4";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame358CaptureDateUtc[] = "2026-04-11T12:54:28Z";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame358ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8862,7 +8862,7 @@ inline constexpr EchExpectation edge146_0_3856_109_windows10_pro_22h2_19045_6456
 
 // fixture_id=edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7:frame417
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame417FixtureId[] = "edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7:frame417";
-inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame417SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap";
+inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame417SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame417SourceSha256[] = "31debfcccaebd7f827b9f2d8f427cb3254c3dac401a94d23a50d41d3dd6a17e4";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame417CaptureDateUtc[] = "2026-04-11T12:54:28Z";
 inline constexpr const char edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_frame417ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8887,7 +8887,7 @@ inline constexpr EchExpectation edge146_0_3856_109_windows10_pro_22h2_19045_6456
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb.clienthello.json
 // fixture_id=edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb:frame126
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame126FixtureId[] = "edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb:frame126";
-inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame126SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8037,_Edge_146_0_3856_109,_a.pcap";
+inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame126SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_Build_26200_8037,_Edge_146_0_3856_109,_a.pcap";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame126SourceSha256[] = "130c7ebb33e66eef735927ee57beb61370dbfcef94358f2978c1a04c11246ff9";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame126CaptureDateUtc[] = "2026-04-11T12:30:15Z";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame126ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8911,7 +8911,7 @@ inline constexpr EchExpectation edge146_0_3856_109_windows11_version_25h2_build_
 
 // fixture_id=edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb:frame149
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame149FixtureId[] = "edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb:frame149";
-inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame149SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8037,_Edge_146_0_3856_109,_a.pcap";
+inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame149SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_Build_26200_8037,_Edge_146_0_3856_109,_a.pcap";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame149SourceSha256[] = "130c7ebb33e66eef735927ee57beb61370dbfcef94358f2978c1a04c11246ff9";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame149CaptureDateUtc[] = "2026-04-11T12:30:15Z";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame149ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8935,7 +8935,7 @@ inline constexpr EchExpectation edge146_0_3856_109_windows11_version_25h2_build_
 
 // fixture_id=edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb:frame432
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame432FixtureId[] = "edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb:frame432";
-inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame432SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8037,_Edge_146_0_3856_109,_a.pcap";
+inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame432SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_Build_26200_8037,_Edge_146_0_3856_109,_a.pcap";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame432SourceSha256[] = "130c7ebb33e66eef735927ee57beb61370dbfcef94358f2978c1a04c11246ff9";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame432CaptureDateUtc[] = "2026-04-11T12:30:15Z";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame432ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8959,7 +8959,7 @@ inline constexpr EchExpectation edge146_0_3856_109_windows11_version_25h2_build_
 
 // fixture_id=edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb:frame453
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame453FixtureId[] = "edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb:frame453";
-inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame453SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8037,_Edge_146_0_3856_109,_a.pcap";
+inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame453SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_Build_26200_8037,_Edge_146_0_3856_109,_a.pcap";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame453SourceSha256[] = "130c7ebb33e66eef735927ee57beb61370dbfcef94358f2978c1a04c11246ff9";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame453CaptureDateUtc[] = "2026-04-11T12:30:15Z";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame453ParserVersion[] = "tls-clienthello-parser-v1";
@@ -8983,7 +8983,7 @@ inline constexpr EchExpectation edge146_0_3856_109_windows11_version_25h2_build_
 
 // fixture_id=edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb:frame493
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame493FixtureId[] = "edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb:frame493";
-inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame493SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8037,_Edge_146_0_3856_109,_a.pcap";
+inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame493SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_Build_26200_8037,_Edge_146_0_3856_109,_a.pcap";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame493SourceSha256[] = "130c7ebb33e66eef735927ee57beb61370dbfcef94358f2978c1a04c11246ff9";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame493CaptureDateUtc[] = "2026-04-11T12:30:15Z";
 inline constexpr const char edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb_frame493ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9008,7 +9008,7 @@ inline constexpr EchExpectation edge146_0_3856_109_windows11_version_25h2_build_
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65.clienthello.json
 // fixture_id=edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65:frame64
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame64FixtureId[] = "edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65:frame64";
-inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame64SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap";
+inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame64SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame64SourceSha256[] = "89762065ce1d52c62415a2b4b25139880c0020990e12541ccf0b08c83d505d3f";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame64CaptureDateUtc[] = "2026-04-11T13:12:29Z";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame64ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9032,7 +9032,7 @@ inline constexpr EchExpectation edge146_0_3856_10_windowsserver_2022_standard_21
 
 // fixture_id=edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65:frame134
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame134FixtureId[] = "edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65:frame134";
-inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame134SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap";
+inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame134SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame134SourceSha256[] = "89762065ce1d52c62415a2b4b25139880c0020990e12541ccf0b08c83d505d3f";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame134CaptureDateUtc[] = "2026-04-11T13:12:29Z";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame134ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9056,7 +9056,7 @@ inline constexpr EchExpectation edge146_0_3856_10_windowsserver_2022_standard_21
 
 // fixture_id=edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65:frame149
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame149FixtureId[] = "edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65:frame149";
-inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame149SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap";
+inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame149SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame149SourceSha256[] = "89762065ce1d52c62415a2b4b25139880c0020990e12541ccf0b08c83d505d3f";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame149CaptureDateUtc[] = "2026-04-11T13:12:29Z";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame149ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9080,7 +9080,7 @@ inline constexpr EchExpectation edge146_0_3856_10_windowsserver_2022_standard_21
 
 // fixture_id=edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65:frame162
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame162FixtureId[] = "edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65:frame162";
-inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame162SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap";
+inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame162SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame162SourceSha256[] = "89762065ce1d52c62415a2b4b25139880c0020990e12541ccf0b08c83d505d3f";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame162CaptureDateUtc[] = "2026-04-11T13:12:29Z";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame162ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9104,7 +9104,7 @@ inline constexpr EchExpectation edge146_0_3856_10_windowsserver_2022_standard_21
 
 // fixture_id=edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65:frame236
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame236FixtureId[] = "edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65:frame236";
-inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame236SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap";
+inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame236SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame236SourceSha256[] = "89762065ce1d52c62415a2b4b25139880c0020990e12541ccf0b08c83d505d3f";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame236CaptureDateUtc[] = "2026-04-11T13:12:29Z";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame236ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9128,7 +9128,7 @@ inline constexpr EchExpectation edge146_0_3856_10_windowsserver_2022_standard_21
 
 // fixture_id=edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65:frame282
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame282FixtureId[] = "edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65:frame282";
-inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame282SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap";
+inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame282SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame282SourceSha256[] = "89762065ce1d52c62415a2b4b25139880c0020990e12541ccf0b08c83d505d3f";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame282CaptureDateUtc[] = "2026-04-11T13:12:29Z";
 inline constexpr const char edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_frame282ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9153,7 +9153,7 @@ inline constexpr EchExpectation edge146_0_3856_10_windowsserver_2022_standard_21
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/firefox115_0_windows6_1_ab9badf0.clienthello.json
 // fixture_id=firefox115_0_windows6_1_ab9badf0:frame75
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame75FixtureId[] = "firefox115_0_windows6_1_ab9badf0:frame75";
-inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame75SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap";
+inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame75SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame75SourceSha256[] = "eca08632e76046e6b1d6078d2b6762968cc973c7183c7fc633063a84674da1e4";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame75CaptureDateUtc[] = "2026-04-11T13:17:07Z";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame75ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9177,7 +9177,7 @@ inline constexpr EchExpectation firefox115_0_windows6_1_ab9badf0_frame75Ech{fals
 
 // fixture_id=firefox115_0_windows6_1_ab9badf0:frame97
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame97FixtureId[] = "firefox115_0_windows6_1_ab9badf0:frame97";
-inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame97SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap";
+inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame97SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame97SourceSha256[] = "eca08632e76046e6b1d6078d2b6762968cc973c7183c7fc633063a84674da1e4";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame97CaptureDateUtc[] = "2026-04-11T13:17:07Z";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame97ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9201,7 +9201,7 @@ inline constexpr EchExpectation firefox115_0_windows6_1_ab9badf0_frame97Ech{fals
 
 // fixture_id=firefox115_0_windows6_1_ab9badf0:frame111
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame111FixtureId[] = "firefox115_0_windows6_1_ab9badf0:frame111";
-inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame111SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap";
+inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame111SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame111SourceSha256[] = "eca08632e76046e6b1d6078d2b6762968cc973c7183c7fc633063a84674da1e4";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame111CaptureDateUtc[] = "2026-04-11T13:17:07Z";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame111ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9225,7 +9225,7 @@ inline constexpr EchExpectation firefox115_0_windows6_1_ab9badf0_frame111Ech{fal
 
 // fixture_id=firefox115_0_windows6_1_ab9badf0:frame273
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame273FixtureId[] = "firefox115_0_windows6_1_ab9badf0:frame273";
-inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame273SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap";
+inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame273SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame273SourceSha256[] = "eca08632e76046e6b1d6078d2b6762968cc973c7183c7fc633063a84674da1e4";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame273CaptureDateUtc[] = "2026-04-11T13:17:07Z";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame273ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9249,7 +9249,7 @@ inline constexpr EchExpectation firefox115_0_windows6_1_ab9badf0_frame273Ech{fal
 
 // fixture_id=firefox115_0_windows6_1_ab9badf0:frame286
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame286FixtureId[] = "firefox115_0_windows6_1_ab9badf0:frame286";
-inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame286SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap";
+inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame286SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame286SourceSha256[] = "eca08632e76046e6b1d6078d2b6762968cc973c7183c7fc633063a84674da1e4";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame286CaptureDateUtc[] = "2026-04-11T13:17:07Z";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame286ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9273,7 +9273,7 @@ inline constexpr EchExpectation firefox115_0_windows6_1_ab9badf0_frame286Ech{fal
 
 // fixture_id=firefox115_0_windows6_1_ab9badf0:frame341
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame341FixtureId[] = "firefox115_0_windows6_1_ab9badf0:frame341";
-inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame341SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap";
+inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame341SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame341SourceSha256[] = "eca08632e76046e6b1d6078d2b6762968cc973c7183c7fc633063a84674da1e4";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame341CaptureDateUtc[] = "2026-04-11T13:17:07Z";
 inline constexpr const char firefox115_0_windows6_1_ab9badf0_frame341ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9298,7 +9298,7 @@ inline constexpr EchExpectation firefox115_0_windows6_1_ab9badf0_frame341Ech{fal
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c.clienthello.json
 // fixture_id=firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame47
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame47FixtureId[] = "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame47";
-inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame47SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap";
+inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame47SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame47SourceSha256[] = "589a0b1d786fe29f21cab690571dae225faa7ccf2079031718f62f7258980c79";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame47CaptureDateUtc[] = "2026-04-11T12:58:29Z";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame47ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9322,7 +9322,7 @@ inline constexpr EchExpectation firefox115_9_1esr_windowsserver_2012_r2_standart
 
 // fixture_id=firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame62
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame62FixtureId[] = "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame62";
-inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame62SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap";
+inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame62SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame62SourceSha256[] = "589a0b1d786fe29f21cab690571dae225faa7ccf2079031718f62f7258980c79";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame62CaptureDateUtc[] = "2026-04-11T12:58:29Z";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame62ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9346,7 +9346,7 @@ inline constexpr EchExpectation firefox115_9_1esr_windowsserver_2012_r2_standart
 
 // fixture_id=firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame122
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame122FixtureId[] = "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame122";
-inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame122SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap";
+inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame122SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame122SourceSha256[] = "589a0b1d786fe29f21cab690571dae225faa7ccf2079031718f62f7258980c79";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame122CaptureDateUtc[] = "2026-04-11T12:58:29Z";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame122ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9370,7 +9370,7 @@ inline constexpr EchExpectation firefox115_9_1esr_windowsserver_2012_r2_standart
 
 // fixture_id=firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame181
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame181FixtureId[] = "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame181";
-inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame181SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap";
+inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame181SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame181SourceSha256[] = "589a0b1d786fe29f21cab690571dae225faa7ccf2079031718f62f7258980c79";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame181CaptureDateUtc[] = "2026-04-11T12:58:29Z";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame181ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9394,7 +9394,7 @@ inline constexpr EchExpectation firefox115_9_1esr_windowsserver_2012_r2_standart
 
 // fixture_id=firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame195
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame195FixtureId[] = "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame195";
-inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame195SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap";
+inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame195SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame195SourceSha256[] = "589a0b1d786fe29f21cab690571dae225faa7ccf2079031718f62f7258980c79";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame195CaptureDateUtc[] = "2026-04-11T12:58:29Z";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame195ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9418,7 +9418,7 @@ inline constexpr EchExpectation firefox115_9_1esr_windowsserver_2012_r2_standart
 
 // fixture_id=firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame252
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame252FixtureId[] = "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame252";
-inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame252SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap";
+inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame252SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame252SourceSha256[] = "589a0b1d786fe29f21cab690571dae225faa7ccf2079031718f62f7258980c79";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame252CaptureDateUtc[] = "2026-04-11T12:58:29Z";
 inline constexpr const char firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c_frame252ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9443,7 +9443,7 @@ inline constexpr EchExpectation firefox115_9_1esr_windowsserver_2012_r2_standart
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb.clienthello.json
 // fixture_id=firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb:frame57
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame57FixtureId[] = "firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb:frame57";
-inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame57SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap";
+inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame57SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame57SourceSha256[] = "b28ff8b905ace05f6f1d7f8e0d4b6d4a03ef417b1af703dd89bda7ed6f23a488";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame57CaptureDateUtc[] = "2026-04-11T12:17:42Z";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame57ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9467,7 +9467,7 @@ inline constexpr EchExpectation firefox149_0_2_windows10_pro_22h2_19045_6456_e32
 
 // fixture_id=firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb:frame85
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame85FixtureId[] = "firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb:frame85";
-inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame85SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap";
+inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame85SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame85SourceSha256[] = "b28ff8b905ace05f6f1d7f8e0d4b6d4a03ef417b1af703dd89bda7ed6f23a488";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame85CaptureDateUtc[] = "2026-04-11T12:17:42Z";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame85ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9491,7 +9491,7 @@ inline constexpr EchExpectation firefox149_0_2_windows10_pro_22h2_19045_6456_e32
 
 // fixture_id=firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb:frame137
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame137FixtureId[] = "firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb:frame137";
-inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame137SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap";
+inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame137SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame137SourceSha256[] = "b28ff8b905ace05f6f1d7f8e0d4b6d4a03ef417b1af703dd89bda7ed6f23a488";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame137CaptureDateUtc[] = "2026-04-11T12:17:42Z";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame137ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9515,7 +9515,7 @@ inline constexpr EchExpectation firefox149_0_2_windows10_pro_22h2_19045_6456_e32
 
 // fixture_id=firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb:frame198
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame198FixtureId[] = "firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb:frame198";
-inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame198SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap";
+inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame198SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame198SourceSha256[] = "b28ff8b905ace05f6f1d7f8e0d4b6d4a03ef417b1af703dd89bda7ed6f23a488";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame198CaptureDateUtc[] = "2026-04-11T12:17:42Z";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame198ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9539,7 +9539,7 @@ inline constexpr EchExpectation firefox149_0_2_windows10_pro_22h2_19045_6456_e32
 
 // fixture_id=firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb:frame222
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame222FixtureId[] = "firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb:frame222";
-inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame222SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap";
+inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame222SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame222SourceSha256[] = "b28ff8b905ace05f6f1d7f8e0d4b6d4a03ef417b1af703dd89bda7ed6f23a488";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame222CaptureDateUtc[] = "2026-04-11T12:17:42Z";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame222ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9563,7 +9563,7 @@ inline constexpr EchExpectation firefox149_0_2_windows10_pro_22h2_19045_6456_e32
 
 // fixture_id=firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb:frame274
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame274FixtureId[] = "firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb:frame274";
-inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame274SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap";
+inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame274SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame274SourceSha256[] = "b28ff8b905ace05f6f1d7f8e0d4b6d4a03ef417b1af703dd89bda7ed6f23a488";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame274CaptureDateUtc[] = "2026-04-11T12:17:42Z";
 inline constexpr const char firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_frame274ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9588,7 +9588,7 @@ inline constexpr EchExpectation firefox149_0_2_windows10_pro_22h2_19045_6456_e32
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/firefox149_0_2_windows11_0_25h2_26200_8117_082c503a.clienthello.json
 // fixture_id=firefox149_0_2_windows11_0_25h2_26200_8117_082c503a:frame74
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame74FixtureId[] = "firefox149_0_2_windows11_0_25h2_26200_8117_082c503a:frame74";
-inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame74SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap";
+inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame74SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame74SourceSha256[] = "484b423ce1a50c7c4b1ab787a7f4f62f3675b361349174915bcde739205b23f5";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame74CaptureDateUtc[] = "2026-04-11T13:02:41Z";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame74ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9612,7 +9612,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_0_25h2_26200_8117_082c5
 
 // fixture_id=firefox149_0_2_windows11_0_25h2_26200_8117_082c503a:frame94
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame94FixtureId[] = "firefox149_0_2_windows11_0_25h2_26200_8117_082c503a:frame94";
-inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame94SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap";
+inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame94SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame94SourceSha256[] = "484b423ce1a50c7c4b1ab787a7f4f62f3675b361349174915bcde739205b23f5";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame94CaptureDateUtc[] = "2026-04-11T13:02:41Z";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame94ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9636,7 +9636,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_0_25h2_26200_8117_082c5
 
 // fixture_id=firefox149_0_2_windows11_0_25h2_26200_8117_082c503a:frame160
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame160FixtureId[] = "firefox149_0_2_windows11_0_25h2_26200_8117_082c503a:frame160";
-inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame160SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap";
+inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame160SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame160SourceSha256[] = "484b423ce1a50c7c4b1ab787a7f4f62f3675b361349174915bcde739205b23f5";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame160CaptureDateUtc[] = "2026-04-11T13:02:41Z";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame160ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9660,7 +9660,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_0_25h2_26200_8117_082c5
 
 // fixture_id=firefox149_0_2_windows11_0_25h2_26200_8117_082c503a:frame253
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame253FixtureId[] = "firefox149_0_2_windows11_0_25h2_26200_8117_082c503a:frame253";
-inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame253SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap";
+inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame253SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame253SourceSha256[] = "484b423ce1a50c7c4b1ab787a7f4f62f3675b361349174915bcde739205b23f5";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame253CaptureDateUtc[] = "2026-04-11T13:02:41Z";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame253ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9684,7 +9684,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_0_25h2_26200_8117_082c5
 
 // fixture_id=firefox149_0_2_windows11_0_25h2_26200_8117_082c503a:frame271
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame271FixtureId[] = "firefox149_0_2_windows11_0_25h2_26200_8117_082c503a:frame271";
-inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame271SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap";
+inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame271SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame271SourceSha256[] = "484b423ce1a50c7c4b1ab787a7f4f62f3675b361349174915bcde739205b23f5";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame271CaptureDateUtc[] = "2026-04-11T13:02:41Z";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame271ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9708,7 +9708,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_0_25h2_26200_8117_082c5
 
 // fixture_id=firefox149_0_2_windows11_0_25h2_26200_8117_082c503a:frame327
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame327FixtureId[] = "firefox149_0_2_windows11_0_25h2_26200_8117_082c503a:frame327";
-inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame327SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap";
+inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame327SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame327SourceSha256[] = "484b423ce1a50c7c4b1ab787a7f4f62f3675b361349174915bcde739205b23f5";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame327CaptureDateUtc[] = "2026-04-11T13:02:41Z";
 inline constexpr const char firefox149_0_2_windows11_0_25h2_26200_8117_082c503a_frame327ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9733,7 +9733,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_0_25h2_26200_8117_082c5
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/firefox149_0_2_windows11_0_65af0430.clienthello.json
 // fixture_id=firefox149_0_2_windows11_0_65af0430:frame77
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame77FixtureId[] = "firefox149_0_2_windows11_0_65af0430:frame77";
-inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame77SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_Firefox_149_0_2,_auto_Windows_10_0,_auto_Firefox_1.pcap";
+inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame77SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_Firefox_149_0_2,_auto_Windows_10_0,_auto_Firefox_1.pcap";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame77SourceSha256[] = "68e6c9eabd4ec492bf64f2ed80411a79c96b665fe75bc9cd6d6c9a86aff60986";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame77CaptureDateUtc[] = "2026-04-11T13:28:09Z";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame77ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9757,7 +9757,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_0_65af0430_frame77Ech{t
 
 // fixture_id=firefox149_0_2_windows11_0_65af0430:frame95
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame95FixtureId[] = "firefox149_0_2_windows11_0_65af0430:frame95";
-inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame95SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_Firefox_149_0_2,_auto_Windows_10_0,_auto_Firefox_1.pcap";
+inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame95SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_Firefox_149_0_2,_auto_Windows_10_0,_auto_Firefox_1.pcap";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame95SourceSha256[] = "68e6c9eabd4ec492bf64f2ed80411a79c96b665fe75bc9cd6d6c9a86aff60986";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame95CaptureDateUtc[] = "2026-04-11T13:28:09Z";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame95ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9781,7 +9781,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_0_65af0430_frame95Ech{t
 
 // fixture_id=firefox149_0_2_windows11_0_65af0430:frame113
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame113FixtureId[] = "firefox149_0_2_windows11_0_65af0430:frame113";
-inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame113SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_Firefox_149_0_2,_auto_Windows_10_0,_auto_Firefox_1.pcap";
+inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame113SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_Firefox_149_0_2,_auto_Windows_10_0,_auto_Firefox_1.pcap";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame113SourceSha256[] = "68e6c9eabd4ec492bf64f2ed80411a79c96b665fe75bc9cd6d6c9a86aff60986";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame113CaptureDateUtc[] = "2026-04-11T13:28:09Z";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame113ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9805,7 +9805,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_0_65af0430_frame113Ech{
 
 // fixture_id=firefox149_0_2_windows11_0_65af0430:frame259
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame259FixtureId[] = "firefox149_0_2_windows11_0_65af0430:frame259";
-inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame259SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_Firefox_149_0_2,_auto_Windows_10_0,_auto_Firefox_1.pcap";
+inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame259SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_Firefox_149_0_2,_auto_Windows_10_0,_auto_Firefox_1.pcap";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame259SourceSha256[] = "68e6c9eabd4ec492bf64f2ed80411a79c96b665fe75bc9cd6d6c9a86aff60986";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame259CaptureDateUtc[] = "2026-04-11T13:28:09Z";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame259ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9829,7 +9829,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_0_65af0430_frame259Ech{
 
 // fixture_id=firefox149_0_2_windows11_0_65af0430:frame273
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame273FixtureId[] = "firefox149_0_2_windows11_0_65af0430:frame273";
-inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame273SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_Firefox_149_0_2,_auto_Windows_10_0,_auto_Firefox_1.pcap";
+inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame273SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_Firefox_149_0_2,_auto_Windows_10_0,_auto_Firefox_1.pcap";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame273SourceSha256[] = "68e6c9eabd4ec492bf64f2ed80411a79c96b665fe75bc9cd6d6c9a86aff60986";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame273CaptureDateUtc[] = "2026-04-11T13:28:09Z";
 inline constexpr const char firefox149_0_2_windows11_0_65af0430_frame273ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9854,7 +9854,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_0_65af0430_frame273Ech{
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116.clienthello.json
 // fixture_id=firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116:frame62
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame62FixtureId[] = "firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116:frame62";
-inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame62SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap";
+inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame62SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame62SourceSha256[] = "baba6fd041f9aeaf5ba698c98d66e8fef683dbd8b68413775755b8fc21cf176c";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame62CaptureDateUtc[] = "2026-04-11T12:58:38Z";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame62ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9878,7 +9878,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_25h2_os_build_26200_811
 
 // fixture_id=firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116:frame79
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame79FixtureId[] = "firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116:frame79";
-inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame79SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap";
+inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame79SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame79SourceSha256[] = "baba6fd041f9aeaf5ba698c98d66e8fef683dbd8b68413775755b8fc21cf176c";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame79CaptureDateUtc[] = "2026-04-11T12:58:38Z";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame79ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9902,7 +9902,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_25h2_os_build_26200_811
 
 // fixture_id=firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116:frame152
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame152FixtureId[] = "firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116:frame152";
-inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame152SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap";
+inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame152SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame152SourceSha256[] = "baba6fd041f9aeaf5ba698c98d66e8fef683dbd8b68413775755b8fc21cf176c";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame152CaptureDateUtc[] = "2026-04-11T12:58:38Z";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame152ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9926,7 +9926,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_25h2_os_build_26200_811
 
 // fixture_id=firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116:frame217
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame217FixtureId[] = "firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116:frame217";
-inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame217SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap";
+inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame217SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame217SourceSha256[] = "baba6fd041f9aeaf5ba698c98d66e8fef683dbd8b68413775755b8fc21cf176c";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame217CaptureDateUtc[] = "2026-04-11T12:58:38Z";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame217ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9950,7 +9950,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_25h2_os_build_26200_811
 
 // fixture_id=firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116:frame232
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame232FixtureId[] = "firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116:frame232";
-inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame232SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap";
+inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame232SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame232SourceSha256[] = "baba6fd041f9aeaf5ba698c98d66e8fef683dbd8b68413775755b8fc21cf176c";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame232CaptureDateUtc[] = "2026-04-11T12:58:38Z";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame232ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9974,7 +9974,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_25h2_os_build_26200_811
 
 // fixture_id=firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116:frame305
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame305FixtureId[] = "firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116:frame305";
-inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame305SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap";
+inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame305SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame305SourceSha256[] = "baba6fd041f9aeaf5ba698c98d66e8fef683dbd8b68413775755b8fc21cf176c";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame305CaptureDateUtc[] = "2026-04-11T12:58:38Z";
 inline constexpr const char firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116_frame305ParserVersion[] = "tls-clienthello-parser-v1";
@@ -9999,7 +9999,7 @@ inline constexpr EchExpectation firefox149_0_2_windows11_25h2_os_build_26200_811
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/firefox149_0_windows10_0_081f2d09.clienthello.json
 // fixture_id=firefox149_0_windows10_0_081f2d09:frame79
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame79FixtureId[] = "firefox149_0_windows10_0_081f2d09:frame79";
-inline constexpr const char firefox149_0_windows10_0_081f2d09_frame79SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap";
+inline constexpr const char firefox149_0_windows10_0_081f2d09_frame79SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame79SourceSha256[] = "6364e3e354a2d44f3f523165415314ac71c9be413bc780547cd5fa66a1affde8";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame79CaptureDateUtc[] = "2026-04-11T12:08:53Z";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame79ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10023,7 +10023,7 @@ inline constexpr EchExpectation firefox149_0_windows10_0_081f2d09_frame79Ech{tru
 
 // fixture_id=firefox149_0_windows10_0_081f2d09:frame97
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame97FixtureId[] = "firefox149_0_windows10_0_081f2d09:frame97";
-inline constexpr const char firefox149_0_windows10_0_081f2d09_frame97SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap";
+inline constexpr const char firefox149_0_windows10_0_081f2d09_frame97SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame97SourceSha256[] = "6364e3e354a2d44f3f523165415314ac71c9be413bc780547cd5fa66a1affde8";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame97CaptureDateUtc[] = "2026-04-11T12:08:53Z";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame97ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10047,7 +10047,7 @@ inline constexpr EchExpectation firefox149_0_windows10_0_081f2d09_frame97Ech{tru
 
 // fixture_id=firefox149_0_windows10_0_081f2d09:frame117
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame117FixtureId[] = "firefox149_0_windows10_0_081f2d09:frame117";
-inline constexpr const char firefox149_0_windows10_0_081f2d09_frame117SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap";
+inline constexpr const char firefox149_0_windows10_0_081f2d09_frame117SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame117SourceSha256[] = "6364e3e354a2d44f3f523165415314ac71c9be413bc780547cd5fa66a1affde8";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame117CaptureDateUtc[] = "2026-04-11T12:08:53Z";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame117ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10071,7 +10071,7 @@ inline constexpr EchExpectation firefox149_0_windows10_0_081f2d09_frame117Ech{tr
 
 // fixture_id=firefox149_0_windows10_0_081f2d09:frame263
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame263FixtureId[] = "firefox149_0_windows10_0_081f2d09:frame263";
-inline constexpr const char firefox149_0_windows10_0_081f2d09_frame263SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap";
+inline constexpr const char firefox149_0_windows10_0_081f2d09_frame263SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame263SourceSha256[] = "6364e3e354a2d44f3f523165415314ac71c9be413bc780547cd5fa66a1affde8";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame263CaptureDateUtc[] = "2026-04-11T12:08:53Z";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame263ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10095,7 +10095,7 @@ inline constexpr EchExpectation firefox149_0_windows10_0_081f2d09_frame263Ech{tr
 
 // fixture_id=firefox149_0_windows10_0_081f2d09:frame287
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame287FixtureId[] = "firefox149_0_windows10_0_081f2d09:frame287";
-inline constexpr const char firefox149_0_windows10_0_081f2d09_frame287SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap";
+inline constexpr const char firefox149_0_windows10_0_081f2d09_frame287SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame287SourceSha256[] = "6364e3e354a2d44f3f523165415314ac71c9be413bc780547cd5fa66a1affde8";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame287CaptureDateUtc[] = "2026-04-11T12:08:53Z";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame287ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10119,7 +10119,7 @@ inline constexpr EchExpectation firefox149_0_windows10_0_081f2d09_frame287Ech{tr
 
 // fixture_id=firefox149_0_windows10_0_081f2d09:frame306
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame306FixtureId[] = "firefox149_0_windows10_0_081f2d09:frame306";
-inline constexpr const char firefox149_0_windows10_0_081f2d09_frame306SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap";
+inline constexpr const char firefox149_0_windows10_0_081f2d09_frame306SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame306SourceSha256[] = "6364e3e354a2d44f3f523165415314ac71c9be413bc780547cd5fa66a1affde8";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame306CaptureDateUtc[] = "2026-04-11T12:08:53Z";
 inline constexpr const char firefox149_0_windows10_0_081f2d09_frame306ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10144,7 +10144,7 @@ inline constexpr EchExpectation firefox149_0_windows10_0_081f2d09_frame306Ech{tr
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/firefox149_0_windows11_25h2_26200_8117_cd5adfa6.clienthello.json
 // fixture_id=firefox149_0_windows11_25h2_26200_8117_cd5adfa6:frame42
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame42FixtureId[] = "firefox149_0_windows11_25h2_26200_8117_cd5adfa6:frame42";
-inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame42SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame42SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame42SourceSha256[] = "86136e0070b4bc3c6cb2b437b9269c65b958b3d0431565f6f2c84b0d69279107";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame42CaptureDateUtc[] = "2026-04-11T12:32:52Z";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame42ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10168,7 +10168,7 @@ inline constexpr EchExpectation firefox149_0_windows11_25h2_26200_8117_cd5adfa6_
 
 // fixture_id=firefox149_0_windows11_25h2_26200_8117_cd5adfa6:frame127
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame127FixtureId[] = "firefox149_0_windows11_25h2_26200_8117_cd5adfa6:frame127";
-inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame127SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame127SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame127SourceSha256[] = "86136e0070b4bc3c6cb2b437b9269c65b958b3d0431565f6f2c84b0d69279107";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame127CaptureDateUtc[] = "2026-04-11T12:32:52Z";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame127ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10192,7 +10192,7 @@ inline constexpr EchExpectation firefox149_0_windows11_25h2_26200_8117_cd5adfa6_
 
 // fixture_id=firefox149_0_windows11_25h2_26200_8117_cd5adfa6:frame186
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame186FixtureId[] = "firefox149_0_windows11_25h2_26200_8117_cd5adfa6:frame186";
-inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame186SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame186SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame186SourceSha256[] = "86136e0070b4bc3c6cb2b437b9269c65b958b3d0431565f6f2c84b0d69279107";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame186CaptureDateUtc[] = "2026-04-11T12:32:52Z";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame186ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10216,7 +10216,7 @@ inline constexpr EchExpectation firefox149_0_windows11_25h2_26200_8117_cd5adfa6_
 
 // fixture_id=firefox149_0_windows11_25h2_26200_8117_cd5adfa6:frame202
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame202FixtureId[] = "firefox149_0_windows11_25h2_26200_8117_cd5adfa6:frame202";
-inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame202SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame202SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame202SourceSha256[] = "86136e0070b4bc3c6cb2b437b9269c65b958b3d0431565f6f2c84b0d69279107";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame202CaptureDateUtc[] = "2026-04-11T12:32:52Z";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame202ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10240,7 +10240,7 @@ inline constexpr EchExpectation firefox149_0_windows11_25h2_26200_8117_cd5adfa6_
 
 // fixture_id=firefox149_0_windows11_25h2_26200_8117_cd5adfa6:frame262
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame262FixtureId[] = "firefox149_0_windows11_25h2_26200_8117_cd5adfa6:frame262";
-inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame262SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame262SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame262SourceSha256[] = "86136e0070b4bc3c6cb2b437b9269c65b958b3d0431565f6f2c84b0d69279107";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame262CaptureDateUtc[] = "2026-04-11T12:32:52Z";
 inline constexpr const char firefox149_0_windows11_25h2_26200_8117_cd5adfa6_frame262ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10265,7 +10265,7 @@ inline constexpr EchExpectation firefox149_0_windows11_25h2_26200_8117_cd5adfa6_
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b.clienthello.json
 // fixture_id=firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b:frame58
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame58FixtureId[] = "firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b:frame58";
-inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame58SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap";
+inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame58SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame58SourceSha256[] = "a2a77d9c936f96c6eb43ab699d654d185a1d74bd11b4d72d199f1063a6a67972";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame58CaptureDateUtc[] = "2026-04-11T12:25:40Z";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame58ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10289,7 +10289,7 @@ inline constexpr EchExpectation firefox149_0_windows11_version_25h2_os_build_262
 
 // fixture_id=firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b:frame76
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame76FixtureId[] = "firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b:frame76";
-inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame76SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap";
+inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame76SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame76SourceSha256[] = "a2a77d9c936f96c6eb43ab699d654d185a1d74bd11b4d72d199f1063a6a67972";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame76CaptureDateUtc[] = "2026-04-11T12:25:40Z";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame76ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10313,7 +10313,7 @@ inline constexpr EchExpectation firefox149_0_windows11_version_25h2_os_build_262
 
 // fixture_id=firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b:frame145
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame145FixtureId[] = "firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b:frame145";
-inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame145SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap";
+inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame145SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame145SourceSha256[] = "a2a77d9c936f96c6eb43ab699d654d185a1d74bd11b4d72d199f1063a6a67972";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame145CaptureDateUtc[] = "2026-04-11T12:25:40Z";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame145ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10337,7 +10337,7 @@ inline constexpr EchExpectation firefox149_0_windows11_version_25h2_os_build_262
 
 // fixture_id=firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b:frame199
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame199FixtureId[] = "firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b:frame199";
-inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame199SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap";
+inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame199SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame199SourceSha256[] = "a2a77d9c936f96c6eb43ab699d654d185a1d74bd11b4d72d199f1063a6a67972";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame199CaptureDateUtc[] = "2026-04-11T12:25:40Z";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame199ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10361,7 +10361,7 @@ inline constexpr EchExpectation firefox149_0_windows11_version_25h2_os_build_262
 
 // fixture_id=firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b:frame215
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame215FixtureId[] = "firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b:frame215";
-inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame215SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap";
+inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame215SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame215SourceSha256[] = "a2a77d9c936f96c6eb43ab699d654d185a1d74bd11b4d72d199f1063a6a67972";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame215CaptureDateUtc[] = "2026-04-11T12:25:40Z";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame215ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10385,7 +10385,7 @@ inline constexpr EchExpectation firefox149_0_windows11_version_25h2_os_build_262
 
 // fixture_id=firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b:frame277
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame277FixtureId[] = "firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b:frame277";
-inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame277SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap";
+inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame277SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame277SourceSha256[] = "a2a77d9c936f96c6eb43ab699d654d185a1d74bd11b4d72d199f1063a6a67972";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame277CaptureDateUtc[] = "2026-04-11T12:25:40Z";
 inline constexpr const char firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_frame277ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10410,7 +10410,7 @@ inline constexpr EchExpectation firefox149_0_windows11_version_25h2_os_build_262
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506.clienthello.json
 // fixture_id=opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506:frame74
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame74FixtureId[] = "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506:frame74";
-inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame74SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap";
+inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame74SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame74SourceSha256[] = "94a522b1393f652e944b29d2243e50adf15922deae3eda49efc942ce07baf21e";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame74CaptureDateUtc[] = "2026-04-11T13:18:01Z";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame74ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10434,7 +10434,7 @@ inline constexpr EchExpectation opera129_0_5823_28_windows11_25h2_26200_8037_9e0
 
 // fixture_id=opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506:frame100
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame100FixtureId[] = "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506:frame100";
-inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame100SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap";
+inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame100SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame100SourceSha256[] = "94a522b1393f652e944b29d2243e50adf15922deae3eda49efc942ce07baf21e";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame100CaptureDateUtc[] = "2026-04-11T13:18:01Z";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame100ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10458,7 +10458,7 @@ inline constexpr EchExpectation opera129_0_5823_28_windows11_25h2_26200_8037_9e0
 
 // fixture_id=opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506:frame132
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame132FixtureId[] = "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506:frame132";
-inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame132SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap";
+inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame132SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame132SourceSha256[] = "94a522b1393f652e944b29d2243e50adf15922deae3eda49efc942ce07baf21e";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame132CaptureDateUtc[] = "2026-04-11T13:18:01Z";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame132ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10482,7 +10482,7 @@ inline constexpr EchExpectation opera129_0_5823_28_windows11_25h2_26200_8037_9e0
 
 // fixture_id=opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506:frame309
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame309FixtureId[] = "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506:frame309";
-inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame309SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap";
+inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame309SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame309SourceSha256[] = "94a522b1393f652e944b29d2243e50adf15922deae3eda49efc942ce07baf21e";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame309CaptureDateUtc[] = "2026-04-11T13:18:01Z";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame309ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10506,7 +10506,7 @@ inline constexpr EchExpectation opera129_0_5823_28_windows11_25h2_26200_8037_9e0
 
 // fixture_id=opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506:frame331
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame331FixtureId[] = "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506:frame331";
-inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame331SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap";
+inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame331SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame331SourceSha256[] = "94a522b1393f652e944b29d2243e50adf15922deae3eda49efc942ce07baf21e";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame331CaptureDateUtc[] = "2026-04-11T13:18:01Z";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame331ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10530,7 +10530,7 @@ inline constexpr EchExpectation opera129_0_5823_28_windows11_25h2_26200_8037_9e0
 
 // fixture_id=opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506:frame373
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame373FixtureId[] = "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506:frame373";
-inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame373SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap";
+inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame373SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame373SourceSha256[] = "94a522b1393f652e944b29d2243e50adf15922deae3eda49efc942ce07baf21e";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame373CaptureDateUtc[] = "2026-04-11T13:18:01Z";
 inline constexpr const char opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_frame373ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10555,7 +10555,7 @@ inline constexpr EchExpectation opera129_0_5823_28_windows11_25h2_26200_8037_9e0
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/yandex26_3_3_862_64_bit_windows11_0_c10e8192.clienthello.json
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame49
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame49FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame49";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame49SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame49SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame49SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame49CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame49ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10579,7 +10579,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame58
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame58FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame58";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame58SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame58SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame58SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame58CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame58ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10603,7 +10603,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame77
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame77FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame77";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame77SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame77SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame77SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame77CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame77ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10627,7 +10627,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame92
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame92FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame92";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame92SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame92SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame92SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame92CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame92ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10651,7 +10651,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame123
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame123FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame123";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame123SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame123SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame123SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame123CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame123ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10675,7 +10675,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame133
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame133FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame133";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame133SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame133SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame133SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame133CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame133ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10699,7 +10699,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame144
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame144FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame144";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame144SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame144SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame144SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame144CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame144ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10723,7 +10723,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame298
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame298FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame298";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame298SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame298SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame298SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame298CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame298ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10747,7 +10747,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame307
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame307FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame307";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame307SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame307SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame307SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame307CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame307ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10771,7 +10771,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame323
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame323FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame323";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame323SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame323SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame323SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame323CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame323ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10795,7 +10795,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame336
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame336FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame336";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame336SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame336SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame336SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame336CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame336ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10819,7 +10819,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame384
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame384FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame384";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame384SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame384SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame384SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame384CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame384ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10843,7 +10843,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 
 // fixture_id=yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame394
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame394FixtureId[] = "yandex26_3_3_862_64_bit_windows11_0_c10e8192:frame394";
-inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame394SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
+inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame394SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame394SourceSha256[] = "a8f738b7217c4cc2d5279d5b5c44a019f93f3b8410e53629c13feed87b448212";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame394CaptureDateUtc[] = "2026-04-11T12:07:45Z";
 inline constexpr const char yandex26_3_3_862_64_bit_windows11_0_c10e8192_frame394ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10868,7 +10868,7 @@ inline constexpr EchExpectation yandex26_3_3_862_64_bit_windows11_0_c10e8192_fra
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/yandex26_3_3_869_64_bit_windows10_0_ef066851.clienthello.json
 // fixture_id=yandex26_3_3_869_64_bit_windows10_0_ef066851:frame57
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame57FixtureId[] = "yandex26_3_3_869_64_bit_windows10_0_ef066851:frame57";
-inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame57SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap";
+inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame57SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame57SourceSha256[] = "55ec71c5d3e878c995321bffe2033ba355d58770694d1832ca76ff1852684adf";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame57CaptureDateUtc[] = "2026-04-11T13:13:22Z";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame57ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10892,7 +10892,7 @@ inline constexpr EchExpectation yandex26_3_3_869_64_bit_windows10_0_ef066851_fra
 
 // fixture_id=yandex26_3_3_869_64_bit_windows10_0_ef066851:frame74
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame74FixtureId[] = "yandex26_3_3_869_64_bit_windows10_0_ef066851:frame74";
-inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame74SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap";
+inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame74SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame74SourceSha256[] = "55ec71c5d3e878c995321bffe2033ba355d58770694d1832ca76ff1852684adf";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame74CaptureDateUtc[] = "2026-04-11T13:13:22Z";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame74ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10916,7 +10916,7 @@ inline constexpr EchExpectation yandex26_3_3_869_64_bit_windows10_0_ef066851_fra
 
 // fixture_id=yandex26_3_3_869_64_bit_windows10_0_ef066851:frame114
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame114FixtureId[] = "yandex26_3_3_869_64_bit_windows10_0_ef066851:frame114";
-inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame114SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap";
+inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame114SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame114SourceSha256[] = "55ec71c5d3e878c995321bffe2033ba355d58770694d1832ca76ff1852684adf";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame114CaptureDateUtc[] = "2026-04-11T13:13:22Z";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame114ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10940,7 +10940,7 @@ inline constexpr EchExpectation yandex26_3_3_869_64_bit_windows10_0_ef066851_fra
 
 // fixture_id=yandex26_3_3_869_64_bit_windows10_0_ef066851:frame278
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame278FixtureId[] = "yandex26_3_3_869_64_bit_windows10_0_ef066851:frame278";
-inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame278SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap";
+inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame278SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame278SourceSha256[] = "55ec71c5d3e878c995321bffe2033ba355d58770694d1832ca76ff1852684adf";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame278CaptureDateUtc[] = "2026-04-11T13:13:22Z";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame278ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10964,7 +10964,7 @@ inline constexpr EchExpectation yandex26_3_3_869_64_bit_windows10_0_ef066851_fra
 
 // fixture_id=yandex26_3_3_869_64_bit_windows10_0_ef066851:frame316
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame316FixtureId[] = "yandex26_3_3_869_64_bit_windows10_0_ef066851:frame316";
-inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame316SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap";
+inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame316SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame316SourceSha256[] = "55ec71c5d3e878c995321bffe2033ba355d58770694d1832ca76ff1852684adf";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame316CaptureDateUtc[] = "2026-04-11T13:13:22Z";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame316ParserVersion[] = "tls-clienthello-parser-v1";
@@ -10988,7 +10988,7 @@ inline constexpr EchExpectation yandex26_3_3_869_64_bit_windows10_0_ef066851_fra
 
 // fixture_id=yandex26_3_3_869_64_bit_windows10_0_ef066851:frame367
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame367FixtureId[] = "yandex26_3_3_869_64_bit_windows10_0_ef066851:frame367";
-inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame367SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap";
+inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame367SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame367SourceSha256[] = "55ec71c5d3e878c995321bffe2033ba355d58770694d1832ca76ff1852684adf";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame367CaptureDateUtc[] = "2026-04-11T13:13:22Z";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_0_ef066851_frame367ParserVersion[] = "tls-clienthello-parser-v1";
@@ -11013,7 +11013,7 @@ inline constexpr EchExpectation yandex26_3_3_869_64_bit_windows10_0_ef066851_fra
 // merged_from=/home/david_osipov/tdlib-obf/test/analysis/fixtures/clienthello/windows/yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63.clienthello.json
 // fixture_id=yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63:frame50
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame50FixtureId[] = "yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63:frame50";
-inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame50SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_YaBrowser_26_3_3_869_64_bit,_aut.pcap";
+inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame50SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_YaBrowser_26_3_3_869_64_bit,_aut.pcap";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame50SourceSha256[] = "2dc4696dd2926d42ea49213022b7fbd1b7aacd818fbdee0d08e23e9310e9974b";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame50CaptureDateUtc[] = "2026-04-11T12:19:24Z";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame50ParserVersion[] = "tls-clienthello-parser-v1";
@@ -11037,7 +11037,7 @@ inline constexpr EchExpectation yandex26_3_3_869_64_bit_windows10_pro_22h2_19045
 
 // fixture_id=yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63:frame84
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame84FixtureId[] = "yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63:frame84";
-inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame84SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_YaBrowser_26_3_3_869_64_bit,_aut.pcap";
+inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame84SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_YaBrowser_26_3_3_869_64_bit,_aut.pcap";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame84SourceSha256[] = "2dc4696dd2926d42ea49213022b7fbd1b7aacd818fbdee0d08e23e9310e9974b";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame84CaptureDateUtc[] = "2026-04-11T12:19:24Z";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame84ParserVersion[] = "tls-clienthello-parser-v1";
@@ -11061,7 +11061,7 @@ inline constexpr EchExpectation yandex26_3_3_869_64_bit_windows10_pro_22h2_19045
 
 // fixture_id=yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63:frame123
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame123FixtureId[] = "yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63:frame123";
-inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame123SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_YaBrowser_26_3_3_869_64_bit,_aut.pcap";
+inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame123SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_YaBrowser_26_3_3_869_64_bit,_aut.pcap";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame123SourceSha256[] = "2dc4696dd2926d42ea49213022b7fbd1b7aacd818fbdee0d08e23e9310e9974b";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame123CaptureDateUtc[] = "2026-04-11T12:19:24Z";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame123ParserVersion[] = "tls-clienthello-parser-v1";
@@ -11085,7 +11085,7 @@ inline constexpr EchExpectation yandex26_3_3_869_64_bit_windows10_pro_22h2_19045
 
 // fixture_id=yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63:frame139
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame139FixtureId[] = "yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63:frame139";
-inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame139SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_YaBrowser_26_3_3_869_64_bit,_aut.pcap";
+inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame139SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_YaBrowser_26_3_3_869_64_bit,_aut.pcap";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame139SourceSha256[] = "2dc4696dd2926d42ea49213022b7fbd1b7aacd818fbdee0d08e23e9310e9974b";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame139CaptureDateUtc[] = "2026-04-11T12:19:24Z";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame139ParserVersion[] = "tls-clienthello-parser-v1";
@@ -11109,7 +11109,7 @@ inline constexpr EchExpectation yandex26_3_3_869_64_bit_windows10_pro_22h2_19045
 
 // fixture_id=yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63:frame191
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame191FixtureId[] = "yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63:frame191";
-inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame191SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_YaBrowser_26_3_3_869_64_bit,_aut.pcap";
+inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame191SourcePath[] = "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_YaBrowser_26_3_3_869_64_bit,_aut.pcap";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame191SourceSha256[] = "2dc4696dd2926d42ea49213022b7fbd1b7aacd818fbdee0d08e23e9310e9974b";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame191CaptureDateUtc[] = "2026-04-11T12:19:24Z";
 inline constexpr const char yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63_frame191ParserVersion[] = "tls-clienthello-parser-v1";

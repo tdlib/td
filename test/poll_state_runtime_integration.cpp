@@ -77,7 +77,7 @@ TEST(PollStateRuntimeIntegration, LocalPollRoundTripAcrossManagerBoundaryPreserv
 
     auto writer = std::make_unique<td::PollManager>(nullptr, td::ActorShared<>());
     td::FormattedText question;
-    question.text = "Wave3 persistence boundary";
+    question.text = "persistence boundary";
 
     td::vector<td::FormattedText> options;
     td::FormattedText option_a;

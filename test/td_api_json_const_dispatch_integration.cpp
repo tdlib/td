@@ -4,6 +4,7 @@
 #include "td/utils/common.h"
 #include "td/utils/tests.h"
 
+#include <format>
 #include <fstream>
 #include <iterator>
 
@@ -14,22 +15,20 @@
 namespace {
 
 td::string load_repo_text(td::Slice relative_path) {
-  auto path = td::string(TELEMT_TEST_REPO_ROOT);
-  path += '/';
-  path += relative_path.str();
+  auto path = std::format("{}/{}", TELEMT_TEST_REPO_ROOT, relative_path.str());
   std::ifstream in(path, std::ios::binary);
   CHECK(in.is_open());
   return td::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
 td::string load_td_api_json_all_shards_text() {
-  td::string text = load_repo_text("td/generate/auto/td/telegram/td_api_json_1.cpp");
-  text += '\n';
-  text += load_repo_text("td/generate/auto/td/telegram/td_api_json_2.cpp");
-  text += '\n';
-  text += load_repo_text("td/generate/auto/td/telegram/td_api_json_3.cpp");
-  text += '\n';
-  text += load_repo_text("td/generate/auto/td/telegram/td_api_json_4.cpp");
+  td::string text;
+  for (int shard = 0; shard <= 9; shard++) {
+    if (!text.empty()) {
+      text += '\n';
+    }
+    text += load_repo_text(std::format("td/generate/auto/td/telegram/td_api_json_{}.cpp", shard));
+  }
   return text;
 }
 

@@ -1432,7 +1432,7 @@
   ],
   "scenario_id": "imported_firefox115_0_windows6_1_ab9badf0_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap",
   "source_sha256": "eca08632e76046e6b1d6078d2b6762968cc973c7183c7fc633063a84674da1e4",
   "tls_handshake_type": 1,
   "transport": "tcp"

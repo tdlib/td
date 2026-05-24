@@ -1671,8 +1671,13 @@ void BusinessConnectionManager::process_sent_business_message_album(
   auto messages = td_api::make_object<td_api::businessMessages>();
   for (auto &update_ptr : updates->updates_) {
     auto update = telegram_api::move_object_as<telegram_api::updateBotNewBusinessMessage>(update_ptr);
-    messages->messages_.push_back(td_->messages_manager_->get_business_message_object(
-        std::move(update->message_), std::move(update->reply_to_message_)));
+    auto message = td_->messages_manager_->get_business_message_object(std::move(update->message_),
+                                                                       std::move(update->reply_to_message_));
+    if (message == nullptr) {
+      LOG(ERROR) << "Receive invalid business connection messages";
+      return promise.set_error(500, "Receive invalid business connection messages");
+    }
+    messages->messages_.push_back(std::move(message));
   }
   promise.set_value(std::move(messages));
 }

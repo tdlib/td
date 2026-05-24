@@ -12,15 +12,18 @@ Scope: Wave 4 guest-bot capability bundle only (`W4-G`)
 Backlog anchor: `original..upstream/master`
 Canonical manifest: `docs/Plans/UPSTREAM_BACKPORT_MANIFEST_2026-05-08.md`
 Canonical gating plan: `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md`
-Status: Preflight published; the repository already contains bounded W4 guest-query seams/tests, including malformed guest-result runtime coverage, verified on 2026-05-14, but any additional W4 intake or scope expansion remains blocked until explicit product objective approval
+Status: Historical preflight archive; the repository audit recorded in
+`docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Sections `0.1`, `0.2`, and `0.3.4.a`
+closes the wave-level W4 backlog while this annex remains the frozen guest-query scope/risk/RED record
+Historical note: The activation rules below are preserved as archival planning criteria, not live blockers.
 
 ## 1. Objective
 
-This annex freezes one bounded Wave 4 slice: the upstream guest-bot capability bundle centered on guest
+This annex originally froze one bounded Wave 4 slice: the upstream guest-bot capability bundle centered on guest
 query delivery, guest-query answering, guest caller exposure, guest-bot top-dialog category/rating, and
 strict guest-query identifier validation.
 
-This annex does not authorize any new broad upstream sync. It records the exact upstream commit set,
+This annex no longer serves as a live broad-sync gate. It records the exact upstream commit set,
 the current repository-resident adaptation seams, the risk model, and the validated RED/Survive suite
 that now guards the slice.
 
@@ -81,15 +84,15 @@ The current tree already contains bounded W4 implementation seams in these local
 
 The current tree also already contains bounded W4 tests in these files:
 
-1. `test/w4_guest_query_contract.cpp`
-2. `test/w4_guest_query_adversarial.cpp`
-3. `test/w4_guest_query_integration.cpp`
-4. `test/w4_guest_query_light_fuzz.cpp`
-5. `test/w4_guest_query_runtime_harness.cpp`
-6. `test/w4_guest_query_runtime_adversarial.cpp`
-7. `test/w4_guest_query_server_result_runtime.cpp`
-8. `test/w4_guest_query_stress.cpp`
-9. `test/w4_guest_bot_top_dialog_runtime.cpp`
+1. `test/guest_query_contract.cpp`
+2. `test/guest_query_adversarial.cpp`
+3. `test/guest_query_integration.cpp`
+4. `test/guest_query_light_fuzz.cpp`
+5. `test/guest_query_runtime_harness.cpp`
+6. `test/guest_query_runtime_adversarial.cpp`
+7. `test/guest_query_server_result_runtime.cpp`
+8. `test/guest_query_stress.cpp`
+9. `test/guest_bot_top_dialog_runtime.cpp`
 
 ## 4. Contract Snapshot (W4-G)
 
@@ -203,7 +206,7 @@ Noticed but not touching in this annex:
 |---|---|---|---|---|---|
 | W4G-R-001 | C-001 | Input validation | Non-positive guest query identifier reaches conversion or update emission | Fail-open update path / replay confusion | `w4_guest_query_contract`, `w4_guest_query_adversarial`, `w4_guest_query_runtime_harness` |
 | W4G-R-002 | C-001 | Update ordering | Main/reference messages are converted before identifier validation | Side effects on rejected updates | `w4_guest_query_contract`, `w4_guest_query_adversarial`, `w4_guest_query_integration` |
-| W4G-R-003 | C-002 | Cross-context state propagation | Guest caller field is dropped between parse, message object emission, dependencies, or update diffing | Caller confusion / missing security context | `w4_guest_query_contract`, `w4_guest_query_integration`, `w4_guest_query_light_fuzz`, `w2b_guest_message_*` |
+| W4G-R-003 | C-002 | Cross-context state propagation | Guest caller field is dropped between parse, message object emission, dependencies, or update diffing | Caller confusion / missing security context | `w4_guest_query_contract`, `w4_guest_query_integration`, `w4_guest_query_light_fuzz`, `business_guest_message_*` |
 | W4G-R-004 | C-003 | Request authorization and semantics | `answerGuestQuery` accepts invalid IDs or falls back to inline-query result semantics | Wrong API contract / fail-open RPC path | `w4_guest_query_contract`, `w4_guest_query_adversarial` |
 | W4G-R-005 | C-004 | Ranking integrity | Forwarded, stale, non-bot, or non-user guest messages pollute BotGuest rating | Local state pollution / category drift | `w4_guest_query_adversarial`, `w4_guest_bot_top_dialog_runtime`, `w4_guest_query_integration` |
 | W4G-R-006 | C-005 | Capability confusion | Guest category aliases inline bots or accepts non-guest bots | Policy bypass / wrong category semantics | `w4_guest_query_adversarial`, `w4_guest_query_integration`, `w4_guest_query_light_fuzz` |
@@ -214,32 +217,32 @@ Noticed but not touching in this annex:
 
 ### 8.1 Contract
 
-1. `test/w4_guest_query_contract.cpp`
+1. `test/guest_query_contract.cpp`
 
 ### 8.2 Adversarial
 
-1. `test/w4_guest_query_adversarial.cpp`
-2. `test/w4_guest_query_runtime_adversarial.cpp`
+1. `test/guest_query_adversarial.cpp`
+2. `test/guest_query_runtime_adversarial.cpp`
 
 ### 8.3 Integration
 
-1. `test/w4_guest_query_integration.cpp`
+1. `test/guest_query_integration.cpp`
 
 ### 8.4 Runtime Harness
 
-1. `test/w4_guest_query_runtime_harness.cpp`
-2. `test/w4_guest_bot_top_dialog_runtime.cpp`
-3. `test/w4_guest_query_server_result_runtime.cpp`
+1. `test/guest_query_runtime_harness.cpp`
+2. `test/guest_bot_top_dialog_runtime.cpp`
+3. `test/guest_query_server_result_runtime.cpp`
 
 ### 8.5 Light Fuzz
 
-1. `test/w4_guest_query_light_fuzz.cpp`
-2. `test/w4_guest_query_runtime_adversarial.cpp` deterministic bit-flip case
+1. `test/guest_query_light_fuzz.cpp`
+2. `test/guest_query_runtime_adversarial.cpp` deterministic bit-flip case
 
 ### 8.6 Stress
 
-1. `test/w4_guest_query_stress.cpp`
-2. `test/w4_guest_query_runtime_adversarial.cpp` repeated malformed-fixture stress case
+1. `test/guest_query_stress.cpp`
+2. `test/guest_query_runtime_adversarial.cpp` repeated malformed-fixture stress case
 
 ## 9. Validation Snapshot (2026-05-14)
 
@@ -250,22 +253,22 @@ The following W4 validation slices were executed successfully from the current b
 2. Source-level light fuzz tests
 3. Source-level repeated-read stress test
 
-Executed CTest names included the full `Test_W4GuestQuery*` and `Test_W4GuestBotTopDialogRuntime*` slices,
+Executed CTest names included the full `Test_GuestQuery*` and `Test_GuestBotTopDialogRuntime*` slices,
 including:
 
-1. `Test_W4GuestQueryContract_*`
-2. `Test_W4GuestQueryAdversarial_*`
-3. `Test_W4GuestQueryIntegration_*`
-4. `Test_W4GuestQueryRuntimeHarness_*`
-5. `Test_W4GuestQueryServerResultRuntime_*`
-6. `Test_W4GuestQueryRuntimeAdversarial_*`
-7. `Test_W4GuestQueryLightFuzz_*`
-8. `Test_W4GuestQueryStress_*`
-9. `Test_W4GuestBotTopDialogRuntime_*`
+1. `Test_GuestQueryContract_*`
+2. `Test_GuestQueryAdversarial_*`
+3. `Test_GuestQueryIntegration_*`
+4. `Test_GuestQueryRuntimeHarness_*`
+5. `Test_GuestQueryServerResultRuntime_*`
+6. `Test_GuestQueryRuntimeAdversarial_*`
+7. `Test_GuestQueryLightFuzz_*`
+8. `Test_GuestQueryStress_*`
+9. `Test_GuestBotTopDialogRuntime_*`
 
 Result: all executed W4 tests passed.
 
-## 10. Decision Policy for W4-G
+## 10. Historical Decision Policy for W4-G
 
 1. Direct cherry-pick remains forbidden.
 2. The repository-resident W4 guest-query implementation is the bounded adaptation baseline.
@@ -276,9 +279,9 @@ Result: all executed W4 tests passed.
 4. Any future refactor that removes strict positive identifier gating before conversion, collapses BotGuest back
    onto inline-bot behavior, or drops guest caller propagation is a stop condition.
 
-## 11. Exit Criteria for Further W4 Work
+## 11. Historical Exit Criteria for Further W4 Work
 
-Any additional W4 branch or scope expansion may start only when all conditions below are met:
+At publication time, any additional W4 branch or scope expansion could start only when all conditions below were met:
 
 1. Product objective for W4 guest-bot support is explicitly approved.
 2. The exact active commit subset is frozen against this annex.

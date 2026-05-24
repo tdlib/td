@@ -205,6 +205,8 @@ bool get_message_content_poll_can_add_option(const Td *td, const MessageContent 
 
 bool get_message_content_poll_can_view_stats(const Td *td, const MessageContent *content);
 
+bool get_message_content_poll_has_option(const Td *td, const MessageContent *content, const string &option_id);
+
 bool get_message_content_poll_has_unread_votes(const Td *td, const MessageContent *content);
 
 td_api::object_ptr<td_api::PollVoteRestrictionReason> get_poll_vote_restriction_reason_object(int32 legacy_reason_tag);
@@ -223,6 +225,8 @@ void get_message_content_poll_option_properties(Td *td, const MessageContent *co
 bool get_message_content_to_do_list_others_can_append(const MessageContent *content);
 
 bool get_message_content_to_do_list_can_append_items(const Td *td, const MessageContent *content, int32 item_count);
+
+bool get_message_content_to_do_list_has_item(const MessageContent *content, int32 item_id);
 
 bool get_message_content_to_do_list_others_can_complete(const MessageContent *content);
 

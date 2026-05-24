@@ -59,10 +59,15 @@ void http_send(NSURLRequest *request, Promise<BufferSlice> promise) {
       dataTaskWithRequest:request
       completionHandler:
         ^(NSData *data, NSURLResponse *response, NSError *error) {
-          if (error == nil) {
+          auto status_code = [response isKindOfClass:[NSHTTPURLResponse class]]
+                                 ? static_cast<int32>([(NSHTTPURLResponse *)response statusCode])
+                                 : 0;
+          if (error == nil && status_code < 400) {
             callback.set_value(BufferSlice(Slice((const char *)([data bytes]), [data length])));
-          } else {
+          } else if (error != nil) {
             callback.set_error(static_cast<int32>([error code]), "HTTP request failed");
+          } else {
+            callback.set_error(status_code, "HTTP request failed");
           }
         }];
   [dataTask resume];

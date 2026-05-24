@@ -411,7 +411,7 @@ class MessagesManager final : public Actor {
 
   void read_all_dialog_reactions(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
 
-  bool read_all_local_dialog_poll_votes(DialogId dialog_id, ForumTopicId forum_topic_id);
+  void read_all_local_dialog_poll_votes(DialogId dialog_id, ForumTopicId forum_topic_id);
 
   void read_all_dialog_poll_votes(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
 
@@ -2086,7 +2086,8 @@ class MessagesManager final : public Actor {
 
   void on_unread_poll_vote_added(Dialog *d, const Message *m, const char *source);
 
-  void on_unread_poll_vote_removed(Dialog *d, const Message *m, const char *source);
+  void on_unread_poll_vote_removed(Dialog *d, const Message *m, const char *source,
+                                   bool skip_forum_topic_counter_update = false);
 
   bool remove_message_unread_poll_votes(Dialog *d, Message *m, const char *source);
 
@@ -2490,9 +2491,6 @@ class MessagesManager final : public Actor {
   static td_api::object_ptr<td_api::messages> get_messages_object(int32 total_count,
                                                                   vector<tl_object_ptr<td_api::message>> &&messages,
                                                                   bool skip_not_found);
-
-  td_api::object_ptr<td_api::message> get_business_message_message_object(
-      telegram_api::object_ptr<telegram_api::Message> &&message);
 
   td_api::object_ptr<td_api::updateActiveLiveLocationMessages> get_update_active_live_location_messages_object() const;
 

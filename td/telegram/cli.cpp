@@ -8048,6 +8048,10 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       get_args(args, bot_user_id);
       send_request(td_api::make_object<td_api::getBotToken>(bot_user_id, op == "gbtr"));
+    } else if (op == "gmbt" || op == "gmbtr") {
+      UserId bot_user_id;
+      get_args(args, bot_user_id);
+      send_request(td_api::make_object<td_api::getManagedBotToken>(bot_user_id, op == "gmbtr"));
     } else if (op == "gbi") {
       UserId bot_user_id;
       string language_code;

@@ -27,6 +27,11 @@ GuestQueryQtsUpdateResult dispatch_guest_query_qts_update(
     return GuestQueryQtsUpdateResult::InvalidQueryId;
   }
 
+  auto converted_message = convert_message(std::move(message));
+  if (converted_message == nullptr) {
+    return GuestQueryQtsUpdateResult::EmptyMessage;
+  }
+
   vector<td_api::object_ptr<td_api::message>> converted_reference_messages;
   converted_reference_messages.reserve(reference_messages.size());
   for (auto &reference_message : reference_messages) {
@@ -34,11 +39,6 @@ GuestQueryQtsUpdateResult dispatch_guest_query_qts_update(
     if (converted_reference_message != nullptr) {
       converted_reference_messages.push_back(std::move(converted_reference_message));
     }
-  }
-
-  auto converted_message = convert_message(std::move(message));
-  if (converted_message == nullptr) {
-    return GuestQueryQtsUpdateResult::EmptyMessage;
   }
 
   send_update(query_id, std::move(converted_message), std::move(converted_reference_messages));

@@ -21,7 +21,8 @@ TEST(AiComposeStylesConfigRemovalStress, RepeatedSourceReadsKeepRemovalAndVersio
         normalized_cpp.find(
             R"(send_closure(G()->translation_manager(),&TranslationManager::on_update_ai_compose_styles,std::move(ai_compose_styles));)") ==
         td::string::npos);
-    ASSERT_EQ(1u, td::ai_compose_styles_config_removal_test::count_occurrences(
-                      normalized_h, "staticconstexprint32CURRENT_VERSION=121;"));
+    ASSERT_EQ(1u, td::ai_compose_styles_config_removal_test::count_occurrences(normalized_h,
+                                                                               "staticconstexprint32CURRENT_VERSION="));
+    ASSERT_TRUE(td::ai_compose_styles_config_removal_test::extract_current_version(normalized_h) >= 121);
   }
 }

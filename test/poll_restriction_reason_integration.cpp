@@ -31,10 +31,13 @@ TEST(PollRestrictionReasonIntegration, MessageContentHeaderExportsRestrictionRea
 
 TEST(PollRestrictionReasonIntegration, PollObjectConstructionCarriesRestrictionReasonToTdApiPoll) {
   auto source = td::mtproto::test::read_repo_text_file("td/telegram/PollManager.cpp");
-  auto region = extract_region(
-      source, "td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, const Poll *poll) const {",
-      "PollId PollManager::create_poll(");
+  auto region = extract_region(source,
+                               "td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, "
+                               "const Poll *poll,",
+                               "PollId PollManager::create_poll(");
 
+  ASSERT_TRUE(region.find("int32 vote_restriction_reason_tag = 0;") != td::string::npos);
+  ASSERT_TRUE(region.find("get_poll_vote_restriction_reason_object(vote_restriction_reason_tag)") != td::string::npos);
   ASSERT_TRUE(region.find("auto vote_restriction_reason") != td::string::npos);
   ASSERT_TRUE(region.find("std::move(vote_restriction_reason)") != td::string::npos);
 }

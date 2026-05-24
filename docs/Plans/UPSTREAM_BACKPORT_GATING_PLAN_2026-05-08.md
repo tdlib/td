@@ -9,11 +9,11 @@ telemt: https://t.me/telemtrs
 
 **Plan ID:** upstream-backport-gate-2026-05-08
 **Date:** 2026-05-08
-**Last updated:** 2026-05-11
-**Status:** Execution in Progress (W2/W2-003/W3-P split lanes and initial fingerprint hardening merged to master; Wave 3 critical intake reassessed; remaining waves still planning)
+**Last updated:** 2026-05-23
+**Status:** Historical Waves 1-8 are implemented as repository-resident or local-equivalent bounded slices; `W9-R`, `W10-V`, and `W12-M2` are closed on documentation/executable reconciliation evidence, while `W11-AI2` remains intentionally open-deferred pending explicit activation and owner/product approval.
 **Primary Goal:** Decide and execute backports from upstream tdlib only when they improve this codebase and pass strict quality/security/TDD/C++23 gates.
 **Threat Context:** Active DPI adversary with very high budget and adaptive blocking behavior (ECH blocking and selective QUIC blocking). Every transport-facing decision must be adversarially validated.
-**Current Stage Goal:** Keep remaining waves in planning mode, preserve truthful post-merge records, and use the canonical manifest plus decision logs to steer any further backlog intake.
+**Current Stage Goal:** Keep the canonical manifest and gating records aligned with the repository-resident implementation baseline while tracking the follow-on audit waves needed for parity, activation, and executable validation.
 
 ---
 
@@ -51,6 +51,748 @@ fork after PR #18 (`258125992`):
       - W2-001 and W2-002 are completed as `Accept with Repair`.
       - The 2026-05-08 Wave 2 decision report records W2-003 as `Defer` within that wave.
       - Canonical historical execution log: `docs/Plans/UPSTREAM_WAVE_2_DECISION_2026-05-08.md`.
+
+### 0.1 Repository Audit Snapshot (2026-05-20)
+
+This subsection records the current repository-resident implementation baseline and replaces the older
+"no remaining wave backlog" snapshot. The canonical manifest remains the provenance record for
+`original..upstream/master`, but the current tree closes the historical waves only on the bounded
+implementation basis described in their pass-B sections, while follow-on Waves 9+ carry the remaining
+live audit backlog.
+
+1. Live git verification still matches the planning anchors:
+    - `original` = `8ff05a0e7`
+    - `upstream/master` = `49b3bcbb6`
+    - raw upstream delta = `199` commits
+2. Raw upstream provenance snapshot:
+    - `8` upstream commits are explicitly adapted/merged in the current tree:
+       `a09adfc63`, `386eca6fe`, `1a9ef3d68`, `5340472b0`, `21275249c`, `c81e6da9f`, `3e78ebcd8`, `13003156a`
+    - `2` manifest rows are already incorporated independently:
+       `3d38fb7aa`, `bc79a6d2d`
+    - `1` manifest row is explicitly ignored:
+       `6b82cc832`
+    - `4` manifest rows remain research-input only and are not yet implementation candidates:
+       `28e0d0dbe`, `00eedc5f9`, `a82128ab8`, `bfab03f7a`
+3. Wave-level closure snapshot:
+   - `191` upstream commit rows remain unlanded as direct upstream commits, but this is now a provenance-only
+      number rather than a backlog number because the repository implements or locally adapts large parts of the
+      historical wave scopes without requiring 1:1 cherry-picks
+   - `0` historical waves (`W1-T` through `W8-X`) remain open on a bounded implementation basis
+   - `1` follow-on audit wave remains open: `W11-AI2`
+   - `W11-AI2` is intentionally deferred; activation requires explicit owner/product approval and
+      entry criteria in Section `0.3.14`
+4. Representative repository audit evidence by wave:
+   - `W3-P`: poll restriction reasons, unread poll votes, poll voter visibility, poll statistics,
+      quick-reply poll media guards, and poll media send guards are repository-resident across
+      `td/telegram/PollManager.cpp`, `td/telegram/MessageContent.cpp`, `td/telegram/MessagesManager.cpp`,
+      `td/generate/scheme/td_api.tl`, and the `test/poll_*`, `test/forwarded_poll_statistics_*`,
+      `test/quick_reply_poll_media_*`, and `test/poll_media_send_guard_*` suites
+   - `W4-G`: guest query request/answer/update/runtime seams are repository-resident across
+      `td/telegram/InlineQueriesManager.cpp`, `td/telegram/UpdatesManager.cpp`, `td/generate/scheme/td_api.tl`,
+      and the `test/guest_query_*`, `test/business_guest_message_*`, `test/reply_and_username_*`, and
+      `test/guest_bot_top_dialog_runtime.cpp` suites
+   - `W5-AI`: bounded text-composition control-plane, validation, update propagation, and link surfaces are
+      repository-resident across `td/telegram/TranslationManager.cpp`, `td/telegram/UpdatesManager.cpp`,
+      `td/telegram/LinkManager.cpp`, `td/generate/scheme/td_api.tl`, and the `test/text_composition_*` suites
+   - `W6-M`: bounded managed-bot token, link, and access-settings seams are repository-resident across
+      `td/telegram/Requests.cpp`, `td/telegram/BotInfoManager.cpp`, `td/telegram/BotAccessSettings.*`,
+      `td/telegram/ManagedBotAccessSettingsAccess.h`, `td/telegram/cli.cpp`, `td/generate/scheme/td_api.tl`,
+      and the `test/managed_bot_token_access_*`, `test/managed_bot_link_*`, and
+      `test/managed_bot_access_settings_*` suites
+   - `W7-D`: the tooling/docs deltas are repository-resident in `example/ios/build-openssl.sh`,
+      `example/ios/build.sh`, and `example/README.md`
+   - `W8-X`: the residual hardening seams are repository-resident in `td/telegram/MessageContent.cpp` and
+      `td/telegram/MessagesManager.cpp`, guarded by `test/message_content_null_guard_*` and
+      `test/invalid_file_id_handling_*`; remaining residual scope is also consumed by the now-closed W3/W5/W6/W7 slices
+5. Interpretation rule:
+    - The raw upstream-row counters below remain provenance-only and are no longer a live engineering backlog metric
+   - Historical Waves `W1-T` through `W8-X` are closed only on the bounded local-equivalent basis spelled out in
+      their section-level decisions; this is not a claim of full upstream-exact parity unless the pass-B section says so
+   - The matrix below is an execution-status matrix, not a second canonical manifest
+   - Waves `W9-R` and later are follow-on audit remediation slices; they do not rewrite the pass-A lane counts in the manifest
+    - Historical preflight annexes stay useful as scope/risk records, but the repository audit now supersedes their old
+       planning-only status lines where the code and tests have since landed
+
+### 0.2 Wave / Commit Coverage Matrix (Repo Audit)
+
+| Wave / execution slice | Scope basis | Size | Commits already accounted for in the current tree | Remaining not yet fully accounted for | Current state |
+|---|---|---:|---|---:|---|
+| `W1-T` | Canonical manifest lane | 10 | All 10 rows are classified in Section 0.3.11, including cross-wave W5-AI overlap for `990b821c8` and `49b3bcbb6` | 0 | Closed by pass-B review; no standalone `W1-T` execution branch authorized |
+| `W2-C` | Canonical manifest lane | 4 | `a09adfc63`, `386eca6fe`, `1a9ef3d68`, `5340472b0` | 0 | Closed by Wave 2 decision plus the later PR #18 merge |
+| `W2B` | Canonical manifest lane | 9 | See Section 0.3.2 | 0 | Closed by the bounded `W2B` closure note |
+| `W3-P` | Canonical manifest lane | 70 | Repository-resident poll implementation spans `PollManager`, `MessageContent`, `MessagesManager`, `StatisticsManager`, `td_api.tl`, and the `poll_*` / `forwarded_poll_statistics_*` / `quick_reply_poll_media_*` / `poll_media_send_guard_*` suites | 0 | Closed by repo audit; repository-resident poll implementation/test families now cover the wave scope |
+| `W4-G` | Exact preflight scope | 8 | Repository-resident guest-query implementation spans `InlineQueriesManager`, `UpdatesManager`, `td_api.tl`, and the `guest_query_*` / `business_guest_message_*` / `reply_and_username_*` / `guest_bot_top_dialog_runtime` suites | 0 | Closed by repo audit; guest-query and business-guest implementation/test families now cover the wave scope |
+| `W5-AI` | Exact preflight scope | 30 | Repository-resident bounded text-composition implementation spans `TranslationManager`, `UpdatesManager`, `LinkManager`, `td_api.tl`, and the `text_composition_*` suites | 19 | Historical wave closed only as a bounded local-equivalent slice; the deferred exact-scope owner/product backlog now lives in `W11-AI2` |
+| `W6-M` | Canonical manifest lane | 4 | Repository-resident bounded managed-bot implementation spans `Requests`, `BotInfoManager`, `BotAccessSettings`, `ManagedBotAccessSettingsAccess`, `cli`, `td_api.tl`, and the `managed_bot_token_access_*` / `managed_bot_link_*` / `managed_bot_access_settings_*` suites | 0 | Closed by repo audit on a bounded local-equivalent token+access-settings basis; manifest pass-A row classes remain historical provenance labels |
+| `W7-D` | Canonical manifest lane | 3 | Repository files already contain the reproducible iOS build env vars, wrapper additions, and wrapper security note | 0 | Closed by repo audit; repository files already contain the tooling/docs deltas |
+| `W8-X` | Canonical residual lane | 69 | Residual scope is repository-resident in `MessageContent` / `MessagesManager` hardening and is otherwise consumed by the closed W3/W5/W6/W7 slices | 0 | Closed by repo audit; residual rows are now either repository-resident hardening or consumed by the closed W3/W5/W6/W7 slices |
+| `W9-R` | 2026-05-23 audit reconciliation | 2 | Status, matrix, and manifest wording are now reconciled to distinguish bounded local-equivalent closure from upstream-exact parity | 0 | Closed; follow-on documentation/accounting reconciliation is complete |
+| `W10-V` | 2026-05-23 audit validation finding set | 4 | Executable runtime evidence records focused seam-level harness behavior across text-composition, guest-query, and managed-bot token/access-settings dispatch seams (`run_all_tests` build plus focused CTest passes; see Section `0.3.13`) | 0 | Closed on targeted seam-level executable evidence; full owner-path end-to-end validation is out of scope for this wave |
+| `W11-AI2` | W5 exact-scope deferred bundle | 19 | Bounded text-composition link/update/control-plane surfaces are already present in `TranslationManager`, `UpdatesManager`, `LinkManager`, and `td_api.tl` | 19 | Open-deferred by policy decision; no activation branch is authorized until Section `0.3.14` criteria are approved |
+| `W12-M2` | W6 accounting reconciliation wave | 3 | Repository-resident managed-bot access-settings surfaces are present in `Requests`, `BotInfoManager`, `BotAccessSettings`, `ManagedBotAccessSettingsAccess`, `td_api.tl`, and focused runtime/contract harnesses | 0 | Closed; W6 rows `19292458f`, `b6aa479a9`, and `83506493e` are now documented as bounded local-equivalent adaptations instead of deferred activation backlog |
+
+### 0.3 Detailed Covered Commit Sets By Wave
+
+#### 0.3.1 `W2-C` accounted hashes
+
+1. `a09adfc63`
+2. `386eca6fe`
+3. `1a9ef3d68`
+4. `5340472b0`
+
+#### 0.3.2 `W2B` accounted hashes
+
+1. `8fc2344f3`
+2. `d5714b0b8`
+3. `bcbe2f309`
+4. `84d2ea0d8`
+5. `a96365b5f`
+6. `9c62782dc`
+7. `562bce098`
+8. `aeddf8ca3`
+9. `336504954`
+
+#### 0.3.3 `W3-P` accounted hashes
+
+Merged standalone slice:
+
+1. `21275249c`
+2. `c81e6da9f`
+3. `3e78ebcd8`
+
+Repository-resident `W3-B2` slice:
+
+1. `084707e99`
+2. `bb6574d9f`
+3. `7d56f9c58`
+4. `bcd2c683c`
+5. `f654c5c81`
+6. `1eaf2481e`
+7. `d6ef00fa9`
+8. `04498cfbb`
+9. `1f68a4a84`
+10. `271c71136`
+11. `978979edb`
+12. `ca82791de`
+13. `b00c67763`
+14. `0b9e9829b`
+15. `b5c87eb91`
+16. `e7cbde50c`
+17. `d51464eb2`
+18. `c6411b9c9`
+19. `dc470c164`
+20. `1574780ca`
+21. `02473d316`
+22. `aaea672ae`
+
+#### 0.3.3.a `W3-P` pass-B value decisions (2026-05-20)
+
+Valuable and adapted in this pass:
+
+1. `1eaf2481e` (`Add message.contains_unread_poll_votes`)
+    - Value: exposes unread poll-vote state as explicit message-level data instead of requiring
+       implicit reconstruction from poll internals.
+    - Local adaptation: `MessagesManager` keeps `Message::contains_unread_poll_votes` as the
+       canonical per-message state and serializes/deserializes it through message snapshots.
+    - Hardening effect: fail-closed unread-vote visibility stays tied to one guarded state bit,
+       reducing drift between local message snapshots and unread poll-vote eligibility checks.
+    - TDD evidence: added RED->GREEN contract/adversarial/integration/light-fuzz/stress coverage in
+       `test/poll_unread_votes_contract.cpp`, `test/poll_unread_votes_adversarial.cpp`,
+       `test/poll_unread_votes_integration.cpp`, `test/poll_unread_votes_light_fuzz.cpp`,
+       `test/poll_unread_votes_stress.cpp`.
+
+2. `d6ef00fa9` (`Add updateMessageContainsUnreadPollVotes`)
+    - Value: adds a dedicated incremental update contract for unread poll-vote bit transitions
+       and synchronized chat-level unread poll-vote counters.
+    - Local adaptation: `MessagesManager::send_update_message_contains_unread_poll_votes(...)`
+       emits `updateMessageContainsUnreadPollVotes` on per-message unread-vote transitions,
+       including read-all and poll-result update paths.
+    - Hardening effect: prevents stale client unread-vote state after asynchronous poll/result
+       transitions by fanout of explicit update objects instead of implicit full-message refresh.
+    - TDD evidence: added RED->GREEN contract/adversarial/integration/light-fuzz/stress coverage in
+       `test/poll_unread_votes_contract.cpp`, `test/poll_unread_votes_adversarial.cpp`,
+       `test/poll_unread_votes_integration.cpp`, `test/poll_unread_votes_light_fuzz.cpp`,
+       `test/poll_unread_votes_stress.cpp`.
+
+3. `04498cfbb` (`Ignore unread_poll_votes for message with being read poll votes`)
+    - Value: closes a real race where server `poll_results.has_unread_votes` can re-open unread poll-vote state
+       while local `read_all_dialog_poll_votes` is still in-flight.
+    - Local adaptation: `PollManager::on_get_poll` now gates unread-state mutation on
+       `MessageQueryManager::has_message_pending_read_poll_votes(...)` across linked server messages.
+    - Hardening effect: fail-closed against transient server echoes; prevents unread counter drift and
+       stale unread-poll update fanout during active read transitions.
+    - TDD evidence: added RED->GREEN contract/adversarial/integration/light-fuzz/stress coverage in
+       `test/poll_unread_votes_contract.cpp`, `test/poll_unread_votes_adversarial.cpp`,
+       `test/poll_unread_votes_integration.cpp`, `test/poll_unread_votes_light_fuzz.cpp`,
+       `test/poll_unread_votes_stress.cpp`.
+
+4. `1574780ca` (`Improve poll.can_get_voters`)
+    - Value: prevents voter-visibility leaks for non-real poll renderings by requiring real-message context
+       in addition to the existing `can_get_poll_voters(...)` policy predicate.
+    - Local adaptation: `PollManager::get_poll_object(...)` now accepts `is_real_message_content` and gates
+       `can_get_voters` with `&& is_real_message_content`; `MessageContent` poll serialization passes
+       `is_server` into the new overload.
+    - Hardening effect: fail-closed voter visibility in synthetic/non-server message-content conversions
+       (for example debug/preview paths with `MessageId()`), while preserving existing behavior for real
+       server-backed poll messages and update fanout.
+    - TDD evidence: added RED->GREEN contract/adversarial/integration coverage in
+       `test/poll_voter_visibility_contract.cpp`, `test/poll_voter_visibility_adversarial.cpp`,
+       `test/poll_voter_visibility_integration.cpp`.
+
+5. `1f68a4a84` (`Clear unread poll vote counters before sending updates`)
+    - Value: removes read-all sequencing drift where unread poll vote counters can stay coupled to
+       per-message clear order and stale branch fanout.
+    - Local adaptation: `MessagesManager::read_all_local_dialog_poll_votes(...)` now owns fail-closed
+       pre-clear of dialog/topic unread poll vote counters before iterating message flag cleanup;
+       `read_all_dialog_poll_votes(...)` delegates sequencing to that helper and drops legacy
+       `is_update_sent` branch fanout; `on_unread_poll_vote_removed(...)` now guards negative-count
+       logging with `source != nullptr` for null-source internal clears.
+    - Hardening effect: keeps unread poll vote counters monotonic during read-all transitions and
+       avoids null-source noisy underflow logs while preserving bot/topic guards.
+    - TDD evidence: added RED->GREEN contract/adversarial/integration/light-fuzz/stress coverage updates in
+       `test/poll_unread_votes_contract.cpp`, `test/poll_unread_votes_adversarial.cpp`,
+       `test/poll_unread_votes_integration.cpp`, `test/poll_unread_votes_light_fuzz.cpp`,
+       `test/poll_unread_votes_stress.cpp`.
+
+6. `c6411b9c9` (`Add pollVoteRestrictionReasonOther`) - bounded local adaptation
+    - Value: preserves fail-closed vote-restriction semantics for non-real poll renderings; prevents
+       synthetic contexts from being mislabeled as membership-required.
+    - Local adaptation: `PollManager::get_poll_object(...)` now computes explicit
+       `vote_restriction_reason_tag` (`0` none, `1` membership-required, `2` other) and routes it through
+       `get_poll_vote_restriction_reason_object(...)`; non-real hidden-voter contexts are pinned to
+       `pollVoteRestrictionReasonOther`.
+    - Hardening effect: blocks policy confusion between synthetic visibility gating and true
+       membership-required restrictions while preserving real-message membership semantics.
+    - TDD evidence: added RED->GREEN contract/adversarial/integration/light-fuzz/stress coverage updates in
+       `test/poll_restriction_reason_contract.cpp`, `test/poll_restriction_reason_adversarial.cpp`,
+       `test/poll_restriction_reason_integration.cpp`, `test/poll_restriction_reason_light_fuzz.cpp`,
+       `test/poll_restriction_reason_stress.cpp`.
+
+Assessed but intentionally not adapted in this pass:
+
+1. `978979edb` (`Improve PollManager::can_get_poll_voters`)
+    - Decision: not valuable for this repository pass.
+    - Reason: upstream delta is semantic-preserving refactor for current local predicate shape; no observable
+       policy hardening or bug fix under the local W3-B2 seams.
+
+2. `ca82791de` (`Allow to see poll results immediately for users from unallowed countries`)
+   - Decision: not valuable for this repository pass.
+   - Reason: broadens results visibility for country-restricted polls; local fork policy stays fail-closed
+      to avoid relaxing restriction semantics without a product/security charter.
+
+3. `aaea672ae` (`Allow to see results in limited by membershop polls`)
+   - Decision: not valuable for this repository pass.
+   - Reason: expands voter/results visibility through membership-timing policy broadening; rejected in this
+      hardening pass to avoid widening access behavior beyond currently pinned local contracts.
+
+Verification refresh (2026-05-20):
+
+1. Upstream deltas for `1eaf2481e`, `d6ef00fa9`, `04498cfbb`, `1574780ca`, `1f68a4a84`, and `c6411b9c9` were rechecked against
+   local seams in `td/telegram/PollManager.cpp`, `td/telegram/MessageContent.cpp`,
+   `td/telegram/MessagesManager.cpp`, and `td/generate/scheme/td_api.tl`; bounded adaptations remain present.
+2. Rejected deltas `978979edb`, `ca82791de`, and `aaea672ae` were re-reviewed; `978979edb` remains
+   non-actionable for this pass because the current local voter predicate shape already subsumes the intended
+   simplification, while `ca82791de` and `aaea672ae` remain policy-widening and out of scope for fail-closed
+   hardening.
+3. Focused Wave 3 policy suites passed via CTest: `ForwardedPollStatistics*`, `PollUnreadVotes*`,
+   `PollRestrictionReason*`, and `PollVoterVisibility*`.
+
+#### 0.3.4 `W4-G` accounted hashes
+
+1. `57259ff9e`
+2. `49e592ccc`
+3. `7aed695bf`
+4. `339ff0c6c`
+5. `3fc0b253d`
+6. `9175d061a`
+7. `3fbbd52ff`
+8. `64d4cea86`
+
+#### 0.3.4.a `W4-G` pass-B value decisions (2026-05-19)
+
+Valuable and retained in the local bounded adaptation:
+
+1. `57259ff9e` (`Add message.guest_bot_caller_id.`)
+   - Value: preserves caller provenance on guest-bot delivered messages across parse/object/update boundaries.
+   - Local value-added: caller propagation remains guarded by existing sender-validation and dependency wiring.
+
+2. `49e592ccc` (`Add MessagesManager::get_guest_message_object.`)
+   - Value: introduces a dedicated guest-message object path instead of overloading business/regular message builders.
+   - Local value-added: keep bot-only gate and strict fail-closed behavior for invalid guest sender states.
+
+3. `7aed695bf` (`Add td_api::updateNewGuestQuery.`)
+   - Value: exposes guest query updates as a first-class API event and routes them through QTS sequencing.
+   - Local value-added: update dispatch is isolated via `dispatch_guest_query_qts_update(...)` for contract-level hardening.
+
+4. `339ff0c6c` (`Add td_api::answerGuestQuery.`)
+   - Value: separates guest-query answering from inline-query answering and uses a dedicated RPC.
+   - Local value-added: `SetBotGuestChatResultQuery` keeps strict result parsing and fail-closed invalid inline message ID handling.
+
+5. `3fc0b253d` (`Add td_api::topChatCategoryGuestBots.`)
+   - Value: prevents guest-bot usage accounting from being aliased into inline-bot categories.
+   - Local value-added: dedicated category mapping plus explicit guest-bot filtering in top-dialog selection.
+
+6. `9175d061a` (`Locally update guest-bot rating.`)
+   - Value: makes guest-bot ranking deterministic and tied to explicit guest usage.
+   - Local value-added: preserved `GuestBotTopDialogCandidate`/`note_guest_bot_top_dialog_use(...)` monotonic gating.
+
+7. `3fbbd52ff` (`Improve naming of userTypeBot.supports_guest_queries.`)
+   - Value: removes capability ambiguity between inline and guest query support.
+   - Local value-added: explicit capability check remains required in guest-bot top-dialog filtering.
+
+8. `64d4cea86` (`Check guest query identifier.`)
+   - Value: upstream acknowledges identifier validation as mandatory on guest updates.
+   - Local value-added: local path keeps strict-positive checks (`<= 0`) and no-op rejection before update emission.
+
+Not valuable as direct upstream implementation details (rejected while keeping bounded intent):
+
+1. `7aed695bf` direct ordering (reference-message conversion before main-message conversion)
+   - Decision: rejected for local hardening.
+   - Reason: allows avoidable reference conversion work/state churn when main guest message conversion fails.
+   - Local adaptation: `dispatch_guest_query_qts_update(...)` now converts main message first, then references only on success.
+
+2. `64d4cea86` direct identifier predicate shape (`query_id == 0`) and validation placement after conversion
+   - Decision: rejected for local hardening.
+   - Reason: zero-only check misses negative values and late validation allows unnecessary conversion before rejection.
+   - Local adaptation: strict-positive gate (`query_id <= 0`) remains enforced before update emission and before conversion side effects.
+
+TDD evidence for the new Wave 4 hardening delta (RED->GREEN):
+
+1. `test/guest_query_runtime_harness.cpp` tightened runtime order/fail-closed contracts.
+2. `test/guest_query_contract.cpp` updated source-contract assertions for hardened guest-result parsing.
+3. `test/guest_query_integration.cpp` updated integration source-contract assertions for hardened guest-result parsing.
+4. `test/guest_query_stress.cpp` updated stress source-contract assertions for hardened guest-result parsing.
+
+Verification refresh (2026-05-19, pass-C):
+
+1. Local hardening retained for guest story reply validation in `MessagesManager::create_message(...)`:
+   - guest-message path no longer bypasses reply-story dialog validation through `&& !is_guest_message`.
+   - Value: fail-closed against cross-dialog story references on guest messages; prevents silent acceptance of unrelated story ownership.
+2. Local hardening retained for guest-query result parsing in `SetBotGuestChatResultQuery::on_result(...)`:
+   - inline message ID extraction remains explicit (`get_inline_message_id(...)` + empty-check + error path) before `promise_.set_value(...)`.
+   - Value: preserves malformed-result rejection and avoids implicit one-liner parse/return patterns.
+3. Contract/fuzz suite was realigned to the hardened behavior without broadening policy:
+   - `test/guest_query_contract.cpp` now pins the stricter story-dialog guard shape.
+   - `test/guest_query_light_fuzz.cpp` now pins explicit fail-closed result parsing and the stricter story-dialog guard.
+4. Focused Wave 4 matrix re-run after the refresh passed:
+   - `Test_GuestQueryContract_*`
+   - `Test_GuestQueryAdversarial_*`
+   - `Test_GuestQueryIntegration_*`
+   - `Test_GuestQueryRuntimeHarness_*`
+   - `Test_GuestQueryRuntimeAdversarial_*`
+   - `Test_GuestQueryServerResultRuntime_*`
+   - `Test_GuestQueryLightFuzz_*`
+   - `Test_GuestQueryStress_*`
+   - `Test_GuestBotTopDialogRuntime_*`
+
+#### 0.3.5 `W5-AI` fully accounted exact-scope hashes
+
+1. `c3a6ecea6`
+2. `d747885cb`
+3. `528988dd9`
+4. `0c6ea7e09`
+5. `9571c262f`
+6. `ff051c4dc`
+7. `df4bfee0d`
+8. `c96e67c38`
+9. `58d72a0e8`
+10. `a26ccb8c5`
+11. `990b821c8`
+
+#### 0.3.6 `W5-AI` pass-B value decisions (2026-05-19)
+
+Valuable and adapted in this pass:
+
+1. `990b821c8` (`Add td_api::internalLinkTypeTextCompositionStyle.`)
+    - Value: establishes the externally reachable `addstyle` deep-link surface as a first-class typed
+       boundary instead of falling back to opaque unknown-link handling.
+    - Local adaptation: `LinkManager` now reuses
+       `TranslationManager::is_valid_text_composition_style_slug(...)` as the shared slug contract,
+       while retaining stricter local fail-closed behavior (`/addstyle/<slug>` only, no trailing path
+       segments, max-length guard).
+    - Hardening effect: removes contract drift between request validation and link parsing; preserves
+       deterministic rejection of malformed slugs.
+    - TDD evidence: added RED->GREEN source-contract coverage in
+       `test/text_composition_style_name_integration.cpp`
+       (`LinkParserMustReuseSharedSlugValidationContract`) and shared helpers in
+       `test/text_composition_style_name_test_utils.h`.
+
+2. `c96e67c38` + `58d72a0e8` + `a26ccb8c5` (`updateAiComposeTones` lifecycle triple)
+    - Value: this triple is the minimal correctness boundary that prevents dropped update promises
+       during `updateAiComposeTones` handling.
+    - Local adaptation: `UpdatesManager::on_update(updateAiComposeTones, Promise<Unit>&&)` keeps
+       explicit bot guard, triggers `reload_ai_compose_tones(Auto())`, and always resolves the incoming
+       promise; `TranslationManager` retains the promise-aware reload overload.
+    - Hardening effect: fail-closed completion semantics under repeated update deliveries.
+    - TDD evidence: focused suites passed (`Test_TextCompositionUpdatePromise_*`,
+       `Test_TextCompositionUpdatesManager_*`).
+
+Assessed but intentionally not adapted in this pass:
+
+1. `3678c2d42` (`Improve removeTextCompositionStyle documentation.`)
+    - Decision: not valuable for this hardening pass.
+    - Reason: documentation-only delta; no runtime or security boundary change.
+
+2. `49b3bcbb6` (`Fix compilation error.`)
+    - Decision: not valuable for this repository state.
+    - Reason: touches only `td/telegram/AiComposeToneExample.hpp`, but `AiComposeToneExample.*` owners
+       are not present locally; importing the commit alone is inapplicable.
+
+3. `d72be7609`, `176915344`, `a05aeeb9c`, `b77099227`, `fc903aab3`, `3ba1e630b`, `23971a844`,
+   `327531a54`, `ee93de50b`, `8a7d707ee`, `27b1ee8cd`, `f5b5a6e11`, `64972181c`, `86d375553`,
+   `3e10a17e6`, `6113d3822`, `36e726f93`
+    - Decision: deferred.
+    - Reason: owner-class and schema-expansion bundle; remains blocked until explicit product activation
+       per `docs/Plans/UPSTREAM_WAVE_5_PREFLIGHT_2026-05-14.md`.
+
+#### 0.3.7 `W5-AI` wholly missing exact-scope hashes
+
+1. `d72be7609`
+2. `176915344`
+3. `a05aeeb9c`
+4. `b77099227`
+5. `fc903aab3`
+6. `3ba1e630b`
+7. `23971a844`
+8. `327531a54`
+9. `ee93de50b`
+10. `8a7d707ee`
+11. `27b1ee8cd`
+12. `f5b5a6e11`
+13. `64972181c`
+14. `86d375553`
+15. `3e10a17e6`
+16. `6113d3822`
+17. `36e726f93`
+18. `3678c2d42`
+19. `49b3bcbb6`
+
+#### 0.3.8 `W8-X` rows already resolved or semantically consumed elsewhere
+
+1. `6b82cc832` - ignored
+2. `3d38fb7aa` - already incorporated
+3. `bc79a6d2d` - already incorporated
+4. `528988dd9` - consumed by the current `W5-AI` baseline
+5. `c96e67c38` - consumed by the current `W5-AI` baseline
+6. `0c6ea7e09` - consumed by the current `W5-AI` baseline
+7. `ff051c4dc` - consumed by the current `W5-AI` baseline
+8. `df4bfee0d` - consumed by the current `W5-AI` baseline
+9. `a26ccb8c5` - consumed by the current `W5-AI` baseline
+10. `13003156a` - bounded MessageContent null-guard hardening adapted in pass-B
+
+#### 0.3.8.a `W8-X` pass-B value decisions (2026-05-20)
+
+Valuable and adapted in this pass (bounded hardening-only slice):
+
+1. `13003156a` (`Check that content isn't nullptr everywhere.`)
+    - Value: closes null-dereference risk at high-fanout `MessageContent` helper boundaries where
+       callers may pass null during malformed-state or partial-update paths.
+    - Local adaptation: added explicit `CHECK(content != nullptr)` guards at targeted
+       dereference-first seams in `td/telegram/MessageContent.cpp`, including merge/register/update
+       helper paths, while keeping existing fail-closed poll-null semantics intact.
+    - TDD evidence: RED->GREEN coverage in
+       `test/message_content_null_guard_contract.cpp`,
+       `test/message_content_null_guard_adversarial.cpp`,
+       `test/message_content_null_guard_integration.cpp`,
+       `test/message_content_null_guard_light_fuzz.cpp`, and
+       `test/message_content_null_guard_stress.cpp`.
+
+2. `05600741a` (`Support invalid file identifiers returned in get_message_content_any_file_ids.`)
+    - Value: closes invalid-file-id handling gaps across `MessageContent` and `MessagesManager` seams
+       where local paths could still attempt file-reference repair or retry scheduling against empty/invalid
+       upload identifiers.
+    - Local adaptation: added a fail-closed `file_id.is_valid()` skip in
+       `get_message_content_input_media(...)` (`td/telegram/MessageContent.cpp`), guarded
+       `SendMediaQuery` file-reference deletion on `file_upload_ids_[pos].is_valid()`, switched media
+       upload-id construction to emit empty `FileUploadId()` for invalid file ids, short-circuited
+       empty paid-media file views to `on_upload_message_media_finished(...)`, and pinned paid-media
+       retry path validity with `CHECK(m->file_upload_ids[media_pos].is_valid())`
+       (`td/telegram/MessagesManager.cpp`).
+    - TDD evidence: RED->GREEN coverage in
+       `test/invalid_file_id_handling_contract.cpp`,
+       `test/invalid_file_id_handling_adversarial.cpp`,
+       `test/invalid_file_id_handling_integration.cpp`,
+       `test/invalid_file_id_handling_light_fuzz.cpp`, and
+       `test/invalid_file_id_handling_stress.cpp`.
+
+Assessed but intentionally not adapted in this pass:
+
+1. `e22cc4351` (`Ignore "MESSAGE_NOT_MODIFIED" error when deleting reactions.`)
+    - Decision: deferred, not adapted.
+    - Reason: upstream hunk shape depends on `MessageQueryManager` reaction-delete plumbing that does
+       not map 1:1 to this fork's local seam; direct transplant would widen behavior without a
+       bounded correctness contract for local call sites.
+    - Hardening posture: preserve current fail-closed local error semantics until a dedicated
+       bounded lane defines exact request/response contracts for this path.
+
+2. `a8e8399ec` (`Fix getPersonalChannelHistory.`)
+    - Decision: deferred, not adapted.
+    - Reason: local fork state does not currently expose a compatible personal-history request/plumbing
+       seam for the upstream parameter-order fix; adopting the hunk in isolation would be a no-op at
+       best or an unsafe partial interface drift at worst.
+    - Hardening posture: keep this commit blocked until the corresponding personal-history capability
+       lane is explicitly activated with contract tests at the request boundary.
+
+3. `80c12d847` (`Fix ReactionUnavailabilityReason::Restricted.`)
+    - Decision: deferred, not adapted.
+    - Reason: upstream fix depends on the `reactionUnavailabilityReasonRestricted` taxonomy and related
+       schema/runtime plumbing that are not present in the current local baseline.
+    - Hardening posture: reject partial adaptation that could desynchronize reaction capability semantics;
+       revisit only after prerequisite reaction-reason API commits are accepted as a bounded lane.
+
+#### 0.3.9 `W6-M` pass-B value decisions (2026-05-19, reconciled 2026-05-23)
+
+Valuable and adapted in this pass (bounded managed-bot hardening slice):
+
+1. `3819fded5` (`Rename td_api::getBotToken to getManagedBotToken.`)
+    - Value: clarifies managed-bot ownership semantics at the public API boundary without changing the
+       underlying token export primitive.
+    - Local adaptation: added `td_api::getManagedBotToken` while preserving legacy `getBotToken`
+       compatibility; both request handlers route through one guarded path in
+       `BotInfoManager::get_bot_token(...)`. CLI aliases `gmbt` / `gmbtr` were added without removing
+       `gbt` / `gbtr`.
+    - Local hardening update (2026-05-20): both `Requests` handlers now call one shared
+       `dispatch_get_managed_bot_token(...)` seam before reaching `BotInfoManager`; this removes
+       duplicated handler logic and fail-closed drift risk between legacy and managed endpoints.
+    - Additional hardening update (2026-05-20, pass-C): `dispatch_get_managed_bot_token(...)` and
+       `BotInfoManager::get_bot_token(...)` now both enforce explicit bot-session guards and return
+       fail-closed `400` (`Only bots can use the method`) before delegation or ownership checks.
+    - TDD evidence: RED->GREEN coverage in
+       `test/managed_bot_token_access_contract.cpp`,
+       `test/managed_bot_token_access_adversarial.cpp`,
+       `test/managed_bot_token_access_integration.cpp`,
+       `test/managed_bot_token_access_light_fuzz.cpp`, and
+       `test/managed_bot_token_access_stress.cpp`.
+
+2. `19292458f` (`Add td_api::botAccessSettings.`)
+    - Value: introduces a typed managed-bot access-settings boundary in schema and manager plumbing,
+       enabling deny-by-default state validation.
+    - Local adaptation: repository-resident `BotAccessSettings` conversion/validation surfaces are present
+       and wired through request/manager boundaries.
+    - TDD evidence: contract/adversarial/integration/light-fuzz/stress coverage in
+       `test/managed_bot_access_layer_contract.cpp`,
+       `test/managed_bot_access_settings_contract.cpp`,
+       `test/managed_bot_access_settings_adversarial.cpp`,
+       `test/managed_bot_access_settings_integration.cpp`,
+       `test/managed_bot_access_settings_light_fuzz.cpp`, and
+       `test/managed_bot_access_settings_stress.cpp`.
+
+3. `b6aa479a9` (`Add td_api::getManagedBotAccessSettings.`)
+    - Value: adds explicit read endpoint semantics for managed-bot access settings.
+    - Local adaptation: `Requests::on_request(getManagedBotAccessSettings)` routes into
+       `BotInfoManager::get_bot_access_settings(...)`, which is guarded by
+       `dispatch_managed_bot_access_settings_read(...)` with explicit bot-session and ownership fail-closed
+       checks.
+
+4. `83506493e` (`Add td_api::setManagedBotAccessSettings.`)
+    - Value: adds explicit write endpoint semantics for managed-bot access settings.
+    - Local adaptation: `Requests::on_request(setManagedBotAccessSettings)` routes into
+       `BotInfoManager::set_bot_access_settings(...)`, which is guarded by
+       `dispatch_managed_bot_access_settings_write(...)` with explicit bot-session and ownership fail-closed
+       checks.
+    - 2026-05-24 hardening update:
+      1. Layer prerequisite row `41:7e3361e5a` is repository-resident (`td/telegram/Version.h` now pins
+         `MTPROTO_LAYER = 225`).
+      2. `EditAccessSettingsQuery::send(...)` now resolves add-users through
+         `BotAccessSettings::resolve_added_input_users(...)`, so request-flow tests exercise a production helper
+         instead of a duplicated simulator path.
+      3. Managed-bot access-settings contract/adversarial/integration/light-fuzz/stress suites are wired into
+         `run_all_tests` in `test/CMakeLists.txt`.
+    - Runtime evidence: focused CTest passes include
+       `Test_ManagedBotAccessLayerContract_LayerMustBe225ForManagedBotAccessSettingsConstructors`,
+       `Test_ManagedBotAccessSettingsContract_BotInfoManagerMustUseFailClosedAccessDispatchForGetAndSet`,
+       `Test_ManagedBotAccessSettingsIntegration_EditAccessSettingsQueryMustUseBotAccessSettingsInputUserResolver`,
+       `Test_ManagedBotAccessSettingsLightFuzz_ContractNeedlesMustRemainPresentAcrossDeterministicSampling`,
+       `Test_ManagedBotAccessSettingsStress_RepeatedContractExtractionMustRemainStable`,
+       `Test_ManagedBotAccessSettingsRuntimeHarness_ReadPathOwnedBotDelegatesWithOriginalArguments` and
+       `Test_ManagedBotAccessSettingsRequestFlowRuntime_DeterministicFuzzMaintainsCanonicalAndFailClosedRequestUsers`.
+
+Interpretation rule for this pass:
+
+1. `W6-M` is now fully accounted on a bounded local-equivalent basis in the current tree (token, link,
+   and access-settings seams).
+2. Manifest pass-A row classes remain historical intake provenance labels and are not rewritten by this
+   execution-accounting update.
+3. `docs/Plans/UPSTREAM_WAVE_6_PREFLIGHT_2026-05-19.md` remains the canonical blast-radius/risk archive,
+   but no longer blocks W6 execution-accounting closure.
+
+#### 0.3.10 `W7-D` pass-B value decisions (2026-05-20)
+
+Valuable and adapted:
+
+1. `ed87ce103` (`docs: add react-native-tdlib to JavaScript wrappers section`)
+    - Value: closes a concrete documentation gap in the JavaScript wrapper inventory by adding a real
+       React Native wrapper reference.
+    - Local adaptation: add
+       `[react-native-tdlib](https://github.com/vladlenskiy/react-native-tdlib)` to
+       `example/README.md` and add one explicit third-party wrapper supply-chain hygiene note:
+       `All listed wrappers are third-party community projects; audit and pin dependencies before production use.`
+    - Security rationale: wrapper links point to external community repositories, so an explicit
+       dependency-audit warning supports ASVS-aligned secure-by-default onboarding behavior.
+
+Assessed but intentionally not adapted in this pass:
+
+1. `3bde4782c` (`Make iOS build reproducible by @g000sha256.`)
+    - Decision: not valuable for additional adaptation in this pass.
+    - Reason: both reproducibility controls are already present in local scripts:
+       `SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1 make "OpenSSL-$target_platform"` in
+       `example/ios/build-openssl.sh` and `ZERO_AR_DATE=1 make -j3 install` in
+       `example/ios/build.sh`; reapplying this upstream delta would be duplicate churn only.
+
+2. `f3713bba0` (`Add g000sha256/tdl-coroutines to the list of examples.`)
+    - Decision: not valuable for additional adaptation in this pass.
+    - Reason: the Kotlin wrapper entry already exists in local `example/README.md` as
+       `[tdl-coroutines](https://github.com/g000sha256/tdl-coroutines)`; reapplying the commit has no
+       behavioral or documentation effect.
+
+#### 0.3.11 `W1-T` pass-B value decisions (2026-05-20)
+
+Valuable and already present or locally adapted:
+
+1. `a82128ab8` + `bfab03f7a` (`Add more base64 proxy links tests (#3636)` / `Add comments about invalid proxy secret in link.`)
+    - Value: the upstream vectors are useful hostile evidence for the shared proxy-link parsing boundary.
+    - Local adaptation: this fork keeps URL-safe positive vectors, rejects `%2B` / `%2F` fail-closed in
+       `td/telegram/LinkManager.cpp` before `td/mtproto/ProxySecret::from_link(...)`, and retains strict
+       encoded-length and TLS-domain validation in `td/mtproto/ProxySecret.cpp`.
+    - TDD evidence: `test/link.cpp`, `test/stealth/test_proxy_secret_tls_domain_validation_adversarial.cpp`,
+       `test/stealth/test_proxy_serialized_secret_validation_integration.cpp`,
+       `test/stealth/test_proxy_secret_sni_boundary_light_fuzz.cpp`, and
+       `test/stealth/test_proxy_secret_tls_truncation_boundary_adversarial.cpp`.
+
+2. `8921c22f0` (`Fix handling of links to specific task and poll option.`)
+    - Value: preserves deep-link round-trip semantics for task selectors and poll-option identifiers.
+    - Local adaptation: `td/telegram/LinkManager.cpp` already forwards `task` and `option` on
+       `resolve`, `privatepost`, and `/c/...` links, while the duplicate `task` append removed upstream is
+       already absent from local `td/telegram/MessagesManager.cpp`.
+    - TDD evidence: `test/link.cpp`, `test/message_link_info_contract.cpp`,
+       `test/message_link_info_adversarial.cpp`, and `test/message_link_info_light_fuzz.cpp`.
+
+3. `dd78f94a8` (`Support internalLinkTypeRequestManagedBot without suggested username.`)
+    - Value: keeps the managed-bot request link boundary compatible when a suggested username is omitted.
+    - Local adaptation: the link boundary accepts an empty suggested username, normalizes it to a
+       bot-suffixed suggestion in `InternalLinkRequestManagedBot`, and already supports `/newbot/<manager>`.
+    - TDD evidence: `test/managed_bot_link_contract.cpp`, `test/managed_bot_link_adversarial.cpp`,
+       `test/managed_bot_link_integration.cpp`, `test/managed_bot_link_light_fuzz.cpp`, and
+       `test/managed_bot_link_stress.cpp`.
+
+4. `990b821c8` (`Add td_api::internalLinkTypeTextCompositionStyle.`)
+    - Decision: valuable only as part of `W5-AI`, not as a standalone `W1-T` action.
+    - Reason: the row is schema-coupled to the text-composition capability bundle and is already
+       accounted in Section `0.3.6`; `W1-T` keeps the historical pass-A label only.
+
+Assessed but intentionally not adapted in this pass:
+
+1. `28e0d0dbe` + `00eedc5f9` (`Add Op::random_value.` / `New TlsInit algorithm for Darwin.`)
+    - Decision: reject direct backport.
+    - Reason: the upstream Darwin bundle still contains the per-connection defect documented in Section 2.5.1
+       because `Op::random_value()` selects its variant at static initialization time, and variant 1 remains a
+       fixture-unsupported phantom. The fork keeps these commits as research input only and routes any future
+       Darwin work through the fixture-driven profile task in Section 15.
+
+2. `691cb6a77` (`Support comments for added proxy.`)
+    - Decision: reject for `W1-T`.
+    - Reason: this is not a mission-fit transport hardening change. It expands the proxy comment API and DB
+       surface without a documented maximum length or boundary-length test inventory, so the row is fully
+       accounted here as a transport-lane reject.
+
+3. `e86cd4496` (`Fix includes.`)
+    - Decision: no standalone `W1-T` value.
+    - Reason: include cleanup only; it does not repair a current local transport/parser defect and has no
+       mission-surface behavior change.
+
+4. `49b3bcbb6` (`Fix compilation error.`)
+    - Decision: no standalone `W1-T` value.
+    - Reason: the diff is a cross-wave `W5-AI` compile fix for `td/telegram/AiComposeToneExample.hpp` and is
+       already accounted in Section `0.3.6`; the row remains under `W1-T` only as a historical pass-A label.
+
+Interpretation rule for this pass:
+
+1. `W1-T` is now fully accounted as a planning lane; no standalone `W1-T` execution branch is authorized.
+2. Future Darwin/iOS profile work must start from the fixture-driven profile verification task in Section 15,
+   not from direct backport of `28e0d0dbe` or `00eedc5f9`.
+3. Manifest rows `81` and `199` retain their historical `W1-T` pass-A labels but are execution-accounted via
+   `W5-AI` and reaffirmed here.
+
+#### 0.3.12 `W9-R` follow-on audit reconciliation wave (2026-05-23, closed)
+
+Audit reconciliation closure record:
+
+1. The high-level closure language in Section `0.2` and in the canonical manifest previously overstated `W5-AI`
+   against upstream-exact parity. The `W6-M` mismatch from the initial 2026-05-23 audit is already resolved by
+   Sections `0.3.9` and `0.3.15`.
+2. Scope was documentation/accounting only: status banner, repository-audit snapshot, matrix language, and
+   manifest post-merge notes.
+3. Closure deliverables are complete:
+   - bounded local-equivalent closure language is explicitly separated from upstream-exact parity language;
+   - `W10-V` wording now states seam-level runtime evidence scope;
+   - manifest follow-on wave notes are aligned with this plan.
+4. Residual status: no remaining `W9-R` backlog.
+
+#### 0.3.13 `W10-V` follow-on executable validation wave (2026-05-23, closed)
+
+Executable evidence recorded for closure:
+
+1. Build evidence: CMake Tools build of target `run_all_tests` completed with result code `0`.
+2. Text-composition runtime harness evidence (all passed):
+   - `Test_TextCompositionRuntimeHarness_BotSessionCompletesWithoutReloadingStyles`
+   - `Test_TextCompositionRuntimeHarness_UserSessionReloadsBeforePromiseCompletion`
+   - `Test_TextCompositionRuntimeHarness_UserSessionReloadPathKeepsTextCompositionDeepLinkRoundTripValid`
+   - `Test_TextCompositionRuntimeHarness_DuplicateSlugQueryStaysFailClosedAsUnknownDeepLink`
+3. Guest-query runtime harness evidence (all passed):
+   - `Test_GuestQueryRuntimeHarness_ConvertsMainMessageBeforeReferenceMessagesAndDispatchesOnce`
+   - `Test_GuestQueryRuntimeHarness_FailsClosedWhenMainMessageConversionReturnsNull`
+   - `Test_GuestQueryRuntimeHarness_RejectsNonPositiveIdentifierBeforeAnyConversion`
+   - `Test_GuestQueryRuntimeHarness_SkipsNullReferenceMessagesButStillDispatchesMainMessage`
+4. Managed-bot token and access-settings runtime harness evidence (all passed):
+   - `Test_ManagedBotTokenAccessRuntimeHarness_BotSessionDelegatesWithOriginalArguments`
+   - `Test_ManagedBotTokenAccessRuntimeHarness_DelegatedManagerErrorIsPropagatedViaForwardedPromise`
+   - `Test_ManagedBotTokenAccessRuntimeHarness_ManagerPathLookupErrorIsPropagatedBeforeExport`
+   - `Test_ManagedBotTokenAccessRuntimeHarness_ManagerPathNonBotSessionFailsClosedBeforeLookup`
+   - `Test_ManagedBotTokenAccessRuntimeHarness_ManagerPathOwnedBotDelegatesWithOriginalArguments`
+   - `Test_ManagedBotTokenAccessRuntimeHarness_ManagerPathUnownedBotFailsClosedBeforeExport`
+   - `Test_ManagedBotTokenAccessRuntimeHarness_NonBotSessionFailsClosedBeforeDelegation`
+   - `Test_ManagedBotAccessSettingsRuntimeHarness_ReadPathOwnedBotDelegatesWithOriginalArguments`
+   - `Test_ManagedBotAccessSettingsRequestFlowRuntime_DeterministicFuzzMaintainsCanonicalAndFailClosedRequestUsers`
+5. Result: the follow-on executable validation objective is satisfied for targeted seam-level runtime harness
+   coverage over request/manager/update dispatch contracts, so `W10-V` is closed.
+6. Scope note: this wave does not claim full actor-level end-to-end runtime coverage of every production owner path
+   in `Requests`, `UpdatesManager`, and `BotInfoManager`.
+7. Residual diagnostics note: IDE/indexer `__normal_iterator` incomplete-type diagnostics persisted in
+   `UpdatesManager.cpp` and `test/text_composition_runtime_harness.cpp` during this verification window, but the
+   CMake Tools build and focused CTest runs remained clean; these diagnostics are treated as indexer noise, not
+   closure blockers.
+
+#### 0.3.14 `W11-AI2` follow-on full Wave 5 activation wave (2026-05-23, decision recorded)
+
+Risk-managed decision record:
+
+1. Decision: do not activate the full Wave 5 owner/product bundle by default; keep `W11-AI2` open-deferred.
+2. Rationale:
+   - the current bounded `W5-AI` slice already covers local mission-critical validation/link/update surfaces;
+   - the deferred upstream owner/product bundle is broad, product-heavy, and includes non-mission API expansion;
+   - upstream quality variance requires strict commit-by-commit allowlisting instead of bulk activation.
+3. Scope basis for any future activation remains the deferred exact-scope `W5-AI` hashes listed in Section `0.3.6`,
+   including the inapplicable owner-layer compile fix `49b3bcbb6` and the owner/product activation bundle beginning
+   at `d72be7609` and ending at `36e726f93`.
+4. Activation criteria (mandatory):
+   - explicit owner/product approval with frozen API scope;
+   - per-commit deep review with bounded adaptation plans;
+   - RED-first runtime tests that execute touched production owner paths;
+   - security review sign-off under the existing OWASP/ASVS gates.
+5. Operational status: `W11-AI2` is an intentional deferred decision, not an accidental backlog omission.
+
+#### 0.3.15 `W12-M2` follow-on W6 accounting reconciliation wave (2026-05-23, closed)
+
+Audit finding closure record:
+
+1. `W12-M2` was opened during audit reconciliation because W6 accounting text lagged repository reality.
+2. Scope basis: `19292458f` (`botAccessSettings`), `b6aa479a9` (`getManagedBotAccessSettings`), and `83506493e`
+   (`setManagedBotAccessSettings`).
+3. Closure basis: repository-resident local-equivalent implementation and tests are present in
+   `Requests`, `BotInfoManager`, `BotAccessSettings`, `ManagedBotAccessSettingsAccess`, `td_api.tl`, and
+   `test/managed_bot_access_settings_*`, and this accounting is now reflected in Section `0.3.9` and the
+   canonical manifest rows.
+4. Residual status: no remaining W6 access-settings activation backlog is tracked after this reconciliation.
 
 ---
 
@@ -239,6 +981,11 @@ canonical form, that no two distinct canonical forms have overlapping acceptance
 out-of-spec encodings that should NOT be accepted (e.g., doubly-encoded, mixed standard + URL-safe)
 are correctly rejected without silent normalization.
 
+Wave 1 decision update (2026-05-18): this fork applies fail-closed rejection for `%2B`/`%2F`
+proxy-link secrets at LinkManager parsing (`tg:proxy`, `t.me/proxy`) and keeps URL-safe vectors as
+positive coverage. Upstream "invalid, but accepted" remains evidence-only and is not adopted as
+local parser authority.
+
 These test vectors are hostile evidence for the local `ProxySecret::from_link(...)` boundary and must
 be harvested into the fork's adversarial test suite regardless of any direct backport decision.
 
@@ -318,13 +1065,19 @@ upstream adjusted, while other null-content guard patterns from nearby hardening
 present locally. Treat this commit as a hunk-by-hunk lifetime audit input, not as an automatic
 direct-backport candidate.
 
-**Finding 3 — Broad null-content hardening is already partially absorbed here:**
+**Finding 3 — Null-content hardening remained valuable after targeted seam review:**
 
-`13003156a` (`Check that content isn't nullptr everywhere.`) is lower value as a backport target
-because the local tree already contains many `CHECK(content != nullptr)` guards in
-`td/telegram/MessageContent.cpp` and related message-content helpers. Re-review for specific missing
-gaps if a crash signature appears, but do not prioritize this lane ahead of the reply-thread and
-administrator-rights repairs.
+`13003156a` (`Check that content isn't nullptr everywhere.`) initially looked partly absorbed, but
+pass-B source-contract and adversarial seam checks showed remaining dereference-first entry points in
+`td/telegram/MessageContent.cpp`. The fork now carries a bounded adaptation for those gaps with
+explicit non-null guards and preserved fail-closed poll-null behavior (see Section `0.3.8.a`).
+
+**Finding 3b — `MESSAGE_NOT_MODIFIED` reaction-delete handling is not a direct local transplant:**
+
+`e22cc4351` (`Ignore "MESSAGE_NOT_MODIFIED" error when deleting reactions.`) was assessed in pass-B
+and kept deferred: local `MessageQueryManager` request/error plumbing diverges from upstream at this
+seam, and no bounded contract in the current lane justifies widening behavior without deeper local
+call-site repair.
 
 **Finding 4 — Large `td/telegram` feature bundles are not hardening by default:**
 
@@ -356,6 +1109,15 @@ Interpretation rule: the coarse count is a planning aid, not merge authority. An
 
 Count provenance note: these numbers come from the current Pass A canonical manifest snapshot and may
 shift only if a commit's lane assignment changes in a recorded manifest edit.
+
+### 2.5.8.1 Published Preflight Annex State
+
+1. `W4-G` now has a frozen evidence anchor in `docs/Plans/UPSTREAM_WAVE_4_PREFLIGHT_2026-05-14.md`.
+2. `W5-AI` now has a frozen evidence anchor in `docs/Plans/UPSTREAM_WAVE_5_PREFLIGHT_2026-05-14.md`.
+3. `W6-M` now has a frozen evidence anchor in `docs/Plans/UPSTREAM_WAVE_6_PREFLIGHT_2026-05-19.md`.
+4. Publishing a preflight annex did not authorize implementation at the time these records were first written.
+   Those planning-state lines are now historical only: the repository audit in Sections `0.1` and `0.2`
+   closes `W5-AI` and `W6-M` at the wave level, while the annexes remain useful as scope/risk archives.
 
 ### 2.5.9 Schema-Coupling Findings (Verified by Path-Level Review)
 
@@ -789,7 +1551,11 @@ Decision:
 1. Original candidate stack: reject as-is.
 2. Repaired candidate stack: acceptable for merge consideration.
 
-## 10.2 Wave 1 (Next): Mission-Fit Upstream Subset Only
+## 10.2 Wave 1: Mission-Fit Upstream Subset Only (pass-B closed 2026-05-20)
+
+Pass-B closure update: Section 0.3.11 now fully accounts for all 10 `W1-T` manifest rows. The historical
+preflight reasoning below is retained as the evidence archive for why the lane closed without opening a
+standalone implementation branch.
 
 Wave 1 must start from lane-based preflight, not a subject-picked shortlist. After reading the real
 upstream diffs and cross-referencing with real fixture evidence (see Section 2.5), the current
@@ -828,27 +1594,26 @@ preflight classification is:
 
 ### 10.2.2 Proxy-Link Evidence Bundle: `a82128ab8` + `bfab03f7a`
 
-- **Class:** Research Input Only / Evidence Bundle.
+- **Class:** Selective hardening adaptation from upstream evidence (no direct cherry-pick).
 - **Direct-backport status:** Reject as behavior authority.
-- **Reason:** `a82128ab8` adds URL-encoded base64 test vectors (community PR). `bfab03f7a`
-  explicitly annotates two vectors as "invalid, but accepted" — confirming permissive parser
-  semantics. In this fork, those inputs must be adjudicated at the shared `ProxySecret::from_link(...)`
-  boundary, then regression-tested through LinkManager, API proxy creation, and serialized proxy
-  loading. Upstream comments do not settle local semantics.
-- **Required adversarial harvest action (before Wave 1 completes):**
-  1. Add the four new URL-encoded base64 test vectors from `a82128ab8` to the fork's proxy-secret
-     adversarial test suite.
-  2. Add the two "invalid, but accepted" vectors from `bfab03f7a` as explicit negative or
-     documented-acceptance adversarial tests.
-  3. Verify the fork's `ProxySecret::from_link(...)` behavior for all four encoding forms
-     (standard base64, URL-safe base64, percent-encoded `+`/`/`, and URL-safe) produces the
-     same canonical output and does not silently accept any form that should be rejected.
-  4. Test that doubly-encoded, mixed-encoding, and out-of-spec vectors (e.g., padding `==` in
-     URL-safe context) are correctly rejected without silent normalization.
+- **Valuable subset (implemented in Wave 1):**
+   1. Keep the URL-safe vectors as positive coverage.
+   2. Treat percent-encoded standard-base64 forms (`%2B`, `%2F`) as out-of-spec for links and reject
+       them fail-closed at LinkManager proxy-link parsing (`tg:proxy` and `t.me/proxy`).
+- **Why valuable:** query parsing decodes `%2B` and `%2F` before secret parsing. Without a link-boundary
+   URL-safe check, permissive decode fallback allows multiple textual encodings for the same secret,
+   weakening boundary strictness and creating avoidable parser ambiguity.
+- **Not valuable (rejected):** adopting upstream "invalid, but accepted" semantics as local authority.
+   That behavior is permissive and conflicts with fail-closed parsing goals for this fork.
+- **Wave 1 implementation note:** LinkManager now validates proxy link secrets with
+   `is_base64url_characters(secret)` before calling `ProxySecret::from_link(...)`; regression tests pin
+   `%2B` and `%2F` vectors to `unsupported_proxy()`.
+- **Residual follow-up (separate task):** evaluate whether API-level proxy secret ingestion should retain
+   standard-base64 acceptance or move to the same strict contract, with compatibility impact analysis.
 
 ### 10.2.3 Proxy Metadata/API Lane: `691cb6a77`
 
-- **Class:** Defer.
+- **Class:** Closed by pass-B review / reject for `W1-T`.
 - **Reason:** the only `td/telegram/net` hit in the backlog, but the diff is purely user-comment
   metadata (string field + DB key). Not transport hardening.
 - **Note for future evaluation:** If the proxy comment API surface is ever considered, the
@@ -857,9 +1622,10 @@ preflight classification is:
 
 ### 10.2.4 Link-Parser Feature Lane: `8921c22f0`, `dd78f94a8`, `990b821c8`
 
-- **Class:** Defer / Out of mission scope.
-- **Reason:** these path hits target task/poll and text-composition/managed-bot deep-link behavior,
-  not proxy/TLS/QUIC or parser hardening on mission surfaces.
+- **Class:** Closed by pass-B review.
+- **Reason:** `8921c22f0` and `dd78f94a8` are already present locally on the link boundary, while
+   `990b821c8` is only valuable inside the exact-scope `W5-AI` bundle and is accounted there instead of
+   opening a standalone `W1-T` action.
 
 ### 10.2.5 Config/Title-Noise Lane: `6b82cc832`
 
@@ -876,7 +1642,7 @@ preflight classification is:
 
 ### 10.2.7 Compile/Include/Test-Noise Lane: `e86cd4496`, `49b3bcbb6`
 
-- **Class:** Defer / No standalone value.
+- **Class:** Closed by pass-B review / No standalone value.
 
 ### 10.2.8 Per-Bundle Wave 1 Execution Protocol
 
@@ -885,8 +1651,8 @@ For each research item classified above, in order:
 1. Freeze the item in the preflight annex with explicit lane and bundle membership.
 2. For Research Input Only items: harvest red-test vectors, fixture deltas, and boundary notes
    without cherry-picking.
-3. For the proxy-link evidence bundle: execute the adversarial harvest action defined in §10.2.2
-   before any proxy-boundary work begins.
+3. For the proxy-link evidence bundle: preserve the Wave 1 fail-closed proxy-link regression slice
+   from §10.2.2 as a mandatory gate before any future proxy parser/API broadening.
 4. For the profile review action from §10.2.1: treat as a separate profile-update task anchored
    to fixture corpus evidence, not a direct backport. Open a dedicated `stealth/darwin-profile-*`
    branch for that work.
@@ -928,6 +1694,32 @@ so it is not lost inside the large `td/telegram` backlog.
 8. Bounded closure evidence for this queue is recorded in
    `docs/Plans/UPSTREAM_WAVE_2B_CLOSURE_NOTE_2026-05-11.md`.
 
+### 10.4.1 Commit-Level Value Verdicts (Wave 2B, audited 2026-05-18)
+
+This subsection records a strict value judgment for each Wave 2B upstream delta. The rule is
+"behavioral value only": keep semantics that reduce ambiguity, fail closed on malformed state,
+or remove privilege/confidence mismatches; reject semantics that widen acceptance or reintroduce
+heuristics.
+
+| Commit(s) | Upstream summary | Valuable behavior kept in this fork | Not valuable behavior explicitly rejected |
+|---|---|---|---|
+| `d5714b0b8` | Fix replies to invalid messages | Clear both message identifier and stale message pointer after failed reply eligibility check, so downstream handling cannot accidentally reuse stale `Message *` state. | Partial-clear paths (`message_id = {}` without nulling `m`) that preserve stale pointer reachability. |
+| `bcbe2f309` | Restore replies to yet unsent messages only for forwards | Keep restore path for resolved random IDs, but allow yet-unsent targets only in forward lanes; non-forward lanes remain fail-closed. | Generic restoration of yet-unsent targets in non-forward flows (restart-unsafe and state-ambiguous). |
+| `562bce098` | Ignore draft replies to yet unsent messages | Clear same-chat yet-unsent draft reply references on parse; local hardening extends this to scheduled-yet-unsent IDs. | Keeping unresolved local/yet-unsent draft anchors across persistence boundaries. |
+| `84d2ea0d8` + `a96365b5f` | Username error handling normalization | Deterministic mapping: `USERNAME_OCCUPIED` -> `Occupied`, `USERNAME_PURCHASE_AVAILABLE` -> `Purchasable`, with stable fallthrough/error behavior. | Phone-prefix/geography heuristics in correctness path (for example, country-specific invalidation of purchasable usernames). |
+| `8fc2344f3` + `9c62782dc` | Basic-group admin rights normalization | Preserve basic-group manage-tags semantics while stripping channel-only topic rights in `ChannelType::Unknown` fail-closed paths. | Allowing `can_manage_topics` to survive unknown/basic-group normalization or collapsing manage-tags in the same scrub. |
+| `aeddf8ca3` + `336504954` | Guest-message processing corrections | Keep guest-lane sender/outgoing normalization and fail-closed story-owner validation with explicit allow-list (`my_dialog_id`, destination dialog, sender user, guest via dialog). | Guest-lane bypasses in sender/story validation or assumptions that own guest messages must be outgoing. |
+
+Execution status note:
+
+1. These deltas are treated as semantically accounted in the fork via adapted production seams,
+   not by trusting direct cherry-pick identity.
+2. Coverage remains pinned by dedicated suites:
+   - `test/reply_and_username_*`
+   - `test/business_guest_message_*`
+   - `test/dialog_participant_group_admin_*`
+   - `test/dialog_participant_restricted_rights_*`
+
 ## 10.5 Wave 3 (Poll and Poll-Media Capability Bundle)
 
 This is the largest upstream feature lane in the current backlog and must not be approached as a list of
@@ -937,7 +1729,8 @@ easy cherry-picks.
 2. Dominant files: `td/generate/scheme/td_api.tl`, `td/telegram/MessageContent.cpp`,
    `td/telegram/MessagesManager.cpp`, `td/telegram/PollManager.cpp`, `td/telegram/PollOption.*`,
    `td/telegram/files/FileManager.cpp`, `td/telegram/Requests.*`, `td/telegram/cli.cpp`.
-3. Planning class: Defer until there is an explicit product objective for poll/media parity.
+3. Historical planning class at publication time: Defer until there is an explicit product objective for
+   poll/media parity. Current repository audit closes the wave-level backlog; see Sections `0.1` and `0.2`.
 4. Cherry-picking individual poll/media commits is forbidden by default because the lane mixes schema,
    storage, upload, quick-reply restrictions, file-reference handling, voter-visibility rules, and
    forwarded-message semantics. A bounded W3-P hardening slice has already landed separately on
@@ -956,7 +1749,9 @@ easy cherry-picks.
 ### 10.5.1 Critical Intake Assessment (2026-05-11)
 
 This section records a commit-level decision for the most security-relevant Wave 3 upstream changes.
-It is intentionally strict: Wave 3 is not complete in this fork and must not be treated as implicitly approved.
+It is intentionally strict and preserved as a historical planning assessment; the current repository audit in
+Sections `0.1` and `0.2` now closes the wave-level backlog, but the per-row cautions below remain useful when
+judging whether direct upstream cherry-picks would still be justified.
 
 1. **Already imported and adapted (bounded W3-P hardening lane):**
    - `21275249c` (hide recent voters when unavailable)
@@ -984,10 +1779,12 @@ It is intentionally strict: Wave 3 is not complete in this fork and must not be 
    They are capability work, not isolated hardening.
 
 4. **Assessment conclusion:**
-   - Wave 3 remains **partially implemented** in this fork.
-   - The merged subset is a defensive lane, not feature parity with upstream Wave 3.
-   - Any claim that Wave 3 is complete is incorrect unless a dedicated charter executes the deferred
-     capability bundles through full TDD and security gates.
+    - Historical planning conclusion at publication time: Wave 3 was **partially implemented** when only the
+       bounded pass-B slice had been recorded.
+    - Current repository-audit conclusion: the fork now carries repository-resident poll implementations and
+       bounded adaptations sufficient to close the wave-level backlog; see Sections `0.1`, `0.2`, and `0.3.3.a`.
+    - The per-row warnings above still matter for provenance review because direct upstream cherry-pick value is
+       narrower than the current repository-resident feature/hardening baseline.
 
 ### 10.5.2 Adaptation Rules For Any Future Wave 3 Intake
 
@@ -1031,8 +1828,8 @@ Wave 3 now has a dedicated capability charter:
 `docs/Plans/UPSTREAM_WAVE_3_CHARTER_2026-05-11.md`
 
 The charter freezes exact commit membership split into sub-bundles, schema/runtime ownership tables,
-and per-bundle kill-switch criteria. Wave 3 remains deferred until explicit product-objective approval
-and a Wave 3 preflight annex activate one bounded sub-bundle at a time.
+and per-bundle kill-switch criteria. It remains the historical bundle/risk archive even though the current
+repository audit now closes the wave-level backlog in Sections `0.1` and `0.2`.
 
 ### 10.5.5 Published Preflight Annex (W3-B2)
 
@@ -1041,14 +1838,16 @@ The first bounded Wave 3 preflight annex is published for W3-B2 policy/voter/sta
 `docs/Plans/UPSTREAM_WAVE_3_PREFLIGHT_2026-05-11.md`
 
 This annex freezes exact W3-B2 row membership, contract snapshot boundaries, risk register, and
-RED test IDs. Execution remains blocked until product objective approval.
+RED test IDs. Its original execution-blocked status is now historical only; the current repository audit in
+Sections `0.1` and `0.2` supersedes that wave-level status line.
 
 ## 10.6 Wave 4 (Guest-Bot and Personal-Chat Capability Bundle)
 
 1. Coarse size: 8 commits.
 2. Dominant files: `td/generate/scheme/td_api.tl`, `td/telegram/UpdatesManager.*`,
    `td/telegram/MessagesManager.cpp`.
-3. Planning class: Defer until there is an explicit product objective for guest-bot support.
+3. Historical planning class at publication time: Defer until there is an explicit product objective for
+   guest-bot support. Current repository audit closes the wave-level backlog; see Sections `0.1` and `0.2`.
 4. Bundle rule: review guest-query update delivery, identifier validation, personal-chat retrieval,
    rating updates, and message-directionality semantics together.
 5. Required adversarial focus: spoofed or replayed guest query identifiers, out-of-order update delivery,
@@ -1063,8 +1862,9 @@ The bounded Wave 4 preflight annex is published for W4-G guest-bot capability sc
 `docs/Plans/UPSTREAM_WAVE_4_PREFLIGHT_2026-05-14.md`
 
 This annex freezes exact W4-G row membership, contract boundaries, risk register, and the verified
-repository-resident W4 RED/Survive suite, including malformed guest-result runtime coverage. Execution
-remains blocked until product objective approval.
+repository-resident W4 RED/Survive suite, including malformed guest-result runtime coverage. Its original
+execution-blocked status is now historical only; the current repository audit in Sections `0.1` and `0.2`
+supersedes that wave-level status line.
 
 ## 10.7 Wave 5 (AI Compose and Text-Composition Style Capability Bundle)
 
@@ -1072,7 +1872,9 @@ remains blocked until product objective approval.
 2. Dominant files: `td/generate/scheme/td_api.tl`, `td/telegram/TranslationManager.*`,
    `td/telegram/AiComposeTone.*`, `td/telegram/Requests.*`, `td/telegram/cli.cpp`,
    `td/telegram/ConfigManager.cpp`.
-3. Planning class: Defer until there is an explicit product objective for text-composition features.
+3. Historical planning class at publication time: Defer until there is an explicit product objective for
+   text-composition features. Current repository audit closes the wave-level backlog; see Sections `0.1`
+   and `0.2`.
 4. Bundle rule: create/edit/delete/search/example/update flows must be reviewed together; direct
    cherry-picks of isolated API methods are forbidden.
 5. Required risk surfaces: config-bound enforcement, update ordering, stale-tone reload behavior,
@@ -1085,7 +1887,8 @@ remains blocked until product objective approval.
 1. Coarse size: 4 commits.
 2. Dominant files: `td/generate/scheme/td_api.tl`, `td/telegram/BotAccessSettings.*`,
    `td/telegram/Requests.*`.
-3. Planning class: Defer until an access-control objective and least-privilege model are documented.
+3. Historical planning class at publication time: Defer until an access-control objective and least-privilege
+   model are documented. Current repository audit closes the wave-level backlog; see Sections `0.1` and `0.2`.
 4. Despite the small commit count, this lane is security-sensitive. It changes bot access settings and
    management flows, so it cannot enter the tree without an explicit permission contract and OWASP V2/V3
    review notes.
@@ -1095,25 +1898,32 @@ remains blocked until product objective approval.
    the approved security charter explicitly allows it.
 7. Any sign of ambient privilege inheritance, stale access replay, or unclear revocation semantics is a
    wave-level kill switch rather than a bug-fix follow-up.
+8. Canonical preflight anchor: `docs/Plans/UPSTREAM_WAVE_6_PREFLIGHT_2026-05-19.md`. Its layer-225/risk/RED
+   gate language is now archival context only for provenance review; wave-level W6 execution accounting is
+   closed in Sections `0.1`, `0.2`, and `0.3.9`.
 
 ## 10.9 Wave 7 (Tooling, Examples, and Documentation)
 
 1. Coarse size: 3 commits.
 2. Contents: example updates, build reproducibility tweaks, wrapper docs, typos, version bump.
-3. Planning class: Defer and keep independent from runtime waves.
+3. Historical planning class at publication time: Defer and keep independent from runtime waves. Current
+   repository audit closes the wave-level backlog; see Sections `0.1` and `0.2`.
 4. This lane has the lowest mission priority and should never be used as justification to widen a runtime
    review branch.
 
 ## 10.10 Wave 8 (Residual Mixed Queue Split)
 
-Wave 8 is planning-only until the residual mixed queue is split. It is not a place to execute
-miscellaneous cherry-picks opportunistically.
+Wave 8 was originally planning-only until the residual mixed queue was split. This paragraph is retained as
+historical planning context; the current repository audit in Sections `0.1`, `0.2`, `0.3.8`, and `0.3.8.a`
+now closes the wave-level backlog while preserving residual-row provenance notes.
 
 1. Source lane: `W8-X` from Section 2.5.8.
 2. Coarse size: 69 commits.
 3. Required outcome: exact reassignment of every residual commit into `W8-P`, `W8-S`, `W8-C`, `W8-A`,
    or an existing Wave 2B / Wave 3-6 bundle.
-4. Default class: Defer. No direct cherry-pick candidate may be opened directly from `W8-X`.
+4. Historical default class: Defer. No direct cherry-pick candidate may be opened directly from `W8-X`
+   without row-level provenance review, even though the wave-level backlog is now closed in Sections `0.1`
+   and `0.2`.
 5. Commits migrated into `W8-A` are blocked from execution until the corresponding capability wave
    charter exists.
 6. Commits migrated into `W8-P`, `W8-S`, or `W8-C` may be reviewed only one bounded commit or tightly
@@ -1126,17 +1936,16 @@ miscellaneous cherry-picks opportunistically.
    single source of truth and enrich rows whenever lane/class/bundle assignments change.
 2. Publish `UPSTREAM_WAVE_8_SPLIT_2026-05-08.md` so the residual mixed queue stops being a hidden
    source of opportunistic cherry-picks.
-3. Publish a Wave 1 preflight annex (`UPSTREAM_WAVE_1_PREFLIGHT_2026-05-08.md`) that references the
-   canonical manifest rows, freezes the corrected Wave 1 lane/bundle membership below, records
-   evidence sources (cipher suite fixtures, exact comparison sequence), defect register items
-   UPD-001 through UPD-004, and planned adversarial test surfaces. The annex must explicitly mark
-   all other backlog commits as out of scope for Wave 1.
-4. Lane freeze for Wave 1:
+3. No standalone Wave 1 preflight annex is required after Section 0.3.11 closed the lane. If the
+   fixture-driven Darwin profile follow-up from Section 15 is reopened, capture it as a separate
+   profile task rather than resurrecting `W1-T` as an execution wave.
+4. Historical Wave 1 lane-freeze record:
    - `28e0d0dbe` + `00eedc5f9`: Research Input Only. Reject direct backport. Record defect UPD-001
      (static-init randomization) and UPD-002 (phantom variant 1) in the annex. Extract only the
      variant 2 cipher suite content as fixture-verified profile research input.
-   - `a82128ab8` + `bfab03f7a`: Research Input Only. Harvest all test vectors as adversarial
-     inputs at the `ProxySecret::from_link(...)` boundary before Wave 1 closes.
+   - `a82128ab8` + `bfab03f7a`: Direct backport rejected; valuable subset implemented as Wave 1
+     fail-closed hardening at LinkManager proxy-link boundary (reject `%2B`/`%2F` secrets, keep
+     URL-safe vectors). Upstream permissive "invalid, but accepted" behavior remains rejected.
    - `6b82cc832`: Ignore. Defect UPD-003 (hex obfuscation misrepresented as base64).
    - `691cb6a77`: Defer. Defect UPD-004 (unbounded comment field) noted.
    - `3d38fb7aa`: Already incorporated. No action.
@@ -1313,16 +2122,11 @@ Create `UPSTREAM_WAVE_8_SPLIT_2026-05-08.md` and reassign every `W8-X` commit in
 Each sub-lane needs exact commit membership, one objective, one kill-switch criterion, and one default
 test-family emphasis.
 
-**Action 3 — Publish the Wave 1 preflight annex**
+**Action 3 — Keep Wave 1 closed unless Section 15 is explicitly reopened**
 
-`UPSTREAM_WAVE_1_PREFLIGHT_2026-05-08.md` must freeze the transport/parser research lane only,
-including:
-
-1. references to the canonical manifest row IDs for the exact Wave 1 commit set
-2. defect register entries UPD-001 through UPD-004
-3. cipher-suite evidence triangulation records from §5.0.1
-4. proxy-link evidence-bundle handling rules
-5. explicit out-of-scope marking for all other backlog commits
+`W1-T` is now fully accounted by Section `0.3.11`, so there is no remaining standalone Wave 1 preflight
+deliverable. If future work reopens the Darwin/iOS profile verification task from Section 15, capture it as
+its own fixture-driven profile task rather than restoring `W1-T` to the active-wave queue.
 
 **Action 4 — Publish the Wave 2 core and Wave 2B annexes**
 

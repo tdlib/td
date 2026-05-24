@@ -7,6 +7,7 @@
 #include "td/mtproto/Transport.h"
 
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/ErrorStatus.h"
 #include "td/mtproto/KDF.h"
 #include "td/mtproto/MessageId.h"
 
@@ -439,6 +440,14 @@ Result<uint64> Transport::read_auth_key_id(Slice message) {
 }
 
 Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKey &auth_key, PacketInfo *packet_info) {
+  return read(message, 0, auth_key, packet_info);
+}
+
+Result<Transport::ReadResult> Transport::read(MutableSlice message, int32 error_code, const AuthKey &auth_key,
+                                              PacketInfo *packet_info) {
+  if (is_http_status_transport_error(error_code)) {
+    return make_http_status_transport_error_status(error_code);
+  }
   if (message.size() < 16) {
     if (message.size() < 4) {
       return Status::Error(PSLICE() << "Invalid MTProto message: smaller than 4 bytes [size = " << message.size()

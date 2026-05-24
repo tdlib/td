@@ -1704,7 +1704,7 @@
   ],
   "scenario_id": "imported_opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap",
   "source_sha256": "94a522b1393f652e944b29d2243e50adf15922deae3eda49efc942ce07baf21e",
   "tls_handshake_type": 1,
   "transport": "tcp"

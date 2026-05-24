@@ -46,4 +46,14 @@ TEST(PollVoterVisibilityAdversarial, HiddenResultsNeverLeakRecentVotersThroughPo
               td::string::npos);
 }
 
+TEST(PollVoterVisibilityAdversarial, PollObjectBuilderMustNotUseUngatedCanGetVotersPredicate) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/PollManager.cpp");
+  auto region = extract_region(
+      source, "td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, const Poll *poll",
+      "PollId PollManager::create_poll(");
+  auto normalized = normalize_for_contract(region);
+
+  ASSERT_TRUE(normalized.find("autocan_get_voters=can_get_poll_voters(poll_id,poll);") == td::string::npos);
+}
+
 }  // namespace

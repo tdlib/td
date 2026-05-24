@@ -1752,6 +1752,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   static const FlatHashMap<Slice, Slice, SliceHash> integer_keys = {
       {"aicompose_tone_examples_num", "text_composition_style_example_count"},
+      {"aicompose_tone_prompt_length_max", "text_composition_style_prompt_length_max"},
+      {"aicompose_tone_title_length_max", "text_composition_style_title_length_max"},
       {"authorization_autoconfirm_period", ""},
       {"boosts_channel_level_max", "chat_boost_level_max"},
       {"boosts_per_sent_gift", "premium_gift_boost_count"},

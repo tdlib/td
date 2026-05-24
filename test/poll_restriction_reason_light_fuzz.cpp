@@ -50,7 +50,7 @@ std::array<td::string, 3> load_normalized_sources() {
 TEST(PollRestrictionReasonLightFuzz, RandomizedProbeOrderPinsRestrictionReasonContracts) {
   auto normalized_sources = load_normalized_sources();
 
-  const std::array<Probe, 15> required = {
+  const std::array<Probe, 18> required = {
       Probe{0,
             "td_api::object_ptr<td_api::PollVoteRestrictionReason>get_poll_vote_restriction_reason_object(int32"
             "legacy_reason_tag){"},
@@ -62,8 +62,12 @@ TEST(PollRestrictionReasonLightFuzz, RandomizedProbeOrderPinsRestrictionReasonCo
             "td_api::object_ptr<td_api::PollVoteRestrictionReason>get_poll_vote_restriction_reason_object(bool"
             "is_membership_required){"},
       Probe{0, "returnget_poll_vote_restriction_reason_object(is_membership_required?1:0);"},
+      Probe{1, "int32vote_restriction_reason_tag=0;"},
+      Probe{1, "if(!can_get_voters){"},
+      Probe{1, "if(!is_real_message_content){vote_restriction_reason_tag=2;}"},
+      Probe{1, "elseif(poll->hide_results_until_close_){vote_restriction_reason_tag=1;}"},
       Probe{1, "autovote_restriction_reason=get_poll_vote_restriction_reason_object("},
-      Probe{1, "hide_results_until_close_&&!can_get_voters"},
+      Probe{1, "vote_restriction_reason_tag"},
       Probe{1, "std::move(vote_restriction_reason)"},
       Probe{2, "//@classPollVoteRestrictionReason"},
       Probe{2, "pollVoteRestrictionReasonMembershipRequired=PollVoteRestrictionReason;"},
@@ -81,7 +85,8 @@ TEST(PollRestrictionReasonLightFuzz, RandomizedProbeOrderPinsRestrictionReasonCo
 TEST(PollRestrictionReasonLightFuzz, RandomizedProbeOrderPinsLegacyRestrictionReasonPatternsAbsent) {
   auto normalized_sources = load_normalized_sources();
 
-  const std::array<Probe, 2> forbidden = {
+  const std::array<Probe, 3> forbidden = {
+      Probe{1, "get_poll_vote_restriction_reason_object(poll->hide_results_until_close_&&!can_get_voters)"},
       Probe{0, "pollVoteRestrictionReasonQuickReply"},
       Probe{2, "pollVoteRestrictionReasonQuickReply"},
   };

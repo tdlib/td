@@ -24,6 +24,7 @@ class StealthTransportDecorator final : public IStreamTransport {
   ~StealthTransportDecorator() override = default;
 
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override;
+  Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack, int32 *error_code) override;
   bool support_quick_ack() const override;
   void write(BufferWriter &&message, bool quick_ack) override;
   bool can_read() const override;

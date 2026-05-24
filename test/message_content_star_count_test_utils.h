@@ -58,7 +58,7 @@ inline td::string extract_normalized_segment(const td::string &source, td::Slice
 inline td::string normalized_star_count_function() {
   return extract_normalized_segment(normalized_message_content_cpp(),
                                     "int64get_message_content_star_count(constMessageContent*content){",
-                                    "stringget_message_content_payload(");
+                                    "int32get_message_content_duration(constMessageContent*content,constTd*td){");
 }
 
 inline td::string normalized_invoice_message_info_block() {

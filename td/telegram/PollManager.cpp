@@ -18,6 +18,7 @@
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageQueryManager.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OnlineManager.h"
@@ -665,10 +666,17 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
 td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
-  return get_poll_object(poll_id, poll);
+  return get_poll_object(poll_id, poll, true);
 }
 
-td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, const Poll *poll) const {
+td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, bool is_real_message_content) const {
+  auto poll = get_poll(poll_id);
+  CHECK(poll != nullptr);
+  return get_poll_object(poll_id, poll, is_real_message_content);
+}
+
+td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, const Poll *poll,
+                                                              bool is_real_message_content) const {
   auto poll_options = transform(
       poll->options_, [td = td_](const PollOption &poll_option) { return poll_option.get_poll_option_object(td); });
   int32 voter_count_diff = 0;
@@ -695,7 +703,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   }
 
   auto total_voter_count = poll->total_voter_count_ + voter_count_diff;
-  auto can_get_voters = can_get_poll_voters(poll_id, poll);
+  auto can_get_voters = can_get_poll_voters(poll_id, poll) && is_real_message_content;
   if (!can_get_voters && !td_->auth_manager_->is_bot()) {
     // hide the voter counts
     for (auto &poll_option : poll_options) {
@@ -787,8 +795,15 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     }
   }
 
-  auto vote_restriction_reason =
-      get_poll_vote_restriction_reason_object(poll->hide_results_until_close_ && !can_get_voters);
+  int32 vote_restriction_reason_tag = 0;
+  if (!can_get_voters) {
+    if (!is_real_message_content) {
+      vote_restriction_reason_tag = 2;
+    } else if (poll->hide_results_until_close_) {
+      vote_restriction_reason_tag = 1;
+    }
+  }
+  auto vote_restriction_reason = get_poll_vote_restriction_reason_object(vote_restriction_reason_tag);
 
   return td_api::make_object<td_api::poll>(
       poll_id.get(), get_formatted_text_object(nullptr, poll->question_, true, -1), std::move(poll_options),
@@ -982,6 +997,25 @@ bool PollManager::get_poll_can_view_stats(PollId poll_id) const {
     return false;
   }
   return poll->can_view_stats_;
+}
+
+bool PollManager::has_poll_option(PollId poll_id, const string &option_id) const {
+  if (option_id.empty()) {
+    return false;
+  }
+
+  auto poll = get_poll(poll_id);
+  if (poll == nullptr) {
+    LOG(ERROR) << "Fail-closed poll option lookup for " << poll_id << ": poll state is unavailable";
+    return false;
+  }
+
+  for (const auto &poll_option : poll->options_) {
+    if (poll_option.get_data() == option_id) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool PollManager::get_poll_has_unread_votes(PollId poll_id) const {
@@ -2226,13 +2260,23 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       poll->total_voter_count_ = max_total_voter_count;
     }
   }
-  if (!is_min && poll_results->has_unread_votes_ != poll->has_unread_votes_) {
+  if (!is_min && !td_->auth_manager_->is_bot() && poll_results->has_unread_votes_ != poll->has_unread_votes_) {
     if (!poll->is_creator_) {
       LOG(ERROR) << "Have unread votes for a non-created " << poll_id;
     } else {
-      poll->has_unread_votes_ = poll_results->has_unread_votes_;
-      need_save_to_database = true;
-      notify_on_poll_has_unread_votes_update(poll_id, poll->has_unread_votes_);
+      bool has_pending_read_poll_votes = false;
+      if (server_poll_messages_.count(poll_id) > 0) {
+        server_poll_messages_[poll_id].foreach([&](const MessageFullId &message_full_id) {
+          if (td_->message_query_manager_->has_message_pending_read_poll_votes(message_full_id)) {
+            has_pending_read_poll_votes = true;
+          }
+        });
+      }
+      if (!has_pending_read_poll_votes) {
+        poll->has_unread_votes_ = poll_results->has_unread_votes_;
+        need_save_to_database = true;
+        notify_on_poll_has_unread_votes_update(poll_id, poll->has_unread_votes_);
+      }
     }
   }
   if (!is_min && poll_results->can_view_stats_ != poll->can_view_stats_) {
@@ -2333,7 +2377,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     notify_on_poll_update(poll_id);
   }
   if (need_update_poll && (is_changed || (poll->is_closed_ && being_closed_polls_.erase(poll_id) != 0))) {
-    send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updatePoll>(get_poll_object(poll_id, poll)));
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updatePoll>(get_poll_object(poll_id, poll, true)));
 
     schedule_poll_unload(poll_id);
   }

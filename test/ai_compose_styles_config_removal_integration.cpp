@@ -18,7 +18,9 @@ TEST(AiComposeStylesConfigRemovalIntegration, ConfigManagerRemovalAndVersionBump
       normalized_cpp.find(
           R"(send_closure(G()->translation_manager(),&TranslationManager::on_update_ai_compose_styles,std::move(ai_compose_styles));)") ==
       td::string::npos);
-  ASSERT_TRUE(normalized_h.find("staticconstexprint32CURRENT_VERSION=121;") != td::string::npos);
+  ASSERT_TRUE(normalized_h.find("staticconstexprint32CURRENT_VERSION=") != td::string::npos);
+  ASSERT_TRUE(normalized_h.find("staticconstexprint32CURRENT_VERSION=120;") == td::string::npos);
+  ASSERT_TRUE(td::ai_compose_styles_config_removal_test::extract_current_version(normalized_h) >= 121);
 }
 
 TEST(AiComposeStylesConfigRemovalIntegration, ConfigManagerStillKeepsNeighborMusicSearchAndPhoneCountryKeys) {

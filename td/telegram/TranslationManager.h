@@ -48,7 +48,15 @@ class TranslationManager final : public Actor {
 
   void on_update_ai_compose_styles(vector<string> &&ai_compose_styles);
 
-  static vector<string> sanitize_ai_compose_styles(vector<string> &&ai_compose_styles, Slice source);
+  void on_update_ai_compose_styles(vector<string> &&ai_compose_styles, Promise<Unit> &&promise);
+
+  void reload_ai_compose_tones(Promise<Unit> &&promise);
+
+  static vector<string> sanitize_ai_compose_styles(vector<string> ai_compose_styles, Slice source);
+
+  static Status validate_text_composition_style_name(Slice style_name, const vector<string> &ai_compose_styles);
+
+  static bool is_valid_text_composition_style_slug(Slice slug);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 

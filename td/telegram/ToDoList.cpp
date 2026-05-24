@@ -72,6 +72,13 @@ bool ToDoList::get_can_append_items(const Td *td, int32 item_count) const {
   return true;
 }
 
+bool ToDoList::has_item_id(int32 item_id) const {
+  if (item_id <= 0) {
+    return false;
+  }
+  return td::any_of(items_, [item_id](const auto &item) { return item.get_id() == item_id; });
+}
+
 string ToDoList::get_search_text() const {
   string result = title_.text;
   for (auto &item : items_) {

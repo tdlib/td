@@ -21,6 +21,6 @@ TEST(TextCompositionStyleExampleCountOptionStress, RepeatedSourceReadsKeepExampl
     ASSERT_EQ(1u, td::text_composition_style_example_count_option_test::count_occurrences(
                       normalized_option, R"(set_default_integer_option("text_composition_style_example_count",7);)"));
     ASSERT_EQ(1u, td::text_composition_style_example_count_option_test::count_occurrences(
-                      normalized_header, "staticconstexprint32CURRENT_VERSION=122;"));
+                      normalized_header, "staticconstexprint32CURRENT_VERSION=125;"));
   }
 }

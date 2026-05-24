@@ -131,7 +131,7 @@ TEST(SecurityCoreTrueIssuesStress, v730_v501_invariants_hold_over_repeated_reads
   ASSERT_TRUE(checksum != 0);
 }
 
-TEST(SecurityCoreTrueIssuesStress, v730_wave3_invariants_hold_over_repeated_reads) {
+TEST(SecurityCoreTrueIssuesStress, v730_core_runtime_invariants_hold_over_repeated_reads) {
   constexpr int kIterations = 1500;
   td::uint32 checksum = 0;
 
@@ -187,7 +187,7 @@ TEST(SecurityCoreTrueIssuesStress, v730_wave3_invariants_hold_over_repeated_read
   ASSERT_TRUE(checksum != 0);
 }
 
-TEST(SecurityCoreTrueIssuesStress, v730_wave4_invariants_hold_over_repeated_reads) {
+TEST(SecurityCoreTrueIssuesStress, v730_request_handlers_invariants_hold_over_repeated_reads) {
   constexpr int kIterations = 1200;
   td::uint32 checksum = 0;
 
@@ -224,7 +224,7 @@ TEST(SecurityCoreTrueIssuesStress, v730_wave4_invariants_hold_over_repeated_read
   ASSERT_TRUE(checksum != 0);
 }
 
-TEST(SecurityCoreTrueIssuesStress, v730_wave5_invariants_hold_over_repeated_reads) {
+TEST(SecurityCoreTrueIssuesStress, v730_invariants_hold_over_repeated_reads) {
   constexpr int kIterations = 1200;
   td::uint32 checksum = 0;
 
@@ -297,7 +297,7 @@ TEST(SecurityCoreTrueIssuesStress, v730_reply_markup_and_sequence_dispatcher_inv
   ASSERT_TRUE(checksum != 0);
 }
 
-TEST(SecurityCoreTrueIssuesStress, v730_wave6_message_handler_invariants_hold_over_repeated_reads) {
+TEST(SecurityCoreTrueIssuesStress, v730_message_handlers_message_handler_invariants_hold_over_repeated_reads) {
   constexpr int kIterations = 1200;
   td::uint32 checksum = 0;
 
@@ -351,7 +351,7 @@ TEST(SecurityCoreTrueIssuesStress, v730_wave6_message_handler_invariants_hold_ov
   ASSERT_TRUE(checksum != 0);
 }
 
-TEST(SecurityCoreTrueIssuesStress, v547_v730_wave7_invariants_hold_over_repeated_reads) {
+TEST(SecurityCoreTrueIssuesStress, v547_v730_session_ctor_invariants_hold_over_repeated_reads) {
   constexpr int kIterations = 1200;
   td::uint32 checksum = 0;
 

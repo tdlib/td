@@ -99,7 +99,7 @@ void store_malformed_option_entities_payload_body(td::int64 local_poll_id, Store
   STORE_FLAG(has_explanation_media);
   END_STORE_FLAGS();
 
-  td::store(td::string("Wave3 malformed poll payload"), storer);
+  td::store(td::string("malformed poll payload"), storer);
   td::store(td::vector<td::string>{"allow", "deny"}, storer);
 
   // Adversarial payload: option_entities has a different size than option_texts.
@@ -121,7 +121,7 @@ td::BufferSlice serialize_malformed_option_entities_payload(td::PollId local_pol
 
 td::PollId create_local_poll_for_test(td::PollManager &poll_manager) {
   td::FormattedText question;
-  question.text = "Wave3 adversarial parse";
+  question.text = "adversarial parse";
 
   td::vector<td::FormattedText> options;
   td::FormattedText option_a;
@@ -137,7 +137,7 @@ td::PollId create_local_poll_for_test(td::PollManager &poll_manager) {
 
 td::PollId create_local_quiz_poll_for_test(td::PollManager &poll_manager, td::vector<td::int32> correct_option_ids) {
   td::FormattedText question;
-  question.text = "Wave3 malformed quiz poll";
+  question.text = "malformed quiz poll";
 
   td::vector<td::FormattedText> options;
   td::FormattedText option_a;

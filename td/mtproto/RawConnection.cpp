@@ -8,6 +8,7 @@
 #include "td/mtproto/RawConnection.h"
 
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/ErrorStatus.h"
 #include "td/mtproto/IStreamTransport.h"
 #include "td/mtproto/Transport.h"
 
@@ -68,7 +69,7 @@ Slice mtproto_error_classification_name(int32 error_code) {
   switch (error_code) {
     case -429:
       return Slice("flood_wait_reject");
-    case -404:
+    case kMtprotoAuthKeyNotFoundErrorCode:
       return Slice("auth_key_not_found");
     default:
       return Slice("unexpected_transport_reject");
@@ -79,7 +80,7 @@ Slice mtproto_error_action_hint(int32 error_code) {
   switch (error_code) {
     case -429:
       return Slice("backoff_and_reconnect");
-    case -404:
+    case kMtprotoAuthKeyNotFoundErrorCode:
       return Slice("refresh_auth_key");
     default:
       return Slice("inspect_transport_state");
@@ -87,8 +88,8 @@ Slice mtproto_error_action_hint(int32 error_code) {
 }
 
 int32 raw_connection_status_code_for_mtproto_error(int32 error_code) {
-  if (error_code == -404) {
-    return -404;
+  if (error_code == kMtprotoAuthKeyNotFoundErrorCode) {
+    return kMtprotoAuthKeyNotFoundErrorCode;
   }
   return 500;
 }
@@ -285,7 +286,8 @@ class RawConnectionDefault final : public RawConnection {
     while (transport_->can_read()) {
       BufferSlice packet;
       uint32 quick_ack = 0;
-      TRY_RESULT(wait_size, transport_->read_next(&packet, &quick_ack));
+      int32 error_code = 0;
+      TRY_RESULT(wait_size, transport_->read_next(&packet, &quick_ack, &error_code));
       if (wait_size != 0) {
         constexpr size_t MAX_PACKET_SIZE = (1 << 22) + 1024;
         if (wait_size > MAX_PACKET_SIZE) {
@@ -311,7 +313,7 @@ class RawConnectionDefault final : public RawConnection {
       PacketInfo packet_info;
       packet_info.version = 2;
 
-      TRY_RESULT(read_result, Transport::read(packet.as_mutable_slice(), auth_key, &packet_info));
+      TRY_RESULT(read_result, Transport::read(packet.as_mutable_slice(), error_code, auth_key, &packet_info));
       switch (read_result.type()) {
         case Transport::ReadResult::Quickack:
           TRY_STATUS(on_quick_ack(read_result.quick_ack(), callback));

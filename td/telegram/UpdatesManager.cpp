@@ -88,10 +88,12 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/telegram_api.hpp"
+#include "td/telegram/TextCompositionUpdateDispatch.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TimeZoneManager.h"
 #include "td/telegram/TonAmount.h"
 #include "td/telegram/TranscriptionManager.h"
+#include "td/telegram/TranslationManager.h"
 #include "td/telegram/UserManager.h"
 #include "td/telegram/Usernames.h"
 #include "td/telegram/WebAppManager.h"
@@ -3696,6 +3698,23 @@ void UpdatesManager::on_pending_update(tl_object_ptr<telegram_api::Update> updat
   vector<tl_object_ptr<telegram_api::Update>> updates;
   updates.push_back(std::move(update));
   on_pending_updates(std::move(updates), seq, seq, 0, Time::now(), std::move(promise), source);
+}
+
+void UpdatesManager::on_update_ai_compose_styles(vector<string> &&ai_compose_styles, Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    return promise.set_value(Unit());
+  }
+  send_closure(td_->translation_manager_actor_,
+               static_cast<void (TranslationManager::*)(vector<string> &&, Promise<Unit> &&)>(
+                   &TranslationManager::on_update_ai_compose_styles),
+               std::move(ai_compose_styles), std::move(promise));
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAiComposeTones> update, Promise<Unit> &&promise) {
+  CHECK(update != nullptr);
+  dispatch_ai_compose_tones_update(
+      td_->auth_manager_->is_bot(), [this] { td_->translation_manager_->reload_ai_compose_tones(Auto()); },
+      [promise = std::move(promise)]() mutable { std::move(promise).set_value(Unit()); });
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewMessage> update, Promise<Unit> &&promise) {

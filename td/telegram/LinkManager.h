@@ -190,6 +190,7 @@ class LinkManager final : public Actor {
   class InternalLinkStory;
   class InternalLinkStoryAlbum;
   class InternalLinkTheme;
+  class InternalLinkTextCompositionStyle;
   class InternalLinkUnknownDeepLink;
   class InternalLinkUpgradedGift;
   class InternalLinkUserPhoneNumber;

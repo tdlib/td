@@ -26,12 +26,40 @@ TEST(MessageLinkInfoContract, RejectsDuplicateTaskParameterInResolveLinks) {
   ASSERT_EQ("Duplicate checklist task identifier", r_info.error().message());
 }
 
+TEST(MessageLinkInfoContract, RejectsDuplicateDomainParameterInResolveLinks) {
+  auto r_info = td::LinkManager::get_message_link_info("tg://resolve?domain=username&domain=otheruser&post=12345");
+
+  ASSERT_TRUE(r_info.is_error());
+  ASSERT_EQ("Duplicate chat identifier", r_info.error().message());
+}
+
+TEST(MessageLinkInfoContract, RejectsDuplicatePostParameterInResolveLinks) {
+  auto r_info = td::LinkManager::get_message_link_info("tg://resolve?domain=username&post=12345&post=12346");
+
+  ASSERT_TRUE(r_info.is_error());
+  ASSERT_EQ("Duplicate message identifier", r_info.error().message());
+}
+
+TEST(MessageLinkInfoContract, RejectsExplicitlyEmptyTaskParameterInResolveLinks) {
+  auto r_info = td::LinkManager::get_message_link_info("tg://resolve?domain=username&post=12345&task=");
+
+  ASSERT_TRUE(r_info.is_error());
+  ASSERT_EQ("Wrong checklist task identifier", r_info.error().message());
+}
+
 TEST(MessageLinkInfoContract, RejectsDuplicateOptionParameterInResolveLinks) {
   auto r_info =
       td::LinkManager::get_message_link_info("tg://resolve?domain=username&post=12345&option=Zm9v&option=YmFy");
 
   ASSERT_TRUE(r_info.is_error());
   ASSERT_EQ("Duplicate poll option identifier", r_info.error().message());
+}
+
+TEST(MessageLinkInfoContract, RejectsExplicitlyEmptyOptionParameterInResolveLinks) {
+  auto r_info = td::LinkManager::get_message_link_info("tg://resolve?domain=username&post=12345&option=");
+
+  ASSERT_TRUE(r_info.is_error());
+  ASSERT_EQ("Invalid poll option identifier", r_info.error().message());
 }
 
 }  // namespace

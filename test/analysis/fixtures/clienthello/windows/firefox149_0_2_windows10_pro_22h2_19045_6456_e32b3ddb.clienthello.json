@@ -1662,7 +1662,7 @@
   ],
   "scenario_id": "imported_firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap",
   "source_sha256": "b28ff8b905ace05f6f1d7f8e0d4b6d4a03ef417b1af703dd89bda7ed6f23a488",
   "tls_handshake_type": 1,
   "transport": "tcp"

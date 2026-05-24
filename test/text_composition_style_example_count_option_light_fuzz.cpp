@@ -32,15 +32,20 @@ TEST(TextCompositionStyleExampleCountOptionLightFuzz, DeterministicLiteralMatrix
       {1, R"(set_default_integer_option("text_composition_style_example_count",7);)", true},
       {1, R"(set_default_integer_option("text_composition_style_example_count",8);)", false},
       {1, R"(set_default_integer_option("owned_bot_count_max",20);)", true},
-      {2, "staticconstexprint32CURRENT_VERSION=122;", true},
+      {2, "staticconstexprint32CURRENT_VERSION=125;", true},
       {2, "staticconstexprint32CURRENT_VERSION=121;", false},
   }};
 
   for (int iteration = 0; iteration < 10000; iteration++) {
     const auto &test_case = cases[static_cast<size_t>(td::Random::fast(0, static_cast<int>(cases.size()) - 1))];
-    const auto &source = test_case.source_kind == 0   ? normalized_config
-                         : test_case.source_kind == 1 ? normalized_option
-                                                      : normalized_header;
-    ASSERT_EQ(test_case.expected_present, source.find(test_case.snippet) != td::string::npos);
+
+    const td::string *source = &normalized_header;
+    if (test_case.source_kind == 0) {
+      source = &normalized_config;
+    } else if (test_case.source_kind == 1) {
+      source = &normalized_option;
+    }
+
+    ASSERT_EQ(test_case.expected_present, source->contains(test_case.snippet));
   }
 }

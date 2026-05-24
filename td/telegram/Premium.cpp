@@ -946,7 +946,8 @@ const vector<Slice> &get_premium_limit_keys() {
                                         "stories_suggested_reactions",
                                         "recommended_channels",
                                         "saved_dialogs_pinned",
-                                        "bots_create"};
+                                        "bots_create",
+                                        "aicompose_tone_saved"};
   return limit_keys;
 }
 
@@ -993,6 +994,8 @@ static Slice get_limit_type_key(const td_api::PremiumLimitType *limit_type) {
       return Slice("recommended_channels");
     case td_api::premiumLimitTypeOwnedBotCount::ID:
       return Slice("bots_create");
+    case td_api::premiumLimitTypeCustomTextCompositionStyleCount::ID:
+      return Slice("aicompose_tone_saved");
     default:
       UNREACHABLE();
       return Slice();
@@ -1237,6 +1240,9 @@ static td_api::object_ptr<td_api::premiumLimit> get_premium_limit_object(Slice k
     }
     if (key == "bots_create") {
       return td_api::make_object<td_api::premiumLimitTypeOwnedBotCount>();
+    }
+    if (key == "aicompose_tone_saved") {
+      return td_api::make_object<td_api::premiumLimitTypeCustomTextCompositionStyleCount>();
     }
     UNREACHABLE();
     return nullptr;

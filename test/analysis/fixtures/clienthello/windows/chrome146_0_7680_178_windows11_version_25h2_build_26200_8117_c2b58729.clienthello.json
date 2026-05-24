@@ -1128,7 +1128,7 @@
   ],
   "scenario_id": "imported_chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8117,_Chrome_146_0_7680_178.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_Build_26200_8117,_Chrome_146_0_7680_178.pcap",
   "source_sha256": "fcb3bed2e07349f65433618ec4298061f1a4dd2fc4603b235e60279e647681f4",
   "tls_handshake_type": 1,
   "transport": "tcp"

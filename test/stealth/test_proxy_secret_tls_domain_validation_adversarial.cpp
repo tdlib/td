@@ -180,4 +180,31 @@ TEST(ProxySecretTlsDomainValidationAdversarial, LightFuzzAcceptsStrictAsciiHostn
   }
 }
 
+TEST(ProxySecretTlsDomainValidationAdversarial, EncodedLengthGuardRejectsOversizedInputsAcrossDeterministicMatrix) {
+  constexpr size_t kMaxNormalEncodedLength = 2 * (17 + ProxySecret::MAX_DOMAIN_LENGTH);
+  constexpr size_t kMaxTruncationEncodedLength = 2 * (17 + ProxySecret::MAX_DOMAIN_LENGTH + 1);
+
+  const size_t oversized_lengths[] = {
+      kMaxTruncationEncodedLength + 1,
+      kMaxTruncationEncodedLength + 9,
+      kMaxTruncationEncodedLength + 257,
+      kMaxTruncationEncodedLength + 4097,
+  };
+
+  for (auto encoded_length : oversized_lengths) {
+    auto encoded = td::string(encoded_length, 'a');
+
+    auto r_normal = ProxySecret::from_link(encoded, false);
+    ASSERT_TRUE(r_normal.is_error());
+    ASSERT_TRUE(r_normal.error().message().str().find("encoded_length_out_of_bounds") != td::string::npos);
+
+    auto r_trunc = ProxySecret::from_link(encoded, true);
+    ASSERT_TRUE(r_trunc.is_error());
+    ASSERT_TRUE(r_trunc.error().message().str().find("encoded_length_out_of_bounds") != td::string::npos);
+
+    ASSERT_TRUE(encoded_length > kMaxNormalEncodedLength);
+    ASSERT_TRUE(encoded_length > kMaxTruncationEncodedLength);
+  }
+}
+
 }  // namespace

@@ -757,6 +757,11 @@ botCommands bot_user_id:int53 commands:vector<botCommand> = BotCommands;
 //@url URL of a Web App to open when the button is pressed. If the link is of the type internalLinkTypeWebApp, then it must be processed accordingly. Otherwise, the link must be passed to openWebApp
 botMenuButton text:string url:string = BotMenuButton;
 
+//@description Describes users that have access to a bot
+//@is_restricted True, if access to the bot is restricted to its owner and selected users
+//@added_user_ids Identifiers of the users who can use the bot additionally to the owner of the bot
+botAccessSettings is_restricted:Bool added_user_ids:vector<int53> = BotAccessSettings;
+
 
 //@description Describes parameters of verification that is provided by a bot
 //@icon_custom_emoji_id Identifier of the custom emoji that is used as the verification sign
@@ -7479,6 +7484,9 @@ premiumLimitTypeSimilarChatCount = PremiumLimitType;
 //@description The maximum number of owned bots
 premiumLimitTypeOwnedBotCount = PremiumLimitType;
 
+//@description The maximum number of custom text composition styles
+premiumLimitTypeCustomTextCompositionStyleCount = PremiumLimitType;
+
 
 //@class PremiumFeature @description Describes a feature available to Premium users
 
@@ -9016,6 +9024,10 @@ internalLinkTypeStoryAlbum story_album_owner_username:string story_album_id:int3
 
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @theme_name Name of the theme
 internalLinkTypeTheme theme_name:string = InternalLinkType;
+
+//@description The link is a link to a text composition style
+//@style_name Name of the text composition style
+internalLinkTypeTextCompositionStyle style_name:string = InternalLinkType;
 
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link @link Link to be passed to getDeepLinkInfo
 internalLinkTypeUnknownDeepLink link:string = InternalLinkType;
@@ -14130,7 +14142,21 @@ checkBotUsername username:string = CheckChatUsernameResult;
 //@via_link Pass true if the bot is created from an internalLinkTypeRequestManagedBot link
 createBot manager_bot_user_id:int53 name:string username:string via_link:Bool = User;
 
-//@description Returns token of a created bot; for bots only
+//@description Returns token of a managed bot; for bots only
+//@bot_user_id Identifier of the managed bot
+//@revoke Pass true to revoke the current token and create a new one
+getManagedBotToken bot_user_id:int53 revoke:Bool = Text;
+
+//@description Returns access settings of a managed bot; for bots only
+//@bot_user_id Identifier of the managed bot
+getManagedBotAccessSettings bot_user_id:int53 = BotAccessSettings;
+
+//@description Sets access settings of a managed bot; for bots only
+//@bot_user_id Identifier of the managed bot
+//@settings New access settings
+setManagedBotAccessSettings bot_user_id:int53 settings:botAccessSettings = Ok;
+
+//@description Returns token of a created bot; for bots only. Deprecated. Use getManagedBotToken
 //@bot_user_id Identifier of the created bot
 //@revoke Pass true to revoke the current token and create a new one
 getBotToken bot_user_id:int53 revoke:Bool = Text;

@@ -48,6 +48,8 @@ class ToDoList {
 
   bool get_can_append_items(const Td *td, int32 item_count) const;
 
+  bool has_item_id(int32 item_id) const;
+
   bool get_others_can_complete() const {
     return others_can_complete_;
   }

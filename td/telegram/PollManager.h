@@ -78,6 +78,8 @@ class PollManager final : public Actor {
 
   bool get_poll_can_view_stats(PollId poll_id) const;
 
+  bool has_poll_option(PollId poll_id, const string &option_id) const;
+
   bool get_poll_has_unread_votes(PollId poll_id) const;
 
   void remove_poll_has_unread_votes(PollId poll_id);
@@ -124,6 +126,8 @@ class PollManager final : public Actor {
   void on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<BufferSlice> &&options, vector<int32> positions);
 
   td_api::object_ptr<td_api::poll> get_poll_object(PollId poll_id) const;
+
+  td_api::object_ptr<td_api::poll> get_poll_object(PollId poll_id, bool is_real_message_content) const;
 
   void on_binlog_events(vector<BinlogEvent> &&events);
 
@@ -231,7 +235,8 @@ class PollManager final : public Actor {
   bool can_delete_poll_option(const Poll *poll, const PollOption *option, MessageId message_id, bool is_forward,
                               bool is_outgoing);
 
-  td_api::object_ptr<td_api::poll> get_poll_object(PollId poll_id, const Poll *poll) const;
+  td_api::object_ptr<td_api::poll> get_poll_object(PollId poll_id, const Poll *poll,
+                                                   bool is_real_message_content) const;
 
   void on_get_poll_results(PollId poll_id, uint64 generation, Result<tl_object_ptr<telegram_api::Updates>> result);
 

@@ -15,6 +15,16 @@ namespace mtproto {
 
 namespace {
 
+constexpr size_t get_max_proxy_secret_size() {
+  return 17 + ProxySecret::MAX_DOMAIN_LENGTH;
+}
+
+constexpr size_t get_max_encoded_proxy_secret_size(bool truncate_if_needed) {
+  // Hex form is the longest accepted textual representation.
+  auto max_raw_secret_size = get_max_proxy_secret_size() + static_cast<size_t>(truncate_if_needed);
+  return 2 * max_raw_secret_size;
+}
+
 bool is_ascii_alnum(unsigned char c) {
   return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
@@ -63,6 +73,12 @@ const char *get_tls_emulation_domain_error(Slice domain) {
 }  // namespace
 
 Result<ProxySecret> ProxySecret::from_link(Slice encoded_secret, bool truncate_if_needed) {
+  auto max_encoded_secret_size = get_max_encoded_proxy_secret_size(truncate_if_needed);
+  if (encoded_secret.size() > max_encoded_secret_size) {
+    return Status::Error(400, PSLICE() << "Wrong proxy secret: reason=encoded_length_out_of_bounds encoded_length="
+                                       << encoded_secret.size() << " max_encoded_length=" << max_encoded_secret_size);
+  }
+
   auto r_decoded = hex_decode(encoded_secret);
   if (r_decoded.is_error()) {
     r_decoded = base64url_decode(encoded_secret);
@@ -77,7 +93,7 @@ Result<ProxySecret> ProxySecret::from_link(Slice encoded_secret, bool truncate_i
 }
 
 Result<ProxySecret> ProxySecret::from_binary(Slice raw_unchecked_secret, bool truncate_if_needed) {
-  static constexpr size_t kMaxSecretSize = 17 + MAX_DOMAIN_LENGTH;
+  constexpr size_t kMaxSecretSize = get_max_proxy_secret_size();
   auto raw_length = raw_unchecked_secret.size();
 
   if (raw_length > kMaxSecretSize) {

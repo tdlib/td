@@ -1632,7 +1632,7 @@
   ],
   "scenario_id": "imported_chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap",
   "source_sha256": "1f92bac1397503e2281510303b5bb2059488f0e3ac901c2971d93553672ec593",
   "tls_handshake_type": 1,
   "transport": "tcp"

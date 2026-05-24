@@ -13,15 +13,18 @@ Backlog anchor: `original..upstream/master`
 Canonical manifest: `docs/Plans/UPSTREAM_BACKPORT_MANIFEST_2026-05-08.md`
 Canonical charter: `docs/Plans/UPSTREAM_WAVE_3_CHARTER_2026-05-11.md`
 Canonical gating plan: `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md`
-Status: Preflight published; repository already contains the bounded W3-B2 seams/tests described here, but any additional W3-B2 intake or branch work remains blocked until product objective approval
+Status: Historical preflight archive; the repository audit recorded in
+`docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Sections `0.1`, `0.2`, and `0.3.3.a`
+closes the wave-level W3 backlog while this annex remains the frozen W3-B2 scope/risk/RED record
+Historical note: The activation rules below are preserved as archival planning criteria, not live blockers.
 
 ## 1. Objective
 
-This annex activates planning for one bounded Wave 3 slice: W3-B2 policy semantics for poll voters,
+This annex originally activated planning for one bounded Wave 3 slice: W3-B2 policy semantics for poll voters,
 poll statistics, restriction reasons, and unread poll-vote state.
 
-This annex does not authorize any additional W3-B2 code intake by itself. It freezes scope,
-contracts, risks, and RED expectations for any future W3-B2 branch, while recording the bounded
+This annex no longer serves as a live intake gate by itself. It preserves scope,
+contracts, risks, and RED expectations that were frozen for any future W3-B2 branch, while recording the bounded
 repository-resident seams/tests already present in the tree.
 
 ## 2. Scope Freeze
@@ -186,9 +189,9 @@ The IDs below are mandatory and must be used in commit/PR notes and decision log
 3. Unknown/stale poll state must fail closed and never trigger crash-oriented control flow.
 4. Schema and runtime changes must remain bounded to W3-B2; any accidental W3-B3 coupling is a stop condition.
 
-## 10. Validation Matrix for Execution Readiness
+## 10. Historical Validation Matrix for Execution Readiness
 
-Any additional W3-B2 execution or rework branch may start only when:
+At publication time, any additional W3-B2 execution or rework branch could start only when:
 
 1. Product objective for W3-B2 is explicitly approved.
 2. All RED IDs in Section 7 are present in test code, and any new W3-B2 branch reproduces the

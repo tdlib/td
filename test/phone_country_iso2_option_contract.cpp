@@ -26,5 +26,6 @@ TEST(PhoneCountryIso2OptionContract, OptionManagerTreatsPhoneCountryIso2AsIntern
 TEST(PhoneCountryIso2OptionContract, AppConfigVersionBumpsForPhoneCountryIso2Schema) {
   auto normalized = td::phone_country_iso2_option_test::normalized_config_manager_h();
 
-  ASSERT_TRUE(normalized.find("staticconstexprint32CURRENT_VERSION=120;") != td::string::npos);
+  ASSERT_TRUE(normalized.find("staticconstexprint32CURRENT_VERSION=") != td::string::npos);
+  ASSERT_TRUE(td::phone_country_iso2_option_test::extract_current_version(normalized) >= 120);
 }

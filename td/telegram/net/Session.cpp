@@ -25,6 +25,7 @@
 #include "td/telegram/UniqueId.h"
 
 #include "td/mtproto/DhCallback.h"
+#include "td/mtproto/ErrorStatus.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/HandshakeActor.h"
 #include "td/mtproto/RawConnection.h"
@@ -696,7 +697,7 @@ void Session::on_check_key_result(NetQueryPtr query) {
       status = r_flag.move_as_error();
     }
   }
-  if (status.is_ok() || status.code() != -404) {
+  if (status.is_ok() || !mtproto::is_mtproto_auth_key_not_found_status(status)) {
     LOG(INFO) << "Check main key ok";
     need_check_main_key_ = false;
     main_key_check_failure_state_ = {};
@@ -879,7 +880,7 @@ void Session::on_closed(Status status) {
   Scheduler::unsubscribe_before_close(raw_connection->get_poll_info().get_pollable_fd_ref());
   raw_connection->close();
 
-  if (status.is_error() && status.code() == -404) {
+  if (mtproto::is_mtproto_auth_key_not_found_status(status)) {
     if (need_check_main_key_) {
       if (should_drop_main_auth_key_after_check_failure(main_key_check_failure_state_)) {
         LOG(WARNING) << "Invalidate main key after repeated validation failures";

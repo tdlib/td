@@ -31,9 +31,10 @@ struct Probe {
   td::Slice snippet;
 };
 
-std::array<td::string, 2> load_normalized_sources() {
-  const std::array<td::Slice, 2> source_paths = {
+std::array<td::string, 3> load_normalized_sources() {
+  const std::array<td::Slice, 3> source_paths = {
       "td/telegram/MessagesManager.cpp",
+      "td/telegram/PollManager.cpp",
       "td/generate/scheme/td_api.tl",
   };
 
@@ -49,20 +50,37 @@ std::array<td::string, 2> load_normalized_sources() {
 TEST(PollUnreadVotesLightFuzz, RandomizedProbeOrderPinsUnreadPollVoteStateGuardPatterns) {
   auto normalized_sources = load_normalized_sources();
 
-  const std::array<Probe, 13> required = {
+  const std::array<Probe, 21> required = {
       Probe{0, "returnm->contains_unread_poll_votes;"},
       Probe{0, "constboolhas_current_unread_votes=has_unread_poll_votes(d->dialog_id,m);"},
-      Probe{0, "if(has_current_unread_votes==has_unread_votes){return;}"},
+      Probe{0,
+            "switch(dispatch_poll_unread_votes_update_action(is_supported_poll_message,"
+            "has_current_unread_votes,has_unread_votes)){"},
+      Probe{0, "casePollUnreadVotesUpdateAction::IgnoredDuplicateState:"},
       Probe{0, "remove_message_unread_poll_votes(d,m,\"on_update_poll_has_unread_votes\");"},
       Probe{0, "m->contains_unread_poll_votes=true;"},
       Probe{0, "m->contains_unread_poll_votes=false;"},
       Probe{0, "remove_message_content_poll_has_unread_votes(td_,m->content.get());"},
       Probe{0, "send_update_message_contains_unread_poll_votes(d->dialog_id,m,d->unread_poll_vote_count);"},
-      Probe{0, "autois_update_sent=read_all_local_dialog_poll_votes(dialog_id,forum_topic_id);"},
-      Probe{0, "if(!is_update_sent){send_update_chat_unread_poll_vote_count(d,\"read_all_dialog_poll_votes\");}"},
-      Probe{0, "on_dialog_updated(dialog_id,\"read_all_dialog_poll_votes\");"},
-      Probe{1, "contains_unread_poll_votes:Bool"},
-      Probe{1,
+      Probe{0, "voidMessagesManager::read_all_local_dialog_poll_votes(DialogIddialog_id,ForumTopicIdforum_topic_id){"},
+      Probe{0,
+            "if(forum_topic_id.is_valid()){td_->forum_topic_manager_->on_topic_poll_vote_count_changed(dialog_id,"
+            "forum_topic_id,0,false);}"},
+      Probe{0,
+            "if(d->unread_poll_vote_count!=0){set_dialog_unread_poll_vote_count(d,0);if(message_ids.empty()){"
+            "send_update_chat_unread_poll_vote_count(d,\"read_all_local_dialog_poll_votes\");}}"},
+      Probe{0, "on_unread_poll_vote_removed(d,m,nullptr,skip_forum_topic_counter_update);"},
+      Probe{0, "read_all_local_dialog_poll_votes(dialog_id,forum_topic_id);"},
+      Probe{0, "if(is_dialog_inited(d)&&source!=nullptr){"},
+      Probe{0,
+            "}else{set_dialog_unread_poll_vote_count(d,d->unread_poll_vote_count-1);}"
+            "send_update_message_contains_unread_poll_votes(d->dialog_id,m,d->unread_poll_vote_count);"
+            "on_dialog_updated(d->dialog_id,\"on_unread_poll_vote_removed\");"},
+      Probe{1, "boolhas_pending_read_poll_votes=false;"},
+      Probe{1, "has_message_pending_read_poll_votes(message_full_id)"},
+      Probe{1, "if(!has_pending_read_poll_votes){poll->has_unread_votes_=poll_results->has_unread_votes_;"},
+      Probe{2, "contains_unread_poll_votes:Bool"},
+      Probe{2,
             "updateMessageContainsUnreadPollVoteschat_id:int53message_id:int53contains_unread_poll_votes:Bool"
             "unread_poll_vote_count:int32=Update;"},
   };
@@ -77,12 +95,20 @@ TEST(PollUnreadVotesLightFuzz, RandomizedProbeOrderPinsUnreadPollVoteStateGuardP
 TEST(PollUnreadVotesLightFuzz, RandomizedProbeOrderPinsLegacyUnreadVotePatternsAbsent) {
   auto normalized_sources = load_normalized_sources();
 
-  const std::array<Probe, 5> forbidden = {
+  const std::array<Probe, 10> forbidden = {
       Probe{0, "returnget_message_content_poll_has_unread_votes(td_,m->content.get());"},
       Probe{0, "on_unread_poll_vote_removed(d,m,\"on_update_poll_has_unread_votes\");"},
       Probe{0, "send_update_chat_unread_poll_vote_count(d,\"on_update_poll_has_unread_votes\");"},
       Probe{0, "send_update_chat_unread_poll_vote_count(d,\"update_message\");"},
-      Probe{1, "updateMessageUnreadPollVotes"},
+      Probe{0,
+            "}else{set_dialog_unread_poll_vote_count(d,d->unread_poll_vote_count-1);"
+            "send_update_message_contains_unread_poll_votes(d->dialog_id,m,d->unread_poll_vote_count);"
+            "on_dialog_updated(d->dialog_id,\"on_unread_poll_vote_removed\");}"},
+      Probe{0, "boolMessagesManager::read_all_local_dialog_poll_votes(DialogIddialog_id,ForumTopicIdforum_topic_id){"},
+      Probe{0, "autois_update_sent=read_all_local_dialog_poll_votes(dialog_id,forum_topic_id);"},
+      Probe{0, "if(!is_update_sent){send_update_chat_unread_poll_vote_count(d,\"read_all_dialog_poll_votes\");}"},
+      Probe{0, "on_dialog_updated(dialog_id,\"read_all_dialog_poll_votes\");"},
+      Probe{2, "updateMessageUnreadPollVotes"},
   };
 
   for (int i = 0; i < 12000; ++i) {

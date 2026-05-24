@@ -14,8 +14,8 @@
       "binaryDir": "${sourceDir}/build",
       "environment": {
         "CMAKE_BUILD_PARALLEL_LEVEL": "14",
-        "CC": "gcc-15",
-        "CXX": "g++-15"
+        "CC": "gcc-16",
+        "CXX": "g++-16"
       },
       "cacheVariables": {
         "BUILD_SHARED_LIBS": "ON",
@@ -25,6 +25,111 @@
         "TD_ENABLE_LLD": "ON",
         "TD_ENABLE_NATIVE_ARCH": "ON"
       }
+    },
+    {
+      "name": "sanitizer-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "environment": {
+        "CMAKE_BUILD_PARALLEL_LEVEL": "14",
+        "CC": "gcc-16",
+        "CXX": "g++-16"
+      },
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": "ON",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "TD_ENABLE_BENCHMARKS": "OFF",
+        "TD_ENABLE_LLD": "ON",
+        "TD_ENABLE_NATIVE_ARCH": "OFF",
+        "TD_ENABLE_SPLIT_DWARF": "OFF",
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+      }
+    },
+    {
+      "name": "sanitizer-asan",
+      "displayName": "Sanitizer ASan Strict RelWithDebInfo",
+      "description": "AddressSanitizer strict bug-finding lane using full RelWithDebInfo fidelity.",
+      "inherits": "sanitizer-base",
+      "binaryDir": "${sourceDir}/build-asan",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS": "-fsanitize=address -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address -fno-sanitize-recover=all",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address -fno-sanitize-recover=all"
+      }
+    },
+    {
+      "name": "sanitizer-ubsan",
+      "displayName": "Sanitizer UBSan Strict RelWithDebInfo",
+      "description": "UndefinedBehaviorSanitizer strict bug-finding lane using full RelWithDebInfo fidelity.",
+      "inherits": "sanitizer-base",
+      "binaryDir": "${sourceDir}/build-ubsan",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS": "-fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
+        "CMAKE_CXX_FLAGS": "-fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=undefined -fno-sanitize-recover=all",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=undefined -fno-sanitize-recover=all"
+      }
+    },
+    {
+      "name": "sanitizer-tsan",
+      "displayName": "Sanitizer TSan Strict RelWithDebInfo",
+      "description": "ThreadSanitizer strict bug-finding lane using full RelWithDebInfo fidelity.",
+      "inherits": "sanitizer-base",
+      "binaryDir": "${sourceDir}/build-tsan",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS": "-fsanitize=thread -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
+        "CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=thread -fno-sanitize-recover=all",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=thread -fno-sanitize-recover=all"
+      }
+    },
+    {
+      "name": "sanitizer-asan-fast",
+      "displayName": "Sanitizer ASan Fast RelWithDebInfo O1",
+      "description": "AddressSanitizer faster triage lane with reduced optimization pressure.",
+      "inherits": "sanitizer-base",
+      "binaryDir": "${sourceDir}/build-asan-fast",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O1 -g1 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O1 -g1 -DNDEBUG",
+        "CMAKE_C_FLAGS": "-fsanitize=address -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address -fno-sanitize-recover=all",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address -fno-sanitize-recover=all"
+      }
+    },
+    {
+      "name": "sanitizer-ubsan-fast",
+      "displayName": "Sanitizer UBSan Fast RelWithDebInfo O1",
+      "description": "UndefinedBehaviorSanitizer faster triage lane with reduced optimization pressure.",
+      "inherits": "sanitizer-base",
+      "binaryDir": "${sourceDir}/build-ubsan-fast",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O1 -g1 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O1 -g1 -DNDEBUG",
+        "CMAKE_C_FLAGS": "-fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
+        "CMAKE_CXX_FLAGS": "-fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=undefined -fno-sanitize-recover=all",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=undefined -fno-sanitize-recover=all"
+      }
+    },
+    {
+      "name": "sanitizer-tsan-fast",
+      "displayName": "Sanitizer TSan Fast RelWithDebInfo O1",
+      "description": "ThreadSanitizer faster triage lane with reduced optimization pressure.",
+      "inherits": "sanitizer-base",
+      "binaryDir": "${sourceDir}/build-tsan-fast",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O1 -g1 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O1 -g1 -DNDEBUG",
+        "CMAKE_C_FLAGS": "-fsanitize=thread -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
+        "CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=thread -fno-sanitize-recover=all",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=thread -fno-sanitize-recover=all"
+      }
     }
   ],
   "buildPresets": [
@@ -32,6 +137,60 @@
       "name": "default-all",
       "displayName": "Default Build (all targets)",
       "configurePreset": "default",
+      "jobs": 14
+    },
+    {
+      "name": "sanitizer-asan-tests",
+      "displayName": "Build run_all_tests (ASan)",
+      "configurePreset": "sanitizer-asan",
+      "targets": [
+        "run_all_tests"
+      ],
+      "jobs": 14
+    },
+    {
+      "name": "sanitizer-ubsan-tests",
+      "displayName": "Build run_all_tests (UBSan)",
+      "configurePreset": "sanitizer-ubsan",
+      "targets": [
+        "run_all_tests"
+      ],
+      "jobs": 14
+    },
+    {
+      "name": "sanitizer-tsan-tests",
+      "displayName": "Build run_all_tests (TSan)",
+      "configurePreset": "sanitizer-tsan",
+      "targets": [
+        "run_all_tests"
+      ],
+      "jobs": 14
+    },
+    {
+      "name": "sanitizer-asan-fast-tests",
+      "displayName": "Build run_all_tests (ASan Fast)",
+      "configurePreset": "sanitizer-asan-fast",
+      "targets": [
+        "run_all_tests"
+      ],
+      "jobs": 14
+    },
+    {
+      "name": "sanitizer-ubsan-fast-tests",
+      "displayName": "Build run_all_tests (UBSan Fast)",
+      "configurePreset": "sanitizer-ubsan-fast",
+      "targets": [
+        "run_all_tests"
+      ],
+      "jobs": 14
+    },
+    {
+      "name": "sanitizer-tsan-fast-tests",
+      "displayName": "Build run_all_tests (TSan Fast)",
+      "configurePreset": "sanitizer-tsan-fast",
+      "targets": [
+        "run_all_tests"
+      ],
       "jobs": 14
     }
   ],
@@ -56,6 +215,120 @@
       "filter": {
         "include": {
           "name": "^Test_DB_sqlite_vendor_wrapper_surface_contract$"
+        }
+      }
+    },
+    {
+      "name": "sanitizer-asan-wave8-focused",
+      "displayName": "ASan Wave8 Focused",
+      "configurePreset": "sanitizer-asan",
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:strict_string_checks=1:check_initialization_order=1"
+      },
+      "execution": {
+        "jobs": 14
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^(Test_MessageContentNullGuard|Test_InvalidFileIdHandling).*"
+        }
+      }
+    },
+    {
+      "name": "sanitizer-ubsan-wave8-focused",
+      "displayName": "UBSan Wave8 Focused",
+      "configurePreset": "sanitizer-ubsan",
+      "environment": {
+        "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1"
+      },
+      "execution": {
+        "jobs": 14
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^(Test_MessageContentNullGuard|Test_InvalidFileIdHandling).*"
+        }
+      }
+    },
+    {
+      "name": "sanitizer-tsan-wave8-focused",
+      "displayName": "TSan Wave8 Focused",
+      "configurePreset": "sanitizer-tsan",
+      "environment": {
+        "TSAN_OPTIONS": "halt_on_error=1:second_deadlock_stack=1"
+      },
+      "execution": {
+        "jobs": 14
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^(Test_MessageContentNullGuard|Test_InvalidFileIdHandling).*"
+        }
+      }
+    },
+    {
+      "name": "sanitizer-asan-fast-wave8-focused",
+      "displayName": "ASan Fast Wave8 Focused",
+      "configurePreset": "sanitizer-asan-fast",
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:strict_string_checks=1:check_initialization_order=1"
+      },
+      "execution": {
+        "jobs": 14
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^(Test_MessageContentNullGuard|Test_InvalidFileIdHandling).*"
+        }
+      }
+    },
+    {
+      "name": "sanitizer-ubsan-fast-wave8-focused",
+      "displayName": "UBSan Fast Wave8 Focused",
+      "configurePreset": "sanitizer-ubsan-fast",
+      "environment": {
+        "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1"
+      },
+      "execution": {
+        "jobs": 14
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^(Test_MessageContentNullGuard|Test_InvalidFileIdHandling).*"
+        }
+      }
+    },
+    {
+      "name": "sanitizer-tsan-fast-wave8-focused",
+      "displayName": "TSan Fast Wave8 Focused",
+      "configurePreset": "sanitizer-tsan-fast",
+      "environment": {
+        "TSAN_OPTIONS": "halt_on_error=1:second_deadlock_stack=1"
+      },
+      "execution": {
+        "jobs": 14
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^(Test_MessageContentNullGuard|Test_InvalidFileIdHandling).*"
         }
       }
     }

@@ -114,7 +114,7 @@ TEST(SecurityCoreTrueIssuesAdversarial, v730_uninitialized_query_members_are_gon
             cli_source.find("file_log.init(file_name.str()).is_ok()&&file_log.init(file_name.str(),1000<<20).is_ok()"));
 }
 
-TEST(SecurityCoreTrueIssuesAdversarial, v730_wave3_uninitialized_runtime_members_are_gone) {
+TEST(SecurityCoreTrueIssuesAdversarial, v730_core_runtime_uninitialized_runtime_members_are_gone) {
   const auto sequence_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/SequenceDispatcher.h"));
   const auto reaction_source =
@@ -187,7 +187,7 @@ TEST(SecurityCoreTrueIssuesAdversarial, v547_dead_code_and_v730_pad_regressions_
             ebmr_source.find("charpad2[TD_CONCURRENCY_PAD-sizeof(std::vector<unique_ptr<T>>)*MAX_BAGS];"));
 }
 
-TEST(SecurityCoreTrueIssuesAdversarial, v730_wave4_uninitialized_request_members_are_rejected) {
+TEST(SecurityCoreTrueIssuesAdversarial, v730_request_handlers_uninitialized_request_members_are_rejected) {
   const auto background_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/BackgroundManager.cpp"));
   const auto business_connection_source =
@@ -210,7 +210,7 @@ TEST(SecurityCoreTrueIssuesAdversarial, v730_wave4_uninitialized_request_members
   ASSERT_TRUE(ts_file_log_source.find("std::atomic<bool>is_inited{false};size_tid{0};") != td::string::npos);
 }
 
-TEST(SecurityCoreTrueIssuesAdversarial, v730_wave5_core_runtime_uninitialized_members_are_rejected) {
+TEST(SecurityCoreTrueIssuesAdversarial, v730_core_runtime_uninitialized_members_are_rejected) {
   const auto net_stats_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/net/NetStatsManager.h"));
   const auto auth_data_source = normalize_no_space(td::mtproto::test::read_repo_text_file("td/mtproto/AuthData.h"));
@@ -265,7 +265,7 @@ TEST(SecurityCoreTrueIssuesAdversarial, v730_reply_markup_and_sequence_dispatche
   ASSERT_TRUE(sequence_source.find("ActorShared<NetQueryCallback>callback_{};") != td::string::npos);
 }
 
-TEST(SecurityCoreTrueIssuesAdversarial, v730_wave6_message_handler_uninitialized_members_are_rejected) {
+TEST(SecurityCoreTrueIssuesAdversarial, v730_message_handlers_message_handler_uninitialized_members_are_rejected) {
   const auto message_query_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/MessageQueryManager.cpp"));
   const auto messages_source =
@@ -312,7 +312,7 @@ TEST(SecurityCoreTrueIssuesAdversarial, v730_wave6_message_handler_uninitialized
                            "int64random_id_=0;DialogIddialog_id_;") != td::string::npos);
 }
 
-TEST(SecurityCoreTrueIssuesAdversarial, v547_v730_wave7_dead_branch_and_ctor_regressions_are_rejected) {
+TEST(SecurityCoreTrueIssuesAdversarial, v547_v730_session_ctor_dead_branch_and_ctor_regressions_are_rejected) {
   const auto session_source = normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/net/Session.cpp"));
   const auto auth_data_source = normalize_no_space(td::mtproto::test::read_repo_text_file("td/mtproto/AuthData.cpp"));
   const auto net_stats_source =

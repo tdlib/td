@@ -508,6 +508,8 @@ class UpdatesManager final : public Actor {
 
   bool is_acceptable_update(const telegram_api::Update *update) const;
 
+  void on_update_ai_compose_styles(vector<string> &&ai_compose_styles, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateNewMessage> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateMessageID> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateReadMessagesContents> update, Promise<Unit> &&promise);
@@ -610,6 +612,7 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateBotInlineQuery> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateBotInlineSend> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateBotGuestChatQuery> update, Promise<Unit> &&promise);
+  void on_update(tl_object_ptr<telegram_api::updateAiComposeTones> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateBotCallbackQuery> update, Promise<Unit> &&promise);
   void on_update(tl_object_ptr<telegram_api::updateInlineBotCallbackQuery> update, Promise<Unit> &&promise);

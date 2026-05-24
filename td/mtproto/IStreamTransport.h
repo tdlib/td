@@ -24,6 +24,12 @@ class IStreamTransport {
   IStreamTransport &operator=(const IStreamTransport &) = delete;
   virtual ~IStreamTransport() = default;
   virtual Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) = 0;
+  virtual Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack, int32 *error_code) {
+    if (error_code != nullptr) {
+      *error_code = 0;
+    }
+    return read_next(message, quick_ack);
+  }
   virtual bool support_quick_ack() const = 0;
   virtual void write(BufferWriter &&message, bool quick_ack) = 0;
   virtual bool can_read() const = 0;

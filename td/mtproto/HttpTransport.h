@@ -28,6 +28,7 @@ class Transport final : public IStreamTransport {
   }
 
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) final TD_WARN_UNUSED_RESULT;
+  Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack, int32 *error_code) final TD_WARN_UNUSED_RESULT;
   bool support_quick_ack() const final {
     return false;
   }

@@ -19,6 +19,11 @@ struct GuestBotTopDialogCandidate final {
   bool guest_bot_is_bot{false};
 };
 
+inline bool should_short_circuit_standard_top_dialog_routing(DialogId guest_bot_via_dialog_id,
+                                                             bool is_forward) noexcept {
+  return guest_bot_via_dialog_id.is_valid() && !is_forward;
+}
+
 inline bool note_guest_bot_top_dialog_use(const GuestBotTopDialogCandidate &candidate,
                                           int32 &last_message_date) noexcept {
   if (candidate.is_forward || candidate.message_date <= 0 || !candidate.guest_bot_via_dialog_id.is_valid() ||

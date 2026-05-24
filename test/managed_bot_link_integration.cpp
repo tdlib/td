@@ -27,12 +27,40 @@ void assert_round_trip(td::Slice url, td::Slice expected_username, td::Slice exp
   }
 }
 
+void assert_direct_build_round_trip(td::Slice manager_username, td::Slice raw_username, td::Slice expected_username,
+                                    td::Slice expected_name, bool is_internal) {
+  auto built = td::managed_bot_link_test::build_request_managed_bot_link(manager_username, raw_username, expected_name,
+                                                                         is_internal);
+  ASSERT_TRUE(built.is_ok());
+
+  auto reparsed = td::managed_bot_link_test::parse_request_managed_bot_link(built.ok());
+  ASSERT_EQ(manager_username.str(), reparsed->manager_bot_username_);
+  ASSERT_EQ(expected_username.str(), reparsed->suggested_bot_username_);
+  ASSERT_EQ(expected_name.str(), reparsed->suggested_bot_name_);
+}
+
 }  // namespace
 
 TEST(ManagedBotLinkIntegration, ManagerOnlyLinksRoundTripThroughGeneratedLinks) {
   assert_round_trip("t.me/newbot/manager?name=asd", "bot", "asd");
 }
 
+TEST(ManagedBotLinkIntegration, ManagerOnlyLinksRoundTripWithEmptySuggestedName) {
+  assert_round_trip("t.me/newbot/manager", "bot", "");
+}
+
+TEST(ManagedBotLinkIntegration, ExplicitEmptySuggestedUsernamePathRoundTripsThroughGeneratedLinks) {
+  assert_round_trip("t.me/newbot/manager/?name=asd", "bot", "asd");
+}
+
 TEST(ManagedBotLinkIntegration, ShortSuggestedUsernameRoundTripsAfterNormalization) {
   assert_round_trip("t.me/newbot/manager/a?name=asd", "abot", "asd");
+}
+
+TEST(ManagedBotLinkIntegration, DirectInternalBuildWithEmptySuggestedUsernameRoundTripsToNormalizedObject) {
+  assert_direct_build_round_trip("manager", "", "bot", "asd", true);
+}
+
+TEST(ManagedBotLinkIntegration, DirectExternalBuildWithShortSuggestedUsernameRoundTripsToNormalizedObject) {
+  assert_direct_build_round_trip("manager", "a", "abot", "asd", false);
 }

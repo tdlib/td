@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/ErrorStatus.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/MessageId.h"
 #include "td/mtproto/NoCryptoStorer.h"
@@ -49,7 +50,7 @@ class HandshakeConnection final
 
   Status flush() {
     auto status = raw_connection_->flush(AuthKey(), *this);
-    if (status.code() == -404) {
+    if (is_mtproto_auth_key_not_found_status(status)) {
       LOG(WARNING) << "Clear handshake " << tag("error", status);
       handshake_->clear();
     }

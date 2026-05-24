@@ -4,7 +4,21 @@
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 
+// Pre-include TranslationManager dependencies so the private test seam stays local to the header itself.
+#include "td/telegram/MessageEntity.h"  // IWYU pragma: keep
+#include "td/telegram/MessageFullId.h"  // IWYU pragma: keep
+#include "td/telegram/td_api.h"         // IWYU pragma: keep
+#include "td/telegram/telegram_api.h"   // IWYU pragma: keep
+
+#include "td/actor/actor.h"  // IWYU pragma: keep
+
+#include "td/utils/common.h"   // IWYU pragma: keep
+#include "td/utils/Promise.h"  // IWYU pragma: keep
+#include "td/utils/Status.h"   // IWYU pragma: keep
+
+#define private public
 #include "td/telegram/TranslationManager.h"
+#undef private
 
 #include "td/utils/tests.h"
 
@@ -76,6 +90,62 @@ TEST(TranslationManager, SanitizeAiComposeStylesRetainsLargeSignedIdentifiersVer
   ASSERT_EQ("formal", styles[0]);
   ASSERT_EQ("9223372036854775807", styles[1]);
   ASSERT_EQ("Formal", styles[2]);
+}
+
+TEST(TranslationManager, SanitizeAiComposeStylesDropsOverlyLongTitles) {
+  td::string too_long_title(129, 'T');
+
+  auto styles = TranslationManager::sanitize_ai_compose_styles(
+      {"AbCdEf12", "1", too_long_title, "tone_custom", "2", "Custom"}, "test");
+
+  ASSERT_EQ(3u, styles.size());
+  ASSERT_EQ("tone_custom", styles[0]);
+  ASSERT_EQ("2", styles[1]);
+  ASSERT_EQ("Custom", styles[2]);
+}
+
+TEST(TranslationManager, GetUpdateTextCompositionStylesKeepsValidTriples) {
+  TranslationManager manager(nullptr, {});
+  manager.ai_compose_styles_ = {"tone_custom", "7", "Custom"};
+
+  auto update = manager.get_update_text_composition_styles();
+
+  ASSERT_EQ(1u, update->styles_.size());
+  ASSERT_EQ("tone_custom", update->styles_[0]->name_);
+  ASSERT_EQ(7, update->styles_[0]->custom_emoji_id_);
+  ASSERT_EQ("Custom", update->styles_[0]->title_);
+}
+
+TEST(TranslationManager, GetUpdateTextCompositionStylesDropsStyleNameContainingNulByte) {
+  TranslationManager manager(nullptr, {});
+  td::string invalid_name = "AbCdEf12";
+  invalid_name.push_back('\0');
+  invalid_name += "tail";
+  manager.ai_compose_styles_ = {std::move(invalid_name), "1", "Title"};
+
+  auto update = manager.get_update_text_composition_styles();
+
+  ASSERT_TRUE(update->styles_.empty());
+}
+
+TEST(TranslationManager, GetUpdateTextCompositionStylesDropsNonUtf8Titles) {
+  TranslationManager manager(nullptr, {});
+  td::string invalid_title(1, static_cast<char>(0xFF));
+  manager.ai_compose_styles_ = {"AbCdEf12", "1", std::move(invalid_title)};
+
+  auto update = manager.get_update_text_composition_styles();
+
+  ASSERT_TRUE(update->styles_.empty());
+}
+
+TEST(TranslationManager, GetUpdateTextCompositionStylesDropsOverlyLongTitles) {
+  TranslationManager manager(nullptr, {});
+  td::string too_long_title(129, 'T');
+  manager.ai_compose_styles_ = {"AbCdEf12", "1", std::move(too_long_title)};
+
+  auto update = manager.get_update_text_composition_styles();
+
+  ASSERT_TRUE(update->styles_.empty());
 }
 
 }  // namespace

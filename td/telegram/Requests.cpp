@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/Requests.h"
 
@@ -87,6 +87,7 @@
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/Location.h"
+#include "td/telegram/ManagedBotTokenDispatch.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageEffectId.h"
 #include "td/telegram/MessageEntity.h"
@@ -6703,7 +6704,36 @@ void Requests::on_request(uint64 id, td_api::createBot &request) {
 void Requests::on_request(uint64 id, const td_api::getBotToken &request) {
   CHECK_IS_BOT();
   CREATE_TEXT_REQUEST_PROMISE();
-  td_->bot_info_manager_->get_bot_token(UserId(request.bot_user_id_), request.revoke_, std::move(promise));
+  dispatch_get_managed_bot_token(request.bot_user_id_, request.revoke_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::getManagedBotToken &request) {
+  CHECK_IS_BOT();
+  CREATE_TEXT_REQUEST_PROMISE();
+  dispatch_get_managed_bot_token(request.bot_user_id_, request.revoke_, std::move(promise));
+}
+
+void Requests::dispatch_get_managed_bot_token(int64 bot_user_id, bool revoke, Promise<string> &&promise) {
+  auto result = dispatch_managed_bot_token_request(
+      td_->auth_manager_->is_bot(), bot_user_id, revoke, std::move(promise),
+      [](Promise<string> &&promise, Status error) mutable { promise.set_error(std::move(error)); },
+      [this](UserId managed_bot_user_id, bool managed_revoke, Promise<string> &&promise) mutable {
+        td_->bot_info_manager_->get_bot_token(managed_bot_user_id, managed_revoke, std::move(promise));
+      });
+  static_cast<void>(result);
+}
+
+void Requests::on_request(uint64 id, const td_api::getManagedBotAccessSettings &request) {
+  CHECK_IS_BOT();
+  CREATE_REQUEST_PROMISE();
+  td_->bot_info_manager_->get_bot_access_settings(UserId(request.bot_user_id_), std::move(promise));
+}
+
+void Requests::on_request(uint64 id, td_api::setManagedBotAccessSettings &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->bot_info_manager_->set_bot_access_settings(UserId(request.bot_user_id_), std::move(request.settings_),
+                                                  std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setBotName &request) {

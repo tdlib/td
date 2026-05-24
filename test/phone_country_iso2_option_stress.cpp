@@ -22,6 +22,7 @@ TEST(PhoneCountryIso2OptionStress, RepeatedSourceReadsKeepPhoneCountryIso2Branch
         td::string::npos);
     ASSERT_TRUE(normalized_option.find("\"phone_country_iso2\"") != td::string::npos);
     ASSERT_EQ(1u, td::phone_country_iso2_option_test::count_occurrences(normalized_header,
-                                                                        "staticconstexprint32CURRENT_VERSION=120;"));
+                                                                        "staticconstexprint32CURRENT_VERSION="));
+    ASSERT_TRUE(td::phone_country_iso2_option_test::extract_current_version(normalized_header) >= 120);
   }
 }

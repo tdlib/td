@@ -9,22 +9,14 @@
 #include "td/utils/common.h"
 
 #include "test/stealth/SourceContractFileReader.h"
+#include "test/text_composition_contract_test_utils.h"
+
+#include <string_view>
 
 namespace td::text_composition_style_example_count_option_test {
 
-inline bool is_contract_whitespace(char c) {
-  return c == ' ' || c == '\t' || c == '\r' || c == '\n';
-}
-
 inline td::string normalize_for_contract(td::Slice source) {
-  td::string normalized;
-  normalized.reserve(source.size());
-  for (auto c : source) {
-    if (!is_contract_whitespace(c)) {
-      normalized.push_back(c);
-    }
-  }
-  return normalized;
+  return td::text_composition_contract_test::normalize_for_contract(source);
 }
 
 inline td::string read_config_manager_cpp() {
@@ -51,14 +43,8 @@ inline td::string normalized_config_manager_h() {
   return normalize_for_contract(read_config_manager_h());
 }
 
-inline size_t count_occurrences(const td::string &haystack, const td::string &needle) {
-  size_t count = 0;
-  size_t pos = 0;
-  while ((pos = haystack.find(needle, pos)) != td::string::npos) {
-    ++count;
-    ++pos;
-  }
-  return count;
+inline size_t count_occurrences(std::string_view haystack, std::string_view needle) {
+  return td::text_composition_contract_test::count_occurrences(haystack, needle);
 }
 
 }  // namespace td::text_composition_style_example_count_option_test

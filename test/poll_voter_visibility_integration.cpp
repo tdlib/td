@@ -26,7 +26,7 @@ TEST(PollVoterVisibilityIntegration, MessagePollSerializationUsesPollManagerPoll
   auto region = extract_region(source, "td_api::object_ptr<td_api::MessageContent> get_message_content_object(",
                                "td_api::object_ptr<td_api::upgradeGiftResult>");
 
-  ASSERT_TRUE(region.find("poll_manager->get_poll_object(m->poll_id)") != td::string::npos);
+  ASSERT_TRUE(region.find("poll_manager->get_poll_object(m->poll_id, is_server)") != td::string::npos);
 }
 
 TEST(PollVoterVisibilityIntegration, PublicPollObjectPathDelegatesToSharedBuilder) {
@@ -35,7 +35,16 @@ TEST(PollVoterVisibilityIntegration, PublicPollObjectPathDelegatesToSharedBuilde
       extract_region(source, "td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) const {",
                      "td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, const Poll *poll");
 
-  ASSERT_TRUE(region.find("get_poll_object(poll_id, poll)") != td::string::npos);
+  ASSERT_TRUE(region.find("get_poll_object(poll_id, poll, true)") != td::string::npos);
+}
+
+TEST(PollVoterVisibilityIntegration, PollManagerPublicInterfaceExposesRealMessageContextOverload) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/PollManager.h");
+
+  ASSERT_TRUE(
+      source.find(
+          "td_api::object_ptr<td_api::poll> get_poll_object(PollId poll_id, bool is_real_message_content) const;") !=
+      td::string::npos);
 }
 
 }  // namespace

@@ -5,11 +5,16 @@ Scope: Non-stealth correctness shortlist only
 Backlog anchor: `original..upstream/master`
 Planning basis: full backlog reviewed for mission fit; Wave 2 activates only the non-stealth
 hardening shortlist frozen in the main gating plan.
+Status: Historical preflight archive; Wave 2 execution is closed through
+`docs/Plans/UPSTREAM_WAVE_2_DECISION_2026-05-08.md` plus the later standalone W2-003 merge recorded in
+`docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md`
+Historical note: The rules below are preserved as the original shortlist/contract/validation record for
+Wave 2 and are no longer live backlog gates.
 
 ## 1. Objective
 
-This annex defines the first non-stealth hardening wave after the Wave 1 transport/parser work.
-It does not authorize bulk feature ingestion from upstream. The only purpose of Wave 2 is to lift
+This annex originally defined the first non-stealth hardening wave after the Wave 1 transport/parser work.
+At publication time it did not authorize bulk feature ingestion from upstream. The only purpose of Wave 2 was to lift
 small, correctness-oriented fixes that improve state integrity, reply-thread semantics, and
 move/lifetime hygiene without importing the large `td/telegram` feature surface.
 
@@ -156,7 +161,7 @@ New test family requirements:
 3. Treat `5340472b0` as source material for local C++23-safe lifetime cleanup, not as a direct patch set.
 4. Keep each accepted edit minimal and isolated enough that focused validation can falsify it quickly.
 
-## 9. Wave 2 Execution Order
+## 9. Historical Wave 2 Execution Order
 
 1. Freeze the shortlist above and keep all non-shortlist `td/telegram` feature work deferred.
 2. Start with W2-001 (`a09adfc63`) because it is the smallest behavioral repair with the clearest local gap.
@@ -164,7 +169,7 @@ New test family requirements:
 4. Review W2-003 only after W2-001 and W2-002 are either accepted or rejected, and only hunk by hunk.
 5. For every candidate: contract snapshot -> dependent audit -> red tests -> minimal repair -> focused validation -> wider validation.
 
-## 10. Validation Matrix
+## 10. Historical Validation Matrix
 
 Wave 2 acceptance requires, for the touched slice:
 
@@ -187,7 +192,7 @@ the remaining upstream backlog is frozen as follows:
 Freeze rule: no commit outside W2-001 through W2-003 may enter a Wave 2 branch unless this annex is
 revised first.
 
-## 12. Exit Criteria for Preflight
+## 12. Historical Exit Criteria for Preflight
 
 Wave 2 preflight is complete only when:
 

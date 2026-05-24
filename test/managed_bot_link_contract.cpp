@@ -18,6 +18,14 @@ TEST(ManagedBotLinkContract, ParsesTMeManagerOnlyLinkIntoDefaultBotUsername) {
   ASSERT_EQ("", parsed->suggested_bot_name_);
 }
 
+TEST(ManagedBotLinkContract, ParsesTMeExplicitEmptySuggestedUsernamePathIntoDefaultBotUsername) {
+  auto parsed = td::managed_bot_link_test::parse_request_managed_bot_link("t.me/newbot/manager/?name=asd");
+
+  ASSERT_EQ("manager", parsed->manager_bot_username_);
+  ASSERT_EQ("bot", parsed->suggested_bot_username_);
+  ASSERT_EQ("asd", parsed->suggested_bot_name_);
+}
+
 TEST(ManagedBotLinkContract, ParsesTgManagerOnlyLinkIntoDefaultBotUsername) {
   auto parsed = td::managed_bot_link_test::parse_request_managed_bot_link("tg:newbot?manager=managerot&name=asd");
 
@@ -54,4 +62,24 @@ TEST(ManagedBotLinkContract, KeepsSuggestedUsernameWhenSuffixAlreadyPresentCaseI
     ASSERT_EQ(username, parsed->suggested_bot_username_);
     ASSERT_EQ("asd", parsed->suggested_bot_name_);
   }
+}
+
+TEST(ManagedBotLinkContract, BuildsInternalLinkWithEmptySuggestedUsernameByNormalizingToBot) {
+  auto built = td::managed_bot_link_test::build_request_managed_bot_link("manager", "", "asd", true);
+
+  ASSERT_TRUE(built.is_ok());
+  auto parsed = td::managed_bot_link_test::parse_request_managed_bot_link(built.ok());
+  ASSERT_EQ("manager", parsed->manager_bot_username_);
+  ASSERT_EQ("bot", parsed->suggested_bot_username_);
+  ASSERT_EQ("asd", parsed->suggested_bot_name_);
+}
+
+TEST(ManagedBotLinkContract, BuildsInternalLinkWithShortSuggestedUsernameByAppendingBotSuffix) {
+  auto built = td::managed_bot_link_test::build_request_managed_bot_link("manager", "a", "asd", true);
+
+  ASSERT_TRUE(built.is_ok());
+  auto parsed = td::managed_bot_link_test::parse_request_managed_bot_link(built.ok());
+  ASSERT_EQ("manager", parsed->manager_bot_username_);
+  ASSERT_EQ("abot", parsed->suggested_bot_username_);
+  ASSERT_EQ("asd", parsed->suggested_bot_name_);
 }

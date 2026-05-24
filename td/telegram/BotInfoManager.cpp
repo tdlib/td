@@ -1,19 +1,22 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/BotInfoManager.h"
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/BotAccessSettings.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/ManagedBotAccessSettingsAccess.h"
+#include "td/telegram/ManagedBotTokenAccess.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/StoryContent.h"
@@ -90,6 +93,85 @@ class ExportBotTokenQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ExportBotTokenQuery: " << to_string(ptr);
     promise_.set_value(std::move(ptr->token_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetAccessSettingsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::botAccessSettings>> promise_;
+
+ public:
+  explicit GetAccessSettingsQuery(Promise<td_api::object_ptr<td_api::botAccessSettings>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id) {
+    auto r_input_user = td_->user_manager_->get_input_user(bot_user_id);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    send_query(G()->net_query_creator().create(telegram_api::bots_getAccessSettings(r_input_user.move_as_ok())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_getAccessSettings>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetAccessSettingsQuery: " << to_string(ptr);
+    BotAccessSettings access_settings(td_, std::move(ptr));
+    auto validation_status = access_settings.get_validation_status();
+    if (validation_status.is_error()) {
+      return on_error(std::move(validation_status));
+    }
+    promise_.set_value(access_settings.get_bot_access_settings_object(td_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class EditAccessSettingsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit EditAccessSettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id, const BotAccessSettings &settings) {
+    auto r_input_users =
+        settings.resolve_added_input_users([&](UserId user_id) { return td_->user_manager_->get_input_user(user_id); });
+    if (r_input_users.is_error()) {
+      return on_error(r_input_users.move_as_error());
+    }
+    auto input_users = r_input_users.move_as_ok();
+
+    auto r_input_user = td_->user_manager_->get_input_user(bot_user_id);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+
+    int32 flags = 0;
+    if (!input_users.empty()) {
+      flags |= telegram_api::bots_editAccessSettings::ADD_USERS_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::bots_editAccessSettings(
+        flags, settings.is_restricted(), r_input_user.move_as_ok(), std::move(input_users))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_editAccessSettings>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
@@ -790,8 +872,50 @@ void BotInfoManager::create_bot(UserId manager_bot_user_id, const string &name, 
 }
 
 void BotInfoManager::get_bot_token(UserId bot_user_id, bool revoke, Promise<string> &&promise) {
-  TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
-  td_->create_handler<ExportBotTokenQuery>(std::move(promise))->send(bot_user_id, revoke);
+  auto result = dispatch_managed_bot_token_export(
+      td_->auth_manager_->is_bot(), bot_user_id.get(), revoke, std::move(promise),
+      [](Promise<string> &&managed_promise, Status error) mutable { managed_promise.set_error(std::move(error)); },
+      [this](UserId managed_bot_user_id) { return td_->user_manager_->get_bot_data(managed_bot_user_id); },
+      [this](UserId managed_bot_user_id, bool managed_revoke, Promise<string> &&managed_promise) mutable {
+        td_->create_handler<ExportBotTokenQuery>(std::move(managed_promise))->send(managed_bot_user_id, managed_revoke);
+      });
+  static_cast<void>(result);
+}
+
+void BotInfoManager::get_bot_access_settings(UserId bot_user_id,
+                                             Promise<td_api::object_ptr<td_api::botAccessSettings>> &&promise) {
+  auto result = dispatch_managed_bot_access_settings_read(
+      td_->auth_manager_->is_bot(), bot_user_id.get(), std::move(promise),
+      [](Promise<td_api::object_ptr<td_api::botAccessSettings>> &&managed_promise, Status error) mutable {
+        managed_promise.set_error(std::move(error));
+      },
+      [this](UserId managed_bot_user_id) { return td_->user_manager_->get_bot_data(managed_bot_user_id); },
+      [this](UserId managed_bot_user_id,
+             Promise<td_api::object_ptr<td_api::botAccessSettings>> &&managed_promise) mutable {
+        td_->create_handler<GetAccessSettingsQuery>(std::move(managed_promise))->send(managed_bot_user_id);
+      });
+  static_cast<void>(result);
+}
+
+void BotInfoManager::set_bot_access_settings(UserId bot_user_id,
+                                             td_api::object_ptr<td_api::botAccessSettings> &&settings,
+                                             Promise<Unit> &&promise) {
+  BotAccessSettings access_settings(std::move(settings));
+  auto validation_status = access_settings.get_validation_status();
+  if (validation_status.is_error()) {
+    return promise.set_error(std::move(validation_status));
+  }
+
+  auto result = dispatch_managed_bot_access_settings_write(
+      td_->auth_manager_->is_bot(), bot_user_id.get(), std::move(access_settings), std::move(promise),
+      [](Promise<Unit> &&managed_promise, Status error) mutable { managed_promise.set_error(std::move(error)); },
+      [this](UserId managed_bot_user_id) { return td_->user_manager_->get_bot_data(managed_bot_user_id); },
+      [this](UserId managed_bot_user_id, BotAccessSettings &&managed_settings,
+             Promise<Unit> &&managed_promise) mutable {
+        td_->create_handler<EditAccessSettingsQuery>(std::move(managed_promise))
+            ->send(managed_bot_user_id, managed_settings);
+      });
+  static_cast<void>(result);
 }
 
 void BotInfoManager::get_owned_bots(Promise<td_api::object_ptr<td_api::users>> &&promise) {

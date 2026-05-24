@@ -1953,6 +1953,10 @@ void ChatManager::Chat::parse(ParserT &parser) {
   }
 }
 
+template void ChatManager::Chat::store<LogEventStorerCalcLength>(LogEventStorerCalcLength &storer) const;
+template void ChatManager::Chat::store<LogEventStorerUnsafe>(LogEventStorerUnsafe &storer) const;
+template void ChatManager::Chat::parse<LogEventParser>(LogEventParser &parser);
+
 template <class StorerT>
 void ChatManager::ChatFull::store(StorerT &storer) const {
   using td::store;

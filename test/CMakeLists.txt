@@ -31,13 +31,35 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_vendor_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/http.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/http_transport_status_propagation_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/http_reader_smuggling_security.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/link.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/proxy_link_query_pollution_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/proxy_link_query_pollution_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/proxy_link_query_pollution_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/proxy_link_query_pollution_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/proxy_link_query_pollution_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_link_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_link_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_link_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_link_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_link_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_token_access_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_token_access_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_token_access_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_token_access_runtime_harness.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_owner_path_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_access_layer_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_access_settings_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_access_settings_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_access_settings_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_access_settings_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_access_settings_runtime_harness.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_access_settings_request_flow_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_access_settings_server_payload_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_access_settings_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_token_access_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_token_access_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/bot_cross_chat_reply_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/bot_cross_chat_reply_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/bot_cross_chat_reply_integration.cpp
@@ -58,6 +80,43 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_example_count_option_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_example_count_option_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_example_count_option_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_name_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_name_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_name_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_name_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_name_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_link_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_link_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_link_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_link_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_link_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_runtime_harness.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_owner_path_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_catalog_sanitizer_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_catalog_sanitizer_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_catalog_sanitizer_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_catalog_sanitizer_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_style_catalog_sanitizer_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_control_plane_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_control_plane_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_control_plane_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_control_plane_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_control_plane_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_update_promise_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_update_promise_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_update_promise_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_update_promise_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_update_promise_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_updates_manager_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_updates_manager_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_updates_manager_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_updates_manager_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_updates_manager_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_reload_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_reload_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_reload_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_reload_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/text_composition_reload_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_content_star_count_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_content_star_count_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_content_star_count_integration.cpp
@@ -70,7 +129,11 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/paid_media_input_media_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_consumer_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_consumer_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_consumer_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_consumer_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_reply_header_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_reply_header_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_reply_header_integration.cpp
@@ -97,29 +160,36 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_restricted_rights_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_restricted_rights_source_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_restricted_rights_stress.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2_use_after_move_contract.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2_use_after_move_adversarial.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2_use_after_move_integration.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_reply_and_username_contract.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_reply_and_username_runtime_contract.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_reply_and_username_adversarial.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_reply_and_username_integration.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_reply_and_username_light_fuzz.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_reply_and_username_stress.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_contract.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_adversarial.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_integration.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_light_fuzz.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w2b_guest_message_stress.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_contract.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_adversarial.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_integration.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_light_fuzz.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_runtime_harness.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_runtime_adversarial.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_server_result_runtime.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_query_stress.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/w4_guest_bot_top_dialog_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/use_after_move_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/use_after_move_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/use_after_move_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/use_after_move_replay_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/use_after_move_replay_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/use_after_move_replay_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/use_after_move_replay_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/use_after_move_replay_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/reply_and_username_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/reply_and_username_runtime_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/reply_and_username_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/reply_and_username_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/reply_and_username_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/reply_and_username_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/business_guest_message_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/business_guest_message_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/business_guest_message_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/business_guest_message_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/business_guest_message_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/business_connection_album_null_guard_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/reaction_read_all_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/guest_query_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/guest_query_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/guest_query_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/guest_query_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/guest_query_runtime_harness.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/guest_query_runtime_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/guest_query_server_result_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/guest_query_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/guest_bot_top_dialog_runtime.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_integration.cpp
@@ -136,6 +206,7 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_unread_votes_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_unread_votes_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_unread_votes_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_unread_votes_runtime_harness.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_unread_votes_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_unread_votes_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll_restriction_reason_contract.cpp
@@ -195,13 +266,25 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/security_core_true_issues_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/security_core_true_issues_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/security_core_true_issues_stress.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_wave8_contract.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_wave8_adversarial.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_wave8_integration.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_wave8_light_fuzz.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_wave8_stress.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_wave9_contract.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_wave9_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_source_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_source_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_source_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_source_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_source_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_content_null_guard_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_content_null_guard_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_content_null_guard_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_content_null_guard_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_content_null_guard_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_content_null_guard_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/invalid_file_id_handling_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/invalid_file_id_handling_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/invalid_file_id_handling_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/invalid_file_id_handling_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/invalid_file_id_handling_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/invalid_file_id_handling_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_tl_parser_memory_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sonar_blocker_tl_parser_memory_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/secret_api_object_fetch_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/secret_api_object_fetch_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/secret_api_object_fetch_integration.cpp
@@ -1180,7 +1263,7 @@ if(NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
 
         if(TD_RUN_ALL_TEST_NAME
            MATCHES
-           "^(Test_DB_key_value|Test_DB_key_value_set_all|Test_SecureStorage_secret|Test_Misc_update_atime_change_atime|Test_Misc_update_atime_saves_mtime|Test_FamilyLaneMatcherContract_ReviewedTableByIndexCountMatches|Test_HmacTimestampAdversarial1k_AllProfilesSameSeedSameTimestampProduceDifferentClientRandom|Test_AuthenticationTimingConsistency_StringComparisonNoEarlyExit)$"
+           "^(Test_DB_key_value|Test_DB_key_value_set_all|Test_SecureStorage_secret|Test_Misc_update_atime_change_atime|Test_Misc_update_atime_saves_mtime|Test_FamilyLaneMatcherContract_ReviewedTableByIndexCountMatches|Test_HmacTimestampAdversarial1k_AllProfilesSameSeedSameTimestampProduceDifferentClientRandom|Test_AuthenticationTimingConsistency_StringComparisonNoEarlyExit|Test_DB_sqlite_phase3_corruption_cleanup_deletes_damaged_database_files_after_.*)$"
         )
           set_tests_properties("${TD_RUN_ALL_TEST_NAME}" PROPERTIES RUN_SERIAL
                                                                     TRUE)
@@ -1194,7 +1277,7 @@ if(NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
         # preamble reliably cleans up.
         if(TD_RUN_ALL_TEST_NAME
            MATCHES
-           "^(Test_DB_key_value|Test_DB_key_value_set_all|Test_DB_binlog_key_value|Test_DB_thread_key_value|Test_DB_persistent_key_value|Test_SecureStorage_secret|Test_Misc_update_atime)"
+           "^(Test_DB_key_value|Test_DB_key_value_set_all|Test_DB_binlog_key_value|Test_DB_thread_key_value|Test_DB_persistent_key_value|Test_DB_sqlite_phase3_.*|Test_SecureStorage_secret|Test_Misc_update_atime)"
         )
           set_tests_properties(
             "${TD_RUN_ALL_TEST_NAME}" PROPERTIES WORKING_DIRECTORY

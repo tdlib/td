@@ -82,4 +82,15 @@ TEST(ProxySerializedSecretValidationIntegration, PersistedOverlongDecodedSecretA
   ASSERT_EQ(valid_domain, proxy.secret().get_domain());
 }
 
+TEST(ProxySerializedSecretValidationIntegration, PersistedOversizedEncodedSecretFailsClosedBeforeDecode) {
+  SerializedProxyRecord record;
+  record.encoded_secret = td::string(2 * (17 + td::mtproto::ProxySecret::MAX_DOMAIN_LENGTH + 1) + 1, 'a');
+
+  td::Proxy proxy;
+  auto status = td::unserialize(proxy, td::serialize(record));
+
+  ASSERT_TRUE(status.is_error());
+  ASSERT_TRUE(status.message().str().find("Invalid proxy secret") != td::string::npos);
+}
+
 }  // namespace

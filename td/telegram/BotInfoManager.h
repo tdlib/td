@@ -45,6 +45,11 @@ class BotInfoManager final : public Actor {
 
   void get_bot_token(UserId bot_user_id, bool revoke, Promise<string> &&promise);
 
+  void get_bot_access_settings(UserId bot_user_id, Promise<td_api::object_ptr<td_api::botAccessSettings>> &&promise);
+
+  void set_bot_access_settings(UserId bot_user_id, td_api::object_ptr<td_api::botAccessSettings> &&settings,
+                               Promise<Unit> &&promise);
+
   void get_owned_bots(Promise<td_api::object_ptr<td_api::users>> &&promise);
 
   void set_default_group_administrator_rights(AdministratorRights administrator_rights, Promise<Unit> &&promise);

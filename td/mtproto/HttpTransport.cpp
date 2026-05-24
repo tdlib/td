@@ -25,6 +25,13 @@ namespace mtproto {
 namespace http {
 
 Result<size_t> Transport::read_next(BufferSlice *message, uint32 *quick_ack) {
+  return read_next(message, quick_ack, nullptr);
+}
+
+Result<size_t> Transport::read_next(BufferSlice *message, uint32 *quick_ack, int32 *error_code) {
+  if (error_code != nullptr) {
+    *error_code = 0;
+  }
   CHECK(can_read());
   auto r_size = reader_.read_next(&http_query_);
   if (r_size.is_error() || r_size.ok() != 0) {
@@ -35,6 +42,9 @@ Result<size_t> Transport::read_next(BufferSlice *message, uint32 *quick_ack) {
   }
   if (http_query_.container_.size() != 2u) {
     return Status::Error("Wrong response");
+  }
+  if (error_code != nullptr) {
+    *error_code = http_query_.code_;
   }
   *message = std::move(http_query_.container_[1]);
   turn_ = Write;

@@ -125,7 +125,7 @@ TEST(SecurityCoreTrueIssuesLightFuzz, v730_v501_forbidden_patterns_stay_absent) 
   ASSERT_TRUE(chat_source.find("PublicDialogTypetype_=PublicDialogType::ForPersonalDialog;") != td::string::npos);
 }
 
-TEST(SecurityCoreTrueIssuesLightFuzz, v730_wave3_forbidden_patterns_stay_absent) {
+TEST(SecurityCoreTrueIssuesLightFuzz, v730_core_runtime_forbidden_patterns_stay_absent) {
   const auto sequence_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/SequenceDispatcher.h"));
   const auto reaction_source =
@@ -178,7 +178,7 @@ TEST(SecurityCoreTrueIssuesLightFuzz, v730_wave3_forbidden_patterns_stay_absent)
   ASSERT_TRUE(translation_source.find("int32max_media_timestamp_=-1;") != td::string::npos);
 }
 
-TEST(SecurityCoreTrueIssuesLightFuzz, v730_wave4_forbidden_patterns_stay_absent) {
+TEST(SecurityCoreTrueIssuesLightFuzz, v730_request_handlers_forbidden_patterns_stay_absent) {
   const auto background_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/BackgroundManager.cpp"));
   const auto business_connection_source =
@@ -215,7 +215,7 @@ TEST(SecurityCoreTrueIssuesLightFuzz, v730_wave4_forbidden_patterns_stay_absent)
   ASSERT_TRUE(ts_file_log_source.find("std::atomic<bool>is_inited{false};size_tid{0};") != td::string::npos);
 }
 
-TEST(SecurityCoreTrueIssuesLightFuzz, v730_wave5_forbidden_patterns_stay_absent) {
+TEST(SecurityCoreTrueIssuesLightFuzz, v730_forbidden_patterns_stay_absent) {
   const auto net_stats_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/net/NetStatsManager.h"));
   const auto auth_data_source = normalize_no_space(td::mtproto::test::read_repo_text_file("td/mtproto/AuthData.h"));
@@ -286,7 +286,7 @@ TEST(SecurityCoreTrueIssuesLightFuzz, v730_reply_markup_and_sequence_dispatcher_
   ASSERT_TRUE(sequence_source.find("ActorShared<NetQueryCallback>callback_{};") != td::string::npos);
 }
 
-TEST(SecurityCoreTrueIssuesLightFuzz, v730_wave6_message_handler_forbidden_patterns_stay_absent) {
+TEST(SecurityCoreTrueIssuesLightFuzz, v730_message_handlers_message_handler_forbidden_patterns_stay_absent) {
   const auto message_query_source =
       normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/MessageQueryManager.cpp"));
   const auto messages_source =
@@ -329,7 +329,7 @@ TEST(SecurityCoreTrueIssuesLightFuzz, v730_wave6_message_handler_forbidden_patte
   ASSERT_TRUE(messages_source.find("Promise<Unit>promise_;int64random_id_=0;DialogIddialog_id_;") != td::string::npos);
 }
 
-TEST(SecurityCoreTrueIssuesLightFuzz, v547_v730_wave7_forbidden_patterns_stay_absent) {
+TEST(SecurityCoreTrueIssuesLightFuzz, v547_v730_session_ctor_forbidden_patterns_stay_absent) {
   const auto session_source = normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/net/Session.cpp"));
   const auto auth_data_source = normalize_no_space(td::mtproto::test::read_repo_text_file("td/mtproto/AuthData.cpp"));
   const auto net_stats_source =

@@ -20,6 +20,14 @@ td::string make_tls_emulation_secret(td::Slice domain) {
   return secret;
 }
 
+td::string make_max_length_valid_domain() {
+  td::string first_label(63, 'a');
+  td::string second_label(63, 'b');
+  td::string third_label(td::mtproto::ProxySecret::MAX_DOMAIN_LENGTH - first_label.size() - second_label.size() - 2,
+                         'c');
+  return first_label + "." + second_label + "." + third_label;
+}
+
 TEST(ProxySecretTlsDomainValidationContract, AcceptsCanonicalAsciiHostname) {
   auto r_secret = td::mtproto::ProxySecret::from_binary(make_tls_emulation_secret("cdn.example.com"));
 
@@ -191,6 +199,69 @@ TEST(ProxySecretTlsDomainValidationContract, CorrectedHexSecretWithAsciiDomainIs
   ASSERT_TRUE(r_secret.is_ok());
   ASSERT_TRUE(r_secret.ok().emulate_tls());
   ASSERT_EQ(td::string("wwwr.garshinka.ru"), r_secret.ok().get_domain());
+}
+
+TEST(ProxySecretTlsDomainValidationContract, FromLinkRejectsEncodedSecretsLongerThanHexEnvelope) {
+  td::string oversized_encoded(2 * (17 + td::mtproto::ProxySecret::MAX_DOMAIN_LENGTH) + 1, 'a');
+
+  auto r_secret = td::mtproto::ProxySecret::from_link(oversized_encoded);
+
+  ASSERT_TRUE(r_secret.is_error());
+  auto message = r_secret.error().message().str();
+  ASSERT_TRUE(message.find("encoded_length_out_of_bounds") != td::string::npos);
+  ASSERT_TRUE(message.find("encoded_length=") != td::string::npos);
+  ASSERT_TRUE(message.find("max_encoded_length=") != td::string::npos);
+}
+
+TEST(ProxySecretTlsDomainValidationContract, FromLinkAcceptsEncodedSecretAtExactHexEnvelopeBoundary) {
+  auto domain = make_max_length_valid_domain();
+  auto encoded = td::hex_encode(make_tls_emulation_secret(domain));
+
+  ASSERT_EQ(2 * (17 + td::mtproto::ProxySecret::MAX_DOMAIN_LENGTH), encoded.size());
+
+  auto r_secret = td::mtproto::ProxySecret::from_link(encoded);
+
+  ASSERT_TRUE(r_secret.is_ok());
+  ASSERT_TRUE(r_secret.ok().emulate_tls());
+  ASSERT_EQ(domain, r_secret.ok().get_domain());
+}
+
+TEST(ProxySecretTlsDomainValidationContract, FromLinkNormalModeRejectsSingleByteOverageAtHexBoundary) {
+  auto domain = make_max_length_valid_domain();
+  auto encoded = td::hex_encode(make_tls_emulation_secret(domain + "x"));
+
+  ASSERT_EQ(2 * (17 + td::mtproto::ProxySecret::MAX_DOMAIN_LENGTH + 1), encoded.size());
+
+  auto r_secret = td::mtproto::ProxySecret::from_link(encoded);
+
+  ASSERT_TRUE(r_secret.is_error());
+  auto message = r_secret.error().message().str();
+  ASSERT_TRUE(message.find("encoded_length_out_of_bounds") != td::string::npos);
+}
+
+TEST(ProxySecretTlsDomainValidationContract, FromLinkTruncationModeAcceptsSingleByteOverageAtHexBoundary) {
+  auto domain = make_max_length_valid_domain();
+  auto encoded = td::hex_encode(make_tls_emulation_secret(domain + "x"));
+
+  ASSERT_EQ(2 * (17 + td::mtproto::ProxySecret::MAX_DOMAIN_LENGTH + 1), encoded.size());
+
+  auto r_secret = td::mtproto::ProxySecret::from_link(encoded, true);
+
+  ASSERT_TRUE(r_secret.is_ok());
+  ASSERT_TRUE(r_secret.ok().emulate_tls());
+  ASSERT_EQ(domain, r_secret.ok().get_domain());
+}
+
+TEST(ProxySecretTlsDomainValidationContract, FromLinkTruncationModeRejectsEncodedSecretsBeyondOneByteOverage) {
+  td::string oversized_encoded(2 * (17 + td::mtproto::ProxySecret::MAX_DOMAIN_LENGTH + 1) + 1, 'a');
+
+  auto r_secret = td::mtproto::ProxySecret::from_link(oversized_encoded, true);
+
+  ASSERT_TRUE(r_secret.is_error());
+  auto message = r_secret.error().message().str();
+  ASSERT_TRUE(message.find("encoded_length_out_of_bounds") != td::string::npos);
+  ASSERT_TRUE(message.find("encoded_length=") != td::string::npos);
+  ASSERT_TRUE(message.find("max_encoded_length=") != td::string::npos);
 }
 
 }  // namespace

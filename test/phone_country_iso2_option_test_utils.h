@@ -10,6 +10,8 @@
 
 #include "test/stealth/SourceContractFileReader.h"
 
+#include <string_view>
+
 namespace td::phone_country_iso2_option_test {
 
 inline bool is_contract_whitespace(char c) {
@@ -51,14 +53,36 @@ inline td::string normalized_config_manager_h() {
   return normalize_for_contract(read_config_manager_h());
 }
 
-inline size_t count_occurrences(const td::string &haystack, const td::string &needle) {
+inline size_t count_occurrences(std::string_view haystack, std::string_view needle) {
   size_t count = 0;
   size_t pos = 0;
-  while ((pos = haystack.find(needle, pos)) != td::string::npos) {
+  while ((pos = haystack.find(needle, pos)) != std::string_view::npos) {
     ++count;
     ++pos;
   }
   return count;
+}
+
+inline int32 extract_current_version(const td::string &normalized_header) {
+  static constexpr Slice kNeedle = "staticconstexprint32CURRENT_VERSION=";
+  auto pos = normalized_header.find(kNeedle.str());
+  if (pos == td::string::npos) {
+    return -1;
+  }
+  pos += kNeedle.size();
+
+  int32 version = 0;
+  bool has_digit = false;
+  while (pos < normalized_header.size() && normalized_header[pos] >= '0' && normalized_header[pos] <= '9') {
+    has_digit = true;
+    version = version * 10 + static_cast<int32>(normalized_header[pos] - '0');
+    pos++;
+  }
+
+  if (!has_digit || pos >= normalized_header.size() || normalized_header[pos] != ';') {
+    return -1;
+  }
+  return version;
 }
 
 }  // namespace td::phone_country_iso2_option_test

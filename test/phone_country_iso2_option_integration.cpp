@@ -24,5 +24,6 @@ TEST(PhoneCountryIso2OptionIntegration, VersionBumpAndConfigBranchTravelTogether
       normalized_config.find(
           R"(if(key=="phone_country_iso2"){G()->set_option_string("phone_country_iso2",get_json_value_string(std::move(key_value->value_),key));continue;})") !=
       td::string::npos);
-  ASSERT_TRUE(normalized_header.find("staticconstexprint32CURRENT_VERSION=120;") != td::string::npos);
+  ASSERT_TRUE(normalized_header.find("staticconstexprint32CURRENT_VERSION=") != td::string::npos);
+  ASSERT_TRUE(td::phone_country_iso2_option_test::extract_current_version(normalized_header) >= 120);
 }

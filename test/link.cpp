@@ -506,6 +506,10 @@ static auto theme(const td::string &theme_name) {
   return td::td_api::make_object<td::td_api::internalLinkTypeTheme>(theme_name);
 }
 
+static auto text_composition_style(const td::string &style_name) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeTextCompositionStyle>(style_name);
+}
+
 static auto unknown_deep_link(const td::string &link) {
   return td::td_api::make_object<td::td_api::internalLinkTypeUnknownDeepLink>(link);
 }
@@ -1326,6 +1330,27 @@ TEST(Link, parse_internal_link_part3) {
   parse_internal_link("tg:addtheme?slug=abc%2Fef", theme("abc/ef"));
   parse_internal_link("tg://addtheme?slug=", unknown_deep_link("tg://addtheme?slug="));
 
+  parse_internal_link("t.me/addstyle?slug=AbCdEf12", nullptr);
+  parse_internal_link("t.me/addstyle", nullptr);
+  parse_internal_link("t.me/addstyle/", nullptr);
+  parse_internal_link("t.me/addstyle//AbCdEf12", nullptr);
+  parse_internal_link("t.me/addstyle?/AbCdEf12", nullptr);
+  parse_internal_link("t.me/addstyle/?AbCdEf12", nullptr);
+  parse_internal_link("t.me/addstyle/#AbCdEf12", nullptr);
+  parse_internal_link("t.me/addstyle/AbCdEf12", text_composition_style("AbCdEf12"));
+  parse_internal_link("t.me/addstyle/AbCdEf12/123123/12/31/a/s//21w/?asdas#test", nullptr);
+  parse_internal_link("t.me/addstyle/abc%20def", nullptr);
+  parse_internal_link("t.me/addstyle/AbCd+Ef12", nullptr);
+  parse_internal_link("t.me/addstyle/AbCdEf1", nullptr);
+
+  parse_internal_link("tg:addstyle?slug=AbCdEf12", text_composition_style("AbCdEf12"));
+  parse_internal_link("tg:addstyle?slug=abc%30def1", text_composition_style("abc0def1"));
+  parse_internal_link("tg:addstyle?slug=abc%20def1", unknown_deep_link("tg://addstyle?slug=abc%20def1"));
+  parse_internal_link("tg:addstyle?slug=abc%2Fdef1", unknown_deep_link("tg://addstyle?slug=abc%2Fdef1"));
+  parse_internal_link("tg:addstyle?slug=AbCd+Ef12", unknown_deep_link("tg://addstyle?slug=AbCd+Ef12"));
+  parse_internal_link("tg:addstyle?slug=AbCdEf1", unknown_deep_link("tg://addstyle?slug=AbCdEf1"));
+  parse_internal_link("tg://addstyle?slug=", unknown_deep_link("tg://addstyle?slug="));
+
   parse_internal_link("t.me/proxy?server=1.2.3.4&port=80&secret=1234567890abcdef1234567890ABCDEF",
                       proxy_mtproto("1.2.3.4", 80, "1234567890abcdef1234567890abcdef"));
   parse_internal_link("t.me/proxy?server=1.2.3.4&port=80adasdas&secret=1234567890abcdef1234567890ABCDEF",
@@ -1356,16 +1381,16 @@ TEST(Link, parse_internal_link_part3) {
   parse_internal_link(
       // Domain decodes to null + control bytes before "google.com" — rejected by fail-closed hostname validation.
       "t.me/proxy?server=google.com&port=8%30&secret=7tAAAAAAAAAAAAAAAAAAAAAAAAcuZ29vZ2xlLmNvbQ", unsupported_proxy());
-  parse_internal_link(
-      "t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2BSj5pyZnaXRodWIuY29t",
-      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t"));  // invalid, but accepted
-  parse_internal_link(
-      "t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2FSj5pyZnaXRodWIuY29t",
-      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J_Sj5pyZnaXRodWIuY29t"));  // invalid, but accepted
+  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2BSj5pyZnaXRodWIuY29t",
+                      unsupported_proxy());  // %2B decodes to '+', which is disallowed in fail-closed link secrets.
+  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2FSj5pyZnaXRodWIuY29t",
+                      unsupported_proxy());  // %2F decodes to '/', which is disallowed in fail-closed link secrets.
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t",
                       proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t"));
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J_Sj5pyZnaXRodWIuY29t",
                       proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J_Sj5pyZnaXRodWIuY29t"));
+  parse_internal_link(td::string("t.me/proxy?server=google.com&port=80&secret=") + td::string(399, 'a'),
+                      unsupported_proxy());
   parse_internal_link("t.me/proxy", unsupported_proxy());
   parse_internal_link("t.me/proxy?server=&port=80&secret=1234567890abcdef1234567890ABCDEF", unsupported_proxy());
   parse_internal_link("t.me/proxy?server=%FF&port=80&secret=1234567890abcdef1234567890ABCDEF", unsupported_proxy());
@@ -1382,7 +1407,13 @@ TEST(Link, parse_internal_link_part3) {
                       proxy_mtproto("google.com", 80, "1234567890abcdef1234567890abcdef"));
   parse_internal_link("tg:proxy?server=google.com&port=8%30&secret=dd1234567890abcdef1234567890ABCDEF",
                       proxy_mtproto("google.com", 80, "dd1234567890abcdef1234567890abcdef"));
+  parse_internal_link("tg:proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2BSj5pyZnaXRodWIuY29t",
+                      unsupported_proxy());
+  parse_internal_link("tg:proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2FSj5pyZnaXRodWIuY29t",
+                      unsupported_proxy());
   parse_internal_link("tg:proxy?server=google.com&port=8%30&secret=de1234567890abcdef1234567890ABCDEF",
+                      unsupported_proxy());
+  parse_internal_link(td::string("tg:proxy?server=google.com&port=80&secret=") + td::string(399, 'a'),
                       unsupported_proxy());
   parse_internal_link("tg:proxy", unsupported_proxy());
   parse_internal_link("tg:proxy?server=&port=80&secret=1234567890abcdef1234567890ABCDEF", unsupported_proxy());
@@ -2035,6 +2066,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("addemoji.t.me", nullptr);
   parse_internal_link("addlist.t.me", nullptr);
   parse_internal_link("addstickers.t.me", nullptr);
+  parse_internal_link("addstyle.t.me", nullptr);
   parse_internal_link("addtheme.t.me", nullptr);
   parse_internal_link("auction.t.me", nullptr);
   parse_internal_link("auth.t.me", nullptr);

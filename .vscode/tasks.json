@@ -52,8 +52,8 @@
             ],
             "options": {
                 "env": {
-                    "CC": "gcc-15",
-                    "CXX": "g++-15"
+                    "CC": "gcc-16",
+                    "CXX": "g++-16"
                 }
             },
             "group": "build",
@@ -84,8 +84,8 @@
             ],
             "options": {
                 "env": {
-                    "CC": "gcc-15",
-                    "CXX": "g++-15"
+                    "CC": "gcc-16",
+                    "CXX": "g++-16"
                 }
             },
             "problemMatcher": [
@@ -112,8 +112,8 @@
             ],
             "options": {
                 "env": {
-                    "CC": "gcc-15",
-                    "CXX": "g++-15"
+                    "CC": "gcc-16",
+                    "CXX": "g++-16"
                 }
             },
             "problemMatcher": [
@@ -258,7 +258,7 @@
                 "-j",
                 "14",
                 "-E",
-                "'^(Test_Log_Bench|Test_ConcurrentHashMap_Benchmark|Test_DB_sqlite_phase3_statement_blob_roundtrip_light_fuzz|Test_CryptoPQ_generated_slow|Test_Http_gzip_bomb|Test_SslCtxLightFuzzExtended_.*)$'"
+                "^(Test_Log_Bench|Test_ConcurrentHashMap_Benchmark|Test_DB_sqlite_phase3_statement_blob_roundtrip_light_fuzz|Test_CryptoPQ_generated_slow|Test_Http_gzip_bomb|Test_SslCtxLightFuzzExtended_.*)$"
             ],
             "group": "test",
             "dependsOn": [
@@ -277,7 +277,7 @@
                 "-j",
                 "14",
                 "-R",
-                "'^(Test_Log_Bench|Test_ConcurrentHashMap_Benchmark|Test_DB_sqlite_phase3_statement_blob_roundtrip_light_fuzz|Test_CryptoPQ_generated_slow|Test_Http_gzip_bomb|Test_SslCtxLightFuzzExtended_.*)$'"
+                "^(Test_Log_Bench|Test_ConcurrentHashMap_Benchmark|Test_DB_sqlite_phase3_statement_blob_roundtrip_light_fuzz|Test_CryptoPQ_generated_slow|Test_Http_gzip_bomb|Test_SslCtxLightFuzzExtended_.*)$"
             ],
             "group": "test",
             "dependsOn": [

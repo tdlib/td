@@ -359,7 +359,11 @@ void StealthTransportDecorator::clear_stale_queued_response_jitter() {
 }
 
 Result<size_t> StealthTransportDecorator::read_next(BufferSlice *message, uint32 *quick_ack) {
-  auto result = inner_->read_next(message, quick_ack);
+  return read_next(message, quick_ack, nullptr);
+}
+
+Result<size_t> StealthTransportDecorator::read_next(BufferSlice *message, uint32 *quick_ack, int32 *error_code) {
+  auto result = inner_->read_next(message, quick_ack, error_code);
   if (result.is_ok()) {
     if (message != nullptr && !message->empty()) {
       note_inbound_response(message->size());

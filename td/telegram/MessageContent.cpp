@@ -5279,6 +5279,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
 SecretInputMedia get_message_content_secret_input_media(
     const MessageContent *content, Td *td, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
     BufferSlice thumbnail, int32 layer) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       const auto *m = static_cast<const MessageAnimation *>(content);
@@ -5633,6 +5634,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
 
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(
     const MessageContent *content, vector<telegram_api::object_ptr<telegram_api::InputMedia>> &&input_media) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::PaidMedia: {
       const auto *m = static_cast<const MessagePaidMedia *>(content);
@@ -5699,6 +5701,9 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
       auto file_ids = get_message_content_any_file_ids(content);
       CHECK(file_ids.size() == file_references.size());
       auto file_id = file_ids[i];
+      if (!file_id.is_valid()) {
+        continue;
+      }
       if (!force) {
         LOG(INFO) << "File " << file_id << " has invalid file reference";
         return nullptr;
@@ -5885,6 +5890,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
 
 Status can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward,
                                 bool check_permissions, const Td *td) {
+  CHECK(content != nullptr);
   auto dialog_type = dialog_id.get_type();
   RestrictedRights permissions = [&] {
     if (!check_permissions) {
@@ -6154,6 +6160,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
 }
 
 bool can_forward_message_content(const Td *td, const MessageContent *content, bool is_copy) {
+  CHECK(content != nullptr);
   auto content_type = content->get_type();
   if (content_type == MessageContentType::Text) {
     auto *text = static_cast<const MessageText *>(content);
@@ -6189,6 +6196,7 @@ bool can_forward_message_content(const Td *td, const MessageContent *content, bo
 }
 
 bool update_opened_message_content(MessageContent *content) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::VideoNote: {
       auto video_note_content = static_cast<MessageVideoNote *>(content);
@@ -6212,6 +6220,7 @@ bool update_opened_message_content(MessageContent *content) {
 }
 
 static int32 get_message_content_text_index_mask(const MessageContent *content) {
+  CHECK(content != nullptr);
   const FormattedText *text = get_message_content_text(content);
   if (text == nullptr || content->get_type() == MessageContentType::Game) {
     return 0;
@@ -6227,6 +6236,7 @@ static int32 get_message_content_text_index_mask(const MessageContent *content) 
 }
 
 static int32 get_message_content_media_index_mask(const MessageContent *content, const Td *td, bool is_outgoing) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Animation:
       return message_search_filter_index_mask(MessageSearchFilter::Animation);
@@ -6362,17 +6372,20 @@ int32 get_message_content_index_mask(const MessageContent *content, const Td *td
 }
 
 vector<unique_ptr<MessageContent>> get_individual_message_contents(const MessageContent *content) {
+  CHECK(content != nullptr);
   CHECK(content->get_type() == MessageContentType::PaidMedia);
   const auto *m = static_cast<const MessagePaidMedia *>(content);
   return transform(m->media, [](const MessageExtendedMedia &media) { return media.get_message_content(); });
 }
 
 StickerType get_message_content_sticker_type(const Td *td, const MessageContent *content) {
+  CHECK(content != nullptr);
   CHECK(content->get_type() == MessageContentType::Sticker);
   return td->stickers_manager_->get_sticker_type(static_cast<const MessageSticker *>(content)->file_id);
 }
 
 MessageId get_message_content_pinned_message_id(const MessageContent *content) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::PinMessage:
       return static_cast<const MessagePinMessage *>(content)->message_id;
@@ -6382,6 +6395,7 @@ MessageId get_message_content_pinned_message_id(const MessageContent *content) {
 }
 
 BackgroundInfo get_message_content_my_background_info(const MessageContent *content, bool is_outgoing) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::SetBackground: {
       const auto *set_background = static_cast<const MessageSetBackground *>(content);
@@ -6397,6 +6411,7 @@ BackgroundInfo get_message_content_my_background_info(const MessageContent *cont
 }
 
 ChatTheme get_message_content_chat_theme(const MessageContent *content) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::ChatSetTheme:
       return static_cast<const MessageChatSetTheme *>(content)->chat_theme;
@@ -6406,6 +6421,7 @@ ChatTheme get_message_content_chat_theme(const MessageContent *content) {
 }
 
 MessageFullId get_message_content_replied_message_full_id(DialogId dialog_id, const MessageContent *content) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::PinMessage:
       return {dialog_id, static_cast<const MessagePinMessage *>(content)->message_id};
@@ -6523,6 +6539,7 @@ MessageFullId get_message_content_replied_message_full_id(DialogId dialog_id, co
 }
 
 std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const MessageContent *content) {
+  CHECK(content != nullptr);
   CHECK(content->get_type() == MessageContentType::GroupCall);
   const auto *m = static_cast<const MessageGroupCall *>(content);
   return {m->input_group_call_id, m->duration >= 0};
@@ -6842,11 +6859,13 @@ vector<ChannelId> get_message_content_min_channel_ids(const Td *td, const Messag
 }
 
 vector<UserId> get_message_content_added_user_ids(const MessageContent *content) {
+  CHECK(content != nullptr);
   CHECK(content->get_type() == MessageContentType::ChatAddUsers);
   return static_cast<const MessageChatAddUsers *>(content)->user_ids;
 }
 
 UserId get_message_content_deleted_user_id(const MessageContent *content) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::ChatDeleteUser:
       return static_cast<const MessageChatDeleteUser *>(content)->user_id;
@@ -6857,6 +6876,7 @@ UserId get_message_content_deleted_user_id(const MessageContent *content) {
 
 telegram_api::object_ptr<telegram_api::inputPhoneCall> get_message_content_input_phone_call(
     const MessageContent *content) {
+  CHECK(content != nullptr);
   CHECK(content->get_type() == MessageContentType::Call);
   auto call = static_cast<const MessageCall *>(content);
   if (call->call_access_hash == 0) {
@@ -6866,6 +6886,7 @@ telegram_api::object_ptr<telegram_api::inputPhoneCall> get_message_content_input
 }
 
 int32 get_message_content_live_location_period(const MessageContent *content) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::LiveLocation:
       return static_cast<const MessageLiveLocation *>(content)->period;
@@ -6987,6 +7008,21 @@ bool get_message_content_poll_has_unread_votes(const Td *td, const MessageConten
   }
 }
 
+bool get_message_content_poll_has_option(const Td *td, const MessageContent *content, const string &option_id) {
+  if (content == nullptr || option_id.empty()) {
+    return false;
+  }
+  switch (content->get_type()) {
+    case MessageContentType::Poll: {
+      auto poll_id = static_cast<const MessagePoll *>(content)->poll_id;
+      auto *poll_manager = get_poll_manager_for_content_access(td, poll_id, "get_message_content_poll_has_option");
+      return poll_manager != nullptr && poll_manager->has_poll_option(poll_id, option_id);
+    }
+    default:
+      return false;
+  }
+}
+
 td_api::object_ptr<td_api::PollVoteRestrictionReason> get_poll_vote_restriction_reason_object(int32 legacy_reason_tag) {
   switch (legacy_reason_tag) {
     case 0:
@@ -7043,6 +7079,7 @@ void get_message_content_poll_option_properties(Td *td, const MessageContent *co
 }
 
 bool get_message_content_to_do_list_others_can_append(const MessageContent *content) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::ToDoList:
       return static_cast<const MessageToDoList *>(content)->list.get_others_can_append();
@@ -7052,6 +7089,7 @@ bool get_message_content_to_do_list_others_can_append(const MessageContent *cont
 }
 
 bool get_message_content_to_do_list_can_append_items(const Td *td, const MessageContent *content, int32 item_count) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::ToDoList:
       return static_cast<const MessageToDoList *>(content)->list.get_can_append_items(td, item_count);
@@ -7060,7 +7098,20 @@ bool get_message_content_to_do_list_can_append_items(const Td *td, const Message
   }
 }
 
+bool get_message_content_to_do_list_has_item(const MessageContent *content, int32 item_id) {
+  if (content == nullptr) {
+    return false;
+  }
+  switch (content->get_type()) {
+    case MessageContentType::ToDoList:
+      return static_cast<const MessageToDoList *>(content)->list.has_item_id(item_id);
+    default:
+      return false;
+  }
+}
+
 bool get_message_content_to_do_list_others_can_complete(const MessageContent *content) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::ToDoList:
       return static_cast<const MessageToDoList *>(content)->list.get_others_can_complete();
@@ -7070,6 +7121,7 @@ bool get_message_content_to_do_list_others_can_complete(const MessageContent *co
 }
 
 const Venue *get_message_content_venue(const MessageContent *content) {
+  CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Venue:
       return &static_cast<const MessageVenue *>(content)->venue;
@@ -7079,6 +7131,7 @@ const Venue *get_message_content_venue(const MessageContent *content) {
 }
 
 bool has_message_content_web_page(const MessageContent *content) {
+  CHECK(content != nullptr);
   if (content->get_type() == MessageContentType::Text) {
     return static_cast<const MessageText *>(content)->web_page_id.is_valid();
   }
@@ -7086,6 +7139,7 @@ bool has_message_content_web_page(const MessageContent *content) {
 }
 
 void remove_message_content_web_page(MessageContent *content) {
+  CHECK(content != nullptr);
   CHECK(content->get_type() == MessageContentType::Text);
   auto message_text = static_cast<MessageText *>(content);
   message_text->web_page_id = WebPageId();
@@ -7191,6 +7245,8 @@ static bool need_message_entities_changed_warning(const vector<MessageEntity> &o
 void merge_message_contents(Td *td, const MessageContent *old_content, MessageContent *new_content,
                             bool need_message_changed_warning, DialogId dialog_id, bool need_merge_files,
                             bool &is_content_changed, bool &need_update) {
+  CHECK(old_content != nullptr);
+  CHECK(new_content != nullptr);
   MessageContentType content_type = new_content->get_type();
   CHECK(old_content->get_type() == content_type);
 
@@ -7415,6 +7471,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
 }
 
 bool merge_message_content_file_id(Td *td, MessageContent *message_content, FileId new_file_id) {
+  CHECK(message_content != nullptr);
   if (!new_file_id.is_valid()) {
     return false;
   }
@@ -8435,6 +8492,7 @@ static bool need_register_message_content_for_bots(MessageContentType content_ty
 
 void register_message_content(Td *td, const MessageContent *content, MessageFullId message_full_id, int32 message_date,
                               const char *source) {
+  CHECK(content != nullptr);
   auto content_type = content->get_type();
   if (td->auth_manager_->is_bot() && !need_register_message_content_for_bots(content_type)) {
     return;
@@ -11011,8 +11069,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       auto can_add_option = !td->auth_manager_->is_bot() && !is_forward && message_id.is_server() &&
                             td->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) &&
                             poll_manager->get_poll_can_add_option(m->poll_id);
-      return make_tl_object<td_api::messagePoll>(poll_manager->get_poll_object(m->poll_id), get_text_object(m->caption),
-                                                 std::move(media), can_add_option);
+      return make_tl_object<td_api::messagePoll>(poll_manager->get_poll_object(m->poll_id, is_server),
+                                                 get_text_object(m->caption), std::move(media), can_add_option);
     }
     case MessageContentType::Dice: {
       const auto *m = static_cast<const MessageDice *>(content);
@@ -11882,6 +11940,7 @@ vector<FileId> get_message_content_cover_any_file_ids(const MessageContent *cont
 }
 
 void update_message_content_file_id_remote(MessageContent *content, FileId file_id) {
+  CHECK(content != nullptr);
   if (file_id.get_remote() == 0) {
     return;
   }
@@ -11914,6 +11973,7 @@ void update_message_content_file_id_remote(MessageContent *content, FileId file_
 }
 
 void update_message_content_file_id_remotes(MessageContent *content, const vector<FileId> &file_ids) {
+  CHECK(content != nullptr);
   if (content->get_type() == MessageContentType::PaidMedia) {
     auto &media = static_cast<MessagePaidMedia *>(content)->media;
     if (file_ids.size() != media.size()) {

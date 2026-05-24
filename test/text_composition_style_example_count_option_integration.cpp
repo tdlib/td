@@ -26,5 +26,5 @@ TEST(TextCompositionStyleExampleCountOptionIntegration, MappingDefaultAndVersion
               td::string::npos);
   ASSERT_TRUE(normalized_option.find(R"(set_default_integer_option("text_composition_style_example_count",7);)") !=
               td::string::npos);
-  ASSERT_TRUE(normalized_header.find("staticconstexprint32CURRENT_VERSION=122;") != td::string::npos);
+  ASSERT_TRUE(normalized_header.find("staticconstexprint32CURRENT_VERSION=125;") != td::string::npos);
 }

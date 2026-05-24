@@ -43,6 +43,10 @@ class ToDoItem {
     return title_.text;
   }
 
+  int32 get_id() const {
+    return id_;
+  }
+
   td_api::object_ptr<td_api::checklistTask> get_checklist_task_object(Td *td,
                                                                       const vector<ToDoCompletion> &completions) const;
 

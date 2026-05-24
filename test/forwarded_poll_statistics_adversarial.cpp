@@ -60,8 +60,11 @@ TEST(ForwardedPollStatisticsAdversarial, PollCanViewStatsHelperUsesFailClosedPol
 
 TEST(ForwardedPollStatisticsAdversarial, PollManagerTracksCanViewStatsFromServerPollResults) {
   auto source = td::mtproto::test::read_repo_text_file("td/telegram/PollManager.cpp");
+  // NOTE: The begin marker uses a stable prefix that captures the bot-guard hardening added after initial
+  // test authorship: `!td_->auth_manager_->is_bot()` intentionally gates unread-vote tracking to non-bot
+  // sessions, since bots do not participate in the unread-vote counting lifecycle.
   auto region = extract_region(
-      source, "if (!is_min && poll_results->has_unread_votes_ != poll->has_unread_votes_) {",
+      source, "poll_results->has_unread_votes_ != poll->has_unread_votes_) {",
       "auto explanation = get_formatted_text(td_->user_manager_.get(), std::move(poll_results->solution_),");
 
   ASSERT_TRUE(region.find("if (!is_min && poll_results->can_view_stats_ != poll->can_view_stats_)") !=

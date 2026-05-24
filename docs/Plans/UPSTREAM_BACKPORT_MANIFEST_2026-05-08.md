@@ -1,11 +1,11 @@
 # Upstream Backport Manifest (Canonical)
 
 Date: 2026-05-08
-Last updated: 2026-05-14
+Last updated: 2026-05-23
 Range: `original..upstream/master`
 Total commits: 199
 
-## 0. Post-Merge State Note (2026-05-10, updated 2026-05-14)
+## 0. Post-Merge State Note (2026-05-10, updated 2026-05-19)
 
 1. This manifest remains the canonical upstream classification for `original..upstream/master`.
 2. PR #18 merged to `master` as commit `258125992`, carrying the previously separated work lanes:
@@ -22,6 +22,43 @@ Total commits: 199
   and verified test state are frozen in `docs/Plans/UPSTREAM_WAVE_4_PREFLIGHT_2026-05-14.md`; the W4
   manifest rows now use that annex as their evidence anchor instead of leaving the verified state only
   in local code and test surfaces.
+5. W5-AI remains deferred for implementation, but rows `5`, `10`, `63`, `70` through `83`, `88`, `89`,
+   `94` through `101`, `194`, `195`, and `199` now use
+   `docs/Plans/UPSTREAM_WAVE_5_PREFLIGHT_2026-05-14.md` as their shared evidence anchor for local baseline,
+   divergence, risk, and TDD planning state.
+6. Wave 5 pass-B decisions and bounded adaptations are now recorded in
+  `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Section `0.3.6`; this manifest keeps pass-A row
+  classification stable and uses that section as the canonical pass-B decision anchor.
+7. Wave 6 pass-B decisions and bounded hardening adaptations are now recorded in
+  `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Section `0.3.9`; pass-A row classes remain unchanged
+  and the section is the canonical anchor for valuable-versus-deferred W6 rationale.
+8. W6-M now has a frozen activation preflight anchor in `docs/Plans/UPSTREAM_WAVE_6_PREFLIGHT_2026-05-19.md`.
+  Manifest rows `84` through `87` retain pass-A classes and use that annex as archival blast-radius,
+  risk matrix, and RED inventory context for provenance review.
+9. Wave 1 pass-B decisions are now recorded in
+  `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Section `0.3.11`; rows `1`, `2`, `8`, `9`, `17`, `40`,
+  `56`, `81`, `184`, and `199` retain historical `W1-T` pass-A labels while using that section as the
+  canonical decision anchor. Rows `81` and `199` also retain their Wave 5 cross-lane anchor in Section `0.3.6`.
+10. Wave 3 pass-B decisions are now recorded in
+  `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Section `0.3.3.a`; rows `51`, `52`, `66`, `67`, `159`,
+  `162`, and `187` retain historical `W3-P` pass-A labels while using that section as the canonical
+  adapted-versus-not-adapted decision anchor.
+11. Wave 8 pass-B decisions are now recorded in
+  `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Section `0.3.8.a`; rows `104`, `134`, `176`, `180`,
+  and `193` retain historical `W8-X` pass-A labels while using that section as the canonical
+  adapted-versus-not-adapted decision anchor.
+12. A repository audit on 2026-05-23 confirmed that `W3-P`, `W4-G`, `W5-AI`, `W6-M`, `W7-D`, and `W8-X` all have
+  repository-resident implementations or local-equivalent bounded adaptations in the current tree, but it did not
+  sustain the older "no remaining wave-level backlog" conclusion.
+13. `W9-R` (audit reconciliation) is closed in the gating plan Section `0.3.12`; status/matrix/manifest wording now
+  consistently distinguish bounded local-equivalent closure from upstream-exact parity.
+14. `W10-V` (executable validation uplift) is closed in the gating plan Section `0.3.13` on targeted seam-level
+  runtime harness evidence (`run_all_tests` build plus focused CTest passes for text-composition, guest-query, and
+  managed-bot token/access-settings dispatch seams). This does not claim full actor-level end-to-end owner-path
+  coverage and does not rewrite historical Pass A lane counts below.
+15. `W11-AI2` remains intentionally open-deferred by policy decision in the gating plan Section `0.3.14`.
+  Activation is allowed only under explicit owner/product approval with per-commit deep review and RED-first runtime
+  owner-path coverage.
 
 ## 1. Lane Summary (Pass A)
 
@@ -47,23 +84,23 @@ Total commits: 199
 
 | Row | Commit | Subject | Lane | Initial Class | Bundle ID | td_api.tl | Key Paths | Owning Seam | Prereq Set | Divergence Note | Security Tags | Title/Path Mismatch | Evidence Note |
 |---:|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | `28e0d0dbe` | Add Op::random_value. | W1-T | research-input | BND-W1-TLSINIT | no | td/mtproto/TlsInit.cpp | td/mtproto/* | - | local TlsInit seam diverged; direct cp unsafe | ASVS-V5,ASVS-V9,DPI | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 2 | `00eedc5f9` | New TlsInit algorithm for Darwin. | W1-T | research-input | BND-W1-TLSINIT | no | td/mtproto/TlsInit.cpp | td/mtproto/* | 28e0d0dbe | local TlsInit seam diverged; direct cp unsafe | ASVS-V5,ASVS-V9,DPI | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 1 | `28e0d0dbe` | Add Op::random_value. | W1-T | research-input | BND-W1-TLSINIT | no | td/mtproto/TlsInit.cpp | td/mtproto/* | - | fixture-driven research only; direct cp unsafe | ASVS-V5,ASVS-V9,DPI | no | Pass-B reviewed: reject direct backport; keep as Darwin profile research input only; see gating Section `0.3.11` |
+| 2 | `00eedc5f9` | New TlsInit algorithm for Darwin. | W1-T | research-input | BND-W1-TLSINIT | no | td/mtproto/TlsInit.cpp | td/mtproto/* | 28e0d0dbe | fixture-driven research only; direct cp unsafe | ASVS-V5,ASVS-V9,DPI | no | Pass-B reviewed: reject direct backport; upstream pair stays research-only because of static-init/randomization and phantom-fixture issues; see gating Section `0.3.11` |
 | 3 | `6b82cc832` | Encode key with base64. | W8-X | ignore | - | no | td/telegram/ConfigManager.cpp | td/telegram/ConfigManager.cpp | - | title mismatch; obfuscation not hardening | ASVS-V6,SECRETS | yes | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 4 | `aea46d7b1` | Fix typos. | W3-P | defer | BND-W3-POLL | yes | CHANGELOG.md, benchmark/bench_log.cpp, example/uwp/app/Properties/Default.rd.xml, ... | td/telegram/GroupCallManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 5 | `c3a6ecea6` | Add TranslationManager.InputText. | W5-AI | defer | BND-W5-AI | no | td/telegram/MessagesManager.cpp, td/telegram/TranslationManager.cpp, td/telegram/TranslationManager.h | td/telegram/MessagesManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 6 | `3d38fb7aa` | Remove early initialization of tz_offset. | W8-X | already-incorporated | - | no | tdutils/td/utils/port/Clocks.cpp | tdutils/* | - | already present via local merge commit 2b7356173 | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 7 | `a9fd1b554` | fix: live photo file type description | W8-X | defer | - | yes | td/generate/scheme/td_api.tl | td/generate/scheme/td_api.tl | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 8 | `a82128ab8` | Add more base64 proxy links tests (#3636) | W1-T | research-input | BND-W1-PROXY-LINK | no | test/link.cpp | test/* | - | shared from_link boundary; local policy required | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 9 | `bfab03f7a` | Add comments about invalid proxy secret in link. | W1-T | research-input | BND-W1-PROXY-LINK | no | test/link.cpp | test/* | - | shared from_link boundary; local policy required | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 8 | `a82128ab8` | Add more base64 proxy links tests (#3636) | W1-T | research-input | BND-W1-PROXY-LINK | no | test/link.cpp | test/* | - | hostile evidence only; local fail-closed parser policy retained | - | no | Pass-B reviewed: harvested as proxy-link evidence while keeping local `%2B` / `%2F` rejection; see gating Section `0.3.11` |
+| 9 | `bfab03f7a` | Add comments about invalid proxy secret in link. | W1-T | research-input | BND-W1-PROXY-LINK | no | test/link.cpp | test/* | - | hostile evidence only; local fail-closed parser policy retained | - | no | Pass-B reviewed: upstream permissive comments remain evidence-only; local parser authority stays fail-closed; see gating Section `0.3.11` |
 | 10 | `d747885cb` | Add and use TranslationManager::get_input_text. | W5-AI | defer | BND-W5-AI | no | td/telegram/TranslationManager.cpp, td/telegram/TranslationManager.h | td/telegram/TranslationManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 11 | `c4394fe8c` | Add and use MessagesManager::get_message_poll_id. | W3-P | defer | BND-W3-POLL | no | td/telegram/MessageContent.cpp, td/telegram/MessageContent.h, td/telegram/MessagesManager.cpp, ... | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 12 | `b0c75c13a` | Move set_poll_answer and get_poll_voters to PollManager. | W3-P | defer | BND-W3-POLL | no | td/telegram/MessageContent.cpp, td/telegram/MessageContent.h, td/telegram/MessagesManager.cpp, ... | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 13 | `42ea83d4e` | Move stop_poll to PollManager. | W3-P | defer | BND-W3-POLL | no | td/telegram/MessageContent.cpp, td/telegram/MessageContent.h, td/telegram/MessagesManager.cpp, ... | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 14 | `ea683b225` | Move add_poll_option and delete_poll_option to PollManager. | W3-P | defer | BND-W3-POLL | no | td/telegram/MessageContent.cpp, td/telegram/MessageContent.h, td/telegram/MessagesManager.cpp, ... | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 15 | `3bde4782c` | Make iOS build reproducible by @g000sha256. | W7-D | defer | BND-W7-TOOLING | no | example/ios/build-openssl.sh, example/ios/build.sh | example/ios/build-openssl.sh | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 16 | `f3713bba0` | Add g000sha256/tdl-coroutines to the list of examples. | W7-D | defer | BND-W7-TOOLING | no | example/README.md | example/README.md | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 17 | `8921c22f0` | Fix handling of links to specific task and poll option. | W1-T | defer | - | no | td/telegram/LinkManager.cpp, td/telegram/MessagesManager.cpp | td/telegram/LinkManager.cpp | - | pending pass-B diff review | ASVS-V5,ASVS-V9 | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 15 | `3bde4782c` | Make iOS build reproducible by @g000sha256. | W7-D | defer | BND-W7-TOOLING | no | example/ios/build-openssl.sh, example/ios/build.sh | example/ios/build-openssl.sh | - | already present locally; pass-B no-op adaptation | - | no | Pass-B reviewed: reproducibility env vars already landed locally; see gating Section `0.3.10` |
+| 16 | `f3713bba0` | Add g000sha256/tdl-coroutines to the list of examples. | W7-D | defer | BND-W7-TOOLING | no | example/README.md | example/README.md | - | already present locally; pass-B no-op adaptation | - | no | Pass-B reviewed: `tdl-coroutines` entry already present locally; see gating Section `0.3.10` |
+| 17 | `8921c22f0` | Fix handling of links to specific task and poll option. | W1-T | defer | - | no | td/telegram/LinkManager.cpp, td/telegram/MessagesManager.cpp | td/telegram/LinkManager.cpp | - | already present locally; deep-link round-trip pinned | ASVS-V5,ASVS-V9 | no | Pass-B reviewed: task / option propagation already present locally; see gating Section `0.3.11` |
 | 18 | `21275249c` | Hide recent voters if voters aren't available. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A row later merged to `master` via PR #18 as standalone W3-P hardening; keep row/class as historical classification anchor |
 | 19 | `54bf55038` | Improve creation of edited business media. | W8-X | defer | - | no | td/telegram/BusinessConnectionManager.cpp | td/telegram/BusinessConnectionManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 20 | `f3b4df334` | Return the exact error in getStickerSetName. | W8-X | defer | - | no | td/telegram/StickersManager.cpp, td/telegram/StickersManager.h | td/telegram/StickersManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
@@ -86,7 +123,7 @@ Total commits: 199
 | 37 | `742be8390` | Fix dup_option. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollOption.cpp | td/telegram/PollOption.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 38 | `e17ad2d9b` | Keep forward header for audio. | W8-X | defer | - | no | td/telegram/MessagesManager.cpp | td/telegram/MessagesManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 39 | `d5714b0b8` | Fix replies to invalid messages. | W2B | defer | - | no | td/telegram/MessagesManager.cpp | td/telegram/MessagesManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 40 | `e86cd4496` | Fix includes. | W1-T | defer | - | no | td/telegram/BusinessConnectionManager.cpp, td/telegram/MessageQueryManager.h, td/telegram/PollOption.cpp, ... | td/telegram/BusinessConnectionManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 40 | `e86cd4496` | Fix includes. | W1-T | defer | - | no | td/telegram/BusinessConnectionManager.cpp, td/telegram/MessageQueryManager.h, td/telegram/PollOption.cpp, ... | td/telegram/BusinessConnectionManager.cpp | - | include-only cleanup; no standalone W1-T value | - | no | Pass-B reviewed: include cleanup has no mission-surface transport/parser effect; see gating Section `0.3.11` |
 | 41 | `7e3361e5a` | Update layer to 225. | W3-P | defer | BND-W3-POLL | no | td/generate/scheme/telegram_api.tl, td/telegram/AuthManager.cpp, td/telegram/BusinessConnectionManager.cpp, ... | td/telegram/AuthManager.cpp | - | schema/product bundle; defer pending charter | ASVS-V11 | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 42 | `084707e99` | Support member-only polls. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/MessageContent.cpp, td/telegram/PollManager.cpp, ... | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 43 | `4133b27c4` | Improve giveaway country code checks. | W8-X | defer | - | no | td/telegram/GiveawayParameters.cpp | td/telegram/GiveawayParameters.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
@@ -94,15 +131,15 @@ Total commits: 199
 | 45 | `7d56f9c58` | Add Poll.can_get_vote_statistics. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/PollManager.cpp, td/telegram/PollManager.h, ... | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 46 | `bcd2c683c` | Move can_get_poll_vote_statistics to messageProperties. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/MessageContent.cpp, td/telegram/MessageContent.h, ... | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 47 | `f654c5c81` | Add td_api::getPollVoteStatistics. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/Requests.cpp, td/telegram/Requests.h, ... | td/telegram/Requests.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 48 | `1eaf2481e` | Add message.contains_unread_poll_votes. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/MessagesManager.cpp | td/telegram/MessagesManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 49 | `d6ef00fa9` | Add updateMessageContainsUnreadPollVotes. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/MessagesManager.cpp, td/telegram/MessagesManager.h | td/telegram/MessagesManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 48 | `1eaf2481e` | Add message.contains_unread_poll_votes. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/MessagesManager.cpp | td/telegram/MessagesManager.cpp | - | bounded W3-B3 unread-vote message-state surface adapted; broader bundle still deferred pending charter | - | no | Pass-B reviewed: adapted via `message.contains_unread_poll_votes` state plumbing in `MessagesManager`; see gating Section `0.3.3.a` |
+| 49 | `d6ef00fa9` | Add updateMessageContainsUnreadPollVotes. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/MessagesManager.cpp, td/telegram/MessagesManager.h | td/telegram/MessagesManager.cpp | - | bounded W3-B3 unread-vote update surface adapted; broader bundle still deferred pending charter | - | no | Pass-B reviewed: adapted via `updateMessageContainsUnreadPollVotes` fanout in `MessagesManager`; see gating Section `0.3.3.a` |
 | 50 | `74b12e37a` | Send updates for messages always. | W8-X | defer | - | no | td/telegram/MessagesManager.cpp | td/telegram/MessagesManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 51 | `04498cfbb` | Ignore unread_poll_votes for message with being read poll votes. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 52 | `1f68a4a84` | Clear unread poll vote counters before sending updates. | W3-P | defer | BND-W3-POLL | no | td/telegram/ForumTopic.cpp, td/telegram/MessagesManager.cpp, td/telegram/MessagesManager.h | td/telegram/ForumTopic.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 51 | `04498cfbb` | Ignore unread_poll_votes for message with being read poll votes. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | bounded W3-B2 unread-vote hardening adapted; broader bundle still deferred pending charter | - | no | Pass-B reviewed: adapted via unread-vote pending-read guard in `PollManager::on_get_poll`; see gating Section `0.3.3.a` |
+| 52 | `1f68a4a84` | Clear unread poll vote counters before sending updates. | W3-P | defer | BND-W3-POLL | no | td/telegram/ForumTopic.cpp, td/telegram/MessagesManager.cpp, td/telegram/MessagesManager.h | td/telegram/ForumTopic.cpp | - | bounded W3-B2 counter-sequencing hardening adapted; broader bundle still deferred pending charter | - | no | Pass-B reviewed: adapted via `read_all_local_dialog_poll_votes(...)` pre-clear sequencing; see gating Section `0.3.3.a` |
 | 53 | `8f2ebbc6b` | Drop reaction counter before removing all reactions.` | W8-X | defer | - | no | td/telegram/MessagesManager.cpp, td/telegram/MessagesManager.h, td/telegram/SavedMessagesManager.cpp | td/telegram/MessagesManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 54 | `ec9b956ef` | Improve addProfileAudio. | W8-X | defer | - | yes | td/generate/scheme/td_api.tl, td/telegram/Requests.cpp, td/telegram/Requests.h, ... | td/telegram/Requests.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 55 | `ade6176c9` | Allow polls with 1 option. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/MessageContent.cpp, td/telegram/PollManager.cpp | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 56 | `dd78f94a8` | Support internalLinkTypeRequestManagedBot without suggested username. | W1-T | defer | - | yes | td/generate/scheme/td_api.tl, td/telegram/LinkManager.cpp, test/link.cpp | td/telegram/LinkManager.cpp | - | pending pass-B diff review | ASVS-V5,ASVS-V9 | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 56 | `dd78f94a8` | Support internalLinkTypeRequestManagedBot without suggested username. | W1-T | defer | - | yes | td/generate/scheme/td_api.tl, td/telegram/LinkManager.cpp, test/link.cpp | td/telegram/LinkManager.cpp | - | already present locally; managed-bot link compatibility pinned | ASVS-V5,ASVS-V9 | no | Pass-B reviewed: missing suggested username handling already present locally; see gating Section `0.3.11` |
 | 57 | `fb07535b5` | Add userTypeBot.supports_username_queries. | W8-X | defer | - | yes | td/generate/scheme/td_api.tl, td/telegram/UserManager.cpp, td/telegram/UserManager.h | td/telegram/UserManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 58 | `57259ff9e` | Add message.guest_bot_caller_id. | W4-G | defer | BND-W4-GUEST | yes | td/generate/scheme/td_api.tl, td/telegram/MessagesManager.cpp, td/telegram/MessagesManager.h | td/telegram/MessagesManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; see `docs/Plans/UPSTREAM_WAVE_4_PREFLIGHT_2026-05-14.md` |
 | 59 | `49e592ccc` | Add MessagesManager::get_guest_message_object. | W4-G | defer | BND-W4-GUEST | no | td/telegram/MessagesManager.cpp, td/telegram/MessagesManager.h | td/telegram/MessagesManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; see `docs/Plans/UPSTREAM_WAVE_4_PREFLIGHT_2026-05-14.md` |
@@ -112,8 +149,8 @@ Total commits: 199
 | 63 | `d72be7609` | Support custom styles in textCompositionStyle. | W5-AI | defer | BND-W5-AI | yes | CMakeLists.txt, SplitSource.php, td/generate/scheme/td_api.tl, ... | td/telegram/AiComposeTone.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 64 | `7a8277ebe` | Add internal option "phone_country_iso2". | W8-X | defer | - | no | td/telegram/ConfigManager.cpp, td/telegram/ConfigManager.h, td/telegram/OptionManager.cpp | td/telegram/ConfigManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 65 | `271c71136` | Add comment about recent voter processing. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 66 | `978979edb` | Improve PollManager::can_get_poll_voters. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 67 | `ca82791de` | Allow to see poll results immediately for users from unallowed countries. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 66 | `978979edb` | Improve PollManager::can_get_poll_voters. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | schema/product bundle; policy-preserving refactor not adapted in pass-B | - | no | Pass-B reviewed: not adapted because local predicate already preserves policy semantics; see gating Section `0.3.3.a` |
+| 67 | `ca82791de` | Allow to see poll results immediately for users from unallowed countries. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | schema/product bundle; policy-widening visibility change not adapted in pass-B | - | no | Pass-B reviewed: not adapted; policy widening conflicts with fail-closed country restriction semantics; see gating Section `0.3.3.a` |
 | 68 | `b00c67763` | Add poll.vote_restriction_reason. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/PollManager.cpp, td/telegram/PollManager.h | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 69 | `0b9e9829b` | Add more poll vote restrcition reasons. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/MessageContent.cpp, td/telegram/PollManager.cpp, ... | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 70 | `528988dd9` | Remove "ai_compose_styles" config option. | W8-X | defer | - | no | td/telegram/ConfigManager.cpp, td/telegram/ConfigManager.h | td/telegram/ConfigManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
@@ -127,13 +164,13 @@ Total commits: 199
 | 78 | `327531a54` | Add td_api::textCompositionStyleExample. | W5-AI | defer | BND-W5-AI | yes | CMakeLists.txt, SplitSource.php, td/generate/scheme/td_api.tl, ... | td/telegram/AiComposeToneExample.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 79 | `ee93de50b` | Add textCompositionStyle.english_example. | W5-AI | defer | BND-W5-AI | yes | td/generate/scheme/td_api.tl, td/telegram/AiComposeTone.cpp, td/telegram/AiComposeTone.h, ... | td/telegram/AiComposeTone.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 80 | `8a7d707ee` | Add td_api::editTextCompositionStyle. | W5-AI | defer | BND-W5-AI | yes | td/generate/scheme/td_api.tl, td/telegram/Requests.cpp, td/telegram/Requests.h, ... | td/telegram/Requests.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 81 | `990b821c8` | Add td_api::internalLinkTypeTextCompositionStyle. | W1-T | defer | - | yes | td/generate/scheme/td_api.tl, td/telegram/AiComposeTone.cpp, td/telegram/LinkManager.cpp, ... | td/telegram/AiComposeTone.cpp | - | pending pass-B diff review | ASVS-V5,ASVS-V9 | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 81 | `990b821c8` | Add td_api::internalLinkTypeTextCompositionStyle. | W1-T | defer | - | yes | td/generate/scheme/td_api.tl, td/telegram/AiComposeTone.cpp, td/telegram/LinkManager.cpp, ... | td/telegram/AiComposeTone.cpp | - | cross-wave W5-AI exact scope; standalone W1-T execution rejected | ASVS-V5,ASVS-V9 | no | Pass-B reviewed: valuable only inside W5-AI exact scope; already accounted in gating Sections `0.3.6` and `0.3.11` |
 | 82 | `27b1ee8cd` | Add td_api::searchTextCompositionStyle. | W5-AI | defer | BND-W5-AI | yes | td/generate/scheme/td_api.tl, td/telegram/Requests.cpp, td/telegram/Requests.h, ... | td/telegram/Requests.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 83 | `f5b5a6e11` | Add td_api::linkPreviewTypeTextCompositionStyle. | W5-AI | defer | BND-W5-AI | yes | td/generate/scheme/td_api.tl, td/telegram/WebPagesManager.cpp | td/telegram/WebPagesManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 84 | `19292458f` | Add td_api::botAccessSettings. | W6-M | defer | BND-W6-MANAGED-BOT | yes | CMakeLists.txt, SplitSource.php, td/generate/scheme/td_api.tl, ... | td/telegram/BotAccessSettings.cpp | - | schema/product bundle; defer pending charter | ASVS-V2,ASVS-V3 | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 85 | `3819fded5` | Rename td_api::getBotToken to getManagedBotToken. | W6-M | defer | BND-W6-MANAGED-BOT | yes | td/generate/scheme/td_api.tl, td/telegram/Requests.cpp, td/telegram/Requests.h, ... | td/telegram/Requests.cpp | - | schema/product bundle; defer pending charter | ASVS-V2,ASVS-V3 | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 86 | `b6aa479a9` | Add td_api::getManagedBotAccessSettings. | W6-M | defer | BND-W6-MANAGED-BOT | yes | td/generate/scheme/td_api.tl, td/telegram/BotInfoManager.cpp, td/telegram/BotInfoManager.h, ... | td/telegram/BotInfoManager.cpp | - | schema/product bundle; defer pending charter | ASVS-V2,ASVS-V3 | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 87 | `83506493e` | Add td_api::setManagedBotAccessSettings. | W6-M | defer | BND-W6-MANAGED-BOT | yes | td/generate/scheme/td_api.tl, td/telegram/BotAccessSettings.cpp, td/telegram/BotAccessSettings.h, ... | td/telegram/BotAccessSettings.cpp | - | schema/product bundle; defer pending charter | ASVS-V2,ASVS-V3 | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 84 | `19292458f` | Add td_api::botAccessSettings. | W6-M | defer | BND-W6-MANAGED-BOT | yes | CMakeLists.txt, SplitSource.php, td/generate/scheme/td_api.tl, ... | td/telegram/BotAccessSettings.cpp | - | bounded local-equivalent W6 adaptation landed; pass-A class retained as historical label | ASVS-V2,ASVS-V3 | no | Pass-A row retained; pass-B bounded adaptation landed via `BotAccessSettings` validation/serialization plumbing and `test/managed_bot_access_settings_*` evidence (see Section 5 and gating Section 0.3.9) |
+| 85 | `3819fded5` | Rename td_api::getBotToken to getManagedBotToken. | W6-M | defer | BND-W6-MANAGED-BOT | yes | td/generate/scheme/td_api.tl, td/telegram/Requests.cpp, td/telegram/Requests.h, ... | td/telegram/Requests.cpp | - | schema/product bundle; defer pending charter | ASVS-V2,ASVS-V3 | no | Pass-A row retained; pass-B bounded adaptation landed (compat alias + ownership guard) in gating Section 0.3.9 and preflight `UPSTREAM_WAVE_6_PREFLIGHT_2026-05-19.md` |
+| 86 | `b6aa479a9` | Add td_api::getManagedBotAccessSettings. | W6-M | defer | BND-W6-MANAGED-BOT | yes | td/generate/scheme/td_api.tl, td/telegram/BotInfoManager.cpp, td/telegram/BotInfoManager.h, ... | td/telegram/BotInfoManager.cpp | - | bounded local-equivalent W6 adaptation landed; pass-A class retained as historical label | ASVS-V2,ASVS-V3 | no | Pass-A row retained; pass-B bounded adaptation landed via `Requests`/`BotInfoManager` read path and `dispatch_managed_bot_access_settings_read(...)` deny-by-default guards (see Section 5 and gating Section 0.3.9) |
+| 87 | `83506493e` | Add td_api::setManagedBotAccessSettings. | W6-M | defer | BND-W6-MANAGED-BOT | yes | td/generate/scheme/td_api.tl, td/telegram/BotAccessSettings.cpp, td/telegram/BotAccessSettings.h, ... | td/telegram/BotAccessSettings.cpp | - | bounded local-equivalent W6 adaptation landed; pass-A class retained as historical label | ASVS-V2,ASVS-V3 | no | Pass-A row retained; pass-B bounded adaptation landed via `Requests`/`BotInfoManager` write path and `dispatch_managed_bot_access_settings_write(...)` deny-by-default guards (see Section 5 and gating Section 0.3.9) |
 | 88 | `0c6ea7e09` | Add the option "text_composition_style_example_count". | W8-X | defer | - | no | td/telegram/ConfigManager.cpp, td/telegram/ConfigManager.h, td/telegram/OptionManager.cpp | td/telegram/ConfigManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 89 | `64972181c` | Add td_api::getTextCompositionStyleExample. | W5-AI | defer | BND-W5-AI | yes | td/generate/scheme/td_api.tl, td/telegram/Requests.cpp, td/telegram/Requests.h, ... | td/telegram/Requests.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 90 | `39bc8f701` | Add get_message_content_input_media for paid media. | W8-X | defer | - | no | td/telegram/BusinessConnectionManager.cpp, td/telegram/MessageContent.cpp, td/telegram/MessageContent.h | td/telegram/BusinessConnectionManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
@@ -150,7 +187,7 @@ Total commits: 199
 | 101 | `36e726f93` | Add td_api::deleteTextCompositionStyle. | W5-AI | defer | BND-W5-AI | yes | td/generate/scheme/td_api.tl, td/telegram/Requests.cpp, td/telegram/Requests.h, ... | td/telegram/Requests.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 102 | `6026a474c` | Remove is_channel_message parameter from create_message. | W8-X | defer | - | no | td/telegram/ForumTopicManager.cpp, td/telegram/MessageQueryManager.cpp, td/telegram/MessagesManager.cpp, ... | td/telegram/ForumTopicManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 103 | `c67a309cf` | Improve docuemntation of can_connect_to_business. | W8-X | defer | - | yes | td/generate/scheme/td_api.tl | td/generate/scheme/td_api.tl | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 104 | `05600741a` | Support invalid file identifiers returned in get_message_content_any_file_ids. | W8-X | defer | - | no | td/telegram/MessageContent.cpp, td/telegram/MessagesManager.cpp | td/telegram/MessageContent.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 104 | `05600741a` | Support invalid file identifiers returned in get_message_content_any_file_ids. | W8-X | defer | - | no | td/telegram/MessageContent.cpp, td/telegram/MessagesManager.cpp | td/telegram/MessageContent.cpp | - | bounded W8 hardening adapted at invalid-file-id seams in `MessageContent` and `MessagesManager` | ASVS-V5,ASVS-V7 | no | Pass-B reviewed: adapted with RED->GREEN invalid-file-id contract/adversarial/integration/light-fuzz/stress coverage; see gating Section `0.3.8.a` |
 | 105 | `d59ef0167` | Add and use FileManager::get_poll_media. | W3-P | defer | BND-W3-POLL | no | td/telegram/files/FileManager.cpp, td/telegram/files/FileManager.h | td/telegram/files | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 106 | `65b967524` | Support inputMediaPoll in FileManager. | W3-P | defer | BND-W3-POLL | no | td/telegram/files/FileManager.cpp, td/telegram/files/FileManager.h | td/telegram/files | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 107 | `95c14cd60` | Add chatPermissions.can_react_to_messages. | W8-X | defer | - | yes | td/generate/scheme/td_api.tl, td/telegram/ChatManager.cpp, td/telegram/ChatManager.h, ... | td/telegram/ChatManager.cpp | - | pending pass-B diff review | ASVS-V11 | no | Pass-A path+subject; full diff pending unless deep-reviewed |
@@ -180,7 +217,7 @@ Total commits: 199
 | 131 | `4989ed3a8` | Simplify PollManager::get_individual_message_contents. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 132 | `a39282db9` | Remove media timestamps in paid media. | W8-X | defer | - | no | td/telegram/MessageContent.cpp | td/telegram/MessageContent.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 133 | `8f783b8e5` | Support polls in get_message_content_need_to_upload_covers. | W3-P | defer | BND-W3-POLL | no | td/telegram/MessageContent.cpp | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 134 | `13003156a` | Check that content isn't nullptr everywhere. | W8-X | defer | - | no | td/telegram/MessageContent.cpp | td/telegram/MessageContent.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 134 | `13003156a` | Check that content isn't nullptr everywhere. | W8-X | defer | - | no | td/telegram/MessageContent.cpp | td/telegram/MessageContent.cpp | - | bounded W8 hardening adapted at targeted MessageContent null-guard seams | ASVS-V7 | no | Pass-B reviewed: adapted with explicit non-null guards at high-risk `MessageContent` entry points; see gating Section `0.3.8.a` |
 | 135 | `574e087fb` | Support polls in get_message_content_any_file_ids. | W3-P | defer | BND-W3-POLL | no | td/telegram/MessageContent.cpp, td/telegram/MessageContent.h, td/telegram/MessagesManager.cpp | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 136 | `ea8bf7ce0` | Support Polls in get_message_content_thumbnail_file_ids. | W3-P | defer | BND-W3-POLL | no | td/telegram/MessageContent.cpp | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 137 | `513ec03f8` | Support polls in update_message_content_file_id_remotes. | W3-P | defer | BND-W3-POLL | no | td/telegram/MessageContent.cpp | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
@@ -205,10 +242,10 @@ Total commits: 199
 | 156 | `17ac64020` | Improve dup_poll. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 157 | `a4978345f` | Update default option value. | W8-X | defer | - | no | td/telegram/OptionManager.cpp | td/telegram/OptionManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 158 | `d51464eb2` | Improve pollVoteRestrictionReasonMembershipRequired. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/MessageContent.cpp, td/telegram/MessageContent.h, ... | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 159 | `c6411b9c9` | Add pollVoteRestrictionReasonOther. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/MessageContent.cpp, td/telegram/MessageContent.h, ... | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 159 | `c6411b9c9` | Add pollVoteRestrictionReasonOther. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/MessageContent.cpp, td/telegram/MessageContent.h, ... | td/telegram/MessageContent.cpp | - | bounded W3-B2 restriction-reason hardening adapted; broader bundle still deferred pending charter | - | no | Pass-B reviewed: adapted with `pollVoteRestrictionReasonOther` mapping for synthetic/non-real poll contexts; see gating Section `0.3.3.a` |
 | 160 | `dc470c164` | Remove pollVoteRestrictionReasonQuickReply. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 161 | `d004a6f17` | Improve get_checklist_object. | W8-X | defer | - | no | td/telegram/MessageContent.cpp, td/telegram/MessagesManager.cpp, td/telegram/ToDoList.cpp, ... | td/telegram/MessageContent.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 162 | `1574780ca` | Improve poll.can_get_voters. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 162 | `1574780ca` | Improve poll.can_get_voters. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | bounded W3-B2 voter-visibility hardening adapted; broader bundle still deferred pending charter | - | no | Pass-B reviewed: adapted by requiring real-message context in `get_poll_object(...)` voter visibility gating; see gating Section `0.3.3.a` |
 | 163 | `bcbe2f309` | Restore replies to yet unsent messages only for forwards. | W2B | defer | - | no | td/telegram/MessagesManager.cpp | td/telegram/MessagesManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 164 | `9b9bae910` | Minor fixes. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl, td/telegram/BusinessConnectionManager.cpp, td/telegram/ConfigManager.cpp, ... | td/telegram/BusinessConnectionManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 165 | `5340472b0` | Fix possible use after move. | W2-C | deep-review | BND-W2-UAF-AUDIT | no | td/telegram/CommonDialogManager.cpp, td/telegram/DialogManager.cpp, td/telegram/MessagesManager.cpp, ... | td/telegram/CommonDialogManager.cpp | - | candidate for bounded W2 review | - | no | Deep-reviewed and later merged to `master` via PR #18 as standalone W2-003 lane; keep row/class as historical classification anchor |
@@ -222,27 +259,106 @@ Total commits: 199
 | 173 | `53cc1e2c6` | Improve field name. | W8-X | defer | - | yes | td/generate/scheme/td_api.tl, td/telegram/MessageContent.cpp | td/telegram/MessageContent.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 174 | `febbb2647` | Adjust gift settings for bots. | W8-X | defer | - | no | td/telegram/UserManager.cpp | td/telegram/UserManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 175 | `6399d7472` | Improve error message. | W8-X | defer | - | no | td/telegram/MessagesManager.cpp | td/telegram/MessagesManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 176 | `a8e8399ec` | Fix getPersonalChannelHistory. | W8-X | defer | - | no | td/telegram/MessageQueryManager.cpp | td/telegram/MessageQueryManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 176 | `a8e8399ec` | Fix getPersonalChannelHistory. | W8-X | defer | - | no | td/telegram/MessageQueryManager.cpp | td/telegram/MessageQueryManager.cpp | - | pass-B reviewed; local personal-history request seam does not expose a safe bounded transplant target | - | no | Pass-B reviewed: not adapted in bounded W8 pass because upstream parameter-order fix is dependency-coupled to absent local personal-history plumbing; see gating Section `0.3.8.a` |
 | 177 | `42ea57f6e` | Add message_id source in MessageInputReplyTo::parse, | W8-X | defer | - | no | td/telegram/MessageInputReplyTo.hpp | td/telegram/MessageInputReplyTo.hpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 178 | `fb10043ba` | Improve error message. | W8-X | defer | - | no | td/telegram/MessageInputReplyTo.cpp | td/telegram/MessageInputReplyTo.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 179 | `562bce098` | Ignore draft replies to yet unsent messages. | W2B | defer | - | no | td/telegram/DraftMessage.hpp | td/telegram/DraftMessage.hpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 180 | `e22cc4351` | Ignore "MESSAGE_NOT_MODIFIED" error when deleting reactions. | W8-X | defer | - | no | td/telegram/MessageQueryManager.cpp | td/telegram/MessageQueryManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 180 | `e22cc4351` | Ignore "MESSAGE_NOT_MODIFIED" error when deleting reactions. | W8-X | defer | - | no | td/telegram/MessageQueryManager.cpp | td/telegram/MessageQueryManager.cpp | - | pass-B reviewed; local reaction-delete seam diverges from upstream hunk shape | - | no | Pass-B reviewed: not adapted in bounded W8 pass because local `MessageQueryManager` path lacks 1:1 mapping for safe transplant; see gating Section `0.3.8.a` |
 | 181 | `4a92ce7b4` | Fix poll media documentation. | W3-P | defer | BND-W3-POLL | yes | td/generate/scheme/td_api.tl | td/generate/scheme/td_api.tl | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 182 | `aeddf8ca3` | Fix processing of guest messages. | W2B | defer | - | no | td/telegram/MessagesManager.cpp | td/telegram/MessagesManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 183 | `336504954` | Don't expect own guest messages to be outgoing. | W2B | defer | - | no | td/telegram/MessagesManager.cpp | td/telegram/MessagesManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 184 | `691cb6a77` | Support comments for added proxy. | W1-T | defer | - | yes | td/generate/scheme/td_api.tl, td/telegram/Requests.cpp, td/telegram/cli.cpp, ... | td/telegram/net/* | - | pending pass-B diff review | ASVS-V5,ASVS-V9 | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 184 | `691cb6a77` | Support comments for added proxy. | W1-T | defer | - | yes | td/generate/scheme/td_api.tl, td/telegram/Requests.cpp, td/telegram/cli.cpp, ... | td/telegram/net/* | - | proxy comment field lacks documented maximum length; reject for W1-T | ASVS-V5,ASVS-V9 | no | Pass-B reviewed: not a mission-fit transport hardening change; see gating Section `0.3.11` |
 | 185 | `a09adfc63` | Fix reply_to_top_id. | W2-C | deep-review | BND-W2-REPLY-TOP | no | td/telegram/MessageReplyHeader.cpp | td/telegram/MessageReplyHeader.cpp | - | candidate for bounded W2 review | - | no | Deep-reviewed and merged to `master` via PR #18 as part of the W2 semantic repair lane |
 | 186 | `02473d316` | Improve pollVoteRestrictionReasonMembershipRequired. | W3-P | defer | BND-W3-POLL | no | td/telegram/MessageContent.cpp, td/telegram/MessageContent.h, td/telegram/MessagesManager.cpp, ... | td/telegram/MessageContent.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 187 | `aaea672ae` | Allow to see results in limited by membershop polls. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp, td/telegram/PollManager.h | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 187 | `aaea672ae` | Allow to see results in limited by membershop polls. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp, td/telegram/PollManager.h | td/telegram/PollManager.cpp | - | schema/product bundle; policy-widening visibility change not adapted in pass-B | - | no | Pass-B reviewed: not adapted; policy widening for membership-limited polls rejected in fail-closed hardening pass; see gating Section `0.3.3.a` |
 | 188 | `293990c9a` | tg_cli: do not try to restrict polls in non-channels. | W3-P | defer | BND-W3-POLL | no | td/telegram/cli.cpp | td/telegram/cli.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 189 | `66cf68106` | tg_cli: do not try to send anonymous polls with open answers. | W3-P | defer | BND-W3-POLL | no | td/telegram/cli.cpp | td/telegram/cli.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 190 | `f07370787` | Remove unused variable. | W8-X | defer | - | no | td/telegram/BusinessConnectionManager.cpp | td/telegram/BusinessConnectionManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 191 | `3f4d13a3c` | Remove redundant std::move. | W8-X | defer | - | no | td/telegram/MessageContent.cpp | td/telegram/MessageContent.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 192 | `def0fb1e5` | Remove unused variables. | W3-P | defer | BND-W3-POLL | no | td/telegram/PollManager.cpp | td/telegram/PollManager.cpp | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 193 | `80c12d847` | Fix ReactionUnavailabilityReason::Restricted. | W8-X | defer | - | no | td/telegram/MessagesManager.cpp | td/telegram/MessagesManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 193 | `80c12d847` | Fix ReactionUnavailabilityReason::Restricted. | W8-X | defer | - | no | td/telegram/MessagesManager.cpp | td/telegram/MessagesManager.cpp | - | pass-B reviewed; depends on reaction-unavailability schema/runtime prerequisites absent in local baseline | - | no | Pass-B reviewed: not adapted in bounded W8 pass until `reactionUnavailabilityReasonRestricted` API plumbing is accepted as a prerequisite lane; see gating Section `0.3.8.a` |
 | 194 | `3678c2d42` | Improve removeTextCompositionStyle documentation. | W5-AI | defer | BND-W5-AI | yes | td/generate/scheme/td_api.tl | td/generate/scheme/td_api.tl | - | schema/product bundle; defer pending charter | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 195 | `a26ccb8c5` | Fix handling of updateAiComposeTones. | W8-X | defer | - | no | td/telegram/UpdatesManager.cpp | td/telegram/UpdatesManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
 | 196 | `bfd4975c0` | Fix typo. | W8-X | defer | - | yes | td/generate/scheme/td_api.tl | td/generate/scheme/td_api.tl | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 197 | `ed87ce103` | docs: add react-native-tdlib to JavaScript wrappers section | W7-D | defer | BND-W7-TOOLING | no | example/README.md | example/README.md | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 197 | `ed87ce103` | docs: add react-native-tdlib to JavaScript wrappers section | W7-D | defer | BND-W7-TOOLING | no | example/README.md | example/README.md | - | bounded docs adaptation applied in pass-B | - | no | Pass-B adaptation landed: add `react-native-tdlib` wrapper entry and wrapper security note; see gating Section `0.3.10` |
 | 198 | `7f163d850` | Update version to 1.8.64. | W8-X | defer | - | no | CMakeLists.txt, README.md, example/cpp/CMakeLists.txt, ... | td/telegram/OptionManager.cpp | - | pending pass-B diff review | - | no | Pass-A path+subject; full diff pending unless deep-reviewed |
-| 199 | `49b3bcbb6` | Fix compilation error. | W1-T | defer | - | no | td/telegram/AiComposeToneExample.hpp | td/telegram/AiComposeToneExample.hpp | - | pending pass-B diff review | - | yes | Pass-A path+subject; full diff pending unless deep-reviewed |
+| 199 | `49b3bcbb6` | Fix compilation error. | W1-T | defer | - | no | td/telegram/AiComposeToneExample.hpp | td/telegram/AiComposeToneExample.hpp | - | cross-wave W5-AI compile-fix no-op for local owners | - | yes | Pass-B reviewed: no standalone W1-T value; already accounted in gating Sections `0.3.6` and `0.3.11` |
+
+## 4. Wave 5 Pass-B Decision Log (2026-05-19)
+
+This section records pass-B outcomes for the bounded Wave 5 slice while preserving pass-A row classes above.
+
+Valuable and adapted:
+
+1. `990b821c8` (`Add td_api::internalLinkTypeTextCompositionStyle.`)
+  - Decision: **valuable**.
+  - Local adaptation summary: keep typed `addstyle` link surface and enforce one shared slug contract by
+    delegating LinkManager slug validation to `TranslationManager::is_valid_text_composition_style_slug(...)`.
+  - Evidence anchor: `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Section `0.3.6` and RED->GREEN
+    contract coverage in `test/text_composition_style_name_integration.cpp`.
+
+2. `c96e67c38` + `58d72a0e8` + `a26ccb8c5` (`updateAiComposeTones` lifecycle)
+  - Decision: **valuable as inseparable triple**.
+  - Local adaptation summary: preserve bot guard, reload trigger, and guaranteed promise completion semantics.
+  - Evidence anchor: `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Section `0.3.6`,
+    `test/text_composition_update_promise_*.cpp`, and `test/text_composition_updates_manager_*.cpp`.
+
+Assessed and not adapted in this pass:
+
+1. `3678c2d42` (`Improve removeTextCompositionStyle documentation.`)
+  - Decision: **not valuable**.
+  - Reason: documentation-only; no executable boundary change.
+
+2. `49b3bcbb6` (`Fix compilation error.`)
+  - Decision: **not valuable for current repository state**.
+  - Reason: touches only `AiComposeToneExample.hpp`, while `AiComposeToneExample.*` owners are absent locally.
+
+3. Remaining owner/schema expansion rows (`d72be7609`, `176915344`, `a05aeeb9c`, `b77099227`, `fc903aab3`,
+  `3ba1e630b`, `23971a844`, `327531a54`, `ee93de50b`, `8a7d707ee`, `27b1ee8cd`, `f5b5a6e11`, `64972181c`,
+  `86d375553`, `3e10a17e6`, `6113d3822`, `36e726f93`)
+  - Decision: **defer**.
+  - Reason: product/schema bundle remains gated by the approved Wave 5 preflight sequence.
+
+## 5. Wave 6 Pass-B Decision Log (2026-05-19, reconciled 2026-05-23)
+
+This section records pass-B outcomes for the managed-bot access slice while preserving pass-A row classes above.
+
+Valuable and adapted in this pass (bounded managed-bot hardening slice):
+
+1. `3819fded5` (`Rename td_api::getBotToken to getManagedBotToken.`)
+  - Decision: **valuable with local compatibility-preserving adaptation**.
+  - Local adaptation summary: add `getManagedBotToken` endpoint and request handler while retaining legacy
+    `getBotToken`; both routes delegate to one guarded `BotInfoManager::get_bot_token(...)` path.
+  - Local hardening update (2026-05-20): both `Requests` handlers now route through one
+    `dispatch_get_managed_bot_token(...)` helper so legacy and managed endpoints cannot drift apart.
+  - Additional hardening update (2026-05-20, pass-C): explicit bot-session fail-closed guards now
+    exist in both `dispatch_get_managed_bot_token(...)` and `BotInfoManager::get_bot_token(...)`
+    (`Only bots can use the method`) to prevent future helper reuse from non-bot call paths.
+  - Hardening summary: token export now fail-closes for non-owned bots (`Bot must be owned`) before any
+    export RPC; non-bot invocations fail closed at both request and manager boundaries; CLI exposes
+    `gmbt`/`gmbtr` without removing `gbt`/`gbtr`; request-path equivalence is pinned by
+    contract/adversarial/integration/light-fuzz/stress tests.
+  - Evidence anchor: `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Section `0.3.9` and
+    `test/managed_bot_token_access_*.cpp`.
+
+2. `19292458f` (`Add td_api::botAccessSettings.`)
+  - Decision: **valuable with bounded local-equivalent adaptation**.
+  - Local adaptation summary: repository-resident `BotAccessSettings` conversion and validation seams are
+    present and wired through managed-bot request/manager boundaries.
+  - Evidence anchor: `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Section `0.3.9` and
+    `test/managed_bot_access_settings_*.cpp`.
+
+3. `b6aa479a9` (`Add td_api::getManagedBotAccessSettings.`)
+  - Decision: **valuable with bounded local-equivalent adaptation**.
+  - Local adaptation summary: `Requests::on_request(getManagedBotAccessSettings)` routes through
+    `BotInfoManager::get_bot_access_settings(...)` guarded by
+    `dispatch_managed_bot_access_settings_read(...)` fail-closed checks.
+  - Evidence anchor: `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Section `0.3.9`.
+
+4. `83506493e` (`Add td_api::setManagedBotAccessSettings.`)
+  - Decision: **valuable with bounded local-equivalent adaptation**.
+  - Local adaptation summary: `Requests::on_request(setManagedBotAccessSettings)` routes through
+    `BotInfoManager::set_bot_access_settings(...)` guarded by
+    `dispatch_managed_bot_access_settings_write(...)` fail-closed checks.
+  - Evidence anchor: `docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md` Section `0.3.9` and focused
+    runtime harness passes recorded in Section `0.3.13`.

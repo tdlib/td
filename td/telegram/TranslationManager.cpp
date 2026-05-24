@@ -1,13 +1,14 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/TranslationManager.h"
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ConfigManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DiffText.h"
 #include "td/telegram/Global.h"
@@ -17,16 +18,46 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Status.h"
+#include "td/utils/utf8.h"
+
+#include <algorithm>
 
 namespace td {
 
 constexpr size_t AI_COMPOSE_STYLE_FIELD_COUNT = 3;
+constexpr size_t MIN_TEXT_COMPOSITION_STYLE_SLUG_LENGTH = 8;
+constexpr size_t MAX_TEXT_COMPOSITION_STYLE_NAME_LENGTH = 128;
+constexpr size_t MAX_TEXT_COMPOSITION_STYLE_TITLE_LENGTH = 128;
 
-vector<string> TranslationManager::sanitize_ai_compose_styles(vector<string> &&ai_compose_styles, Slice source) {
+bool contains_nul_byte(Slice value) {
+  return std::ranges::contains(value, '\0');
+}
+
+bool is_valid_ai_compose_style_triple(Slice style_name, Slice style_id, Slice style_title,
+                                      int64 *parsed_style_id = nullptr) {
+  auto r_style_id = to_integer_safe<int64>(style_id);
+  if (style_name.empty() || style_title.empty() || style_name.size() > MAX_TEXT_COMPOSITION_STYLE_NAME_LENGTH ||
+      style_title.size() > MAX_TEXT_COMPOSITION_STYLE_TITLE_LENGTH || contains_nul_byte(style_name) ||
+      contains_nul_byte(style_title) || !check_utf8(style_name.str()) || !check_utf8(style_title.str()) ||
+      r_style_id.is_error() || r_style_id.ok() <= 0) {
+    return false;
+  }
+  if (parsed_style_id != nullptr) {
+    *parsed_style_id = r_style_id.ok();
+  }
+  return true;
+}
+
+bool is_legacy_ai_compose_style_name(Slice style_name) {
+  return style_name == "formal" || style_name == "neutral" || style_name == "casual";
+}
+
+vector<string> TranslationManager::sanitize_ai_compose_styles(vector<string> ai_compose_styles, Slice source) {
   if (ai_compose_styles.empty()) {
     return {};
   }
@@ -39,21 +70,65 @@ vector<string> TranslationManager::sanitize_ai_compose_styles(vector<string> &&a
   vector<string> result;
   result.reserve(ai_compose_styles.size());
   for (size_t i = 0; i < ai_compose_styles.size(); i += AI_COMPOSE_STYLE_FIELD_COUNT) {
-    auto r_style_id = to_integer_safe<int64>(ai_compose_styles[i + 1]);
-    if (ai_compose_styles[i].empty() || ai_compose_styles[i + 2].empty() || r_style_id.is_error() ||
-        r_style_id.ok() <= 0) {
+    auto &style_name = ai_compose_styles[i];
+    auto &style_id = ai_compose_styles[i + 1];
+    auto &style_title = ai_compose_styles[i + 2];
+    if (!is_valid_ai_compose_style_triple(style_name, style_id, style_title)) {
       LOG(ERROR) << "Ignore invalid ai_compose_styles triple from " << source << " at index " << i;
       continue;
     }
-    result.push_back(std::move(ai_compose_styles[i]));
-    result.push_back(std::move(ai_compose_styles[i + 1]));
-    result.push_back(std::move(ai_compose_styles[i + 2]));
+    result.push_back(std::move(style_name));
+    result.push_back(std::move(style_id));
+    result.push_back(std::move(style_title));
   }
 
   if (result.size() != ai_compose_styles.size()) {
     LOG(ERROR) << "Drop malformed ai_compose_styles triples from " << source;
   }
   return result;
+}
+
+bool TranslationManager::is_valid_text_composition_style_slug(Slice slug) {
+  return slug.size() >= MIN_TEXT_COMPOSITION_STYLE_SLUG_LENGTH &&
+         slug.size() <= MAX_TEXT_COMPOSITION_STYLE_NAME_LENGTH && is_base64url_characters(slug);
+}
+
+Status TranslationManager::validate_text_composition_style_name(Slice style_name,
+                                                                const vector<string> &ai_compose_styles) {
+  if (style_name.empty()) {
+    return Status::OK();
+  }
+
+  if (style_name.size() > MAX_TEXT_COMPOSITION_STYLE_NAME_LENGTH) {
+    return Status::Error(400, "Text composition style name is too long");
+  }
+  if (!check_utf8(style_name.str())) {
+    return Status::Error(400, "Text composition style name must be encoded in UTF-8");
+  }
+  for (auto c : style_name) {
+    if (c == '\0') {
+      return Status::Error(400, "Text composition style name must not contain NUL bytes");
+    }
+  }
+
+  if (is_legacy_ai_compose_style_name(style_name)) {
+    return Status::OK();
+  }
+
+  if (ai_compose_styles.size() % AI_COMPOSE_STYLE_FIELD_COUNT != 0) {
+    return Status::Error(400, "Invalid text composition style specified");
+  }
+  for (size_t i = 0; i < ai_compose_styles.size(); i += AI_COMPOSE_STYLE_FIELD_COUNT) {
+    if (style_name == ai_compose_styles[i]) {
+      return Status::OK();
+    }
+  }
+
+  if (is_valid_text_composition_style_slug(style_name)) {
+    return Status::OK();
+  }
+
+  return Status::Error(400, "Invalid text composition style specified");
 }
 
 class TranslateTextQuery final : public Td::ResultHandler {
@@ -313,6 +388,7 @@ void TranslationManager::compose_message_with_ai(td_api::object_ptr<td_api::form
                                                  bool emojify,
                                                  Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_text, get_input_text(std::move(text)));
+  TRY_STATUS_PROMISE(promise, validate_text_composition_style_name(tone, ai_compose_styles_));
   td_->create_handler<ComposeMessageWithAiQuery>(std::move(promise))
       ->send(input_text, translate_to_language_code, tone, emojify);
 }
@@ -344,6 +420,15 @@ void TranslationManager::on_update_ai_compose_styles(vector<string> &&ai_compose
   }
 }
 
+void TranslationManager::on_update_ai_compose_styles(vector<string> &&ai_compose_styles, Promise<Unit> &&promise) {
+  on_update_ai_compose_styles(std::move(ai_compose_styles));
+  std::move(promise).set_value(Unit());
+}
+
+void TranslationManager::reload_ai_compose_tones(Promise<Unit> &&promise) {
+  send_closure(G()->config_manager(), &ConfigManager::reget_app_config, std::move(promise));
+}
+
 td_api::object_ptr<td_api::updateTextCompositionStyles> TranslationManager::get_update_text_composition_styles() const {
   auto result = td_api::make_object<td_api::updateTextCompositionStyles>();
   if (ai_compose_styles_.size() % AI_COMPOSE_STYLE_FIELD_COUNT != 0) {
@@ -351,14 +436,14 @@ td_api::object_ptr<td_api::updateTextCompositionStyles> TranslationManager::get_
     return result;
   }
   for (size_t i = 0; i < ai_compose_styles_.size(); i += AI_COMPOSE_STYLE_FIELD_COUNT) {
-    auto r_style_id = to_integer_safe<int64>(ai_compose_styles_[i + 1]);
-    if (ai_compose_styles_[i].empty() || ai_compose_styles_[i + 2].empty() || r_style_id.is_error() ||
-        r_style_id.ok() <= 0) {
+    int64 style_id = 0;
+    if (!is_valid_ai_compose_style_triple(ai_compose_styles_[i], ai_compose_styles_[i + 1], ai_compose_styles_[i + 2],
+                                          &style_id)) {
       LOG(ERROR) << "Ignore malformed ai_compose_styles triple in memory at index " << i;
       continue;
     }
-    result->styles_.push_back(td_api::make_object<td_api::textCompositionStyle>(ai_compose_styles_[i], r_style_id.ok(),
-                                                                                ai_compose_styles_[i + 2]));
+    result->styles_.push_back(
+        td_api::make_object<td_api::textCompositionStyle>(ai_compose_styles_[i], style_id, ai_compose_styles_[i + 2]));
   }
   return result;
 }

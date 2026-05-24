@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/utils/algorithm.h"
 #include "td/utils/ChainScheduler.h"
@@ -14,7 +14,6 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tests.h"
 
-#include <memory>
 #include <numeric>
 
 TEST(ChainScheduler, CreateAfterActive) {
@@ -91,7 +90,7 @@ TEST(ChainScheduler, Basic) {
 }
 
 struct ChainSchedulerQuery;
-using QueryPtr = std::shared_ptr<ChainSchedulerQuery>;
+using QueryPtr = ChainSchedulerQuery *;
 using ChainId = td::ChainScheduler<QueryPtr>::ChainId;
 using TaskId = td::ChainScheduler<QueryPtr>::TaskId;
 
@@ -110,13 +109,15 @@ TEST(ChainScheduler, Stress) {
 
   struct QueryWithParents {
     TaskId task_id = 0;
-    QueryPtr id;
+    QueryPtr id = nullptr;
     td::vector<QueryPtr> parents;
   };
   td::vector<QueryWithParents> active_queries;
 
   td::ChainScheduler<QueryPtr> scheduler;
   td::vector<td::vector<QueryPtr>> chains(ChainsN + 1);
+  td::vector<ChainSchedulerQuery> queries;
+  queries.reserve(td::narrow_cast<size_t>(max_query_id + 1));
   int inflight_queries{};
   int current_query_id{};
   int sent_cnt{};
@@ -134,7 +135,8 @@ TEST(ChainScheduler, Stress) {
       return;
     }
     auto query_id = current_query_id++;
-    auto query = std::make_shared<ChainSchedulerQuery>();
+    auto &query_ref = queries.emplace_back();
+    auto query = &query_ref;
     query->id = query_id;
     int chain_n = rnd.fast(1, ChainsN);
     td::vector<ChainId> chain_ids(ChainsN);

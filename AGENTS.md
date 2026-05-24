@@ -22,6 +22,24 @@ TDLib fork with MTProto-proxy-only stealth traffic-masking for DPI evasion.
 - `ReferenceTable` — reference table tests
 - `SourceLayout` — source layout tests
 
+## SocratiCode workflow
+
+- MCP server is configured in `.vscode/mcp.json` as `socraticode`.
+- First time in this repository, run index and keep polling status until complete:
+	- `codebase_index`
+	- `codebase_status` (repeat until 100%)
+- Keep the watcher running for incremental updates:
+	- `codebase_watch { action: "start" }`
+- Use search-first exploration to minimize context usage:
+	- `codebase_search` for conceptual discovery and unknown locations
+	- `rg` for exact strings/identifiers when you already know the token
+- Before refactors, rename, or delete operations, run blast-radius checks:
+	- `codebase_impact` for symbol/file impact
+	- `codebase_flow` for forward execution tracing from entry points
+- Troubleshooting:
+	- `codebase_health` for Docker/Qdrant/Ollama status
+	- `codebase_status` if search returns no results
+
 ## Architecture & conventions
 
 Use the instruction files below as the authoritative implementation and review rules for this repository:
