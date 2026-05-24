@@ -3,6 +3,40 @@
 # telemt: https://github.com/telemt
 # telemt: https://t.me/telemtrs
 
+"""Usage guide for humans and AI agents.
+
+Purpose:
+- Run the sanitizer CMake preset matrix for configure, build, discovery, and ctest.
+- Store logs, JUnit output, JSON summaries, and status snapshots under --output-root.
+- Surface sanitizer findings in terminal status updates and optional report files.
+
+Recommended commands:
+- Run a single lane interactively:
+    python3 tools/ci/run_sanitizer_matrix.py --lanes asan --jobs 14 --status-detail detailed
+- Run the full matrix and stop at the first failing lane:
+    python3 tools/ci/run_sanitizer_matrix.py --jobs 14 --stop-on-failure
+- Resume an interrupted run in place:
+    python3 tools/ci/run_sanitizer_matrix.py --resume-run-dir <run-dir>
+- Monitor an existing run continuously:
+    python3 tools/ci/run_sanitizer_matrix.py --monitor --run-dir <run-dir> --follow
+- Export findings to a report file:
+    python3 tools/ci/run_sanitizer_matrix.py --lanes asan --findings-report artifacts/sast/sanitizer_matrix/findings.json
+
+Important options:
+- Use --heartbeat-seconds to control how often active-phase status updates are printed.
+- Use --status-detail detailed to print log growth, idle time, and failure log tails.
+- Use --findings-report-format json|text to choose report output format.
+- Use --report-all-findings when the report must contain every matched finding without truncation.
+- Use --max-sample-findings to limit in-memory samples when full capture is not needed.
+- The runner auto-detects llvm-symbolizer when available and exposes it to sanitizer runs for better stack traces.
+
+Operational notes:
+- Relative paths are resolved from --repo-root.
+- summary.json contains run-wide results; each lane directory contains lane_summary.json and logs.
+- In monitor mode the script reads the latest recorded status.json and renders the active phase.
+- For AI-driven runs, prefer --status-detail detailed and --findings-report so progress and findings are visible both in terminal output and in artifacts.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -13,18 +47,88 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import time
 import typing as t
 
-SANITIZER_FINDING_PATTERNS: tuple[dict[str, t.Any], ...] = (
+
+class FindingPattern(t.TypedDict):
+    category: str
+    severity: str
+    regex: str
+    risk: str
+    principles: list[str]
+
+
+class FindingRecord(t.TypedDict):
+    category: str
+    severity: str
+    risk: str
+    principles: list[str]
+    file: str
+    line: int
+    snippet: str
+
+
+class FindingsSummary(t.TypedDict):
+    counts_by_category: dict[str, int]
+    counts_by_severity: dict[str, int]
+    total_matches: int
+    sample_findings: list[FindingRecord]
+    sample_limit: int
+    sample_truncated: bool
+
+
+class CommandResult(t.TypedDict, total=False):
+    command: list[str]
+    cwd: str
+    log_path: str
+    started_at: str
+    ended_at: str
+    duration_seconds: float
+    exit_code: int
+    ok: bool
+    appended: bool
+    skipped: bool
+    reason: str
+
+
+@dataclasses.dataclass(frozen=True)
+class CliArgs:
+    repo_root: str
+    output_root: str
+    jobs: int
+    lanes: str
+    stop_on_failure: bool
+    monitor: bool
+    run_dir: str | None
+    follow: bool
+    refresh_seconds: float
+    tail_lines: int
+    resume_run_dir: str | None
+    heartbeat_seconds: float
+    status_detail: t.Literal["basic", "detailed"]
+    findings_report: str | None
+    findings_report_format: t.Literal["json", "text"]
+    max_sample_findings: int
+    report_all_findings: bool
+
+SANITIZER_FINDING_PATTERNS: tuple[FindingPattern, ...] = (
     {
         "category": "asan_memory_error",
         "severity": "critical",
         "regex": r"ERROR: AddressSanitizer:",
         "risk": "Memory safety violation detected by AddressSanitizer",
         "principles": ["ASVS-V5", "ASVS-V7", "OWASP-A03", "OWASP-A05"],
+    },
+    {
+        "category": "lsan_memory_leak",
+        "severity": "critical",
+        "regex": r"ERROR: LeakSanitizer:",
+        "risk": "LeakSanitizer detected leaked memory that must be triaged",
+        "principles": ["ASVS-V5", "ASVS-V7", "OWASP-A05"],
     },
     {
         "category": "ubsan_runtime_error",
@@ -57,14 +161,16 @@ SANITIZER_FINDING_PATTERNS: tuple[dict[str, t.Any], ...] = (
     {
         "category": "sanitizer_summary",
         "severity": "high",
-        "regex": r"SUMMARY: (AddressSanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer)",
+        "regex": r"SUMMARY: (AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer)",
         "risk": "Sanitizer summary indicates one or more defects",
         "principles": ["ASVS-V7", "OWASP-A05"],
     },
 )
 
 MAX_SNIPPET_FINDINGS_PER_LOG = 250
-STATUS_HEARTBEAT_SECONDS = 15.0
+DEFAULT_STATUS_HEARTBEAT_SECONDS = 15.0
+ISO_UTC_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+STATUS_FILE_NAME = "status.json"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -139,7 +245,7 @@ def utc_now() -> dt.datetime:
 
 
 def isoformat_utc(value: dt.datetime) -> str:
-    return value.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return value.astimezone(dt.timezone.utc).strftime(ISO_UTC_FORMAT)
 
 
 def as_json(data: t.Any) -> str:
@@ -150,7 +256,7 @@ def load_lane_map() -> dict[str, Lane]:
     return {lane.name: lane for lane in LANES}
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> CliArgs:
     parser = argparse.ArgumentParser(
         description=(
             "Run sanitizer configure/build/full-ctest matrix for all sanitizer presets in CMakePresets.json, "
@@ -213,7 +319,76 @@ def parse_args() -> argparse.Namespace:
         "--resume-run-dir",
         help="Existing run directory to resume. Reuses completed lane summaries and continues incomplete lanes in place.",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--heartbeat-seconds",
+        default=DEFAULT_STATUS_HEARTBEAT_SECONDS,
+        type=float,
+        help="Heartbeat interval for active phase status updates in seconds.",
+    )
+    parser.add_argument(
+        "--status-detail",
+        default="detailed",
+        choices=["basic", "detailed"],
+        help="Controls heartbeat verbosity in terminal updates.",
+    )
+    parser.add_argument(
+        "--findings-report",
+        help="Optional path for aggregated findings report. Relative paths are resolved from --repo-root.",
+    )
+    parser.add_argument(
+        "--findings-report-format",
+        default="json",
+        choices=["json", "text"],
+        help="Output format for --findings-report.",
+    )
+    parser.add_argument(
+        "--max-sample-findings",
+        default=MAX_SNIPPET_FINDINGS_PER_LOG,
+        type=int,
+        help=(
+            "Maximum findings entries to keep in memory and write to summaries/reports. "
+            "Use -1 to store all matches."
+        ),
+    )
+    parser.add_argument(
+        "--report-all-findings",
+        action="store_true",
+        help="Disable sample truncation and include all matched findings in summaries/reports.",
+    )
+
+    namespace = parser.parse_args()
+    if namespace.jobs <= 0:
+        parser.error("--jobs must be greater than 0")
+    if namespace.refresh_seconds <= 0:
+        parser.error("--refresh-seconds must be greater than 0")
+    if namespace.tail_lines < 0:
+        parser.error("--tail-lines must be >= 0")
+    if namespace.heartbeat_seconds <= 0:
+        parser.error("--heartbeat-seconds must be greater than 0")
+    if namespace.max_sample_findings < -1:
+        parser.error("--max-sample-findings must be -1 or greater")
+
+    return CliArgs(
+        repo_root=str(namespace.repo_root),
+        output_root=str(namespace.output_root),
+        jobs=int(namespace.jobs),
+        lanes=str(namespace.lanes),
+        stop_on_failure=bool(namespace.stop_on_failure),
+        monitor=bool(namespace.monitor),
+        run_dir=namespace.run_dir,
+        follow=bool(namespace.follow),
+        refresh_seconds=float(namespace.refresh_seconds),
+        tail_lines=int(namespace.tail_lines),
+        resume_run_dir=namespace.resume_run_dir,
+        heartbeat_seconds=float(namespace.heartbeat_seconds),
+        status_detail=t.cast(t.Literal["basic", "detailed"], namespace.status_detail),
+        findings_report=namespace.findings_report,
+        findings_report_format=t.cast(
+            t.Literal["json", "text"], namespace.findings_report_format
+        ),
+        max_sample_findings=int(namespace.max_sample_findings),
+        report_all_findings=bool(namespace.report_all_findings),
+    )
 
 
 def write_json(path: pathlib.Path, payload: dict[str, t.Any]) -> None:
@@ -226,7 +401,7 @@ def read_json(path: pathlib.Path) -> dict[str, t.Any]:
 
 
 def parse_isoformat_utc(value: str) -> dt.datetime:
-    return dt.datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(
+    return dt.datetime.strptime(value, ISO_UTC_FORMAT).replace(
         tzinfo=dt.timezone.utc
     )
 
@@ -240,6 +415,27 @@ def format_duration(seconds: float) -> str:
     if minutes:
         return f"{minutes}m {secs:02d}s"
     return f"{secs}s"
+
+
+def format_bytes(byte_count: int) -> str:
+    sign = "-" if byte_count < 0 else ""
+    value = float(abs(byte_count))
+    units = ("B", "KiB", "MiB", "GiB", "TiB")
+    unit_index = 0
+    while value >= 1024.0 and unit_index < len(units) - 1:
+        value /= 1024.0
+        unit_index += 1
+
+    if unit_index == 0:
+        return f"{sign}{int(value)}{units[unit_index]}"
+    return f"{sign}{value:.1f}{units[unit_index]}"
+
+
+def format_counts(counts: dict[str, int]) -> str:
+    if not counts:
+        return "none"
+    ordered_items = sorted(counts.items(), key=lambda item: item[0])
+    return ", ".join(f"{name}={value}" for name, value in ordered_items)
 
 
 def emit_status(message: str) -> None:
@@ -295,7 +491,7 @@ def append_active_phase_lines(
     stat_result = log_path.stat()
     modified_at = dt.datetime.fromtimestamp(
         stat_result.st_mtime, tz=dt.timezone.utc
-    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ).strftime(ISO_UTC_FORMAT)
     lines.append(
         f"Log: {log_path} ({stat_result.st_size} bytes, modified {modified_at})"
     )
@@ -344,7 +540,7 @@ def append_monitor_summary_lines(lines: list[str], status: dict[str, t.Any]) -> 
 
 
 def render_monitor(run_dir: pathlib.Path, tail_lines_count: int) -> str:
-    status = read_json(run_dir / "status.json")
+    status = read_json(run_dir / STATUS_FILE_NAME)
 
     lines: list[str] = []
     lines.append("Sanitizer Matrix Monitor")
@@ -366,7 +562,7 @@ def render_monitor(run_dir: pathlib.Path, tail_lines_count: int) -> str:
     return "\n".join(lines) + "\n"
 
 
-def run_monitor(args: argparse.Namespace, output_root: pathlib.Path) -> int:
+def run_monitor(args: CliArgs, output_root: pathlib.Path) -> None:
     run_dir = resolve_run_dir(output_root, args.run_dir)
 
     while True:
@@ -377,11 +573,12 @@ def run_monitor(args: argparse.Namespace, output_root: pathlib.Path) -> int:
         sys.stdout.flush()
 
         if not args.follow:
-            return 0
+            return
 
-        status = read_json(run_dir / "status.json")
+        status = read_json(run_dir / STATUS_FILE_NAME)
+
         if not status.get("in_progress_lane") and not status.get("active_phase"):
-            return 0
+            return
         time.sleep(args.refresh_seconds)
 
 
@@ -413,6 +610,115 @@ def load_completed_lane_results(
     return lane_results
 
 
+def detect_symbolizer_binary() -> pathlib.Path | None:
+    candidates = (
+        os.environ.get("ASAN_SYMBOLIZER_PATH"),
+        shutil.which("llvm-symbolizer"),
+        shutil.which("llvm-symbolizer-18"),
+        shutil.which("llvm-symbolizer-17"),
+        shutil.which("llvm-symbolizer-16"),
+    )
+    for candidate in candidates:
+        if not candidate:
+            continue
+        path = pathlib.Path(candidate).expanduser().resolve()
+        if path.is_file() and os.access(path, os.X_OK):
+            return path
+    return None
+
+
+def prepare_symbolizer_wrapper(
+    run_dir: pathlib.Path, symbolizer_path: pathlib.Path | None
+) -> pathlib.Path | None:
+    if symbolizer_path is None:
+        return None
+
+    if symbolizer_path.name == "llvm-symbolizer":
+        return symbolizer_path
+
+    tooling_dir = run_dir / "tooling"
+    tooling_dir.mkdir(parents=True, exist_ok=True)
+    wrapper_path = tooling_dir / "llvm-symbolizer"
+    if wrapper_path.exists() or wrapper_path.is_symlink():
+        wrapper_path.unlink()
+    wrapper_path.symlink_to(symbolizer_path)
+    return wrapper_path
+
+
+def build_lane_env(
+    base_env: dict[str, str],
+    symbolizer_wrapper: pathlib.Path | None,
+) -> dict[str, str]:
+    lane_env = dict(base_env)
+    if symbolizer_wrapper is None:
+        return lane_env
+
+    lane_env["ASAN_SYMBOLIZER_PATH"] = str(symbolizer_wrapper)
+    wrapper_dir = str(symbolizer_wrapper.parent)
+    existing_path = lane_env.get("PATH") or os.environ.get("PATH", "")
+    lane_env["PATH"] = (
+        f"{wrapper_dir}{os.pathsep}{existing_path}"
+        if existing_path
+        else wrapper_dir
+    )
+    return lane_env
+
+
+def emit_running_heartbeat(
+    *,
+    phase_label: str,
+    started_at: dt.datetime,
+    status_detail: t.Literal["basic", "detailed"],
+    log_path: pathlib.Path,
+    last_log_size: int,
+    last_output_at: dt.datetime,
+) -> tuple[int, dt.datetime]:
+    elapsed = utc_now() - started_at
+    stat_result = log_path.stat()
+    current_log_size = stat_result.st_size
+    delta_size = current_log_size - last_log_size
+
+    updated_last_output_at = last_output_at
+    if delta_size > 0:
+        updated_last_output_at = utc_now()
+
+    if status_detail == "detailed":
+        idle_duration = utc_now() - updated_last_output_at
+        delta_label = (
+            f"+{format_bytes(delta_size)}"
+            if delta_size >= 0
+            else format_bytes(delta_size)
+        )
+        emit_status(
+            f"{phase_label} running ({format_duration(elapsed.total_seconds())}) "
+            f"log={format_bytes(current_log_size)} "
+            f"delta={delta_label} "
+            f"idle={format_duration(idle_duration.total_seconds())}"
+        )
+    else:
+        emit_status(f"{phase_label} running ({format_duration(elapsed.total_seconds())})")
+
+    return current_log_size, updated_last_output_at
+
+
+def emit_failure_log_tail(
+    *,
+    phase_label: str,
+    log_path: pathlib.Path,
+    status_detail: t.Literal["basic", "detailed"],
+) -> None:
+    if status_detail != "detailed":
+        return
+
+    tail_lines = tail_file_lines(log_path, 30)
+    if not tail_lines:
+        return
+
+    emit_status(f"{phase_label} failure tail (last {len(tail_lines)} lines):")
+    for tail_line in tail_lines:
+        emit_status(f"{phase_label} | {tail_line}")
+
+
 def run_command(
     *,
     command: list[str],
@@ -421,16 +727,21 @@ def run_command(
     log_path: pathlib.Path,
     lane_name: str,
     phase_name: str,
+    heartbeat_seconds: float,
+    status_detail: t.Literal["basic", "detailed"],
     append: bool = False,
-) -> dict[str, t.Any]:
+) -> CommandResult:
     started_at = utc_now()
     merged_env = os.environ.copy()
     merged_env.update(env_overrides)
     phase_label = f"{lane_name}:{phase_name}"
     emit_status(f"{phase_label} started")
+    emit_status(f"{phase_label} log={log_path}")
+    emit_status(f"{phase_label} command={' '.join(command)}")
 
     log_path.parent.mkdir(parents=True, exist_ok=True)
     open_mode = "a" if append else "w"
+    return_code: int
     with log_path.open(open_mode, encoding="utf-8") as log_file:
         if append and log_path.stat().st_size > 0:
             log_file.write("\n# --- resumed command invocation ---\n")
@@ -451,7 +762,9 @@ def run_command(
             stderr=subprocess.STDOUT,
             text=True,
         )
-        next_heartbeat_at = time.monotonic() + STATUS_HEARTBEAT_SECONDS
+        next_heartbeat_at = time.monotonic() + heartbeat_seconds
+        last_log_size = log_path.stat().st_size
+        last_output_at = started_at
         while True:
             return_code = process.poll()
             if return_code is not None:
@@ -459,11 +772,16 @@ def run_command(
 
             now_monotonic = time.monotonic()
             if now_monotonic >= next_heartbeat_at:
-                elapsed = utc_now() - started_at
-                emit_status(
-                    f"{phase_label} running ({format_duration(elapsed.total_seconds())})"
+                current_log_size, last_output_at = emit_running_heartbeat(
+                    phase_label=phase_label,
+                    started_at=started_at,
+                    status_detail=status_detail,
+                    log_path=log_path,
+                    last_log_size=last_log_size,
+                    last_output_at=last_output_at,
                 )
-                next_heartbeat_at = now_monotonic + STATUS_HEARTBEAT_SECONDS
+                next_heartbeat_at = now_monotonic + heartbeat_seconds
+                last_log_size = current_log_size
                 log_file.flush()
             time.sleep(1.0)
 
@@ -476,6 +794,11 @@ def run_command(
     else:
         emit_status(
             f"{phase_label} failed with exit code {return_code} after {format_duration(duration.total_seconds())}"
+        )
+        emit_failure_log_tail(
+            phase_label=phase_label,
+            log_path=log_path,
+            status_detail=status_detail,
         )
     return {
         "command": command,
@@ -492,10 +815,11 @@ def run_command(
 
 def try_collect_test_discovery(
     *,
+    lane_name: str,
     build_dir: pathlib.Path,
     lane_dir: pathlib.Path,
     env_overrides: dict[str, str],
-) -> dict[str, t.Any]:
+) -> CommandResult:
     discovery_path = lane_dir / "ctest-discovery.json"
     command = [
         "ctest",
@@ -504,6 +828,7 @@ def try_collect_test_discovery(
         "--show-only=json-v1",
     ]
     started_at = utc_now()
+    emit_status(f"{lane_name}:discovery started")
     merged_env = os.environ.copy()
     merged_env.update(env_overrides)
     completed = subprocess.run(
@@ -525,10 +850,17 @@ def try_collect_test_discovery(
             test_count = len(discovery_payload.get("tests", []))
         except json.JSONDecodeError:
             test_count = None
+        emit_status(
+            f"{lane_name}:discovery finished successfully "
+            f"tests={test_count if test_count is not None else 'unknown'}"
+        )
     else:
         (lane_dir / "ctest-discovery-error.log").write_text(
             completed.stdout + "\n\n" + completed.stderr,
             encoding="utf-8",
+        )
+        emit_status(
+            f"{lane_name}:discovery failed with exit code {completed.returncode}"
         )
 
     return {
@@ -585,52 +917,65 @@ def parse_junit(junit_path: pathlib.Path) -> dict[str, t.Any] | None:
     return totals
 
 
-def collect_findings(log_paths: list[pathlib.Path]) -> dict[str, t.Any]:
-    compiled_patterns: list[tuple[dict[str, t.Any], re.Pattern[str]]] = [
+def iter_log_pattern_matches(
+    log_path: pathlib.Path,
+    compiled_patterns: list[tuple[FindingPattern, re.Pattern[str]]],
+) -> t.Iterator[tuple[FindingPattern, int, str]]:
+    if not log_path.exists():
+        return
+
+    with log_path.open("r", encoding="utf-8", errors="replace") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            for pattern_info, compiled in compiled_patterns:
+                if compiled.search(line):
+                    yield pattern_info, line_number, line
+
+
+def collect_findings(
+    log_paths: list[pathlib.Path], max_sample_findings: int
+) -> FindingsSummary:
+    compiled_patterns: list[tuple[FindingPattern, re.Pattern[str]]] = [
         (pattern, re.compile(pattern["regex"]))
         for pattern in SANITIZER_FINDING_PATTERNS
     ]
 
-    findings: list[dict[str, t.Any]] = []
+    findings: list[FindingRecord] = []
     counts_by_category: dict[str, int] = {}
     counts_by_severity: dict[str, int] = {}
 
     for log_path in log_paths:
-        if not log_path.exists():
-            continue
-        with log_path.open("r", encoding="utf-8", errors="replace") as handle:
-            for line_number, line in enumerate(handle, start=1):
-                for pattern_info, compiled in compiled_patterns:
-                    if not compiled.search(line):
-                        continue
+        for pattern_info, line_number, line in iter_log_pattern_matches(
+            log_path, compiled_patterns
+        ):
+            category = pattern_info["category"]
+            severity = pattern_info["severity"]
+            counts_by_category[category] = counts_by_category.get(category, 0) + 1
+            counts_by_severity[severity] = counts_by_severity.get(severity, 0) + 1
 
-                    category = pattern_info["category"]
-                    severity = pattern_info["severity"]
-                    counts_by_category[category] = (
-                        counts_by_category.get(category, 0) + 1
-                    )
-                    counts_by_severity[severity] = (
-                        counts_by_severity.get(severity, 0) + 1
-                    )
+            should_store = max_sample_findings < 0 or len(findings) < max_sample_findings
+            if should_store:
+                findings.append(
+                    {
+                        "category": category,
+                        "severity": severity,
+                        "risk": pattern_info["risk"],
+                        "principles": pattern_info["principles"],
+                        "file": str(log_path),
+                        "line": line_number,
+                        "snippet": line.strip()[:1000],
+                    }
+                )
 
-                    if len(findings) < MAX_SNIPPET_FINDINGS_PER_LOG:
-                        findings.append(
-                            {
-                                "category": category,
-                                "severity": severity,
-                                "risk": pattern_info["risk"],
-                                "principles": pattern_info["principles"],
-                                "file": str(log_path),
-                                "line": line_number,
-                                "snippet": line.strip()[:1000],
-                            }
-                        )
+    total_matches = sum(counts_by_category.values())
+    truncated = max_sample_findings >= 0 and total_matches > len(findings)
 
     return {
         "counts_by_category": counts_by_category,
         "counts_by_severity": counts_by_severity,
-        "total_matches": sum(counts_by_category.values()),
+        "total_matches": total_matches,
         "sample_findings": findings,
+        "sample_limit": max_sample_findings,
+        "sample_truncated": truncated,
     }
 
 
@@ -659,6 +1004,71 @@ def compute_overall_counts(lane_results: list[dict[str, t.Any]]) -> dict[str, t.
         "findings_total": total_findings,
         "findings_by_severity": severity_counts,
     }
+
+
+def resolve_report_path(repo_root: pathlib.Path, report_arg: str) -> pathlib.Path:
+    report_path = pathlib.Path(report_arg).expanduser()
+    if report_path.is_absolute():
+        return report_path.resolve()
+    return (repo_root / report_path).resolve()
+
+
+def flatten_findings(lane_results: list[dict[str, t.Any]]) -> list[dict[str, t.Any]]:
+    flattened: list[dict[str, t.Any]] = []
+    for lane in lane_results:
+        lane_name = str(lane.get("lane", "unknown"))
+        findings = lane.get("findings", {})
+        for finding in findings.get("sample_findings", []):
+            entry = dict(finding)
+            entry["lane"] = lane_name
+            flattened.append(entry)
+    return flattened
+
+
+def write_findings_report(
+    *,
+    report_path: pathlib.Path,
+    report_format: t.Literal["json", "text"],
+    run_id: str,
+    run_dir: pathlib.Path,
+    lane_results: list[dict[str, t.Any]],
+    max_sample_findings: int,
+) -> None:
+    findings_entries = flatten_findings(lane_results)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if report_format == "json":
+        payload = {
+            "run_id": run_id,
+            "generated_at": isoformat_utc(utc_now()),
+            "run_dir": str(run_dir),
+            "max_sample_findings": max_sample_findings,
+            "entry_count": len(findings_entries),
+            "findings": findings_entries,
+        }
+        report_path.write_text(as_json(payload) + "\n", encoding="utf-8")
+    else:
+        lines = [
+            f"run_id={run_id}",
+            f"generated_at={isoformat_utc(utc_now())}",
+            f"run_dir={run_dir}",
+            f"max_sample_findings={max_sample_findings}",
+            f"entry_count={len(findings_entries)}",
+            "",
+        ]
+        for entry in findings_entries:
+            lines.append(
+                f"[{entry.get('lane', '?')}] {entry.get('severity', '?')}/{entry.get('category', '?')} "
+                f"{entry.get('file', '?')}:{entry.get('line', '?')}"
+            )
+            lines.append(f"  risk: {entry.get('risk', '?')}")
+            lines.append(f"  snippet: {entry.get('snippet', '')}")
+            lines.append("")
+        report_path.write_text("\n".join(lines), encoding="utf-8")
+
+    emit_status(
+        f"findings report written path={report_path} format={report_format} entries={len(findings_entries)}"
+    )
 
 
 def write_status(
@@ -694,7 +1104,8 @@ def main() -> int:
     output_root.mkdir(parents=True, exist_ok=True)
 
     if args.monitor:
-        return run_monitor(args, output_root)
+        run_monitor(args, output_root)
+        return 0
 
     lane_map = load_lane_map()
     requested_lane_names = [
@@ -706,6 +1117,15 @@ def main() -> int:
         return 2
 
     selected_lanes = [lane_map[name] for name in requested_lane_names]
+    effective_max_sample_findings = (
+        -1 if args.report_all_findings else args.max_sample_findings
+    )
+    if effective_max_sample_findings < 0:
+        emit_status("findings capture mode: all matches will be stored")
+    else:
+        emit_status(
+            f"findings capture mode: max_sample_findings={effective_max_sample_findings}"
+        )
 
     parallelism = {
         "build_jobs": args.jobs,
@@ -717,7 +1137,7 @@ def main() -> int:
 
     if args.resume_run_dir:
         run_dir = pathlib.Path(args.resume_run_dir).resolve()
-        status_path = run_dir / "status.json"
+        status_path = run_dir / STATUS_FILE_NAME
         resume_status = read_json(status_path)
         run_id = resume_status["run_id"]
         run_started = parse_isoformat_utc(resume_status["run_started_at"])
@@ -729,8 +1149,19 @@ def main() -> int:
         run_dir = output_root / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
         set_latest_pointer(output_root, run_dir)
-        status_path = run_dir / "status.json"
+        status_path = run_dir / STATUS_FILE_NAME
         lane_results = []
+
+    symbolizer_binary = detect_symbolizer_binary()
+    symbolizer_wrapper = prepare_symbolizer_wrapper(run_dir, symbolizer_binary)
+    if symbolizer_wrapper is None:
+        emit_status(
+            "symbolizer: llvm-symbolizer not found; sanitizer stacks may be less readable"
+        )
+    else:
+        emit_status(
+            f"symbolizer: using {symbolizer_wrapper} (source {symbolizer_binary})"
+        )
 
     write_status(
         status_path,
@@ -765,13 +1196,15 @@ def main() -> int:
             active_phase=None,
         )
 
+        lane_env = build_lane_env(lane.env, symbolizer_wrapper)
+
         configure_log = lane_dir / "configure.log"
         build_log = lane_dir / "build.log"
         ctest_log = lane_dir / "ctest-command.log"
         ctest_output_log = lane_dir / "ctest-output.log"
         ctest_junit = lane_dir / "ctest-junit.xml"
 
-        phase_results: dict[str, dict[str, t.Any]] = {}
+        phase_results: dict[str, CommandResult] = {}
         resumed_lane = bool(args.resume_run_dir)
         configure_command = ["cmake", "--preset", lane.configure_preset]
         build_command = [
@@ -831,10 +1264,12 @@ def main() -> int:
             phase_results["configure"] = run_command(
                 command=configure_command,
                 cwd=repo_root,
-                env_overrides=lane.env,
+                env_overrides=lane_env,
                 log_path=configure_log,
                 lane_name=lane.name,
                 phase_name="configure",
+                heartbeat_seconds=args.heartbeat_seconds,
+                status_detail=args.status_detail,
             )
 
         if phase_results["configure"]["ok"]:
@@ -856,10 +1291,12 @@ def main() -> int:
             phase_results["build"] = run_command(
                 command=build_command,
                 cwd=repo_root,
-                env_overrides=lane.env,
+                env_overrides=lane_env,
                 log_path=build_log,
                 lane_name=lane.name,
                 phase_name="build",
+                heartbeat_seconds=args.heartbeat_seconds,
+                status_detail=args.status_detail,
                 append=resumed_lane and build_log.exists(),
             )
         else:
@@ -885,9 +1322,10 @@ def main() -> int:
                 ),
             )
             phase_results["discovery"] = try_collect_test_discovery(
+                lane_name=lane.name,
                 build_dir=repo_root / lane.build_dir,
                 lane_dir=lane_dir,
-                env_overrides=lane.env,
+                env_overrides=lane_env,
             )
             write_status(
                 status_path,
@@ -907,10 +1345,12 @@ def main() -> int:
             phase_results["test"] = run_command(
                 command=test_command,
                 cwd=repo_root,
-                env_overrides=lane.env,
+                env_overrides=lane_env,
                 log_path=ctest_log,
                 lane_name=lane.name,
                 phase_name="test",
+                heartbeat_seconds=args.heartbeat_seconds,
+                status_detail=args.status_detail,
                 append=resumed_lane and ctest_log.exists(),
             )
         else:
@@ -924,7 +1364,10 @@ def main() -> int:
             }
 
         log_paths = [configure_log, build_log, ctest_log, ctest_output_log]
-        findings = collect_findings(log_paths)
+        findings = collect_findings(
+            log_paths=log_paths,
+            max_sample_findings=effective_max_sample_findings,
+        )
 
         lane_ok = bool(
             phase_results["configure"].get("ok")
@@ -939,6 +1382,14 @@ def main() -> int:
             "build_preset": lane.build_preset,
             "build_dir": lane.build_dir,
             "env": lane.env,
+            "runtime_tooling": {
+                "symbolizer_binary": str(symbolizer_binary)
+                if symbolizer_binary is not None
+                else None,
+                "symbolizer_wrapper": str(symbolizer_wrapper)
+                if symbolizer_wrapper is not None
+                else None,
+            },
             "parallelism": parallelism,
             "phase_results": phase_results,
             "artifacts": {
@@ -958,6 +1409,16 @@ def main() -> int:
         emit_status(
             f"lane {lane.name}: {'ok' if lane_ok else 'failed'} with findings={findings['total_matches']}"
         )
+        emit_status(
+            f"lane {lane.name}: findings_by_severity={format_counts(findings['counts_by_severity'])}"
+        )
+        emit_status(
+            f"lane {lane.name}: findings_by_category={format_counts(findings['counts_by_category'])}"
+        )
+        if findings["sample_truncated"]:
+            emit_status(
+                f"lane {lane.name}: findings samples truncated at limit={findings['sample_limit']}"
+            )
         write_json(lane_dir / "lane_summary.json", lane_result)
         write_status(
             status_path,
@@ -997,6 +1458,9 @@ def main() -> int:
         f"lanes_failed={overall['overall_counts']['lanes_failed']} "
         f"findings_total={overall['overall_counts']['findings_total']}"
     )
+    emit_status(
+        f"matrix findings_by_severity={format_counts(overall['overall_counts']['findings_by_severity'])}"
+    )
     write_status(
         status_path,
         run_id=run_id,
@@ -1007,6 +1471,17 @@ def main() -> int:
         parallelism=parallelism,
         active_phase=None,
     )
+
+    if args.findings_report:
+        findings_report_path = resolve_report_path(repo_root, args.findings_report)
+        write_findings_report(
+            report_path=findings_report_path,
+            report_format=args.findings_report_format,
+            run_id=run_id,
+            run_dir=run_dir,
+            lane_results=lane_results,
+            max_sample_findings=effective_max_sample_findings,
+        )
 
     print(str(run_dir))
     print(str(summary_path))
