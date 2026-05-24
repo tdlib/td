@@ -1335,7 +1335,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   FlatHashMap<string, size_t> dice_emoji_index;
   FlatHashMap<string, string> dice_emoji_success_value;
   vector<string> emoji_sounds;
-  string animation_search_provider;
   string animation_search_emojis;
   double animated_emoji_zoom = 0.0;
   vector<string> premium_features;
@@ -1348,7 +1347,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 transcribe_audio_trial_duration_max = 0;
   int32 transcribe_audio_trial_cooldown_until = 0;
   vector<string> business_features;
-  string premium_manage_subscription_url;
   bool need_premium_for_new_chat_privacy = true;
   vector<string> starref_start_param_prefixes;
   int32 freeze_since_date = 0;
@@ -1362,7 +1360,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string whitelisted_bots;
   string ton_stakedice_stake_suggested_amounts;
   string gift_craft_probabilities;
-  string music_search_username;
 
   // {"stories_all_hidden", "archive_all_stories"}
   static const FlatHashMap<Slice, Slice, SliceHash> bool_keys = {
@@ -1485,6 +1482,16 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"telegram_antispam_user_id", "anti_spam_bot_user_id"},
       {"ton_stakedice_stake_amount_max", "stake_dice_stake_amount_max"},
       {"ton_stakedice_stake_amount_min", "stake_dice_stake_amount_min"}};
+  static const FlatHashMap<Slice, Slice, SliceHash> string_keys = {
+      {"gif_search_branding", "animation_search_provider"},
+      {"music_search_username", "audio_search_bot_username"},
+      {"phone_country_iso2", ""},
+      {"premium_manage_subscription_url", ""},
+      {"stories_venue_search_username", "venue_search_bot_username"},
+      {"ton_blockchain_explorer_url", ""},
+      {"ton_proxy_address", ""},
+      {"ton_topup_url", "toncoin_top_up_url"},
+      {"weather_search_username", "weather_bot_username"}};
   static const FlatHashSet<Slice, SliceHash> ignored_options(
       {"channel_color_level_min", "default_emoji_statuses_stickerset_id", "dialog_filters_enabled",
        "dialog_filters_tooltip", "forum_upgrade_participants_min", "getfile_experimental_params",
@@ -1519,6 +1526,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         if (it != long_keys.end()) {
           G()->set_option_integer(it->second.empty() ? key : it->second,
                                   max(static_cast<int64>(0), get_json_value_long(std::move(key_value->value_), key)));
+          continue;
+        }
+      }
+      {
+        auto it = string_keys.find(key);
+        if (it != string_keys.end()) {
+          G()->set_option_string(it->second.empty() ? key : it->second,
+                                 get_json_value_string(std::move(key_value->value_), key));
           continue;
         }
       }
@@ -1657,10 +1672,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         } else {
           LOG(ERROR) << "Receive unexpected emojies_sounds " << to_string(*value);
         }
-        continue;
-      }
-      if (key == "gif_search_branding") {
-        animation_search_provider = get_json_value_string(std::move(key_value->value_), key);
         continue;
       }
       if (key == "gif_search_emojies") {
@@ -1811,10 +1822,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
-      if (key == "stories_venue_search_username") {
-        G()->set_option_string("venue_search_bot_username", get_json_value_string(std::move(key_value->value_), key));
-        continue;
-      }
       if (key == "stories_entities") {
         G()->set_option_boolean("need_premium_for_story_caption_entities",
                                 get_json_value_string(std::move(key_value->value_), key) == "premium");
@@ -1850,10 +1857,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         need_premium_for_new_chat_privacy = !get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
-      if (key == "premium_manage_subscription_url") {
-        premium_manage_subscription_url = get_json_value_string(std::move(key_value->value_), key);
-        continue;
-      }
       if (key == "web_app_allowed_protocols") {
         if (value->get_id() == telegram_api::jsonArray::ID) {
           vector<string> protocol_names;
@@ -1870,14 +1873,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
-      if (key == "weather_search_username") {
-        G()->set_option_string("weather_bot_username", get_json_value_string(std::move(key_value->value_), key));
-        continue;
-      }
-      if (key == "ton_proxy_address") {
-        G()->set_option_string("ton_proxy_address", get_json_value_string(std::move(key_value->value_), key));
-        continue;
-      }
       if (key == "starref_start_param_prefixes") {
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto prefixes = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
@@ -1892,10 +1887,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         } else {
           LOG(ERROR) << "Receive unexpected starref_start_param_prefixes " << to_string(*value);
         }
-        continue;
-      }
-      if (key == "ton_blockchain_explorer_url") {
-        G()->set_option_string("ton_blockchain_explorer_url", get_json_value_string(std::move(key_value->value_), key));
         continue;
       }
       if (key == "freeze_since_date") {
@@ -1937,10 +1928,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       if (key == "ton_usd_rate") {
         G()->set_option_integer("million_toncoin_to_usd_rate",
                                 static_cast<int64>(get_json_value_double(std::move(key_value->value_), key) * 1000000));
-        continue;
-      }
-      if (key == "ton_topup_url") {
-        G()->set_option_string("toncoin_top_up_url", get_json_value_string(std::move(key_value->value_), key));
         continue;
       }
       if (key == "need_age_video_verification") {
@@ -2042,14 +2029,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
-      if (key == "music_search_username") {
-        music_search_username = get_json_value_string(std::move(key_value->value_), key);
-        continue;
-      }
-      if (key == "phone_country_iso2") {
-        G()->set_option_string("phone_country_iso2", get_json_value_string(std::move(key_value->value_), key));
-        continue;
-      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2096,12 +2075,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
   options.set_option_string("whitelisted_bots", whitelisted_bots);
 
-  if (music_search_username.empty()) {
-    options.set_option_empty("audio_search_bot_username");
-  } else {
-    G()->set_option_string("audio_search_bot_username", music_search_username);
-  }
-
   if (!dice_emojis.empty()) {
     vector<string> dice_success_values(dice_emojis.size());
     for (auto &it : dice_emoji_success_value) {
@@ -2130,11 +2103,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_empty("animated_emoji_zoom");
   } else {
     options.set_option_integer("animated_emoji_zoom", static_cast<int64>(animated_emoji_zoom * 1e9));
-  }
-  if (animation_search_provider.empty()) {
-    options.set_option_empty("animation_search_provider");
-  } else {
-    options.set_option_string("animation_search_provider", animation_search_provider);
   }
   if (animation_search_emojis.empty()) {
     options.set_option_empty("animation_search_emojis");
@@ -2177,12 +2145,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   options.set_option_empty("default_ton_blockchain_config");
   options.set_option_empty("default_ton_blockchain_name");
   options.set_option_empty("story_viewers_expire_period");
-
-  if (premium_manage_subscription_url.empty()) {
-    G()->set_option_empty("premium_manage_subscription_url");
-  } else {
-    G()->set_option_string("premium_manage_subscription_url", premium_manage_subscription_url);
-  }
 }
 
 }  // namespace td
