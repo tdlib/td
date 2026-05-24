@@ -64,6 +64,7 @@ SANITIZER_FINDING_PATTERNS: tuple[dict[str, t.Any], ...] = (
 )
 
 MAX_SNIPPET_FINDINGS_PER_LOG = 250
+STATUS_HEARTBEAT_SECONDS = 15.0
 
 
 @dataclasses.dataclass(frozen=True)
@@ -241,11 +242,18 @@ def format_duration(seconds: float) -> str:
     return f"{secs}s"
 
 
+def emit_status(message: str) -> None:
+    timestamp = isoformat_utc(utc_now())
+    print(f"[{timestamp}] {message}", flush=True)
+
+
 def tail_file_lines(path: pathlib.Path, line_count: int) -> list[str]:
     if line_count <= 0 or not path.exists():
         return []
     with path.open("r", encoding="utf-8", errors="replace") as handle:
-        return [line.rstrip("\n") for line in collections.deque(handle, maxlen=line_count)]
+        return [
+            line.rstrip("\n") for line in collections.deque(handle, maxlen=line_count)
+        ]
 
 
 def resolve_run_dir(output_root: pathlib.Path, run_dir_arg: str | None) -> pathlib.Path:
@@ -288,7 +296,9 @@ def append_active_phase_lines(
     modified_at = dt.datetime.fromtimestamp(
         stat_result.st_mtime, tz=dt.timezone.utc
     ).strftime("%Y-%m-%dT%H:%M:%SZ")
-    lines.append(f"Log: {log_path} ({stat_result.st_size} bytes, modified {modified_at})")
+    lines.append(
+        f"Log: {log_path} ({stat_result.st_size} bytes, modified {modified_at})"
+    )
     lines.append("")
     lines.append("Log tail:")
     tail_lines = tail_file_lines(log_path, tail_lines_count)
@@ -409,11 +419,15 @@ def run_command(
     cwd: pathlib.Path,
     env_overrides: dict[str, str],
     log_path: pathlib.Path,
+    lane_name: str,
+    phase_name: str,
     append: bool = False,
 ) -> dict[str, t.Any]:
     started_at = utc_now()
     merged_env = os.environ.copy()
     merged_env.update(env_overrides)
+    phase_label = f"{lane_name}:{phase_name}"
+    emit_status(f"{phase_label} started")
 
     log_path.parent.mkdir(parents=True, exist_ok=True)
     open_mode = "a" if append else "w"
@@ -433,20 +447,36 @@ def run_command(
             command,
             cwd=str(cwd),
             env=merged_env,
-            stdout=subprocess.PIPE,
+            stdout=log_file,
             stderr=subprocess.STDOUT,
             text=True,
-            bufsize=1,
-            universal_newlines=True,
         )
+        next_heartbeat_at = time.monotonic() + STATUS_HEARTBEAT_SECONDS
+        while True:
+            return_code = process.poll()
+            if return_code is not None:
+                break
 
-        assert process.stdout is not None
-        for line in process.stdout:
-            log_file.write(line)
-        return_code = process.wait()
+            now_monotonic = time.monotonic()
+            if now_monotonic >= next_heartbeat_at:
+                elapsed = utc_now() - started_at
+                emit_status(
+                    f"{phase_label} running ({format_duration(elapsed.total_seconds())})"
+                )
+                next_heartbeat_at = now_monotonic + STATUS_HEARTBEAT_SECONDS
+                log_file.flush()
+            time.sleep(1.0)
 
     ended_at = utc_now()
     duration = ended_at - started_at
+    if return_code == 0:
+        emit_status(
+            f"{phase_label} finished successfully in {format_duration(duration.total_seconds())}"
+        )
+    else:
+        emit_status(
+            f"{phase_label} failed with exit code {return_code} after {format_duration(duration.total_seconds())}"
+        )
     return {
         "command": command,
         "cwd": str(cwd),
@@ -717,7 +747,10 @@ def main() -> int:
 
     for lane in selected_lanes:
         if lane.name in completed_lane_names:
+            emit_status(f"lane {lane.name}: skipped (already completed in resumed run)")
             continue
+
+        emit_status(f"lane {lane.name}: started")
 
         lane_dir = run_dir / lane.name
         lane_dir.mkdir(parents=True, exist_ok=True)
@@ -800,6 +833,8 @@ def main() -> int:
                 cwd=repo_root,
                 env_overrides=lane.env,
                 log_path=configure_log,
+                lane_name=lane.name,
+                phase_name="configure",
             )
 
         if phase_results["configure"]["ok"]:
@@ -823,6 +858,8 @@ def main() -> int:
                 cwd=repo_root,
                 env_overrides=lane.env,
                 log_path=build_log,
+                lane_name=lane.name,
+                phase_name="build",
                 append=resumed_lane and build_log.exists(),
             )
         else:
@@ -872,6 +909,8 @@ def main() -> int:
                 cwd=repo_root,
                 env_overrides=lane.env,
                 log_path=ctest_log,
+                lane_name=lane.name,
+                phase_name="test",
                 append=resumed_lane and ctest_log.exists(),
             )
         else:
@@ -916,6 +955,9 @@ def main() -> int:
 
         lane_results.append(lane_result)
         completed_lane_names.add(lane.name)
+        emit_status(
+            f"lane {lane.name}: {'ok' if lane_ok else 'failed'} with findings={findings['total_matches']}"
+        )
         write_json(lane_dir / "lane_summary.json", lane_result)
         write_status(
             status_path,
@@ -949,6 +991,12 @@ def main() -> int:
 
     summary_path = run_dir / "summary.json"
     write_json(summary_path, overall)
+    emit_status(
+        "matrix finished "
+        f"lanes_total={overall['overall_counts']['lanes_total']} "
+        f"lanes_failed={overall['overall_counts']['lanes_failed']} "
+        f"findings_total={overall['overall_counts']['findings_total']}"
+    )
     write_status(
         status_path,
         run_id=run_id,
