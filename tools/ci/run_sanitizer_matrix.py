@@ -35,6 +35,8 @@ Operational notes:
 - summary.json contains run-wide results; each lane directory contains lane_summary.json and logs.
 - In monitor mode the script reads the latest recorded status.json and renders the active phase.
 - For AI-driven runs, prefer --status-detail detailed and --findings-report so progress and findings are visible both in terminal output and in artifacts.
+- Use --disk-space-mode fresh-builds or --disk-space-mode ephemeral-builds when disk pressure is high.
+- Disk-space cleanup modes are intentionally incompatible with --resume-run-dir because resume relies on preserved build checkpoints.
 """
 
 from __future__ import annotations
@@ -114,6 +116,7 @@ class CliArgs:
     findings_report_format: t.Literal["json", "text"]
     max_sample_findings: int
     report_all_findings: bool
+    disk_space_mode: t.Literal["off", "fresh-builds", "ephemeral-builds"]
 
 SANITIZER_FINDING_PATTERNS: tuple[FindingPattern, ...] = (
     {
@@ -355,6 +358,16 @@ def parse_args() -> CliArgs:
         action="store_true",
         help="Disable sample truncation and include all matched findings in summaries/reports.",
     )
+    parser.add_argument(
+        "--disk-space-mode",
+        default="off",
+        choices=["off", "fresh-builds", "ephemeral-builds"],
+        help=(
+            "Manage disk usage by removing selected lane build directories. "
+            "fresh-builds deletes stale build dirs before each lane; "
+            "ephemeral-builds also deletes the lane build dir after completion."
+        ),
+    )
 
     namespace = parser.parse_args()
     if namespace.jobs <= 0:
@@ -388,6 +401,10 @@ def parse_args() -> CliArgs:
         ),
         max_sample_findings=int(namespace.max_sample_findings),
         report_all_findings=bool(namespace.report_all_findings),
+        disk_space_mode=t.cast(
+            t.Literal["off", "fresh-builds", "ephemeral-builds"],
+            namespace.disk_space_mode,
+        ),
     )
 
 
@@ -662,6 +679,51 @@ def build_lane_env(
         else wrapper_dir
     )
     return lane_env
+
+
+def resolve_lane_build_dir(repo_root: pathlib.Path, build_dir: str) -> pathlib.Path:
+    build_path = (repo_root / build_dir).resolve()
+    try:
+        build_path.relative_to(repo_root)
+    except ValueError as exc:
+        raise ValueError(f"Build directory escapes repo root: {build_dir}") from exc
+    if build_path == repo_root:
+        raise ValueError("Build directory must not resolve to the repository root")
+    return build_path
+
+
+def should_clean_build_dir_before_lane(
+    disk_space_mode: t.Literal["off", "fresh-builds", "ephemeral-builds"],
+) -> bool:
+    return disk_space_mode in {"fresh-builds", "ephemeral-builds"}
+
+
+def should_clean_build_dir_after_lane(
+    disk_space_mode: t.Literal["off", "fresh-builds", "ephemeral-builds"],
+) -> bool:
+    return disk_space_mode == "ephemeral-builds"
+
+
+def cleanup_build_dir(build_dir: pathlib.Path, reason: str) -> None:
+    if not build_dir.exists():
+        emit_status(f"disk cleanup skipped ({reason}): {build_dir} does not exist")
+        return
+
+    usage_before = shutil.disk_usage(build_dir.parent)
+    emit_status(
+        f"disk cleanup started ({reason}): path={build_dir} free_before={format_bytes(usage_before.free)}"
+    )
+
+    if build_dir.is_symlink() or build_dir.is_file():
+        build_dir.unlink()
+    else:
+        shutil.rmtree(build_dir)
+
+    usage_after = shutil.disk_usage(build_dir.parent)
+    free_delta = usage_after.free - usage_before.free
+    emit_status(
+        f"disk cleanup finished ({reason}): path={build_dir} free_delta={format_bytes(free_delta)} free_now={format_bytes(usage_after.free)}"
+    )
 
 
 def emit_running_heartbeat(
@@ -1120,12 +1182,20 @@ def main() -> int:
     effective_max_sample_findings = (
         -1 if args.report_all_findings else args.max_sample_findings
     )
+    if args.resume_run_dir and args.disk_space_mode != "off":
+        print(
+            "--disk-space-mode is not compatible with --resume-run-dir because resume requires preserved build directories",
+            file=sys.stderr,
+        )
+        return 2
+
     if effective_max_sample_findings < 0:
         emit_status("findings capture mode: all matches will be stored")
     else:
         emit_status(
             f"findings capture mode: max_sample_findings={effective_max_sample_findings}"
         )
+    emit_status(f"disk space mode: {args.disk_space_mode}")
 
     parallelism = {
         "build_jobs": args.jobs,
@@ -1183,6 +1253,10 @@ def main() -> int:
 
         emit_status(f"lane {lane.name}: started")
 
+        build_dir_path = resolve_lane_build_dir(repo_root, lane.build_dir)
+        if should_clean_build_dir_before_lane(args.disk_space_mode):
+            cleanup_build_dir(build_dir_path, f"lane {lane.name} preflight")
+
         lane_dir = run_dir / lane.name
         lane_dir.mkdir(parents=True, exist_ok=True)
         write_status(
@@ -1218,13 +1292,13 @@ def main() -> int:
         discovery_command = [
             "ctest",
             "--test-dir",
-            str(repo_root / lane.build_dir),
+            str(build_dir_path),
             "--show-only=json-v1",
         ]
         test_command = [
             "ctest",
             "--test-dir",
-            str(repo_root / lane.build_dir),
+            str(build_dir_path),
             "--output-on-failure",
             "-j",
             str(args.jobs),
@@ -1323,7 +1397,7 @@ def main() -> int:
             )
             phase_results["discovery"] = try_collect_test_discovery(
                 lane_name=lane.name,
-                build_dir=repo_root / lane.build_dir,
+                build_dir=build_dir_path,
                 lane_dir=lane_dir,
                 env_overrides=lane_env,
             )
@@ -1431,6 +1505,9 @@ def main() -> int:
             active_phase=None,
         )
 
+        if should_clean_build_dir_after_lane(args.disk_space_mode):
+            cleanup_build_dir(build_dir_path, f"lane {lane.name} completion")
+
         if args.stop_on_failure and not lane_ok:
             break
 
@@ -1445,6 +1522,7 @@ def main() -> int:
         "output_dir": str(run_dir),
         "jobs": args.jobs,
         "parallelism": parallelism,
+        "disk_space_mode": args.disk_space_mode,
         "lane_order": requested_lane_names,
         "lane_results": lane_results,
         "overall_counts": compute_overall_counts(lane_results),
