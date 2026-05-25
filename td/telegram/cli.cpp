@@ -7699,9 +7699,10 @@ class CliClient final : public Actor {
     } else if (op == "tsgjbr") {
       string supergroup_id;
       bool join_by_request;
-      get_args(args, supergroup_id, join_by_request);
-      send_request(
-          td_api::make_object<td_api::toggleSupergroupJoinByRequest>(as_supergroup_id(supergroup_id), join_by_request));
+      UserId guard_bot_user_id;
+      get_args(args, supergroup_id, join_by_request, guard_bot_user_id);
+      send_request(td_api::make_object<td_api::toggleSupergroupJoinByRequest>(as_supergroup_id(supergroup_id),
+                                                                              join_by_request, guard_bot_user_id));
     } else {
       op_not_found_count++;
     }

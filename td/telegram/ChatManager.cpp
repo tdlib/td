@@ -675,18 +675,28 @@ class ToggleChannelJoinToSendQuery final : public Td::ResultHandler {
 class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
+  UserId guest_bot_user_id_;
 
  public:
   explicit ToggleChannelJoinRequestQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, bool join_request) {
+  void send(ChannelId channel_id, bool join_request, UserId guest_bot_user_id,
+            telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
     channel_id_ = channel_id;
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(
-        telegram_api::channels_toggleJoinRequest(0, false, std::move(input_channel), join_request, nullptr),
-        {{channel_id}}));
+    int32 flags = 0;
+    if (join_request && input_user != nullptr) {
+      flags |= telegram_api::channels_toggleJoinRequest::GUARD_BOT_MASK;
+      guest_bot_user_id_ = guest_bot_user_id;
+    } else {
+      input_user = nullptr;
+    }
+    send_query(
+        G()->net_query_creator().create(telegram_api::channels_toggleJoinRequest(flags, false, std::move(input_channel),
+                                                                                 join_request, std::move(input_user)),
+                                        {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -697,6 +707,7 @@ class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ToggleChannelJoinRequestQuery: " << to_string(ptr);
+    td_->chat_manager_->on_update_channel_guard_bot_user_id(channel_id_, guest_bot_user_id_);
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
@@ -3441,7 +3452,8 @@ void ChatManager::toggle_channel_join_to_send(ChannelId channel_id, bool join_to
   td_->create_handler<ToggleChannelJoinToSendQuery>(std::move(promise))->send(channel_id, join_to_send);
 }
 
-void ChatManager::toggle_channel_join_request(ChannelId channel_id, bool join_request, Promise<Unit> &&promise) {
+void ChatManager::toggle_channel_join_request(ChannelId channel_id, bool join_request, UserId guard_bot_user_id,
+                                              Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(400, "Supergroup not found");
@@ -3452,8 +3464,10 @@ void ChatManager::toggle_channel_join_request(ChannelId channel_id, bool join_re
   if (!get_channel_status(c).can_restrict_members()) {
     return promise.set_error(400, "Not enough rights");
   }
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(guard_bot_user_id));
 
-  td_->create_handler<ToggleChannelJoinRequestQuery>(std::move(promise))->send(channel_id, join_request);
+  td_->create_handler<ToggleChannelJoinRequestQuery>(std::move(promise))
+      ->send(channel_id, join_request, guard_bot_user_id, std::move(input_user));
 }
 
 void ChatManager::toggle_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available,

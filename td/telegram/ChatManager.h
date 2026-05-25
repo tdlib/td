@@ -267,7 +267,8 @@ class ChatManager final : public Actor {
 
   void toggle_channel_join_to_send(ChannelId channel_id, bool joint_to_send, Promise<Unit> &&promise);
 
-  void toggle_channel_join_request(ChannelId channel_id, bool join_request, Promise<Unit> &&promise);
+  void toggle_channel_join_request(ChannelId channel_id, bool join_request, UserId guard_bot_user_id,
+                                   Promise<Unit> &&promise);
 
   void toggle_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available,
                                                Promise<Unit> &&promise);
