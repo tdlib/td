@@ -5969,9 +5969,7 @@ void Requests::on_request(uint64 id, const td_api::unpinAllForumTopicMessages &r
 void Requests::on_request(uint64 id, const td_api::joinChat &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->dialog_participant_manager_->add_dialog_participant(
-      DialogId(request.chat_id_), td_->user_manager_->get_my_id(), 0,
-      DialogParticipantManager::wrap_failed_to_add_members_promise(std::move(promise)));
+  td_->dialog_participant_manager_->join_dialog(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::leaveChat &request) {

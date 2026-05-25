@@ -114,6 +114,8 @@ class DialogParticipantManager final : public Actor {
   static Promise<td_api::object_ptr<td_api::failedToAddMembers>> wrap_failed_to_add_members_promise(
       Promise<Unit> &&promise);
 
+  void join_dialog(DialogId dialog_id, Promise<Unit> &&promise);
+
   void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,
                               Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise);
 
@@ -230,12 +232,16 @@ class DialogParticipantManager final : public Actor {
   void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status, bool is_recursive,
                                    Promise<Unit> &&promise);
 
+  void join_chat(ChatId chat_id, Promise<Unit> &&promise);
+
   void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit,
                             Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise);
 
   void send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator, Promise<Unit> &&promise);
 
   void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
+
+  void join_channel(ChannelId channel_id, Promise<Unit> &&promise);
 
   void add_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &old_status,
                                Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise);
@@ -317,8 +323,7 @@ class DialogParticipantManager final : public Actor {
 
   FlatHashMap<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
 
-  FlatHashMap<ChannelId, vector<Promise<td_api::object_ptr<td_api::failedToAddMembers>>>, ChannelIdHash>
-      join_channel_queries_;
+  FlatHashMap<ChannelId, vector<Promise<Unit>>, ChannelIdHash> join_channel_queries_;
 
   MultiTimeout update_dialog_online_member_count_timeout_{"UpdateDialogOnlineMemberCountTimeout"};
   MultiTimeout channel_participant_cache_timeout_{"ChannelParticipantCacheTimeout"};
