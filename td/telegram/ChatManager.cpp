@@ -6059,15 +6059,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
       channel_full->bot_commands = std::move(bot_commands);
       channel_full->is_changed = true;
     }
-    auto guard_bot_user_id = UserId(channel->guard_bot_id_);
-    if (guard_bot_user_id != UserId() && !guard_bot_user_id.is_valid()) {
-      LOG(ERROR) << "Receive " << guard_bot_user_id;
-      guard_bot_user_id = UserId();
-    }
-    if (channel_full->guard_bot_user_id != guard_bot_user_id) {
-      channel_full->guard_bot_user_id = guard_bot_user_id;
-      channel_full->is_changed = true;
-    }
+    on_update_channel_full_guard_bot_user_id(channel_full, UserId(channel->guard_bot_id_));
 
     auto monoforum_channel_id = c->monoforum_channel_id;
     if (monoforum_channel_id != ChannelId()) {
@@ -9001,6 +8993,29 @@ void ChatManager::on_update_channel_bot_commands(ChannelId channel_id, BotComman
       BotCommands::update_all_bot_commands(channel_full->bot_commands, std::move(bot_commands))) {
     channel_full->is_changed = true;
     update_channel_full(channel_full, channel_id, "on_update_channel_bot_commands");
+  }
+}
+
+void ChatManager::on_update_channel_guard_bot_user_id(ChannelId channel_id, UserId guard_bot_user_id) {
+  auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_guard_bot_user_id");
+  if (channel_full != nullptr) {
+    on_update_channel_full_guard_bot_user_id(channel_full, guard_bot_user_id);
+    update_channel_full(channel_full, channel_id, "on_update_channel_guard_bot_user_id");
+  }
+}
+
+void ChatManager::on_update_channel_full_guard_bot_user_id(ChannelFull *channel_full, UserId guard_bot_user_id) const {
+  CHECK(channel_full != nullptr);
+  if (guard_bot_user_id != UserId() && !guard_bot_user_id.is_valid()) {
+    LOG(ERROR) << "Receive " << guard_bot_user_id;
+    guard_bot_user_id = UserId();
+  }
+  if (!td_->user_manager_->is_user_bot(guard_bot_user_id)) {
+    guard_bot_user_id = UserId();
+  }
+  if (channel_full->guard_bot_user_id != guard_bot_user_id) {
+    channel_full->guard_bot_user_id = guard_bot_user_id;
+    channel_full->is_changed = true;
   }
 }
 
