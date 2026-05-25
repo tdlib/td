@@ -6,15 +6,11 @@
 //
 #include "td/utils/StringBuilder.h"
 
-#include "td/utils/misc.h"
-#include "td/utils/port/thread_local.h"
-
+#include <charconv>
 #include <cstdio>
 #include <cstring>
 #include <limits>
-#include <locale>
 #include <memory>
-#include <sstream>
 #include <utility>
 
 namespace td {
@@ -192,30 +188,32 @@ StringBuilder &StringBuilder::operator<<(long long unsigned int x) {
 }
 
 StringBuilder &StringBuilder::operator<<(FixedDouble x) {
-  if (unlikely(!reserve(std::numeric_limits<double>::max_exponent10 + x.precision + 4))) {
+  if (unlikely(x.precision < 0)) {
     return on_error();
   }
 
-  static TD_THREAD_LOCAL std::stringstream *ss;
-  if (init_thread_local<std::stringstream>(ss)) {
-    auto previous_locale = ss->imbue(std::locale::classic());
-    ss->setf(std::ios_base::fixed, std::ios_base::floatfield);
-  } else {
-    ss->str(std::string());
-    ss->clear();
+  if (unlikely(!reserve(std::numeric_limits<double>::max_exponent10 + static_cast<size_t>(x.precision) + 4))) {
+    return on_error();
   }
-  ss->precision(x.precision);
-  *ss << x.d;
 
-  auto len = narrow_cast<int>(static_cast<std::streamoff>(ss->tellp()));
-  auto left = end_ptr_ + RESERVED_SIZE - current_ptr_;
-  if (unlikely(len >= left)) {
+  auto left = static_cast<size_t>(end_ptr_ + RESERVED_SIZE - current_ptr_);
+  if (unlikely(left <= 1)) {
     error_flag_ = true;
-    len = left ? narrow_cast<int>(left - 1) : 0;
+    return *this;
   }
-  ss->read(current_ptr_, len);
-  current_ptr_ += len;
-  return *this;
+
+  auto result = std::to_chars(current_ptr_, current_ptr_ + left - 1, x.d, std::chars_format::fixed, x.precision);
+  if (likely(result.ec == std::errc())) {
+    current_ptr_ = result.ptr;
+    return *this;
+  }
+
+  if (result.ec == std::errc::value_too_large) {
+    error_flag_ = true;
+    return *this;
+  }
+
+  return on_error();
 }
 
 StringBuilder &StringBuilder::operator<<(const void *ptr) {

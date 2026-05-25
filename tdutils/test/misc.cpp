@@ -28,6 +28,7 @@
 #include "td/utils/port/sleep.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/port/thread.h"
+#include "td/utils/port/thread_local.h"
 #include "td/utils/port/uname.h"
 #include "td/utils/port/wstring_convert.h"
 #include "td/utils/Random.h"
@@ -609,6 +610,14 @@ TEST(Misc, to_double) {
   test_to_double();
   auto classic_locale = std::locale::global(host_locale);
   test_to_double();
+}
+
+TEST(Misc, fixed_double_thread_local_cleanup) {
+  auto formatted = PSTRING() << td::StringBuilder::FixedDouble(123.456789, 6);
+  ASSERT_EQ("123.456789", formatted);
+
+  td::clear_thread_locals();
+  td::clear_thread_locals();
 }
 
 TEST(Misc, print_int) {
