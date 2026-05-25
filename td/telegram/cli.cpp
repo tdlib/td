@@ -7696,13 +7696,13 @@ class CliClient final : public Actor {
       get_args(args, supergroup_id, join_to_send_message);
       send_request(td_api::make_object<td_api::toggleSupergroupJoinToSendMessages>(as_supergroup_id(supergroup_id),
                                                                                    join_to_send_message));
-    } else if (op == "tsgjbr") {
+    } else if (op == "tsgjbr" || op == "tsgjbra") {
       string supergroup_id;
       bool join_by_request;
       UserId guard_bot_user_id;
       get_args(args, supergroup_id, join_by_request, guard_bot_user_id);
-      send_request(td_api::make_object<td_api::toggleSupergroupJoinByRequest>(as_supergroup_id(supergroup_id),
-                                                                              join_by_request, guard_bot_user_id));
+      send_request(td_api::make_object<td_api::toggleSupergroupJoinByRequest>(
+          as_supergroup_id(supergroup_id), join_by_request, guard_bot_user_id, op == "tsgjbra"));
     } else {
       op_not_found_count++;
     }

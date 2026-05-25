@@ -681,7 +681,7 @@ class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
   explicit ToggleChannelJoinRequestQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, bool join_request, UserId guest_bot_user_id,
+  void send(ChannelId channel_id, bool join_request, UserId guest_bot_user_id, bool apply_to_invite_links,
             telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
     channel_id_ = channel_id;
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
@@ -693,10 +693,10 @@ class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
     } else {
       input_user = nullptr;
     }
-    send_query(
-        G()->net_query_creator().create(telegram_api::channels_toggleJoinRequest(flags, false, std::move(input_channel),
-                                                                                 join_request, std::move(input_user)),
-                                        {{channel_id}}));
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_toggleJoinRequest(flags, apply_to_invite_links, std::move(input_channel), join_request,
+                                                 std::move(input_user)),
+        {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3453,7 +3453,7 @@ void ChatManager::toggle_channel_join_to_send(ChannelId channel_id, bool join_to
 }
 
 void ChatManager::toggle_channel_join_request(ChannelId channel_id, bool join_request, UserId guard_bot_user_id,
-                                              Promise<Unit> &&promise) {
+                                              bool apply_to_invite_links, Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(400, "Supergroup not found");
@@ -3467,7 +3467,7 @@ void ChatManager::toggle_channel_join_request(ChannelId channel_id, bool join_re
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(guard_bot_user_id));
 
   td_->create_handler<ToggleChannelJoinRequestQuery>(std::move(promise))
-      ->send(channel_id, join_request, guard_bot_user_id, std::move(input_user));
+      ->send(channel_id, join_request, guard_bot_user_id, apply_to_invite_links, std::move(input_user));
 }
 
 void ChatManager::toggle_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available,

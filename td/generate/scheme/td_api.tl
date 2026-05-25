@@ -14586,7 +14586,8 @@ toggleSupergroupJoinToSendMessages supergroup_id:int53 join_to_send_messages:Boo
 //@join_by_request New value of join_by_request
 //@guard_bot_user_id Identifier of the bot which will be the guard bot in the group; pass 0 if none; ignored if join_by_request == false.
 //-The bot must have administrator privileges and can_invite_users right in the supergroup chat, and must have userTypeBot.is_guard == true
-toggleSupergroupJoinByRequest supergroup_id:int53 join_by_request:Bool guard_bot_user_id:int53 = Ok;
+//@apply_to_invite_links Pass true to apply the change to the existing invite links, including primary links
+toggleSupergroupJoinByRequest supergroup_id:int53 join_by_request:Bool guard_bot_user_id:int53 apply_to_invite_links:Bool = Ok;
 
 //@description Toggles whether the message history of a supergroup is available to new members; requires can_change_info member right @supergroup_id The identifier of the supergroup @is_all_history_available The new value of is_all_history_available
 toggleSupergroupIsAllHistoryAvailable supergroup_id:int53 is_all_history_available:Bool = Ok;

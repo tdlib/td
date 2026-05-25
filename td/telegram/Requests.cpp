@@ -7172,7 +7172,8 @@ void Requests::on_request(uint64 id, const td_api::toggleSupergroupJoinByRequest
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->chat_manager_->toggle_channel_join_request(ChannelId(request.supergroup_id_), request.join_by_request_,
-                                                  UserId(request.guard_bot_user_id_), std::move(promise));
+                                                  UserId(request.guard_bot_user_id_), request.apply_to_invite_links_,
+                                                  std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::toggleSupergroupIsAllHistoryAvailable &request) {
