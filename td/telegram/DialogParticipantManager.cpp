@@ -926,6 +926,14 @@ void DialogParticipantManager::on_update_dialog_online_member_count_timeout(Dial
   }
 }
 
+void DialogParticipantManager::on_join_dialog(DialogId dialog_id,
+                                              Promise<td_api::object_ptr<td_api::ChatJoinResult>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  td_->dialog_manager_->force_create_dialog(dialog_id, "on_join_dialog");
+  promise.set_value(td_api::make_object<td_api::chatJoinResultSuccess>(
+      td_->dialog_manager_->get_chat_id_object(dialog_id, "on_join_dialog")));
+}
+
 void DialogParticipantManager::on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count,
                                                                     bool is_from_server) {
   if (td_->auth_manager_->is_bot()) {

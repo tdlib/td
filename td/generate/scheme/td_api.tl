@@ -2407,6 +2407,15 @@ supergroupMembersFilterMention query:string topic_id:MessageTopic = SupergroupMe
 supergroupMembersFilterBots = SupergroupMembersFilter;
 
 
+//@class ChatJoinResult @description Describes result of join of a chat by the current user
+
+//@description The chat was joined successfully @chat_id Identifier of the chat
+chatJoinResultSuccess chat_id:int53 = ChatJoinResult;
+
+//@description A join request was sent and have to be approved by administrators of the chat
+chatJoinResultRequestSent = ChatJoinResult;
+
+
 //@description Contains a chat invite link
 //@invite_link Chat invite link
 //@name Name of the link
@@ -13560,8 +13569,8 @@ deleteAllRevokedChatInviteLinks chat_id:int53 creator_user_id:int53 = Ok;
 //@description Checks the validity of an invite link for a chat and returns information about the corresponding chat @invite_link Invite link to be checked
 checkChatInviteLink invite_link:string = ChatInviteLinkInfo;
 
-//@description Uses an invite link to add the current user to the chat if possible. May return an error with a message "INVITE_REQUEST_SENT" if only a join request was created @invite_link Invite link to use
-joinChatByInviteLink invite_link:string = Chat;
+//@description Uses an invite link to add the current user to the chat if possible @invite_link Invite link to use
+joinChatByInviteLink invite_link:string = ChatJoinResult;
 
 //@description Returns pending join requests in a chat
 //@chat_id Chat identifier

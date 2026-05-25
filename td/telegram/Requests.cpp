@@ -1192,35 +1192,6 @@ class CheckChatInviteLinkRequest final : public RequestActor<> {
   }
 };
 
-class JoinChatByInviteLinkRequest final : public RequestActor<DialogId> {
-  string invite_link_;
-
-  DialogId dialog_id_;
-
-  void do_run(Promise<DialogId> &&promise) final {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(dialog_id_));
-      return;
-    }
-    td_->dialog_invite_link_manager_->import_dialog_invite_link(invite_link_, std::move(promise));
-  }
-
-  void do_set_result(DialogId &&dialog_id) final {
-    dialog_id_ = dialog_id;
-  }
-
-  void do_send_result() final {
-    CHECK(dialog_id_.is_valid());
-    td_->dialog_manager_->force_create_dialog(dialog_id_, "join chat via an invite link");
-    send_result(td_->messages_manager_->get_chat_object(dialog_id_, "JoinChatByInviteLinkRequest"));
-  }
-
- public:
-  JoinChatByInviteLinkRequest(ActorShared<Td> td, uint64 request_id, string invite_link)
-      : RequestActor(std::move(td), request_id), invite_link_(std::move(invite_link)) {
-  }
-};
-
 class ImportContactsRequest final : public RequestActor<> {
   vector<Contact> contacts_;
   int64 random_id_;
@@ -6264,7 +6235,8 @@ void Requests::on_request(uint64 id, td_api::checkChatInviteLink &request) {
 void Requests::on_request(uint64 id, td_api::joinChatByInviteLink &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_link_);
-  CREATE_REQUEST(JoinChatByInviteLinkRequest, request.invite_link_);
+  CREATE_REQUEST_PROMISE();
+  td_->dialog_invite_link_manager_->import_dialog_invite_link(request.invite_link_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getChatEventLog &request) {

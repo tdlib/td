@@ -40,7 +40,8 @@ class DialogInviteLinkManager final : public Actor {
 
   void check_dialog_invite_link(const string &invite_link, bool force, Promise<Unit> &&promise);
 
-  void import_dialog_invite_link(const string &invite_link, Promise<DialogId> &&promise);
+  void import_dialog_invite_link(const string &invite_link,
+                                 Promise<td_api::object_ptr<td_api::ChatJoinResult>> &&promise);
 
   void on_get_dialog_invite_link_info(const string &invite_link,
                                       telegram_api::object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr,
