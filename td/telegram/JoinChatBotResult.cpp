@@ -48,7 +48,7 @@ JoinChatBotResult::JoinChatBotResult(const td_api::object_ptr<td_api::ChatJoinRe
   }
 }
 
-td_api::object_ptr<td_api::ChatJoinRequestResult> JoinChatBotResult::get_join_chat_bot_result_object() const {
+td_api::object_ptr<td_api::ChatJoinRequestResult> JoinChatBotResult::get_chat_join_request_result_object() const {
   switch (type_) {
     case Type::Approved:
       return td_api::make_object<td_api::chatJoinRequestResultApproved>();

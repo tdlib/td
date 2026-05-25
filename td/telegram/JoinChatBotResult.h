@@ -20,7 +20,7 @@ class JoinChatBotResult {
 
   explicit JoinChatBotResult(const td_api::object_ptr<td_api::ChatJoinRequestResult> &result);
 
-  td_api::object_ptr<td_api::ChatJoinRequestResult> get_join_chat_bot_result_object() const;
+  td_api::object_ptr<td_api::ChatJoinRequestResult> get_chat_join_request_result_object() const;
 
   telegram_api::object_ptr<telegram_api::JoinChatBotResult> get_input_join_chat_bot_result() const;
 

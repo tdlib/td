@@ -10475,6 +10475,12 @@ updateUnreadMessageCount chat_list:ChatList unread_count:int32 unread_unmuted_co
 //@marked_as_unread_unmuted_count Total number of unmuted chats marked as unread
 updateUnreadChatCount chat_list:ChatList total_count:int32 unread_count:int32 unread_unmuted_count:int32 marked_as_unread_count:int32 marked_as_unread_unmuted_count:int32 = Update;
 
+//@description A join request from the user was completed
+//@query_id Identifier of the join request query as received in chatJoinResultGuardBotApprovalRequired
+//@chat_id Identifier of the joined chat, or 0 if the request didn't succeed
+//@result Result of the join
+updateChatJoinResult query_id:int64 chat_id:int53 result:ChatJoinRequestResult = Update;
+
 //@description A story was changed @story The new information about the story
 updateStory story:story = Update;
 

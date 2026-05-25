@@ -37,6 +37,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/InlineQueriesManager.h"
+#include "td/telegram/JoinChatBotResult.h"
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
@@ -4403,6 +4404,21 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogFilterOrd
   td_->dialog_filter_manager_->on_update_dialog_filters(std::move(promise));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateJoinChatWebViewDecision> update,
+                               Promise<Unit> &&promise) {
+  auto dialog_id = DialogId(update->peer_);
+  if (dialog_id.is_valid()) {
+    td_->dialog_manager_->force_create_dialog(dialog_id, "updateJoinChatWebViewDecision", true);
+  } else if (dialog_id != DialogId()) {
+    LOG(ERROR) << "Receive " << dialog_id;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatJoinResult>(
+                   update->query_id_, td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatJoinResult"),
+                   JoinChatBotResult(std::move(update->result_)).get_chat_join_request_result_object()));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDcOptions> update, Promise<Unit> &&promise) {
   send_closure(G()->config_manager(), &ConfigManager::on_dc_options_update, DcOptions(update->dc_options_));
   promise.set_value(Unit());
@@ -4997,11 +5013,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebBrowserExcep
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateJoinChatWebViewDecision> update,
-                               Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 
