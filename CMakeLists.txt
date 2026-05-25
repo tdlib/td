@@ -490,6 +490,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/InputGroupCallId.cpp
   td/telegram/InputInvoice.cpp
   td/telegram/InputMessageText.cpp
+  td/telegram/JoinChatBotResult.cpp
   td/telegram/JsonValue.cpp
   td/telegram/KeyboardButtonStyle.cpp
   td/telegram/LanguagePackManager.cpp
@@ -882,6 +883,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/InputGroupCallId.h
   td/telegram/InputInvoice.h
   td/telegram/InputMessageText.h
+  td/telegram/JoinChatBotResult.h
   td/telegram/JsonValue.h
   td/telegram/KeyboardButtonStyle.h
   td/telegram/LabeledPricePart.h

@@ -2422,6 +2422,18 @@ chatJoinResultRequestSent = ChatJoinResult;
 chatJoinResultGuardBotApprovalRequired bot_user_id:int53 url:string query_id:int53 = ChatJoinResult;
 
 
+//@class ChatJoinRequestResult @description Describes result of a chat join request
+
+//@description The request was approved
+chatJoinRequestResultApproved = ChatJoinRequestResult;
+
+//@description The request was decline
+chatJoinRequestResultDeclined = ChatJoinRequestResult;
+
+//@description The request was postponed without a decision
+chatJoinRequestResultQueued = ChatJoinRequestResult;
+
+
 //@description Contains a chat invite link
 //@invite_link Chat invite link
 //@name Name of the link
