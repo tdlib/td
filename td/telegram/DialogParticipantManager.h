@@ -111,9 +111,6 @@ class DialogParticipantManager final : public Actor {
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantFilter filter,
                                   Promise<DialogParticipants> &&promise);
 
-  static Promise<td_api::object_ptr<td_api::failedToAddMembers>> wrap_failed_to_add_members_promise(
-      Promise<Unit> &&promise);
-
   void join_dialog(DialogId dialog_id, Promise<Unit> &&promise);
 
   void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,
@@ -172,6 +169,9 @@ class DialogParticipantManager final : public Actor {
 
   static void on_update_dialog_online_member_count_timeout_callback(void *dialog_participant_manager_ptr,
                                                                     int64 dialog_id_int);
+
+  static Promise<td_api::object_ptr<td_api::failedToAddMembers>> wrap_failed_to_add_members_promise(
+      Promise<Unit> &&promise);
 
   void set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, bool is_from_server,
                                       const char *source);
