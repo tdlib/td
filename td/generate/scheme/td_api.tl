@@ -12572,6 +12572,12 @@ answerWebAppQuery web_app_query_id:string result:InputInlineQueryResult = Inline
 //@url URL of the file
 checkWebAppFileDownload bot_user_id:int53 file_name:string url:string = Ok;
 
+//@description Sets the result of a chat join query; for bots only
+//@query_id Identifier of the query
+//@result The result
+//@url URL of the Web App to open
+answerChatJoinRequestQuery query_id:int64 result:ChatJoinRequestResult url:string = Ok;
+
 
 //@description Sends a callback query to a bot and returns an answer. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires
 //@chat_id Identifier of the chat with the message

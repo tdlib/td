@@ -14,6 +14,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/JoinChatBotResult.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -156,6 +157,37 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetChatJoinRequestsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SetJoinChatResultsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetJoinChatResultsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int64 query_id, JoinChatBotResult result, const string &url) {
+    auto input_result = result.get_input_join_chat_bot_result();
+    if (!url.empty()) {
+      input_result = telegram_api::make_object<telegram_api::joinChatBotResultWebView>(url);
+    }
+
+    send_query(
+        G()->net_query_creator().create(telegram_api::bots_setJoinChatResults(query_id, std::move(input_result))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_setJoinChatResults>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -1280,6 +1312,12 @@ void DialogParticipantManager::get_dialog_join_requests(
 
   td_->create_handler<GetChatJoinRequestsQuery>(std::move(promise))
       ->send(dialog_id, invite_link, query, offset_date, offset_user_id, limit);
+}
+
+void DialogParticipantManager::set_join_chat_result(int64 query_id,
+                                                    const td_api::object_ptr<td_api::ChatJoinRequestResult> &result,
+                                                    const string &url, Promise<Unit> &&promise) {
+  td_->create_handler<SetJoinChatResultsQuery>(std::move(promise))->send(query_id, JoinChatBotResult(result), url);
 }
 
 void DialogParticipantManager::process_dialog_join_request(DialogId dialog_id, UserId user_id, bool approve,

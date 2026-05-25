@@ -8156,6 +8156,14 @@ void Requests::on_request(uint64 id, td_api::checkWebAppFileDownload &request) {
                                                     std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::answerChatJoinRequestQuery &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.url_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->dialog_participant_manager_->set_join_chat_result(request.query_id_, request.result_, request.url_,
+                                                         std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getCallbackQueryAnswer &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

@@ -70,6 +70,9 @@ class DialogParticipantManager final : public Actor {
                                 td_api::object_ptr<td_api::chatJoinRequest> offset_request, int32 limit,
                                 Promise<td_api::object_ptr<td_api::chatJoinRequests>> &&promise);
 
+  void set_join_chat_result(int64 query_id, const td_api::object_ptr<td_api::ChatJoinRequestResult> &result,
+                            const string &url, Promise<Unit> &&promise);
+
   void process_dialog_join_request(DialogId dialog_id, UserId user_id, bool approve, Promise<Unit> &&promise);
 
   void process_dialog_join_requests(DialogId dialog_id, const string &invite_link, bool approve,
