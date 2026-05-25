@@ -2415,6 +2415,12 @@ chatJoinResultSuccess chat_id:int53 = ChatJoinResult;
 //@description A join request was sent and have to be approved by administrators of the chat
 chatJoinResultRequestSent = ChatJoinResult;
 
+//@description An approval from a guard bot through a Web App is required to join the chat
+//@bot_user_id Identifier of the guard bot
+//@url The URL of the Web App to pass to getWebAppUrl
+//@query_id Unique identifier of the join request, which will be used in updateChatJoinResult
+chatJoinResultGuardBotApprovalRequired bot_user_id:int53 url:string query_id:int53 = ChatJoinResult;
+
 
 //@description Contains a chat invite link
 //@invite_link Chat invite link
