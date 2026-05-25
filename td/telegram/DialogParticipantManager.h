@@ -247,7 +247,8 @@ class DialogParticipantManager final : public Actor {
                                Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise);
 
   void on_join_channel(ChannelId channel_id, bool was_speculatively_updated, DialogParticipantStatus &&old_status,
-                       DialogParticipantStatus &&new_status, Result<Unit> &&result);
+                       DialogParticipantStatus &&new_status,
+                       Result<telegram_api::object_ptr<telegram_api::messages_ChatInviteJoinResult>> &&result);
 
   void add_channel_participants(ChannelId channel_id, vector<UserId> user_ids,
                                 Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise);
