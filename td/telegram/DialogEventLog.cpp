@@ -674,12 +674,7 @@ void get_dialog_event_log(Td *td, DialogId dialog_id, const string &query, int64
     return promise.set_error(400, "Not enough rights to get event log");
   }
 
-  vector<tl_object_ptr<telegram_api::InputUser>> input_users;
-  for (auto user_id : user_ids) {
-    TRY_RESULT_PROMISE(promise, input_user, td->user_manager_->get_input_user(user_id));
-    input_users.push_back(std::move(input_user));
-  }
-
+  TRY_RESULT_PROMISE(promise, input_users, td->user_manager_->get_input_users(user_ids));
   td->create_handler<GetChannelAdminLogQuery>(std::move(promise))
       ->send(channel_id, query, from_event_id, limit, get_input_channel_admin_log_events_filter(filters),
              std::move(input_users));

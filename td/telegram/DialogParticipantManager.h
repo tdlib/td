@@ -115,7 +115,7 @@ class DialogParticipantManager final : public Actor {
   void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,
                               Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise);
 
-  void add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids,
+  void add_dialog_participants(DialogId dialog_id, vector<UserId> user_ids,
                                Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise);
 
   void set_dialog_participant_status(DialogId dialog_id, DialogId participant_dialog_id,
@@ -241,7 +241,7 @@ class DialogParticipantManager final : public Actor {
   void on_join_channel(ChannelId channel_id, bool was_speculatively_updated, DialogParticipantStatus &&old_status,
                        DialogParticipantStatus &&new_status, Result<Unit> &&result);
 
-  void add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids,
+  void add_channel_participants(ChannelId channel_id, vector<UserId> user_ids,
                                 Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise);
 
   void set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,

@@ -5180,6 +5180,16 @@ Result<telegram_api::object_ptr<telegram_api::InputUser>> UserManager::get_input
   return telegram_api::make_object<telegram_api::inputUser>(user_id.get(), u->access_hash);
 }
 
+Result<vector<telegram_api::object_ptr<telegram_api::InputUser>>> UserManager::get_input_users(
+    const vector<UserId> &user_ids) const {
+  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+  for (auto user_id : user_ids) {
+    TRY_RESULT(input_user, get_input_user(user_id));
+    input_users.push_back(std::move(input_user));
+  }
+  return std::move(input_users);
+}
+
 telegram_api::object_ptr<telegram_api::InputUser> UserManager::get_input_user_force(UserId user_id) const {
   auto r_input_user = get_input_user(user_id);
   if (r_input_user.is_error()) {

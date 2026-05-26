@@ -6560,17 +6560,10 @@ void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id,
     return promise.set_error(400, "The call is not a video chat");
   }
 
-  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
-  auto my_user_id = td_->user_manager_->get_my_id();
-  for (auto user_id : user_ids) {
-    TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+  // can't invite self
+  td::remove(user_ids, td_->user_manager_->get_my_id());
 
-    if (user_id == my_user_id) {
-      // can't invite self
-      continue;
-    }
-    input_users.push_back(std::move(input_user));
-  }
+  TRY_RESULT_PROMISE(promise, input_users, td_->user_manager_->get_input_users(user_ids));
 
   if (input_users.empty()) {
     return promise.set_value(Unit());

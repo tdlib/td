@@ -228,6 +228,9 @@ class UserManager final : public Actor {
 
   Result<telegram_api::object_ptr<telegram_api::InputUser>> get_input_user(UserId user_id) const;
 
+  Result<vector<telegram_api::object_ptr<telegram_api::InputUser>>> get_input_users(
+      const vector<UserId> &user_ids) const;
+
   telegram_api::object_ptr<telegram_api::InputUser> get_input_user_force(UserId user_id) const;
 
   bool have_input_peer_user(UserId user_id, AccessRights access_rights) const;

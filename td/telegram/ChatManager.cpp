@@ -8216,12 +8216,7 @@ void ChatManager::create_new_chat(const vector<UserId> &user_ids, const string &
     return promise.set_error(400, "Title must be non-empty");
   }
 
-  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
-  for (auto user_id : user_ids) {
-    TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
-    input_users.push_back(std::move(input_user));
-  }
-
+  TRY_RESULT_PROMISE(promise, input_users, td_->user_manager_->get_input_users(user_ids));
   td_->create_handler<CreateChatQuery>(std::move(promise))->send(std::move(input_users), new_title, message_ttl);
 }
 
