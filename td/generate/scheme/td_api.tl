@@ -139,7 +139,7 @@ textCompositionStyleExample source_text:formattedText result_text:formattedText 
 //@is_creator True, if the user is creator of the style
 //@install_count Number of users that installed the style; for created custom styles only; 0 if unknown
 //@prompt Prompt of the style; for created custom styles only
-//@creator_user_id User identifier of the creator of the style; 0 if none of unknown
+//@creator_user_id User identifier of the creator of the style; 0 if none or unknown
 //@english_example Example of the style usage in English; may be null if unknown
 textCompositionStyle name:string custom_emoji_id:int64 title:string is_custom:Bool is_creator:Bool install_count:int32 prompt:string creator_user_id:int53 english_example:textCompositionStyleExample = TextCompositionStyle;
 
