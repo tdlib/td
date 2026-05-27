@@ -851,8 +851,8 @@ void CallActor::flush_call_state() {
       if (call_state_.type == CallState::Type::Pending) {
         if (!has_notification_) {
           has_notification_ = true;
-          send_closure(G()->notification_manager(), &NotificationManager::add_call_notification,
-                       DialogId(call_admin_user_id_), local_call_id_);
+          send_closure_later(G()->notification_manager(), &NotificationManager::add_call_notification,
+                             DialogId(call_admin_user_id_), local_call_id_);
         }
       } else {
         if (has_notification_) {
