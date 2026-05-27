@@ -240,16 +240,7 @@ telegram_api::object_ptr<telegram_api::InputPrivacyRule> UserPrivacySettingRule:
 }
 
 vector<telegram_api::object_ptr<telegram_api::InputUser>> UserPrivacySettingRule::get_input_users(Td *td) const {
-  vector<telegram_api::object_ptr<telegram_api::InputUser>> result;
-  for (auto user_id : user_ids_) {
-    auto r_input_user = td->user_manager_->get_input_user(user_id);
-    if (r_input_user.is_ok()) {
-      result.push_back(r_input_user.move_as_ok());
-    } else {
-      LOG(INFO) << "Have no access to " << user_id;
-    }
-  }
-  return result;
+  return td->user_manager_->get_input_users_force(user_ids_);
 }
 
 vector<int64> UserPrivacySettingRule::get_input_chat_ids(Td *td) const {

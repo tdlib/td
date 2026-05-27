@@ -138,13 +138,7 @@ class EditAccessSettingsQuery final : public Td::ResultHandler {
   }
 
   void send(UserId bot_user_id, const BotAccessSettings &settings) {
-    vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
-    for (auto user_id : settings.get_added_user_ids()) {
-      auto r_input_user = td_->user_manager_->get_input_user(user_id);
-      if (r_input_user.is_ok()) {
-        input_users.push_back(r_input_user.move_as_ok());
-      }
-    }
+    auto input_users = td_->user_manager_->get_input_users_force(settings.get_added_user_ids());
     auto r_input_user = td_->user_manager_->get_input_user(bot_user_id);
     if (r_input_user.is_error()) {
       return on_error(r_input_user.move_as_error());

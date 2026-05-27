@@ -5183,6 +5183,7 @@ Result<telegram_api::object_ptr<telegram_api::InputUser>> UserManager::get_input
 Result<vector<telegram_api::object_ptr<telegram_api::InputUser>>> UserManager::get_input_users(
     const vector<UserId> &user_ids) const {
   vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+  input_users.reserve(user_ids.size());
   for (auto user_id : user_ids) {
     TRY_RESULT(input_user, get_input_user(user_id));
     input_users.push_back(std::move(input_user));
@@ -5197,6 +5198,19 @@ telegram_api::object_ptr<telegram_api::InputUser> UserManager::get_input_user_fo
     return telegram_api::make_object<telegram_api::inputUser>(user_id.get(), 0);
   }
   return r_input_user.move_as_ok();
+}
+
+vector<telegram_api::object_ptr<telegram_api::InputUser>> UserManager::get_input_users_force(
+    const vector<UserId> &user_ids) const {
+  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+  input_users.reserve(user_ids.size());
+  for (auto user_id : user_ids) {
+    auto r_input_user = get_input_user(user_id);
+    if (r_input_user.is_ok()) {
+      input_users.push_back(r_input_user.move_as_ok());
+    }
+  }
+  return input_users;
 }
 
 bool UserManager::have_input_peer_user(UserId user_id, AccessRights access_rights) const {
