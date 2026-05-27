@@ -2609,7 +2609,7 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@custom_emoji_sticker_set_id Identifier of the custom emoji sticker set that can be used in the supergroup without Telegram Premium subscription; 0 if none
 //@location Location to which the supergroup is connected; may be null if none
 //@invite_link Primary invite link for the chat; may be null. For chat administrators with can_invite_users right only
-//@guard_bot_user_id User identifier of the guard bot in the group
+//@guard_bot_user_id User identifier of the guard bot in the group; for chat administrators only
 //@bot_commands List of commands of bots in the group
 //@bot_verification Information about verification status of the supergroup or the channel provided by a bot; may be null if none or unknown
 //@main_profile_tab The main tab chosen by the administrators of the channel; may be null if not chosen manually
