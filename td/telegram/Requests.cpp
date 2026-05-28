@@ -4327,7 +4327,7 @@ void Requests::on_request(uint64 id, td_api::editBusinessMessageLiveLocation &re
   td_->business_connection_manager_->edit_business_message_live_location(
       BusinessConnectionId(std::move(request.business_connection_id_)), DialogId(request.chat_id_),
       MessageId(request.message_id_), std::move(request.reply_markup_), std::move(request.location_),
-      request.live_period_, request.heading_, request.proximity_alert_radius_, std::move(promise));
+      std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::editBusinessMessageChecklist &request) {

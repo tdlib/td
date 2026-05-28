@@ -88,8 +88,7 @@ class BusinessConnectionManager final : public Actor {
 
   void edit_business_message_live_location(BusinessConnectionId business_connection_id, DialogId dialog_id,
                                            MessageId message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                           td_api::object_ptr<td_api::location> &&input_location, int32 live_period,
-                                           int32 heading, int32 proximity_alert_radius,
+                                           td_api::object_ptr<td_api::liveLocation> &&input_location,
                                            Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
   void edit_business_message_to_do_list(BusinessConnectionId business_connection_id, DialogId dialog_id,
