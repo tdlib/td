@@ -10973,8 +10973,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       auto expires_in = m->period == std::numeric_limits<int32>::max() ? m->period : max(0, m->period - passed);
       auto heading = expires_in == 0 ? 0 : m->heading;
       auto proximity_alert_radius = expires_in == 0 ? 0 : m->proximity_alert_radius;
-      return make_tl_object<td_api::messageLiveLocation>(m->location.get_location_object(), m->period, expires_in,
-                                                         heading, proximity_alert_radius);
+      return make_tl_object<td_api::messageLiveLocation>(
+          td_api::make_object<td_api::liveLocation>(m->location.get_location_object(), m->period, heading,
+                                                    proximity_alert_radius),
+          expires_in);
     }
     case MessageContentType::Location: {
       const auto *m = static_cast<const MessageLocation *>(content);

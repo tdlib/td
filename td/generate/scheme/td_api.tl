@@ -613,6 +613,14 @@ contact phone_number:string first_name:string last_name:string vcard:string user
 //@horizontal_accuracy The estimated horizontal accuracy of the location, in meters; as defined by the sender. 0 if unknown
 location latitude:double longitude:double horizontal_accuracy:double = Location;
 
+//@description A live location
+//@location The current location
+//@live_period Time relative to the message send date, for which the location can be updated, in seconds. Currently, must be between 60 and 86400 for a temporary live location, or 0x7FFFFFFF for a permanent live location
+//@heading The direction in which the location moves, in degrees; 1-360; 0 if unknown
+//@proximity_alert_radius The maximum distance to another chat member for proximity alerts, in meters (0-100000). 0 if the notification is disabled.
+//-Can't be enabled in direct messages chats, channels and Saved Messages. Available only to the message sender
+liveLocation location:location live_period:int32 heading:int32 proximity_alert_radius:int32 = LiveLocation;
+
 //@description Describes a venue
 //@location Venue location; as defined by the sender
 //@title Venue name; as defined by the sender
@@ -4944,11 +4952,8 @@ messageExpiredVoiceNote = MessageContent;
 
 //@description A message with a live location
 //@location The current location
-//@live_period Time relative to the message send date, for which the location can be updated, in seconds; if 0x7FFFFFFF, then location can be updated forever
 //@expires_in Left time for which the location can be updated, in seconds. If 0, then the location can't be updated anymore. The update updateMessageContent is not sent when this field changes
-//@heading The direction in which the location moves, in degrees; 1-360. If 0, then the direction is unknown
-//@proximity_alert_radius The maximum distance to another chat member for proximity alerts, in meters (0-100000). 0 if the notification is disabled. Available only to the message sender
-messageLiveLocation location:location live_period:int32 expires_in:int32 heading:int32 proximity_alert_radius:int32 = MessageContent;
+messageLiveLocation location:liveLocation expires_in:int32 = MessageContent;
 
 //@description A message with a location @location The location
 messageLocation location:location = MessageContent;
