@@ -473,7 +473,7 @@ class JoinChatQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (status.message() == "INVITE_REQUEST_SENT") {
+    if (status.message() == "INVITE_REQUEST_SENT" || status.message() == "JOIN_GUARD_TIMEOUT") {
       return promise_.set_value(td_api::make_object<td_api::chatJoinResultRequestSent>());
     }
     promise_.set_error(std::move(status));
@@ -2704,7 +2704,7 @@ void DialogParticipantManager::on_join_channel(
     if (was_speculatively_updated) {
       speculative_add_channel_user(channel_id, td_->user_manager_->get_my_id(), old_status, new_status);
     }
-    if (result.error().message() == "INVITE_REQUEST_SENT") {
+    if (result.error().message() == "INVITE_REQUEST_SENT" || result.error().message() == "JOIN_GUARD_TIMEOUT") {
       for (auto &promise : promises) {
         promise.set_value(td_api::make_object<td_api::chatJoinResultRequestSent>());
       }
