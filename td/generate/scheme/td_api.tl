@@ -11861,12 +11861,9 @@ editInlineMessageText inline_message_id:string reply_markup:ReplyMarkup input_me
 //@description Edits the content of a live location in an inline message sent via a bot; for bots only
 //@inline_message_id Inline message identifier
 //@reply_markup The new message reply markup; pass null if none
-//@location New location content of the message; pass null to stop sharing the live location
-//@live_period New time relative to the message send date, for which the location can be updated, in seconds. If 0x7FFFFFFF specified, then the location can be updated forever.
-//-Otherwise, must not exceed the current live_period by more than a day, and the live location expiration date must remain in the next 90 days. Pass 0 to keep the current live_period
-//@heading The new direction in which the location moves, in degrees; 1-360. Pass 0 if unknown
-//@proximity_alert_radius The new maximum distance for proximity alerts, in meters (0-100000). Pass 0 if the notification is disabled
-editInlineMessageLiveLocation inline_message_id:string reply_markup:ReplyMarkup location:location live_period:int32 heading:int32 proximity_alert_radius:int32 = Ok;
+//@location New live location of the message; pass null to stop sharing the live location. If the new live_period isn't set to 0x7FFFFFFF,
+//-then it must not exceed the current live_period by more than a day, and the live location expiration date must remain in the next 90 days
+editInlineMessageLiveLocation inline_message_id:string reply_markup:ReplyMarkup location:liveLocation = Ok;
 
 //@description Edits the media content of a message with a text, an animation, an audio, a document, a photo or a video in an inline message sent via a bot; for bots only
 //@inline_message_id Inline message identifier
