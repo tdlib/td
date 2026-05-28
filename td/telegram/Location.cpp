@@ -144,46 +144,58 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Location &locatio
 }
 
 Result<InputMessageLocation> process_input_message_location(
-    tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) {
   CHECK(input_message_content != nullptr);
-  if (input_message_content->get_id() == td_api::inputMessageLocation::ID) {
-    auto input_location = static_cast<const td_api::inputMessageLocation *>(input_message_content.get());
-    Location location(input_location->location_);
-    if (location.empty()) {
-      return Status::Error(400, "Wrong location specified");
+  switch (input_message_content->get_id()) {
+    case td_api::inputMessageLocation::ID: {
+      auto input_location = static_cast<const td_api::inputMessageLocation *>(input_message_content.get());
+      Location location(input_location->location_);
+      if (location.empty()) {
+        return Status::Error(400, "Wrong location specified");
+      }
+      return InputMessageLocation(std::move(location), 0, 0, 0);
     }
-    return InputMessageLocation(std::move(location), 0, 0, 0);
+    case td_api::inputMessageLiveLocation::ID:
+      return process_live_location(
+          std::move(static_cast<td_api::inputMessageLiveLocation *>(input_message_content.get())->location_), false);
+    default:
+      UNREACHABLE();
+      return InputMessageLocation({}, 0, 0, 0);
   }
-  CHECK(input_message_content->get_id() == td_api::inputMessageLiveLocation::ID);
-  auto input_location =
-      static_cast<const td_api::inputMessageLiveLocation *>(input_message_content.get())->location_.get();
-  if (input_location == nullptr) {
+}
+
+Result<InputMessageLocation> process_live_location(td_api::object_ptr<td_api::liveLocation> &&live_location,
+                                                   bool for_edit) {
+  if (live_location == nullptr) {
+    if (for_edit) {
+      return InputMessageLocation({}, 0, 0, 0);
+    }
     return Status::Error(400, "Live location must be non-empty");
   }
-  Location location(input_location->location_);
+  Location location(live_location->location_);
   if (location.empty()) {
-    return Status::Error(400, "Wrong location specified");
+    return Status::Error(400, "Wrong live location specified");
   }
 
   constexpr int32 MIN_LIVE_LOCATION_PERIOD = 60;     // seconds, server-side limit
   constexpr int32 MAX_LIVE_LOCATION_PERIOD = 86400;  // seconds, server-side limit
 
-  auto period = input_location->live_period_;
+  auto period = live_location->live_period_;
   if (period != std::numeric_limits<int32>::max() &&
-      (period < MIN_LIVE_LOCATION_PERIOD || period > MAX_LIVE_LOCATION_PERIOD)) {
+      (period < MIN_LIVE_LOCATION_PERIOD || period > MAX_LIVE_LOCATION_PERIOD) && !(for_edit && period == 0)) {
     return Status::Error(400, "Wrong live location period specified");
   }
 
   constexpr int32 MIN_LIVE_LOCATION_HEADING = 1;    // degrees, server-side limit
   constexpr int32 MAX_LIVE_LOCATION_HEADING = 360;  // degrees, server-side limit
 
-  auto heading = input_location->heading_;
+  auto heading = live_location->heading_;
   if (heading != 0 && (heading < MIN_LIVE_LOCATION_HEADING || heading > MAX_LIVE_LOCATION_HEADING)) {
     return Status::Error(400, "Wrong live location heading specified");
   }
 
   constexpr int32 MAX_PROXIMITY_ALERT_RADIUS = 100000;  // meters, server-side limit
-  auto proximity_alert_radius = input_location->proximity_alert_radius_;
+  auto proximity_alert_radius = live_location->proximity_alert_radius_;
   if (proximity_alert_radius < 0 || proximity_alert_radius > MAX_PROXIMITY_ALERT_RADIUS) {
     return Status::Error(400, "Wrong live location proximity alert radius specified");
   }

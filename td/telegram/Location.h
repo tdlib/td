@@ -137,7 +137,10 @@ struct InputMessageLocation {
       , proximity_alert_radius(proximity_alert_radius) {
   }
 };
+
 Result<InputMessageLocation> process_input_message_location(
-    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content);
+
+Result<InputMessageLocation> process_live_location(td_api::object_ptr<td_api::liveLocation> &&location, bool for_edit);
 
 }  // namespace td
