@@ -5769,12 +5769,8 @@ inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int
 //@self_destruct_type Voice note self-destruct type; may be null if none; pass null if none; private chats only
 inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption:formattedText self_destruct_type:MessageSelfDestructType = InputMessageContent;
 
-//@description A message with a live location
-//@location Initial location to be sent
-//@live_period Period for which the location can be updated, in seconds; must be between 60 and 86400 for a temporary live location, or 0x7FFFFFFF for permanent live location
-//@heading A direction in which the location moves, in degrees; 1-360; pass 0 if unknown
-//@proximity_alert_radius The maximum distance to another chat member for proximity alerts, in meters (0-100000). Pass 0 if the notification is disabled. Can't be enabled in channels and Saved Messages
-inputMessageLiveLocation location:location live_period:int32 heading:int32 proximity_alert_radius:int32 = InputMessageContent;
+//@description A message with a live location @location Initial state of the live location to be sent
+inputMessageLiveLocation location:liveLocation = InputMessageContent;
 
 //@description A message with a location @location Location to be sent
 inputMessageLocation location:location = InputMessageContent;

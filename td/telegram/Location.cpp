@@ -155,7 +155,11 @@ Result<InputMessageLocation> process_input_message_location(
     return InputMessageLocation(std::move(location), 0, 0, 0);
   }
   CHECK(input_message_content->get_id() == td_api::inputMessageLiveLocation::ID);
-  auto input_location = static_cast<const td_api::inputMessageLiveLocation *>(input_message_content.get());
+  auto input_location =
+      static_cast<const td_api::inputMessageLiveLocation *>(input_message_content.get())->location_.get();
+  if (input_location == nullptr) {
+    return Status::Error(400, "Live location must be non-empty");
+  }
   Location location(input_location->location_);
   if (location.empty()) {
     return Status::Error(400, "Wrong location specified");

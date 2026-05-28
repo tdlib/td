@@ -926,6 +926,13 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::location>(to_double(latitude), to_double(longitude), to_double(accuracy));
   }
 
+  static td_api::object_ptr<td_api::liveLocation> as_live_location(const string &latitude, const string &longitude,
+                                                                   const string &accuracy, int32 period, int32 heading,
+                                                                   int32 proximity_alert_radius) {
+    return td_api::make_object<td_api::liveLocation>(as_location(latitude, longitude, accuracy), period, heading,
+                                                     proximity_alert_radius);
+  }
+
   static td_api::object_ptr<td_api::ReactionType> as_reaction_type(Slice type) {
     type = trim(type);
     if (type.empty()) {
@@ -6874,8 +6881,8 @@ class CliClient final : public Actor {
       int32 heading;
       int32 proximity_alert_radius;
       get_args(args, chat_id, period, latitude, longitude, accuracy, heading, proximity_alert_radius);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageLiveLocation>(
-                                as_location(latitude, longitude, accuracy), period, heading, proximity_alert_radius));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageLiveLocation>(as_live_location(
+                                latitude, longitude, accuracy, period, heading, proximity_alert_radius)));
     } else if (op == "spoll" || op == "spollp" || op == "squiz") {
       ChatId chat_id;
       string question;
