@@ -178,7 +178,7 @@ Result<InputMessageLocation> process_input_message_location(
 
 Result<InputMessageLocation> process_live_location(td_api::object_ptr<td_api::liveLocation> &&live_location,
                                                    bool for_edit) {
-  if (live_location == nullptr) {
+  if (live_location == nullptr || live_location->location_ == nullptr) {
     if (for_edit) {
       return InputMessageLocation({}, 0, 0, 0);
     }
