@@ -193,8 +193,8 @@ Result<InputMessageLocation> process_live_location(td_api::object_ptr<td_api::li
   constexpr int32 MAX_LIVE_LOCATION_PERIOD = 86400;  // seconds, server-side limit
 
   auto period = live_location->live_period_;
-  if (period != std::numeric_limits<int32>::max() &&
-      (period < MIN_LIVE_LOCATION_PERIOD || period > MAX_LIVE_LOCATION_PERIOD) && !(for_edit && period == 0)) {
+  if (!for_edit && period != std::numeric_limits<int32>::max() &&
+      (period < MIN_LIVE_LOCATION_PERIOD || period > MAX_LIVE_LOCATION_PERIOD)) {
     return Status::Error(400, "Wrong live location period specified");
   }
 

@@ -615,7 +615,7 @@ location latitude:double longitude:double horizontal_accuracy:double = Location;
 
 //@description A live location
 //@location The current location
-//@live_period Time relative to the message send date, for which the location can be updated, in seconds. Currently, must be between 60 and 86400 for a temporary live location, or 0x7FFFFFFF for a permanent live location
+//@live_period Time relative to the message send date, for which the location can be updated, in seconds; if 0x7FFFFFFF, then location can be updated forever
 //@heading The direction in which the location moves, in degrees; 1-360; 0 if unknown
 //@proximity_alert_radius The maximum distance to another chat member for proximity alerts, in meters (0-100000). 0 if the notification is disabled.
 //-Can't be enabled in direct messages chats, channels and Saved Messages. Available only to the message sender
@@ -5769,7 +5769,7 @@ inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int
 //@self_destruct_type Voice note self-destruct type; may be null if none; pass null if none; private chats only
 inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption:formattedText self_destruct_type:MessageSelfDestructType = InputMessageContent;
 
-//@description A message with a live location @location Initial state of the live location to be sent
+//@description A message with a live location @location Initial state of the live location to be sent. Live period must be equal to 0x7FFFFFFF for permanent live locations, or between 60 and 86400
 inputMessageLiveLocation location:liveLocation = InputMessageContent;
 
 //@description A message with a location @location Location to be sent
