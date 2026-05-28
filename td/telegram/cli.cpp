@@ -6579,9 +6579,9 @@ class CliClient final : public Actor {
       int32 heading;
       int32 proximity_alert_radius;
       get_args(args, chat_id, message_id, latitude, longitude, live_period, accuracy, heading, proximity_alert_radius);
-      send_request(td_api::make_object<td_api::editMessageLiveLocation>(chat_id, message_id, nullptr,
-                                                                        as_location(latitude, longitude, accuracy),
-                                                                        live_period, heading, proximity_alert_radius));
+      send_request(td_api::make_object<td_api::editMessageLiveLocation>(
+          chat_id, message_id, nullptr,
+          as_live_location(latitude, longitude, accuracy, live_period, heading, proximity_alert_radius)));
     } else if (op == "emchl") {
       ChatId chat_id;
       MessageId message_id;

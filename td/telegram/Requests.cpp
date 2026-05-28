@@ -823,14 +823,10 @@ class EditMessageTextRequest final : public RequestOnceActor {
 class EditMessageLiveLocationRequest final : public RequestOnceActor {
   MessageFullId message_full_id_;
   td_api::object_ptr<td_api::ReplyMarkup> reply_markup_;
-  td_api::object_ptr<td_api::location> location_;
-  int32 live_period_;
-  int32 heading_;
-  int32 proximity_alert_radius_;
+  td_api::object_ptr<td_api::liveLocation> location_;
 
   void do_run(Promise<Unit> &&promise) final {
     td_->messages_manager_->edit_message_live_location(message_full_id_, std::move(reply_markup_), std::move(location_),
-                                                       live_period_, heading_, proximity_alert_radius_,
                                                        std::move(promise));
   }
 
@@ -841,15 +837,11 @@ class EditMessageLiveLocationRequest final : public RequestOnceActor {
  public:
   EditMessageLiveLocationRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
                                  td_api::object_ptr<td_api::ReplyMarkup> reply_markup,
-                                 td_api::object_ptr<td_api::location> location, int32 live_period, int32 heading,
-                                 int32 proximity_alert_radius)
+                                 td_api::object_ptr<td_api::liveLocation> location)
       : RequestOnceActor(std::move(td), request_id)
       , message_full_id_(DialogId(dialog_id), MessageId(message_id))
       , reply_markup_(std::move(reply_markup))
-      , location_(std::move(location))
-      , live_period_(live_period)
-      , heading_(heading)
-      , proximity_alert_radius_(proximity_alert_radius) {
+      , location_(std::move(location)) {
   }
 };
 
@@ -4221,8 +4213,7 @@ void Requests::on_request(uint64 id, td_api::editMessageText &request) {
 
 void Requests::on_request(uint64 id, td_api::editMessageLiveLocation &request) {
   CREATE_REQUEST(EditMessageLiveLocationRequest, request.chat_id_, request.message_id_,
-                 std::move(request.reply_markup_), std::move(request.location_), request.live_period_, request.heading_,
-                 request.proximity_alert_radius_);
+                 std::move(request.reply_markup_), std::move(request.location_));
 }
 
 void Requests::on_request(uint64 id, td_api::editMessageChecklist &request) {

@@ -23119,9 +23119,9 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
 }
 
 void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
-                                                 tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                                 tl_object_ptr<td_api::location> &&input_location, int32 live_period,
-                                                 int32 heading, int32 proximity_alert_radius, Promise<Unit> &&promise) {
+                                                 td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                                 td_api::object_ptr<td_api::liveLocation> &&input_location,
+                                                 Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
   TRY_RESULT_PROMISE(promise, d,
                      check_dialog_access(dialog_id, true, AccessRights::Edit, "edit_message_live_location"));
@@ -23143,28 +23143,15 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
     return promise.set_error(400, "Can't edit live location in scheduled message");
   }
 
-  Location location(input_location);
-  if (location.empty() && input_location != nullptr) {
-    return promise.set_error(400, "Invalid location specified");
-  }
+  TRY_RESULT_PROMISE(promise, location, process_live_location(std::move(input_location), true));
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(),
                                              has_message_sender_user_id(dialog_id, m)));
 
-  int32 flags = 0;
-  if (live_period != 0) {
-    flags |= telegram_api::inputMediaGeoLive::PERIOD_MASK;
-  }
-  if (heading != 0) {
-    flags |= telegram_api::inputMediaGeoLive::HEADING_MASK;
-  }
-  flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
-  auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
-      flags, location.empty(), location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
   td_->create_handler<EditMessageQuery>(std::move(promise))
-      ->send(dialog_id, m->message_id, false, nullptr, false, std::move(input_media), false, new_reply_markup,
-             get_message_schedule_date(m), get_message_schedule_repeat_period(m));
+      ->send(dialog_id, m->message_id, false, nullptr, false, location.get_input_media_geo_live(), false,
+             new_reply_markup, get_message_schedule_date(m), get_message_schedule_repeat_period(m));
 }
 
 void MessagesManager::edit_message_to_do_list(MessageFullId message_full_id,

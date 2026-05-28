@@ -163,7 +163,7 @@ Result<InputMessageLocation> process_input_message_location(
       auto input_location = static_cast<const td_api::inputMessageLocation *>(input_message_content.get());
       Location location(input_location->location_);
       if (location.empty()) {
-        return Status::Error(400, "Wrong location specified");
+        return Status::Error(400, "Invalid location specified");
       }
       return InputMessageLocation(std::move(location), 0, 0, 0);
     }
@@ -186,7 +186,7 @@ Result<InputMessageLocation> process_live_location(td_api::object_ptr<td_api::li
   }
   Location location(live_location->location_);
   if (location.empty()) {
-    return Status::Error(400, "Wrong live location specified");
+    return Status::Error(400, "Invalid live location specified");
   }
 
   constexpr int32 MIN_LIVE_LOCATION_PERIOD = 60;     // seconds, server-side limit
