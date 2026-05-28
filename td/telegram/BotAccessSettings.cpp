@@ -18,9 +18,8 @@ BotAccessSettings::BotAccessSettings(Td *td, telegram_api::object_ptr<telegram_a
   is_restricted_ = settings->restricted_;
   if (is_restricted_) {
     for (auto &user : settings->add_users_) {
-      auto user_id = UserManager::get_user_id(user);
+      auto user_id = td->user_manager_->on_get_user(std::move(user), "BotAccessSettings");
       if (user_id.is_valid()) {
-        td->user_manager_->on_get_user(std::move(user), "BotAccessSettings");
         added_user_ids_.push_back(user_id);
       }
     }

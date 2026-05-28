@@ -52,8 +52,7 @@ class GetPopularAppBotsQuery final : public Td::ResultHandler {
 
     vector<int64> user_ids;
     for (auto &user : ptr->users_) {
-      auto user_id = td_->user_manager_->get_user_id(user);
-      td_->user_manager_->on_get_user(std::move(user), "GetPopularAppBotsQuery");
+      auto user_id = td_->user_manager_->on_get_user(std::move(user), "GetPopularAppBotsQuery");
       if (td_->user_manager_->is_user_bot(user_id)) {
         user_ids.push_back(td_->user_manager_->get_user_id_object(user_id, "GetPopularAppBotsQuery"));
       }

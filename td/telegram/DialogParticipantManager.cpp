@@ -849,8 +849,7 @@ class GetFutureChatCreatorAfterLeaveQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetFutureChatCreatorAfterLeaveQuery: " << to_string(ptr);
-    auto user_id = UserManager::get_user_id(ptr);
-    td_->user_manager_->on_get_user(std::move(ptr), "GetFutureChatCreatorAfterLeaveQuery");
+    auto user_id = td_->user_manager_->on_get_user(std::move(ptr), "GetFutureChatCreatorAfterLeaveQuery");
     promise_.set_value(td_->user_manager_->get_user_object(user_id));
   }
 

@@ -536,8 +536,7 @@ class GetMessageAuthorQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetMessageAuthorQuery: " << to_string(ptr);
-    auto user_id = UserManager::get_user_id(ptr);
-    td_->user_manager_->on_get_user(std::move(ptr), "GetMessageAuthorQuery");
+    auto user_id = td_->user_manager_->on_get_user(std::move(ptr), "GetMessageAuthorQuery");
     promise_.set_value(td_->user_manager_->get_user_object(user_id));
   }
 

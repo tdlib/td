@@ -85,8 +85,6 @@ class UserManager final : public Actor {
   UserManager &operator=(UserManager &&) = delete;
   ~UserManager() final;
 
-  static UserId get_user_id(const telegram_api::object_ptr<telegram_api::User> &user);
-
   vector<UserId> get_user_ids(vector<telegram_api::object_ptr<telegram_api::User>> &&users, const char *source);
 
   static UserId load_my_id();
@@ -121,7 +119,7 @@ class UserManager final : public Actor {
 
   void set_my_online_status(bool is_online, bool send_update, bool is_local);
 
-  void on_get_user(telegram_api::object_ptr<telegram_api::User> &&user, const char *source);
+  UserId on_get_user(telegram_api::object_ptr<telegram_api::User> &&user, const char *source);
 
   void on_get_users(vector<telegram_api::object_ptr<telegram_api::User>> &&users, const char *source);
 
@@ -894,6 +892,8 @@ class UserManager final : public Actor {
   static void on_noforwards_request_timeout_callback(void *user_manager_ptr, int64 request_id_long);
 
   void on_noforwards_request_timeout(int32 request_id);
+
+  static UserId get_user_id(const telegram_api::object_ptr<telegram_api::User> &user);
 
   void set_my_id(UserId my_id);
 

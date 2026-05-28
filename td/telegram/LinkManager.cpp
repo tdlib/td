@@ -1674,11 +1674,10 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
     switch (result->get_id()) {
       case telegram_api::urlAuthResultRequest::ID: {
         auto request = telegram_api::move_object_as<telegram_api::urlAuthResultRequest>(result);
-        UserId bot_user_id = UserManager::get_user_id(request->bot_);
+        auto bot_user_id = td_->user_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
         if (!bot_user_id.is_valid()) {
           return on_error(Status::Error(500, "Receive invalid bot_user_id"));
         }
-        td_->user_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
         if (request->request_phone_number_ || !request->browser_.empty() || !request->platform_.empty() ||
             !request->ip_.empty() || !request->region_.empty() || !request->match_codes_.empty()) {
           LOG(ERROR) << "Receive invalid login URL details: " << to_string(request);
@@ -1743,11 +1742,10 @@ class RequestUrlOauthQuery final : public Td::ResultHandler {
     switch (result->get_id()) {
       case telegram_api::urlAuthResultRequest::ID: {
         auto request = telegram_api::move_object_as<telegram_api::urlAuthResultRequest>(result);
-        UserId bot_user_id = UserManager::get_user_id(request->bot_);
+        auto bot_user_id = td_->user_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
         if (!bot_user_id.is_valid()) {
           return on_error(Status::Error(500, "Receive invalid bot_user_id"));
         }
-        td_->user_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
         auto user_id = UserId(request->user_id_hint_);
         if (user_id != UserId() && !user_id.is_valid()) {
           LOG(ERROR) << "Receive " << to_string(request);

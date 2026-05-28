@@ -1768,9 +1768,7 @@ class GetSupportUserQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetSupportUserQuery: " << to_string(ptr);
 
-    auto user_id = UserManager::get_user_id(ptr->user_);
-    td_->user_manager_->on_get_user(std::move(ptr->user_), "GetSupportUserQuery");
-
+    auto user_id = td_->user_manager_->on_get_user(std::move(ptr->user_), "GetSupportUserQuery");
     promise_.set_value(std::move(user_id));
   }
 
@@ -2947,13 +2945,8 @@ vector<UserId> UserManager::get_user_ids(vector<telegram_api::object_ptr<telegra
                                          const char *source) {
   vector<UserId> user_ids;
   for (auto &user : users) {
-    auto user_id = get_user_id(user);
-    if (!user_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid " << user_id << " from " << source << " in " << to_string(user);
-      continue;
-    }
-    on_get_user(std::move(user), source);
-    if (have_min_user(user_id)) {
+    auto user_id = on_get_user(std::move(user), source);
+    if (user_id.is_valid()) {
       user_ids.push_back(user_id);
     }
   }
@@ -3112,7 +3105,7 @@ void UserManager::set_my_online_status(bool is_online, bool send_update, bool is
   }
 }
 
-void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&user_ptr, const char *source) {
+UserId UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&user_ptr, const char *source) {
   LOG(DEBUG) << "Receive from " << source << ' ' << to_string(user_ptr);
   CHECK(user_ptr != nullptr);
   int32 constructor_id = user_ptr->get_id();
@@ -3121,7 +3114,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     UserId user_id(user->id_);
     if (!user_id.is_valid()) {
       LOG(ERROR) << "Receive invalid " << user_id << " from " << source;
-      return;
+      return UserId();
     }
     LOG(INFO) << "Receive empty " << user_id << " from " << source;
 
@@ -3130,7 +3123,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       // userEmpty should be received only through getUsers for nonexistent users
       LOG(ERROR) << "Have no information about " << user_id << ", but received userEmpty from " << source;
     }
-    return;
+    return user_id;
   }
 
   CHECK(constructor_id == telegram_api::user::ID);
@@ -3138,7 +3131,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   UserId user_id(user->id_);
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;
-    return;
+    return UserId();
   }
 
   LOG(INFO) << "Receive " << user_id << " from " << source;
@@ -3184,7 +3177,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     }
   } else if (is_deleted && !is_received && user_id == get_my_id()) {
     LOG(INFO) << "Ignore self as frozen min-user";
-    return;
+    return user_id;
   }
 
   if (have_access_hash) {  // access_hash must be updated before photo
@@ -3430,6 +3423,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   }
   u->is_received_from_server = true;
   update_user(u, user_id);
+  return user_id;
 }
 
 void UserManager::on_get_users(vector<telegram_api::object_ptr<telegram_api::User>> &&users, const char *source) {

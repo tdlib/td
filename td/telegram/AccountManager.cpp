@@ -590,8 +590,7 @@ class ImportContactTokenQuery final : public Td::ResultHandler {
     auto user = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for ImportContactTokenQuery: " << to_string(user);
 
-    auto user_id = UserManager::get_user_id(user);
-    td_->user_manager_->on_get_user(std::move(user), "ImportContactTokenQuery");
+    auto user_id = td_->user_manager_->on_get_user(std::move(user), "ImportContactTokenQuery");
     promise_.set_value(td_->user_manager_->get_user_object(user_id));
   }
 
