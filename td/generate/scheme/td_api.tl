@@ -3914,6 +3914,9 @@ richTextAutoUrl text:RichText = RichText;
 //@description An automatically found email address @text Text
 richTextAutoEmailAddress text:RichText = RichText;
 
+//@description An automatically found phone number @text Text
+richTextAutoPhoneNumber text:RichText = RichText;
+
 //@description A subscript rich text @text Text
 richTextSubscript text:RichText = RichText;
 
