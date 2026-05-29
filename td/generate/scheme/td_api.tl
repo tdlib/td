@@ -3911,6 +3911,9 @@ richTextEmailAddress text:RichText email_address:string = RichText;
 //@description An automatically found URL @text Text
 richTextAutoUrl text:RichText = RichText;
 
+//@description An automatically found email address @text Text
+richTextAutoEmailAddress text:RichText = RichText;
+
 //@description A subscript rich text @text Text
 richTextSubscript text:RichText = RichText;
 
