@@ -3887,6 +3887,9 @@ richTextStrikethrough text:RichText = RichText;
 //@description A spoilered rich text @text Text
 richTextSpoiler text:RichText = RichText;
 
+//@description A mention of a Telegram user by a username @text Text
+richTextMention text:RichText = RichText;
+
 //@description A fixed-width rich text @text Text
 richTextFixed text:RichText = RichText;
 
