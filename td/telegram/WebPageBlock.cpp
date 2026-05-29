@@ -1028,6 +1028,9 @@ class WebPageBlockList final : public WebPageBlock {
 
  private:
   vector<Item> items;
+  int32 start = 0;
+  bool is_reversed = false;
+  string type;
 
   static td_api::object_ptr<td_api::pageBlockListItem> get_page_block_list_item_object(const Item &item,
                                                                                        Context *context) {
@@ -1039,7 +1042,8 @@ class WebPageBlockList final : public WebPageBlock {
 
  public:
   WebPageBlockList() = default;
-  explicit WebPageBlockList(vector<Item> &&items) : items(std::move(items)) {
+  WebPageBlockList(vector<Item> &&items, int32 start, bool is_reversed, const string &type)
+      : items(std::move(items)), start(start), is_reversed(is_reversed), type(type) {
   }
 
   Type get_type() const final {
@@ -1062,7 +1066,20 @@ class WebPageBlockList final : public WebPageBlock {
   template <class StorerT>
   void store(StorerT &storer) const {
     using ::td::store;
+    bool has_start = start != 0;
+    bool has_type = !type.empty();
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_reversed);
+    STORE_FLAG(has_start);
+    STORE_FLAG(has_type);
+    END_STORE_FLAGS();
     store(items, storer);
+    if (has_start) {
+      store(start, storer);
+    }
+    if (has_type) {
+      store(type, storer);
+    }
   }
 
   template <class ParserT>
@@ -1070,7 +1087,22 @@ class WebPageBlockList final : public WebPageBlock {
     using ::td::parse;
 
     if (parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
+      bool has_start = false;
+      bool has_type = false;
+      if (parser.version() >= static_cast<int32>(Version::SupportRichMessages)) {
+        BEGIN_PARSE_FLAGS();
+        PARSE_FLAG(is_reversed);
+        PARSE_FLAG(has_start);
+        PARSE_FLAG(has_type);
+        END_PARSE_FLAGS();
+      }
       parse(items, parser);
+      if (has_start) {
+        parse(start, parser);
+      }
+      if (has_type) {
+        parse(type, parser);
+      }
     } else {
       vector<RichText> text_items;
       bool is_ordered;
@@ -2355,74 +2387,83 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::pageBlockList::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockList>(page_block_ptr);
-      return td::make_unique<WebPageBlockList>(transform(std::move(page_block->items_), [&](auto &&list_item_ptr) {
-        WebPageBlockList::Item item;
-        CHECK(list_item_ptr != nullptr);
-        switch (list_item_ptr->get_id()) {
-          case telegram_api::pageListItemText::ID: {
-            auto list_item = telegram_api::move_object_as<telegram_api::pageListItemText>(list_item_ptr);
-            item.page_blocks.push_back(
-                make_unique<WebPageBlockParagraph>(get_rich_text(std::move(list_item->text_), documents)));
-            item.has_checkbox = list_item->checkbox_;
-            item.is_checked = list_item->checked_;
-            break;
-          }
-          case telegram_api::pageListItemBlocks::ID: {
-            auto list_item = telegram_api::move_object_as<telegram_api::pageListItemBlocks>(list_item_ptr);
-            item.page_blocks = get_web_page_blocks(td, std::move(list_item->blocks_), animations, audios, documents,
-                                                   photos, videos, voice_notes);
-            item.has_checkbox = list_item->checkbox_;
-            item.is_checked = list_item->checked_;
-            break;
-          }
-        }
-        if (item.page_blocks.empty()) {
-          item.page_blocks.push_back(make_unique<WebPageBlockParagraph>(RichText()));
-        }
-        return item;
-      }));
+      return td::make_unique<WebPageBlockList>(
+          transform(std::move(page_block->items_),
+                    [&](auto &&list_item_ptr) {
+                      WebPageBlockList::Item item;
+                      CHECK(list_item_ptr != nullptr);
+                      switch (list_item_ptr->get_id()) {
+                        case telegram_api::pageListItemText::ID: {
+                          auto list_item = telegram_api::move_object_as<telegram_api::pageListItemText>(list_item_ptr);
+                          item.page_blocks.push_back(make_unique<WebPageBlockParagraph>(
+                              get_rich_text(std::move(list_item->text_), documents)));
+                          item.has_checkbox = list_item->checkbox_;
+                          item.is_checked = list_item->checked_;
+                          break;
+                        }
+                        case telegram_api::pageListItemBlocks::ID: {
+                          auto list_item =
+                              telegram_api::move_object_as<telegram_api::pageListItemBlocks>(list_item_ptr);
+                          item.page_blocks = get_web_page_blocks(td, std::move(list_item->blocks_), animations, audios,
+                                                                 documents, photos, videos, voice_notes);
+                          item.has_checkbox = list_item->checkbox_;
+                          item.is_checked = list_item->checked_;
+                          break;
+                        }
+                      }
+                      if (item.page_blocks.empty()) {
+                        item.page_blocks.push_back(make_unique<WebPageBlockParagraph>(RichText()));
+                      }
+                      return item;
+                    }),
+          0, false, string());
     }
     case telegram_api::pageBlockOrderedList::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockOrderedList>(page_block_ptr);
-      int32 current_label = 0;
-      return td::make_unique<WebPageBlockList>(transform(std::move(page_block->items_), [&](auto &&list_item_ptr) {
-        WebPageBlockList::Item item;
-        CHECK(list_item_ptr != nullptr);
-        switch (list_item_ptr->get_id()) {
-          case telegram_api::pageListOrderedItemText::ID: {
-            auto list_item = telegram_api::move_object_as<telegram_api::pageListOrderedItemText>(list_item_ptr);
-            item.label = std::move(list_item->num_);
-            item.page_blocks.push_back(
-                make_unique<WebPageBlockParagraph>(get_rich_text(std::move(list_item->text_), documents)));
-            item.has_checkbox = list_item->checkbox_;
-            item.is_checked = list_item->checked_;
-            item.value = list_item->value_;
-            item.type = list_item->type_;
-            break;
-          }
-          case telegram_api::pageListOrderedItemBlocks::ID: {
-            auto list_item = telegram_api::move_object_as<telegram_api::pageListOrderedItemBlocks>(list_item_ptr);
-            item.label = std::move(list_item->num_);
-            item.page_blocks = get_web_page_blocks(td, std::move(list_item->blocks_), animations, audios, documents,
-                                                   photos, videos, voice_notes);
-            item.has_checkbox = list_item->checkbox_;
-            item.is_checked = list_item->checked_;
-            item.value = list_item->value_;
-            item.type = list_item->type_;
-            break;
-          }
-        }
-        if (item.page_blocks.empty()) {
-          item.page_blocks.push_back(make_unique<WebPageBlockParagraph>(RichText()));
-        }
-        ++current_label;
-        if (item.label.empty()) {
-          item.label = PSTRING() << current_label << '.';
-        } else {
-          item.label += '.';
-        }
-        return item;
-      }));
+      int32 current_label = page_block->start_;
+      return td::make_unique<WebPageBlockList>(
+          transform(std::move(page_block->items_),
+                    [&](auto &&list_item_ptr) {
+                      WebPageBlockList::Item item;
+                      CHECK(list_item_ptr != nullptr);
+                      switch (list_item_ptr->get_id()) {
+                        case telegram_api::pageListOrderedItemText::ID: {
+                          auto list_item =
+                              telegram_api::move_object_as<telegram_api::pageListOrderedItemText>(list_item_ptr);
+                          item.label = std::move(list_item->num_);
+                          item.page_blocks.push_back(make_unique<WebPageBlockParagraph>(
+                              get_rich_text(std::move(list_item->text_), documents)));
+                          item.has_checkbox = list_item->checkbox_;
+                          item.is_checked = list_item->checked_;
+                          item.value = list_item->value_;
+                          item.type = list_item->type_;
+                          break;
+                        }
+                        case telegram_api::pageListOrderedItemBlocks::ID: {
+                          auto list_item =
+                              telegram_api::move_object_as<telegram_api::pageListOrderedItemBlocks>(list_item_ptr);
+                          item.label = std::move(list_item->num_);
+                          item.page_blocks = get_web_page_blocks(td, std::move(list_item->blocks_), animations, audios,
+                                                                 documents, photos, videos, voice_notes);
+                          item.has_checkbox = list_item->checkbox_;
+                          item.is_checked = list_item->checked_;
+                          item.value = list_item->value_;
+                          item.type = list_item->type_;
+                          break;
+                        }
+                      }
+                      if (item.page_blocks.empty()) {
+                        item.page_blocks.push_back(make_unique<WebPageBlockParagraph>(RichText()));
+                      }
+                      current_label += page_block->reversed_ ? -1 : 1;
+                      if (item.label.empty()) {
+                        item.label = PSTRING() << current_label << '.';
+                      } else {
+                        item.label += '.';
+                      }
+                      return item;
+                    }),
+          page_block->start_, page_block->reversed_, page_block->type_);
     }
     case telegram_api::pageBlockBlockquote::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockBlockquote>(page_block_ptr);
