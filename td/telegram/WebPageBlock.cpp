@@ -13,6 +13,7 @@
 #include "td/telegram/AudiosManager.hpp"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogPhoto.h"
 #include "td/telegram/DialogPhoto.hpp"
@@ -94,12 +95,14 @@ class RichText {
     PhoneNumber,
     Icon,
     Anchor,
-    Math
+    Math,
+    CustomEmoji
   };
   Type type = Type::Plain;
   string content;
   vector<RichText> texts;
   FileId document_file_id;
+  CustomEmojiId custom_emoji_id;
   WebPageId web_page_id;
 
   bool empty() const {
@@ -202,6 +205,8 @@ class RichText {
       }
       case RichText::Type::Math:
         return td_api::make_object<td_api::richTextMathematicalExpression>(content);
+      case RichText::Type::CustomEmoji:
+        return td_api::make_object<td_api::richTextCustomEmoji>(custom_emoji_id.get(), content);
     }
     UNREACHABLE();
     return nullptr;
@@ -219,6 +224,9 @@ class RichText {
     if (type == Type::Url) {
       store(web_page_id, storer);
     }
+    if (type == Type::CustomEmoji) {
+      store(custom_emoji_id, storer);
+    }
   }
 
   template <class ParserT>
@@ -233,13 +241,12 @@ class RichText {
         LOG(ERROR) << "Failed to load document from database";
         *this = RichText();
       }
-    } else {
-      document_file_id = FileId();
     }
     if (type == Type::Url && parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
       parse(web_page_id, parser);
-    } else {
-      web_page_id = WebPageId();
+    }
+    if (type == Type::CustomEmoji) {
+      parse(custom_emoji_id, parser);
     }
   }
 };
@@ -1969,7 +1976,13 @@ RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
       result.content = std::move(rich_text->source_);
       break;
     }
-    case telegram_api::textCustomEmoji::ID:
+    case telegram_api::textCustomEmoji::ID: {
+      auto rich_text = telegram_api::move_object_as<telegram_api::textCustomEmoji>(rich_text_ptr);
+      result.type = RichText::Type::CustomEmoji;
+      result.custom_emoji_id = CustomEmojiId(rich_text->document_id_);
+      result.content = std::move(rich_text->alt_);
+      break;
+    }
     case telegram_api::textSpoiler::ID:
     case telegram_api::textMention::ID:
     case telegram_api::textHashtag::ID:

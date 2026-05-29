@@ -3905,6 +3905,9 @@ richTextMarked text:RichText = RichText;
 //@description A rich text phone number @text Text @phone_number Phone number
 richTextPhoneNumber text:RichText phone_number:string = RichText;
 
+//@description A custom emoji @custom_emoji_id Unique identifier of the custom emoji @alternative_text Alternative text for the custom emoji
+richTextCustomEmoji custom_emoji_id:int64 alternative_text:string = RichText;
+
 //@description A small image inside the text
 //@document The image represented as a document. The image can be in GIF, JPEG or PNG format
 //@width Width of a bounding box in which the image must be shown; 0 if unknown
