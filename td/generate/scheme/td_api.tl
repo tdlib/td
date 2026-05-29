@@ -4072,7 +4072,8 @@ pageBlockPhoto photo:photo caption:pageBlockCaption url:string has_spoiler:Bool 
 //@caption Video caption
 //@need_autoplay True, if the video must be played automatically
 //@is_looped True, if the video must be looped
-pageBlockVideo video:video caption:pageBlockCaption need_autoplay:Bool is_looped:Bool = PageBlock;
+//@has_spoiler True, if the video preview must be covered by a spoiler animation
+pageBlockVideo video:video caption:pageBlockCaption need_autoplay:Bool is_looped:Bool has_spoiler:Bool = PageBlock;
 
 //@description A voice note
 //@voice_note Voice note; may be null

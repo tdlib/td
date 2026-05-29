@@ -1158,11 +1158,17 @@ class WebPageBlockVideo final : public WebPageBlock {
   WebPageBlockCaption caption;
   bool need_autoplay = false;
   bool is_looped = false;
+  bool has_spoiler = false;
 
  public:
   WebPageBlockVideo() = default;
-  WebPageBlockVideo(FileId video_file_id, WebPageBlockCaption &&caption, bool need_autoplay, bool is_looped)
-      : video_file_id(video_file_id), caption(std::move(caption)), need_autoplay(need_autoplay), is_looped(is_looped) {
+  WebPageBlockVideo(FileId video_file_id, WebPageBlockCaption &&caption, bool need_autoplay, bool is_looped,
+                    bool has_spoiler)
+      : video_file_id(video_file_id)
+      , caption(std::move(caption))
+      , need_autoplay(need_autoplay)
+      , is_looped(is_looped)
+      , has_spoiler(has_spoiler) {
   }
 
   Type get_type() const final {
@@ -1177,7 +1183,7 @@ class WebPageBlockVideo final : public WebPageBlock {
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockVideo>(context->td_->videos_manager_->get_video_object(video_file_id),
                                                        caption.get_page_block_caption_object(context), need_autoplay,
-                                                       is_looped);
+                                                       is_looped, has_spoiler);
   }
 
   template <class StorerT>
@@ -1189,6 +1195,7 @@ class WebPageBlockVideo final : public WebPageBlock {
     STORE_FLAG(need_autoplay);
     STORE_FLAG(is_looped);
     STORE_FLAG(has_empty_video);
+    STORE_FLAG(has_spoiler);
     END_STORE_FLAGS();
 
     if (!has_empty_video) {
@@ -1206,6 +1213,7 @@ class WebPageBlockVideo final : public WebPageBlock {
     PARSE_FLAG(need_autoplay);
     PARSE_FLAG(is_looped);
     PARSE_FLAG(has_empty_video);
+    PARSE_FLAG(has_spoiler);
     END_PARSE_FLAGS();
 
     if (parser.version() >= static_cast<int32>(Version::FixWebPageInstantViewDatabase)) {
@@ -2245,8 +2253,9 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       if (it != videos.end()) {
         video_file_id = it->second;
       }
-      return make_unique<WebPageBlockVideo>(
-          video_file_id, get_page_block_caption(std::move(page_block->caption_), documents), need_autoplay, is_looped);
+      return make_unique<WebPageBlockVideo>(video_file_id,
+                                            get_page_block_caption(std::move(page_block->caption_), documents),
+                                            need_autoplay, is_looped, page_block->spoiler_);
     }
     case telegram_api::pageBlockCover::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockCover>(page_block_ptr);
