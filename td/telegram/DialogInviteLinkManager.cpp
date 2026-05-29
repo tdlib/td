@@ -666,24 +666,17 @@ void DialogInviteLinkManager::on_get_dialog_invite_link_info(
         chat = std::move(chat_invite_peek->chat_);
         accessible_before_date = chat_invite_peek->expires_;
       }
-      auto chat_id = ChatManager::get_chat_id(chat);
-      if (chat_id != ChatId() && !chat_id.is_valid()) {
-        LOG(ERROR) << "Receive invalid " << chat_id;
-        chat_id = ChatId();
+      auto dialog_id = ChatManager::get_dialog_id(chat);
+      if (dialog_id != DialogId() && !dialog_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << dialog_id;
+        dialog_id = DialogId();
       }
-      auto channel_id = ChatManager::get_channel_id(chat);
-      if (channel_id != ChannelId() && !channel_id.is_valid()) {
-        LOG(ERROR) << "Receive invalid " << channel_id;
-        channel_id = ChannelId();
-      }
-      if (accessible_before_date != 0 && (!channel_id.is_valid() || accessible_before_date < 0)) {
+      if (accessible_before_date != 0 && (dialog_id.get_type() != DialogType::Channel || accessible_before_date < 0)) {
         LOG(ERROR) << "Receive expires = " << accessible_before_date << " for invite link " << invite_link << " to "
                    << to_string(chat);
         accessible_before_date = 0;
       }
       td_->chat_manager_->on_get_chat(std::move(chat), "chatInviteAlready");
-
-      CHECK(chat_id == ChatId() || channel_id == ChannelId());
 
       // the access is already expired, reget the info
       if (accessible_before_date != 0 && accessible_before_date <= G()->unix_time() + 1) {
@@ -691,7 +684,6 @@ void DialogInviteLinkManager::on_get_dialog_invite_link_info(
         return;
       }
 
-      DialogId dialog_id = chat_id.is_valid() ? DialogId(chat_id) : DialogId(channel_id);
       auto &invite_link_info = invite_link_infos_[invite_link];
       if (invite_link_info == nullptr) {
         invite_link_info = make_unique<InviteLinkInfo>();
