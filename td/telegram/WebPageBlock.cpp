@@ -1080,8 +1080,9 @@ class WebPageBlockBlockQuote final : public WebPageBlock {
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
-    return td_api::make_object<td_api::pageBlockBlockQuote>(text.get_rich_text_object(context),
-                                                            credit.get_rich_text_object(context));
+    vector<td_api::object_ptr<td_api::PageBlock>> blocks;
+    blocks.push_back(td_api::make_object<td_api::pageBlockParagraph>(text.get_rich_text_object(context)));
+    return td_api::make_object<td_api::pageBlockBlockQuote>(std::move(blocks), credit.get_rich_text_object(context));
   }
 
   template <class StorerT>

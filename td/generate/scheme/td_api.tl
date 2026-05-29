@@ -4049,9 +4049,9 @@ pageBlockAnchor name:string = PageBlock;
 pageBlockList items:vector<pageBlockListItem> = PageBlock;
 
 //@description A block quote
-//@text Quote text
+//@blocks Quote blocks
 //@credit Quote credit
-pageBlockBlockQuote text:RichText credit:RichText = PageBlock;
+pageBlockBlockQuote blocks:vector<PageBlock> credit:RichText = PageBlock;
 
 //@description A pull quote
 //@text Quote text
