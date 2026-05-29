@@ -99,7 +99,8 @@ class RichText {
     CustomEmoji,
     Spoiler,
     Mention,
-    Hashtag
+    Hashtag,
+    Cashtag
   };
   Type type = Type::Plain;
   string content;
@@ -216,6 +217,8 @@ class RichText {
         return td_api::make_object<td_api::richTextMention>(texts[0].get_rich_text_object(context));
       case RichText::Type::Hashtag:
         return td_api::make_object<td_api::richTextHashtag>(texts[0].get_rich_text_object(context));
+      case RichText::Type::Cashtag:
+        return td_api::make_object<td_api::richTextCashtag>(texts[0].get_rich_text_object(context));
     }
     UNREACHABLE();
     return nullptr;
@@ -2011,7 +2014,13 @@ RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
       break;
     }
     case telegram_api::textBotCommand::ID:
-    case telegram_api::textCashtag::ID:
+      break;
+    case telegram_api::textCashtag::ID: {
+      auto rich_text = telegram_api::move_object_as<telegram_api::textCashtag>(rich_text_ptr);
+      result.type = RichText::Type::Cashtag;
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
+      break;
+    }
     case telegram_api::textAutoUrl::ID:
     case telegram_api::textAutoEmail::ID:
     case telegram_api::textAutoPhone::ID:

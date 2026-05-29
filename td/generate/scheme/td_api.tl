@@ -3893,6 +3893,9 @@ richTextMention text:RichText = RichText;
 //@description A hashtag @text Text
 richTextHashtag text:RichText = RichText;
 
+//@description A cashtag @text Text
+richTextCashtag text:RichText = RichText;
+
 //@description A fixed-width rich text @text Text
 richTextFixed text:RichText = RichText;
 
