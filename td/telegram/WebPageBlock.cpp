@@ -976,10 +976,16 @@ class WebPageBlockList final : public WebPageBlock {
   struct Item {
     string label;
     vector<unique_ptr<WebPageBlock>> page_blocks;
+    bool has_checkbox = false;
+    bool is_checked = false;
 
     template <class StorerT>
     void store(StorerT &storer) const {
       using ::td::store;
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_checkbox);
+      STORE_FLAG(is_checked);
+      END_STORE_FLAGS();
       store(label, storer);
       store(page_blocks, storer);
     }
@@ -987,6 +993,12 @@ class WebPageBlockList final : public WebPageBlock {
     template <class ParserT>
     void parse(ParserT &parser) {
       using ::td::parse;
+      if (parser.version() >= static_cast<int32>(Version::SupportRichMessages)) {
+        BEGIN_PARSE_FLAGS();
+        PARSE_FLAG(has_checkbox);
+        PARSE_FLAG(is_checked);
+        END_PARSE_FLAGS();
+      }
       parse(label, parser);
       parse(page_blocks, parser);
     }
@@ -999,7 +1011,8 @@ class WebPageBlockList final : public WebPageBlock {
                                                                                        Context *context) {
     // if label is empty, then Bullet U+2022 is used as a label
     return td_api::make_object<td_api::pageBlockListItem>(item.label.empty() ? "\xE2\x80\xA2" : item.label,
-                                                          get_page_blocks_object(item.page_blocks, context));
+                                                          get_page_blocks_object(item.page_blocks, context),
+                                                          item.has_checkbox, item.has_checkbox && item.is_checked);
   }
 
  public:
@@ -2328,12 +2341,16 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
             auto list_item = telegram_api::move_object_as<telegram_api::pageListItemText>(list_item_ptr);
             item.page_blocks.push_back(
                 make_unique<WebPageBlockParagraph>(get_rich_text(std::move(list_item->text_), documents)));
+            item.has_checkbox = list_item->checkbox_;
+            item.is_checked = list_item->checked_;
             break;
           }
           case telegram_api::pageListItemBlocks::ID: {
             auto list_item = telegram_api::move_object_as<telegram_api::pageListItemBlocks>(list_item_ptr);
             item.page_blocks = get_web_page_blocks(td, std::move(list_item->blocks_), animations, audios, documents,
                                                    photos, videos, voice_notes);
+            item.has_checkbox = list_item->checkbox_;
+            item.is_checked = list_item->checked_;
             break;
           }
         }
@@ -2355,6 +2372,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
             item.label = std::move(list_item->num_);
             item.page_blocks.push_back(
                 make_unique<WebPageBlockParagraph>(get_rich_text(std::move(list_item->text_), documents)));
+            item.has_checkbox = list_item->checkbox_;
+            item.is_checked = list_item->checked_;
             break;
           }
           case telegram_api::pageListOrderedItemBlocks::ID: {
@@ -2362,6 +2381,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
             item.label = std::move(list_item->num_);
             item.page_blocks = get_web_page_blocks(td, std::move(list_item->blocks_), animations, audios, documents,
                                                    photos, videos, voice_notes);
+            item.has_checkbox = list_item->checkbox_;
+            item.is_checked = list_item->checked_;
             break;
           }
         }

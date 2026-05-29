@@ -3957,8 +3957,12 @@ richTexts texts:vector<RichText> = RichText;
 //@description Contains a caption of another block @text Content of the caption @credit Block credit (like HTML tag <cite>)
 pageBlockCaption text:RichText credit:RichText = PageBlockCaption;
 
-//@description Describes an item of a list page block @label Item label @page_blocks Item blocks
-pageBlockListItem label:string page_blocks:vector<PageBlock> = PageBlockListItem;
+//@description Describes an item of a list page block
+//@label Item label
+//@page_blocks Item blocks
+//@has_checkbox True, if the item has a checkbox
+//@is_checked True, if the item is checked
+pageBlockListItem label:string page_blocks:vector<PageBlock> has_checkbox:Bool is_checked:Bool = PageBlockListItem;
 
 //@class PageBlockHorizontalAlignment @description Describes a horizontal alignment of a table cell content
 
