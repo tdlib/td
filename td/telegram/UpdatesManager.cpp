@@ -859,53 +859,13 @@ bool UpdatesManager::is_acceptable_message_media(
       return true;
     }
     case telegram_api::messageMediaPoll::ID:
-      /*
       // the users and chats are always min, so no need to check
-      auto message_media_poll = static_cast<const telegram_api::messageMediaPoll *>(media_ptr.get());
-      for (const auto &recent_voter : message_media_poll->results_->recent_voters_) {
-        if (!is_acceptable_peer(recent_voter)) {
-          return false;
-        }
-      }
-      */
       return true;
     case telegram_api::messageMediaWebPage::ID:
-      /*
-      // the channel is always min, so no need to check
-      auto message_media_web_page = static_cast<const telegram_api::messageMediaWebPage *>(media_ptr.get());
-      if (message_media_web_page->webpage_->get_id() == telegram_api::webPage::ID) {
-        auto web_page = static_cast<const telegram_api::webPage *>(message_media_web_page->webpage_.get());
-        if (web_page->cached_page_ != nullptr) {
-          const vector<tl_object_ptr<telegram_api::PageBlock>> *page_blocks = nullptr;
-          downcast_call(*web_page->cached_page_, [&page_blocks](auto &page) { page_blocks = &page.blocks_; });
-          CHECK(page_blocks != nullptr);
-          for (auto &page_block : *page_blocks) {
-            if (page_block->get_id() == telegram_api::pageBlockChannel::ID) {
-              auto page_block_channel = static_cast<const telegram_api::pageBlockChannel *>(page_block.get());
-              auto channel_id = ChatManager::get_channel_id(page_block_channel->channel_);
-              if (channel_id.is_valid()) {
-                if (!is_acceptable_channel(channel_id)) {
-                  return false;
-                }
-              } else {
-                LOG(ERROR) << "Receive wrong channel " << to_string(page_block_channel->channel_);
-              }
-            }
-          }
-        }
-      }
-      */
+      // the channel in pageBlockChannel is always min, so no need to check
       return true;
     case telegram_api::messageMediaToDo::ID: {
-      /*
-      // the users are always min, so no need to check
-      auto message_media_to_do = static_cast<const telegram_api::messageMediaToDo *>(media_ptr.get());
-      for (const auto &completion : message_media_to_do->completions_) {
-        if (!is_acceptable_user(UserId(completion->completed_by_))) {
-          return false;
-        }
-      }
-      */
+      // the users and chats are always min, so no need to check
       return true;
     }
     default:
