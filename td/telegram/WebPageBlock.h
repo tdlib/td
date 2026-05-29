@@ -55,6 +55,7 @@ class WebPageBlock {
     Map,
     VoiceNote,
     Heading,
+    Math,
     Size
   };
 

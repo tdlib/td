@@ -863,6 +863,42 @@ class WebPageBlockDivider final : public WebPageBlock {
   }
 };
 
+class WebPageBlockMath final : public WebPageBlock {
+  string source;
+
+ public:
+  WebPageBlockMath() = default;
+  explicit WebPageBlockMath(string &&source) : source(std::move(source)) {
+  }
+
+  Type get_type() const final {
+    return Type::Math;
+  }
+
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
+  }
+
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
+    return td_api::make_object<td_api::pageBlockMathematicalExpression>(source);
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    using ::td::store;
+    BEGIN_STORE_FLAGS();
+    END_STORE_FLAGS();
+    store(source, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    using ::td::parse;
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
+    parse(source, parser);
+  }
+};
+
 class WebPageBlockAnchor final : public WebPageBlock {
   string name;
 
@@ -2501,8 +2537,10 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading6>(page_block_ptr);
       return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 6);
     }
-    case telegram_api::pageBlockMath::ID:
-      return nullptr;
+    case telegram_api::pageBlockMath::ID: {
+      auto page_block = telegram_api::move_object_as<telegram_api::pageBlockMath>(page_block_ptr);
+      return td::make_unique<WebPageBlockMath>(std::move(page_block->source_));
+    }
     case telegram_api::pageBlockThinking::ID:
       return nullptr;
     case telegram_api::inputPageBlockMap::ID:
@@ -2580,6 +2618,8 @@ void WebPageBlock::call_impl(Type type, const WebPageBlock *ptr, F &&f) {
       return f(static_cast<const WebPageBlockVoiceNote *>(ptr));
     case Type::Heading:
       return f(static_cast<const WebPageBlockHeading *>(ptr));
+    case Type::Math:
+      return f(static_cast<const WebPageBlockMath *>(ptr));
     default:
       UNREACHABLE();
   }

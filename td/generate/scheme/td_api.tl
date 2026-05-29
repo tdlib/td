@@ -4036,6 +4036,9 @@ pageBlockFooter footer:RichText = PageBlock;
 //@description An empty block separating a page
 pageBlockDivider = PageBlock;
 
+//@description A mathematical expression @expression The expression in LaTeX format
+pageBlockMathematicalExpression expression:string = PageBlock;
+
 //@description An invisible anchor on a page, which can be used in a URL to open the page from the specified anchor @name Name of the anchor
 pageBlockAnchor name:string = PageBlock;
 
