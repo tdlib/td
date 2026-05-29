@@ -665,6 +665,47 @@ class WebPageBlockSubheader final : public WebPageBlock {
   }
 };
 
+class WebPageBlockHeading final : public WebPageBlock {
+  RichText text;
+  int32 size = 4;
+
+ public:
+  WebPageBlockHeading() = default;
+  WebPageBlockHeading(RichText &&text, int32 size) : text(std::move(text)), size(size) {
+  }
+
+  Type get_type() const final {
+    return Type::Heading;
+  }
+
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
+    text.append_file_ids(td, file_ids);
+  }
+
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
+    return td_api::make_object<td_api::pageBlockSectionHeading>(text.get_rich_text_object(context), size);
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    using ::td::store;
+    BEGIN_STORE_FLAGS();
+    END_STORE_FLAGS();
+    store(text, storer);
+    store(size, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    using ::td::parse;
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
+    parse(text, parser);
+    parse(size, parser);
+    size = clamp(size, 1, 6);
+  }
+};
+
 class WebPageBlockKicker final : public WebPageBlock {
   RichText kicker;
 
@@ -2436,18 +2477,30 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       return make_unique<WebPageBlockMap>(std::move(location), zoom, dimensions,
                                           get_page_block_caption(std::move(page_block->caption_), documents));
     }
-    case telegram_api::pageBlockHeading1::ID:
-      return nullptr;
-    case telegram_api::pageBlockHeading2::ID:
-      return nullptr;
-    case telegram_api::pageBlockHeading3::ID:
-      return nullptr;
-    case telegram_api::pageBlockHeading4::ID:
-      return nullptr;
-    case telegram_api::pageBlockHeading5::ID:
-      return nullptr;
-    case telegram_api::pageBlockHeading6::ID:
-      return nullptr;
+    case telegram_api::pageBlockHeading1::ID: {
+      auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading1>(page_block_ptr);
+      return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 1);
+    }
+    case telegram_api::pageBlockHeading2::ID: {
+      auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading2>(page_block_ptr);
+      return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 2);
+    }
+    case telegram_api::pageBlockHeading3::ID: {
+      auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading3>(page_block_ptr);
+      return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 3);
+    }
+    case telegram_api::pageBlockHeading4::ID: {
+      auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading4>(page_block_ptr);
+      return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 4);
+    }
+    case telegram_api::pageBlockHeading5::ID: {
+      auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading5>(page_block_ptr);
+      return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 5);
+    }
+    case telegram_api::pageBlockHeading6::ID: {
+      auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading6>(page_block_ptr);
+      return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 6);
+    }
     case telegram_api::pageBlockMath::ID:
       return nullptr;
     case telegram_api::pageBlockThinking::ID:
@@ -2525,6 +2578,8 @@ void WebPageBlock::call_impl(Type type, const WebPageBlock *ptr, F &&f) {
       return f(static_cast<const WebPageBlockMap *>(ptr));
     case Type::VoiceNote:
       return f(static_cast<const WebPageBlockVoiceNote *>(ptr));
+    case Type::Heading:
+      return f(static_cast<const WebPageBlockHeading *>(ptr));
     default:
       UNREACHABLE();
   }

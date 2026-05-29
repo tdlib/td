@@ -4018,6 +4018,9 @@ pageBlockHeader header:RichText = PageBlock;
 //@description A subheader @subheader Subheader
 pageBlockSubheader subheader:RichText = PageBlock;
 
+//@description A section heading @text Text of the section heading @size Realtive size of the text font; 1-6, 1 is the largest, 6 is the smallest
+pageBlockSectionHeading text:RichText size:int32 = PageBlock;
+
 //@description A kicker @kicker Kicker
 pageBlockKicker kicker:RichText = PageBlock;
 
