@@ -978,29 +978,51 @@ class WebPageBlockList final : public WebPageBlock {
     vector<unique_ptr<WebPageBlock>> page_blocks;
     bool has_checkbox = false;
     bool is_checked = false;
+    int32 value = -1;
+    string type;
 
     template <class StorerT>
     void store(StorerT &storer) const {
       using ::td::store;
+      bool has_value = value != -1;
+      bool has_type = !type.empty();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_checkbox);
       STORE_FLAG(is_checked);
+      STORE_FLAG(has_value);
+      STORE_FLAG(has_type);
       END_STORE_FLAGS();
       store(label, storer);
       store(page_blocks, storer);
+      if (has_value) {
+        store(value, storer);
+      }
+      if (has_type) {
+        store(type, storer);
+      }
     }
 
     template <class ParserT>
     void parse(ParserT &parser) {
       using ::td::parse;
+      bool has_value = false;
+      bool has_type = false;
       if (parser.version() >= static_cast<int32>(Version::SupportRichMessages)) {
         BEGIN_PARSE_FLAGS();
         PARSE_FLAG(has_checkbox);
         PARSE_FLAG(is_checked);
+        PARSE_FLAG(has_value);
+        PARSE_FLAG(has_type);
         END_PARSE_FLAGS();
       }
       parse(label, parser);
       parse(page_blocks, parser);
+      if (has_value) {
+        parse(value, parser);
+      }
+      if (has_type) {
+        parse(type, parser);
+      }
     }
   };
 
@@ -1010,9 +1032,9 @@ class WebPageBlockList final : public WebPageBlock {
   static td_api::object_ptr<td_api::pageBlockListItem> get_page_block_list_item_object(const Item &item,
                                                                                        Context *context) {
     // if label is empty, then Bullet U+2022 is used as a label
-    return td_api::make_object<td_api::pageBlockListItem>(item.label.empty() ? "\xE2\x80\xA2" : item.label,
-                                                          get_page_blocks_object(item.page_blocks, context),
-                                                          item.has_checkbox, item.has_checkbox && item.is_checked);
+    return td_api::make_object<td_api::pageBlockListItem>(
+        item.label.empty() ? "\xE2\x80\xA2" : item.label, get_page_blocks_object(item.page_blocks, context),
+        item.has_checkbox, item.has_checkbox && item.is_checked, item.value, item.type);
   }
 
  public:
@@ -2374,6 +2396,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                 make_unique<WebPageBlockParagraph>(get_rich_text(std::move(list_item->text_), documents)));
             item.has_checkbox = list_item->checkbox_;
             item.is_checked = list_item->checked_;
+            item.value = list_item->value_;
+            item.type = list_item->type_;
             break;
           }
           case telegram_api::pageListOrderedItemBlocks::ID: {
@@ -2383,6 +2407,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                                                    photos, videos, voice_notes);
             item.has_checkbox = list_item->checkbox_;
             item.is_checked = list_item->checked_;
+            item.value = list_item->value_;
+            item.type = list_item->type_;
             break;
           }
         }
