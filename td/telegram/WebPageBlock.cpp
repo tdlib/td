@@ -107,7 +107,8 @@ class RichText {
     AutoUrl,
     AutoEmailAddress,
     AutoPhoneNumber,
-    FormattedDate
+    FormattedDate,
+    BankCardNumber
   };
   Type type = Type::Plain;
   string content;
@@ -238,6 +239,8 @@ class RichText {
       case RichText::Type::FormattedDate:
         return td_api::make_object<td_api::richTextDateTime>(texts[0].get_rich_text_object(context), date.get_date(),
                                                              date.get_date_time_formatting_type_object());
+      case RichText::Type::BankCardNumber:
+        return td_api::make_object<td_api::richTextBankCardNumber>(texts[0].get_rich_text_object(context));
     }
     UNREACHABLE();
     return nullptr;
@@ -2317,7 +2320,12 @@ RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
       result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
       break;
     }
-    case telegram_api::textBankCard::ID:
+    case telegram_api::textBankCard::ID: {
+      auto rich_text = telegram_api::move_object_as<telegram_api::textBankCard>(rich_text_ptr);
+      result.type = RichText::Type::BankCardNumber;
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
+      break;
+    }
     case telegram_api::textMentionName::ID:
     case telegram_api::textDate::ID: {
       auto rich_text = telegram_api::move_object_as<telegram_api::textDate>(rich_text_ptr);
