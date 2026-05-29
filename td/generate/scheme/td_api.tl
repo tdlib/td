@@ -3887,6 +3887,12 @@ richTextStrikethrough text:RichText = RichText;
 //@description A spoilered rich text @text Text
 richTextSpoiler text:RichText = RichText;
 
+//@description A date and time
+//@text Original text
+//@unix_time Point in time (Unix timestamp) representing the date and time
+//@formatting_type Date and time formatting type; may be null if none and the original text must not be changed
+richTextDateTime text:RichText unix_time:int32 formatting_type:DateTimeFormattingType = RichText;
+
 //@description A mention of a Telegram user by a username @text Text
 richTextMention text:RichText = RichText;
 

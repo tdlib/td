@@ -22,6 +22,8 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DocumentsManager.hpp"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/FormattedDate.h"
+#include "td/telegram/FormattedDate.hpp"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/PeerColor.h"
@@ -104,7 +106,8 @@ class RichText {
     BotCommand,
     AutoUrl,
     AutoEmailAddress,
-    AutoPhoneNumber
+    AutoPhoneNumber,
+    FormattedDate
   };
   Type type = Type::Plain;
   string content;
@@ -112,6 +115,7 @@ class RichText {
   FileId document_file_id;
   CustomEmojiId custom_emoji_id;
   WebPageId web_page_id;
+  FormattedDate date;
 
   bool empty() const {
     return type == Type::Plain && content.empty();
@@ -231,6 +235,9 @@ class RichText {
         return td_api::make_object<td_api::richTextAutoEmailAddress>(texts[0].get_rich_text_object(context));
       case RichText::Type::AutoPhoneNumber:
         return td_api::make_object<td_api::richTextAutoPhoneNumber>(texts[0].get_rich_text_object(context));
+      case RichText::Type::FormattedDate:
+        return td_api::make_object<td_api::richTextDateTime>(texts[0].get_rich_text_object(context), date.get_date(),
+                                                             date.get_date_time_formatting_type_object());
     }
     UNREACHABLE();
     return nullptr;
@@ -250,6 +257,9 @@ class RichText {
     }
     if (type == Type::CustomEmoji) {
       store(custom_emoji_id, storer);
+    }
+    if (type == Type::FormattedDate) {
+      store(date, storer);
     }
   }
 
@@ -271,6 +281,9 @@ class RichText {
     }
     if (type == Type::CustomEmoji) {
       parse(custom_emoji_id, parser);
+    }
+    if (type == Type::FormattedDate) {
+      parse(date, parser);
     }
   }
 };
@@ -2306,8 +2319,18 @@ RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
     }
     case telegram_api::textBankCard::ID:
     case telegram_api::textMentionName::ID:
-    case telegram_api::textDate::ID:
+    case telegram_api::textDate::ID: {
+      auto rich_text = telegram_api::move_object_as<telegram_api::textDate>(rich_text_ptr);
+      auto date = FormattedDate(rich_text->date_, rich_text->relative_, rich_text->short_time_, rich_text->long_time_,
+                                rich_text->short_date_, rich_text->long_date_, rich_text->day_of_week_);
+      if (!date.is_valid()) {
+        break;
+      }
+      result.type = RichText::Type::FormattedDate;
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
+      result.date = std::move(date);
       break;
+    }
     default:
       UNREACHABLE();
   }
