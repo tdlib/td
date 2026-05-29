@@ -3911,6 +3911,9 @@ richTextPhoneNumber text:RichText phone_number:string = RichText;
 //@height Height of a bounding box in which the image must be shown; 0 if unknown
 richTextIcon document:document width:int32 height:int32 = RichText;
 
+//@description A mathematical expression @expression The expression in LaTeX format
+richTextMathematicalExpression expression:string = RichText;
+
 //@description A reference to a richTexts object on the same page @text The text @anchor_name The name of a richTextAnchor object, which is the first element of the target richTexts object @url An HTTP URL, opening the reference
 richTextReference text:RichText anchor_name:string url:string = RichText;
 
