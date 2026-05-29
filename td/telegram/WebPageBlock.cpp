@@ -96,7 +96,8 @@ class RichText {
     Icon,
     Anchor,
     Math,
-    CustomEmoji
+    CustomEmoji,
+    Spoiler
   };
   Type type = Type::Plain;
   string content;
@@ -207,6 +208,8 @@ class RichText {
         return td_api::make_object<td_api::richTextMathematicalExpression>(content);
       case RichText::Type::CustomEmoji:
         return td_api::make_object<td_api::richTextCustomEmoji>(custom_emoji_id.get(), content);
+      case RichText::Type::Spoiler:
+        return td_api::make_object<td_api::richTextSpoiler>(texts[0].get_rich_text_object(context));
     }
     UNREACHABLE();
     return nullptr;
@@ -1983,7 +1986,12 @@ RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
       result.content = std::move(rich_text->alt_);
       break;
     }
-    case telegram_api::textSpoiler::ID:
+    case telegram_api::textSpoiler::ID: {
+      auto rich_text = telegram_api::move_object_as<telegram_api::textSpoiler>(rich_text_ptr);
+      result.type = RichText::Type::Spoiler;
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
+      break;
+    }
     case telegram_api::textMention::ID:
     case telegram_api::textHashtag::ID:
     case telegram_api::textBotCommand::ID:

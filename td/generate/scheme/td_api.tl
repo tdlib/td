@@ -3884,6 +3884,9 @@ richTextUnderline text:RichText = RichText;
 //@description A strikethrough rich text @text Text
 richTextStrikethrough text:RichText = RichText;
 
+//@description A spoilered rich text @text Text
+richTextSpoiler text:RichText = RichText;
+
 //@description A fixed-width rich text @text Text
 richTextFixed text:RichText = RichText;
 
