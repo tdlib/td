@@ -4064,7 +4064,8 @@ pageBlockAudio audio:audio caption:pageBlockCaption = PageBlock;
 //@photo Photo file; may be null
 //@caption Photo caption
 //@url URL that needs to be opened when the photo is clicked
-pageBlockPhoto photo:photo caption:pageBlockCaption url:string = PageBlock;
+//@has_spoiler True, if the photo preview must be covered by a spoiler animation
+pageBlockPhoto photo:photo caption:pageBlockCaption url:string has_spoiler:Bool = PageBlock;
 
 //@description A video
 //@video Video file; may be null

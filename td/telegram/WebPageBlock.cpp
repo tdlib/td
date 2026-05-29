@@ -1094,11 +1094,16 @@ class WebPageBlockPhoto final : public WebPageBlock {
   WebPageBlockCaption caption;
   string url;
   WebPageId web_page_id;
+  bool has_spoiler = false;
 
  public:
   WebPageBlockPhoto() = default;
-  WebPageBlockPhoto(Photo &&photo, WebPageBlockCaption &&caption, string &&url, WebPageId web_page_id)
-      : photo(std::move(photo)), caption(std::move(caption)), url(std::move(url)), web_page_id(web_page_id) {
+  WebPageBlockPhoto(Photo &&photo, WebPageBlockCaption &&caption, string &&url, WebPageId web_page_id, bool has_spoiler)
+      : photo(std::move(photo))
+      , caption(std::move(caption))
+      , url(std::move(url))
+      , web_page_id(web_page_id)
+      , has_spoiler(has_spoiler) {
   }
 
   Type get_type() const final {
@@ -1112,12 +1117,16 @@ class WebPageBlockPhoto final : public WebPageBlock {
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockPhoto>(get_photo_object(context->td_->file_manager_.get(), photo),
-                                                       caption.get_page_block_caption_object(context), url);
+                                                       caption.get_page_block_caption_object(context), url,
+                                                       has_spoiler);
   }
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using ::td::store;
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_spoiler);
+    END_STORE_FLAGS();
     store(photo, storer);
     store(caption, storer);
     store(url, storer);
@@ -1127,6 +1136,11 @@ class WebPageBlockPhoto final : public WebPageBlock {
   template <class ParserT>
   void parse(ParserT &parser) {
     using ::td::parse;
+    if (parser.version() >= static_cast<int32>(Version::SupportRichMessages)) {
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_spoiler);
+      END_PARSE_FLAGS();
+    }
     parse(photo, parser);
     parse(caption, parser);
     if (parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
@@ -2212,9 +2226,9 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       if (it != photos.end()) {
         photo = *it->second;
       }
-      return td::make_unique<WebPageBlockPhoto>(std::move(photo),
-                                                get_page_block_caption(std::move(page_block->caption_), documents),
-                                                std::move(page_block->url_), WebPageId(page_block->webpage_id_));
+      return td::make_unique<WebPageBlockPhoto>(
+          std::move(photo), get_page_block_caption(std::move(page_block->caption_), documents),
+          std::move(page_block->url_), WebPageId(page_block->webpage_id_), page_block->spoiler_);
     }
     case telegram_api::pageBlockVideo::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockVideo>(page_block_ptr);
