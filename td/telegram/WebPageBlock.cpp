@@ -101,7 +101,8 @@ class RichText {
     Mention,
     Hashtag,
     Cashtag,
-    BotCommand
+    BotCommand,
+    AutoUrl
   };
   Type type = Type::Plain;
   string content;
@@ -222,6 +223,8 @@ class RichText {
         return td_api::make_object<td_api::richTextCashtag>(texts[0].get_rich_text_object(context));
       case RichText::Type::BotCommand:
         return td_api::make_object<td_api::richTextBotCommand>(texts[0].get_rich_text_object(context));
+      case RichText::Type::AutoUrl:
+        return td_api::make_object<td_api::richTextAutoUrl>(texts[0].get_rich_text_object(context));
     }
     UNREACHABLE();
     return nullptr;
@@ -2028,7 +2031,12 @@ RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
       result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
       break;
     }
-    case telegram_api::textAutoUrl::ID:
+    case telegram_api::textAutoUrl::ID: {
+      auto rich_text = telegram_api::move_object_as<telegram_api::textAutoUrl>(rich_text_ptr);
+      result.type = RichText::Type::AutoUrl;
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
+      break;
+    }
     case telegram_api::textAutoEmail::ID:
     case telegram_api::textAutoPhone::ID:
     case telegram_api::textBankCard::ID:
