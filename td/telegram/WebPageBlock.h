@@ -56,6 +56,7 @@ class WebPageBlock {
     VoiceNote,
     Heading,
     Math,
+    Thinking,
     Size
   };
 

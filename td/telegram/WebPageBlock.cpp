@@ -841,6 +841,43 @@ class WebPageBlockFooter final : public WebPageBlock {
   }
 };
 
+class WebPageBlockThinking final : public WebPageBlock {
+  RichText text;
+
+ public:
+  WebPageBlockThinking() = default;
+  explicit WebPageBlockThinking(RichText &&text) : text(std::move(text)) {
+  }
+
+  Type get_type() const final {
+    return Type::Thinking;
+  }
+
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
+    text.append_file_ids(td, file_ids);
+  }
+
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
+    return td_api::make_object<td_api::pageBlockThinking>(text.get_rich_text_object(context));
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    using ::td::store;
+    BEGIN_STORE_FLAGS();
+    END_STORE_FLAGS();
+    store(text, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    using ::td::parse;
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
+    parse(text, parser);
+  }
+};
+
 class WebPageBlockDivider final : public WebPageBlock {
  public:
   Type get_type() const final {
@@ -2541,8 +2578,10 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockMath>(page_block_ptr);
       return td::make_unique<WebPageBlockMath>(std::move(page_block->source_));
     }
-    case telegram_api::pageBlockThinking::ID:
-      return nullptr;
+    case telegram_api::pageBlockThinking::ID: {
+      auto page_block = telegram_api::move_object_as<telegram_api::pageBlockThinking>(page_block_ptr);
+      return td::make_unique<WebPageBlockThinking>(get_rich_text(std::move(page_block->text_), documents));
+    }
     case telegram_api::inputPageBlockMap::ID:
       return nullptr;
     case telegram_api::pageBlockBlockquoteBlocks::ID:
@@ -2620,6 +2659,8 @@ void WebPageBlock::call_impl(Type type, const WebPageBlock *ptr, F &&f) {
       return f(static_cast<const WebPageBlockHeading *>(ptr));
     case Type::Math:
       return f(static_cast<const WebPageBlockMath *>(ptr));
+    case Type::Thinking:
+      return f(static_cast<const WebPageBlockThinking *>(ptr));
     default:
       UNREACHABLE();
   }

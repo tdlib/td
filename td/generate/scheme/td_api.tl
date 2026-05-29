@@ -4033,6 +4033,9 @@ pageBlockPreformatted text:RichText language:string = PageBlock;
 //@description The footer of a page @footer Footer
 pageBlockFooter footer:RichText = PageBlock;
 
+//@description A "Thinking..." placeholder; for pending rich messages only @text Text of the placeholder
+pageBlockThinking text:RichText = PageBlock;
+
 //@description An empty block separating a page
 pageBlockDivider = PageBlock;
 
