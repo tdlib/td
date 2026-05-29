@@ -4015,16 +4015,11 @@ vector<ChannelId> ChatManager::get_channel_ids(vector<tl_object_ptr<telegram_api
 vector<DialogId> ChatManager::get_dialog_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source) {
   vector<DialogId> dialog_ids;
   for (auto &chat : chats) {
-    auto channel_id = get_channel_id(chat);
-    if (!channel_id.is_valid()) {
-      auto chat_id = get_chat_id(chat);
-      if (!chat_id.is_valid()) {
-        LOG(ERROR) << "Receive invalid chat from " << source << " in " << to_string(chat);
-      } else {
-        dialog_ids.push_back(DialogId(chat_id));
-      }
+    auto dialog_id = get_dialog_id(chat);
+    if (!dialog_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid chat from " << source << " in " << to_string(chat);
     } else {
-      dialog_ids.push_back(DialogId(channel_id));
+      dialog_ids.push_back(dialog_id);
     }
     on_get_chat(std::move(chat), source);
   }
