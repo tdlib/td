@@ -100,7 +100,8 @@ class RichText {
     Spoiler,
     Mention,
     Hashtag,
-    Cashtag
+    Cashtag,
+    BotCommand
   };
   Type type = Type::Plain;
   string content;
@@ -219,6 +220,8 @@ class RichText {
         return td_api::make_object<td_api::richTextHashtag>(texts[0].get_rich_text_object(context));
       case RichText::Type::Cashtag:
         return td_api::make_object<td_api::richTextCashtag>(texts[0].get_rich_text_object(context));
+      case RichText::Type::BotCommand:
+        return td_api::make_object<td_api::richTextBotCommand>(texts[0].get_rich_text_object(context));
     }
     UNREACHABLE();
     return nullptr;
@@ -2013,8 +2016,12 @@ RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
       result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
       break;
     }
-    case telegram_api::textBotCommand::ID:
+    case telegram_api::textBotCommand::ID: {
+      auto rich_text = telegram_api::move_object_as<telegram_api::textBotCommand>(rich_text_ptr);
+      result.type = RichText::Type::BotCommand;
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
       break;
+    }
     case telegram_api::textCashtag::ID: {
       auto rich_text = telegram_api::move_object_as<telegram_api::textCashtag>(rich_text_ptr);
       result.type = RichText::Type::Cashtag;
