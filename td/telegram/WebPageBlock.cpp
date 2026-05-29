@@ -1869,6 +1869,51 @@ class WebPageBlockDetails final : public WebPageBlock {
   }
 };
 
+class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
+  vector<unique_ptr<WebPageBlock>> blocks;
+  RichText caption;
+
+ public:
+  WebPageBlockBlockQuoteBlocks() = default;
+  WebPageBlockBlockQuoteBlocks(vector<unique_ptr<WebPageBlock>> &&page_blocks, RichText &&caption)
+      : blocks(std::move(blocks)), caption(std::move(caption)) {
+  }
+
+  Type get_type() const final {
+    return Type::BlockQuoteBlocks;
+  }
+
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
+    caption.append_file_ids(td, file_ids);
+    for (auto &block : blocks) {
+      block->append_file_ids(td, file_ids);
+    }
+  }
+
+  td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
+    return td_api::make_object<td_api::pageBlockBlockQuote>(get_page_blocks_object(blocks, context),
+                                                            caption.get_rich_text_object(context));
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    using ::td::store;
+    BEGIN_STORE_FLAGS();
+    END_STORE_FLAGS();
+    store(caption, storer);
+    store(blocks, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    using ::td::parse;
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
+    parse(caption, parser);
+    parse(blocks, parser);
+  }
+};
+
 class WebPageBlockRelatedArticles final : public WebPageBlock {
   RichText header;
   vector<RelatedArticle> related_articles;
@@ -2585,8 +2630,13 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::inputPageBlockMap::ID:
       return nullptr;
-    case telegram_api::pageBlockBlockquoteBlocks::ID:
-      return nullptr;
+    case telegram_api::pageBlockBlockquoteBlocks::ID: {
+      auto page_block = telegram_api::move_object_as<telegram_api::pageBlockBlockquoteBlocks>(page_block_ptr);
+      return td::make_unique<WebPageBlockBlockQuoteBlocks>(
+          get_web_page_blocks(td, std::move(page_block->blocks_), animations, audios, documents, photos, videos,
+                              voice_notes),
+          get_rich_text(std::move(page_block->caption_), documents));
+    }
     default:
       UNREACHABLE();
   }
@@ -2662,6 +2712,8 @@ void WebPageBlock::call_impl(Type type, const WebPageBlock *ptr, F &&f) {
       return f(static_cast<const WebPageBlockMath *>(ptr));
     case Type::Thinking:
       return f(static_cast<const WebPageBlockThinking *>(ptr));
+    case Type::BlockQuoteBlocks:
+      return f(static_cast<const WebPageBlockBlockQuoteBlocks *>(ptr));
     default:
       UNREACHABLE();
   }
