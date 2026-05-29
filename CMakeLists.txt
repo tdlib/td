@@ -462,6 +462,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/files/PartsManager.cpp
   td/telegram/files/ResourceManager.cpp
   td/telegram/files/ResourceState.cpp
+  td/telegram/FormattedDate.cpp
   td/telegram/ForumTopic.cpp
   td/telegram/ForumTopicEditedData.cpp
   td/telegram/ForumTopicIcon.cpp
@@ -846,6 +847,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/files/ResourceManager.h
   td/telegram/files/ResourceState.h
   td/telegram/FolderId.h
+  td/telegram/FormattedDate.h
   td/telegram/ForumTopic.h
   td/telegram/ForumTopicEditedData.h
   td/telegram/ForumTopicFullId.h
@@ -1172,6 +1174,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/files/FileLocation.hpp
   td/telegram/files/FileManager.hpp
   td/telegram/files/FileSourceId.hpp
+  td/telegram/FormattedDate.hpp
   td/telegram/ForumTopic.hpp
   td/telegram/ForumTopicEditedData.hpp
   td/telegram/ForumTopicIcon.hpp

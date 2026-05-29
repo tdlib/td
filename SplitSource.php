@@ -358,6 +358,7 @@ function split_file($file, $chunks, $undo) {
             'file_reference_manager[_(-](?![.]get[(][)])|FileReferenceManager|file_references[)]' => 'FileReferenceManager',
             'file_manager[_(-](?![.]get[(][)])|FileManager([^ ;.]| [^*])|update_file[)]' => 'files/FileManager',
             'FolderId' => 'FolderId',
+            'FormattedDate' => 'FormattedDate',
             'ForumTopicFullId' => 'ForumTopicFullId',
             'ForumTopicId' => 'ForumTopicId',
             'forum_topic_manager[_(-](?![.]get[(][)])|ForumTopicManager' => 'ForumTopicManager',

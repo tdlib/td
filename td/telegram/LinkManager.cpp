@@ -4474,9 +4474,10 @@ Result<CustomEmojiId> LinkManager::get_link_custom_emoji_id(Slice url) {
   return Status::Error(400, "Custom emoji URL must have an emoji identifier");
 }
 
-Result<LinkManager::DateFormat> LinkManager::get_link_date_format(Slice url) {
+Result<FormattedDate> LinkManager::get_link_formatted_date(Slice url) {
   TRY_RESULT(query, check_tg_url_host(url, "time"));
-  DateFormat result;
+  int32 date = 0;
+  string format;
   for (auto parameter : full_split(query, '&')) {
     Slice key;
     Slice value;
@@ -4486,16 +4487,16 @@ Result<LinkManager::DateFormat> LinkManager::get_link_date_format(Slice url) {
       if (r_date.is_error() || r_date.ok() <= 0) {
         return Status::Error(400, "Invalid Unix time specified");
       }
-      result.date_ = r_date.ok();
+      date = r_date.ok();
     }
     if (key == Slice("format")) {
-      result.format_ = value.str();
+      format = value.str();
     }
   }
-  if (result.date_ == 0) {
+  if (date == 0) {
     return Status::Error(400, "URL must have the corresponding Unix time");
   }
-  return std::move(result);
+  return FormattedDate::get_formatted_date(date, format);
 }
 
 Result<DialogBoostLinkInfo> LinkManager::get_dialog_boost_link_info(Slice url) {
