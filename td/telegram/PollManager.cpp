@@ -824,13 +824,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     close_date = 0;
   }
 
-  vector<td_api::object_ptr<td_api::MessageSender>> recent_voters;
-  for (auto recent_voter_dialog_id : poll->recent_voter_dialog_ids_) {
-    auto recent_voter = get_min_message_sender_object(td_, recent_voter_dialog_id, "get_poll_object");
-    if (recent_voter != nullptr) {
-      recent_voters.push_back(std::move(recent_voter));
-    }
-  }
+  auto recent_voters = get_min_message_senders_object(td_, poll->recent_voter_dialog_ids_, "get_poll_object");
   vector<int32> option_order;
   if (poll->shuffle_answers_ && !poll->is_creator_ && !td_->auth_manager_->is_bot()) {
     auto my_user_id = td_->user_manager_->get_my_id().get();
