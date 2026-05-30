@@ -11621,6 +11621,14 @@ td_api::object_ptr<td_api::CraftGiftResult> get_message_content_craft_gift_resul
   }
 }
 
+bool get_message_content_has_bot_commands(const MessageContent *content) {
+  auto text = get_message_content_text(content);
+  if (text != nullptr) {
+    return has_bot_commands(text);
+  }
+  return false;
+}
+
 FormattedText *get_message_content_text_mutable(MessageContent *content) {
   return const_cast<FormattedText *>(get_message_content_text(content));
 }

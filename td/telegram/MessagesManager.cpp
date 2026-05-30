@@ -18491,7 +18491,7 @@ void MessagesManager::on_message_live_location_viewed_on_server(int64 task_id) {
 void MessagesManager::try_add_bot_command_message_id(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot() || !td_->dialog_manager_->is_group_dialog(dialog_id) ||
-      m->message_id.is_scheduled() || !has_bot_commands(get_message_content_text(m->content.get()))) {
+      m->message_id.is_scheduled() || !get_message_content_has_bot_commands(m->content.get())) {
     return;
   }
 

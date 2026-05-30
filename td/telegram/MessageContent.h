@@ -308,6 +308,8 @@ td_api::object_ptr<td_api::upgradeGiftResult> get_message_content_upgrade_gift_r
 td_api::object_ptr<td_api::CraftGiftResult> get_message_content_craft_gift_result_object(const MessageContent *content,
                                                                                          Td *td, MessageId message_id);
 
+bool get_message_content_has_bot_commands(const MessageContent *content);
+
 FormattedText *get_message_content_text_mutable(MessageContent *content);
 
 const FormattedText *get_message_content_text(const MessageContent *content);
