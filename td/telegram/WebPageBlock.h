@@ -80,6 +80,8 @@ class WebPageBlock {
   template <class ParserT>
   friend void parse_web_page_block(unique_ptr<WebPageBlock> &block, ParserT &parser);
 
+  friend bool operator==(const WebPageBlock &lhs, const WebPageBlock &rhs);
+
   using Context = GetWebPageBlockObjectContext;
 
  public:
@@ -104,6 +106,12 @@ void store(const unique_ptr<WebPageBlock> &block, LogEventStorerCalcLength &stor
 void store(const unique_ptr<WebPageBlock> &block, LogEventStorerUnsafe &storer);
 
 void parse(unique_ptr<WebPageBlock> &block, LogEventParser &parser);
+
+bool operator==(const WebPageBlock &lhs, const WebPageBlock &rhs);
+
+inline bool operator!=(const WebPageBlock &lhs, const WebPageBlock &rhs) {
+  return !(lhs == rhs);
+}
 
 vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     Td *td, vector<tl_object_ptr<telegram_api::PageBlock>> page_block_ptrs,

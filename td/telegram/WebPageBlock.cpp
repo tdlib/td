@@ -145,6 +145,12 @@ class RichText {
     dependencies.add(user_id);
   }
 
+  friend bool operator==(const RichText &lhs, const RichText &rhs) {
+    return lhs.type == rhs.type && lhs.content == rhs.content && lhs.texts == rhs.texts &&
+           lhs.document_file_id == rhs.document_file_id && lhs.custom_emoji_id == rhs.custom_emoji_id &&
+           lhs.web_page_id == rhs.web_page_id && lhs.date == rhs.date && lhs.user_id == rhs.user_id;
+  }
+
   td_api::object_ptr<td_api::RichText> get_rich_text_object(GetWebPageBlockObjectContext *context) const {
     switch (type) {
       case RichText::Type::Plain:
@@ -331,6 +337,10 @@ class WebPageBlockCaption {
     credit.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockCaption &lhs, const WebPageBlockCaption &rhs) {
+    return lhs.text == rhs.text && lhs.credit == rhs.credit;
+  }
+
   td_api::object_ptr<td_api::pageBlockCaption> get_page_block_caption_object(
       GetWebPageBlockObjectContext *context) const {
     return td_api::make_object<td_api::pageBlockCaption>(text.get_rich_text_object(context),
@@ -375,6 +385,13 @@ class WebPageBlockTableCell {
 
   void add_dependencies(Dependencies &dependencies) const {
     text.add_dependencies(dependencies);
+  }
+
+  friend bool operator==(const WebPageBlockTableCell &lhs, const WebPageBlockTableCell &rhs) {
+    return lhs.text == rhs.text && lhs.is_header == rhs.is_header && lhs.align_left == rhs.align_left &&
+           lhs.align_center == rhs.align_center && lhs.align_right == rhs.align_right &&
+           lhs.valign_top == rhs.valign_top && lhs.valign_middle == rhs.valign_middle &&
+           lhs.valign_bottom == rhs.valign_bottom && lhs.colspan == rhs.colspan && lhs.rowspan == rhs.rowspan;
   }
 
   td_api::object_ptr<td_api::pageBlockTableCell> get_page_block_table_cell_object(
@@ -489,6 +506,12 @@ class RelatedArticle {
     dependencies.add(web_page_id);
   }
 
+  friend bool operator==(const RelatedArticle &lhs, const RelatedArticle &rhs) {
+    return lhs.url == rhs.url && lhs.web_page_id == rhs.web_page_id && lhs.title == rhs.title &&
+           lhs.description == rhs.description && lhs.photo == rhs.photo && lhs.author == rhs.author &&
+           lhs.published_date == rhs.published_date;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     using ::td::store;
@@ -579,6 +602,10 @@ class WebPageBlockTitle final : public WebPageBlock {
     title.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockTitle &lhs, const WebPageBlockTitle &rhs) {
+    return lhs.title == rhs.title;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockTitle>(title.get_rich_text_object(context));
   }
@@ -614,6 +641,10 @@ class WebPageBlockSubtitle final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     subtitle.add_dependencies(dependencies);
+  }
+
+  friend bool operator==(const WebPageBlockSubtitle &lhs, const WebPageBlockSubtitle &rhs) {
+    return lhs.subtitle == rhs.subtitle;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -652,6 +683,10 @@ class WebPageBlockAuthorDate final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     author.add_dependencies(dependencies);
+  }
+
+  friend bool operator==(const WebPageBlockAuthorDate &lhs, const WebPageBlockAuthorDate &rhs) {
+    return lhs.author == rhs.author && lhs.date == rhs.date;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -693,6 +728,10 @@ class WebPageBlockHeader final : public WebPageBlock {
     header.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockHeader &lhs, const WebPageBlockHeader &rhs) {
+    return lhs.header == rhs.header;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockHeader>(header.get_rich_text_object(context));
   }
@@ -728,6 +767,10 @@ class WebPageBlockSubheader final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     subheader.add_dependencies(dependencies);
+  }
+
+  friend bool operator==(const WebPageBlockSubheader &lhs, const WebPageBlockSubheader &rhs) {
+    return lhs.subheader == rhs.subheader;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -766,6 +809,10 @@ class WebPageBlockHeading final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     text.add_dependencies(dependencies);
+  }
+
+  friend bool operator==(const WebPageBlockHeading &lhs, const WebPageBlockHeading &rhs) {
+    return lhs.text == rhs.text && lhs.size == rhs.size;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -812,6 +859,10 @@ class WebPageBlockKicker final : public WebPageBlock {
     kicker.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockKicker &lhs, const WebPageBlockKicker &rhs) {
+    return lhs.kicker == rhs.kicker;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockKicker>(kicker.get_rich_text_object(context));
   }
@@ -847,6 +898,10 @@ class WebPageBlockParagraph final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     text.add_dependencies(dependencies);
+  }
+
+  friend bool operator==(const WebPageBlockParagraph &lhs, const WebPageBlockParagraph &rhs) {
+    return lhs.text == rhs.text;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -885,6 +940,10 @@ class WebPageBlockPreformatted final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     text.add_dependencies(dependencies);
+  }
+
+  friend bool operator==(const WebPageBlockPreformatted &lhs, const WebPageBlockPreformatted &rhs) {
+    return lhs.text == rhs.text && lhs.language == rhs.language;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -926,6 +985,10 @@ class WebPageBlockFooter final : public WebPageBlock {
     footer.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockFooter &lhs, const WebPageBlockFooter &rhs) {
+    return lhs.footer == rhs.footer;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockFooter>(footer.get_rich_text_object(context));
   }
@@ -963,6 +1026,10 @@ class WebPageBlockThinking final : public WebPageBlock {
     text.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockThinking &lhs, const WebPageBlockThinking &rhs) {
+    return lhs.text == rhs.text;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockThinking>(text.get_rich_text_object(context));
   }
@@ -996,6 +1063,10 @@ class WebPageBlockDivider final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
+  friend bool operator==(const WebPageBlockDivider &lhs, const WebPageBlockDivider &rhs) {
+    return true;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockDivider>();
   }
@@ -1025,6 +1096,10 @@ class WebPageBlockMath final : public WebPageBlock {
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
+  }
+
+  friend bool operator==(const WebPageBlockMath &lhs, const WebPageBlockMath &rhs) {
+    return lhs.source == rhs.source;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1066,6 +1141,10 @@ class WebPageBlockAnchor final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
+  friend bool operator==(const WebPageBlockAnchor &lhs, const WebPageBlockAnchor &rhs) {
+    return lhs.name == rhs.name;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     if (context->is_first_pass_) {
       context->anchors_.emplace(name, nullptr);
@@ -1095,6 +1174,11 @@ class WebPageBlockList final : public WebPageBlock {
     bool is_checked = false;
     int32 value = -1;
     string type;
+
+    friend bool operator==(const Item &lhs, const Item &rhs) {
+      return lhs.label == rhs.label && lhs.page_blocks == rhs.page_blocks && lhs.has_checkbox == rhs.has_checkbox &&
+             lhs.is_checked == rhs.is_checked && lhs.value == rhs.value && lhs.type == rhs.type;
+    }
 
     template <class StorerT>
     void store(StorerT &storer) const {
@@ -1179,6 +1263,11 @@ class WebPageBlockList final : public WebPageBlock {
         page_block->add_dependencies(dependencies);
       }
     }
+  }
+
+  friend bool operator==(const WebPageBlockList &lhs, const WebPageBlockList &rhs) {
+    return lhs.items == rhs.items && lhs.start == rhs.start && lhs.is_reversed == rhs.is_reversed &&
+           lhs.type == rhs.type;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1274,6 +1363,10 @@ class WebPageBlockBlockQuote final : public WebPageBlock {
     credit.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockBlockQuote &lhs, const WebPageBlockBlockQuote &rhs) {
+    return lhs.text == rhs.text && lhs.credit == rhs.credit;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     vector<td_api::object_ptr<td_api::PageBlock>> blocks;
     blocks.push_back(td_api::make_object<td_api::pageBlockParagraph>(text.get_rich_text_object(context)));
@@ -1318,6 +1411,10 @@ class WebPageBlockPullQuote final : public WebPageBlock {
     credit.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockPullQuote &lhs, const WebPageBlockPullQuote &rhs) {
+    return lhs.text == rhs.text && lhs.credit == rhs.credit;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockPullQuote>(text.get_rich_text_object(context),
                                                            credit.get_rich_text_object(context));
@@ -1360,6 +1457,11 @@ class WebPageBlockAnimation final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
+  }
+
+  friend bool operator==(const WebPageBlockAnimation &lhs, const WebPageBlockAnimation &rhs) {
+    return lhs.animation_file_id == rhs.animation_file_id && lhs.caption == rhs.caption &&
+           lhs.need_autoplay == rhs.need_autoplay;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1439,6 +1541,11 @@ class WebPageBlockPhoto final : public WebPageBlock {
     dependencies.add(web_page_id);
   }
 
+  friend bool operator==(const WebPageBlockPhoto &lhs, const WebPageBlockPhoto &rhs) {
+    return lhs.photo == rhs.photo && lhs.caption == rhs.caption && lhs.url == rhs.url &&
+           lhs.web_page_id == rhs.web_page_id && lhs.has_spoiler == rhs.has_spoiler;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockPhoto>(get_photo_object(context->td_->file_manager_.get(), photo),
                                                        caption.get_page_block_caption_object(context), url,
@@ -1506,6 +1613,12 @@ class WebPageBlockVideo final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
+  }
+
+  friend bool operator==(const WebPageBlockVideo &lhs, const WebPageBlockVideo &rhs) {
+    return lhs.video_file_id == rhs.video_file_id && lhs.caption == rhs.caption &&
+           lhs.need_autoplay == rhs.need_autoplay && lhs.is_looped == rhs.is_looped &&
+           lhs.has_spoiler == rhs.has_spoiler;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1578,6 +1691,10 @@ class WebPageBlockCover final : public WebPageBlock {
     cover->add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockCover &lhs, const WebPageBlockCover &rhs) {
+    return lhs.cover == rhs.cover;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockCover>(cover->get_page_block_object(context));
   }
@@ -1628,6 +1745,12 @@ class WebPageBlockEmbedded final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
+  }
+
+  friend bool operator==(const WebPageBlockEmbedded &lhs, const WebPageBlockEmbedded &rhs) {
+    return lhs.url == rhs.url && lhs.html == rhs.html && lhs.poster_photo == rhs.poster_photo &&
+           lhs.dimensions == rhs.dimensions && lhs.caption == rhs.caption && lhs.is_full_width == rhs.is_full_width &&
+           lhs.allow_scrolling == rhs.allow_scrolling;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1706,6 +1829,11 @@ class WebPageBlockEmbeddedPost final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockEmbeddedPost &lhs, const WebPageBlockEmbeddedPost &rhs) {
+    return lhs.url == rhs.url && lhs.author == rhs.author && lhs.author_photo == rhs.author_photo &&
+           lhs.date == rhs.date && lhs.page_blocks == rhs.page_blocks && lhs.caption == rhs.caption;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockEmbeddedPost>(
         url, author, get_photo_object(context->td_->file_manager_.get(), author_photo), date,
@@ -1763,6 +1891,10 @@ class WebPageBlockCollage final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockCollage &lhs, const WebPageBlockCollage &rhs) {
+    return lhs.page_blocks == rhs.page_blocks && lhs.caption == rhs.caption;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockCollage>(get_page_blocks_object(page_blocks, context),
                                                          caption.get_page_block_caption_object(context));
@@ -1809,6 +1941,10 @@ class WebPageBlockSlideshow final : public WebPageBlock {
       page_block->add_dependencies(dependencies);
     }
     caption.add_dependencies(dependencies);
+  }
+
+  friend bool operator==(const WebPageBlockSlideshow &lhs, const WebPageBlockSlideshow &rhs) {
+    return lhs.page_blocks == rhs.page_blocks && lhs.caption == rhs.caption;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1858,6 +1994,11 @@ class WebPageBlockChatLink final : public WebPageBlock {
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
+  }
+
+  friend bool operator==(const WebPageBlockChatLink &lhs, const WebPageBlockChatLink &rhs) {
+    return lhs.title == rhs.title && lhs.photo == rhs.photo && lhs.username == rhs.username &&
+           lhs.accent_color_id == rhs.accent_color_id && lhs.channel_id == rhs.channel_id;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1962,6 +2103,10 @@ class WebPageBlockAudio final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockAudio &lhs, const WebPageBlockAudio &rhs) {
+    return lhs.audio_file_id == rhs.audio_file_id && lhs.caption == rhs.caption;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockAudio>(context->td_->audios_manager_->get_audio_object(audio_file_id),
                                                        caption.get_page_block_caption_object(context));
@@ -2046,6 +2191,11 @@ class WebPageBlockTable final : public WebPageBlock {
     }
   }
 
+  friend bool operator==(const WebPageBlockTable &lhs, const WebPageBlockTable &rhs) {
+    return lhs.title == rhs.title && lhs.cells == rhs.cells && lhs.is_bordered == rhs.is_bordered &&
+           lhs.is_striped == rhs.is_striped;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     auto cell_objects = transform(cells, [&](const vector<WebPageBlockTableCell> &row) {
       return transform(
@@ -2108,6 +2258,10 @@ class WebPageBlockDetails final : public WebPageBlock {
     }
   }
 
+  friend bool operator==(const WebPageBlockDetails &lhs, const WebPageBlockDetails &rhs) {
+    return lhs.header == rhs.header && lhs.page_blocks == rhs.page_blocks && lhs.is_open == rhs.is_open;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockDetails>(header.get_rich_text_object(context),
                                                          get_page_blocks_object(page_blocks, context), is_open);
@@ -2162,6 +2316,10 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockBlockQuoteBlocks &lhs, const WebPageBlockBlockQuoteBlocks &rhs) {
+    return lhs.blocks == rhs.blocks && lhs.caption == rhs.caption;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockBlockQuote>(get_page_blocks_object(blocks, context),
                                                             caption.get_rich_text_object(context));
@@ -2214,6 +2372,10 @@ class WebPageBlockRelatedArticles final : public WebPageBlock {
     }
   }
 
+  friend bool operator==(const WebPageBlockRelatedArticles &lhs, const WebPageBlockRelatedArticles &rhs) {
+    return lhs.header == rhs.header && lhs.related_articles == rhs.related_articles;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     auto related_article_objects = transform(related_articles, [context](const RelatedArticle &article) {
       return td_api::make_object<td_api::pageBlockRelatedArticle>(
@@ -2263,6 +2425,11 @@ class WebPageBlockMap final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
+  friend bool operator==(const WebPageBlockMap &lhs, const WebPageBlockMap &rhs) {
+    return lhs.location == rhs.location && lhs.zoom == rhs.zoom && lhs.dimensions == rhs.dimensions &&
+           lhs.caption == rhs.caption;
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockMap>(location.get_location_object(), zoom, dimensions.width,
                                                      dimensions.height, caption.get_page_block_caption_object(context));
@@ -2308,6 +2475,10 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
+  }
+
+  friend bool operator==(const WebPageBlockVoiceNote &lhs, const WebPageBlockVoiceNote &rhs) {
+    return lhs.voice_note_file_id == rhs.voice_note_file_id && lhs.caption == rhs.caption;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -3095,6 +3266,19 @@ void store(const unique_ptr<WebPageBlock> &block, LogEventStorerUnsafe &storer) 
 
 void parse(unique_ptr<WebPageBlock> &block, LogEventParser &parser) {
   parse_web_page_block(block, parser);
+}
+
+bool operator==(const WebPageBlock &lhs, const WebPageBlock &rhs) {
+  auto type = lhs.get_type();
+  if (rhs.get_type() != type) {
+    return false;
+  }
+  bool result = false;
+  WebPageBlock::call_impl(type, &lhs, [&](const auto *object) {
+    using ObjT = std::decay_t<decltype(*object)>;
+    result = (*object == static_cast<const ObjT &>(rhs));
+  });
+  return result;
 }
 
 vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
