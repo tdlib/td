@@ -116,6 +116,12 @@ textEntities entities:vector<textEntity> = TextEntities;
 //-Pre, Code, PreCode, and DateTime entities can't contain other entities. BlockQuote entities can't contain other BlockQuote entities. Bold, Italic, Underline, Strikethrough, and Spoiler entities can contain and can be part of any other entities. All other entities can't contain each other
 formattedText text:string entities:vector<textEntity> = FormattedText;
 
+//@description Describes a message with rich formatting
+//@blocks Content of the message
+//@is_rtl True, if the message must be shown from right to left
+//@is_full True, if the object contains the full message. Otherwise, getFullRichMessage must be used to get the full message
+richMessage blocks:vector<PageBlock> is_rtl:Bool is_full:Bool = RichMessage;
+
 //@description Represents a change of a text @offset Offset of the entity, in UTF-16 code units @length Length of the entity, in UTF-16 code units @type Type of the entity
 diffEntity offset:int32 length:int32 type:DiffEntityType = DiffEntity;
 
