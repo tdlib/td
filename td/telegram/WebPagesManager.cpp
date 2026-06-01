@@ -177,6 +177,12 @@ class WebPagesManager::WebPageInstantView {
   bool is_loaded_ = false;
   bool was_loaded_from_database_ = false;
 
+  void add_dependencies(Dependencies &dependencies) const {
+    for (const auto &page_block : page_blocks_) {
+      page_block->add_dependencies(dependencies);
+    }
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     using ::td::store;
@@ -1329,6 +1335,13 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
 
       LOG(ERROR) << "Erase instant view in " << web_page_id << " from database because of " << status.message();
       G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
+    } else {
+      Dependencies dependencies;
+      instant_view.add_dependencies(dependencies);
+      if (!dependencies.resolve_force(td_, "on_load_web_page_instant_view_from_database")) {
+        instant_view = WebPageInstantView();
+        G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
+      }
     }
   }
   instant_view.was_loaded_from_database_ = true;
