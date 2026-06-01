@@ -18,6 +18,8 @@
 
 namespace td {
 
+class Dependencies;
+
 struct GetWebPageBlockObjectContext;
 
 class Td;
@@ -89,6 +91,8 @@ class WebPageBlock {
   virtual ~WebPageBlock() = default;
 
   virtual void append_file_ids(const Td *td, vector<FileId> &file_ids) const = 0;
+
+  virtual void add_dependencies(Dependencies &dependencies) const = 0;
 
   virtual td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const = 0;
 

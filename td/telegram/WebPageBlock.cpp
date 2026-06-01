@@ -14,6 +14,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/CustomEmojiId.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogPhoto.h"
 #include "td/telegram/DialogPhoto.hpp"
@@ -131,6 +132,13 @@ class RichText {
         text.append_file_ids(td, file_ids);
       }
     }
+  }
+
+  void add_dependencies(Dependencies &dependencies) const {
+    for (auto &text : texts) {
+      text.add_dependencies(dependencies);
+    }
+    dependencies.add(web_page_id);
   }
 
   td_api::object_ptr<td_api::RichText> get_rich_text_object(GetWebPageBlockObjectContext *context) const {
@@ -303,6 +311,11 @@ class WebPageBlockCaption {
     credit.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const {
+    text.add_dependencies(dependencies);
+    credit.add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::pageBlockCaption> get_page_block_caption_object(
       GetWebPageBlockObjectContext *context) const {
     return td_api::make_object<td_api::pageBlockCaption>(text.get_rich_text_object(context),
@@ -340,6 +353,14 @@ class WebPageBlockTableCell {
   bool valign_bottom = false;
   int32 colspan = 1;
   int32 rowspan = 1;
+
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const {
+    text.append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const {
+    text.add_dependencies(dependencies);
+  }
 
   td_api::object_ptr<td_api::pageBlockTableCell> get_page_block_table_cell_object(
       GetWebPageBlockObjectContext *context) const {
@@ -443,6 +464,16 @@ class RelatedArticle {
   string author;
   int32 published_date = 0;
 
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const {
+    if (!photo.is_empty()) {
+      append(file_ids, photo_get_file_ids(photo));
+    }
+  }
+
+  void add_dependencies(Dependencies &dependencies) const {
+    dependencies.add(web_page_id);
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     using ::td::store;
@@ -529,6 +560,10 @@ class WebPageBlockTitle final : public WebPageBlock {
     title.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    title.add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockTitle>(title.get_rich_text_object(context));
   }
@@ -560,6 +595,10 @@ class WebPageBlockSubtitle final : public WebPageBlock {
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     subtitle.append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    subtitle.add_dependencies(dependencies);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -594,6 +633,10 @@ class WebPageBlockAuthorDate final : public WebPageBlock {
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     author.append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    author.add_dependencies(dependencies);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -631,6 +674,10 @@ class WebPageBlockHeader final : public WebPageBlock {
     header.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    header.add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockHeader>(header.get_rich_text_object(context));
   }
@@ -662,6 +709,10 @@ class WebPageBlockSubheader final : public WebPageBlock {
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     subheader.append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    subheader.add_dependencies(dependencies);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -696,6 +747,10 @@ class WebPageBlockHeading final : public WebPageBlock {
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     text.append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    text.add_dependencies(dependencies);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -738,6 +793,10 @@ class WebPageBlockKicker final : public WebPageBlock {
     kicker.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    kicker.add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockKicker>(kicker.get_rich_text_object(context));
   }
@@ -769,6 +828,10 @@ class WebPageBlockParagraph final : public WebPageBlock {
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     text.append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    text.add_dependencies(dependencies);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -803,6 +866,10 @@ class WebPageBlockPreformatted final : public WebPageBlock {
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     text.append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    text.add_dependencies(dependencies);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -840,6 +907,10 @@ class WebPageBlockFooter final : public WebPageBlock {
     footer.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    footer.add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockFooter>(footer.get_rich_text_object(context));
   }
@@ -873,6 +944,10 @@ class WebPageBlockThinking final : public WebPageBlock {
     text.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    text.add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockThinking>(text.get_rich_text_object(context));
   }
@@ -903,6 +978,9 @@ class WebPageBlockDivider final : public WebPageBlock {
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockDivider>();
   }
@@ -929,6 +1007,9 @@ class WebPageBlockMath final : public WebPageBlock {
   }
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -965,6 +1046,9 @@ class WebPageBlockAnchor final : public WebPageBlock {
   }
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1074,6 +1158,14 @@ class WebPageBlockList final : public WebPageBlock {
     }
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    for (auto &item : items) {
+      for (auto &page_block : item.page_blocks) {
+        page_block->add_dependencies(dependencies);
+      }
+    }
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockList>(
         transform(items, [context](const Item &item) { return get_page_block_list_item_object(item, context); }));
@@ -1162,6 +1254,11 @@ class WebPageBlockBlockQuote final : public WebPageBlock {
     credit.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    text.add_dependencies(dependencies);
+    credit.add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     vector<td_api::object_ptr<td_api::PageBlock>> blocks;
     blocks.push_back(td_api::make_object<td_api::pageBlockParagraph>(text.get_rich_text_object(context)));
@@ -1199,6 +1296,11 @@ class WebPageBlockPullQuote final : public WebPageBlock {
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     text.append_file_ids(td, file_ids);
     credit.append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    text.add_dependencies(dependencies);
+    credit.add_dependencies(dependencies);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1239,6 +1341,10 @@ class WebPageBlockAnimation final : public WebPageBlock {
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     caption.append_file_ids(td, file_ids);
     Document(Document::Type::Animation, animation_file_id).append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    caption.add_dependencies(dependencies);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1313,6 +1419,11 @@ class WebPageBlockPhoto final : public WebPageBlock {
     caption.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    caption.add_dependencies(dependencies);
+    dependencies.add(web_page_id);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockPhoto>(get_photo_object(context->td_->file_manager_.get(), photo),
                                                        caption.get_page_block_caption_object(context), url,
@@ -1376,6 +1487,10 @@ class WebPageBlockVideo final : public WebPageBlock {
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     caption.append_file_ids(td, file_ids);
     Document(Document::Type::Video, video_file_id).append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    caption.add_dependencies(dependencies);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1444,6 +1559,10 @@ class WebPageBlockCover final : public WebPageBlock {
     cover->append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    cover->add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockCover>(cover->get_page_block_object(context));
   }
@@ -1490,6 +1609,10 @@ class WebPageBlockEmbedded final : public WebPageBlock {
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     append(file_ids, photo_get_file_ids(poster_photo));
     caption.append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    caption.add_dependencies(dependencies);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1561,6 +1684,13 @@ class WebPageBlockEmbeddedPost final : public WebPageBlock {
     caption.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    for (auto &page_block : page_blocks) {
+      page_block->add_dependencies(dependencies);
+    }
+    caption.add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockEmbeddedPost>(
         url, author, get_photo_object(context->td_->file_manager_.get(), author_photo), date,
@@ -1611,6 +1741,13 @@ class WebPageBlockCollage final : public WebPageBlock {
     caption.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    for (auto &page_block : page_blocks) {
+      page_block->add_dependencies(dependencies);
+    }
+    caption.add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockCollage>(get_page_blocks_object(page_blocks, context),
                                                          caption.get_page_block_caption_object(context));
@@ -1652,6 +1789,13 @@ class WebPageBlockSlideshow final : public WebPageBlock {
     caption.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    for (auto &page_block : page_blocks) {
+      page_block->add_dependencies(dependencies);
+    }
+    caption.add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockSlideshow>(get_page_blocks_object(page_blocks, context),
                                                            caption.get_page_block_caption_object(context));
@@ -1677,7 +1821,7 @@ class WebPageBlockChatLink final : public WebPageBlock {
   DialogPhoto photo;
   string username;
   AccentColorId accent_color_id;
-  ChannelId channel_id;
+  ChannelId channel_id;  // the channel itself may be unknown
 
  public:
   WebPageBlockChatLink() = default;
@@ -1696,6 +1840,9 @@ class WebPageBlockChatLink final : public WebPageBlock {
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     append(file_ids, dialog_photo_get_file_ids(photo));
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -1796,6 +1943,10 @@ class WebPageBlockAudio final : public WebPageBlock {
     caption.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    caption.add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockAudio>(context->td_->audios_manager_->get_audio_object(audio_file_id),
                                                        caption.get_page_block_caption_object(context));
@@ -1866,7 +2017,16 @@ class WebPageBlockTable final : public WebPageBlock {
     title.append_file_ids(td, file_ids);
     for (auto &row : cells) {
       for (auto &cell : row) {
-        cell.text.append_file_ids(td, file_ids);
+        cell.append_file_ids(td, file_ids);
+      }
+    }
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    title.add_dependencies(dependencies);
+    for (auto &row : cells) {
+      for (auto &cell : row) {
+        cell.add_dependencies(dependencies);
       }
     }
   }
@@ -1926,6 +2086,13 @@ class WebPageBlockDetails final : public WebPageBlock {
     }
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    header.add_dependencies(dependencies);
+    for (auto &page_block : page_blocks) {
+      page_block->add_dependencies(dependencies);
+    }
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockDetails>(header.get_rich_text_object(context),
                                                          get_page_blocks_object(page_blocks, context), is_open);
@@ -1967,10 +2134,17 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
   }
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
-    caption.append_file_ids(td, file_ids);
     for (auto &block : blocks) {
       block->append_file_ids(td, file_ids);
     }
+    caption.append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    for (auto &page_block : blocks) {
+      page_block->add_dependencies(dependencies);
+    }
+    caption.add_dependencies(dependencies);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
@@ -2013,10 +2187,15 @@ class WebPageBlockRelatedArticles final : public WebPageBlock {
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     header.append_file_ids(td, file_ids);
-    for (auto &article : related_articles) {
-      if (!article.photo.is_empty()) {
-        append(file_ids, photo_get_file_ids(article.photo));
-      }
+    for (const auto &article : related_articles) {
+      article.append_file_ids(td, file_ids);
+    }
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    header.add_dependencies(dependencies);
+    for (const auto &article : related_articles) {
+      article.add_dependencies(dependencies);
     }
   }
 
@@ -2065,6 +2244,10 @@ class WebPageBlockMap final : public WebPageBlock {
     caption.append_file_ids(td, file_ids);
   }
 
+  void add_dependencies(Dependencies &dependencies) const final {
+    caption.add_dependencies(dependencies);
+  }
+
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockMap>(location.get_location_object(), zoom, dimensions.width,
                                                      dimensions.height, caption.get_page_block_caption_object(context));
@@ -2106,6 +2289,10 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     Document(Document::Type::VoiceNote, voice_note_file_id).append_file_ids(td, file_ids);
     caption.append_file_ids(td, file_ids);
+  }
+
+  void add_dependencies(Dependencies &dependencies) const final {
+    caption.add_dependencies(dependencies);
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
