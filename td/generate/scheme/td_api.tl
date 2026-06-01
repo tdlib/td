@@ -3908,6 +3908,9 @@ richTextBotCommand text:RichText = RichText;
 //@description A fixed-width rich text @text Text
 richTextFixed text:RichText = RichText;
 
+//@description A rich text that serves as a mention of a user @text Text @user_id Identifier of the mentioned user
+richTextMentionName text:RichText user_id:int53 = RichText;
+
 //@description A rich text URL link @text Text @url URL @is_cached True, if the URL has cached instant view server-side
 richTextUrl text:RichText url:string is_cached:Bool = RichText;
 

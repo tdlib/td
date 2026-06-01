@@ -34,6 +34,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/Version.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VideosManager.hpp"
@@ -109,7 +110,8 @@ class RichText {
     AutoEmailAddress,
     AutoPhoneNumber,
     FormattedDate,
-    BankCardNumber
+    BankCardNumber,
+    MentionName
   };
   Type type = Type::Plain;
   string content;
@@ -118,6 +120,7 @@ class RichText {
   CustomEmojiId custom_emoji_id;
   WebPageId web_page_id;
   FormattedDate date;
+  UserId user_id;
 
   bool empty() const {
     return type == Type::Plain && content.empty();
@@ -139,6 +142,7 @@ class RichText {
       text.add_dependencies(dependencies);
     }
     dependencies.add(web_page_id);
+    dependencies.add(user_id);
   }
 
   td_api::object_ptr<td_api::RichText> get_rich_text_object(GetWebPageBlockObjectContext *context) const {
@@ -249,9 +253,14 @@ class RichText {
                                                              date.get_date_time_formatting_type_object());
       case RichText::Type::BankCardNumber:
         return td_api::make_object<td_api::richTextBankCardNumber>(texts[0].get_rich_text_object(context));
+      case RichText::Type::MentionName:
+        return td_api::make_object<td_api::richTextMentionName>(
+            texts[0].get_rich_text_object(context),
+            context->td_->user_manager_->get_user_id_object(user_id, "richTextMentionName"));
+      default:
+        UNREACHABLE();
+        return nullptr;
     }
-    UNREACHABLE();
-    return nullptr;
   }
 
   template <class StorerT>
@@ -271,6 +280,9 @@ class RichText {
     }
     if (type == Type::FormattedDate) {
       store(date, storer);
+    }
+    if (type == Type::MentionName) {
+      store(user_id, storer);
     }
   }
 
@@ -295,6 +307,9 @@ class RichText {
     }
     if (type == Type::FormattedDate) {
       parse(date, parser);
+    }
+    if (type == Type::MentionName) {
+      parse(user_id, parser);
     }
   }
 };
@@ -2513,7 +2528,17 @@ RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
       result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
       break;
     }
-    case telegram_api::textMentionName::ID:
+    case telegram_api::textMentionName::ID: {
+      auto rich_text = telegram_api::move_object_as<telegram_api::textMentionName>(rich_text_ptr);
+      result.type = RichText::Type::MentionName;
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
+      result.user_id = UserId(rich_text->user_id_);
+      if (!result.user_id.is_valid()) {
+        LOG(ERROR) << "Receive " << result.user_id;
+        result.user_id = UserId();
+      }
+      break;
+    }
     case telegram_api::textDate::ID: {
       auto rich_text = telegram_api::move_object_as<telegram_api::textDate>(rich_text_ptr);
       auto date = FormattedDate(rich_text->date_, rich_text->relative_, rich_text->short_time_, rich_text->long_time_,
