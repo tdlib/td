@@ -33802,7 +33802,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     td_->dialog_manager_->have_dialog_info_force(dialog_id, "parse_dialog");
     if (td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
       if (dialog_id.get_type() != DialogType::SecretChat) {
-        send_get_dialog_query(dialog_id, Auto(), 0, source);
+        send_get_dialog_query(dialog_id, Auto(), 0, "parse_dialog");
       }
     } else {
       LOG(ERROR) << "Can't repair unknown " << dialog_id << " from " << source;
@@ -33831,8 +33831,12 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   if (d->chat_theme != nullptr) {
     d->chat_theme->add_dependencies(dependencies);
   }
-  if (!dependencies.resolve_force(td_, source)) {
-    send_get_dialog_query(dialog_id, Auto(), 0, source);
+  if (!dependencies.resolve_force(td_, "parse_dialog 1")) {
+    d->messages.foreach([&](const MessageId &message_id, const unique_ptr<Message> &message) {
+      get_message_from_server({dialog_id, message_id}, Auto(), "parse_dialog 2");
+    });
+    send_get_dialog_query(dialog_id, Auto(), 0, "parse_dialog 3");
+    td_->dialog_manager_->reload_dialog_info_full(dialog_id, "parse_dialog 4");
   }
 
   if (td_->auth_manager_->is_bot()) {
