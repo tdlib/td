@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogParticipant.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/WebPageBlock.h"
@@ -53,6 +54,8 @@ class RichMessage {
   bool has_bot_commands() const;
 
   vector<string> get_hashtags() const;
+
+  bool can_send(const RestrictedRights &rights) const;
 
   td_api::object_ptr<td_api::richMessage> get_rich_message_object(Td *td, bool skip_bot_commands) const;
 

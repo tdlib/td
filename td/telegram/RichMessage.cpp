@@ -125,6 +125,15 @@ vector<string> RichMessage::get_hashtags() const {
   return hashtags;
 }
 
+bool RichMessage::can_send(const RestrictedRights &rights) const {
+  for (const auto &block : blocks_) {
+    if (!block->can_send(rights)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 td_api::object_ptr<td_api::richMessage> RichMessage::get_rich_message_object(Td *td, bool skip_bot_commands) const {
   return td_api::make_object<td_api::richMessage>(
       get_page_blocks_object(blocks_, td, string(), string(), skip_bot_commands), is_rtl_, is_full_);

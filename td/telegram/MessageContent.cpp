@@ -6167,8 +6167,8 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::RichText:
-      if (!permissions.can_send_messages()) {
-        return Status::Error(400, "Not enough rights to send rich messages to the chat");
+      if (!static_cast<const MessageRichText *>(content)->text.can_send(permissions)) {
+        return Status::Error(400, "Not enough rights to send the rich message to the chat");
       }
       break;
     case MessageContentType::Sticker:
