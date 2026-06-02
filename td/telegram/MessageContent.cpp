@@ -4483,7 +4483,8 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
     }
     case telegram_api::botInlineMessageRichMessage::ID: {
       auto inline_message = telegram_api::move_object_as<telegram_api::botInlineMessageRichMessage>(bot_inline_message);
-      result.message_content = td::make_unique<MessageText>();
+      result.message_content =
+          td::make_unique<MessageRichText>(RichMessage(td, std::move(inline_message->rich_message_), DialogId()));
       reply_markup = std::move(inline_message->reply_markup_);
       break;
     }
