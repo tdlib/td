@@ -15663,6 +15663,9 @@ setAlarm seconds:double = Ok;
 //@description Returns information about existing countries. Can be called before authorization
 getCountries = Countries;
 
+//@description Returns information about an existing country. Can be called before authorization @country_code A two-letter ISO 3166-1 alpha-2 country code
+getCountry country_code:string = CountryInfo;
+
 //@description Uses the current IP address to find the current country. Returns two-letter ISO 3166-1 alpha-2 country code. Can be called before authorization
 getCountryCode = Text;
 

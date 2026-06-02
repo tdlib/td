@@ -1990,6 +1990,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getCountries &request);
 
+  void on_request(uint64 id, const td_api::getCountry &request);
+
   void on_request(uint64 id, const td_api::getCountryCode &request);
 
   void on_request(uint64 id, const td_api::getPhoneNumberInfo &request);

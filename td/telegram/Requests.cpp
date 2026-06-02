@@ -9029,6 +9029,11 @@ void Requests::on_request(uint64 id, const td_api::getCountries &request) {
   td_->country_info_manager_->get_countries(std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getCountry &request) {
+  CREATE_REQUEST_PROMISE();
+  td_->country_info_manager_->get_country(request.country_code_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getCountryCode &request) {
   CREATE_TEXT_REQUEST_PROMISE();
   td_->country_info_manager_->get_current_country_code(std::move(promise));

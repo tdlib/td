@@ -4362,6 +4362,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteChatBackground>(chat_id, op == "dcbr"));
     } else if (op == "gcos") {
       send_request(td_api::make_object<td_api::getCountries>());
+    } else if (op == "gcou") {
+      send_request(td_api::make_object<td_api::getCountry>(args));
     } else if (op == "gcoc") {
       send_request(td_api::make_object<td_api::getCountryCode>());
     } else if (op == "gpni") {
