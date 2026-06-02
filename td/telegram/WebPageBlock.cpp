@@ -3512,6 +3512,16 @@ void WebPageBlock::append_user_ids(vector<UserId> &user_ids) const {
   });
 }
 
+bool WebPageBlock::has_bot_commands() const {
+  bool result = false;
+  for_each_rich_text([&](const RichText *text) {
+    if (text->type == RichText::Type::BotCommand) {
+      result = true;
+    }
+  });
+  return result;
+}
+
 template <class F>
 void WebPageBlock::call_impl(Type type, const WebPageBlock *ptr, F &&f) {
   switch (type) {

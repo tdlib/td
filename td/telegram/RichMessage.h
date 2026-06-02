@@ -50,6 +50,8 @@ class RichMessage {
 
   vector<UserId> get_user_ids() const;
 
+  bool has_bot_commands() const;
+
   td_api::object_ptr<td_api::richMessage> get_rich_message_object(Td *td) const;
 
   RichMessage clone() const;

@@ -11895,6 +11895,9 @@ bool get_message_content_has_bot_commands(const MessageContent *content) {
   if (text != nullptr) {
     return has_bot_commands(text);
   }
+  if (content->get_type() == MessageContentType::RichText) {
+    return static_cast<const MessageRichText *>(content)->text.has_bot_commands();
+  }
   return false;
 }
 

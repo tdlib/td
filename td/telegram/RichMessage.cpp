@@ -107,6 +107,15 @@ vector<UserId> RichMessage::get_user_ids() const {
   return user_ids;
 }
 
+bool RichMessage::has_bot_commands() const {
+  for (const auto &block : blocks_) {
+    if (block->has_bot_commands()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 td_api::object_ptr<td_api::richMessage> RichMessage::get_rich_message_object(Td *td) const {
   return td_api::make_object<td_api::richMessage>(get_page_blocks_object(blocks_, td, string(), string()), is_rtl_,
                                                   is_full_);
