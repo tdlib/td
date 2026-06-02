@@ -6321,7 +6321,7 @@ bool can_forward_message_content(const Td *td, const MessageContent *content, bo
     return !PollManager::is_local_poll_id(poll->poll_id);
   }
   if (content_type == MessageContentType::RichText) {
-    return !is_copy || td->option_manager_->get_option_boolean("is_premium");
+    return !is_copy || td->auth_manager_->is_bot();
   }
   if (is_copy) {
     if (content_type == MessageContentType::Giveaway || content_type == MessageContentType::GiveawayWinners ||
