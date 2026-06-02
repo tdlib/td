@@ -62,6 +62,7 @@ struct GetWebPageBlockObjectContext {
   Slice base_url_;
   string real_url_host_;
   string real_url_rhash_;
+  bool skip_bot_commands_ = false;
 
   bool is_first_pass_ = true;
   bool has_anchor_urls_ = false;
@@ -258,6 +259,9 @@ class RichText {
       case RichText::Type::Cashtag:
         return td_api::make_object<td_api::richTextCashtag>(texts[0].get_rich_text_object(context));
       case RichText::Type::BotCommand:
+        if (context->skip_bot_commands_) {
+          return texts[0].get_rich_text_object(context);
+        }
         return td_api::make_object<td_api::richTextBotCommand>(texts[0].get_rich_text_object(context));
       case RichText::Type::AutoUrl:
         return td_api::make_object<td_api::richTextAutoUrl>(texts[0].get_rich_text_object(context));
@@ -3678,7 +3682,8 @@ vector<unique_ptr<WebPageBlock>> clone_web_page_blocks(const vector<unique_ptr<W
 }
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
-    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url, Slice real_url) {
+    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url, Slice real_url,
+    bool skip_bot_commands) {
   GetWebPageBlockObjectContext context;
   context.td_ = td;
   context.base_url_ = base_url;
@@ -3689,6 +3694,7 @@ vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
       context.real_url_rhash_ = string();
     }
   }
+  context.skip_bot_commands_ = skip_bot_commands;
   auto blocks = get_page_blocks_object(page_blocks, &context);
   if (!context.has_anchor_urls_) {
     return blocks;

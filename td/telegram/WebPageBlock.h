@@ -136,6 +136,7 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
 vector<unique_ptr<WebPageBlock>> clone_web_page_blocks(const vector<unique_ptr<WebPageBlock>> &page_blocks);
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
-    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url, Slice real_url);
+    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url, Slice real_url,
+    bool skip_bot_commands);
 
 }  // namespace td

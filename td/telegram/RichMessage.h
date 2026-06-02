@@ -52,7 +52,7 @@ class RichMessage {
 
   bool has_bot_commands() const;
 
-  td_api::object_ptr<td_api::richMessage> get_rich_message_object(Td *td) const;
+  td_api::object_ptr<td_api::richMessage> get_rich_message_object(Td *td, bool skip_bot_commands) const;
 
   RichMessage clone() const;
 

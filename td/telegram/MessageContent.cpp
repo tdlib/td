@@ -11069,7 +11069,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::RichText: {
       const auto *m = static_cast<const MessageRichText *>(content);
-      return td_api::make_object<td_api::messageRichMessage>(m->text.get_rich_message_object(td));
+      return td_api::make_object<td_api::messageRichMessage>(m->text.get_rich_message_object(td, skip_bot_commands));
     }
     case MessageContentType::Sticker: {
       const auto *m = static_cast<const MessageSticker *>(content);

@@ -1606,7 +1606,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
     }
   };
 
-  for (auto &block_object : get_page_blocks_object(instant_view.page_blocks_, td_, Slice(), Slice())) {
+  for (auto &block_object : get_page_blocks_object(instant_view.page_blocks_, td_, Slice(), Slice(), true)) {
     switch (block_object->get_id()) {
       case td_api::pageBlockTitle::ID:
       case td_api::pageBlockAuthorDate::ID:
@@ -2175,7 +2175,7 @@ td_api::object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_ins
   auto feedback_link = td_api::make_object<td_api::internalLinkTypeBotStart>(
       "previews", PSTRING() << "webpage" << web_page_id.get(), true);
   return td_api::make_object<td_api::webPageInstantView>(
-      get_page_blocks_object(web_page_instant_view->page_blocks_, td_, web_page_instant_view->url_, web_page_url),
+      get_page_blocks_object(web_page_instant_view->page_blocks_, td_, web_page_instant_view->url_, web_page_url, true),
       web_page_instant_view->view_count_, web_page_instant_view->is_v2_ ? 2 : 1, web_page_instant_view->is_rtl_,
       web_page_instant_view->is_full_, std::move(feedback_link));
 }

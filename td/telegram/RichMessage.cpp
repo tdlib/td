@@ -116,9 +116,9 @@ bool RichMessage::has_bot_commands() const {
   return false;
 }
 
-td_api::object_ptr<td_api::richMessage> RichMessage::get_rich_message_object(Td *td) const {
-  return td_api::make_object<td_api::richMessage>(get_page_blocks_object(blocks_, td, string(), string()), is_rtl_,
-                                                  is_full_);
+td_api::object_ptr<td_api::richMessage> RichMessage::get_rich_message_object(Td *td, bool skip_bot_commands) const {
+  return td_api::make_object<td_api::richMessage>(
+      get_page_blocks_object(blocks_, td, string(), string(), skip_bot_commands), is_rtl_, is_full_);
 }
 
 RichMessage RichMessage::clone() const {
