@@ -145,6 +145,15 @@ class RichText {
     dependencies.add(user_id);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const {
+    for (auto &text : texts) {
+      text.for_each_text(callback);
+    }
+    if (type == Type::Plain) {
+      callback(content);
+    }
+  }
+
   friend bool operator==(const RichText &lhs, const RichText &rhs) {
     return lhs.type == rhs.type && lhs.content == rhs.content && lhs.texts == rhs.texts &&
            lhs.document_file_id == rhs.document_file_id && lhs.custom_emoji_id == rhs.custom_emoji_id &&
@@ -337,6 +346,11 @@ class WebPageBlockCaption {
     credit.add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const {
+    text.for_each_text(callback);
+    credit.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockCaption &lhs, const WebPageBlockCaption &rhs) {
     return lhs.text == rhs.text && lhs.credit == rhs.credit;
   }
@@ -385,6 +399,10 @@ class WebPageBlockTableCell {
 
   void add_dependencies(Dependencies &dependencies) const {
     text.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const {
+    text.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockTableCell &lhs, const WebPageBlockTableCell &rhs) {
@@ -506,6 +524,9 @@ class RelatedArticle {
     dependencies.add(web_page_id);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const {
+  }
+
   friend bool operator==(const RelatedArticle &lhs, const RelatedArticle &rhs) {
     return lhs.url == rhs.url && lhs.web_page_id == rhs.web_page_id && lhs.title == rhs.title &&
            lhs.description == rhs.description && lhs.photo == rhs.photo && lhs.author == rhs.author &&
@@ -608,6 +629,10 @@ class WebPageBlockTitle final : public WebPageBlock {
     title.add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    title.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockTitle &lhs, const WebPageBlockTitle &rhs) {
     return lhs.title == rhs.title;
   }
@@ -647,6 +672,10 @@ class WebPageBlockSubtitle final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     subtitle.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    subtitle.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockSubtitle &lhs, const WebPageBlockSubtitle &rhs) {
@@ -689,6 +718,10 @@ class WebPageBlockAuthorDate final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     author.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    author.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockAuthorDate &lhs, const WebPageBlockAuthorDate &rhs) {
@@ -734,6 +767,10 @@ class WebPageBlockHeader final : public WebPageBlock {
     header.add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    header.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockHeader &lhs, const WebPageBlockHeader &rhs) {
     return lhs.header == rhs.header;
   }
@@ -773,6 +810,10 @@ class WebPageBlockSubheader final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     subheader.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    subheader.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockSubheader &lhs, const WebPageBlockSubheader &rhs) {
@@ -815,6 +856,10 @@ class WebPageBlockHeading final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     text.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    text.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockHeading &lhs, const WebPageBlockHeading &rhs) {
@@ -865,6 +910,10 @@ class WebPageBlockKicker final : public WebPageBlock {
     kicker.add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    kicker.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockKicker &lhs, const WebPageBlockKicker &rhs) {
     return lhs.kicker == rhs.kicker;
   }
@@ -904,6 +953,10 @@ class WebPageBlockParagraph final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     text.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    text.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockParagraph &lhs, const WebPageBlockParagraph &rhs) {
@@ -946,6 +999,10 @@ class WebPageBlockPreformatted final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     text.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    text.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockPreformatted &lhs, const WebPageBlockPreformatted &rhs) {
@@ -991,6 +1048,10 @@ class WebPageBlockFooter final : public WebPageBlock {
     footer.add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    footer.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockFooter &lhs, const WebPageBlockFooter &rhs) {
     return lhs.footer == rhs.footer;
   }
@@ -1032,6 +1093,10 @@ class WebPageBlockThinking final : public WebPageBlock {
     text.add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    text.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockThinking &lhs, const WebPageBlockThinking &rhs) {
     return lhs.text == rhs.text;
   }
@@ -1069,6 +1134,9 @@ class WebPageBlockDivider final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  }
+
   friend bool operator==(const WebPageBlockDivider &lhs, const WebPageBlockDivider &rhs) {
     return true;
   }
@@ -1102,6 +1170,9 @@ class WebPageBlockMath final : public WebPageBlock {
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
   }
 
   friend bool operator==(const WebPageBlockMath &lhs, const WebPageBlockMath &rhs) {
@@ -1147,6 +1218,9 @@ class WebPageBlockAnchor final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  }
+
   friend bool operator==(const WebPageBlockAnchor &lhs, const WebPageBlockAnchor &rhs) {
     return lhs.name == rhs.name;
   }
@@ -1190,6 +1264,12 @@ class WebPageBlockList final : public WebPageBlock {
     void add_dependencies(Dependencies &dependencies) const {
       for (const auto &page_block : page_blocks) {
         page_block->add_dependencies(dependencies);
+      }
+    }
+
+    void for_each_text(const std::function<void(Slice text)> &callback) const {
+      for (const auto &page_block : page_blocks) {
+        page_block->for_each_text(callback);
       }
     }
 
@@ -1275,6 +1355,12 @@ class WebPageBlockList final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
     for (auto &item : items) {
       item.add_dependencies(dependencies);
+    }
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    for (auto &item : items) {
+      item.for_each_text(callback);
     }
   }
 
@@ -1376,6 +1462,11 @@ class WebPageBlockBlockQuote final : public WebPageBlock {
     credit.add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    text.for_each_text(callback);
+    credit.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockBlockQuote &lhs, const WebPageBlockBlockQuote &rhs) {
     return lhs.text == rhs.text && lhs.credit == rhs.credit;
   }
@@ -1424,6 +1515,11 @@ class WebPageBlockPullQuote final : public WebPageBlock {
     credit.add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    text.for_each_text(callback);
+    credit.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockPullQuote &lhs, const WebPageBlockPullQuote &rhs) {
     return lhs.text == rhs.text && lhs.credit == rhs.credit;
   }
@@ -1470,6 +1566,10 @@ class WebPageBlockAnimation final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    caption.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockAnimation &lhs, const WebPageBlockAnimation &rhs) {
@@ -1554,6 +1654,10 @@ class WebPageBlockPhoto final : public WebPageBlock {
     dependencies.add(web_page_id);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    caption.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockPhoto &lhs, const WebPageBlockPhoto &rhs) {
     return lhs.photo == rhs.photo && lhs.caption == rhs.caption && lhs.url == rhs.url &&
            lhs.web_page_id == rhs.web_page_id && lhs.has_spoiler == rhs.has_spoiler;
@@ -1626,6 +1730,10 @@ class WebPageBlockVideo final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    caption.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockVideo &lhs, const WebPageBlockVideo &rhs) {
@@ -1704,6 +1812,10 @@ class WebPageBlockCover final : public WebPageBlock {
     cover->add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    cover->for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockCover &lhs, const WebPageBlockCover &rhs) {
     return lhs.cover == rhs.cover;
   }
@@ -1758,6 +1870,10 @@ class WebPageBlockEmbedded final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    caption.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockEmbedded &lhs, const WebPageBlockEmbedded &rhs) {
@@ -1842,6 +1958,13 @@ class WebPageBlockEmbeddedPost final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    for (auto &page_block : page_blocks) {
+      page_block->for_each_text(callback);
+    }
+    caption.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockEmbeddedPost &lhs, const WebPageBlockEmbeddedPost &rhs) {
     return lhs.url == rhs.url && lhs.author == rhs.author && lhs.author_photo == rhs.author_photo &&
            lhs.date == rhs.date && lhs.page_blocks == rhs.page_blocks && lhs.caption == rhs.caption;
@@ -1904,6 +2027,13 @@ class WebPageBlockCollage final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    for (auto &page_block : page_blocks) {
+      page_block->for_each_text(callback);
+    }
+    caption.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockCollage &lhs, const WebPageBlockCollage &rhs) {
     return lhs.page_blocks == rhs.page_blocks && lhs.caption == rhs.caption;
   }
@@ -1954,6 +2084,13 @@ class WebPageBlockSlideshow final : public WebPageBlock {
       page_block->add_dependencies(dependencies);
     }
     caption.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    for (auto &page_block : page_blocks) {
+      page_block->for_each_text(callback);
+    }
+    caption.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockSlideshow &lhs, const WebPageBlockSlideshow &rhs) {
@@ -2007,6 +2144,9 @@ class WebPageBlockChatLink final : public WebPageBlock {
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
   }
 
   friend bool operator==(const WebPageBlockChatLink &lhs, const WebPageBlockChatLink &rhs) {
@@ -2116,6 +2256,10 @@ class WebPageBlockAudio final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    caption.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockAudio &lhs, const WebPageBlockAudio &rhs) {
     return lhs.audio_file_id == rhs.audio_file_id && lhs.caption == rhs.caption;
   }
@@ -2204,6 +2348,15 @@ class WebPageBlockTable final : public WebPageBlock {
     }
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    title.for_each_text(callback);
+    for (auto &row : cells) {
+      for (auto &cell : row) {
+        cell.for_each_text(callback);
+      }
+    }
+  }
+
   friend bool operator==(const WebPageBlockTable &lhs, const WebPageBlockTable &rhs) {
     return lhs.title == rhs.title && lhs.cells == rhs.cells && lhs.is_bordered == rhs.is_bordered &&
            lhs.is_striped == rhs.is_striped;
@@ -2271,6 +2424,13 @@ class WebPageBlockDetails final : public WebPageBlock {
     }
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    header.for_each_text(callback);
+    for (auto &page_block : page_blocks) {
+      page_block->for_each_text(callback);
+    }
+  }
+
   friend bool operator==(const WebPageBlockDetails &lhs, const WebPageBlockDetails &rhs) {
     return lhs.header == rhs.header && lhs.page_blocks == rhs.page_blocks && lhs.is_open == rhs.is_open;
   }
@@ -2329,6 +2489,13 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    for (auto &page_block : blocks) {
+      page_block->for_each_text(callback);
+    }
+    caption.for_each_text(callback);
+  }
+
   friend bool operator==(const WebPageBlockBlockQuoteBlocks &lhs, const WebPageBlockBlockQuoteBlocks &rhs) {
     return lhs.blocks == rhs.blocks && lhs.caption == rhs.caption;
   }
@@ -2385,6 +2552,13 @@ class WebPageBlockRelatedArticles final : public WebPageBlock {
     }
   }
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    header.for_each_text(callback);
+    for (const auto &article : related_articles) {
+      article.for_each_text(callback);
+    }
+  }
+
   friend bool operator==(const WebPageBlockRelatedArticles &lhs, const WebPageBlockRelatedArticles &rhs) {
     return lhs.header == rhs.header && lhs.related_articles == rhs.related_articles;
   }
@@ -2434,6 +2608,10 @@ class WebPageBlockMap final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    caption.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockMap &lhs, const WebPageBlockMap &rhs) {
@@ -2486,6 +2664,10 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
 
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
+  }
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+    caption.for_each_text(callback);
   }
 
   friend bool operator==(const WebPageBlockVoiceNote &lhs, const WebPageBlockVoiceNote &rhs) {
