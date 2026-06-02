@@ -1175,9 +1175,28 @@ class WebPageBlockList final : public WebPageBlock {
     int32 value = -1;
     string type;
 
+    void append_file_ids(const Td *td, vector<FileId> &file_ids) const {
+      for (const auto &page_block : page_blocks) {
+        page_block->append_file_ids(td, file_ids);
+      }
+    }
+
+    void add_dependencies(Dependencies &dependencies) const {
+      for (const auto &page_block : page_blocks) {
+        page_block->add_dependencies(dependencies);
+      }
+    }
+
     friend bool operator==(const Item &lhs, const Item &rhs) {
       return lhs.label == rhs.label && lhs.page_blocks == rhs.page_blocks && lhs.has_checkbox == rhs.has_checkbox &&
              lhs.is_checked == rhs.is_checked && lhs.value == rhs.value && lhs.type == rhs.type;
+    }
+
+    td_api::object_ptr<td_api::pageBlockListItem> get_page_block_list_item_object(Context *context) const {
+      // if label is empty, then Bullet U+2022 is used as a label
+      return td_api::make_object<td_api::pageBlockListItem>(label.empty() ? "\xE2\x80\xA2" : label,
+                                                            get_page_blocks_object(page_blocks, context), has_checkbox,
+                                                            has_checkbox && is_checked, value, type);
     }
 
     template <class StorerT>
@@ -1231,14 +1250,6 @@ class WebPageBlockList final : public WebPageBlock {
   bool is_reversed = false;
   string type;
 
-  static td_api::object_ptr<td_api::pageBlockListItem> get_page_block_list_item_object(const Item &item,
-                                                                                       Context *context) {
-    // if label is empty, then Bullet U+2022 is used as a label
-    return td_api::make_object<td_api::pageBlockListItem>(
-        item.label.empty() ? "\xE2\x80\xA2" : item.label, get_page_blocks_object(item.page_blocks, context),
-        item.has_checkbox, item.has_checkbox && item.is_checked, item.value, item.type);
-  }
-
  public:
   WebPageBlockList() = default;
   WebPageBlockList(vector<Item> &&items, int32 start, bool is_reversed, const string &type)
@@ -1251,17 +1262,13 @@ class WebPageBlockList final : public WebPageBlock {
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     for (auto &item : items) {
-      for (auto &page_block : item.page_blocks) {
-        page_block->append_file_ids(td, file_ids);
-      }
+      item.append_file_ids(td, file_ids);
     }
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
     for (auto &item : items) {
-      for (auto &page_block : item.page_blocks) {
-        page_block->add_dependencies(dependencies);
-      }
+      item.add_dependencies(dependencies);
     }
   }
 
@@ -1272,7 +1279,7 @@ class WebPageBlockList final : public WebPageBlock {
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockList>(
-        transform(items, [context](const Item &item) { return get_page_block_list_item_object(item, context); }));
+        transform(items, [context](const Item &item) { return item.get_page_block_list_item_object(context); }));
   }
 
   template <class StorerT>
