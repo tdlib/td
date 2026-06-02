@@ -24,6 +24,8 @@ class Dependencies;
 
 struct GetWebPageBlockObjectContext;
 
+class RichText;
+
 class Td;
 
 class WebPageBlock {
@@ -98,7 +100,9 @@ class WebPageBlock {
 
   virtual void add_dependencies(Dependencies &dependencies) const = 0;
 
-  virtual void for_each_text(const std::function<void(Slice text)> &callback) const = 0;
+  virtual void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const = 0;
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const;
 
   virtual unique_ptr<WebPageBlock> clone() const = 0;
 

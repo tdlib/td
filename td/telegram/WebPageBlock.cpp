@@ -149,13 +149,11 @@ class RichText {
     dependencies.add(user_id);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const {
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const {
     for (auto &text : texts) {
-      text.for_each_text(callback);
+      text.for_each_rich_text(callback);
     }
-    if (type == Type::Plain) {
-      callback(content);
-    }
+    callback(this);
   }
 
   friend bool operator==(const RichText &lhs, const RichText &rhs) {
@@ -350,9 +348,9 @@ class WebPageBlockCaption {
     credit.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const {
-    text.for_each_text(callback);
-    credit.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const {
+    text.for_each_rich_text(callback);
+    credit.for_each_rich_text(callback);
   }
 
   WebPageBlockCaption clone() const {
@@ -412,8 +410,8 @@ class WebPageBlockTableCell {
     text.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const {
-    text.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const {
+    text.for_each_rich_text(callback);
   }
 
   friend bool operator==(const WebPageBlockTableCell &lhs, const WebPageBlockTableCell &rhs) {
@@ -535,7 +533,7 @@ class RelatedArticle {
     dependencies.add(web_page_id);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const {
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const {
   }
 
   friend bool operator==(const RelatedArticle &lhs, const RelatedArticle &rhs) {
@@ -640,8 +638,8 @@ class WebPageBlockTitle final : public WebPageBlock {
     title.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    title.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    title.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -689,8 +687,8 @@ class WebPageBlockSubtitle final : public WebPageBlock {
     subtitle.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    subtitle.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    subtitle.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -739,8 +737,8 @@ class WebPageBlockAuthorDate final : public WebPageBlock {
     author.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    author.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    author.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -790,8 +788,8 @@ class WebPageBlockHeader final : public WebPageBlock {
     header.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    header.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    header.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -839,8 +837,8 @@ class WebPageBlockSubheader final : public WebPageBlock {
     subheader.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    subheader.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    subheader.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -889,8 +887,8 @@ class WebPageBlockHeading final : public WebPageBlock {
     text.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    text.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    text.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -945,8 +943,8 @@ class WebPageBlockKicker final : public WebPageBlock {
     kicker.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    kicker.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    kicker.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -994,8 +992,8 @@ class WebPageBlockParagraph final : public WebPageBlock {
     text.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    text.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    text.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1044,8 +1042,8 @@ class WebPageBlockPreformatted final : public WebPageBlock {
     text.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    text.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    text.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1095,8 +1093,8 @@ class WebPageBlockFooter final : public WebPageBlock {
     footer.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    footer.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    footer.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1144,8 +1142,8 @@ class WebPageBlockThinking final : public WebPageBlock {
     text.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    text.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    text.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1189,7 +1187,7 @@ class WebPageBlockDivider final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1231,7 +1229,7 @@ class WebPageBlockMath final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1281,7 +1279,7 @@ class WebPageBlockAnchor final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1334,9 +1332,9 @@ class WebPageBlockList final : public WebPageBlock {
       }
     }
 
-    void for_each_text(const std::function<void(Slice text)> &callback) const {
+    void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const {
       for (const auto &page_block : page_blocks) {
-        page_block->for_each_text(callback);
+        page_block->for_each_rich_text(callback);
       }
     }
 
@@ -1436,9 +1434,9 @@ class WebPageBlockList final : public WebPageBlock {
     }
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
     for (auto &item : items) {
-      item.for_each_text(callback);
+      item.for_each_rich_text(callback);
     }
   }
 
@@ -1545,9 +1543,9 @@ class WebPageBlockBlockQuote final : public WebPageBlock {
     credit.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    text.for_each_text(callback);
-    credit.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    text.for_each_rich_text(callback);
+    credit.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1602,9 +1600,9 @@ class WebPageBlockPullQuote final : public WebPageBlock {
     credit.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    text.for_each_text(callback);
-    credit.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    text.for_each_rich_text(callback);
+    credit.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1659,8 +1657,8 @@ class WebPageBlockAnimation final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    caption.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    caption.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1749,8 +1747,8 @@ class WebPageBlockPhoto final : public WebPageBlock {
     dependencies.add(web_page_id);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    caption.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    caption.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1831,8 +1829,8 @@ class WebPageBlockVideo final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    caption.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    caption.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1915,8 +1913,8 @@ class WebPageBlockCover final : public WebPageBlock {
     cover->add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    cover->for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    cover->for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1979,8 +1977,8 @@ class WebPageBlockEmbedded final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    caption.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    caption.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -2070,11 +2068,11 @@ class WebPageBlockEmbeddedPost final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
     for (auto &page_block : page_blocks) {
-      page_block->for_each_text(callback);
+      page_block->for_each_rich_text(callback);
     }
-    caption.for_each_text(callback);
+    caption.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -2144,11 +2142,11 @@ class WebPageBlockCollage final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
     for (auto &page_block : page_blocks) {
-      page_block->for_each_text(callback);
+      page_block->for_each_rich_text(callback);
     }
-    caption.for_each_text(callback);
+    caption.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -2207,11 +2205,11 @@ class WebPageBlockSlideshow final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
     for (auto &page_block : page_blocks) {
-      page_block->for_each_text(callback);
+      page_block->for_each_rich_text(callback);
     }
-    caption.for_each_text(callback);
+    caption.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -2271,7 +2269,7 @@ class WebPageBlockChatLink final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -2385,8 +2383,8 @@ class WebPageBlockAudio final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    caption.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    caption.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -2481,11 +2479,11 @@ class WebPageBlockTable final : public WebPageBlock {
     }
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    title.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    title.for_each_rich_text(callback);
     for (auto &row : cells) {
       for (auto &cell : row) {
-        cell.for_each_text(callback);
+        cell.for_each_rich_text(callback);
       }
     }
   }
@@ -2562,10 +2560,10 @@ class WebPageBlockDetails final : public WebPageBlock {
     }
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    header.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    header.for_each_rich_text(callback);
     for (auto &page_block : page_blocks) {
-      page_block->for_each_text(callback);
+      page_block->for_each_rich_text(callback);
     }
   }
 
@@ -2631,11 +2629,11 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
     for (auto &page_block : page_blocks) {
-      page_block->for_each_text(callback);
+      page_block->for_each_rich_text(callback);
     }
-    caption.for_each_text(callback);
+    caption.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -2698,10 +2696,10 @@ class WebPageBlockRelatedArticles final : public WebPageBlock {
     }
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    header.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    header.for_each_rich_text(callback);
     for (const auto &article : related_articles) {
-      article.for_each_text(callback);
+      article.for_each_rich_text(callback);
     }
   }
 
@@ -2760,8 +2758,8 @@ class WebPageBlockMap final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    caption.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    caption.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -2820,8 +2818,8 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    caption.for_each_text(callback);
+  void for_each_rich_text(const std::function<void(const RichText *text)> &callback) const final {
+    caption.for_each_rich_text(callback);
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -3497,6 +3495,14 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
 }
 
 }  // namespace
+
+void WebPageBlock::for_each_text(const std::function<void(Slice text)> &callback) const {
+  for_each_rich_text([&](const RichText *text) {
+    if (text->type == RichText::Type::Plain) {
+      callback(text->content);
+    }
+  });
+}
 
 template <class F>
 void WebPageBlock::call_impl(Type type, const WebPageBlock *ptr, F &&f) {
