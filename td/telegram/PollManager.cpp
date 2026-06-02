@@ -2378,8 +2378,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       unique_ptr<MessageContent> explanation_media;
       if (poll_results->solution_media_ != nullptr) {
         explanation_media =
-            get_message_content(td_, FormattedText(), std::move(poll_results->solution_media_), DialogId(), 0, false,
-                                UserId(), nullptr, nullptr, "pollResults solution");
+            get_message_content(td_, FormattedText(), nullptr, std::move(poll_results->solution_media_), DialogId(), 0,
+                                false, UserId(), nullptr, nullptr, "pollResults solution");
         if (!is_allowed_poll_content(explanation_media->get_type())) {
           LOG(ERROR) << "Receive " << explanation_media->get_type() << " in a poll explanation";
           explanation_media = nullptr;

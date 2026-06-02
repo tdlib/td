@@ -4256,8 +4256,9 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   DialogId owner_dialog_id = is_user ? get_service_notifications_dialog()->dialog_id : DialogId();
   MessageSelfDestructType ttl;
   bool disable_web_page_preview = false;
-  auto content = get_message_content(td_, std::move(message_text), std::move(update->media_), owner_dialog_id, date,
-                                     false, UserId(), &ttl, &disable_web_page_preview, "updateServiceNotification");
+  auto content =
+      get_message_content(td_, std::move(message_text), nullptr, std::move(update->media_), owner_dialog_id, date,
+                          false, UserId(), &ttl, &disable_web_page_preview, "updateServiceNotification");
   bool is_content_secret = ttl.is_secret_message_content(content->get_type());
 
   if (update->popup_) {
@@ -11171,8 +11172,9 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
           get_message_text(td->user_manager_.get(), std::move(message->message_), std::move(message->entities_), true,
                            is_bot, message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
                            message_info.media_album_id != 0, new_source.c_str()),
-          std::move(message->media_), message_info.dialog_id, message_info.date, is_content_read,
-          message_info.via_bot_user_id, &message_info.ttl, &message_info.disable_web_page_preview, new_source.c_str());
+          std::move(message->rich_message_), std::move(message->media_), message_info.dialog_id, message_info.date,
+          is_content_read, message_info.via_bot_user_id, &message_info.ttl, &message_info.disable_web_page_preview,
+          new_source.c_str());
       message_info.reply_markup = std::move(message->reply_markup_);
       message_info.restriction_reasons = get_restriction_reasons(std::move(message->restriction_reason_));
       message_info.author_signature = std::move(message->post_author_);
@@ -12337,9 +12339,9 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   FormattedText new_message_text = get_message_text(
       td_->user_manager_.get(), old_message_text->text, std::move(entities), true, td_->auth_manager_->is_bot(),
       get_message_original_date(m), m->media_album_id != 0, "on_update_sent_text_message");
-  auto new_content = get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id, m->date,
-                                         true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/,
-                                         nullptr, "on_update_sent_text_message");
+  auto new_content = get_message_content(td_, std::move(new_message_text), nullptr, std::move(message_media), dialog_id,
+                                         m->date, true /*likely ignored*/, UserId() /*likely ignored*/,
+                                         nullptr /*ignored*/, nullptr, "on_update_sent_text_message");
   if (new_content->get_type() != MessageContentType::Text) {
     LOG(ERROR) << "Text message content has changed to " << new_content->get_type();
     return;
@@ -15286,6 +15288,7 @@ bool MessagesManager::can_set_message_fact_check(DialogId dialog_id, const Messa
     case MessageContentType::Audio:
     case MessageContentType::Document:
     case MessageContentType::Photo:
+    case MessageContentType::RichText:
     case MessageContentType::Text:
     case MessageContentType::Video:
       // ok
@@ -21670,7 +21673,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
   auto content = is_edit ? edited_message->content_.get() : m->content.get();
   CHECK(content != nullptr);
   auto content_type = content->get_type();
-  if (content_type == MessageContentType::Text) {
+  if (content_type == MessageContentType::Text || content_type == MessageContentType::RichText) {
     CHECK(!is_edit);
     send_closure_later(actor_id(this), &MessagesManager::on_text_message_ready_to_send, dialog_id, m->message_id);
     return;
@@ -22899,6 +22902,7 @@ bool MessagesManager::can_edit_message_media(DialogId dialog_id, const Message *
   }
   switch (m->content->get_type()) {
     case MessageContentType::Text:
+    case MessageContentType::RichText:
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
@@ -23102,7 +23106,9 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
   }
 
   MessageContentType old_message_content_type = m->content->get_type();
-  if (old_message_content_type != MessageContentType::Text && old_message_content_type != MessageContentType::Game) {
+  if (old_message_content_type != MessageContentType::Text &&
+      old_message_content_type != MessageContentType::RichText &&
+      old_message_content_type != MessageContentType::Game) {
     return promise.set_error(400, "There is no text in the message to edit");
   }
 

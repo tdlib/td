@@ -507,7 +507,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
                                              "on_get_dialog_sponsored_messages");
         MessageSelfDestructType ttl;
         auto content =
-            get_message_content(td_, std::move(message_text), std::move(sponsored_message->media_), DialogId(),
+            get_message_content(td_, std::move(message_text), nullptr, std::move(sponsored_message->media_), DialogId(),
                                 G()->unix_time(), true, UserId(), &ttl, nullptr, "on_get_dialog_sponsored_messages");
         if (!ttl.is_empty()) {
           LOG(ERROR) << "Receive sponsored message with " << ttl;
@@ -832,7 +832,7 @@ void SponsoredMessageManager::on_get_video_sponsored_messages(
                                              "on_get_dialog_sponsored_messages");
         MessageSelfDestructType ttl;
         auto content =
-            get_message_content(td_, std::move(message_text), std::move(sponsored_message->media_), DialogId(),
+            get_message_content(td_, std::move(message_text), nullptr, std::move(sponsored_message->media_), DialogId(),
                                 G()->unix_time(), true, UserId(), &ttl, nullptr, "on_get_video_sponsored_messages");
         if (!ttl.is_empty()) {
           LOG(ERROR) << "Receive sponsored message with " << ttl;

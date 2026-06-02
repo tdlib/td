@@ -1091,8 +1091,8 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
           td_,
           get_message_text(td_->user_manager_.get(), std::move(message->message_), std::move(message->entities_), true,
                            td_->auth_manager_->is_bot(), 0, media_album_id != 0, source),
-          std::move(message->media_), my_dialog_id, message->date_, true, via_bot_user_id, &ttl,
-          &disable_web_page_preview, source);
+          std::move(message->rich_message_), std::move(message->media_), my_dialog_id, message->date_, true,
+          via_bot_user_id, &ttl, &disable_web_page_preview, source);
 
       auto reply_header = MessageReplyHeader(td_, std::move(message->reply_to_), my_dialog_id, message_id, -1);
       if (reply_header.story_full_id_ != StoryFullId()) {
@@ -2246,7 +2246,7 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
     return;
   }
 
-  if (content_type == MessageContentType::Text) {
+  if (content_type == MessageContentType::Text || content_type == MessageContentType::RichText) {
     if (is_edit) {
       td_->create_handler<EditQuickReplyMessageQuery>()->send(m, nullptr);
       return;
@@ -2790,6 +2790,7 @@ void QuickReplyManager::edit_quick_reply_message(
   auto old_message_content_type = m->content->get_type();
   switch (old_message_content_type) {
     case MessageContentType::Text:
+    case MessageContentType::RichText:
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
@@ -2800,8 +2801,10 @@ void QuickReplyManager::edit_quick_reply_message(
           new_message_content_type != MessageContentType::Document &&
           new_message_content_type != MessageContentType::Photo &&
           new_message_content_type != MessageContentType::Video &&
-          (new_message_content_type != MessageContentType::Text ||
-           old_message_content_type != MessageContentType::Text)) {
+          ((new_message_content_type != MessageContentType::Text &&
+            new_message_content_type != MessageContentType::RichText) ||
+           (old_message_content_type != MessageContentType::Text &&
+            old_message_content_type != MessageContentType::RichText))) {
         return promise.set_error(400, "Message can't be edited to the specified message type");
       }
       if (m->media_album_id != 0) {
@@ -3469,6 +3472,10 @@ Result<InputMessageContent> QuickReplyManager::process_input_message_content(
         return Status::Error(400, "Can't send polls with media as a quick reply");
       }
     }
+  }
+  if (content.content->get_type() == MessageContentType::RichText) {
+    // TODO remove when supported
+    return Status::Error(400, "Can't send rich messages as a quick reply");
   }
   return std::move(content);
 }

@@ -4952,6 +4952,9 @@ pollMediaVideo video:video alternative_videos:vector<alternativeVideo> storyboar
 //@link_preview_options Options which were used for generation of the link preview; may be null if default options were used
 messageText text:formattedText link_preview:linkPreview link_preview_options:linkPreviewOptions = MessageContent;
 
+//@description A rich message @message The rich message
+messageRichMessage message:richMessage = MessageContent;
+
 //@description An animation message (GIF-style).
 //@animation The animation description
 //@caption Animation caption

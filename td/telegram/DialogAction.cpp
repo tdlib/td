@@ -369,8 +369,8 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
   }
 
   if (type_ == Type::Typing) {
-    return message_content_type == MessageContentType::Text || message_content_type == MessageContentType::Game ||
-           can_have_message_content_caption(message_content_type);
+    return message_content_type == MessageContentType::Text || message_content_type == MessageContentType::RichText ||
+           message_content_type == MessageContentType::Game || can_have_message_content_caption(message_content_type);
   }
 
   switch (message_content_type) {
@@ -475,6 +475,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::RichText:
       return false;
     default:
       UNREACHABLE();

@@ -276,7 +276,8 @@ unique_ptr<MessageContent> get_secret_message_content(
     MultiPromiseActor &load_data_multipromise, bool is_premium);
 
 unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_text,
-                                               tl_object_ptr<telegram_api::MessageMedia> &&media_ptr,
+                                               telegram_api::object_ptr<telegram_api::richMessage> &&rich_message,
+                                               telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                                DialogId owner_dialog_id, int32 message_date, bool is_content_read,
                                                UserId via_bot_user_id, MessageSelfDestructType *ttl,
                                                bool *disable_web_page_preview, const char *source);

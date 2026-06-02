@@ -77,6 +77,8 @@
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PollOption.h"
 #include "td/telegram/RepliedMessageInfo.h"
+#include "td/telegram/RichMessage.h"
+#include "td/telegram/RichMessage.hpp"
 #include "td/telegram/secret_api.hpp"
 #include "td/telegram/SecureValue.h"
 #include "td/telegram/SecureValue.hpp"
@@ -547,7 +549,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 59;
+  static constexpr int32 CURRENT_VERSION = 60;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1780,6 +1782,19 @@ class MessagePollDeleteAnswer final : public MessageContent {
   }
 };
 
+class MessageRichText final : public MessageContent {
+ public:
+  RichMessage text;
+
+  MessageRichText() = default;
+  explicit MessageRichText(RichMessage &&text) : text(std::move(text)) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::RichText;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -2932,6 +2947,13 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       store(m->text, storer);
       store(m->data, storer);
+      break;
+    }
+    case MessageContentType::RichText: {
+      const auto *m = static_cast<const MessageRichText *>(content);
+      BEGIN_STORE_FLAGS();
+      END_STORE_FLAGS();
+      store(m->text, storer);
       break;
     }
     default:
@@ -4382,6 +4404,14 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::RichText: {
+      auto m = make_unique<MessageRichText>();
+      BEGIN_PARSE_FLAGS();
+      END_PARSE_FLAGS();
+      parse(m->text, parser);
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -5341,6 +5371,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::LiveLocation:
     case MessageContentType::Location:
     case MessageContentType::Photo:
+    case MessageContentType::RichText:
     case MessageContentType::Sticker:
     case MessageContentType::Text:
     case MessageContentType::ToDoList:
@@ -5502,6 +5533,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::RichText:
       break;
     default:
       UNREACHABLE();
@@ -5653,6 +5685,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
       const auto *m = static_cast<const MessageVoiceNote *>(content);
       return td->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file), ttl.get_input_ttl());
     }
+    case MessageContentType::RichText:
     case MessageContentType::Text:
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
@@ -5994,6 +6027,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::RichText:
       break;
     default:
       UNREACHABLE();
@@ -6129,6 +6163,11 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
           !td->user_manager_->is_user_bot(dialog_id.get_user_id()) &&
           dialog_id != td->dialog_manager_->get_my_dialog_id()) {
         return Status::Error(400, "Polls can't be sent to the private chat");
+      }
+      break;
+    case MessageContentType::RichText:
+      if (!permissions.can_send_messages()) {
+        return Status::Error(400, "Not enough rights to send rich messages to the chat");
       }
       break;
     case MessageContentType::Sticker:
@@ -6279,6 +6318,9 @@ bool can_forward_message_content(const Td *td, const MessageContent *content, bo
   if (content_type == MessageContentType::Poll) {
     auto *poll = static_cast<const MessagePoll *>(content);
     return !PollManager::is_local_poll_id(poll->poll_id);
+  }
+  if (content_type == MessageContentType::RichText) {
+    return !is_copy || td->option_manager_->get_option_boolean("is_premium");
   }
   if (is_copy) {
     if (content_type == MessageContentType::Giveaway || content_type == MessageContentType::GiveawayWinners ||
@@ -6459,6 +6501,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::RichText:
       return 0;
     default:
       UNREACHABLE();
@@ -6918,6 +6961,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       break;
     case MessageContentType::PollDeleteAnswer:
       break;
+    case MessageContentType::RichText:
+      break;
     default:
       UNREACHABLE();
       break;
@@ -7375,6 +7420,12 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
+    case MessageContentType::RichText: {
+      // const auto *old_ = static_cast<const MessageRichText *>(old_content);
+      // const auto *new_ = static_cast<const MessageRichText *>(new_content);
+      // TODO
+      break;
+    }
     case MessageContentType::Sticker: {
       const auto *old_ = static_cast<const MessageSticker *>(old_content);
       const auto *new_ = static_cast<const MessageSticker *>(new_content);
@@ -7677,6 +7728,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::RichText:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -7794,6 +7846,14 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *rhs = static_cast<const MessagePhoto *>(new_content);
       if (lhs->video_file_id != rhs->video_file_id || lhs->caption != rhs->caption ||
           lhs->has_spoiler != rhs->has_spoiler) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::RichText: {
+      const auto *lhs = static_cast<const MessageRichText *>(old_content);
+      const auto *rhs = static_cast<const MessageRichText *>(new_content);
+      if (lhs->text != rhs->text) {
         need_update = true;
       }
       break;
@@ -9412,7 +9472,8 @@ unique_ptr<MessageContent> get_secret_message_content(
 }
 
 unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
-                                               tl_object_ptr<telegram_api::MessageMedia> &&media_ptr,
+                                               telegram_api::object_ptr<telegram_api::richMessage> &&rich_message,
+                                               telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                                DialogId owner_dialog_id, int32 message_date, bool is_content_read,
                                                UserId via_bot_user_id, MessageSelfDestructType *ttl,
                                                bool *disable_web_page_preview, const char *source) {
@@ -9427,6 +9488,12 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
 
   switch (media_ptr == nullptr ? telegram_api::messageMediaEmpty::ID : media_ptr->get_id()) {
     case telegram_api::messageMediaEmpty::ID:
+      if (rich_message != nullptr) {
+        if (!message.text.empty()) {
+          LOG(ERROR) << "Receive both text and rich text in a message from " << owner_dialog_id;
+        }
+        return td::make_unique<MessageRichText>(RichMessage(td, std::move(rich_message), owner_dialog_id));
+      }
       if (message.text.empty()) {
         LOG(ERROR) << "Receive empty message text and media from " << source;
       }
@@ -9661,8 +9728,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       unique_ptr<MessageContent> attached_media;
       if (media->attached_media_ != nullptr) {
         attached_media =
-            get_message_content(td, FormattedText(), std::move(media->attached_media_), owner_dialog_id, message_date,
-                                is_content_read, via_bot_user_id, nullptr, nullptr, "messageMediaPoll");
+            get_message_content(td, FormattedText(), nullptr, std::move(media->attached_media_), owner_dialog_id,
+                                message_date, is_content_read, via_bot_user_id, nullptr, nullptr, "messageMediaPoll");
         if (!is_allowed_poll_content(attached_media->get_type())) {
           LOG(ERROR) << "Receive " << attached_media->get_type() << " in a poll";
           attached_media = nullptr;
@@ -9920,6 +9987,11 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
                                              MessageCopyOptions(copy_options.send_copy, false));
       }
       return make_unique<MessagePoll>(poll_id, FormattedText(message_poll->caption), std::move(attached_media));
+    }
+    case MessageContentType::RichText: {
+      CHECK(!to_secret);
+      const auto *message_rich_text = static_cast<const MessageRichText *>(content);
+      return make_unique<MessageRichText>(message_rich_text->text.clone());
     }
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
@@ -10993,6 +11065,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
           std::move(photo), td->videos_manager_->get_video_object(m->video_file_id), get_text_object(m->caption),
           invert_media, m->has_spoiler, is_content_secret);
     }
+    case MessageContentType::RichText: {
+      const auto *m = static_cast<const MessageRichText *>(content);
+      return td_api::make_object<td_api::messageRichMessage>(m->text.get_rich_message_object(td));
+    }
     case MessageContentType::Sticker: {
       const auto *m = static_cast<const MessageSticker *>(content);
       auto sticker = td->stickers_manager_->get_sticker_object(m->file_id);
@@ -11769,8 +11845,7 @@ td_api::object_ptr<td_api::PollMedia> get_poll_media_object(const MessageContent
           std::move(storyboards), get_photo_object(td->file_manager_.get(), m->cover), m->start_timestamp);
     }
     default:
-      UNREACHABLE();
-      return nullptr;
+      return td_api::make_object<td_api::pollMediaLink>();
   }
 }
 
@@ -11929,8 +12004,8 @@ unique_ptr<MessageContent> get_uploaded_message_content(
         auto m = dup_message_content(td, DialogId(), old_content, MessageContentDupType::Forward, MessageCopyOptions());
         CHECK(m->get_type() == MessageContentType::Poll);
         auto poll = static_cast<MessagePoll *>(m.get());
-        auto new_content = get_message_content(td, FormattedText(), std::move(media_ptr), owner_dialog_id, message_date,
-                                               false, UserId(), nullptr, nullptr, source);
+        auto new_content = get_message_content(td, FormattedText(), nullptr, std::move(media_ptr), owner_dialog_id,
+                                               message_date, false, UserId(), nullptr, nullptr, source);
         auto &content =
             td->poll_manager_->get_individual_message_content(poll->poll_id, poll->attached_media, media_pos);
         CHECK(content != nullptr);
@@ -11943,7 +12018,7 @@ unique_ptr<MessageContent> get_uploaded_message_content(
   }
   auto caption = get_message_content_caption(old_content);
   auto has_spoiler = get_message_content_has_spoiler(old_content);
-  auto content = get_message_content(td, caption == nullptr ? FormattedText() : *caption, std::move(media_ptr),
+  auto content = get_message_content(td, caption == nullptr ? FormattedText() : *caption, nullptr, std::move(media_ptr),
                                      owner_dialog_id, message_date, false, UserId(), nullptr, nullptr, source);
   set_message_content_has_spoiler(content.get(), has_spoiler);
   return content;
@@ -12338,11 +12413,11 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     case MessageContentType::ChatChangePhoto:
       return photo_get_file_ids(static_cast<const MessageChatChangePhoto *>(content)->photo);
     case MessageContentType::PassportDataReceived: {
-      vector<FileId> result;
+      vector<FileId> file_ids;
       for (auto &value : static_cast<const MessagePassportDataReceived *>(content)->values) {
-        auto process_encrypted_secure_file = [&result](const EncryptedSecureFile &file) {
+        auto process_encrypted_secure_file = [&file_ids](const EncryptedSecureFile &file) {
           if (file.file.file_id.is_valid()) {
-            result.push_back(file.file.file_id);
+            file_ids.push_back(file.file.file_id);
           }
         };
         for (auto &file : value.files) {
@@ -12355,7 +12430,7 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
           process_encrypted_secure_file(file);
         }
       }
-      return result;
+      return file_ids;
     }
     case MessageContentType::SuggestProfilePhoto:
       return photo_get_file_ids(static_cast<const MessageSuggestProfilePhoto *>(content)->photo);
@@ -12368,19 +12443,25 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
       // story file references are repaired independently
       return {};
     case MessageContentType::PaidMedia: {
-      vector<FileId> result;
+      vector<FileId> file_ids;
       for (const auto &media : static_cast<const MessagePaidMedia *>(content)->media) {
-        media.append_file_ids(td, result);
+        media.append_file_ids(td, file_ids);
       }
-      return result;
+      return file_ids;
     }
     case MessageContentType::Poll: {
       auto poll = static_cast<const MessagePoll *>(content);
-      auto result = td->poll_manager_->get_poll_file_ids(poll->poll_id);
+      auto file_ids = td->poll_manager_->get_poll_file_ids(poll->poll_id);
       if (poll->attached_media != nullptr) {
-        append(result, get_message_content_file_ids(poll->attached_media.get(), td));
+        append(file_ids, get_message_content_file_ids(poll->attached_media.get(), td));
       }
-      return result;
+      return file_ids;
+    }
+    case MessageContentType::RichText: {
+      auto rich_text = static_cast<const MessageRichText *>(content);
+      vector<FileId> file_ids;
+      rich_text->text.append_file_ids(td, file_ids);
+      return file_ids;
     }
     default:
       return {};
@@ -12408,6 +12489,17 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
         return text->text.text;
       }
       return PSTRING() << text->text.text << ' ' << td->web_pages_manager_->get_web_page_search_text(text->web_page_id);
+    }
+    case MessageContentType::RichText: {
+      const auto *text = static_cast<const MessageRichText *>(content);
+      string result;
+      text->text.for_each_text([&result](Slice text) {
+        if (!result.empty()) {
+          result += ' ';
+        }
+        result.append(text.data(), text.size());
+      });
+      return result;
     }
     case MessageContentType::Animation: {
       const auto *animation = static_cast<const MessageAnimation *>(content);
@@ -13109,6 +13201,11 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::PollDeleteAnswer:
       break;
+    case MessageContentType::RichText: {
+      const auto *content = static_cast<const MessageRichText *>(message_content);
+      content->text.add_dependencies(dependencies);
+      break;
+    }
     default:
       UNREACHABLE();
       break;

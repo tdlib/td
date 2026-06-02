@@ -16,6 +16,8 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/Slice.h"
 
+#include <functional>
+
 namespace td {
 
 class Dependencies;

@@ -13,6 +13,8 @@
 
 #include "td/utils/common.h"
 
+#include <functional>
+
 namespace td {
 
 class Dependencies;
@@ -44,7 +46,11 @@ class RichMessage {
 
   void add_dependencies(Dependencies &dependencies) const;
 
+  void for_each_text(const std::function<void(Slice text)> &callback) const;
+
   td_api::object_ptr<td_api::richMessage> get_rich_message_object(Td *td) const;
+
+  RichMessage clone() const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
@@ -54,5 +60,9 @@ class RichMessage {
 };
 
 bool operator==(const RichMessage &lhs, const RichMessage &rhs);
+
+inline bool operator!=(const RichMessage &lhs, const RichMessage &rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace td
