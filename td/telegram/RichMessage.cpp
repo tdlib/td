@@ -15,6 +15,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
@@ -114,6 +115,14 @@ bool RichMessage::has_bot_commands() const {
     }
   }
   return false;
+}
+
+vector<string> RichMessage::get_hashtags() const {
+  vector<string> hashtags;
+  for (const auto &block : blocks_) {
+    td::append(hashtags, block->get_hashtags());
+  }
+  return hashtags;
 }
 
 td_api::object_ptr<td_api::richMessage> RichMessage::get_rich_message_object(Td *td, bool skip_bot_commands) const {

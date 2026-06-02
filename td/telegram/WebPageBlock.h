@@ -108,6 +108,8 @@ class WebPageBlock {
 
   bool has_bot_commands() const;
 
+  vector<string> get_hashtags() const;
+
   virtual unique_ptr<WebPageBlock> clone() const = 0;
 
   virtual td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const = 0;

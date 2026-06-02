@@ -3526,6 +3526,29 @@ bool WebPageBlock::has_bot_commands() const {
   return result;
 }
 
+vector<string> WebPageBlock::get_hashtags() const {
+  vector<string> result;
+  for_each_rich_text([&](const RichText *text) {
+    if (text->type == RichText::Type::Hashtag) {
+      string hashtag;
+      text->for_each_rich_text([&](const RichText *text) {
+        if (text->type == RichText::Type::Plain) {
+          hashtag += text->content;
+        }
+      });
+      if (!hashtag.empty()) {
+        if (hashtag[0] == '#') {
+          hashtag = hashtag.substr(1);
+        }
+        if (!hashtag.empty()) {
+          result.push_back(hashtag);
+        }
+      }
+    }
+  });
+  return result;
+}
+
 template <class F>
 void WebPageBlock::call_impl(Type type, const WebPageBlock *ptr, F &&f) {
   switch (type) {

@@ -13289,6 +13289,11 @@ void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date) 
 void update_used_hashtags(Td *td, const MessageContent *content) {
   const FormattedText *text = get_message_content_text(content);
   if (text == nullptr || text->text.empty()) {
+    if (content->get_type() == MessageContentType::RichText) {
+      for (const auto &hashtag : static_cast<const MessageRichText *>(content)->text.get_hashtags()) {
+        send_closure(td->hashtag_hints_, &HashtagHints::hashtag_used, hashtag);
+      }
+    }
     return;
   }
 
