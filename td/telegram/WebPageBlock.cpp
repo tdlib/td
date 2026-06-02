@@ -512,6 +512,12 @@ class RelatedArticle {
            lhs.published_date == rhs.published_date;
   }
 
+  td_api::object_ptr<td_api::pageBlockRelatedArticle> get_page_block_related_article_object(
+      FileManager *file_manager) const {
+    return td_api::make_object<td_api::pageBlockRelatedArticle>(
+        url, title, description, get_photo_object(file_manager, photo), author, published_date);
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     using ::td::store;
@@ -2385,9 +2391,7 @@ class WebPageBlockRelatedArticles final : public WebPageBlock {
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     auto related_article_objects = transform(related_articles, [context](const RelatedArticle &article) {
-      return td_api::make_object<td_api::pageBlockRelatedArticle>(
-          article.url, article.title, article.description,
-          get_photo_object(context->td_->file_manager_.get(), article.photo), article.author, article.published_date);
+      return article.get_page_block_related_article_object(context->td_->file_manager_.get());
     });
     return td_api::make_object<td_api::pageBlockRelatedArticles>(header.get_rich_text_object(context),
                                                                  std::move(related_article_objects));
