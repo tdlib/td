@@ -100,6 +100,8 @@ class WebPageBlock {
 
   virtual void for_each_text(const std::function<void(Slice text)> &callback) const = 0;
 
+  virtual unique_ptr<WebPageBlock> clone() const = 0;
+
   virtual td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const = 0;
 
   static bool are_allowed_album_block_types(const vector<unique_ptr<WebPageBlock>> &page_blocks);
@@ -122,6 +124,8 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     const FlatHashMap<int64, FileId> &animations, const FlatHashMap<int64, FileId> &audios,
     const FlatHashMap<int64, FileId> &documents, const FlatHashMap<int64, unique_ptr<Photo>> &photos,
     const FlatHashMap<int64, FileId> &videos, const FlatHashMap<int64, FileId> &voice_notes);
+
+vector<unique_ptr<WebPageBlock>> clone_web_page_blocks(const vector<unique_ptr<WebPageBlock>> &page_blocks);
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
     const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url, Slice real_url);

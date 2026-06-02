@@ -126,6 +126,10 @@ class RichText {
     return type == Type::Plain && content.empty();
   }
 
+  RichText clone() const {
+    return *this;
+  }
+
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const {
     if (type == RichText::Type::Icon) {
       CHECK(document_file_id.is_valid());
@@ -349,6 +353,13 @@ class WebPageBlockCaption {
   void for_each_text(const std::function<void(Slice text)> &callback) const {
     text.for_each_text(callback);
     credit.for_each_text(callback);
+  }
+
+  WebPageBlockCaption clone() const {
+    WebPageBlockCaption result;
+    result.text = text.clone();
+    result.credit = credit.clone();
+    return result;
   }
 
   friend bool operator==(const WebPageBlockCaption &lhs, const WebPageBlockCaption &rhs) {
@@ -633,6 +644,10 @@ class WebPageBlockTitle final : public WebPageBlock {
     title.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockTitle>(title.clone());
+  }
+
   friend bool operator==(const WebPageBlockTitle &lhs, const WebPageBlockTitle &rhs) {
     return lhs.title == rhs.title;
   }
@@ -676,6 +691,10 @@ class WebPageBlockSubtitle final : public WebPageBlock {
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
     subtitle.for_each_text(callback);
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockSubtitle>(subtitle.clone());
   }
 
   friend bool operator==(const WebPageBlockSubtitle &lhs, const WebPageBlockSubtitle &rhs) {
@@ -722,6 +741,10 @@ class WebPageBlockAuthorDate final : public WebPageBlock {
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
     author.for_each_text(callback);
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockAuthorDate>(author.clone(), date);
   }
 
   friend bool operator==(const WebPageBlockAuthorDate &lhs, const WebPageBlockAuthorDate &rhs) {
@@ -771,6 +794,10 @@ class WebPageBlockHeader final : public WebPageBlock {
     header.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockHeader>(header.clone());
+  }
+
   friend bool operator==(const WebPageBlockHeader &lhs, const WebPageBlockHeader &rhs) {
     return lhs.header == rhs.header;
   }
@@ -814,6 +841,10 @@ class WebPageBlockSubheader final : public WebPageBlock {
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
     subheader.for_each_text(callback);
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockSubheader>(subheader.clone());
   }
 
   friend bool operator==(const WebPageBlockSubheader &lhs, const WebPageBlockSubheader &rhs) {
@@ -860,6 +891,10 @@ class WebPageBlockHeading final : public WebPageBlock {
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
     text.for_each_text(callback);
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockHeading>(text.clone(), size);
   }
 
   friend bool operator==(const WebPageBlockHeading &lhs, const WebPageBlockHeading &rhs) {
@@ -914,6 +949,10 @@ class WebPageBlockKicker final : public WebPageBlock {
     kicker.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockKicker>(kicker.clone());
+  }
+
   friend bool operator==(const WebPageBlockKicker &lhs, const WebPageBlockKicker &rhs) {
     return lhs.kicker == rhs.kicker;
   }
@@ -957,6 +996,10 @@ class WebPageBlockParagraph final : public WebPageBlock {
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
     text.for_each_text(callback);
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockParagraph>(text.clone());
   }
 
   friend bool operator==(const WebPageBlockParagraph &lhs, const WebPageBlockParagraph &rhs) {
@@ -1003,6 +1046,10 @@ class WebPageBlockPreformatted final : public WebPageBlock {
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
     text.for_each_text(callback);
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockPreformatted>(text.clone(), string(language));
   }
 
   friend bool operator==(const WebPageBlockPreformatted &lhs, const WebPageBlockPreformatted &rhs) {
@@ -1052,6 +1099,10 @@ class WebPageBlockFooter final : public WebPageBlock {
     footer.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockFooter>(footer.clone());
+  }
+
   friend bool operator==(const WebPageBlockFooter &lhs, const WebPageBlockFooter &rhs) {
     return lhs.footer == rhs.footer;
   }
@@ -1097,6 +1148,10 @@ class WebPageBlockThinking final : public WebPageBlock {
     text.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockThinking>(text.clone());
+  }
+
   friend bool operator==(const WebPageBlockThinking &lhs, const WebPageBlockThinking &rhs) {
     return lhs.text == rhs.text;
   }
@@ -1137,6 +1192,10 @@ class WebPageBlockDivider final : public WebPageBlock {
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockDivider>();
+  }
+
   friend bool operator==(const WebPageBlockDivider &lhs, const WebPageBlockDivider &rhs) {
     return true;
   }
@@ -1173,6 +1232,10 @@ class WebPageBlockMath final : public WebPageBlock {
   }
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockMath>(string(source));
   }
 
   friend bool operator==(const WebPageBlockMath &lhs, const WebPageBlockMath &rhs) {
@@ -1219,6 +1282,10 @@ class WebPageBlockAnchor final : public WebPageBlock {
   }
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockAnchor>(string(name));
   }
 
   friend bool operator==(const WebPageBlockAnchor &lhs, const WebPageBlockAnchor &rhs) {
@@ -1271,6 +1338,17 @@ class WebPageBlockList final : public WebPageBlock {
       for (const auto &page_block : page_blocks) {
         page_block->for_each_text(callback);
       }
+    }
+
+    Item clone() const {
+      Item result;
+      result.label = label;
+      result.page_blocks = clone_web_page_blocks(page_blocks);
+      result.has_checkbox = has_checkbox;
+      result.is_checked = is_checked;
+      result.value = value;
+      result.type = type;
+      return result;
     }
 
     friend bool operator==(const Item &lhs, const Item &rhs) {
@@ -1362,6 +1440,11 @@ class WebPageBlockList final : public WebPageBlock {
     for (auto &item : items) {
       item.for_each_text(callback);
     }
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    auto new_items = transform(items, [](const Item &item) { return item.clone(); });
+    return td::make_unique<WebPageBlockList>(std::move(new_items), start, is_reversed, type);
   }
 
   friend bool operator==(const WebPageBlockList &lhs, const WebPageBlockList &rhs) {
@@ -1467,6 +1550,10 @@ class WebPageBlockBlockQuote final : public WebPageBlock {
     credit.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockBlockQuote>(text.clone(), credit.clone());
+  }
+
   friend bool operator==(const WebPageBlockBlockQuote &lhs, const WebPageBlockBlockQuote &rhs) {
     return lhs.text == rhs.text && lhs.credit == rhs.credit;
   }
@@ -1520,6 +1607,10 @@ class WebPageBlockPullQuote final : public WebPageBlock {
     credit.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockPullQuote>(text.clone(), credit.clone());
+  }
+
   friend bool operator==(const WebPageBlockPullQuote &lhs, const WebPageBlockPullQuote &rhs) {
     return lhs.text == rhs.text && lhs.credit == rhs.credit;
   }
@@ -1570,6 +1661,10 @@ class WebPageBlockAnimation final : public WebPageBlock {
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
     caption.for_each_text(callback);
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockAnimation>(animation_file_id, caption.clone(), need_autoplay);
   }
 
   friend bool operator==(const WebPageBlockAnimation &lhs, const WebPageBlockAnimation &rhs) {
@@ -1658,6 +1753,10 @@ class WebPageBlockPhoto final : public WebPageBlock {
     caption.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockPhoto>(Photo(photo), caption.clone(), string(url), web_page_id, has_spoiler);
+  }
+
   friend bool operator==(const WebPageBlockPhoto &lhs, const WebPageBlockPhoto &rhs) {
     return lhs.photo == rhs.photo && lhs.caption == rhs.caption && lhs.url == rhs.url &&
            lhs.web_page_id == rhs.web_page_id && lhs.has_spoiler == rhs.has_spoiler;
@@ -1734,6 +1833,10 @@ class WebPageBlockVideo final : public WebPageBlock {
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
     caption.for_each_text(callback);
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockVideo>(video_file_id, caption.clone(), need_autoplay, is_looped, has_spoiler);
   }
 
   friend bool operator==(const WebPageBlockVideo &lhs, const WebPageBlockVideo &rhs) {
@@ -1816,6 +1919,10 @@ class WebPageBlockCover final : public WebPageBlock {
     cover->for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockCover>(cover->clone());
+  }
+
   friend bool operator==(const WebPageBlockCover &lhs, const WebPageBlockCover &rhs) {
     return lhs.cover == rhs.cover;
   }
@@ -1874,6 +1981,11 @@ class WebPageBlockEmbedded final : public WebPageBlock {
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
     caption.for_each_text(callback);
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockEmbedded>(string(url), string(html), Photo(poster_photo), dimensions,
+                                                 caption.clone(), is_full_width, allow_scrolling);
   }
 
   friend bool operator==(const WebPageBlockEmbedded &lhs, const WebPageBlockEmbedded &rhs) {
@@ -1965,6 +2077,11 @@ class WebPageBlockEmbeddedPost final : public WebPageBlock {
     caption.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockEmbeddedPost>(string(url), string(author), Photo(author_photo), date,
+                                                     clone_web_page_blocks(page_blocks), caption.clone());
+  }
+
   friend bool operator==(const WebPageBlockEmbeddedPost &lhs, const WebPageBlockEmbeddedPost &rhs) {
     return lhs.url == rhs.url && lhs.author == rhs.author && lhs.author_photo == rhs.author_photo &&
            lhs.date == rhs.date && lhs.page_blocks == rhs.page_blocks && lhs.caption == rhs.caption;
@@ -2034,6 +2151,10 @@ class WebPageBlockCollage final : public WebPageBlock {
     caption.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockCollage>(clone_web_page_blocks(page_blocks), caption.clone());
+  }
+
   friend bool operator==(const WebPageBlockCollage &lhs, const WebPageBlockCollage &rhs) {
     return lhs.page_blocks == rhs.page_blocks && lhs.caption == rhs.caption;
   }
@@ -2093,6 +2214,10 @@ class WebPageBlockSlideshow final : public WebPageBlock {
     caption.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockSlideshow>(clone_web_page_blocks(page_blocks), caption.clone());
+  }
+
   friend bool operator==(const WebPageBlockSlideshow &lhs, const WebPageBlockSlideshow &rhs) {
     return lhs.page_blocks == rhs.page_blocks && lhs.caption == rhs.caption;
   }
@@ -2147,6 +2272,10 @@ class WebPageBlockChatLink final : public WebPageBlock {
   }
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockChatLink>(string(title), photo, string(username), accent_color_id, channel_id);
   }
 
   friend bool operator==(const WebPageBlockChatLink &lhs, const WebPageBlockChatLink &rhs) {
@@ -2260,6 +2389,10 @@ class WebPageBlockAudio final : public WebPageBlock {
     caption.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockAudio>(audio_file_id, caption.clone());
+  }
+
   friend bool operator==(const WebPageBlockAudio &lhs, const WebPageBlockAudio &rhs) {
     return lhs.audio_file_id == rhs.audio_file_id && lhs.caption == rhs.caption;
   }
@@ -2357,6 +2490,11 @@ class WebPageBlockTable final : public WebPageBlock {
     }
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockTable>(title.clone(), vector<vector<WebPageBlockTableCell>>(cells), is_bordered,
+                                              is_striped);
+  }
+
   friend bool operator==(const WebPageBlockTable &lhs, const WebPageBlockTable &rhs) {
     return lhs.title == rhs.title && lhs.cells == rhs.cells && lhs.is_bordered == rhs.is_bordered &&
            lhs.is_striped == rhs.is_striped;
@@ -2431,6 +2569,10 @@ class WebPageBlockDetails final : public WebPageBlock {
     }
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockDetails>(header.clone(), clone_web_page_blocks(page_blocks), is_open);
+  }
+
   friend bool operator==(const WebPageBlockDetails &lhs, const WebPageBlockDetails &rhs) {
     return lhs.header == rhs.header && lhs.page_blocks == rhs.page_blocks && lhs.is_open == rhs.is_open;
   }
@@ -2462,13 +2604,13 @@ class WebPageBlockDetails final : public WebPageBlock {
 };
 
 class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
-  vector<unique_ptr<WebPageBlock>> blocks;
+  vector<unique_ptr<WebPageBlock>> page_blocks;
   RichText caption;
 
  public:
   WebPageBlockBlockQuoteBlocks() = default;
   WebPageBlockBlockQuoteBlocks(vector<unique_ptr<WebPageBlock>> &&page_blocks, RichText &&caption)
-      : blocks(std::move(blocks)), caption(std::move(caption)) {
+      : page_blocks(std::move(page_blocks)), caption(std::move(caption)) {
   }
 
   Type get_type() const final {
@@ -2476,32 +2618,36 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
   }
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
-    for (auto &block : blocks) {
-      block->append_file_ids(td, file_ids);
+    for (auto &page_block : page_blocks) {
+      page_block->append_file_ids(td, file_ids);
     }
     caption.append_file_ids(td, file_ids);
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
-    for (auto &page_block : blocks) {
+    for (auto &page_block : page_blocks) {
       page_block->add_dependencies(dependencies);
     }
     caption.add_dependencies(dependencies);
   }
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
-    for (auto &page_block : blocks) {
+    for (auto &page_block : page_blocks) {
       page_block->for_each_text(callback);
     }
     caption.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockBlockQuoteBlocks>(clone_web_page_blocks(page_blocks), caption.clone());
+  }
+
   friend bool operator==(const WebPageBlockBlockQuoteBlocks &lhs, const WebPageBlockBlockQuoteBlocks &rhs) {
-    return lhs.blocks == rhs.blocks && lhs.caption == rhs.caption;
+    return lhs.page_blocks == rhs.page_blocks && lhs.caption == rhs.caption;
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
-    return td_api::make_object<td_api::pageBlockBlockQuote>(get_page_blocks_object(blocks, context),
+    return td_api::make_object<td_api::pageBlockBlockQuote>(get_page_blocks_object(page_blocks, context),
                                                             caption.get_rich_text_object(context));
   }
 
@@ -2511,7 +2657,7 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
     BEGIN_STORE_FLAGS();
     END_STORE_FLAGS();
     store(caption, storer);
-    store(blocks, storer);
+    store(page_blocks, storer);
   }
 
   template <class ParserT>
@@ -2520,7 +2666,7 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
     BEGIN_PARSE_FLAGS();
     END_PARSE_FLAGS();
     parse(caption, parser);
-    parse(blocks, parser);
+    parse(page_blocks, parser);
   }
 };
 
@@ -2557,6 +2703,10 @@ class WebPageBlockRelatedArticles final : public WebPageBlock {
     for (const auto &article : related_articles) {
       article.for_each_text(callback);
     }
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockRelatedArticles>(header.clone(), vector<RelatedArticle>(related_articles));
   }
 
   friend bool operator==(const WebPageBlockRelatedArticles &lhs, const WebPageBlockRelatedArticles &rhs) {
@@ -2614,6 +2764,10 @@ class WebPageBlockMap final : public WebPageBlock {
     caption.for_each_text(callback);
   }
 
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockMap>(location, zoom, dimensions, caption.clone());
+  }
+
   friend bool operator==(const WebPageBlockMap &lhs, const WebPageBlockMap &rhs) {
     return lhs.location == rhs.location && lhs.zoom == rhs.zoom && lhs.dimensions == rhs.dimensions &&
            lhs.caption == rhs.caption;
@@ -2668,6 +2822,10 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
 
   void for_each_text(const std::function<void(Slice text)> &callback) const final {
     caption.for_each_text(callback);
+  }
+
+  unique_ptr<WebPageBlock> clone() const final {
+    return td::make_unique<WebPageBlockVoiceNote>(voice_note_file_id, caption.clone());
   }
 
   friend bool operator==(const WebPageBlockVoiceNote &lhs, const WebPageBlockVoiceNote &rhs) {
@@ -3489,6 +3647,10 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     }
   }
   return result;
+}
+
+vector<unique_ptr<WebPageBlock>> clone_web_page_blocks(const vector<unique_ptr<WebPageBlock>> &page_blocks) {
+  return transform(page_blocks, [](const unique_ptr<WebPageBlock> &page_block) { return page_block->clone(); });
 }
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
