@@ -6961,8 +6961,10 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       break;
     case MessageContentType::PollDeleteAnswer:
       break;
-    case MessageContentType::RichText:
-      break;
+    case MessageContentType::RichText: {
+      const auto *content = static_cast<const MessageRichText *>(message_content);
+      return content->text.get_user_ids();
+    }
     default:
       UNREACHABLE();
       break;

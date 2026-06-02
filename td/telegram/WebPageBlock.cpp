@@ -3504,6 +3504,14 @@ void WebPageBlock::for_each_text(const std::function<void(Slice text)> &callback
   });
 }
 
+void WebPageBlock::append_user_ids(vector<UserId> &user_ids) const {
+  for_each_rich_text([&](const RichText *text) {
+    if (text->user_id.is_valid()) {
+      user_ids.push_back(text->user_id);
+    }
+  });
+}
+
 template <class F>
 void WebPageBlock::call_impl(Type type, const WebPageBlock *ptr, F &&f) {
   switch (type) {

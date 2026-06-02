@@ -104,6 +104,8 @@ class WebPageBlock {
 
   void for_each_text(const std::function<void(Slice text)> &callback) const;
 
+  void append_user_ids(vector<UserId> &user_ids) const;
+
   virtual unique_ptr<WebPageBlock> clone() const = 0;
 
   virtual td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const = 0;

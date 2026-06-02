@@ -48,6 +48,8 @@ class RichMessage {
 
   void for_each_text(const std::function<void(Slice text)> &callback) const;
 
+  vector<UserId> get_user_ids() const;
+
   td_api::object_ptr<td_api::richMessage> get_rich_message_object(Td *td) const;
 
   RichMessage clone() const;
