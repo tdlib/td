@@ -7240,7 +7240,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       auto new_contents =
           td->poll_manager_->get_individual_message_content_refs(new_->poll_id, new_->attached_media.get());
       if (old_contents.size() != new_contents.size()) {
-        LOG(ERROR) << "Had " << old_contents.size() << " paid media, but now have " << new_contents.size();
+        LOG(ERROR) << "Had " << old_contents.size() << " poll media, but now have " << new_contents.size();
       } else {
         for (size_t i = 0; i < old_contents.size(); i++) {
           if (old_contents[i] == nullptr) {
@@ -7251,6 +7251,12 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
           }
           if (new_contents[i] == nullptr) {
             LOG(ERROR) << "Have " << old_contents[i]->get_type() << " as old content";
+            continue;
+          }
+          if (old_contents[i]->get_type() != new_contents[i]->get_type()) {
+            LOG(INFO) << "Have " << old_contents[i]->get_type() << " as old content, but "
+                      << new_contents[i]->get_type() << " as new content";
+            continue;
           }
           merge_message_contents(td, old_contents[i], new_contents[i], need_message_changed_warning, dialog_id,
                                  need_merge_files, is_content_changed, need_update);
