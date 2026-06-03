@@ -1430,6 +1430,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"rich_message_length_limit", "rich_message_text_length_max"},
       {"rich_message_max_blocks", "rich_message_block_count_max"},
       {"rich_message_max_depth", "rich_message_depth_max"},
+      {"rich_message_max_media", "rich_message_media_count_max"},
       {"ringtone_duration_max", "notification_sound_duration_max"},
       {"ringtone_saved_count_max", "notification_sound_count_max"},
       {"ringtone_size_max", "notification_sound_size_max"},
