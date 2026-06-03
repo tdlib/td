@@ -30,6 +30,7 @@ struct ExactInvariants final {
   vector<uint16> non_grease_supported_groups;
   vector<string> alpn_protocols;
   vector<uint16> compress_cert_algorithms;
+  vector<uint16> non_grease_supported_versions;
   bool ech_presence_required{false};
   uint16 tls_record_version{0};
   uint16 client_hello_legacy_version{0};

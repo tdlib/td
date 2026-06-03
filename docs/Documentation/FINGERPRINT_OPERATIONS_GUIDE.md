@@ -147,7 +147,7 @@ This generator now forwards each ClientHello artifact's `profile_id` into the Se
 
 ### extract_tcp_transport_signatures.py
 
-Builds transport-coherence observations from imported fixtures. SYN-phase metrics fail-closed to 0.0 when SYN evidence is unavailable.
+Builds transport-coherence observations from imported fixtures. SYN-phase metrics are marked as availability=unavailable with a null metric value when SYN evidence is absent.
 
 ```bash
 python3 test/analysis/extract_tcp_transport_signatures.py \

@@ -103,6 +103,23 @@ vector<string> alpn_protocols(const ParsedClientHello &hello) {
   return out;
 }
 
+vector<uint16> non_grease_supported_versions(const ParsedClientHello &hello) {
+  auto *sv = find_extension(hello, 0x002Bu);
+  if (sv == nullptr || sv->value.empty()) {
+    return {};
+  }
+  const auto versions_len = static_cast<uint8>(sv->value[0]);
+  vector<uint16> versions;
+  for (size_t i = 1; i + 1 < sv->value.size() && i < static_cast<size_t>(versions_len + 1); i += 2) {
+    auto version = static_cast<uint16>((static_cast<uint8>(sv->value[i]) << 8) |
+                                       static_cast<uint8>(sv->value[i + 1]));
+    if (!is_grease_value(version)) {
+      versions.push_back(version);
+    }
+  }
+  return versions;
+}
+
 bool hello_has_ech_extension(const ParsedClientHello &hello) {
   return find_extension(hello, 0xFE0Du) != nullptr;
 }
@@ -140,6 +157,12 @@ bool FamilyLaneMatcher::matches_exact_invariants(const ParsedClientHello &hello)
   }
   if (!inv.compress_cert_algorithms.empty()) {
     if (compress_cert_algorithms(hello) != inv.compress_cert_algorithms) {
+      return false;
+    }
+  }
+  if (!inv.non_grease_supported_versions.empty()) {
+    auto observed = non_grease_supported_versions(hello);
+    if (observed != inv.non_grease_supported_versions) {
       return false;
     }
   }

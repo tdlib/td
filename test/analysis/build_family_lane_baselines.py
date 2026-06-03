@@ -195,6 +195,21 @@ def _sample_compress_cert_algos(sample: dict[str, Any]) -> list[int]:
     return [_parse_u16(v) for v in sample.get("compress_certificate_algorithms", [])]
 
 
+def _sample_non_grease_supported_versions(sample: dict) -> list[str]:
+    for ext in sample.get("extensions", []):
+        if isinstance(ext, dict) and str(ext.get("type", "")).lower() == "0x002b":
+            body_hex = str(ext.get("body_hex", ""))
+            if not body_hex:
+                return []
+            try:
+                from common_tls import parse_supported_versions
+                versions = parse_supported_versions(body_hex)
+                return [f"0x{v:04x}" for v in versions]
+            except (ValueError, ImportError):
+                return []
+    return []
+
+
 def _sample_alpn(sample: dict[str, Any]) -> list[str]:
     return list(sample.get("alpn_protocols", []))
 
@@ -354,6 +369,7 @@ struct ExactInvariants final {
   vector<uint16> non_grease_supported_groups;
   vector<string> alpn_protocols;
   vector<uint16> compress_cert_algorithms;
+  vector<uint16> non_grease_supported_versions;
   bool ech_presence_required{false};
   uint16 tls_record_version{0};
   uint16 client_hello_legacy_version{0};
@@ -460,20 +476,33 @@ def _merge_exact_invariants(group: list[dict[str, Any]]) -> dict[str, Any]:
     record_versions = {_sample_record_version(e["sample"]) for e in group}
     legacy_versions = {_sample_legacy_version(e["sample"]) for e in group}
 
-    def common_list(values: list[list]) -> list:
+    def common_list(values: list[list]) -> tuple[list, str]:
         if not values:
-            return []
+            return [], "no_samples"
         first = values[0]
         for other in values[1:]:
             if other != first:
-                return []
-        return first
+                return [], "mixed_values"
+        return first, ""
 
-    cipher_suites = common_list([_sample_non_grease_cipher_suites(e["sample"]) for e in group])
-    extension_set = common_list([_sample_non_grease_extension_order(e["sample"]) for e in group])
-    supported_groups = common_list([_sample_non_grease_supported_groups(e["sample"]) for e in group])
-    alpn_protocols = common_list([_sample_alpn(e["sample"]) for e in group])
-    compress_algos = common_list([_sample_compress_cert_algos(e["sample"]) for e in group])
+    cipher_suites, cipher_suites_reason = common_list([_sample_non_grease_cipher_suites(e["sample"]) for e in group])
+    extension_set, extension_set_reason = common_list([_sample_non_grease_extension_order(e["sample"]) for e in group])
+    supported_groups, supported_groups_reason = common_list([_sample_non_grease_supported_groups(e["sample"]) for e in group])
+    alpn_protocols, alpn_protocols_reason = common_list([_sample_alpn(e["sample"]) for e in group])
+    compress_algos, compress_algos_reason = common_list([_sample_compress_cert_algos(e["sample"]) for e in group])
+    supported_versions, supported_versions_reason = common_list([_sample_non_grease_supported_versions(e["sample"]) for e in group])
+
+    collapse_reasons: dict[str, str] = {}
+    for field_name, reason in [
+        ("cipher_suites", cipher_suites_reason),
+        ("extension_set", extension_set_reason),
+        ("supported_groups", supported_groups_reason),
+        ("alpn_protocols", alpn_protocols_reason),
+        ("compress_algos", compress_algos_reason),
+        ("supported_versions", supported_versions_reason),
+    ]:
+        if reason:
+            collapse_reasons[field_name] = reason
 
     return {
         "cipher_suites": cipher_suites,
@@ -481,9 +510,11 @@ def _merge_exact_invariants(group: list[dict[str, Any]]) -> dict[str, Any]:
         "supported_groups": supported_groups,
         "alpn_protocols": alpn_protocols,
         "compress_algos": compress_algos,
+        "supported_versions": supported_versions,
         "ech_presence_required": len(ech_present_bits) == 1 and True in ech_present_bits,
         "record_version": record_versions.pop() if len(record_versions) == 1 else 0,
         "legacy_version": legacy_versions.pop() if len(legacy_versions) == 1 else 0,
+        "collapse_reasons": collapse_reasons,
     }
 
 
@@ -543,9 +574,11 @@ def _synthetic_fail_closed_invariants(donor: dict[str, Any]) -> dict[str, Any]:
         "supported_groups": [],
         "alpn_protocols": [],
         "compress_algos": [],
+        "supported_versions": [],
         "ech_presence_required": False,
         "record_version": int(inv.get("record_version", 0)),
         "legacy_version": int(inv.get("legacy_version", 0)),
+        "collapse_reasons": {},
     }
 
 
@@ -627,6 +660,9 @@ def build_baselines(samples: list[dict[str, Any]], now_utc: str | None = None) -
         stale_over_90_days = max_age_days is not None and max_age_days > STALE_WARNING_DAYS
         stale_over_180_days = max_age_days is not None and max_age_days > STALE_DOWNGRADE_DAYS
         effective_tier = _downgrade_tier_once(raw_tier) if stale_over_180_days else raw_tier
+        supported_versions = invariants.get("supported_versions", [])
+        sv_key = "_".join(str(v) for v in supported_versions) if supported_versions else "unknown"
+        cohort_id = f"{family_id}_sv_{sv_key}"
         baselines.append({
             "family_id": family_id,
             "route_lane": route_lane,
@@ -640,6 +676,7 @@ def build_baselines(samples: list[dict[str, Any]], now_utc: str | None = None) -
             "stale_over_180_days": stale_over_180_days,
             "invariants": invariants,
             "set_catalog": catalog,
+            "cohort_id": cohort_id,
         })
     return _materialize_fail_closed_route_lanes(baselines)
 
@@ -671,6 +708,11 @@ def render_header(baselines: list[dict[str, Any]]) -> str:
         )
         lines.append(
             f"inline const vector<uint16> {prefix}CompressCertAlgorithms = {_cpp_u16_list(inv['compress_algos'])};"
+        )
+        # supported_versions stores hex strings like "0x0304"; convert to ints for C++ emission.
+        sv_ints = [int(v, 16) if isinstance(v, str) else int(v) for v in inv.get('supported_versions', [])]
+        lines.append(
+            f"inline const vector<uint16> {prefix}SupportedVersions = {_cpp_u16_list(sv_ints)};"
         )
 
         template_inits = ", ".join(
@@ -717,6 +759,7 @@ def render_header(baselines: list[dict[str, Any]]) -> str:
         lines.append(f"      b.invariants.non_grease_supported_groups = {prefix}SupportedGroups;")
         lines.append(f"      b.invariants.alpn_protocols = {prefix}AlpnProtocols;")
         lines.append(f"      b.invariants.compress_cert_algorithms = {prefix}CompressCertAlgorithms;")
+        lines.append(f"      b.invariants.non_grease_supported_versions = {prefix}SupportedVersions;")
         lines.append(
             f"      b.invariants.ech_presence_required = {'true' if inv['ech_presence_required'] else 'false'};"
         )

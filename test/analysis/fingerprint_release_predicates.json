@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "predicates": {
+    "ks_entropy_above_floor": {
+      "predicate_id": "ks_entropy_above_floor",
+      "description": "KS-test p-value for record-size entropy stays above floor across cohort",
+      "threshold": 0.05,
+      "cohort_id": "chrome_tls13_desktop",
+      "confidence_method": "ks_two_sample",
+      "positive_controls": ["known_good_entropy_vector"],
+      "hostile_mutants": ["all_zeros_entropy_vector", "constant_record_size"]
+    },
+    "ja3_hamming_drift": {
+      "predicate_id": "ja3_hamming_drift",
+      "description": "Hamming distance between emitted and reference JA3 must not exceed ceiling",
+      "threshold": 3,
+      "cohort_id": "chrome_tls13_android",
+      "confidence_method": "hamming_ceiling",
+      "positive_controls": ["reference_ja3_exact_match"],
+      "hostile_mutants": ["bitflip_every_field", "truncated_ja3"]
+    },
+    "ch_extension_order_stable": {
+      "predicate_id": "ch_extension_order_stable",
+      "description": "ClientHello extension ordering matches canonical profile within tolerance",
+      "threshold": 0,
+      "cohort_id": "safari_tls13_ios",
+      "confidence_method": "exact_sequence_match",
+      "positive_controls": ["canonical_safari_extension_order"],
+      "hostile_mutants": ["reversed_extension_order", "random_shuffle_extensions"]
+    }
+  }
+}

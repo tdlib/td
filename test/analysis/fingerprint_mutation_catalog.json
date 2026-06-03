@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "catalog_version": "2026-06-04-001",
+  "mutations": [
+    {
+      "mutation_id": "exact_field_downgrade_supported_versions_chrome_android",
+      "risk_ids": ["RISK-FP-01", "RISK-FP-06"],
+      "family_id": "android_chromium",
+      "cohort_id": "chromium_android16_modern",
+      "route_lane": "non_ru_egress",
+      "evidence_lane": "reviewed_corpus_smoke",
+      "fixture_anchor": {
+        "fixture_path": "test/analysis/fixtures/clienthello/android/chrome146_177_android16.clienthello.json",
+        "fixture_id": "chrome146_177_android16",
+        "frame_number": 1,
+        "tcp_stream": 0
+      },
+      "raw_dump_anchor": {
+        "dump_path": "docs/Samples/Traffic dumps/chrome146_177_android16.pcapng",
+        "source_sha256": "placeholder_sha256_a"
+      },
+      "mutated_field": "non_grease_supported_versions",
+      "mutation_class": "exact_field_downgrade",
+      "expected_failure_lane": "reviewed_corpus_smoke",
+      "positive_control": "test/analysis/fixtures/clienthello/android/chrome146_177_android16.clienthello.json",
+      "expected_diagnostic": "supported_versions mismatch: expected [0x0304, 0x0303] but mutant has [0x0303]",
+      "created_by_phase": "Phase_0D",
+      "last_verified_utc": "2026-06-04T00:00:00Z"
+    },
+    {
+      "mutation_id": "grease_evasion_extension_types_ios_safari",
+      "risk_ids": ["RISK-FP-03"],
+      "family_id": "apple_ios_tls",
+      "cohort_id": "apple_ios26_modern",
+      "route_lane": "non_ru_egress",
+      "evidence_lane": "reviewed_corpus_smoke",
+      "fixture_anchor": {
+        "fixture_path": "test/analysis/fixtures/clienthello/ios/safari26_3_1_ios26_3_1_a.clienthello.json",
+        "fixture_id": "safari26_3_1_ios26_3_1_a",
+        "frame_number": 1,
+        "tcp_stream": 0
+      },
+      "raw_dump_anchor": {
+        "dump_path": "docs/Samples/Traffic dumps/safari26_3_1_ios26_3_1_a.pcapng",
+        "source_sha256": "placeholder_sha256_b"
+      },
+      "mutated_field": "extension_types",
+      "mutation_class": "grease_evasion",
+      "expected_failure_lane": "reviewed_corpus_smoke",
+      "positive_control": "test/analysis/fixtures/clienthello/ios/safari26_3_1_ios26_3_1_a.clienthello.json",
+      "expected_diagnostic": "GREASE extension absent: mutant removed 0x0A0A from extension list",
+      "created_by_phase": "Phase_0D",
+      "last_verified_utc": "2026-06-04T00:00:00Z"
+    },
+    {
+      "mutation_id": "length_mismatch_wire_length_windows_chromium",
+      "risk_ids": ["RISK-FP-02", "RISK-FP-22"],
+      "family_id": "chromium_windows",
+      "cohort_id": "chromium_windows_modern",
+      "route_lane": "non_ru_egress",
+      "evidence_lane": "reviewed_corpus_smoke",
+      "fixture_anchor": {
+        "fixture_path": "test/analysis/fixtures/clienthello/windows/chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977.clienthello.json",
+        "fixture_id": "chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977",
+        "frame_number": 1,
+        "tcp_stream": 0
+      },
+      "raw_dump_anchor": {
+        "dump_path": "docs/Samples/Traffic dumps/chrome146_0_7680_178_windows10_pro_22h2_19045_6456.pcapng",
+        "source_sha256": "placeholder_sha256_d"
+      },
+      "mutated_field": "wire_length",
+      "mutation_class": "length_mismatch",
+      "expected_failure_lane": "reviewed_corpus_smoke",
+      "positive_control": "test/analysis/fixtures/clienthello/windows/chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977.clienthello.json",
+      "expected_diagnostic": "wire_length outside observed baseline set: got 9999, allowed set is [1718..1978]",
+      "created_by_phase": "Phase_0D",
+      "last_verified_utc": "2026-06-04T00:00:00Z"
+    },
+    {
+      "mutation_id": "order_drift_cipher_suites_linux_chromium",
+      "risk_ids": ["RISK-FP-04", "RISK-FP-07"],
+      "family_id": "chromium_linux_desktop",
+      "cohort_id": "chromium_linux_modern",
+      "route_lane": "non_ru_egress",
+      "evidence_lane": "reviewed_corpus_smoke",
+      "fixture_anchor": {
+        "fixture_path": "test/analysis/fixtures/clienthello/linux_desktop/chrome146_177_linux_desktop.clienthello.json",
+        "fixture_id": "chrome146_177_linux_desktop",
+        "frame_number": 1,
+        "tcp_stream": 0
+      },
+      "raw_dump_anchor": {
+        "dump_path": "docs/Samples/Traffic dumps/chrome146_177_linux_desktop.pcapng",
+        "source_sha256": "placeholder_sha256_c"
+      },
+      "mutated_field": "cipher_suites",
+      "mutation_class": "order_drift",
+      "expected_failure_lane": "reviewed_corpus_smoke",
+      "positive_control": "test/analysis/fixtures/clienthello/linux_desktop/chrome146_177_linux_desktop.clienthello.json",
+      "expected_diagnostic": "cipher_suites order mismatch: element at index 0 differs from baseline",
+      "created_by_phase": "Phase_0D",
+      "last_verified_utc": "2026-06-04T00:00:00Z"
+    }
+  ]
+}
