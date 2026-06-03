@@ -130,6 +130,12 @@ richMessageSourceMarkdown text:string = RichMessageSource;
 //@description An HTML-formatted rich message; for bots only @text HTML-formatted text of the message
 richMessageSourceHtml text:string = RichMessageSource;
 
+//@description A rich message to send
+//@source Source of the rich message
+//@is_rtl Pass true if the message must be shown from right to left
+//@detect_automatic_blocks Pass true to enable detection of URLs, email addresses and other automatic blocks
+inputRichMessage source:RichMessageSource is_rtl:Bool detect_automatic_blocks:Bool = InputRichMessage;
+
 //@description Represents a change of a text @offset Offset of the entity, in UTF-16 code units @length Length of the entity, in UTF-16 code units @type Type of the entity
 diffEntity offset:int32 length:int32 type:DiffEntityType = DiffEntity;
 
@@ -5757,12 +5763,8 @@ inputPollMediaVideo video:InputFile thumbnail:inputThumbnail cover:InputFile sta
 //@clear_draft Pass true to delete message draft in the chat
 inputMessageText text:formattedText link_preview_options:linkPreviewOptions clear_draft:Bool = InputMessageContent;
 
-//@description A rich message
-//@source Source of the rich message
-//@is_rtl Pass true if the message must be shown from right to left
-//@detect_automatic_blocks Pass true to enable detection of URLs, email addresses and other automatic blocks
-//@clear_draft Pass true to delete message draft in the chat
-inputMessageRichMessage source:RichMessageSource is_rtl:Bool detect_automatic_blocks:Bool clear_draft:Bool = InputMessageContent;
+//@description A rich message @message The rich message to send @clear_draft Pass true to delete message draft in the chat
+inputMessageRichMessage message:inputRichMessage clear_draft:Bool = InputMessageContent;
 
 //@description An animation message (GIF-style).
 //@animation Animation file to be sent

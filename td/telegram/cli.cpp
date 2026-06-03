@@ -6373,7 +6373,9 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message);
       send_message(chat_id,
                    td_api::make_object<td_api::inputMessageRichMessage>(
-                       td_api::make_object<td_api::richMessageSourceMarkdown>(message), rand_bool(), rand_bool(), true),
+                       td_api::make_object<td_api::inputRichMessage>(
+                           td_api::make_object<td_api::richMessageSourceMarkdown>(message), rand_bool(), rand_bool()),
+                       true),
                    false, false);
     } else if (op == "alm") {
       ChatId chat_id;

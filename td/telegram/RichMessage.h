@@ -47,8 +47,7 @@ class RichMessage {
   RichMessage(Td *td, telegram_api::object_ptr<telegram_api::richMessage> &&rich_message, DialogId owner_dialog_id);
 
   static Result<RichMessage> get_rich_message(Td *td, DialogId dialog_id,
-                                              td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
-                                              bool is_bot);
+                                              td_api::object_ptr<td_api::inputRichMessage> &&message, bool is_bot);
 
   bool is_full() const {
     return is_full_;

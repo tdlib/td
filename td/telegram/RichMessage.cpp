@@ -84,12 +84,9 @@ RichMessage::RichMessage(Td *td, telegram_api::object_ptr<telegram_api::richMess
   is_full_ = !rich_message->part_;
 }
 
-Result<RichMessage> RichMessage::get_rich_message(
-    Td *td, DialogId dialog_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, bool is_bot) {
-  CHECK(input_message_content != nullptr);
-  CHECK(input_message_content->get_id() == td_api::inputMessageRichMessage::ID);
-  auto message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
-  if (message->source_ == nullptr) {
+Result<RichMessage> RichMessage::get_rich_message(Td *td, DialogId dialog_id,
+                                                  td_api::object_ptr<td_api::inputRichMessage> &&message, bool is_bot) {
+  if (message == nullptr || message->source_ == nullptr) {
     return Status::Error(400, "Rich message must be non-empty");
   }
   RichMessage rich_message;

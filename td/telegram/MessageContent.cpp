@@ -4725,7 +4725,8 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessageRichMessage::ID: {
       auto input_rich_message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
       clear_draft = input_rich_message->clear_draft_;
-      TRY_RESULT(rich_message, RichMessage::get_rich_message(td, dialog_id, std::move(input_message_content), is_bot));
+      TRY_RESULT(rich_message,
+                 RichMessage::get_rich_message(td, dialog_id, std::move(input_rich_message->message_), is_bot));
       content = td::make_unique<MessageRichText>(std::move(rich_message));
       break;
     }
