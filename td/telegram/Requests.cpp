@@ -2641,6 +2641,13 @@ void Requests::on_request(uint64 id, const td_api::getMessages &request) {
   CREATE_REQUEST(GetMessagesRequest, request.chat_id_, request.message_ids_);
 }
 
+void Requests::on_request(uint64 id, const td_api::getFullRichMessage &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->messages_manager_->get_full_rich_message({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getMessageProperties &request) {
   CREATE_REQUEST_PROMISE();
   td_->messages_manager_->get_message_properties(DialogId(request.chat_id_), MessageId(request.message_id_),

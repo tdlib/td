@@ -610,6 +610,8 @@ class MessagesManager final : public Actor {
   void get_messages_from_server(vector<MessageFullId> &&message_full_ids, Promise<Unit> &&promise, const char *source,
                                 telegram_api::object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
+  void get_full_rich_message(MessageFullId message_full_id, Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
+
   void get_message_properties(DialogId dialog_id, MessageId message_id,
                               Promise<td_api::object_ptr<td_api::messageProperties>> &&promise);
 

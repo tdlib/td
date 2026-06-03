@@ -33,6 +33,7 @@
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/RequestedDialogType.h"
+#include "td/telegram/RichMessage.h"
 #include "td/telegram/SearchPostsFlood.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
@@ -67,6 +68,51 @@
 #include <type_traits>
 
 namespace td {
+
+class GetRichMessageQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::richMessage>> promise_;
+  DialogId dialog_id_;
+  MessageId message_id_;
+
+ public:
+  explicit GetRichMessageQuery(Promise<td_api::object_ptr<td_api::richMessage>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(MessageFullId message_full_id) {
+    dialog_id_ = message_full_id.get_dialog_id();
+    auto input_peer = td_->dialog_manager_->get_input_peer(message_full_id.get_dialog_id(), AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Chat not found"));
+    }
+    message_id_ = message_full_id.get_message_id();
+    CHECK(message_id_.is_server());
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getRichMessage(std::move(input_peer), message_id_.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getRichMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetFullRichMessageQuery: " << to_string(ptr);
+    auto info = get_messages_info(td_, dialog_id_, std::move(ptr), "GetRichMessageQuery");
+    if (info.messages.size() != 1u || info.messages[0]->get_id() != telegram_api::message::ID) {
+      return promise_.set_value(nullptr);
+    }
+    auto rich_message = RichMessage(
+        td_, std::move(static_cast<telegram_api::message *>(info.messages[0].get())->rich_message_), dialog_id_);
+    promise_.set_value(rich_message.get_rich_message_object(td_, true));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "GetRichMessageQuery");
+    promise_.set_error(std::move(status));
+  }
+};
 
 class UploadCoverQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
@@ -2095,6 +2141,11 @@ void MessageQueryManager::on_get_affected_history(DialogId dialog_id, AffectedHi
   if (!affected_history.is_final_) {
     run_affected_history_query_until_complete(dialog_id, std::move(query), get_affected_messages, std::move(promise));
   }
+}
+
+void MessageQueryManager::get_full_rich_message(MessageFullId message_full_id,
+                                                Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
+  td_->create_handler<GetRichMessageQuery>(std::move(promise))->send(message_full_id);
 }
 
 void MessageQueryManager::upload_message_covers(BusinessConnectionId business_connection_id, DialogId dialog_id,

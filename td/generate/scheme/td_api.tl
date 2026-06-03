@@ -11202,6 +11202,9 @@ getCallbackQueryMessage chat_id:int53 message_id:int53 callback_query_id:int64 =
 //@description Returns information about messages. If a message is not found, returns null on the corresponding position of the result @chat_id Identifier of the chat the messages belong to @message_ids Identifiers of the messages to get
 getMessages chat_id:int53 message_ids:vector<int53> = Messages;
 
+//@description Returns the full version of a rich message @chat_id Identifier of the chat the messages belong to @message_id Identifier of the message
+getFullRichMessage chat_id:int53 message_id:int53 = RichMessage;
+
 //@description Returns properties of a message. This is an offline method @chat_id Chat identifier @message_id Identifier of the message
 getMessageProperties chat_id:int53 message_id:int53 = MessageProperties;
 

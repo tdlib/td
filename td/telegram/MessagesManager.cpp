@@ -15026,6 +15026,18 @@ void MessagesManager::get_messages_from_server(vector<MessageFullId> &&message_f
   lock.set_value(Unit());
 }
 
+void MessagesManager::get_full_rich_message(MessageFullId message_full_id,
+                                            Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
+  const auto *m = get_message_force(message_full_id, "get_full_rich_message");
+  if (m == nullptr) {
+    return promise.set_error(400, "Message not found");
+  }
+  if (!m->message_id.is_server() || m->content->get_type() != MessageContentType::RichText) {
+    return promise.set_error(400, "Invalid message specified");
+  }
+  td_->message_query_manager_->get_full_rich_message(message_full_id, std::move(promise));
+}
+
 void MessagesManager::get_message_properties(DialogId dialog_id, MessageId message_id,
                                              Promise<td_api::object_ptr<td_api::messageProperties>> &&promise) {
   TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "get_message_properties"));

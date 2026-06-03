@@ -55,6 +55,8 @@ class MessageQueryManager final : public Actor {
   void run_affected_history_query_until_complete(DialogId dialog_id, AffectedHistoryQuery query,
                                                  bool get_affected_messages, Promise<Unit> &&promise);
 
+  void get_full_rich_message(MessageFullId message_full_id, Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
+
   void upload_message_covers(BusinessConnectionId business_connection_id, DialogId dialog_id,
                              vector<MessageCover> covers, Promise<Unit> &&promise);
 
