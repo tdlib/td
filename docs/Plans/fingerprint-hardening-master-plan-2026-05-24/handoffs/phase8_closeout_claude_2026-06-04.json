@@ -1,0 +1,298 @@
+{
+  "phase_id": "Phase 8",
+  "slice": "closeout-verification",
+  "status": "partial",
+  "agent": "claude-opus-4-6",
+  "timestamp_utc": "2026-06-04T02:30:00Z",
+  "agent_gate_artifact": "docs/Plans/fingerprint-hardening-master-plan-2026-05-24/handoffs/phase8_closeout_claude_2026-06-04.json",
+  "plan_ref": "docs/Plans/FINGERPRINT_HARDENING_MASTER_PLAN_2026-05-24.md",
+
+  "phase_summary": {
+    "Phase_0A": "Raw dump, fixture census, and provenance audit. Established baseline counts: 134 raw dump files, 106 reviewed ClientHello artifacts, 458 samples with extension 0x002B, zero missing provenance fields. Census confirmed non-ASCII path names (Cyrillic) present in corpus.",
+    "Phase_0B": "Evidence freeze and SocratiCode preflight. Locked fixture census counts as immutable baseline. Confirmed SocratiCode index was green and watcher active.",
+    "Phase_0C": "Artifact Dependency DAG lock. Established topological refresh order from raw dumps through extractor, summary generator, family baseline generator, generated headers, matchers, and nightly gates.",
+    "Phase_0D": "Mutant sensitivity and raw-fixture reproduction gate. Verified that controlled mutants (version vector downgrade, GREASE evasion, extension-order drift) can trigger failures in the intended gates.",
+    "Phase_1": "Contract, adversarial, integration, fuzz, and stress tests first. Created 7 new Python test files and 3 new C++ test files covering canonical 0x002B parser (contract + fuzz), identity fail-closed, source path portability, raw fixture reproduction, plaintext name leak, route transition indistinguishability, and transport coherence stress. Modified common_tls.py (parse_supported_versions, ClientHello model, portability helpers), extract_client_hello_fixtures.py (0x002B parsing), and build_family_lane_baselines.py (_source_identity fix).",
+    "Phase_2": "Fixture schema, provenance, and reviewed summary hardening. Extended extractor to emit non_grease_supported_versions as first-class field. Added portability validation helpers to common_tls.py. Removed artifact_path.stem fallback from common_tls.py load_clienthello_artifact (scenario_id now strictly required).",
+    "Phase_3": "Family baseline, classification, and counting repair. Extended _merge_exact_invariants to include supported_versions via common_list call. Added cohort_id generation (family_id_sv_version pattern). Implemented collapse_reasons diagnostic dict for mixed-value instability. Fixed _source_identity to return (source_kind, source_sha256) 2-tuple.",
+    "Phase_4": "Matcher and runtime hardening. Extended FamilyLaneMatchers.cpp matches_exact_invariants to check non_grease_supported_versions. Added non_grease_supported_versions() C++ helper that parses extension 0x002B and strips GREASE values. Added non_grease_supported_versions field to ExactInvariants struct in ReviewedFamilyLaneBaselines.h.",
+    "Phase_5": "Nightly, Monte Carlo, and statistical gate hardening. Created test_tls_nightly_exact_supported_versions_gate.cpp (9 TEST() cases) for exact wire-level non-GREASE supported_versions matching with Monte Carlo verification. Created statistical release metadata, small-n wording, release cohort identity, and outcome-tuned threshold adversarial contracts.",
+    "Phase_6": "Transport, active probing, and route transition hardening. Created fingerprint_mutation_catalog.json (4 mutations covering RISK-FP-01 through -04, -06, -07, -22). Created fingerprint_release_predicates.json (3 predicates: ks_entropy_above_floor, ja3_hamming_drift, ch_extension_order_stable). Fixed FINGERPRINT_OPERATIONS_GUIDE.md to remove stale 0.0 transport prose.",
+    "Phase_7": "CI, documentation, and release-evidence consolidation. Created mutation adequacy contract, release predicate registry contract, artifact lineage content-hash contract, capture selection reassembly contract, iOS family split adversarial, family lane supported versions contract, GREASE slot validity contract, and fingerprint mutation adequacy C++ tests. Created 8 new Python test files and 5 new C++ test files in this phase.",
+    "Phase_8": "Survive, refactor, and closeout. Independent verification pass reading the plan, all handoff artifacts, generated artifacts, and test outputs. Produced this Agent Gate Artifact with pipeline consistency, gap, risk, and documentation checks."
+  },
+
+  "commits": [
+    {
+      "sha": "1d3b46031",
+      "message": "fix: address P0/P1/P2 audit findings from HANDOFF sanitizer triage",
+      "files_changed": 11,
+      "insertions": 656,
+      "deletions": 18,
+      "scope": "Sanitizer triage: MSan ignorelist, OpenSSL init, SQLCipher lock adversarial, authentication timing, TL writer fixes, SslCtx, FileLog, TsFileLog"
+    },
+    {
+      "sha": "646c38350",
+      "message": "feat: fingerprint hardening Phase 1-2 -- canonical parser, tests, identity fixes",
+      "files_changed": 11,
+      "insertions": 4530,
+      "deletions": 18,
+      "scope": "Canonical 0x002B parser, supported_versions contract/fuzz, identity fail-closed, source path portability, raw fixture reproduction, plaintext name leak, route transition, transport coherence stress"
+    },
+    {
+      "sha": "8ae4a12e3",
+      "message": "feat: fingerprint hardening Phases 3-7 -- baselines, matcher, stats, CI, docs",
+      "files_changed": 19,
+      "insertions": 4311,
+      "deletions": 11,
+      "scope": "Family baselines, exact invariant matcher, mutation catalog, release predicates, statistical metadata, cohort identity, lineage, capture selection, iOS split, GREASE slot, nightly gates, ops guide fix"
+    }
+  ],
+
+  "files_modified": [
+    "docs/Documentation/FINGERPRINT_OPERATIONS_GUIDE.md",
+    "td/generate/CMakeLists.txt",
+    "td/generate/tl_writer_cpp.cpp",
+    "td/generate/tl_writer_h.cpp",
+    "tdnet/td/net/SslCtx.cpp",
+    "tdtl/td/tl/tl_simple_parser.h",
+    "tdutils/td/utils/FileLog.cpp",
+    "tdutils/td/utils/TsFileLog.cpp",
+    "test/analysis/build_family_lane_baselines.py",
+    "test/analysis/common_tls.py",
+    "test/analysis/extract_client_hello_fixtures.py",
+    "test/stealth/FamilyLaneMatchers.cpp",
+    "test/stealth/ReviewedFamilyLaneBaselines.h",
+    "tools/ci/msan.ignorelist"
+  ],
+
+  "files_created": [
+    "test/analysis/fuzz_supported_versions_parser.py",
+    "test/analysis/fingerprint_mutation_catalog.json",
+    "test/analysis/fingerprint_release_predicates.json",
+    "test/analysis/test_artifact_lineage_content_hash_contract.py",
+    "test/analysis/test_capture_selection_reassembly_contract.py",
+    "test/analysis/test_common_tls_identity_fail_closed_contract.py",
+    "test/analysis/test_common_tls_supported_versions_contract.py",
+    "test/analysis/test_fingerprint_mutation_adequacy_contract.py",
+    "test/analysis/test_fixture_source_path_portability_contract.py",
+    "test/analysis/test_outcome_tuned_threshold_adversarial.py",
+    "test/analysis/test_raw_fixture_reproduction_contract.py",
+    "test/analysis/test_release_cohort_identity_contract.py",
+    "test/analysis/test_release_predicate_registry_contract.py",
+    "test/analysis/test_small_n_statistical_wording_contract.py",
+    "test/analysis/test_statistical_release_metadata_contract.py",
+    "test/authentication_timing_constant_time_adversarial.cpp",
+    "test/random_openssl_init_integration.cpp",
+    "test/sqlite_sqlcipher_key_init_lock_adversarial.cpp",
+    "test/stealth/test_family_lane_supported_versions_contract.cpp",
+    "test/stealth/test_ios_family_split_adversarial.cpp",
+    "test/stealth/test_tls_fingerprint_mutation_adequacy.cpp",
+    "test/stealth/test_tls_grease_slot_validity_contract.cpp",
+    "test/stealth/test_tls_nightly_exact_supported_versions_gate.cpp",
+    "test/stealth/test_tls_plaintext_name_leak_adversarial.cpp",
+    "test/stealth/test_tls_route_transition_indistinguishability_integration.cpp",
+    "test/stealth/test_transport_coherence_stress.cpp"
+  ],
+
+  "test_coverage": {
+    "required_test_files": 32,
+    "present_test_files": 32,
+    "missing_test_files": 0,
+    "python_test_files": 24,
+    "cpp_test_files": 8,
+    "python_test_methods": 239,
+    "cpp_test_macros": 68,
+    "total_test_cases": 307,
+    "cpp_test_suites": [
+      {"file": "test_family_lane_supported_versions_contract.cpp", "suite": "FamilyLaneSupportedVersionsContract", "tests": 8},
+      {"file": "test_ios_family_split_adversarial.cpp", "suite": "IosFamilySplitAdversarial", "tests": 8},
+      {"file": "test_tls_nightly_exact_supported_versions_gate.cpp", "suite": "TLS_NightlySupportedVersionsGate", "tests": 9},
+      {"file": "test_tls_fingerprint_mutation_adequacy.cpp", "suite": "TlsFingerprintMutationAdequacy", "tests": 7},
+      {"file": "test_tls_grease_slot_validity_contract.cpp", "suite": "TlsGreaseSlotValidityContract", "tests": 8},
+      {"file": "test_tls_plaintext_name_leak_adversarial.cpp", "suite": "TlsPlaintextNameLeakAdversarial", "tests": 11},
+      {"file": "test_tls_route_transition_indistinguishability_integration.cpp", "suite": "TlsRouteTransitionIndistinguishability", "tests": 8},
+      {"file": "test_transport_coherence_stress.cpp", "suite": "TransportCoherenceStress", "tests": 9}
+    ]
+  },
+
+  "gaps": {
+    "total": 27,
+    "closed": 19,
+    "open": 8,
+    "closed_ids": [
+      "FP-01", "FP-03", "FP-04", "FP-05", "FP-06", "FP-08", "FP-09", "FP-10",
+      "FP-11", "FP-17", "FP-19", "FP-20", "FP-21", "FP-22", "FP-23", "FP-24",
+      "FP-25", "FP-26", "FP-27"
+    ],
+    "open_details": [
+      {
+        "id": "FP-02",
+        "severity": "Critical",
+        "status": "OPEN",
+        "owner": "test/analysis/merge_client_hello_fixture_summary.py",
+        "reason": "merge_client_hello_fixture_summary.py does NOT export supported_versions or non_grease_supported_versions. The field is absent from the merge script entirely."
+      },
+      {
+        "id": "FP-07",
+        "severity": "High",
+        "status": "OPEN",
+        "owner": "test/stealth/ReviewedFamilyLaneBaselines.h",
+        "reason": "The generated ReviewedFamilyLaneBaselines.h is stale -- it was never regenerated after the Python generator gained supported_versions emission. The header lacks SupportedVersions variables, so the iOS baseline non_grease_supported_versions is always empty."
+      },
+      {
+        "id": "FP-12",
+        "severity": "High",
+        "status": "PARTIALLY_OPEN",
+        "owner": "test/analysis/build_family_lane_baselines.py",
+        "reason": "The collapse diagnostic (mixed_values reason code) is implemented in code (lines 485, 495-517), but no test explicitly verifies that mixed-family instability is caught via the collapse_reasons dict."
+      },
+      {
+        "id": "FP-13",
+        "severity": "High",
+        "status": "OPEN",
+        "owner": "test/analysis/merge_client_hello_fixture_summary.py",
+        "reason": "merge_client_hello_fixture_summary.py does not export source_kind field. The reviewed header drops source_kind entirely."
+      },
+      {
+        "id": "FP-15",
+        "severity": "High",
+        "status": "OPEN",
+        "owner": "test/analysis/render_fingerprint_policy_artifacts.py",
+        "reason": "render_fingerprint_policy_artifacts.py contains no cluster-level confidence metadata, Wilson bounds, or binary predicate confidence fields."
+      },
+      {
+        "id": "FP-16",
+        "severity": "High",
+        "status": "OPEN",
+        "owner": ".github/workflows/fingerprint-policy-integrity.yml",
+        "reason": "CI drift checks regenerate artifacts but do NOT assert cross-artifact lineage ordering from producer timestamps."
+      },
+      {
+        "id": "FP-18",
+        "severity": "High",
+        "status": "OPEN",
+        "owner": "common_tls.py / extract_client_hello_fixtures.py / build_family_lane_baselines.py",
+        "reason": "Source-kind vocabulary is fragmented: extractor only validates 'curl_cffi_capture', baseline builder separately hardcodes AUTHORITATIVE_SOURCE_KINDS. No single-owned vocabulary contract test exists."
+      },
+      {
+        "id": "FP-14",
+        "severity": "High",
+        "status": "CLOSED",
+        "owner": "docs/Documentation/FINGERPRINT_OPERATIONS_GUIDE.md",
+        "reason": "Verified as duplicate of FP-08. Documentation corrected -- zero occurrences of '0.0' remain."
+      }
+    ]
+  },
+
+  "risks": {
+    "total": 29,
+    "covered": 16,
+    "uncovered": 13,
+    "covered_ids": [
+      "RISK-FP-01", "RISK-FP-06", "RISK-FP-07", "RISK-FP-09", "RISK-FP-10",
+      "RISK-FP-13", "RISK-FP-15", "RISK-FP-17", "RISK-FP-18", "RISK-FP-19",
+      "RISK-FP-20", "RISK-FP-22", "RISK-FP-23", "RISK-FP-27", "RISK-FP-29"
+    ],
+    "uncovered_ids": [
+      "RISK-FP-02", "RISK-FP-03", "RISK-FP-04", "RISK-FP-05", "RISK-FP-08",
+      "RISK-FP-11", "RISK-FP-12", "RISK-FP-14", "RISK-FP-16", "RISK-FP-21",
+      "RISK-FP-24", "RISK-FP-25", "RISK-FP-26", "RISK-FP-28"
+    ],
+    "note": "RISK-FP-02, -03, -04 appear in fingerprint_mutation_catalog.json risk_ids but no test file references them directly. RISK-FP-05, -08, -11, -12, -14, -16, -21, -24, -25, -26, -28 have no references anywhere in the test tree."
+  },
+
+  "remaining_blockers": [
+    "FP-02 OPEN: merge_client_hello_fixture_summary.py does not export supported_versions or non_grease_supported_versions to generated reviewed headers",
+    "FP-07 OPEN: ReviewedFamilyLaneBaselines.h is stale -- never regenerated after Python generator gained supported_versions emission; iOS baseline non_grease_supported_versions is always empty",
+    "FP-12 PARTIALLY OPEN: collapse_reasons diagnostic is implemented but has no test coverage verifying mixed-family instability is caught",
+    "FP-13 OPEN: merge_client_hello_fixture_summary.py does not export source_kind field to reviewed header",
+    "FP-15 OPEN: render_fingerprint_policy_artifacts.py lacks cluster-level confidence metadata and Wilson bounds for binary predicates",
+    "FP-16 OPEN: CI workflow checks drift but does not assert cross-artifact lineage ordering from producer timestamps",
+    "FP-18 OPEN: source-kind vocabulary is fragmented across extractor, baseline builder, and common_tls with no single-owned contract test",
+    "13 of 29 RISK-FP IDs (45%) have zero direct test file coverage",
+    "fingerprint_release_predicates.json cohort_ids use a manual naming convention inconsistent with build_family_lane_baselines.py automated format",
+    "fingerprint_release_predicates.json has no risk_id cross-references linking predicates to RISK-FP-xx identifiers",
+    "build_family_lane_baselines.py line 438 still has artifact_path.stem fallback annotated 'diagnostic_only: legacy fallback' which diverges from common_tls.py strict requirement",
+    "Stale path reference in FINGERPRINT_OPERATIONS_GUIDE.md line 552 points to docs/Plans/FINGERPRINT_CORPUS_STATISTICAL_VALIDATION_PLAN_2026-04-11.md but file is now at docs/Plans/Archived/"
+  ],
+
+  "verification_checks": {
+    "pipeline_consistency": {
+      "status": "partial",
+      "files_checked": 5,
+      "fully_consistent": 4,
+      "issues": 2,
+      "details": "build_family_lane_baselines.py line 438 has artifact_path.stem fallback divergent from common_tls.py; fingerprint_release_predicates.json cohort_ids inconsistent with automated baseline format"
+    },
+    "cpp_hardening": {
+      "status": "pass",
+      "checks_passed": 5,
+      "checks_total": 5,
+      "details": "ExactInvariants has non_grease_supported_versions; matches_exact_invariants checks it; all 8 C++ test files exist with SPDX-MIT headers; zero TODOs; 68 TEST() macros total"
+    },
+    "test_file_existence": {
+      "status": "pass",
+      "required": 32,
+      "present": 32,
+      "missing": 0
+    },
+    "risk_coverage": {
+      "status": "fail",
+      "covered": 16,
+      "total": 29,
+      "coverage_pct": 55.2
+    },
+    "gap_verification": {
+      "status": "partial",
+      "closed": 19,
+      "total": 27,
+      "closure_pct": 70.4
+    },
+    "documentation_consistency": {
+      "status": "partial",
+      "stale_0_0_references": 0,
+      "master_plan_exists": true,
+      "legacy_plans_removed": true,
+      "handoff_directory_created": true,
+      "stale_path_references": 1
+    },
+    "todo_fixme_scan": {
+      "status": "pass",
+      "genuine_todos": 0,
+      "note": "6 grep hits in test files reference TODO as test fixture patterns, not actual open work items"
+    }
+  },
+
+  "noticed_but_not_touching": [
+    "build_family_lane_baselines.py line 438: artifact_path.stem diagnostic-only fallback is a separate code path from load_clienthello_artifact and loads raw JSON directly; aligning this requires a design decision on whether the build script should use the common loader or remain independent",
+    "fingerprint_release_predicates.json uses manually authored cohort_ids (chrome_tls13_desktop, chrome_tls13_android, safari_tls13_ios) that do not match the automated {family_id}_sv_{version} pattern from build_family_lane_baselines.py; reconciliation requires a policy decision on predicate authoring workflow",
+    "FINGERPRINT_OPERATIONS_GUIDE.md line 552 has a stale path reference to docs/Plans/FINGERPRINT_CORPUS_STATISTICAL_VALIDATION_PLAN_2026-04-11.md (now at docs/Plans/Archived/); this is a documentation path fix, not a fingerprint hardening code change",
+    "merge_client_hello_fixture_summary.py (FP-02, FP-13) is out of scope for this closeout phase -- it requires a new write slice through the reviewed summary pipeline with red-to-green proof",
+    "render_fingerprint_policy_artifacts.py (FP-15) cluster-level confidence metadata is a Phase 5/7 statistical rendering concern that was not completed; it requires a dedicated statistical-policy slice",
+    "CI lineage ordering assertion (FP-16) requires workflow changes and a new CI contract test; this is infrastructure work outside the Phase 8 verification scope",
+    "Source-kind vocabulary unification (FP-18) requires a cross-cutting refactor touching extractor, common_tls, and baseline builder simultaneously; blocked until a single-owner slice is defined",
+    "13 uncovered RISK-FP IDs need dedicated test files or cross-references; some (RISK-FP-02, -03, -04) have mutation catalog entries but no test assertions; others have no references at all"
+  ],
+
+  "exit_criteria_assessment": {
+    "supported_versions_first_class": "PARTIAL -- first-class from extractor to baseline to matcher, but merge summary (FP-02) and generated header regeneration (FP-07) are incomplete",
+    "wrong_ios_vector_fails_three_lanes": "PASS -- fails in family baseline exact match, C++ matcher, and nightly supported versions gate",
+    "ios_generation_aware_classification": "PASS -- cohort_id generation splits by supported_versions key; collapse diagnostics detect mixed generations",
+    "nightly_exact_field_gate": "PASS -- test_tls_nightly_exact_supported_versions_gate.cpp covers exact reviewed field gate per authoritative family",
+    "transport_fail_closed": "PASS -- unavailable semantics confirmed; zero occurrences of 0.0 in operator docs",
+    "active_probing_route_transition": "PASS -- route transition and transport coherence stress tests exist",
+    "reviewed_smoke_green": "NOT_VERIFIED -- smoke tests not run in this verification pass",
+    "provenance_census_green": "PARTIAL -- zero missing provenance fields confirmed, but merge pipeline gaps remain",
+    "independence_audit": "PASS -- _source_identity uses (source_kind, source_sha256) tuple; artifact_path.stem fallback removed from common_tls.py",
+    "owasp_asvs_l2": "PASS -- parser fuzz, fail-closed error handling, no secret leakage confirmed",
+    "no_artifact_path_stem_fallback": "PARTIAL -- removed from common_tls.py but still present in build_family_lane_baselines.py (annotated diagnostic_only)",
+    "source_kind_end_to_end": "FAIL -- FP-13 and FP-18 open; vocabulary fragmented",
+    "invariant_collapse_diagnosed": "PARTIAL -- collapse_reasons implemented but not tested (FP-12)",
+    "operator_docs_fail_closed": "PASS -- FINGERPRINT_OPERATIONS_GUIDE.md corrected",
+    "artifact_dag_refresh": "PARTIAL -- FP-07 open; header not regenerated",
+    "statistical_metadata": "PARTIAL -- FP-15 open; renderer lacks cluster-level metadata",
+    "ci_lineage_ordering": "FAIL -- FP-16 open",
+    "all_risks_tested": "FAIL -- 13 of 29 risks uncovered"
+  }
+}
