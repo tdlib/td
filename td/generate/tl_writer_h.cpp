@@ -277,7 +277,7 @@ std::string TD_TL_writer_h::gen_flags_definitions(const tl::tl_combinator *t, bo
       } else {
         res += ", ";
       }
-      std::string flag_mask = int_to_string(1 << p.second);
+      std::string flag_mask = int_to_string(1u << p.second);
       unpoison_if_msan(flag_mask);
       res += p.first;
       res += "_MASK = ";

@@ -475,7 +475,7 @@ std::string TD_TL_writer_cpp::gen_field_fetch(int field_num, const tl::arg &a, s
       const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(a.type);
       if (tree_type->flags & tl::FLAG_BARE && tree_type->type->name == "True") {
         assert(is_type_bare(tree_type->type));
-        std::string true_bit_mask = int_to_string(1 << a.exist_var_bit);
+        std::string true_bit_mask = int_to_string(1u << a.exist_var_bit);
         unpoison_if_msan(true_bit_mask);
         std::string result = "  ";
         result += field_name;
@@ -491,7 +491,7 @@ std::string TD_TL_writer_cpp::gen_field_fetch(int field_num, const tl::arg &a, s
 
   std::string res = "  ";
   if (a.exist_var_num != -1) {
-    std::string exist_var_bit_mask = int_to_string(1 << a.exist_var_bit);
+    std::string exist_var_bit_mask = int_to_string(1u << a.exist_var_bit);
     unpoison_if_msan(exist_var_bit_mask);
     res += "if (";
     res += gen_var_name(vars[a.exist_var_num]);
@@ -772,7 +772,7 @@ std::string TD_TL_writer_cpp::gen_field_store(const tl::arg &a, const std::vecto
       if (tree_type->type->name == "True") {
         if (storer_type == 1) {
           std::string exist_var_name = gen_var_name(vars[a.exist_var_num]);
-          std::string exist_var_bit_mask = int_to_string(1 << a.exist_var_bit);
+          std::string exist_var_bit_mask = int_to_string(1u << a.exist_var_bit);
           std::string pretty_field_name = get_pretty_field_name(field_name);
           unpoison_if_msan(exist_var_name);
           unpoison_if_msan(exist_var_bit_mask);
@@ -794,7 +794,7 @@ std::string TD_TL_writer_cpp::gen_field_store(const tl::arg &a, const std::vecto
     }
 
     std::string exist_condition_var_name = gen_var_name(vars[a.exist_var_num]);
-    std::string exist_condition_bit_mask = int_to_string(1 << a.exist_var_bit);
+    std::string exist_condition_bit_mask = int_to_string(1u << a.exist_var_bit);
     unpoison_if_msan(exist_condition_var_name);
     unpoison_if_msan(exist_condition_bit_mask);
 

@@ -338,12 +338,16 @@ Result<SslCtxPtr> do_create_ssl_ctx(CSlice cert_file, SslCtx::VerifyPeer verify_
   if (ssl_method == nullptr) {
     return create_openssl_error(-6, "Failed to create an SSL client method");
   }
-  ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
-  auto ssl_ctx = SSL_CTX_new(ssl_method);
-  if (!ssl_ctx) {
-    return create_openssl_error(-7, "Failed to create an SSL context");
+  SslCtxPtr ssl_ctx_ptr;
+  {
+    ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
+    auto ssl_ctx_raw = SSL_CTX_new(ssl_method);
+    if (!ssl_ctx_raw) {
+      return create_openssl_error(-7, "Failed to create an SSL context");
+    }
+    ssl_ctx_ptr = SslCtxPtr(ssl_ctx_raw, SSL_CTX_free);
   }
-  auto ssl_ctx_ptr = SslCtxPtr(ssl_ctx, SSL_CTX_free);
+  auto ssl_ctx = ssl_ctx_ptr.get();
   long options = 0;
 #ifdef SSL_OP_NO_SSLv2
   options |= SSL_OP_NO_SSLv2;
@@ -391,8 +395,11 @@ Result<SslCtxPtr> do_create_ssl_ctx(CSlice cert_file, SslCtx::VerifyPeer verify_
   }
 
   string cipher_list;
-  if (SSL_CTX_set_cipher_list(ssl_ctx, cipher_list.empty() ? "DEFAULT" : cipher_list.c_str()) == 0) {
-    return create_openssl_error(-9, PSLICE() << "Failed to set cipher list \"" << cipher_list << '"');
+  {
+    ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
+    if (SSL_CTX_set_cipher_list(ssl_ctx, cipher_list.empty() ? "DEFAULT" : cipher_list.c_str()) == 0) {
+      return create_openssl_error(-9, PSLICE() << "Failed to set cipher list \"" << cipher_list << '"');
+    }
   }
 
   return std::move(ssl_ctx_ptr);

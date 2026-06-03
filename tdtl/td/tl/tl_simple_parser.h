@@ -60,7 +60,8 @@ class tl_simple_parser {
 
   std::int32_t fetch_int() {
     check_len(sizeof(std::int32_t));
-    std::int32_t result = *reinterpret_cast<const std::int32_t *>(data);
+    std::int32_t result;
+    std::memcpy(&result, data, sizeof(std::int32_t));
     data += sizeof(std::int32_t);
     return result;
   }

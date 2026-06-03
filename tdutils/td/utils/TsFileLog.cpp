@@ -56,7 +56,7 @@ class TsFileLog final : public LogInterface {
 
   LogInterface *get_current_logger() {
     auto *info = get_current_info();
-    if (!info->is_inited.load(std::memory_order_relaxed)) {
+    if (!info->is_inited.load(std::memory_order_acquire)) {
       std::unique_lock<std::mutex> lock(init_mutex_);
       if (!info->is_inited.load(std::memory_order_relaxed)) {
         init_info(info).ensure();
@@ -71,7 +71,7 @@ class TsFileLog final : public LogInterface {
 
   Status init_info(Info *info) {
     TRY_STATUS(info->log.init(get_path(info), std::numeric_limits<int64>::max(), info->id == 0 && redirect_stderr_));
-    info->is_inited = true;
+    info->is_inited.store(true, std::memory_order_release);
     return Status::OK();
   }
 

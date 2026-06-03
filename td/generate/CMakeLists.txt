@@ -161,7 +161,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         ${CMAKE_COMMAND} -E env ${TD_GENERATOR_SANITIZER_ENV}
         $<TARGET_FILE:generate_c>)
     set(TL_GENERATE_JSON_COMMAND
-        ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0
+        ${CMAKE_COMMAND} -E env ${TD_GENERATOR_SANITIZER_ENV}
         $<TARGET_FILE:generate_json>)
   else()
     set(TL_GENERATE_MTPROTO_COMMAND generate_mtproto)

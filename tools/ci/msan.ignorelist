@@ -7,6 +7,7 @@
 # The SQLite runtime stack is mapped back to upstream/sqlite3.c via #line
 # directives, but the actual compile unit is tdsqlite_amalgamation.c. Keep the
 # fallback pointed at the real compile unit so the ignorelist matches.
+[memory]
 src:*/sqlite/tdsqlite_amalgamation.c
 fun:sqlcipher_openssl_random
 fun:sqlcipher_openssl_cipher

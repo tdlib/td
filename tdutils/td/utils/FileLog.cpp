@@ -15,6 +15,8 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 
+#include <thread>
+
 namespace td {
 
 namespace {
@@ -102,7 +104,7 @@ void FileLog::do_append(int log_level, CSlice slice) {
   while (fatal_error.empty() && !slice.empty()) {
     if (redirect_stderr_) {
       while (has_log_guard()) {
-        // spin
+        std::this_thread::yield();
       }
     }
     auto r_size = fd_.write(slice);
