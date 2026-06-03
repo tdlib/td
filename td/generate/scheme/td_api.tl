@@ -7735,6 +7735,9 @@ premiumLimitTypePinnedArchivedChatCount = PremiumLimitType;
 //@description The maximum number of pinned Saved Messages topics
 premiumLimitTypePinnedSavedMessagesTopicCount = PremiumLimitType;
 
+//@description The maximum length of text of sent messages
+premiumLimitTypeMessageTextLength = PremiumLimitType;
+
 //@description The maximum length of sent media caption
 premiumLimitTypeCaptionLength = PremiumLimitType;
 

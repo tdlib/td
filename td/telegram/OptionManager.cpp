@@ -215,6 +215,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("text_composition_style_title_length_max", 12);
   set_default_integer_option("text_composition_style_prompt_length_max", 1024);
   set_default_integer_option("poll_country_count_max", 12);
+  set_default_integer_option("message_text_length_max", 4096);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
@@ -486,6 +487,8 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "hidden_members_group_size_min",
                                                               "ignored_restriction_reasons",
                                                               "language_pack_version",
+                                                              "message_length_limit_default",
+                                                              "message_length_limit_premium",
                                                               "my_phone_number",
                                                               "need_premium_for_new_chat_privacy",
                                                               "need_premium_for_story_caption_entities",
