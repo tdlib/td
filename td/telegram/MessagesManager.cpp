@@ -24220,7 +24220,7 @@ void MessagesManager::fix_forwarded_message(Message *m, DialogId to_dialog_id, c
     m->interaction_info_update_date = G()->unix_time();
   }
 
-  if (m->content->get_type() == MessageContentType::Game) {
+  if (is_game) {
     // via_bot_user_id in games is present unless the message is sent by the bot
     if (m->via_bot_user_id == UserId()) {
       // if there is no via_bot_user_id, then the original message was sent by the game owner
