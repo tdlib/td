@@ -3194,6 +3194,77 @@ static string get_ordered_list_type(const string &type) {
   return type;
 }
 
+static string get_ordered_list_label(int32 num, const string &type) {
+  if ((type == "a" || type == "A") && num > 0) {
+    string result;
+    while (num > 0) {
+      num--;
+      result = static_cast<char>('A' + num % 26) + result;
+      num /= 26;
+    };
+    if (type == "a") {
+      to_lower_inplace(result);
+    }
+    result += '.';
+    return result;
+  }
+  if ((type == "i" || type == "I") && num > 0 && num < 4000) {
+    string result;
+    while (num >= 1000) {
+      num -= 1000;
+      result += 'M';
+    }
+    if (num >= 900) {
+      result += "CM";
+      num -= 900;
+    } else if (num >= 500) {
+      result += 'D';
+      num -= 500;
+    } else if (num >= 400) {
+      result += "CD";
+      num -= 400;
+    }
+    while (num >= 100) {
+      result += 'C';
+      num -= 100;
+    }
+    if (num >= 90) {
+      result += "XC";
+      num -= 90;
+    } else if (num >= 50) {
+      result += 'L';
+      num -= 50;
+    } else if (num >= 40) {
+      result += "XL";
+      num -= 40;
+    }
+    while (num >= 10) {
+      result += 'X';
+      num -= 10;
+    }
+    if (num >= 9) {
+      result += "IX";
+      num -= 9;
+    } else if (num >= 5) {
+      result += 'V';
+      num -= 5;
+    } else if (num >= 4) {
+      result += "IV";
+      num -= 4;
+    }
+    while (num >= 1) {
+      result += 'I';
+      num -= 1;
+    }
+    if (type == "i") {
+      to_lower_inplace(result);
+    }
+    result += '.';
+    return result;
+  }
+  return PSTRING() << num << '.';
+}
+
 unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::PageBlock> page_block_ptr,
                                             const FlatHashMap<int64, FileId> &animations,
                                             const FlatHashMap<int64, FileId> &audios,
@@ -3284,13 +3355,15 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::pageBlockOrderedList::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockOrderedList>(page_block_ptr);
-      int32 current_label = page_block->start_ + (page_block->reversed_ ? 1 : -1);
+      int32 next_value = 1;
+      if ((page_block->flags_ & telegram_api::pageBlockOrderedList::START_MASK) != 0) {
+        next_value = page_block->start_;
+      }
       auto base_type = get_ordered_list_type(page_block->type_);
       return td::make_unique<WebPageBlockList>(
           transform(std::move(page_block->items_),
                     [&](auto &&list_item_ptr) {
                       WebPageBlockList::Item item;
-                      bool has_value = false;
                       CHECK(list_item_ptr != nullptr);
                       switch (list_item_ptr->get_id()) {
                         case telegram_api::pageListOrderedItemText::ID: {
@@ -3301,8 +3374,11 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                               get_rich_text(std::move(list_item->text_), documents)));
                           item.has_checkbox = list_item->checkbox_;
                           item.is_checked = list_item->checked_;
-                          has_value = (list_item->flags_ & telegram_api::pageListOrderedItemText::VALUE_MASK) != 0;
-                          item.value = list_item->value_;
+                          if ((list_item->flags_ & telegram_api::pageListOrderedItemText::VALUE_MASK) != 0) {
+                            item.value = list_item->value_;
+                          } else {
+                            item.value = next_value;
+                          }
                           item.type = list_item->type_.empty() ? base_type : get_ordered_list_type(list_item->type_);
                           break;
                         }
@@ -3314,8 +3390,11 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                                                                  documents, photos, videos, voice_notes);
                           item.has_checkbox = list_item->checkbox_;
                           item.is_checked = list_item->checked_;
-                          has_value = (list_item->flags_ & telegram_api::pageListOrderedItemBlocks::VALUE_MASK) != 0;
-                          item.value = list_item->value_;
+                          if ((list_item->flags_ & telegram_api::pageListOrderedItemBlocks::VALUE_MASK) != 0) {
+                            item.value = list_item->value_;
+                          } else {
+                            item.value = next_value;
+                          }
                           item.type = list_item->type_.empty() ? base_type : get_ordered_list_type(list_item->type_);
                           break;
                         }
@@ -3325,16 +3404,12 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                       if (item.page_blocks.empty()) {
                         item.page_blocks.push_back(make_unique<WebPageBlockParagraph>(RichText()));
                       }
-                      if (has_value) {
-                        current_label = item.value;
-                      } else {
-                        current_label += page_block->reversed_ ? -1 : 1;
-                      }
                       if (item.label.empty()) {
-                        item.label = PSTRING() << current_label << '.';
+                        item.label = get_ordered_list_label(item.value, item.type);
                       } else {
                         item.label += '.';
                       }
+                      next_value = item.value + (page_block->reversed_ ? -1 : 1);
                       return item;
                     }),
           page_block->start_, page_block->reversed_, base_type);
