@@ -10,7 +10,7 @@
 #include "td/utils/tests.h"
 #include "td/utils/tl_parsers.h"
 
-#include <set>
+#include <algorithm>
 
 namespace window_count_duplicate_light_fuzz {
 
@@ -127,8 +127,10 @@ td::vector<td::int64> make_seed_matrix(td::uint32 seed) {
 }
 
 size_t distinct_count(const td::vector<td::int64> &fingerprints) {
-  std::set<td::int64> uniq(fingerprints.begin(), fingerprints.end());
-  return uniq.size();
+  auto uniq = fingerprints;
+  std::sort(uniq.begin(), uniq.end());
+  auto unique_end = std::unique(uniq.begin(), uniq.end());
+  return static_cast<size_t>(std::distance(uniq.begin(), unique_end));
 }
 
 TEST(WindowCountDuplicateLightFuzz, WCDF01) {

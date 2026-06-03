@@ -36,25 +36,25 @@
   },
   "hashes": {
     "sha256": {
-      "sqlite/generated/tdsqlite_rename.h": "9f16620c8e29e3e741316c2b2b49f606704f681ad88794792459d3da7be4bffb",
+      "sqlite/generated/tdsqlite_rename.h": "e1f4fc296df74e293abc5697067d22aca0de2244b93db2ce34876189d6ea2fd8",
       "sqlite/sqlite/sqlite3.h": "066fad86d8ce6fae6c4f674a30e72a12f9bc025d02b4e109c45913ce3945cd36",
       "sqlite/sqlite/sqlite3ext.h": "70b21fbffbf507187ee0f5679d8f856f4cf02fdc674701edb241a9eddc51b893",
       "sqlite/sqlite/sqlite3session.h": "126a6eb499df875ea12b0de04a90110e6b921569fbb8304981fe18afe41dae89",
       "sqlite/tdsqlite_amalgamation.c": "3010ad9a15f0a0bcd2735336a5ca6bedd2dbaf950a55dd4c23490afba21ab333",
-      "sqlite/upstream/sqlite3.c": "ea0bf0b08f688ca5d9312b2e33e7f81b3f4ae54b5016fb062ae1f2632a30a1b9",
-      "sqlite/upstream/sqlite3.h": "91190701218669c31d2f56835c98882074ad051f2d38afee9f5b9c35d8406149",
-      "sqlite/upstream/sqlite3ext.h": "ea81fb7bd05882e0e0b92c4d60f677b205f7f1fbf085f218b12f0b5b3f0b9e48",
-      "sqlite/upstream/sqlite3session.h": "bb14eb4601bedafd85c66570729efe2df4baa613870b70119af743ef88651af7"
+      "sqlite/upstream/sqlite3.c": "0c8371853e124f20bb7728368559fe743ac3d1f0b97d317ba68b70bfe802bcb2",
+      "sqlite/upstream/sqlite3.h": "126a6cdd1a2b2b3f47ec1952defc8e2434ebecfa239f917463e11fdffcfe16dd",
+      "sqlite/upstream/sqlite3ext.h": "ac9645e5c9ff0cf176efdd6e75cb5e98f46295d38e02db5c4d208826a39ab4be",
+      "sqlite/upstream/sqlite3session.h": "4cf5c9418e095aece60dddcbf755c3ef9bef4910ca8dd43ad6f32409bf88bfbf"
     }
   },
   "schema_version": 1,
   "vendor": {
     "base": "sqlcipher",
-    "release_tag": "v4.14.0",
-    "release_url": "https://github.com/sqlcipher/sqlcipher/releases/tag/v4.14.0",
-    "source_tarball_sha256": "a86d78d5556a699059b47fc0899fc13bd8f7029b88f40a84831fdeb7c1fe5191",
-    "source_tarball_url": "https://api.github.com/repos/sqlcipher/sqlcipher/tarball/v4.14.0",
-    "sqlite_source_id": "2026-03-13 10:38:09 737ae4a34738ffa0c3ff7f9bb18df914dd1cad163f28fd6b6e114a344fe6alt1",
-    "sqlite_version": "3.51.3"
+    "release_tag": "v4.16.0",
+    "release_url": "https://github.com/sqlcipher/sqlcipher/releases/tag/v4.16.0",
+    "source_tarball_sha256": "db4f3401ae6951374ee6b446bef5723609f0e980bba77fafb9c19d530d3feb7d",
+    "source_tarball_url": "https://api.github.com/repos/sqlcipher/sqlcipher/tarball/v4.16.0",
+    "sqlite_source_id": "2026-05-05 10:34:17 c88b22011a54b4f6fbd149e9f8e4de77658ce58143a1af0e3785e4e64751alt1",
+    "sqlite_version": "3.53.1"
   }
 }

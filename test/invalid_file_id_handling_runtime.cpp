@@ -214,6 +214,8 @@ TEST(InvalidFileIdHandlingRuntime, paid_media_empty_upload_slot_resolves_to_empt
     spin_until(scheduler, [&] { return is_open; });
     ASSERT_TRUE(open_result.is_ok());
 
+    bool is_closed = false;
+    td::Status close_status;
     {
       auto guard = scheduler.get_main_guard();
       GlobalContextScope context_scope;
@@ -227,7 +229,20 @@ TEST(InvalidFileIdHandlingRuntime, paid_media_empty_upload_slot_resolves_to_empt
       ASSERT_TRUE(file_view.empty());
 
       td->file_manager_.reset();
+
+      td::G()->set_close_flag();
+      td::G()->close_all(true, td::PromiseCreator::lambda([&](td::Result<td::Unit> result) {
+                           if (result.is_ok()) {
+                             close_status = td::Status::OK();
+                           } else {
+                             close_status = result.move_as_error_prefix("Failed to close TdDb: ");
+                           }
+                           is_closed = true;
+                         }));
     }
+
+    spin_until(scheduler, [&] { return is_closed; });
+    ASSERT_TRUE(close_status.is_ok());
 
     td::rmrf(dir).ignore();
   }

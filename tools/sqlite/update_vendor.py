@@ -18,24 +18,29 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 
-from audit_vendor import DEFAULT_SQLCIPHER_TARBALL_URL_TEMPLATE
-from audit_vendor import build_vendor_manifest
-from audit_vendor import compute_sha256
-from audit_vendor import load_vendor_manifest
-from audit_vendor import render_expected_generated_files
-from audit_vendor import verify_vendor_integrity
-from audit_vendor import write_vendor_manifest
-
+from audit_vendor import (
+    DEFAULT_SQLCIPHER_TARBALL_URL_TEMPLATE,
+    build_vendor_manifest,
+    compute_sha256,
+    load_vendor_manifest,
+    render_expected_generated_files,
+    verify_vendor_integrity,
+    write_vendor_manifest,
+)
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-DEFAULT_ALLOWED_SOURCE_TARBALL_HOSTS = frozenset({"api.github.com", "github.com", "codeload.github.com"})
+DEFAULT_ALLOWED_SOURCE_TARBALL_HOSTS = frozenset(
+    {"api.github.com", "github.com", "codeload.github.com"}
+)
 SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
 SQLCIPHER_SESSION_HEADER_RELATIVE_PATH = pathlib.Path("ext/session/sqlite3session.h")
 UPSTREAM_COPY_MAP = {
     pathlib.Path("sqlite3.c"): pathlib.Path("sqlite/upstream/sqlite3.c"),
     pathlib.Path("sqlite3.h"): pathlib.Path("sqlite/upstream/sqlite3.h"),
     pathlib.Path("sqlite3ext.h"): pathlib.Path("sqlite/upstream/sqlite3ext.h"),
-    SQLCIPHER_SESSION_HEADER_RELATIVE_PATH: pathlib.Path("sqlite/upstream/sqlite3session.h"),
+    SQLCIPHER_SESSION_HEADER_RELATIVE_PATH: pathlib.Path(
+        "sqlite/upstream/sqlite3session.h"
+    ),
 }
 GENERATED_SIDECAR_RELATIVE_PATHS = (
     pathlib.Path("sqlite/generated/tdsqlite_rename.h"),
@@ -47,7 +52,10 @@ GENERATED_SIDECAR_RELATIVE_PATHS = (
 MANAGED_REPO_RELATIVE_PATHS = tuple(
     sorted(
         {
-            *(destination_path.as_posix() for destination_path in UPSTREAM_COPY_MAP.values()),
+            *(
+                destination_path.as_posix()
+                for destination_path in UPSTREAM_COPY_MAP.values()
+            ),
             *(path.as_posix() for path in GENERATED_SIDECAR_RELATIVE_PATHS),
             "sqlite/VENDOR.json",
         }
@@ -65,12 +73,18 @@ class TclEnvironment:
     env: dict[str, str]
 
 
-def _resolve_managed_repo_output_path(repo_root: pathlib.Path, relative_path: str) -> pathlib.Path:
+def _resolve_managed_repo_output_path(
+    repo_root: pathlib.Path, relative_path: str
+) -> pathlib.Path:
     relative_repo_path = pathlib.PurePosixPath(relative_path)
     if relative_repo_path.is_absolute() or not relative_repo_path.parts:
-        raise VendorUpdateError(f"managed output path must stay within the repository root: {relative_path}")
+        raise VendorUpdateError(
+            f"managed output path must stay within the repository root: {relative_path}"
+        )
     if any(part in ("", ".", "..") for part in relative_repo_path.parts):
-        raise VendorUpdateError(f"managed output path must stay within the repository root: {relative_path}")
+        raise VendorUpdateError(
+            f"managed output path must stay within the repository root: {relative_path}"
+        )
 
     resolved_repo_root = repo_root.resolve()
     absolute_path = repo_root / pathlib.Path(*relative_repo_path.parts)
@@ -80,11 +94,17 @@ def _resolve_managed_repo_output_path(repo_root: pathlib.Path, relative_path: st
         if not current_path.exists():
             break
         if current_path.is_symlink():
-            raise VendorUpdateError(f"managed output path must not use symlinks: {relative_path}")
+            raise VendorUpdateError(
+                f"managed output path must not use symlinks: {relative_path}"
+            )
         if not current_path.resolve().is_relative_to(resolved_repo_root):
-            raise VendorUpdateError(f"managed output path escaped the repository root: {relative_path}")
+            raise VendorUpdateError(
+                f"managed output path escaped the repository root: {relative_path}"
+            )
         if index + 1 < len(relative_repo_path.parts) and not current_path.is_dir():
-            raise VendorUpdateError(f"managed output parent is not a directory: {relative_path}")
+            raise VendorUpdateError(
+                f"managed output parent is not a directory: {relative_path}"
+            )
 
     return absolute_path
 
@@ -93,14 +113,20 @@ def snapshot_managed_repo_outputs(repo_root: pathlib.Path) -> dict[str, bytes | 
     snapshot: dict[str, bytes | None] = {}
     for relative_path in MANAGED_REPO_RELATIVE_PATHS:
         absolute_path = _resolve_managed_repo_output_path(repo_root, relative_path)
-        snapshot[relative_path] = absolute_path.read_bytes() if absolute_path.exists() else None
+        snapshot[relative_path] = (
+            absolute_path.read_bytes() if absolute_path.exists() else None
+        )
     return snapshot
 
 
-def _remove_empty_parent_directories(path: pathlib.Path, stop_dir: pathlib.Path) -> None:
+def _remove_empty_parent_directories(
+    path: pathlib.Path, stop_dir: pathlib.Path
+) -> None:
     current = path
     resolved_stop_dir = stop_dir.resolve()
-    while current.exists() and current.is_dir() and current.resolve() != resolved_stop_dir:
+    while (
+        current.exists() and current.is_dir() and current.resolve() != resolved_stop_dir
+    ):
         try:
             current.rmdir()
         except OSError:
@@ -108,7 +134,9 @@ def _remove_empty_parent_directories(path: pathlib.Path, stop_dir: pathlib.Path)
         current = current.parent
 
 
-def restore_managed_repo_outputs(repo_root: pathlib.Path, snapshot: dict[str, bytes | None]) -> None:
+def restore_managed_repo_outputs(
+    repo_root: pathlib.Path, snapshot: dict[str, bytes | None]
+) -> None:
     for relative_path, content in snapshot.items():
         absolute_path = _resolve_managed_repo_output_path(repo_root, relative_path)
         if content is None:
@@ -124,7 +152,9 @@ def restore_managed_repo_outputs(repo_root: pathlib.Path, snapshot: dict[str, by
         absolute_path.write_bytes(content)
 
 
-def run_checked(command: list[str], cwd: pathlib.Path, env: dict[str, str] | None = None) -> None:
+def run_checked(
+    command: list[str], cwd: pathlib.Path, env: dict[str, str] | None = None
+) -> None:
     subprocess.run(command, cwd=str(cwd), env=env, check=True)
 
 
@@ -162,9 +192,13 @@ def bootstrap_local_tcl(work_dir: pathlib.Path) -> TclEnvironment:
         run_checked([dpkg_deb, "-x", str(package), str(root_dir)], bootstrap_dir)
 
     tclsh_candidates = [root_dir / "usr/bin/tclsh8.6", root_dir / "usr/bin/tclsh"]
-    tclsh_path = next((candidate for candidate in tclsh_candidates if candidate.exists()), None)
+    tclsh_path = next(
+        (candidate for candidate in tclsh_candidates if candidate.exists()), None
+    )
     if tclsh_path is None:
-        raise VendorUpdateError("local tcl bootstrap completed, but no tclsh binary was unpacked")
+        raise VendorUpdateError(
+            "local tcl bootstrap completed, but no tclsh binary was unpacked"
+        )
 
     env = os.environ.copy()
     env["PATH"] = str(tclsh_path.parent) + os.pathsep + env.get("PATH", "")
@@ -175,7 +209,9 @@ def bootstrap_local_tcl(work_dir: pathlib.Path) -> TclEnvironment:
     ]
     existing_lib_dirs = [directory for directory in lib_dirs if directory.exists()]
     if existing_lib_dirs:
-        env["LD_LIBRARY_PATH"] = os.pathsep.join(str(directory) for directory in existing_lib_dirs)
+        env["LD_LIBRARY_PATH"] = os.pathsep.join(
+            str(directory) for directory in existing_lib_dirs
+        )
     tcl_library = root_dir / "usr/share/tcltk/tcl8.6"
     if tcl_library.exists():
         env["TCL_LIBRARY"] = str(tcl_library)
@@ -183,7 +219,9 @@ def bootstrap_local_tcl(work_dir: pathlib.Path) -> TclEnvironment:
     return TclEnvironment(tclsh_path=tclsh_path, env=env)
 
 
-def resolve_tcl_environment(args: argparse.Namespace, work_dir: pathlib.Path) -> TclEnvironment:
+def resolve_tcl_environment(
+    args: argparse.Namespace, work_dir: pathlib.Path
+) -> TclEnvironment:
     if args.tclsh is not None:
         tclsh_path = args.tclsh.resolve()
         if not tclsh_path.exists():
@@ -212,7 +250,9 @@ class _AllowlistedRedirectHandler(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-def download_tarball(url: str, destination: pathlib.Path, allowed_hosts: set[str]) -> pathlib.Path:
+def download_tarball(
+    url: str, destination: pathlib.Path, allowed_hosts: set[str]
+) -> pathlib.Path:
     validated_url = validate_source_tarball_url(url, allowed_hosts)
     destination.parent.mkdir(parents=True, exist_ok=True)
     opener = urllib.request.build_opener(_AllowlistedRedirectHandler(allowed_hosts))
@@ -226,7 +266,9 @@ def download_tarball(url: str, destination: pathlib.Path, allowed_hosts: set[str
 def _normalize_sha256(value: str, label: str) -> str:
     normalized_value = value.strip().lower()
     if SHA256_HEX_RE.fullmatch(normalized_value) is None:
-        raise VendorUpdateError(f"{label} must be a 64-character lowercase hex sha256 digest")
+        raise VendorUpdateError(
+            f"{label} must be a 64-character lowercase hex sha256 digest"
+        )
     return normalized_value
 
 
@@ -238,7 +280,9 @@ def _resolve_allowed_source_tarball_hosts(args: argparse.Namespace) -> set[str]:
     hosts = set(DEFAULT_ALLOWED_SOURCE_TARBALL_HOSTS)
     for host in getattr(args, "allow_source_host", []) or []:
         normalized_host = _normalize_host(host)
-        if not normalized_host or any(character.isspace() for character in normalized_host):
+        if not normalized_host or any(
+            character.isspace() for character in normalized_host
+        ):
             raise VendorUpdateError(f"unsafe allowlisted source host: {host!r}")
         hosts.add(normalized_host)
     return hosts
@@ -249,11 +293,15 @@ def validate_source_tarball_url(url: str, allowed_hosts: set[str]) -> str:
     if parsed.scheme != "https":
         raise VendorUpdateError("source tarball URL must use https")
     if parsed.username is not None or parsed.password is not None:
-        raise VendorUpdateError("source tarball URL must not contain embedded credentials")
+        raise VendorUpdateError(
+            "source tarball URL must not contain embedded credentials"
+        )
     if parsed.port not in (None, 443):
         raise VendorUpdateError("source tarball URL must use the default https port")
     if parsed.query or parsed.fragment:
-        raise VendorUpdateError("source tarball URL must not contain query or fragment components")
+        raise VendorUpdateError(
+            "source tarball URL must not contain query or fragment components"
+        )
 
     hostname = parsed.hostname
     if hostname is None:
@@ -261,9 +309,13 @@ def validate_source_tarball_url(url: str, allowed_hosts: set[str]) -> str:
 
     normalized_host = _normalize_host(hostname)
     if normalized_host not in allowed_hosts:
-        raise VendorUpdateError(f"source tarball URL host is not allowlisted: {normalized_host}")
+        raise VendorUpdateError(
+            f"source tarball URL host is not allowlisted: {normalized_host}"
+        )
     if not parsed.path or parsed.path == "/":
-        raise VendorUpdateError("source tarball URL must include a concrete archive path")
+        raise VendorUpdateError(
+            "source tarball URL must include a concrete archive path"
+        )
 
     return url
 
@@ -282,7 +334,10 @@ def resolve_source_tarball_sha256(
 
     if manifest is not None:
         vendor = manifest.get("vendor", {})
-        if vendor.get("release_tag") == args.release_tag and vendor.get("source_tarball_url") == tarball_url:
+        if (
+            vendor.get("release_tag") == args.release_tag
+            and vendor.get("source_tarball_url") == tarball_url
+        ):
             pinned_sha256 = vendor.get("source_tarball_sha256")
             if pinned_sha256 is None:
                 raise VendorUpdateError(
@@ -297,8 +352,12 @@ def resolve_source_tarball_sha256(
     )
 
 
-def verify_downloaded_tarball_sha256(tarball_path: pathlib.Path, expected_sha256: str) -> None:
-    normalized_expected_sha256 = _normalize_sha256(expected_sha256, "source tarball sha256")
+def verify_downloaded_tarball_sha256(
+    tarball_path: pathlib.Path, expected_sha256: str
+) -> None:
+    normalized_expected_sha256 = _normalize_sha256(
+        expected_sha256, "source tarball sha256"
+    )
     actual_sha256 = compute_sha256(tarball_path)
     if actual_sha256 != normalized_expected_sha256:
         raise VendorUpdateError(
@@ -318,7 +377,9 @@ def _tar_member_top_level_name(member_name: str) -> str:
     return top_level_name
 
 
-def _safe_archive_relative_path(member_name: str, top_level_name: str) -> pathlib.Path | None:
+def _safe_archive_relative_path(
+    member_name: str, top_level_name: str
+) -> pathlib.Path | None:
     member_path = pathlib.PurePosixPath(member_name)
     if member_path.is_absolute():
         raise VendorUpdateError(f"unsafe archive member path: {member_name}")
@@ -326,7 +387,9 @@ def _safe_archive_relative_path(member_name: str, top_level_name: str) -> pathli
     try:
         relative_path = member_path.relative_to(pathlib.PurePosixPath(top_level_name))
     except ValueError as error:
-        raise VendorUpdateError(f"archive member escaped top-level directory: {member_name}") from error
+        raise VendorUpdateError(
+            f"archive member escaped top-level directory: {member_name}"
+        ) from error
 
     if not relative_path.parts:
         return None
@@ -336,7 +399,9 @@ def _safe_archive_relative_path(member_name: str, top_level_name: str) -> pathli
     return pathlib.Path(*relative_path.parts)
 
 
-def _extract_regular_member(archive: tarfile.TarFile, member: tarfile.TarInfo, destination_path: pathlib.Path) -> None:
+def _extract_regular_member(
+    archive: tarfile.TarFile, member: tarfile.TarInfo, destination_path: pathlib.Path
+) -> None:
     extracted_file = archive.extractfile(member)
     if extracted_file is None:
         raise VendorUpdateError(f"failed to read archive member: {member.name}")
@@ -345,17 +410,29 @@ def _extract_regular_member(archive: tarfile.TarFile, member: tarfile.TarInfo, d
     with extracted_file, destination_path.open("wb") as output:
         shutil.copyfileobj(extracted_file, output)
 
+    # Preserve regular-file mode bits from the tarball so scripts like
+    # ./configure stay executable after secure extraction.
+    mode_bits = member.mode & 0o777
+    if mode_bits != 0:
+        destination_path.chmod(mode_bits)
 
-def extract_tarball(tarball_path: pathlib.Path, destination: pathlib.Path) -> pathlib.Path:
+
+def extract_tarball(
+    tarball_path: pathlib.Path, destination: pathlib.Path
+) -> pathlib.Path:
     if destination.exists():
         shutil.rmtree(destination)
     destination.mkdir(parents=True, exist_ok=True)
 
     with tarfile.open(tarball_path, "r:gz") as archive:
         members = archive.getmembers()
-        top_level_names = {_tar_member_top_level_name(member.name) for member in members if member.name}
+        top_level_names = {
+            _tar_member_top_level_name(member.name) for member in members if member.name
+        }
         if len(top_level_names) != 1:
-            raise VendorUpdateError("expected a single top-level directory in the SQLCipher tarball")
+            raise VendorUpdateError(
+                "expected a single top-level directory in the SQLCipher tarball"
+            )
         top_level_name = next(iter(top_level_names))
         for member in members:
             relative_name = _safe_archive_relative_path(member.name, top_level_name)
@@ -369,19 +446,26 @@ def extract_tarball(tarball_path: pathlib.Path, destination: pathlib.Path) -> pa
             if member.issym():
                 raise VendorUpdateError(f"unsafe archive symlink member: {member.name}")
             if member.islnk():
-                raise VendorUpdateError(f"unsafe archive hard link member: {member.name}")
+                raise VendorUpdateError(
+                    f"unsafe archive hard link member: {member.name}"
+                )
             if not member.isreg():
-                raise VendorUpdateError(f"unsupported archive member type: {member.name}")
+                raise VendorUpdateError(
+                    f"unsupported archive member type: {member.name}"
+                )
 
             _extract_regular_member(archive, member, destination_path)
     return destination
 
 
 def acquire_source_tree(
-    args: argparse.Namespace, work_dir: pathlib.Path, repo_root: pathlib.Path = REPO_ROOT
+    args: argparse.Namespace,
+    work_dir: pathlib.Path,
+    repo_root: pathlib.Path = REPO_ROOT,
 ) -> tuple[pathlib.Path, str, str]:
-    tarball_url = args.source_tarball_url or DEFAULT_SQLCIPHER_TARBALL_URL_TEMPLATE.format(
-        release_tag=args.release_tag
+    tarball_url = (
+        args.source_tarball_url
+        or DEFAULT_SQLCIPHER_TARBALL_URL_TEMPLATE.format(release_tag=args.release_tag)
     )
     allowed_hosts = _resolve_allowed_source_tarball_hosts(args)
     tarball_url = validate_source_tarball_url(tarball_url, allowed_hosts)
@@ -393,15 +477,21 @@ def acquire_source_tree(
             raise VendorUpdateError(f"source directory does not exist: {source_dir}")
         return source_dir, tarball_url, source_tarball_sha256
 
-    tarball_path = download_tarball(tarball_url, work_dir / "sqlcipher.tar.gz", allowed_hosts)
+    tarball_path = download_tarball(
+        tarball_url, work_dir / "sqlcipher.tar.gz", allowed_hosts
+    )
     verify_downloaded_tarball_sha256(tarball_path, source_tarball_sha256)
     source_dir = extract_tarball(tarball_path, work_dir / "sqlcipher-src")
     return source_dir, tarball_url, source_tarball_sha256
 
 
-def generate_sqlcipher_amalgamation(source_dir: pathlib.Path, tcl_env: TclEnvironment) -> None:
+def generate_sqlcipher_amalgamation(
+    source_dir: pathlib.Path, tcl_env: TclEnvironment
+) -> None:
     if shutil.which("make") is None:
-        raise VendorUpdateError("make is required to generate the SQLCipher amalgamation")
+        raise VendorUpdateError(
+            "make is required to generate the SQLCipher amalgamation"
+        )
     if not (source_dir / "configure").exists():
         raise VendorUpdateError(f"source tree is missing configure: {source_dir}")
 
@@ -414,17 +504,27 @@ def copy_vendor_files(repo_root: pathlib.Path, source_dir: pathlib.Path) -> None
     for source_relative_path, destination_relative_path in UPSTREAM_COPY_MAP.items():
         source_path = source_dir / source_relative_path
         if not source_path.exists():
-            raise VendorUpdateError(f"generated SQLCipher source is missing required file: {source_path}")
+            raise VendorUpdateError(
+                f"generated SQLCipher source is missing required file: {source_path}"
+            )
 
         resolved_source_path = source_path.resolve()
         if not resolved_source_path.is_relative_to(resolved_source_root):
-            raise VendorUpdateError(f"unsafe required source path escaped source tree: {source_path}")
+            raise VendorUpdateError(
+                f"unsafe required source path escaped source tree: {source_path}"
+            )
         if source_path.is_symlink():
-            raise VendorUpdateError(f"required vendor input must be a regular file, not a symlink: {source_path}")
+            raise VendorUpdateError(
+                f"required vendor input must be a regular file, not a symlink: {source_path}"
+            )
         if not source_path.is_file():
-            raise VendorUpdateError(f"required vendor input must be a regular file: {source_path}")
+            raise VendorUpdateError(
+                f"required vendor input must be a regular file: {source_path}"
+            )
 
-        destination_path = _resolve_managed_repo_output_path(repo_root, destination_relative_path.as_posix())
+        destination_path = _resolve_managed_repo_output_path(
+            repo_root, destination_relative_path.as_posix()
+        )
         destination_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(resolved_source_path, destination_path)
 
@@ -437,7 +537,9 @@ def write_generated_sidecars(repo_root: pathlib.Path) -> None:
 def run_small_verification_suite(repo_root: pathlib.Path) -> None:
     integrity_errors = verify_vendor_integrity(repo_root)
     if integrity_errors:
-        raise VendorUpdateError("vendor integrity verification failed:\n- " + "\n- ".join(integrity_errors))
+        raise VendorUpdateError(
+            "vendor integrity verification failed:\n- " + "\n- ".join(integrity_errors)
+        )
     run_checked(
         [
             sys.executable,
@@ -454,11 +556,29 @@ def run_small_verification_suite(repo_root: pathlib.Path) -> None:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Refresh the vendored SQLCipher/SQLite baseline and local wrappers.")
-    parser.add_argument("--repo-root", type=pathlib.Path, default=REPO_ROOT, help="Repository root to update.")
-    parser.add_argument("--release-tag", required=True, help="SQLCipher release tag to vendor, for example v4.14.0.")
-    parser.add_argument("--source-dir", type=pathlib.Path, help="Optional existing SQLCipher source tree to reuse.")
-    parser.add_argument("--source-tarball-url", help="Optional tarball URL override for the SQLCipher source tree.")
+    parser = argparse.ArgumentParser(
+        description="Refresh the vendored SQLCipher/SQLite baseline and local wrappers."
+    )
+    parser.add_argument(
+        "--repo-root",
+        type=pathlib.Path,
+        default=REPO_ROOT,
+        help="Repository root to update.",
+    )
+    parser.add_argument(
+        "--release-tag",
+        required=True,
+        help="SQLCipher release tag to vendor, for example v4.14.0.",
+    )
+    parser.add_argument(
+        "--source-dir",
+        type=pathlib.Path,
+        help="Optional existing SQLCipher source tree to reuse.",
+    )
+    parser.add_argument(
+        "--source-tarball-url",
+        help="Optional tarball URL override for the SQLCipher source tree.",
+    )
     parser.add_argument(
         "--source-tarball-sha256",
         help="Pinned SHA-256 for the source tarball. Required unless sqlite/VENDOR.json already pins the requested release and URL.",
@@ -469,10 +589,25 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=[],
         help="Additional HTTPS host allowed for --source-tarball-url downloads. May be specified more than once.",
     )
-    parser.add_argument("--release-url", help="Optional release URL override written into sqlite/VENDOR.json.")
-    parser.add_argument("--tclsh", type=pathlib.Path, help="Optional explicit path to the tclsh binary used for amalgamation generation.")
-    parser.add_argument("--work-dir", type=pathlib.Path, help="Optional working directory used for tarball extraction and Tcl bootstrap.")
-    parser.add_argument("--skip-verify", action="store_true", help="Skip the post-update Python integrity suite.")
+    parser.add_argument(
+        "--release-url",
+        help="Optional release URL override written into sqlite/VENDOR.json.",
+    )
+    parser.add_argument(
+        "--tclsh",
+        type=pathlib.Path,
+        help="Optional explicit path to the tclsh binary used for amalgamation generation.",
+    )
+    parser.add_argument(
+        "--work-dir",
+        type=pathlib.Path,
+        help="Optional working directory used for tarball extraction and Tcl bootstrap.",
+    )
+    parser.add_argument(
+        "--skip-verify",
+        action="store_true",
+        help="Skip the post-update Python integrity suite.",
+    )
     return parser.parse_args(argv)
 
 
@@ -490,7 +625,9 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         tcl_env = resolve_tcl_environment(args, work_dir)
-        source_dir, tarball_url, source_tarball_sha256 = acquire_source_tree(args, work_dir, repo_root)
+        source_dir, tarball_url, source_tarball_sha256 = acquire_source_tree(
+            args, work_dir, repo_root
+        )
         generate_sqlcipher_amalgamation(source_dir, tcl_env)
         managed_output_snapshot = snapshot_managed_repo_outputs(repo_root)
         try:

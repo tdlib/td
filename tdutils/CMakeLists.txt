@@ -368,6 +368,9 @@ set(TDUTILS_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/test/List.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/log.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/misc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/to_double_locale_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/to_double_special_tokens_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/to_double_special_tokens_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/MpmcQueue.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/MpmcWaiter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/MpscLinkQueue.cpp

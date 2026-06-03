@@ -1,24 +1,17 @@
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
 // SPDX-License-Identifier: MIT
 
+#include "test/stealth/SourceContractFileReader.h"
+
 #include "td/utils/common.h"
 #include "td/utils/tests.h"
 
 #include <format>
-#include <fstream>
-#include <iterator>
-
-#ifndef TELEMT_TEST_REPO_ROOT
-#define TELEMT_TEST_REPO_ROOT ""
-#endif
 
 namespace {
 
 td::string load_repo_text(td::Slice relative_path) {
-  auto path = std::format("{}/{}", TELEMT_TEST_REPO_ROOT, relative_path.str());
-  std::ifstream in(path, std::ios::binary);
-  CHECK(in.is_open());
-  return td::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+  return td::mtproto::test::read_repo_text_file(relative_path);
 }
 
 td::string load_td_api_json_all_shards_text() {

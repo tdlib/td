@@ -3,10 +3,10 @@
 
 #include "td/mtproto/BlobStore.h"
 
+#include "td/utils/port/thread.h"
 #include "td/utils/tests.h"
 
 #include <atomic>
-#include <thread>
 #include <vector>
 
 namespace {
@@ -16,7 +16,7 @@ TEST(BlobStoreStress, ConcurrentBundleChecksStayDeterministic) {
   constexpr td::uint32 iterations_per_thread = 32;
   std::atomic<bool> is_ok{true};
 
-  std::vector<std::thread> threads;
+  std::vector<td::thread> threads;
   threads.reserve(thread_count);
   for (td::uint32 index = 0; index < thread_count; index++) {
     threads.emplace_back([&] {

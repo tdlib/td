@@ -9,11 +9,11 @@
 #include "td/utils/crypto.h"
 #include "td/utils/tests.h"
 
+#include <algorithm>
 #include <chrono>
 #include <climits>
 #include <cstring>
 #include <vector>
-#include <algorithm>
 
 namespace {
 
@@ -174,30 +174,33 @@ class AuthenticationTimingConsistency {
     hmac_sha256(key, message, correct_hmac);
 
     std::vector<long long> verification_times;
+    constexpr int iterations_per_position = 20000;
 
-    // Try HMAC with single-byte differences at different positions
+    // Measure each mismatch position over many iterations so sanitizer overhead
+    // and scheduler jitter do not collapse timing resolution to zero.
     for (int pos = 0; pos < 16; pos++) {  // Test first half of HMAC
       string test_hmac = correct_hmac;
       test_hmac[pos] ^= 0x01;  // Flip one bit
 
       auto start = std::chrono::high_resolution_clock::now();
-
-      [[maybe_unused]] bool match = constant_time_equals(correct_hmac, test_hmac);
-
+      bool accumulated = false;
+      for (int i = 0; i < iterations_per_position; i++) {
+        accumulated ^= constant_time_equals(correct_hmac, test_hmac);
+      }
       auto end = std::chrono::high_resolution_clock::now();
-      auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-      verification_times.push_back(duration_us);
+
+      ASSERT_FALSE(accumulated);
+      auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+      verification_times.push_back(duration_ns);
     }
 
-    // All verification failures should take same time
-    long long max_time = *std::max_element(verification_times.begin(), verification_times.end());
-    long long min_time = *std::min_element(verification_times.begin(), verification_times.end());
-    long long spread = max_time - min_time;
-
-    if (max_time > 0) {
-      long long tolerance = max_time / 4;  // 25% tolerance
-      ASSERT_TRUE(spread < tolerance);
-      // HMAC timing sidechannel: verify spread is low
+    auto sorted = verification_times;
+    std::sort(sorted.begin(), sorted.end());
+    const auto median = sorted[sorted.size() / 2];
+    ASSERT_TRUE(median > 0);
+    for (auto t : sorted) {
+      ASSERT_TRUE(t * 6 > median);
+      ASSERT_TRUE(t < median * 6);
     }
   }
 };

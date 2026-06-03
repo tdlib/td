@@ -568,6 +568,7 @@ static void test_to_double_one(td::CSlice str, td::Slice expected, int precision
     LOG(ERROR) << "To double conversion failed: have " << str << ", expected " << expected << ", parsed "
                << to_double(str) << ", receive " << result;
   }
+  ASSERT_EQ(expected.str(), result);
 }
 
 static void test_to_double() {
@@ -580,6 +581,8 @@ static void test_to_double() {
   test_to_double_one("  inF  asdasd", "inf");
   test_to_double_one("  inFasdasd", "0.000000");
   test_to_double_one("  NaN", "nan");
+  test_to_double_one("0x1p4", "0.000000");
+  test_to_double_one("36e__CD6B(DE", "0.000000");
   test_to_double_one("  12345678910111213141516171819  asdasd", "12345678910111213670658736128.000000");
   test_to_double_one("1.234567891011121314E123",
                      "1234567891011121363209105003376291141757777526749278953577304234065881343284952489418916814035346"

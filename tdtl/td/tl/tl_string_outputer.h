@@ -9,14 +9,17 @@
 #include "td/tl/tl_outputer.h"
 
 #include <string>
+#include <vector>
 
 namespace td {
 namespace tl {
 
 class tl_string_outputer : public tl_outputer {
-  std::string result;
+  std::vector<char> result;
 
  public:
+  tl_string_outputer();
+
   virtual void append(const std::string &str);
 
   std::string get_result() const;

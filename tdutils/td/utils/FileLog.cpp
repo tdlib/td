@@ -12,18 +12,26 @@
 #include "td/utils/port/path.h"
 #include "td/utils/port/StdStreams.h"
 #include "td/utils/port/thread_local.h"
-#include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 
 namespace td {
 
+namespace {
+
+string format_fatal_log_error(const Status &status) {
+  return PSTRING() << status << '\n';
+}
+
+}  // namespace
+
 Status FileLog::init(string path, int64 rotate_threshold, bool redirect_stderr) {
+  auto lock = mutex_.lock();
   if (path.empty()) {
     return Status::Error("Log file path must be non-empty");
   }
   if (path == path_) {
-    set_rotate_threshold(rotate_threshold);
+    rotate_threshold_ = rotate_threshold;
     return Status::OK();
   }
 
@@ -35,8 +43,7 @@ Status FileLog::init(string path, int64 rotate_threshold, bool redirect_stderr) 
     fd_.get_native_fd().duplicate(Stderr().get_native_fd()).ignore();
   }
 
-  auto r_path = realpath(path, true);
-  if (r_path.is_error()) {
+  if (auto r_path = realpath(path, true); r_path.is_error()) {
     path_ = std::move(path);
   } else {
     path_ = r_path.move_as_ok();
@@ -47,41 +54,52 @@ Status FileLog::init(string path, int64 rotate_threshold, bool redirect_stderr) 
   return Status::OK();
 }
 
-Slice FileLog::get_path() const {
+string FileLog::get_path() const {
+  auto lock = mutex_.lock();
   return path_;
 }
 
 vector<string> FileLog::get_file_paths() {
+  auto lock = mutex_.lock();
   vector<string> result;
   if (!path_.empty()) {
     result.push_back(path_);
-    result.push_back(PSTRING() << path_ << ".old");
+    string old_path = PSTRING() << path_ << ".old";
+    result.push_back(std::move(old_path));
   }
   return result;
 }
 
 void FileLog::set_rotate_threshold(int64 rotate_threshold) {
+  auto lock = mutex_.lock();
   rotate_threshold_ = rotate_threshold;
 }
 
 int64 FileLog::get_rotate_threshold() const {
+  auto lock = mutex_.lock();
   return rotate_threshold_;
 }
 
 bool FileLog::get_redirect_stderr() const {
+  auto lock = mutex_.lock();
   return redirect_stderr_;
 }
 
 void FileLog::do_append(int log_level, CSlice slice) {
+  string fatal_error;
+
+  auto lock = mutex_.lock();
   auto start_time = Time::now();
-  if (size_ > rotate_threshold_ || want_rotate_.load(std::memory_order_relaxed)) {
-    auto status = rename(path_, PSLICE() << path_ << ".old");
-    if (status.is_error()) {
-      process_fatal_error(PSLICE() << status << " in " << __FILE__ << " at " << __LINE__ << '\n');
+  if (size_ > rotate_threshold_ || want_rotate_.load()) {
+    if (auto status = rename(path_, PSLICE() << path_ << ".old"); status.is_error()) {
+      fatal_error = format_fatal_log_error(status);
+    } else {
+      if (auto reopen_status = do_after_rotation_locked(); reopen_status.is_error()) {
+        fatal_error = format_fatal_log_error(reopen_status);
+      }
     }
-    do_after_rotation();
   }
-  while (!slice.empty()) {
+  while (fatal_error.empty() && !slice.empty()) {
     if (redirect_stderr_) {
       while (has_log_guard()) {
         // spin
@@ -89,51 +107,61 @@ void FileLog::do_append(int log_level, CSlice slice) {
     }
     auto r_size = fd_.write(slice);
     if (r_size.is_error()) {
-      process_fatal_error(PSLICE() << r_size.error() << " in " << __FILE__ << " at " << __LINE__ << '\n');
+      fatal_error = format_fatal_log_error(r_size.error());
+      break;
     }
     auto written = r_size.ok();
     size_ += static_cast<int64>(written);
     slice.remove_prefix(written);
   }
-  auto total_time = Time::now() - start_time;
-  if (total_time >= 0.1 && log_level >= 1) {
+  if (auto total_time = Time::now() - start_time; fatal_error.empty() && total_time >= 0.1 && log_level >= 1) {
     auto thread_id = get_thread_id();
     auto r_size = fd_.write(PSLICE() << "[ 2][t" << (0 <= thread_id && thread_id < 10 ? " " : "") << thread_id
                                      << "] !!! Previous logging took " << total_time << " seconds !!!\n");
     r_size.ignore();
   }
+  lock.reset();
+
+  if (!fatal_error.empty()) {
+    process_fatal_error(fatal_error);
+  }
 }
 
 void FileLog::after_rotation() {
+  string fatal_error;
+
+  auto lock = mutex_.lock();
   if (path_.empty()) {
     return;
   }
-  do_after_rotation();
+  if (auto status = do_after_rotation_locked(); status.is_error()) {
+    fatal_error = format_fatal_log_error(status);
+  }
+  lock.reset();
+
+  if (!fatal_error.empty()) {
+    process_fatal_error(fatal_error);
+  }
 }
 
 void FileLog::lazy_rotate() {
   want_rotate_ = true;
 }
 
-void FileLog::do_after_rotation() {
+Status FileLog::do_after_rotation_locked() {
   want_rotate_ = false;
   ScopedDisableLog disable_log;  // to ensure that nothing will be printed to the closed log
-  CHECK(!path_.empty());
-  fd_.close();
-  auto r_fd = FileFd::open(path_, FileFd::Create | FileFd::Write | FileFd::Append);
-  if (r_fd.is_error()) {
-    process_fatal_error(PSLICE() << r_fd.error() << " in " << __FILE__ << " at " << __LINE__ << '\n');
+  if (path_.empty()) {
+    return Status::Error("Log file path must be non-empty");
   }
-  fd_ = r_fd.move_as_ok();
+  fd_.close();
+  TRY_RESULT(fd, FileFd::open(path_, FileFd::Create | FileFd::Write | FileFd::Append));
+  fd_ = std::move(fd);
   if (!Stderr().empty() && redirect_stderr_) {
     fd_.get_native_fd().duplicate(Stderr().get_native_fd()).ignore();
   }
-  auto r_size = fd_.get_size();
-  if (r_fd.is_error()) {
-    process_fatal_error(PSLICE() << "Failed to get log size: " << r_fd.error() << " in " << __FILE__ << " at "
-                                 << __LINE__ << '\n');
-  }
-  size_ = r_size.move_as_ok();
+  TRY_RESULT_ASSIGN(size_, fd_.get_size());
+  return Status::OK();
 }
 
 Result<unique_ptr<LogInterface>> FileLog::create(string path, int64 rotate_threshold, bool redirect_stderr) {

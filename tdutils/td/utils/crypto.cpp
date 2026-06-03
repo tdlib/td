@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/utils/crypto.h"
 
@@ -31,13 +31,29 @@
 #include <openssl/md5.h>
 #include <openssl/opensslv.h>
 #include <openssl/pem.h>
+#include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/sha.h>
+#endif
+
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#define TD_CRYPTO_MSAN_ACTIVE 1
+#endif
+#endif
+#if defined(__SANITIZE_MEMORY__)
+#include <sanitizer/msan_interface.h>
+#define TD_CRYPTO_MSAN_ACTIVE 1
+#endif
+#ifndef TD_CRYPTO_MSAN_ACTIVE
+#define TD_CRYPTO_MSAN_ACTIVE 0
 #endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
 #include <openssl/core_names.h>
 #include <openssl/params.h>
+#include <openssl/provider.h>
 #endif
 
 #if TD_HAVE_ZLIB
@@ -140,10 +156,44 @@ uint64 pq_factorize(uint64 pq) {
 }
 
 #if TD_HAVE_OPENSSL
+#if TD_CRYPTO_MSAN_ACTIVE && defined(__clang__)
+__attribute__((no_sanitize("memory")))
+#endif
+static bool
+warmup_openssl_random_generators() {
+  unsigned char public_warmup[1] = {0};
+  unsigned char private_warmup[1] = {0};
+#if TD_CRYPTO_MSAN_ACTIVE
+  __msan_scoped_disable_interceptor_checks();
+#endif
+  const bool public_ready = RAND_bytes(public_warmup, sizeof(public_warmup)) == 1;
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
+  const bool private_ready = RAND_priv_bytes(private_warmup, sizeof(private_warmup)) == 1;
+#else
+  const bool private_ready = RAND_bytes(private_warmup, sizeof(private_warmup)) == 1;
+#endif
+#if TD_CRYPTO_MSAN_ACTIVE
+  __msan_scoped_enable_interceptor_checks();
+#endif
+  return public_ready && private_ready;
+}
+
 void init_crypto() {
   static bool is_inited = [] {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    bool result = OPENSSL_init_crypto(0, nullptr) != 0;
+    bool result = OPENSSL_init_crypto(OPENSSL_INIT_NO_LOAD_CONFIG, nullptr) != 0;
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+    if (result) {
+      static const auto *default_provider = OSSL_PROVIDER_load(nullptr, "default");
+      result = default_provider != nullptr;
+    }
+    if (result) {
+      result = RAND_set_DRBG_type(nullptr, "CTR-DRBG", nullptr, "AES-256-CTR", "SHA256") == 1;
+    }
+    if (result) {
+      result = warmup_openssl_random_generators();
+    }
+#endif
 #else
     OpenSSL_add_all_algorithms();
     bool result = true;
@@ -397,18 +447,24 @@ class Evp {
   }
 
   void encrypt(const uint8 *src, uint8 *dst, int size) {
-    int len;
+    int len = 0;
     int res = EVP_EncryptUpdate(ctx_, dst, &len, src, size);
     LOG_IF(FATAL, res != 1);
     CHECK(len == size);
+#if TD_CRYPTO_MSAN_ACTIVE
+    __msan_unpoison(dst, len);
+#endif
   }
 
   void decrypt(const uint8 *src, uint8 *dst, int size) {
     CHECK(size % AES_BLOCK_SIZE == 0);
-    int len;
+    int len = 0;
     int res = EVP_DecryptUpdate(ctx_, dst, &len, src, size);
     LOG_IF(FATAL, res != 1);
     CHECK(len == size);
+#if TD_CRYPTO_MSAN_ACTIVE
+    __msan_unpoison(dst, len);
+#endif
   }
 
  private:
@@ -422,6 +478,7 @@ class Evp {
 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
   static void init_thread_local_evp_cipher(const EVP_CIPHER *&evp_cipher, const char *algorithm) {
+    init_crypto();
     evp_cipher = EVP_CIPHER_fetch(nullptr, algorithm, nullptr);
     LOG_IF(FATAL, evp_cipher == nullptr);
     detail::add_thread_local_destructor(create_destructor([&evp_cipher]() mutable {
@@ -726,6 +783,21 @@ void AesCtrState::decrypt(Slice from, MutableSlice to) {
 }
 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+class ScopedMsanInterceptorChecks final {
+ public:
+  ScopedMsanInterceptorChecks() {
+#if TD_CRYPTO_MSAN_ACTIVE
+    __msan_scoped_disable_interceptor_checks();
+#endif
+  }
+
+  ~ScopedMsanInterceptorChecks() {
+#if TD_CRYPTO_MSAN_ACTIVE
+    __msan_scoped_enable_interceptor_checks();
+#endif
+  }
+};
+
 static void make_digest(Slice data, MutableSlice output, const EVP_MD_CTX *evp_md_ctx) {
   static TD_THREAD_LOCAL EVP_MD_CTX *ctx;
   if (unlikely(ctx == nullptr)) {
@@ -740,12 +812,21 @@ static void make_digest(Slice data, MutableSlice output, const EVP_MD_CTX *evp_m
   LOG_IF(FATAL, res != 1);
   res = EVP_DigestUpdate(ctx, data.ubegin(), data.size());
   LOG_IF(FATAL, res != 1);
-  res = EVP_DigestFinal_ex(ctx, output.ubegin(), nullptr);
+  unsigned int output_size = 0;
+  res = EVP_DigestFinal_ex(ctx, output.ubegin(), &output_size);
   LOG_IF(FATAL, res != 1);
+  CHECK(output_size <= output.size());
+#if TD_CRYPTO_MSAN_ACTIVE
+  // OpenSSL's EVP digest implementation is not instrumented, so mark the
+  // finalized digest bytes as initialized for MemorySanitizer.
+  __msan_unpoison(output.ubegin(), output_size);
+#endif
   EVP_MD_CTX_reset(ctx);
 }
 
 static void init_thread_local_evp_md_ctx(const EVP_MD_CTX *&evp_md_ctx, const char *algorithm) {
+  init_crypto();
+  ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
   EVP_MD *evp_md = EVP_MD_fetch(nullptr, algorithm, nullptr);
   LOG_IF(FATAL, evp_md == nullptr);
   evp_md_ctx = EVP_MD_CTX_new();
@@ -759,6 +840,8 @@ static void init_thread_local_evp_md_ctx(const EVP_MD_CTX *&evp_md_ctx, const ch
 }
 
 static void init_thread_local_evp_mac_ctx(EVP_MAC_CTX *&evp_mac_ctx, const char *digest) {
+  init_crypto();
+  ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
   EVP_MAC *hmac = EVP_MAC_fetch(nullptr, "HMAC", nullptr);
   LOG_IF(FATAL, hmac == nullptr);
   evp_mac_ctx = EVP_MAC_CTX_new(hmac);
@@ -918,7 +1001,12 @@ void Sha256State::extract(MutableSlice output, bool destroy) {
   CHECK(impl_);
   CHECK(is_inited_);
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
-  int err = EVP_DigestFinal_ex(impl_->ctx_, output.ubegin(), nullptr);
+  unsigned int output_size = 0;
+  int err = EVP_DigestFinal_ex(impl_->ctx_, output.ubegin(), &output_size);
+  CHECK(output_size <= output.size());
+#if TD_CRYPTO_MSAN_ACTIVE
+  __msan_unpoison(output.ubegin(), output_size);
+#endif
 #else
   int err = SHA256_Final(output.ubegin(), &impl_->ctx_);
 #endif
@@ -1199,6 +1287,7 @@ void openssl_locking_function(int mode, int n, const char *file, int line) {
 #endif
 
 void init_openssl_threads() {
+  init_crypto();
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
   static std::mutex init_mutex;
   std::lock_guard<std::mutex> lock(init_mutex);
@@ -1218,8 +1307,14 @@ Status create_openssl_error(int code, Slice message) {
 
   sb << message;
   while (unsigned long error_code = ERR_get_error()) {
-    char error_buf[1024];
+    char error_buf[1024] = {};
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+    ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
+#endif
     ERR_error_string_n(error_code, error_buf, sizeof(error_buf));
+#if TD_CRYPTO_MSAN_ACTIVE
+    __msan_unpoison(error_buf, sizeof(error_buf));
+#endif
     Slice error(error_buf, std::strlen(error_buf));
     sb << "{" << error << "}";
   }

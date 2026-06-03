@@ -7,7 +7,6 @@ import pathlib
 import sys
 import unittest
 
-
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 REPO_ROOT = THIS_DIR.parent.parent
 TOOLS_SQLITE_DIR = REPO_ROOT / "tools" / "sqlite"
@@ -16,9 +15,8 @@ if str(TOOLS_SQLITE_DIR) not in sys.path:
 
 from audit_vendor import build_phase1_report
 
-
-TARGET_SQLCIPHER_RELEASE = "v4.14.0"
-TARGET_SQLITE_VERSION = "3.51.3"
+TARGET_SQLCIPHER_RELEASE = "v4.16.0"
+TARGET_SQLITE_VERSION = "3.53.1"
 LEGACY_SQLITE_SOURCE_ID_FRAGMENT = "b86alt1"
 REQUIRED_COMPILE_DEFINITION_SUBSET = {
     "SQLITE_DEFAULT_MEMSTATUS=0",
@@ -39,7 +37,9 @@ class SqlitePhase4VendorTargetRepoTest(unittest.TestCase):
         self.assertEqual(TARGET_SQLITE_VERSION, report["sqlite_version"])
         self.assertNotIn(LEGACY_SQLITE_SOURCE_ID_FRAGMENT, report["sqlite_source_id"])
 
-    def test_target_rebase_preserves_sqlcipher_markers_and_required_build_profile(self) -> None:
+    def test_target_rebase_preserves_sqlcipher_markers_and_required_build_profile(
+        self,
+    ) -> None:
         report = build_phase1_report(REPO_ROOT)
 
         header_path = report["vendor_paths"]["header"]
@@ -47,7 +47,9 @@ class SqlitePhase4VendorTargetRepoTest(unittest.TestCase):
         self.assertIn("BEGIN SQLCIPHER", report["sqlcipher_markers"][header_path])
         self.assertIn("BEGIN SQLCIPHER", report["sqlcipher_markers"][source_path])
         self.assertTrue(
-            REQUIRED_COMPILE_DEFINITION_SUBSET.issubset(set(report["compile_definitions"])),
+            REQUIRED_COMPILE_DEFINITION_SUBSET.issubset(
+                set(report["compile_definitions"])
+            ),
             msg=(
                 f"phase 4 target {TARGET_SQLCIPHER_RELEASE} must preserve the required SQLite feature profile: "
                 f"missing {sorted(REQUIRED_COMPILE_DEFINITION_SUBSET.difference(set(report['compile_definitions'])))}"

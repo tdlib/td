@@ -22,6 +22,13 @@ namespace {
 using td::logging_hardening::test::load_repo_text;
 using td::logging_hardening::test::normalize_for_contract;
 
+#if defined(__SANITIZE_LEAK__) || TD_HAS_FEATURE_LEAK_SANITIZER || defined(__SANITIZE_MEMORY__) || \
+    TD_HAS_FEATURE_MEMORY_SANITIZER || defined(__SANITIZE_THREAD__) || TD_HAS_FEATURE_THREAD_SANITIZER
+constexpr bool kFatalAbortChildSanitizerBuild = true;
+#else
+constexpr bool kFatalAbortChildSanitizerBuild = false;
+#endif
+
 #if TD_PORT_POSIX
 
 constexpr td::Slice kContractCallbackMarker("LOG_FATAL_CALLBACK_CONTRACT_MARKER");
@@ -130,6 +137,9 @@ TEST(LoggingFatalCallbackContractDeathLeaf, NullCallbackPathStaysFailSafeBeforeF
 }
 
 TEST(LoggingFatalCallbackContract, RuntimeFatalPathInvokesInstalledCallback) {
+  if (kFatalAbortChildSanitizerBuild) {
+    return;
+  }
   auto result = run_child_test("LoggingFatalCallbackContractDeathLeaf_CallbackIsInvokedBeforeFatalAbort");
 
   ASSERT_FALSE(WIFEXITED(result.status) && WEXITSTATUS(result.status) == 0);
@@ -137,6 +147,9 @@ TEST(LoggingFatalCallbackContract, RuntimeFatalPathInvokesInstalledCallback) {
 }
 
 TEST(LoggingFatalCallbackContract, RuntimeFatalPathWithNullCallbackAvoidsInvocation) {
+  if (kFatalAbortChildSanitizerBuild) {
+    return;
+  }
   auto result = run_child_test("LoggingFatalCallbackContractDeathLeaf_NullCallbackPathStaysFailSafeBeforeFatalAbort");
 
   ASSERT_FALSE(WIFEXITED(result.status) && WEXITSTATUS(result.status) == 0);

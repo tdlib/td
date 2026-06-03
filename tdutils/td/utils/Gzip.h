@@ -73,11 +73,7 @@ class Gzip {
     return res;
   }
 
-  size_t flush_output() {
-    auto res = used_output();
-    output_size_ = left_output();
-    return res;
-  }
+  size_t flush_output();
 
   enum class State { Running, Done };
   Result<State> run() TD_WARN_UNUSED_RESULT;

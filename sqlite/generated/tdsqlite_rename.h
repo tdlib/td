@@ -22,12 +22,15 @@
 #define sqlite3AffinityType tdsqlite3AffinityType
 #define sqlite3AggInfoPersistWalkerInit tdsqlite3AggInfoPersistWalkerInit
 #define sqlite3AllocateIndexObject tdsqlite3AllocateIndexObject
+#define sqlite3AlterAddConstraint tdsqlite3AlterAddConstraint
 #define sqlite3AlterBeginAddColumn tdsqlite3AlterBeginAddColumn
 #define sqlite3AlterDropColumn tdsqlite3AlterDropColumn
+#define sqlite3AlterDropConstraint tdsqlite3AlterDropConstraint
 #define sqlite3AlterFinishAddColumn tdsqlite3AlterFinishAddColumn
 #define sqlite3AlterFunctions tdsqlite3AlterFunctions
 #define sqlite3AlterRenameColumn tdsqlite3AlterRenameColumn
 #define sqlite3AlterRenameTable tdsqlite3AlterRenameTable
+#define sqlite3AlterSetNotNull tdsqlite3AlterSetNotNull
 #define sqlite3AnalysisLoad tdsqlite3AnalysisLoad
 #define sqlite3Analyze tdsqlite3Analyze
 #define sqlite3ApiExit tdsqlite3ApiExit
@@ -182,6 +185,7 @@
 #define sqlite3ComputeGeneratedColumns tdsqlite3ComputeGeneratedColumns
 #define sqlite3Config tdsqlite3Config
 #define sqlite3ConstructBloomFilter tdsqlite3ConstructBloomFilter
+#define sqlite3CopySortOrder tdsqlite3CopySortOrder
 #define sqlite3CorruptError tdsqlite3CorruptError
 #define sqlite3CorruptPgnoError tdsqlite3CorruptPgnoError
 #define sqlite3CoverageCounter tdsqlite3CoverageCounter
@@ -225,6 +229,7 @@
 #define sqlite3DequoteNumber tdsqlite3DequoteNumber
 #define sqlite3DequoteToken tdsqlite3DequoteToken
 #define sqlite3Detach tdsqlite3Detach
+#define sqlite3DigitPairs tdsqlite3DigitPairs
 #define sqlite3DropIndex tdsqlite3DropIndex
 #define sqlite3DropTable tdsqlite3DropTable
 #define sqlite3DropTrigger tdsqlite3DropTrigger
@@ -293,12 +298,14 @@
 #define sqlite3ExprIfTrue tdsqlite3ExprIfTrue
 #define sqlite3ExprImpliesExpr tdsqlite3ExprImpliesExpr
 #define sqlite3ExprImpliesNonNullRow tdsqlite3ExprImpliesNonNullRow
+#define sqlite3ExprInt32 tdsqlite3ExprInt32
 #define sqlite3ExprIsConstant tdsqlite3ExprIsConstant
 #define sqlite3ExprIsConstantNotJoin tdsqlite3ExprIsConstantNotJoin
 #define sqlite3ExprIsConstantOrFunction tdsqlite3ExprIsConstantOrFunction
 #define sqlite3ExprIsConstantOrGroupBy tdsqlite3ExprIsConstantOrGroupBy
 #define sqlite3ExprIsIIF tdsqlite3ExprIsIIF
 #define sqlite3ExprIsInteger tdsqlite3ExprIsInteger
+#define sqlite3ExprIsLikeOperator tdsqlite3ExprIsLikeOperator
 #define sqlite3ExprIsNotTrue tdsqlite3ExprIsNotTrue
 #define sqlite3ExprIsSingleTableConstraint tdsqlite3ExprIsSingleTableConstraint
 #define sqlite3ExprIsTableConstant tdsqlite3ExprIsTableConstant
@@ -350,6 +357,8 @@
 #define sqlite3FixTriggerStep tdsqlite3FixTriggerStep
 #define sqlite3FloatSwap tdsqlite3FloatSwap
 #define sqlite3ForceNotReadOnly tdsqlite3ForceNotReadOnly
+#define sqlite3Fp10Convert2 tdsqlite3Fp10Convert2
+#define sqlite3Fp2Convert10 tdsqlite3Fp2Convert10
 #define sqlite3FpDecode tdsqlite3FpDecode
 #define sqlite3FreeCodecArg tdsqlite3FreeCodecArg
 #define sqlite3FreeIndex tdsqlite3FreeIndex
@@ -404,6 +413,7 @@
 #define sqlite3Fts3PendingTermsClear tdsqlite3Fts3PendingTermsClear
 #define sqlite3Fts3PendingTermsFlush tdsqlite3Fts3PendingTermsFlush
 #define sqlite3Fts3PorterTokenizerModule tdsqlite3Fts3PorterTokenizerModule
+#define sqlite3Fts3PrepareStmt tdsqlite3Fts3PrepareStmt
 #define sqlite3Fts3PutVarint tdsqlite3Fts3PutVarint
 #define sqlite3Fts3ReadBlock tdsqlite3Fts3ReadBlock
 #define sqlite3Fts3ReadInt tdsqlite3Fts3ReadInt
@@ -703,6 +713,9 @@
 #define sqlite3MemInit tdsqlite3MemInit
 #define sqlite3MemJournalOpen tdsqlite3MemJournalOpen
 #define sqlite3MemMalloc tdsqlite3MemMalloc
+#define sqlite3MemRealValueNoRC tdsqlite3MemRealValueNoRC
+#define sqlite3MemRealValueRC tdsqlite3MemRealValueRC
+#define sqlite3MemRealValueRCSlowPath tdsqlite3MemRealValueRCSlowPath
 #define sqlite3MemRealloc tdsqlite3MemRealloc
 #define sqlite3MemRoundup tdsqlite3MemRoundup
 #define sqlite3MemSetArrayInt64 tdsqlite3MemSetArrayInt64
@@ -724,6 +737,8 @@
 #define sqlite3MultiValues tdsqlite3MultiValues
 #define sqlite3MultiValuesEnd tdsqlite3MultiValuesEnd
 #define sqlite3MultiWrite tdsqlite3MultiWrite
+#define sqlite3Multiply128 tdsqlite3Multiply128
+#define sqlite3Multiply160 tdsqlite3Multiply160
 #define sqlite3NProfileCnt tdsqlite3NProfileCnt
 #define sqlite3NameFromToken tdsqlite3NameFromToken
 #define sqlite3NestedParse tdsqlite3NestedParse
@@ -784,6 +799,8 @@
 #define sqlite3PCacheSetDefault tdsqlite3PCacheSetDefault
 #define sqlite3PExpr tdsqlite3PExpr
 #define sqlite3PExprAddSelect tdsqlite3PExprAddSelect
+#define sqlite3PExprIs tdsqlite3PExprIs
+#define sqlite3PExprIsNull tdsqlite3PExprIsNull
 #define sqlite3PageFree tdsqlite3PageFree
 #define sqlite3PageMalloc tdsqlite3PageMalloc
 #define sqlite3PagerAlignReserve tdsqlite3PagerAlignReserve
@@ -1059,6 +1076,7 @@
 #define sqlite3StmtCurrentTime tdsqlite3StmtCurrentTime
 #define sqlite3StmtVtabInit tdsqlite3StmtVtabInit
 #define sqlite3StrAccumEnlarge tdsqlite3StrAccumEnlarge
+#define sqlite3StrAccumEnlargeIfNeeded tdsqlite3StrAccumEnlargeIfNeeded
 #define sqlite3StrAccumFinish tdsqlite3StrAccumFinish
 #define sqlite3StrAccumInit tdsqlite3StrAccumInit
 #define sqlite3StrAccumSetError tdsqlite3StrAccumSetError
@@ -1114,6 +1132,7 @@
 #define sqlite3TriggerSelectStep tdsqlite3TriggerSelectStep
 #define sqlite3TriggerUpdateStep tdsqlite3TriggerUpdateStep
 #define sqlite3TwoPartName tdsqlite3TwoPartName
+#define sqlite3UInt64ToText tdsqlite3UInt64ToText
 #define sqlite3UniqueConstraint tdsqlite3UniqueConstraint
 #define sqlite3UnlinkAndDeleteIndex tdsqlite3UnlinkAndDeleteIndex
 #define sqlite3UnlinkAndDeleteTable tdsqlite3UnlinkAndDeleteTable
@@ -1190,6 +1209,7 @@
 #define sqlite3VdbeExplainPop tdsqlite3VdbeExplainPop
 #define sqlite3VdbeFinalize tdsqlite3VdbeFinalize
 #define sqlite3VdbeFindCompare tdsqlite3VdbeFindCompare
+#define sqlite3VdbeFindIndexKey tdsqlite3VdbeFindIndexKey
 #define sqlite3VdbeFinishMoveto tdsqlite3VdbeFinishMoveto
 #define sqlite3VdbeFrameDelete tdsqlite3VdbeFrameDelete
 #define sqlite3VdbeFrameIsValid tdsqlite3VdbeFrameIsValid
@@ -1243,6 +1263,7 @@
 #define sqlite3VdbeMemSetPointer tdsqlite3VdbeMemSetPointer
 #define sqlite3VdbeMemSetRowSet tdsqlite3VdbeMemSetRowSet
 #define sqlite3VdbeMemSetStr tdsqlite3VdbeMemSetStr
+#define sqlite3VdbeMemSetText tdsqlite3VdbeMemSetText
 #define sqlite3VdbeMemSetZeroBlob tdsqlite3VdbeMemSetZeroBlob
 #define sqlite3VdbeMemShallowCopy tdsqlite3VdbeMemShallowCopy
 #define sqlite3VdbeMemStringify tdsqlite3VdbeMemStringify
@@ -1427,6 +1448,7 @@
 #define sqlite3_callback tdsqlite3_callback
 #define sqlite3_cancel_auto_extension tdsqlite3_cancel_auto_extension
 #define sqlite3_carray_bind tdsqlite3_carray_bind
+#define sqlite3_carray_bind_v2 tdsqlite3_carray_bind_v2
 #define sqlite3_changegroup tdsqlite3_changegroup
 #define sqlite3_changes tdsqlite3_changes
 #define sqlite3_changes64 tdsqlite3_changes64
@@ -1697,9 +1719,11 @@
 #define sqlite3_str_appendf tdsqlite3_str_appendf
 #define sqlite3_str_errcode tdsqlite3_str_errcode
 #define sqlite3_str_finish tdsqlite3_str_finish
+#define sqlite3_str_free tdsqlite3_str_free
 #define sqlite3_str_length tdsqlite3_str_length
 #define sqlite3_str_new tdsqlite3_str_new
 #define sqlite3_str_reset tdsqlite3_str_reset
+#define sqlite3_str_truncate tdsqlite3_str_truncate
 #define sqlite3_str_value tdsqlite3_str_value
 #define sqlite3_str_vappendf tdsqlite3_str_vappendf
 #define sqlite3_strglob tdsqlite3_strglob
@@ -1799,6 +1823,14 @@
 #define sqlite3changegroup_add tdsqlite3changegroup_add
 #define sqlite3changegroup_add_change tdsqlite3changegroup_add_change
 #define sqlite3changegroup_add_strm tdsqlite3changegroup_add_strm
+#define sqlite3changegroup_change_begin tdsqlite3changegroup_change_begin
+#define sqlite3changegroup_change_blob tdsqlite3changegroup_change_blob
+#define sqlite3changegroup_change_double tdsqlite3changegroup_change_double
+#define sqlite3changegroup_change_finish tdsqlite3changegroup_change_finish
+#define sqlite3changegroup_change_int64 tdsqlite3changegroup_change_int64
+#define sqlite3changegroup_change_null tdsqlite3changegroup_change_null
+#define sqlite3changegroup_change_text tdsqlite3changegroup_change_text
+#define sqlite3changegroup_config tdsqlite3changegroup_config
 #define sqlite3changegroup_delete tdsqlite3changegroup_delete
 #define sqlite3changegroup_new tdsqlite3changegroup_new
 #define sqlite3changegroup_output tdsqlite3changegroup_output

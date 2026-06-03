@@ -8,29 +8,16 @@
 // the error path printed the message and returned 0 WITHOUT freeing the
 // allocated tl_combinator_tree node.
 
+#include "test/stealth/SourceContractFileReader.h"
+
 #include "td/utils/tests.h"
 
-#include <fstream>
-#include <iterator>
 #include <string>
-
-#ifndef TELEMT_TEST_REPO_ROOT
-#define TELEMT_TEST_REPO_ROOT ""
-#endif
 
 namespace {
 
 std::string load_tl_parser_source() {
-  std::string path(TELEMT_TEST_REPO_ROOT);
-  if (!path.empty()) {
-    path += '/';
-  }
-  path += "td/generate/tl-parser/tl-parser.c";
-  std::ifstream in(path, std::ios::binary);
-  if (!in.is_open()) {
-    return {};
-  }
-  return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+  return td::mtproto::test::read_repo_text_file("td/generate/tl-parser/tl-parser.c");
 }
 
 std::size_t count_occurrences(const std::string &haystack, const std::string &needle) {

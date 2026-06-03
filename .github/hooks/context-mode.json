@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      { "type": "command", "command": "context-mode hook vscode-copilot pretooluse" }
+    ],
+    "PostToolUse": [
+      { "type": "command", "command": "context-mode hook vscode-copilot posttooluse" }
+    ],
+    "SessionStart": [
+      { "type": "command", "command": "context-mode hook vscode-copilot sessionstart" }
+    ]
+  }
+}

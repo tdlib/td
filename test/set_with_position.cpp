@@ -14,7 +14,6 @@
 
 #include <algorithm>
 #include <functional>
-#include <set>
 #include <utility>
 
 template <class T>
@@ -75,15 +74,17 @@ class CheckedSetWithPosition {
  public:
   void add(int x) {
     s_.add(x);
-    if (checked_.count(x) != 0) {
+    if (td::contains(checked_, x)) {
       return;
     }
-    not_checked_.insert(x);
+    if (!td::contains(not_checked_, x)) {
+      not_checked_.push_back(x);
+    }
   }
   void remove(int x) {
     s_.remove(x);
-    checked_.erase(x);
-    not_checked_.erase(x);
+    erase_value(checked_, x);
+    erase_value(not_checked_, x);
   }
   bool has_next() const {
     auto res = !not_checked_.empty();
@@ -93,17 +94,23 @@ class CheckedSetWithPosition {
   }
   void reset_position() {
     s_.reset_position();
-    not_checked_.insert(checked_.begin(), checked_.end());
-    checked_ = {};
+    for (auto x : checked_) {
+      if (!td::contains(not_checked_, x)) {
+        not_checked_.push_back(x);
+      }
+    }
+    td::reset_to_empty(checked_);
   }
 
   T next() {
     CHECK(has_next());
     auto next = s_.next();
     //LOG(ERROR) << next;
-    ASSERT_TRUE(not_checked_.count(next) != 0);
-    not_checked_.erase(next);
-    checked_.insert(next);
+    ASSERT_TRUE(td::contains(not_checked_, next));
+    erase_value(not_checked_, next);
+    if (!td::contains(checked_, next)) {
+      checked_.push_back(next);
+    }
     return next;
   }
 
@@ -113,14 +120,18 @@ class CheckedSetWithPosition {
       std::swap(this->s_, other.s_);
     }
     for (auto x : other.checked_) {
-      not_checked_.erase(x);
-      checked_.insert(x);
+      erase_value(not_checked_, x);
+      if (!td::contains(checked_, x)) {
+        checked_.push_back(x);
+      }
     }
     for (auto x : other.not_checked_) {
-      if (checked_.count(x) != 0) {
+      if (td::contains(checked_, x)) {
         continue;
       }
-      not_checked_.insert(x);
+      if (!td::contains(not_checked_, x)) {
+        not_checked_.push_back(x);
+      }
     }
     s_.merge(std::move(other.s_));
   }
@@ -129,8 +140,15 @@ class CheckedSetWithPosition {
   }
 
  private:
-  std::set<T> checked_;
-  std::set<T> not_checked_;
+  static void erase_value(td::vector<T> &values, const T &value) {
+    auto it = std::find(values.begin(), values.end(), value);
+    if (it != values.end()) {
+      values.erase(it);
+    }
+  }
+
+  td::vector<T> checked_;
+  td::vector<T> not_checked_;
   td::SetWithPosition<T> s_;
 };
 

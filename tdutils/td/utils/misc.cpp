@@ -1,22 +1,54 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/utils/misc.h"
 
-#include "td/utils/port/thread_local.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/utf8.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
-#include <locale>
-#include <sstream>
+#include <limits>
+#include <locale.h>
 
 namespace td {
+
+namespace {
+
+#if TD_WINDOWS
+_locale_t get_to_double_c_locale() {
+  static const auto c_locale = [] {
+    auto locale = _create_locale(LC_NUMERIC, "C");
+    CHECK(locale != nullptr);
+    return locale;
+  }();
+  return c_locale;
+}
+
+double parse_to_double_c_locale(const char *begin, char **end) {
+  return _strtod_l(begin, end, get_to_double_c_locale());
+}
+#else
+locale_t get_to_double_c_locale() {
+  static const auto c_locale = [] {
+    auto locale = newlocale(LC_NUMERIC_MASK, "C", nullptr);
+    CHECK(locale != nullptr);
+    return locale;
+  }();
+  return c_locale;
+}
+
+double parse_to_double_c_locale(const char *begin, char **end) {
+  return strtod_l(begin, end, get_to_double_c_locale());
+}
+#endif
+
+}  // namespace
 
 void replace_with_spaces(MutableSlice str, Slice characters) {
   for (auto &c : str) {
@@ -100,17 +132,59 @@ Status get_to_integer_safe_error(Slice str) {
 }  // namespace detail
 
 double to_double(Slice str) {
-  static TD_THREAD_LOCAL std::stringstream *ss;
-  if (init_thread_local<std::stringstream>(ss)) {
-    auto previous_locale = ss->imbue(std::locale::classic());
-  } else {
-    ss->str(std::string());
-    ss->clear();
+  auto input = str.str();
+  auto *begin = input.c_str();
+  while (*begin == ' ' || *begin == '\t' || *begin == '\n' || *begin == '\r' || *begin == '\f' || *begin == '\v') {
+    begin++;
   }
-  ss->write(str.begin(), narrow_cast<std::streamsize>(str.size()));
 
-  double result = 0.0;
-  *ss >> result;
+  const auto is_ascii_space = [](char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
+  };
+
+  auto *token_begin = begin;
+  const bool has_explicit_sign = *token_begin == '+' || *token_begin == '-';
+  if (*token_begin == '+' || *token_begin == '-') {
+    token_begin++;
+  }
+  if (token_begin[0] == '0' && (token_begin[1] == 'x' || token_begin[1] == 'X')) {
+    return 0.0;
+  }
+
+  char *end = nullptr;
+  auto result = parse_to_double_c_locale(begin, &end);
+  if (end == begin) {
+    return 0.0;
+  }
+  if (*end == 'e' || *end == 'E' || *end == 'p' || *end == 'P') {
+    return 0.0;
+  }
+
+  const auto parsed_token_len = static_cast<size_t>(end - token_begin);
+  const bool starts_with_inf = parsed_token_len >= 3 && static_cast<char>(token_begin[0] | 32) == 'i' &&
+                               static_cast<char>(token_begin[1] | 32) == 'n' &&
+                               static_cast<char>(token_begin[2] | 32) == 'f';
+  const bool starts_with_nan = parsed_token_len >= 3 && static_cast<char>(token_begin[0] | 32) == 'n' &&
+                               static_cast<char>(token_begin[1] | 32) == 'a' &&
+                               static_cast<char>(token_begin[2] | 32) == 'n';
+  if (starts_with_inf || starts_with_nan) {
+    if (starts_with_nan && has_explicit_sign) {
+      return 0.0;
+    }
+    if (parsed_token_len != 3) {
+      return 0.0;
+    }
+    if (*end != '\0' && !is_ascii_space(*end)) {
+      return 0.0;
+    }
+  }
+  if (std::isinf(result)) {
+    const bool is_explicit_inf = starts_with_inf && parsed_token_len == 3;
+    if (!is_explicit_inf) {
+      return result > 0 ? std::numeric_limits<double>::max() : -std::numeric_limits<double>::max();
+    }
+  }
+
   return result;
 }
 

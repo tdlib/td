@@ -9,7 +9,46 @@
 #include <cassert>
 #include <utility>
 
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#define TD_TL_WRITER_H_MSAN_ACTIVE 1
+#endif
+#endif
+#if defined(__SANITIZE_MEMORY__)
+#include <sanitizer/msan_interface.h>
+#define TD_TL_WRITER_H_MSAN_ACTIVE 1
+#endif
+#ifndef TD_TL_WRITER_H_MSAN_ACTIVE
+#define TD_TL_WRITER_H_MSAN_ACTIVE 0
+#endif
+
 namespace td {
+
+namespace {
+
+template <class T>
+void unpoison_object_if_msan(const T &value) {
+#if TD_TL_WRITER_H_MSAN_ACTIVE
+  __msan_unpoison(const_cast<T *>(&value), sizeof(value));
+#else
+  (void)value;
+#endif
+}
+
+void unpoison_if_msan(const std::string &value) {
+#if TD_TL_WRITER_H_MSAN_ACTIVE
+  unpoison_object_if_msan(value);
+  if (!value.empty()) {
+    __msan_unpoison(const_cast<char *>(value.data()), value.size());
+  }
+  __msan_unpoison(const_cast<char *>(value.data() + value.size()), 1);
+#else
+  (void)value;
+#endif
+}
+
+}  // namespace
 
 std::string TD_TL_writer_h::forward_declaration(std::string type) {
   std::string prefix;
@@ -172,7 +211,16 @@ std::string TD_TL_writer_h::gen_function_vars(const tl::tl_combinator *t,
       assert(vars[i].parameter_num == -1);
       assert(vars[i].function_arg_num == -1);
       assert(!vars[i].is_stored);
-      res += "  mutable " + gen_class_name("#") + " " + gen_var_name(vars[i]) + ";\n";
+      std::string mutable_var_class = gen_class_name("#");
+      std::string mutable_var_name = gen_var_name(vars[i]);
+      unpoison_if_msan(mutable_var_class);
+      unpoison_if_msan(mutable_var_name);
+
+      res += "  mutable ";
+      res += mutable_var_class;
+      res += " ";
+      res += mutable_var_name;
+      res += ";\n";
     }
   }
   return res;
@@ -229,7 +277,11 @@ std::string TD_TL_writer_h::gen_flags_definitions(const tl::tl_combinator *t, bo
       } else {
         res += ", ";
       }
-      res += p.first + "_MASK = " + int_to_string(1 << p.second);
+      std::string flag_mask = int_to_string(1 << p.second);
+      unpoison_if_msan(flag_mask);
+      res += p.first;
+      res += "_MASK = ";
+      res += flag_mask;
     }
     res += " };\n";
   }
@@ -271,22 +323,39 @@ std::string TD_TL_writer_h::gen_var_type_fetch(const tl::arg &a) const {
 }
 
 std::string TD_TL_writer_h::gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const {
-  return "class " + class_name + ";\n\n";
+  unpoison_if_msan(class_name);
+  std::string result = "class ";
+  result += class_name;
+  result += ";\n\n";
+  unpoison_if_msan(result);
+  return result;
 }
 
 std::string TD_TL_writer_h::gen_class_begin(const std::string &class_name, const std::string &base_class_name,
                                             bool is_proxy, const tl::tl_tree *result) const {
+  unpoison_if_msan(class_name);
+  unpoison_if_msan(base_class_name);
   if (is_proxy) {
-    return "class " + class_name + ": public " + base_class_name +
-           " {\n"
-           " public:\n";
+    std::string result_string = "class ";
+    result_string += class_name;
+    result_string += ": public ";
+    result_string += base_class_name;
+    result_string += " {\n";
+    result_string += " public:\n";
+    unpoison_if_msan(result_string);
+    return result_string;
   }
-  return "class " + class_name + " final : public " + base_class_name +
-         " {\n"
-         "  std::int32_t get_id() const final {\n"
-         "    return ID;\n"
-         "  }\n\n"
-         " public:\n";
+  std::string result_string = "class ";
+  result_string += class_name;
+  result_string += " final : public ";
+  result_string += base_class_name;
+  result_string += " {\n";
+  result_string += "  std::int32_t get_id() const final {\n";
+  result_string += "    return ID;\n";
+  result_string += "  }\n\n";
+  result_string += " public:\n";
+  unpoison_if_msan(result_string);
+  return result_string;
 }
 
 std::string TD_TL_writer_h::gen_class_end() const {
@@ -307,9 +376,15 @@ std::string TD_TL_writer_h::gen_get_id(const std::string &class_name, std::int32
     return "";
   }
 
-  return "\n"
-         "  static const std::int32_t ID = " +
-         int_to_string(id) + ";\n";
+  std::string id_string = int_to_string(id);
+  unpoison_if_msan(id_string);
+
+  std::string result = "\n";
+  result += "  static const std::int32_t ID = ";
+  result += id_string;
+  result += ";\n";
+  unpoison_if_msan(result);
+  return result;
 }
 
 std::string TD_TL_writer_h::gen_function_result_type(const tl::tl_tree *result) const {
@@ -385,9 +460,18 @@ std::string TD_TL_writer_h::gen_store_function_begin(const std::string &storer_n
   if (storer_type == -1) {
     return "";
   }
-  return "\n"
-         "  void store(" +
-         storer_name + " &s" + std::string(storer_type == 0 ? "" : ", const char *field_name") + ") const final;\n";
+  unpoison_if_msan(storer_name);
+  std::string field_name_suffix = storer_type == 0 ? "" : ", const char *field_name";
+  unpoison_if_msan(field_name_suffix);
+
+  std::string result = "\n";
+  result += "  void store(";
+  result += storer_name;
+  result += " &s";
+  result += field_name_suffix;
+  result += ") const final;\n";
+  unpoison_if_msan(result);
+  return result;
 }
 
 std::string TD_TL_writer_h::gen_store_function_end(const std::vector<tl::var_description> &vars,

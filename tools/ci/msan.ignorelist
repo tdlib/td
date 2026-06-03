@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: Copyright 2026 telemt community
+# SPDX-License-Identifier: MIT
+# telemt: https://github.com/telemt
+# telemt: https://t.me/telemtrs
+
+# Keep the vendored SQLCipher suppression as narrow as possible.
+# The SQLite runtime stack is mapped back to upstream/sqlite3.c via #line
+# directives, but the actual compile unit is tdsqlite_amalgamation.c. Keep the
+# fallback pointed at the real compile unit so the ignorelist matches.
+src:*/sqlite/tdsqlite_amalgamation.c
+fun:sqlcipher_openssl_random
+fun:sqlcipher_openssl_cipher
+fun:sqlcipher_openssl_hmac
+
+# OpenSSL 3's provider-backed DRBG bootstrap probes internal libcrypto state
+# outside MSan instrumentation while td::init_crypto eagerly warms both public
+# and private RNG paths. Suppress only the repo-owned warmup helper so focused
+# sanitizer runs can reach the downstream TLS runtime paths under audit.
+[memory]
+fun:td::warmup_openssl_random_generators
+
+# TQueue Queue::events is a std::map<EventId,RawEvent> whose tree nodes have
+# uninitialised colour/parent/link bytes in libstdc++.  The false positive fires
+# when do_push calls emplace() (node allocation) and do_get calls lower_bound()
+# (node traversal).  The EventId key and RawEvent data themselves are always
+# fully initialised; only the internal Rb_tree node header bytes are at issue.
+# Suppress the entire TQueue implementation file rather than trying to surgically
+# suppress just do_push/do_get (ignorelist fun: patterns don't reliably match
+# instantiated template code in libstdc++).
+src:*/tddb/td/db/TQueue.cpp

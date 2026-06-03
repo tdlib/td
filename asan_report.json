@@ -1,0 +1,8 @@
+{
+  "entry_count": 0,
+  "findings": [],
+  "generated_at": "2026-05-24T22:06:45Z",
+  "max_sample_findings": 250,
+  "run_dir": "/home/david_osipov/tdlib-obf/artifacts/sast/sanitizer_matrix/20260524T215225Z",
+  "run_id": "20260524T215225Z"
+}

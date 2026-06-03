@@ -8,27 +8,16 @@
 // tl_simple.h pulls in <iostream> which conflicts with td::StringBuilder
 // template overloads in the test framework.
 
+#include "test/stealth/SourceContractFileReader.h"
+
 #include "td/utils/tests.h"
 
-#include <fstream>
-#include <iterator>
 #include <string>
 
 namespace {
 
 std::string load_tl_simple_source() {
-  const char *const candidates[] = {
-      "tdtl/td/tl/tl_simple.h",
-      "../tdtl/td/tl/tl_simple.h",
-      "../../tdtl/td/tl/tl_simple.h",
-  };
-  for (const char *p : candidates) {
-    std::ifstream in(p, std::ios::binary);
-    if (in.is_open()) {
-      return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
-    }
-  }
-  return {};
+  return td::mtproto::test::read_repo_text_file("tdtl/td/tl/tl_simple.h");
 }
 
 std::size_t count_occurrences(const std::string &haystack, const std::string &needle) {

@@ -24,9 +24,7 @@ int TD_TL_writer_hpp::get_additional_function_type(const std::string &additional
 }
 
 std::vector<std::string> TD_TL_writer_hpp::get_additional_functions() const {
-  std::vector<std::string> additional_functions;
-  additional_functions.push_back("downcast_call");
-  return additional_functions;
+  return {std::string{"downcast_call"}};
 }
 
 std::string TD_TL_writer_hpp::gen_base_type_class_name(int arity) const {
@@ -51,6 +49,7 @@ std::string TD_TL_writer_hpp::gen_output_begin(const std::string &additional_imp
          "#include \"" +
          tl_name +
          ".h\"\n"
+         "#include <type_traits>\n"
          "\n"
          "namespace td {\n"
          "namespace " +
@@ -58,7 +57,23 @@ std::string TD_TL_writer_hpp::gen_output_begin(const std::string &additional_imp
 }
 
 std::string TD_TL_writer_hpp::gen_output_begin_once() const {
-  return "template <class Base, class T>\n"
+  return "template <class Type>\n"
+         "struct downcast_call_tag {\n"
+         "  using is_downcast_call_tag = void;\n"
+         "  using type = Type;\n"
+         "};\n\n"
+         "template <class T, class = void>\n"
+         "struct downcast_call_target {\n"
+         "  using type = std::decay_t<T>;\n"
+         "};\n\n"
+         "template <class T>\n"
+         "struct downcast_call_target<T, std::void_t<typename std::decay_t<T>::is_downcast_call_tag,\n"
+         "                                            typename std::decay_t<T>::type>> {\n"
+         "  using type = typename std::decay_t<T>::type;\n"
+         "};\n\n"
+         "template <class T>\n"
+         "using downcast_call_target_t = typename downcast_call_target<T>::type;\n\n"
+         "template <class Base, class T>\n"
          "bool downcast_call(const Base &obj, const T &func) {\n"
          "  return downcast_call(const_cast<Base &>(obj), [&](auto &value) { func(std::as_const(value)); });\n"
          "}\n\n";
@@ -219,11 +234,27 @@ std::string TD_TL_writer_hpp::gen_additional_proxy_function_begin(const std::str
       " * \\returns Whether function object call has happened. Should always return true for correct parameters.\n"
       " */\n"
 #endif
+      "template <class T, bool AllowTag>\n"
+      "bool downcast_call_impl(int32 constructor, " +
+      class_name +
+      " *obj, const T &func);\n\n"
       "template <class T>\n"
       "bool downcast_call(" +
       class_name +
-      " &obj, const T &func) {  //-V2008\n"
-      "  switch (obj.get_id()) {\n";
+      " &obj, const T &func) {\n"
+      "  return downcast_call_impl<T, false>(obj.get_id(), &obj, func);\n"
+      "}\n\n"
+      "template <class T>\n"
+      "bool downcast_construct_call(int32 constructor, " +
+      class_name +
+      " *obj, const T &func) {\n"
+      "  return downcast_call_impl<T, true>(constructor, obj, func);\n"
+      "}\n\n"
+      "template <class T, bool AllowTag>\n"
+      "bool downcast_call_impl(int32 constructor, " +
+      class_name +
+      " *obj, const T &func) {  //-V2008\n"
+      "  switch (constructor) {\n";
 }
 
 std::string TD_TL_writer_hpp::gen_additional_proxy_function_case(const std::string &function_name,
@@ -238,12 +269,26 @@ std::string TD_TL_writer_hpp::gen_additional_proxy_function_case(const std::stri
                                                                  const tl::tl_type *type, const tl::tl_combinator *t,
                                                                  int arity, bool is_function) const {
   assert(function_name == "downcast_call");
-  return "    case " + gen_class_name(t->name) +
-         "::ID:\n"
-         "      func(static_cast<" +
-         gen_class_name(t->name) +
-         " &>(obj));\n"
-         "      return true;\n";
+  const auto concrete_class_name = gen_class_name(t->name);
+
+  std::string result = "    case ";
+  result += concrete_class_name;
+  result +=
+      "::ID:\n"
+      "      if constexpr (AllowTag) {\n"
+      "        downcast_call_tag<";
+  result += concrete_class_name;
+  result +=
+      "> type_tag;\n"
+      "        func(type_tag);\n"
+      "      } else {\n"
+      "        func(static_cast<";
+  result += concrete_class_name;
+  result +=
+      " &>(*obj));\n"
+      "      }\n"
+      "      return true;\n";
+  return result;
 }
 
 std::string TD_TL_writer_hpp::gen_additional_proxy_function_end(const std::string &function_name,

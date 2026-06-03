@@ -38,8 +38,8 @@
 #include "td/utils/port/detail/NativeFd.h"
 #include "td/utils/TsLog.h"
 
+#include <array>
 #include <atomic>
-#include <map>
 #include <mutex>
 
 namespace td {
@@ -58,15 +58,49 @@ inline void store_tag_verbosity_level(std::atomic<int> &tag_verbosity_level, int
   tag_verbosity_level.store(new_verbosity_level, std::memory_order_release);
 }
 
-#define ADD_TAG(tag) \
-  { #tag, &VERBOSITY_NAME(tag) }
-static const std::map<Slice, std::atomic<int> *> log_tags{
-    ADD_TAG(td_init),     ADD_TAG(update_file),      ADD_TAG(connections),   ADD_TAG(binlog),
-    ADD_TAG(proxy),       ADD_TAG(net_query),        ADD_TAG(td_requests),   ADD_TAG(dc),
-    ADD_TAG(file_loader), ADD_TAG(mtproto),          ADD_TAG(raw_mtproto),   ADD_TAG(fd),
-    ADD_TAG(actor),       ADD_TAG(sqlite),           ADD_TAG(notifications), ADD_TAG(get_difference),
-    ADD_TAG(file_gc),     ADD_TAG(config_recoverer), ADD_TAG(dns_resolver),  ADD_TAG(file_references)};
+struct LogTagEntry {
+  Slice name;
+  std::atomic<int> *verbosity_level;
+};
+
+#define ADD_TAG(tag)           \
+  LogTagEntry {                \
+    #tag, &VERBOSITY_NAME(tag) \
+  }
+// A static table avoids the heap-backed global map initialization that MSan
+// flagged during process startup.
+static const std::array<LogTagEntry, 20> log_tags{{
+    ADD_TAG(actor),
+    ADD_TAG(binlog),
+    ADD_TAG(config_recoverer),
+    ADD_TAG(connections),
+    ADD_TAG(dc),
+    ADD_TAG(dns_resolver),
+    ADD_TAG(fd),
+    ADD_TAG(file_gc),
+    ADD_TAG(file_loader),
+    ADD_TAG(file_references),
+    ADD_TAG(get_difference),
+    ADD_TAG(mtproto),
+    ADD_TAG(net_query),
+    ADD_TAG(notifications),
+    ADD_TAG(proxy),
+    ADD_TAG(raw_mtproto),
+    ADD_TAG(sqlite),
+    ADD_TAG(td_init),
+    ADD_TAG(td_requests),
+    ADD_TAG(update_file),
+}};
 #undef ADD_TAG
+
+const LogTagEntry *find_log_tag_entry(Slice tag) {
+  for (const auto &entry : log_tags) {
+    if (entry.name == tag) {
+      return &entry;
+    }
+  }
+  return nullptr;
+}
 
 Status Logging::set_current_stream(td_api::object_ptr<td_api::LogStream> stream) {
   if (stream == nullptr) {
@@ -109,7 +143,7 @@ Result<td_api::object_ptr<td_api::LogStream>> Logging::get_current_stream() {
     return td_api::make_object<td_api::logStreamEmpty>();
   }
   if (active_sink == &ts_log) {
-    return td_api::make_object<td_api::logStreamFile>(file_log.get_path().str(), file_log.get_rotate_threshold(),
+    return td_api::make_object<td_api::logStreamFile>(file_log.get_path(), file_log.get_rotate_threshold(),
                                                       file_log.get_redirect_stderr());
   }
   return Status::Error("Log stream is unrecognized");
@@ -131,7 +165,7 @@ int Logging::get_verbosity_level() {
 }
 
 vector<string> Logging::get_tags() {
-  return transform(log_tags, [](auto &tag) { return tag.first.str(); });
+  return transform(log_tags, [](const auto &tag) { return tag.name.str(); });
 }
 
 Status Logging::set_tag_verbosity_level(Slice tag, int new_verbosity_level) {
@@ -139,13 +173,13 @@ Status Logging::set_tag_verbosity_level(Slice tag, int new_verbosity_level) {
     return Status::Error("Log tag must be non-empty");
   }
 
-  auto it = log_tags.find(tag);
-  if (it == log_tags.end()) {
+  auto *entry = find_log_tag_entry(tag);
+  if (entry == nullptr) {
     return Status::Error("Log tag is not found");
   }
 
   std::lock_guard<std::mutex> lock(logging_mutex);
-  store_tag_verbosity_level(*it->second, clamp(new_verbosity_level, 1, VERBOSITY_NAME(NEVER)));
+  store_tag_verbosity_level(*entry->verbosity_level, clamp(new_verbosity_level, 1, VERBOSITY_NAME(NEVER)));
   return Status::OK();
 }
 
@@ -154,13 +188,13 @@ Result<int> Logging::get_tag_verbosity_level(Slice tag) {
     return Status::Error("Log tag must be non-empty");
   }
 
-  auto it = log_tags.find(tag);
-  if (it == log_tags.end()) {
+  auto *entry = find_log_tag_entry(tag);
+  if (entry == nullptr) {
     return Status::Error("Log tag is not found");
   }
 
   std::lock_guard<std::mutex> lock(logging_mutex);
-  return load_tag_verbosity_level(*it->second);
+  return load_tag_verbosity_level(*entry->verbosity_level);
 }
 
 void Logging::add_message(int log_verbosity_level, Slice message) {

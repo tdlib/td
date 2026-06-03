@@ -50,7 +50,7 @@ td::string assemble_key_material() {
 
 td::UInt256 derive_mask(td::Slice label) {
   auto key_material = assemble_key_material();
-  td::UInt256 mask;
+  td::UInt256 mask{};
   td::hmac_sha256(label, td::Slice(key_material), td::as_mutable_slice(mask));
   return mask;
 }

@@ -52,6 +52,16 @@ TEST(HazardPointers, stress) {
   }
   LOG(INFO) << "Undeleted pointers: " << hazard_pointers.to_delete_size_unsafe();
   CHECK(static_cast<int>(hazard_pointers.to_delete_size_unsafe()) <= threads_n * threads_n);
+
+  // Retire pointers currently stored in nodes; they are no longer reachable
+  // after all worker threads have joined.
+  for (int i = 0; i < threads_n; i++) {
+    auto *leftover = nodes[i].name_.exchange(nullptr, std::memory_order_acq_rel);
+    if (leftover != nullptr) {
+      hazard_pointers.retire(i, leftover);
+    }
+  }
+
   for (int i = 0; i < threads_n; i++) {
     hazard_pointers.retire(i);
   }

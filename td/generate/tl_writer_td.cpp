@@ -7,6 +7,139 @@
 #include "tl_writer_td.h"
 
 #include <cassert>
+#include <charconv>
+
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#define TD_TL_WRITER_MSAN_ACTIVE 1
+#endif
+#endif
+#if defined(__SANITIZE_MEMORY__)
+#include <sanitizer/msan_interface.h>
+#define TD_TL_WRITER_MSAN_ACTIVE 1
+#endif
+#ifndef TD_TL_WRITER_MSAN_ACTIVE
+#define TD_TL_WRITER_MSAN_ACTIVE 0
+#endif
+
+namespace {
+
+template <class T>
+void unpoison_object_if_msan(const T &value) {
+#if TD_TL_WRITER_MSAN_ACTIVE
+  __msan_unpoison(const_cast<T *>(&value), sizeof(value));
+#else
+  (void)value;
+#endif
+}
+
+void unpoison_if_msan(const std::string &value) {
+#if TD_TL_WRITER_MSAN_ACTIVE
+  unpoison_object_if_msan(value);
+  if (!value.empty()) {
+    __msan_unpoison(const_cast<char *>(value.data()), value.size());
+  }
+  __msan_unpoison(const_cast<char *>(value.data() + value.size()), 1);
+#else
+  (void)value;
+#endif
+}
+
+void unpoison_if_msan(const td::tl::tl_tree &value);
+void unpoison_if_msan(const td::tl::arg &value);
+void unpoison_if_msan(const std::vector<td::tl::arg> &values);
+[[maybe_unused]] void unpoison_if_msan(const td::tl::tl_type &value);
+void unpoison_if_msan(const std::vector<td::tl::tl_tree *> &values);
+
+void unpoison_if_msan(const td::tl::tl_tree &value) {
+  unpoison_object_if_msan(value);
+  switch (value.get_type()) {
+    case td::tl::NODE_TYPE_TYPE: {
+      const auto &type_tree = static_cast<const td::tl::tl_tree_type &>(value);
+      unpoison_object_if_msan(type_tree);
+      if (type_tree.type != nullptr) {
+        unpoison_if_msan(*type_tree.type);
+      }
+      unpoison_if_msan(type_tree.children);
+      return;
+    }
+    case td::tl::NODE_TYPE_ARRAY: {
+      const auto &array_tree = static_cast<const td::tl::tl_tree_array &>(value);
+      unpoison_object_if_msan(array_tree);
+      if (array_tree.multiplicity != nullptr) {
+        unpoison_if_msan(*array_tree.multiplicity);
+      }
+      unpoison_if_msan(array_tree.args);
+      return;
+    }
+    case td::tl::NODE_TYPE_NAT_CONST:
+      unpoison_object_if_msan(static_cast<const td::tl::tl_tree_nat_const &>(value));
+      return;
+    case td::tl::NODE_TYPE_VAR_TYPE:
+      unpoison_object_if_msan(static_cast<const td::tl::tl_tree_var_type &>(value));
+      return;
+    case td::tl::NODE_TYPE_VAR_NUM:
+      unpoison_object_if_msan(static_cast<const td::tl::tl_tree_var_num &>(value));
+      return;
+    default:
+      assert(false && "unexpected tl_tree node type");
+  }
+}
+
+void unpoison_if_msan(const td::tl::arg &value) {
+  unpoison_object_if_msan(value);
+  unpoison_if_msan(value.name);
+  if (value.type != nullptr) {
+    unpoison_if_msan(*value.type);
+  }
+}
+
+void unpoison_if_msan(const std::vector<td::tl::arg> &values) {
+#if TD_TL_WRITER_MSAN_ACTIVE
+  unpoison_object_if_msan(values);
+  if (!values.empty()) {
+    __msan_unpoison(const_cast<td::tl::arg *>(values.data()), values.size() * sizeof(values[0]));
+  }
+#else
+  (void)values;
+#endif
+  for (const auto &value : values) {
+    unpoison_if_msan(value);
+  }
+}
+
+void unpoison_if_msan(const td::tl::tl_combinator &value) {
+  unpoison_object_if_msan(value);
+  unpoison_if_msan(value.name);
+  unpoison_if_msan(value.args);
+  if (value.result != nullptr) {
+    unpoison_if_msan(*value.result);
+  }
+}
+
+[[maybe_unused]] void unpoison_if_msan(const td::tl::tl_type &value) {
+  unpoison_object_if_msan(value);
+  unpoison_if_msan(value.name);
+}
+
+void unpoison_if_msan(const std::vector<td::tl::tl_tree *> &values) {
+#if TD_TL_WRITER_MSAN_ACTIVE
+  unpoison_object_if_msan(values);
+  if (!values.empty()) {
+    __msan_unpoison(const_cast<td::tl::tl_tree **>(values.data()), values.size() * sizeof(values[0]));
+  }
+#else
+  (void)values;
+#endif
+  for (const auto *value : values) {
+    if (value != nullptr) {
+      unpoison_if_msan(*value);
+    }
+  }
+}
+
+}  // namespace
 
 namespace td {
 
@@ -21,12 +154,14 @@ int TD_TL_writer::get_max_arity() const {
 }
 
 bool TD_TL_writer::is_built_in_simple_type(const std::string &name) const {
+  unpoison_if_msan(name);
   return name == "True" || name == "Bool" || name == "Int" || name == "Long" || name == "Double" || name == "String" ||
          name == "Int32" || name == "Int53" || name == "Int64" || name == "Int128" || name == "Int256" ||
          name == "Int512" || name == "Bytes" || name == "SecureString" || name == "SecureBytes";
 }
 
 bool TD_TL_writer::is_built_in_complex_type(const std::string &name) const {
+  unpoison_if_msan(name);
   return name == "Vector";
 }
 
@@ -40,6 +175,8 @@ bool TD_TL_writer::is_combinator_supported(const tl::tl_combinator *constructor)
     return false;
   }
 
+  unpoison_if_msan(*constructor);
+  unpoison_if_msan(constructor->args);
   for (std::size_t i = 0; i < constructor->args.size(); i++) {
     if (constructor->args[i].type->get_type() == tl::NODE_TYPE_VAR_TYPE) {
       return false;
@@ -51,11 +188,15 @@ bool TD_TL_writer::is_combinator_supported(const tl::tl_combinator *constructor)
 
 bool TD_TL_writer::is_default_constructor_generated(const tl::tl_combinator *t, bool can_be_parsed,
                                                     bool can_be_stored) const {
+  unpoison_if_msan(*t);
+  unpoison_if_msan(t->name);
   return tl_name == "td_api" || tl_name == "TdApi" || (t->var_count > 0 && can_be_parsed) || t->name == "updates";
 }
 
 bool TD_TL_writer::is_full_constructor_generated(const tl::tl_combinator *t, bool can_be_parsed,
                                                  bool can_be_stored) const {
+  unpoison_if_msan(*t);
+  unpoison_if_msan(t->name);
   return tl_name == "td_api" || tl_name == "TdApi" || can_be_stored || t->name == "phone.groupParticipants" ||
          t->name == "user" || t->name == "userProfilePhoto" || t->name == "channelForbidden" || t->name == "message" ||
          t->name == "photoSizeEmpty" || t->name == "photoSize" || t->name == "photoCachedSize" ||
@@ -144,6 +285,7 @@ std::string TD_TL_writer::gen_base_function_class_name() const {
 }
 
 std::string TD_TL_writer::gen_class_name(std::string name) const {
+  unpoison_if_msan(name);
   if (name == "Object") {
     assert(false);
   }
@@ -159,6 +301,7 @@ std::string TD_TL_writer::gen_class_name(std::string name) const {
 }
 
 std::string TD_TL_writer::gen_field_name(std::string name) const {
+  unpoison_if_msan(name);
   for (std::size_t i = 0; i < name.size(); i++) {
     if (!is_alnum(name[i])) {
       name[i] = '_';
@@ -170,12 +313,18 @@ std::string TD_TL_writer::gen_field_name(std::string name) const {
 }
 
 std::string TD_TL_writer::gen_var_name(const tl::var_description &desc) const {
+  unpoison_object_if_msan(desc);
   assert(!desc.is_type);
 
   if (desc.parameter_num != -1) {
     assert(false);
   }
-  return "var" + int_to_string(desc.index);
+  std::string result = "var";
+  char index_buffer[32];
+  auto [index_end, index_error] = std::to_chars(index_buffer, index_buffer + sizeof(index_buffer), desc.index);
+  assert(index_error == std::errc());
+  result.append(index_buffer, static_cast<std::size_t>(index_end - index_buffer));
+  return result;
 }
 
 std::string TD_TL_writer::gen_parameter_name(int index) const {
@@ -184,8 +333,12 @@ std::string TD_TL_writer::gen_parameter_name(int index) const {
 }
 
 std::string TD_TL_writer::gen_type_name(const tl::tl_tree_type *tree_type) const {
+  unpoison_object_if_msan(*tree_type);
   const tl::tl_type *t = tree_type->type;
+  unpoison_object_if_msan(*t);
   const std::string &name = t->name;
+  unpoison_if_msan(name);
+  unpoison_if_msan(tree_type->children);
 
   if (name == "#") {
     return "int32";

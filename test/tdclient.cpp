@@ -33,6 +33,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/tests.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <functional>
@@ -955,7 +956,7 @@ TEST(Client, Manager) {
     thread.join();
   }
 
-  std::set<td::int32> ids;
+  td::vector<td::int32> ids;
   while (ids.size() != static_cast<size_t>(threads_n) * clients_n) {
     auto event = client.receive(10);
     if (event.client_id == 0 || event.client_id == -1) {
@@ -965,7 +966,8 @@ TEST(Client, Manager) {
     }
     if (event.request_id == 3) {
       ASSERT_EQ(td::td_api::testInt::ID, event.object->get_id());
-      ASSERT_TRUE(ids.insert(event.client_id).second);
+      ASSERT_TRUE(std::find(ids.begin(), ids.end(), event.client_id) == ids.end());
+      ids.push_back(event.client_id);
     }
   }
 }
@@ -979,14 +981,14 @@ TEST(Client, Close) {
   td::Client client;
 
   std::mutex request_ids_mutex;
-  std::set<td::uint64> request_ids;
-  request_ids.insert(1);
+  td::vector<td::uint64> request_ids;
+  request_ids.push_back(1);
   td::thread send_thread([&] {
     td::uint64 request_id = 2;
     while (!stop_send.load()) {
       {
         std::unique_lock<std::mutex> guard(request_ids_mutex);
-        request_ids.insert(request_id);
+        request_ids.push_back(request_id);
       }
       client.send({request_id++, td::make_tl_object<td::td_api::testSquareInt>(3)});
       send_count++;
@@ -1014,8 +1016,9 @@ TEST(Client, Close) {
         receive_count++;
         {
           std::unique_lock<std::mutex> guard(request_ids_mutex);
-          size_t erased_count = request_ids.erase(response.id);
-          CHECK(erased_count > 0);
+          auto it = std::find(request_ids.begin(), request_ids.end(), response.id);
+          CHECK(it != request_ids.end());
+          request_ids.erase(it);
         }
       }
       if (can_stop_receive && receive_count == send_count) {
@@ -1042,14 +1045,14 @@ TEST(Client, ManagerClose) {
   auto client_id = client_manager.create_client_id();
 
   std::mutex request_ids_mutex;
-  std::set<td::uint64> request_ids;
-  request_ids.insert(1);
+  td::vector<td::uint64> request_ids;
+  request_ids.push_back(1);
   td::thread send_thread([&] {
     td::uint64 request_id = 2;
     while (!stop_send.load()) {
       {
         std::unique_lock<std::mutex> guard(request_ids_mutex);
-        request_ids.insert(request_id);
+        request_ids.push_back(request_id);
       }
       client_manager.send(client_id, request_id++, td::make_tl_object<td::td_api::testSquareInt>(3));
       send_count++;
@@ -1076,8 +1079,9 @@ TEST(Client, ManagerClose) {
         receive_count++;
         {
           std::unique_lock<std::mutex> guard(request_ids_mutex);
-          size_t erased_count = request_ids.erase(response.request_id);
-          CHECK(erased_count > 0);
+          auto it = std::find(request_ids.begin(), request_ids.end(), response.request_id);
+          CHECK(it != request_ids.end());
+          request_ids.erase(it);
         }
       }
       if (can_stop_receive && receive_count == send_count) {
@@ -1101,13 +1105,13 @@ TEST(Client, ManagerCloseOneThread) {
   td::ClientManager client_manager;
 
   td::uint64 request_id = 2;
-  std::map<td::uint64, td::int32> sent_requests;
+  td::vector<std::pair<td::uint64, td::int32>> sent_requests;
   td::uint64 sent_count = 0;
   td::uint64 receive_count = 0;
 
   auto send_request = [&](td::int32 client_id, td::int32 expected_error_code) {
     sent_count++;
-    sent_requests.emplace(request_id, expected_error_code);
+    sent_requests.emplace_back(request_id, expected_error_code);
     client_manager.send(client_id, request_id++, td::make_tl_object<td::td_api::testSquareInt>(3));
   };
 
@@ -1119,7 +1123,8 @@ TEST(Client, ManagerCloseOneThread) {
       }
       if (response.request_id > 0) {
         receive_count++;
-        auto it = sent_requests.find(response.request_id);
+        auto it = std::find_if(sent_requests.begin(), sent_requests.end(),
+                               [&](const auto &request) { return request.first == response.request_id; });
         CHECK(it != sent_requests.end());
         auto expected_error_code = it->second;
         sent_requests.erase(it);
@@ -1160,7 +1165,7 @@ TEST(Client, ManagerCloseOneThread) {
     receive();
 
     sent_count++;
-    sent_requests.emplace(1, 0);
+    sent_requests.emplace_back(1, 0);
     client_manager.send(client_id, 1, td::make_tl_object<td::td_api::close>());
 
     for (int i = 0; i < 10; i++) {

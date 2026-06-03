@@ -7,20 +7,50 @@
 
 #include "td/utils/tests.h"
 
-#include <fstream>
-#include <sstream>
+#include <cstdio>
 #include <string>
+
+#ifndef TELEMT_TEST_REPO_ROOT
+#define TELEMT_TEST_REPO_ROOT ""
+#endif
 
 namespace {
 
-static std::string read_source_file(const char *rel_path) {
-  std::ifstream f(rel_path);
-  if (!f.is_open()) {
+static std::string read_file_if_exists(const std::string &path) {
+  auto *file = std::fopen(path.c_str(), "rb");
+  if (file == nullptr) {
     return {};
   }
-  std::ostringstream ss;
-  ss << f.rdbuf();
-  return ss.str();
+  if (std::fseek(file, 0, SEEK_END) != 0) {
+    std::fclose(file);
+    return {};
+  }
+  auto size = std::ftell(file);
+  if (size < 0) {
+    std::fclose(file);
+    return {};
+  }
+  std::rewind(file);
+
+  std::string content;
+  content.resize(static_cast<size_t>(size));
+  if (!content.empty()) {
+    auto read_size = std::fread(content.data(), 1, content.size(), file);
+    if (read_size != content.size()) {
+      std::fclose(file);
+      return {};
+    }
+  }
+  std::fclose(file);
+  return content;
+}
+
+static std::string read_source_file(const char *rel_path) {
+  const std::string repo_root = TELEMT_TEST_REPO_ROOT;
+  if (repo_root.empty()) {
+    return {};
+  }
+  return read_file_if_exists(repo_root + "/" + rel_path);
 }
 
 static std::string normalize_ws(const std::string &s) {

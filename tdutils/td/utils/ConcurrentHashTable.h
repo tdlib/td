@@ -97,6 +97,9 @@ class AtomicHashArray {
 template <class KeyT, class ValueT>
 class ConcurrentHashMap {
   using HashMap = AtomicHashArray<KeyT, std::atomic<ValueT>>;
+  // Hazard slots are indexed by tdutils thread IDs, so they must stay aligned
+  // with the shared thread-id-indexed storage capacity.
+  static constexpr size_t HAZARD_POINTER_THREAD_SLOTS = static_cast<size_t>(kThreadIdSlotCount);
   static HazardPointers<HashMap> hp_;
 
  public:
@@ -321,6 +324,7 @@ class ConcurrentHashMap {
 };
 
 template <class KeyT, class ValueT>
-HazardPointers<typename ConcurrentHashMap<KeyT, ValueT>::HashMap> ConcurrentHashMap<KeyT, ValueT>::hp_(64);
+HazardPointers<typename ConcurrentHashMap<KeyT, ValueT>::HashMap> ConcurrentHashMap<KeyT, ValueT>::hp_(
+    ConcurrentHashMap<KeyT, ValueT>::HAZARD_POINTER_THREAD_SLOTS);
 
 }  // namespace td

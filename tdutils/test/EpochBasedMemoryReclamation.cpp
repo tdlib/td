@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/utils/common.h"
 #include "td/utils/EpochBasedMemoryReclamation.h"
@@ -58,6 +58,19 @@ TEST(EpochBaseMemoryReclamation, stress) {
   for (auto &thread : threads) {
     thread.join();
   }
+
+  // Retire the last values still referenced by nodes before final sync.
+  auto cleanup_locker = ebmr.get_locker(threads_n);
+  cleanup_locker.lock();
+  for (auto &node : nodes) {
+    auto *str = node.name_.exchange(nullptr, std::memory_order_acq_rel);
+    if (str != nullptr) {
+      cleanup_locker.retire(str);
+    }
+  }
+  cleanup_locker.retire_sync();
+  cleanup_locker.unlock();
+
   LOG(INFO) << "Undeleted pointers: " << ebmr.to_delete_size_unsafe();
   //CHECK(static_cast<int>(ebmr.to_delete_size_unsafe()) <= threads_n * threads_n);
   for (int i = 0; i < threads_n; i++) {

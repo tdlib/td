@@ -40,6 +40,20 @@
 #include "td/utils/tl_helpers.h"
 #include "td/utils/tl_parsers.h"
 
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#define TD_FILE_MANAGER_MSAN_ACTIVE 1
+#endif
+#endif
+#if defined(__SANITIZE_MEMORY__)
+#include <sanitizer/msan_interface.h>
+#define TD_FILE_MANAGER_MSAN_ACTIVE 1
+#endif
+#ifndef TD_FILE_MANAGER_MSAN_ACTIVE
+#define TD_FILE_MANAGER_MSAN_ACTIVE 0
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -50,6 +64,27 @@
 namespace td {
 namespace {
 constexpr int64 MAX_FILE_SIZE = static_cast<int64>(4000) << 20;  // 4000MB
+
+void unpoison_string_if_msan(const string &value) {
+#if TD_FILE_MANAGER_MSAN_ACTIVE
+  __msan_unpoison(const_cast<string *>(&value), sizeof(value));
+  if (!value.empty()) {
+    __msan_unpoison(const_cast<char *>(value.data()), value.size());
+  }
+  __msan_unpoison(const_cast<char *>(value.data() + value.size()), 1);
+#else
+  (void)value;
+#endif
+}
+
+void remember_bad_path(vector<string> &bad_paths, CSlice path) {
+  auto db_path = path.str();
+  unpoison_string_if_msan(db_path);
+  if (!contains(bad_paths, db_path)) {
+    bad_paths.push_back(db_path);
+    unpoison_string_if_msan(bad_paths.back());
+  }
+}
 }  // namespace
 
 std::atomic<int> VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
@@ -1316,7 +1351,8 @@ FileManager::FileManager(unique_ptr<Context> context)
   next_file_id();
   next_file_node_id();
 
-  G()->td_db()->with_db_path([bad_paths = &bad_paths_](CSlice path) { bad_paths->insert(path.str()); });
+  bad_paths_.reserve(5);
+  G()->td_db()->with_db_path([bad_paths = &bad_paths_](CSlice path) { remember_bad_path(*bad_paths, path); });
 }
 
 void FileManager::init_actor() {
@@ -1468,7 +1504,7 @@ Status FileManager::check_local_location(FileNodePtr node, bool skip_file_size_c
     auto r_info = check_full_local_location({node->local_.full(), node->size_}, skip_file_size_checks);
     if (r_info.is_error()) {
       status = r_info.move_as_error();
-    } else if (bad_paths_.count(r_info.ok().location_.path_) != 0) {
+    } else if (contains(bad_paths_, r_info.ok().location_.path_)) {
       status = Status::Error(400, "Sending of internal database files is forbidden");
     } else if (r_info.ok().location_ != node->local_.full() || r_info.ok().size_ != node->size_) {
       LOG(ERROR) << "Local location changed from " << node->local_.full() << " with size " << node->size_ << " to "
@@ -1535,7 +1571,7 @@ void FileManager::on_check_full_local_location(FileId file_id, LocalFileLocation
   Status status;
   if (r_info.is_error()) {
     status = r_info.move_as_error();
-  } else if (bad_paths_.count(r_info.ok().location_.path_) != 0) {
+  } else if (contains(bad_paths_, r_info.ok().location_.path_)) {
     status = Status::Error(400, "Sending of internal database files is forbidden");
   } else if (r_info.ok().location_ != node->local_.full() || r_info.ok().size_ != node->size_) {
     LOG(ERROR) << "Local location changed from " << node->local_.full() << " with size " << node->size_ << " to "
@@ -1698,7 +1734,7 @@ Result<FileId> FileManager::register_local(FullLocalFileLocation location, Dialo
   location = std::move(info.location_);
   size = info.size_;
 
-  if (bad_paths_.count(location.path_) != 0) {
+  if (contains(bad_paths_, location.path_)) {
     return Status::Error(400, "Sending of internal database files is forbidden");
   }
 
@@ -1887,7 +1923,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
       auto r_info = check_full_local_location({data.local_.full(), data.size_}, false);
       if (r_info.is_error()) {
         status = r_info.move_as_error();
-      } else if (bad_paths_.count(r_info.ok().location_.path_) != 0) {
+      } else if (contains(bad_paths_, r_info.ok().location_.path_)) {
         status = Status::Error(400, "Sending of internal database files is forbidden");
       }
       if (status.is_error()) {

@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include <type_traits>
+
 // clang-format off
 
 /*** Platform macros ***/
@@ -75,6 +77,36 @@
   #define TD_MSVC 1
 #else
   #define TD_COMPILER_UNKNOWN 1
+#endif
+
+#if TD_CLANG && defined(__has_builtin) && !__has_builtin(__builtin_popcountg)
+template <class T, bool IsEnum = std::is_enum_v<T>>
+struct td_popcountg_integer_type {
+  using type = T;
+};
+
+template <class T>
+struct td_popcountg_integer_type<T, true> {
+  using type = std::underlying_type_t<T>;
+};
+
+template <class T>
+static inline constexpr int td_builtin_popcountg_fallback(T value) {
+  using RawT = std::remove_cv_t<std::remove_reference_t<T>>;
+  using IntegerT = typename td_popcountg_integer_type<RawT>::type;
+  static_assert(std::is_integral_v<IntegerT>, "__builtin_popcountg fallback requires integral or enum input");
+  using UnsignedT = std::make_unsigned_t<IntegerT>;
+  auto unsigned_value = static_cast<UnsignedT>(value);
+  if constexpr (sizeof(T) <= sizeof(unsigned int)) {
+    return __builtin_popcount(static_cast<unsigned int>(unsigned_value));
+  } else if constexpr (sizeof(T) <= sizeof(unsigned long)) {
+    return __builtin_popcountl(static_cast<unsigned long>(unsigned_value));
+  } else {
+    return __builtin_popcountll(static_cast<unsigned long long>(unsigned_value));
+  }
+}
+
+#define __builtin_popcountg(x) ::td_builtin_popcountg_fallback((x))
 #endif
 
 #if TD_GCC || TD_CLANG || TD_INTEL

@@ -93,6 +93,14 @@ namespace td {
 
 namespace {
 
+#if TD_CLANG || TD_GCC
+#define TD_RETAINED_PEM __attribute__((used, retain))
+#else
+#define TD_RETAINED_PEM
+#endif
+
+TD_RETAINED_PEM const char kCatalogAuxiliaryRetentionMarker[] = "MIIBCgKCAQEAyr+18Rex2ohtVy8sroGP";
+
 CSlice catalog_auxiliary_block() {
   return "-----BEGIN RSA PUBLIC KEY-----\n"
          "MIIBCgKCAQEAyr+18Rex2ohtVy8sroGP\n"
@@ -131,6 +139,8 @@ uint64 load_uint64_le(Slice slice) {
   }
   return result;
 }
+
+#undef TD_RETAINED_PEM
 
 }  // namespace
 

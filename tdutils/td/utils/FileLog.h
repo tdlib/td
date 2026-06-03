@@ -9,7 +9,7 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/FileFd.h"
-#include "td/utils/Slice.h"
+#include "td/utils/port/Mutex.h"
 #include "td/utils/Status.h"
 
 #include <atomic>
@@ -24,9 +24,9 @@ class FileLog final : public LogInterface {
                                                  bool redirect_stderr = true);
   Status init(string path, int64 rotate_threshold = DEFAULT_ROTATE_THRESHOLD, bool redirect_stderr = true);
 
-  Slice get_path() const;
+  string get_path() const;
 
-  vector<string> get_file_paths() final;
+  vector<string> get_file_paths() override;
 
   void set_rotate_threshold(int64 rotate_threshold);
 
@@ -34,7 +34,7 @@ class FileLog final : public LogInterface {
 
   bool get_redirect_stderr() const;
 
-  void after_rotation() final;
+  void after_rotation() override;
 
   void lazy_rotate();
 
@@ -45,10 +45,11 @@ class FileLog final : public LogInterface {
   int64 rotate_threshold_ = 0;
   bool redirect_stderr_ = false;
   std::atomic<bool> want_rotate_{false};
+  mutable Mutex mutex_;
 
-  void do_append(int log_level, CSlice slice) final;
+  void do_append(int log_level, CSlice slice) override;
 
-  void do_after_rotation();
+  Status do_after_rotation_locked();
 };
 
 }  // namespace td

@@ -62,13 +62,14 @@ TEST(NetMonitorRouteFixtureIntegration, RealFixtureBurstStillLeavesDelayedDestro
   td::net_health::note_auth_key_destroy(dc_id, td::net_health::AuthKeyDestroyReason::ProgrammaticApiCall,
                                         delayed_destroy_at);
   td::net_health::note_handshake_initiated(dc_id, delayed_destroy_at + second_gap);
-  td::net_health::clear_lane_probe_now_for_tests();
 
+  // Resolve the monitor state against the synthetic event timeline before clearing the injected clock.
   auto snapshot = td::net_health::get_net_monitor_snapshot();
   ASSERT_TRUE(snapshot.state == td::net_health::NetMonitorState::Suspicious);
   ASSERT_EQ(1u, snapshot.counters.route_push_nonbaseline_address_total);
   ASSERT_EQ(1u, snapshot.counters.auth_key_destroy_total);
   ASSERT_EQ(0u, snapshot.counters.flow_anchor_reset_sequence_total);
+  td::net_health::clear_lane_probe_now_for_tests();
 }
 
 }  // namespace

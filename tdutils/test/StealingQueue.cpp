@@ -18,6 +18,12 @@
 #include <atomic>
 #include <cstring>
 
+#if defined(__SANITIZE_THREAD__) || TD_HAS_FEATURE_THREAD_SANITIZER
+constexpr bool kThreadSanitizerBuild = true;
+#else
+constexpr bool kThreadSanitizerBuild = false;
+#endif
+
 TEST(StealingQueue, very_simple) {
   td::StealingQueue<int, 8> q;
   q.local_push(1, [](auto x) { UNREACHABLE(); });
@@ -28,6 +34,9 @@ TEST(StealingQueue, very_simple) {
 
 #if !TD_THREAD_UNSUPPORTED
 TEST(AtomicRead, simple) {
+  if (kThreadSanitizerBuild) {
+    return;
+  }
   td::Stage run;
   td::Stage check;
 
@@ -60,13 +69,16 @@ TEST(AtomicRead, simple) {
       }
     });
   }
-  td::do_not_optimize_away(res);
   for (auto &thread : threads) {
     thread.join();
   }
+  td::do_not_optimize_away(res);
 }
 
 TEST(AtomicRead, simple2) {
+  if (kThreadSanitizerBuild) {
+    return;
+  }
   td::Stage run;
   td::Stage check;
 
@@ -126,9 +138,9 @@ TEST(StealingQueue, simple) {
     x_sum[i] = i + x_sum[i - 1] + x_sum[i - 2];
   }
 
-  td::Random::Xorshift128plus rnd(123);
   for (std::size_t i = 0; i < threads_n; i++) {
     threads.emplace_back([&, id = static_cast<td::uint32>(i)] {
+      td::Random::Xorshift128plus rnd(123 + id);
       for (td::uint64 round = 1; round < 1000; round++) {
         if (id == 0) {
           sum = 0;

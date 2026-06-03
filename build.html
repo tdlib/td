@@ -58,7 +58,7 @@
       display: none;
     }
 
-    div.main {
+    .main {
       max-width: 1250px;
       padding: 25px;
       margin: auto;
@@ -69,8 +69,20 @@
       margin: 0;
     }
 
-    .main>div {
+    .main>* {
       margin-bottom: 20px;
+    }
+
+    fieldset {
+      border: 0;
+      margin: 0;
+      padding: 0;
+      min-inline-size: 0;
+    }
+
+    legend {
+      padding: 0;
+      margin-bottom: 5px;
     }
 
     #buildCommands {
@@ -211,9 +223,9 @@
 
 <body onload="onLoad(true)" onpopstate="onLoad(false)">
 
-  <div class="main">
-    <div id="languageSelectDiv">
-      <p>Choose a programming language from which you want to use TDLib:</p>
+  <main class="main">
+    <section id="languageSelectDiv" aria-labelledby="languageSelectLabel">
+      <label id="languageSelectLabel" for="languageSelect">Choose a programming language from which you want to use TDLib:</label>
       <select id="languageSelect" onchange="onLanguageChanged(false)" autofocus class="large">
         <option>Choose a programming language:</option>
         <option>Python</option>
@@ -244,18 +256,18 @@
         <option>G</option>
         <option>Other</option>
       </select>
-    </div>
+    </section>
 
-    <div id="osSelectDiv" class="hide">
-      <p>Choose an operating system on which you want to use TDLib:</p>
+    <section id="osSelectDiv" class="hide" aria-labelledby="osSelectLabel">
+      <label id="osSelectLabel" for="osSelect">Choose an operating system on which you want to use TDLib:</label>
       <select id="osSelect" onchange="onOsChanged()" class="large">
         <option>Choose an operating system:</option>
       </select>
       <p></p>
-    </div>
+    </section>
 
-    <div id="linuxSelectDiv" class="hide">
-      <p>Choose a Linux distro on which you want to use TDLib:</p>
+    <section id="linuxSelectDiv" class="hide" aria-labelledby="linuxSelectLabel">
+      <label id="linuxSelectLabel" for="linuxSelect">Choose a Linux distro on which you want to use TDLib:</label>
       <select id="linuxSelect" onchange="onOsChanged()" class="large">
         <option>Choose a Linux distro:</option>
         <option>Alpine</option>
@@ -270,9 +282,9 @@
         <option>Other</option>
       </select>
       <p></p>
-    </div>
+    </section>
 
-    <div id="buildOptionsDiv" class="hide">
+    <section id="buildOptionsDiv" class="hide" aria-label="Build options">
       <div id="buildLtoDiv" class="hide">
         <label><input type="checkbox" id="buildLtoCheckbox" onchange="onOptionsChanged()" />Enable Link Time
           Optimization (requires CMake >= 3.9.0). It can significantly reduce binary size and increase performance, but
@@ -291,17 +303,17 @@
 
       <p></p>
 
-      <div id="buildCompilerDiv" class="hide">
-        <span>Choose which compiler you want to use to build TDLib:</span><br>
+      <fieldset id="buildCompilerDiv" class="hide">
+        <legend>Choose which compiler you want to use to build TDLib:</legend>
         <label><input type="radio" id="buildCompilerRadioGcc" name="buildCompilerRadio" onchange="onOptionsChanged()"
             checked />g++</label>
         <label><input type="radio" id="buildCompilerRadioClang" name="buildCompilerRadio"
             onchange="onOptionsChanged()" />clang (recommended)</label>
         <p></p>
-      </div>
+      </fieldset>
 
-      <div id="buildArchiverDiv" class="hide">
-        <span>Choose which archiver application you want to use for VSIX creation:</span><br>
+      <fieldset id="buildArchiverDiv" class="hide">
+        <legend>Choose which archiver application you want to use for VSIX creation:</legend>
         <label><input type="radio" id="buildArchiverRadio7Zip" name="buildArchiverRadio" onchange="onOptionsChanged()"
             checked />7-Zip</label>
         <label><input type="radio" id="buildArchiverRadioZip" name="buildArchiverRadio"
@@ -309,43 +321,43 @@
         <label><input type="radio" id="buildArchiverRadioWinRar" name="buildArchiverRadio"
             onchange="onOptionsChanged()" />WinRAR</label>
         <p></p>
-      </div>
+      </fieldset>
 
-      <div id="buildShellDiv" class="hide">
-        <span>Choose which shell application you want to use for building:</span><br>
+      <fieldset id="buildShellDiv" class="hide">
+        <legend>Choose which shell application you want to use for building:</legend>
         <label><input type="radio" id="buildShellRadioPowerShell" name="buildShellRadio" onchange="onOptionsChanged()"
             checked />PowerShell</label>
         <label><input type="radio" id="buildShellRadioBash" name="buildShellRadio"
             onchange="onOptionsChanged()" />mintty/Bash</label>
         <p></p>
-      </div>
+      </fieldset>
 
-      <div id="buildShellBsdDiv" class="hide">
-        <span>Choose which shell application you want to use for building:</span><br>
+      <fieldset id="buildShellBsdDiv" class="hide">
+        <legend>Choose which shell application you want to use for building:</legend>
         <label><input type="radio" id="buildShellBsdRadioCsh" name="buildShellRadioBsd" onchange="onOptionsChanged()"
             checked />tcsh/csh</label>
         <label><input type="radio" id="buildShellBsdRadioBash" name="buildShellRadioBsd"
             onchange="onOptionsChanged()" />Bash</label>
         <p></p>
-      </div>
+      </fieldset>
 
-      <div id="buildMacOsHostDiv" class="hide">
-        <span>Choose host architecture:</span><br>
+      <fieldset id="buildMacOsHostDiv" class="hide">
+        <legend>Choose host architecture:</legend>
         <label><input type="radio" id="buildMacOsHostRadioAppleSilicon" name="buildMacOsHostRadio"
             onchange="onOptionsChanged()" checked />Apple silicon</label>
         <label><input type="radio" id="buildMacOsHostRadioIntel" name="buildMacOsHostRadio"
             onchange="onOptionsChanged()" />Intel</label>
         <p></p>
-      </div>
+      </fieldset>
 
-      <div id="buildBitnessDiv" class="hide">
-        <span>Choose for which bitness you want to build TDLib:</span><br>
+      <fieldset id="buildBitnessDiv" class="hide">
+        <legend>Choose for which bitness you want to build TDLib:</legend>
         <label><input type="radio" id="buildBitnessRadio32" name="buildBitnessRadio" onchange="onOptionsChanged()"
             checked />32</label>
         <label><input type="radio" id="buildBitnessRadio64" name="buildBitnessRadio"
             onchange="onOptionsChanged()" />64</label>
         <p></p>
-      </div>
+      </fieldset>
 
       <div id="buildLowMemoryDiv" class="hide">
         <label><input type="checkbox" id="buildLowMemoryCheckbox" onchange="onOptionsChanged()" /><span
@@ -358,21 +370,21 @@
       </div>
 
       <p></p>
-    </div>
+    </section>
 
-    <div id="buildTextDiv" class="hide">
+    <section id="buildTextDiv" class="hide" aria-live="polite">
       <p id="buildText">Hidden text</p>
-    </div>
+    </section>
 
-    <div id="buildCommandsDiv" class="hide">
+    <section id="buildCommandsDiv" class="hide" aria-labelledby="buildCommandsHeader">
       <p id="buildCommandsHeader">Here is complete instruction for TDLib binaries building:</p>
-      <p id="buildPre">Hidden text</p>
-      <code id="buildCommands">Empty commands</code>
+      <div id="buildPre">Hidden text</div>
+      <div id="buildCommands">Empty commands</div>
       <button id="copyBuildCommandsButton" onclick="copyBuildInstructions()">
         <span id="copyBuildCommandsText">Copy</span>
       </button>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <script>
     function onLoad(initial) {

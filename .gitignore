@@ -33,6 +33,7 @@ pvs-report.json
 test_sqlite_kv
 Analysis_Report.json
 .PVS-Studio/**
+.github/context-mode/**
 
 # ── Static analysis – local only; not committed ──────────────────────────────
 # These files contain tool-specific metadata that would reveal the analyser

@@ -29,6 +29,13 @@ using td::mtproto::test::MockClock;
 using td::mtproto::test::MockRng;
 using td::mtproto::test::RecordingTransport;
 
+#if defined(__SANITIZE_LEAK__) || TD_HAS_FEATURE_LEAK_SANITIZER || defined(__SANITIZE_MEMORY__) || \
+    TD_HAS_FEATURE_MEMORY_SANITIZER || defined(__SANITIZE_THREAD__) || TD_HAS_FEATURE_THREAD_SANITIZER
+constexpr bool kFatalAbortChildSanitizerBuild = true;
+#else
+constexpr bool kFatalAbortChildSanitizerBuild = false;
+#endif
+
 td::BufferWriter make_test_buffer(size_t size) {
   return td::BufferWriter(td::Slice(td::string(size, 'x')), 32, 0);
 }
@@ -106,6 +113,9 @@ ChildRunResult run_child_test(td::Slice filter) {
 }
 
 TEST(DecoratorOverflowFailClosed, IntentionalOverflowCrashesChildAndEmitsInvariantMessage) {
+  if (kFatalAbortChildSanitizerBuild) {
+    return;
+  }
   auto result = run_child_test("DecoratorOverflowDeathLeaf_IntentionalOverflowTriggersFatalAbort");
 
   ASSERT_FALSE(WIFEXITED(result.status) && WEXITSTATUS(result.status) == 0);

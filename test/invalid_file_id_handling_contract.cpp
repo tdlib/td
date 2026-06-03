@@ -8,6 +8,7 @@
 
 #include "test/invalid_file_id_handling_test_utils.h"
 
+using td::invalid_file_id_handling_test::normalized_file_manager_cpp;
 using td::invalid_file_id_handling_test::normalized_message_content_cpp;
 using td::invalid_file_id_handling_test::normalized_messages_manager_cpp;
 
@@ -51,4 +52,24 @@ TEST(InvalidFileIdHandlingContract, paid_media_group_send_fails_closed_when_inpu
             segment.find("if(input_media==nullptr){on_send_message_fail(random_id,Status::Error(400,"
                          "\"Groupsendfailed\"));CHECK(pending_paid_media_group_sends_.count({dialog_id,"
                          "message_id})==0);return;}"));
+}
+
+TEST(InvalidFileIdHandlingContract, file_manager_bad_paths_unpoisons_db_path_strings_before_set_insert) {
+  const auto normalized = normalized_file_manager_cpp();
+
+  const auto helper_segment = td::invalid_file_id_handling_test::extract_normalized_segment(
+      normalized, "voidremember_bad_path(vector<string>&bad_paths,CSlicepath){",
+      "FileManager::FileManager(unique_ptr<Context>context)");
+  ASSERT_FALSE(helper_segment.empty());
+  ASSERT_NE(td::string::npos, helper_segment.find("autodb_path=path.str();"));
+  ASSERT_NE(td::string::npos, helper_segment.find("unpoison_string_if_msan(db_path);"));
+  ASSERT_NE(
+      td::string::npos,
+      helper_segment.find(
+          "if(!contains(bad_paths,db_path)){bad_paths.push_back(db_path);unpoison_string_if_msan(bad_paths.back());}"));
+
+  ASSERT_NE(td::string::npos, normalized.find("bad_paths_.reserve(5);"));
+  ASSERT_NE(td::string::npos,
+            normalized.find("G()->td_db()->with_db_path([bad_paths=&bad_paths_](CSlicepath){remember_bad_path(*"
+                            "bad_paths,path);});"));
 }

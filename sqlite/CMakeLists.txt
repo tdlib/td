@@ -1,86 +1,102 @@
-if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.10"))
+if((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.10"))
   message(FATAL_ERROR "CMake >= 3.10 is required")
 endif()
 
 option(TDSQLITE_ENABLE_INSTALL "Enable installation of the library." ON)
 
-if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
+if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
 
-if (NOT OPENSSL_FOUND)
+if(NOT OPENSSL_FOUND)
   find_package(OpenSSL REQUIRED)
   find_package(ZLIB REQUIRED)
 endif()
 
 set(SQLITE_SOURCE
-  tdsqlite_amalgamation.c
-
-  sqlite/sqlite3.h
-  sqlite/sqlite3ext.h
-  sqlite/sqlite3session.h
-
-  generated/tdsqlite_rename.h
-
-  upstream/sqlite3.h
-  upstream/sqlite3ext.h
-  upstream/sqlite3session.h
-)
+    tdsqlite_amalgamation.c
+    sqlite/sqlite3.h
+    sqlite/sqlite3ext.h
+    sqlite/sqlite3session.h
+    generated/tdsqlite_rename.h
+    upstream/sqlite3.h
+    upstream/sqlite3ext.h
+    upstream/sqlite3session.h)
 
 add_library(tdsqlite STATIC ${SQLITE_SOURCE})
-target_include_directories(tdsqlite PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_include_directories(
+  tdsqlite PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(tdsqlite SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(tdsqlite PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
-if (WIN32)
-  if (MINGW)
+target_link_libraries(tdsqlite PRIVATE ${OPENSSL_CRYPTO_LIBRARY}
+                                       ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
+if(WIN32)
+  if(MINGW)
     target_link_libraries(tdsqlite PRIVATE ws2_32 mswsock crypt32)
   else()
     target_link_libraries(tdsqlite PRIVATE ws2_32 Mswsock Crypt32)
   endif()
 endif()
 
-target_compile_definitions(tdsqlite PRIVATE
-  -DOMIT_MEMLOCK
-  -DSQLITE_DEFAULT_MEMSTATUS=0
-  -DSQLITE_DEFAULT_RECURSIVE_TRIGGERS=1
-  -DSQLITE_DEFAULT_SYNCHRONOUS=1
-  -DSQLITE_DISABLE_LFS
-  -DSQLITE_ENABLE_FTS5
-  -DSQLITE_EXTRA_INIT=sqlcipher_extra_init
-  -DSQLITE_EXTRA_SHUTDOWN=sqlcipher_extra_shutdown
-  -DSQLITE_HAS_CODEC
-  -DSQLITE_OMIT_DECLTYPE
-  -DSQLITE_OMIT_DEPRECATED
-  -DSQLITE_OMIT_DESERIALIZE
-  -DSQLITE_OMIT_LOAD_EXTENSION
-  -DSQLITE_OMIT_PROGRESS_CALLBACK
-  #-DSQLITE_OMIT_SHARED_CACHE
-  -DSQLITE_TEMP_STORE=2
-)
+target_compile_definitions(
+  tdsqlite
+  PRIVATE -DOMIT_MEMLOCK
+          -DSQLITE_DEFAULT_MEMSTATUS=0
+          -DSQLITE_DEFAULT_RECURSIVE_TRIGGERS=1
+          -DSQLITE_DEFAULT_SYNCHRONOUS=1
+          -DSQLITE_DISABLE_LFS
+          -DSQLITE_ENABLE_FTS5
+          -DSQLITE_EXTRA_INIT=sqlcipher_extra_init
+          -DSQLITE_EXTRA_SHUTDOWN=sqlcipher_extra_shutdown
+          -DSQLITE_HAS_CODEC
+          -DSQLITE_OMIT_DECLTYPE
+          -DSQLITE_OMIT_DEPRECATED
+          -DSQLITE_OMIT_DESERIALIZE
+          -DSQLITE_OMIT_LOAD_EXTENSION
+          -DSQLITE_OMIT_PROGRESS_CALLBACK
+          # -DSQLITE_OMIT_SHARED_CACHE
+          -DSQLITE_TEMP_STORE=2)
 
-if (NOT WIN32)
+if(NOT WIN32)
   target_compile_definitions(tdsqlite PRIVATE -DHAVE_USLEEP -DNDEBUG=1)
 endif()
 
-if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
   target_compile_definitions(tdsqlite PRIVATE -DSQLITE_OS_WINRT=1)
 endif()
 
-if (GCC OR CLANG)
-  target_compile_options(tdsqlite PRIVATE -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-const-variable -Wno-unused-function -Wno-maybe-uninitialized -Wno-return-local-addr)
-  if (CLANG)
-    target_compile_options(tdsqlite PRIVATE -Wno-parentheses-equality -Wno-unused-value -Wno-unknown-warning-option -Wno-unused-command-line-argument -Qunused-arguments)
+if(GCC OR CLANG)
+  target_compile_options(
+    tdsqlite
+    PRIVATE -Wno-deprecated-declarations -Wno-unused-variable
+            -Wno-unused-const-variable -Wno-unused-function
+            -Wno-maybe-uninitialized -Wno-return-local-addr)
+  if(CLANG)
+    target_compile_options(
+      tdsqlite
+      PRIVATE -Wno-parentheses-equality -Wno-unused-value
+              -Wno-unknown-warning-option -Wno-unused-command-line-argument
+              -Qunused-arguments)
+    if(CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=memory( |$)")
+      # MSan's param/retval checks still fire in vendored SQLCipher's HMAC path
+      # even when the amalgamation is ignorelisted, so scope this escape hatch
+      # to the C SQLite target only.
+      target_compile_options(
+        tdsqlite
+        PRIVATE $<$<COMPILE_LANGUAGE:C>:-fno-sanitize-memory-param-retval>)
+    endif()
   endif()
-  if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10.0))
-    target_compile_options(tdsqlite PRIVATE -Wno-return-local-addr -Wno-stringop-overflow)
+  if(GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10.0))
+    target_compile_options(tdsqlite PRIVATE -Wno-return-local-addr
+                                            -Wno-stringop-overflow)
   endif()
-elseif (MSVC)
+elseif(MSVC)
   target_compile_options(tdsqlite PRIVATE /wd4996)
 endif()
 
-if (TDSQLITE_ENABLE_INSTALL)
-  install(TARGETS tdsqlite EXPORT TdStaticTargets
+if(TDSQLITE_ENABLE_INSTALL)
+  install(
+    TARGETS tdsqlite
+    EXPORT TdStaticTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  )
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 endif()

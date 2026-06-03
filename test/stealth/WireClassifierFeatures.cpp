@@ -11,8 +11,8 @@
 
 #include "td/utils/filesystem.h"
 #include "td/utils/JsonBuilder.h"
+#include "td/utils/port/path.h"
 
-#include <filesystem>
 #include <algorithm>
 
 namespace td {
@@ -32,6 +32,20 @@ constexpr uint16 kAlpsChromeType = 0x44CDu;
 
 string client_hello_fixture_root() {
   return string(TELEMT_TEST_REPO_ROOT) + "/test/analysis/fixtures/clienthello";
+}
+
+Result<vector<string>> list_client_hello_fixture_files() {
+  vector<string> files;
+  TRY_STATUS_PREFIX(WalkPath::run(client_hello_fixture_root(),
+                                  [&](CSlice path, WalkPath::Type type) {
+                                    if (type == WalkPath::Type::RegularFile && ends_with(path, ".clienthello.json")) {
+                                      files.push_back(path.str());
+                                    }
+                                  }),
+                    "Failed to traverse ClientHello fixture directory: ");
+
+  std::sort(files.begin(), files.end());
+  return files;
 }
 
 bool is_grease_group(uint16 value) {
@@ -370,27 +384,13 @@ Result<vector<SampleFeatures>> load_real_features_for_family_lane(Slice family_i
     return Status::Error("Family-lane has no authoritative reviewed captures");
   }
 
-  std::error_code iter_error;
-  const std::filesystem::path root(client_hello_fixture_root());
-  std::filesystem::recursive_directory_iterator iter(root, iter_error);
-  if (iter_error) {
-    return Status::Error(PSLICE() << "Failed to open ClientHello fixture root: " << root.string());
-  }
+  TRY_RESULT(fixture_files, list_client_hello_fixture_files());
 
   vector<SampleFeatures> out;
   out.reserve(baseline->authoritative_sample_count);
 
-  for (const auto &entry : iter) {
-    if (entry.is_directory()) {
-      continue;
-    }
-
-    const auto filename = entry.path().filename().string();
-    if (!ends_with(filename, ".clienthello.json")) {
-      continue;
-    }
-
-    TRY_RESULT(file_samples, load_real_features_from_fixture_file(entry.path().string(), family_id, route_lane));
+  for (const auto &fixture_file : fixture_files) {
+    TRY_RESULT(file_samples, load_real_features_from_fixture_file(fixture_file, family_id, route_lane));
     for (auto &sample : file_samples) {
       out.push_back(std::move(sample));
     }

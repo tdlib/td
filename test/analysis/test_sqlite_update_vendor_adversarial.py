@@ -12,7 +12,6 @@ import tempfile
 import unittest
 from unittest import mock
 
-
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 REPO_ROOT = THIS_DIR.parent.parent
 TOOLS_SQLITE_DIR = REPO_ROOT / "tools" / "sqlite"
@@ -43,7 +42,7 @@ def create_tarball(path: pathlib.Path, entries: list[dict[str, object]]) -> None
         for entry in entries:
             info = tarfile.TarInfo(str(entry["name"]))
             info.type = entry.get("type", tarfile.REGTYPE)
-            info.mode = 0o644
+            info.mode = int(entry.get("mode", 0o644))
 
             if info.type == tarfile.DIRTYPE:
                 archive.addfile(info)
@@ -65,11 +64,15 @@ def populate_required_source_tree(source_dir: pathlib.Path) -> None:
     for relative_path in update_vendor.UPSTREAM_COPY_MAP:
         absolute_path = source_dir / relative_path
         absolute_path.parent.mkdir(parents=True, exist_ok=True)
-        absolute_path.write_text(f"payload for {relative_path.as_posix()}\n", encoding="utf-8")
+        absolute_path.write_text(
+            f"payload for {relative_path.as_posix()}\n", encoding="utf-8"
+        )
 
 
 class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
-    def test_download_tarball_rejects_redirected_final_url_outside_allowlist(self) -> None:
+    def test_download_tarball_rejects_redirected_final_url_outside_allowlist(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             destination = pathlib.Path(temp_dir) / "sqlcipher.tar.gz"
             allowed_hosts = update_vendor._resolve_allowed_source_tarball_hosts(
@@ -82,17 +85,24 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
             fake_opener = mock.Mock()
             fake_opener.open.return_value = fake_response
 
-            with mock.patch.object(update_vendor.urllib.request, "build_opener", return_value=fake_opener), mock.patch.object(
+            with mock.patch.object(
+                update_vendor.urllib.request, "build_opener", return_value=fake_opener
+            ), mock.patch.object(
                 update_vendor.urllib.request, "urlopen", return_value=fake_response
             ):
-                with self.assertRaisesRegex(update_vendor.VendorUpdateError, "allowlisted|host"):
+                with self.assertRaisesRegex(
+                    update_vendor.VendorUpdateError, "allowlisted|host"
+                ):
                     update_vendor.download_tarball(
                         "https://api.github.com/repos/sqlcipher/sqlcipher/tarball/v4.14.0",
                         destination,
                         allowed_hosts,
                     )
 
-            self.assertFalse(destination.exists(), msg="rejected redirect must not write a tarball to disk")
+            self.assertFalse(
+                destination.exists(),
+                msg="rejected redirect must not write a tarball to disk",
+            )
 
     def test_download_tarball_accepts_allowlisted_final_url(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -107,7 +117,9 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
             fake_opener = mock.Mock()
             fake_opener.open.return_value = fake_response
 
-            with mock.patch.object(update_vendor.urllib.request, "build_opener", return_value=fake_opener), mock.patch.object(
+            with mock.patch.object(
+                update_vendor.urllib.request, "build_opener", return_value=fake_opener
+            ), mock.patch.object(
                 update_vendor.urllib.request, "urlopen", return_value=fake_response
             ):
                 written_path = update_vendor.download_tarball(
@@ -119,7 +131,9 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
             self.assertEqual(destination, written_path)
             self.assertEqual(b"tarball payload", destination.read_bytes())
 
-    def test_snapshot_managed_repo_outputs_rejects_symlinked_managed_paths(self) -> None:
+    def test_snapshot_managed_repo_outputs_rejects_symlinked_managed_paths(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             repo_root = root / "repo"
@@ -130,7 +144,9 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
             managed_path.parent.mkdir(parents=True, exist_ok=True)
             managed_path.symlink_to(outside_target)
 
-            with self.assertRaisesRegex(update_vendor.VendorUpdateError, "symlink|managed output|repo"):
+            with self.assertRaisesRegex(
+                update_vendor.VendorUpdateError, "symlink|managed output|repo"
+            ):
                 update_vendor.snapshot_managed_repo_outputs(repo_root)
 
     def test_verify_downloaded_tarball_sha256_rejects_digest_mismatch(self) -> None:
@@ -138,10 +154,14 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
             tarball_path = pathlib.Path(temp_dir) / "sqlcipher.tar.gz"
             tarball_path.write_bytes(b"sqlcipher payload")
 
-            with self.assertRaisesRegex(update_vendor.VendorUpdateError, "sha256|digest"):
+            with self.assertRaisesRegex(
+                update_vendor.VendorUpdateError, "sha256|digest"
+            ):
                 update_vendor.verify_downloaded_tarball_sha256(tarball_path, "0" * 64)
 
-    def test_resolve_source_tarball_sha256_rejects_missing_pin_for_unknown_release(self) -> None:
+    def test_resolve_source_tarball_sha256_rejects_missing_pin_for_unknown_release(
+        self,
+    ) -> None:
         args = argparse.Namespace(
             source_tarball_sha256=None,
             source_tarball_url="https://api.github.com/repos/sqlcipher/sqlcipher/tarball/v0.0.0-test",
@@ -155,7 +175,9 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
                 "https://api.github.com/repos/sqlcipher/sqlcipher/tarball/v0.0.0-test",
             )
 
-    def test_acquire_source_tree_rejects_unsafe_source_tarball_urls_before_download(self) -> None:
+    def test_acquire_source_tree_rejects_unsafe_source_tarball_urls_before_download(
+        self,
+    ) -> None:
         unsafe_urls = (
             "file:///etc/passwd",
             "http://127.0.0.1/sqlcipher.tar.gz",
@@ -174,13 +196,19 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
                 )
 
                 with self.subTest(url=url), mock.patch.object(
-                    update_vendor, "download_tarball", side_effect=AssertionError("unsafe URL reached download")
+                    update_vendor,
+                    "download_tarball",
+                    side_effect=AssertionError("unsafe URL reached download"),
                 ) as download_tarball:
-                    with self.assertRaisesRegex(update_vendor.VendorUpdateError, "https|host|unsafe|allow"):
+                    with self.assertRaisesRegex(
+                        update_vendor.VendorUpdateError, "https|host|unsafe|allow"
+                    ):
                         update_vendor.acquire_source_tree(args, work_dir)
                     download_tarball.assert_not_called()
 
-    def test_acquire_source_tree_rejects_embedded_credentials_and_non_default_https_ports(self) -> None:
+    def test_acquire_source_tree_rejects_embedded_credentials_and_non_default_https_ports(
+        self,
+    ) -> None:
         unsafe_urls = (
             "https://user:pass@api.github.com/repos/sqlcipher/sqlcipher/tarball/v4.14.0",
             "https://api.github.com:444/repos/sqlcipher/sqlcipher/tarball/v4.14.0",
@@ -198,13 +226,19 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
                 )
 
                 with self.subTest(url=url), mock.patch.object(
-                    update_vendor, "download_tarball", side_effect=AssertionError("unsafe URL reached download")
+                    update_vendor,
+                    "download_tarball",
+                    side_effect=AssertionError("unsafe URL reached download"),
                 ) as download_tarball:
-                    with self.assertRaisesRegex(update_vendor.VendorUpdateError, "credentials|port"):
+                    with self.assertRaisesRegex(
+                        update_vendor.VendorUpdateError, "credentials|port"
+                    ):
                         update_vendor.acquire_source_tree(args, work_dir)
                     download_tarball.assert_not_called()
 
-    def test_acquire_source_tree_rejects_malformed_allowlisted_host_entries(self) -> None:
+    def test_acquire_source_tree_rejects_malformed_allowlisted_host_entries(
+        self,
+    ) -> None:
         args = argparse.Namespace(
             source_dir=None,
             source_tarball_url="https://mirror.example/sqlcipher.tar.gz",
@@ -214,9 +248,13 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
         )
 
         with tempfile.TemporaryDirectory() as temp_dir, mock.patch.object(
-            update_vendor, "download_tarball", side_effect=AssertionError("unsafe allowlist reached download")
+            update_vendor,
+            "download_tarball",
+            side_effect=AssertionError("unsafe allowlist reached download"),
         ) as download_tarball:
-            with self.assertRaisesRegex(update_vendor.VendorUpdateError, "allowlisted source host"):
+            with self.assertRaisesRegex(
+                update_vendor.VendorUpdateError, "allowlisted source host"
+            ):
                 update_vendor.acquire_source_tree(args, pathlib.Path(temp_dir))
             download_tarball.assert_not_called()
 
@@ -235,10 +273,15 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
                 ],
             )
 
-            with self.assertRaisesRegex(update_vendor.VendorUpdateError, "unsafe|path traversal"):
+            with self.assertRaisesRegex(
+                update_vendor.VendorUpdateError, "unsafe|path traversal"
+            ):
                 update_vendor.extract_tarball(tarball_path, destination)
 
-            self.assertFalse(escaped_path.exists(), msg="malicious archive must not write outside destination")
+            self.assertFalse(
+                escaped_path.exists(),
+                msg="malicious archive must not write outside destination",
+            )
 
     def test_extract_tarball_rejects_symbolic_link_members(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -258,7 +301,9 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
                 ],
             )
 
-            with self.assertRaisesRegex(update_vendor.VendorUpdateError, "symlink|unsupported|unsafe"):
+            with self.assertRaisesRegex(
+                update_vendor.VendorUpdateError, "symlink|unsupported|unsafe"
+            ):
                 update_vendor.extract_tarball(tarball_path, destination)
 
             self.assertFalse((destination / "sqlite3.h").exists())
@@ -282,8 +327,35 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
                 ],
             )
 
-            with self.assertRaisesRegex(update_vendor.VendorUpdateError, "hard link|unsupported|unsafe"):
+            with self.assertRaisesRegex(
+                update_vendor.VendorUpdateError, "hard link|unsupported|unsafe"
+            ):
                 update_vendor.extract_tarball(tarball_path, destination)
+
+    def test_extract_tarball_preserves_executable_mode_for_configure_script(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            tarball_path = root / "source.tar.gz"
+            destination = root / "dest"
+
+            create_tarball(
+                tarball_path,
+                [
+                    {"name": "sqlcipher-src", "type": tarfile.DIRTYPE, "mode": 0o755},
+                    {
+                        "name": "sqlcipher-src/configure",
+                        "content": b"#!/bin/sh\nexit 0\n",
+                        "mode": 0o755,
+                    },
+                ],
+            )
+
+            extracted_source = update_vendor.extract_tarball(tarball_path, destination)
+            configure_path = extracted_source / "configure"
+            self.assertTrue(configure_path.exists())
+            self.assertNotEqual(0, configure_path.stat().st_mode & 0o111)
 
     def test_copy_vendor_files_rejects_symlinked_required_sources(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -298,12 +370,16 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
             symlink_target.unlink()
             symlink_target.symlink_to(escape_source)
 
-            with self.assertRaisesRegex(update_vendor.VendorUpdateError, "regular file|symlink|unsafe"):
+            with self.assertRaisesRegex(
+                update_vendor.VendorUpdateError, "regular file|symlink|unsafe"
+            ):
                 update_vendor.copy_vendor_files(repo_root, source_dir)
 
             self.assertFalse((repo_root / "sqlite" / "upstream" / "sqlite3.h").exists())
 
-    def test_copy_vendor_files_rejects_required_sources_reached_through_symlinked_parent(self) -> None:
+    def test_copy_vendor_files_rejects_required_sources_reached_through_symlinked_parent(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             repo_root = root / "repo"
@@ -313,7 +389,9 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
 
             populate_required_source_tree(source_dir)
             outside_session_path.parent.mkdir(parents=True, exist_ok=True)
-            outside_session_path.write_text("outside session header\n", encoding="utf-8")
+            outside_session_path.write_text(
+                "outside session header\n", encoding="utf-8"
+            )
 
             shutil_target = source_dir / "ext"
             if shutil_target.exists():
@@ -325,10 +403,14 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
                 shutil_target.rmdir()
             shutil_target.symlink_to(outside_ext_dir)
 
-            with self.assertRaisesRegex(update_vendor.VendorUpdateError, "escaped source tree|unsafe"):
+            with self.assertRaisesRegex(
+                update_vendor.VendorUpdateError, "escaped source tree|unsafe"
+            ):
                 update_vendor.copy_vendor_files(repo_root, source_dir)
 
-            self.assertFalse((repo_root / "sqlite" / "upstream" / "sqlite3session.h").exists())
+            self.assertFalse(
+                (repo_root / "sqlite" / "upstream" / "sqlite3session.h").exists()
+            )
 
     def test_copy_vendor_files_rejects_symlinked_managed_repo_destination(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -343,7 +425,11 @@ class SqliteUpdateVendorAdversarialTest(unittest.TestCase):
             managed_destination.parent.mkdir(parents=True, exist_ok=True)
             managed_destination.symlink_to(outside_target)
 
-            with self.assertRaisesRegex(update_vendor.VendorUpdateError, "symlink|managed output|repo"):
+            with self.assertRaisesRegex(
+                update_vendor.VendorUpdateError, "symlink|managed output|repo"
+            ):
                 update_vendor.copy_vendor_files(repo_root, source_dir)
 
-            self.assertEqual("do not overwrite\n", outside_target.read_text(encoding="utf-8"))
+            self.assertEqual(
+                "do not overwrite\n", outside_target.read_text(encoding="utf-8")
+            )

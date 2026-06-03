@@ -78,7 +78,8 @@ class tl_simple_parser {
     int result_len = static_cast<unsigned char>(data[0]);
     if (result_len < 254) {
       check_len((result_len >> 2) * 4);
-      std::string result(data + 1, result_len);
+      std::string result(static_cast<std::size_t>(result_len), '\0');
+      std::memcpy(result.data(), data + 1, result.size());
       data += ((result_len >> 2) + 1) * 4;
       return result;
     }
@@ -87,7 +88,8 @@ class tl_simple_parser {
       result_len = static_cast<unsigned char>(data[1]) + (static_cast<unsigned char>(data[2]) << 8) +
                    (static_cast<unsigned char>(data[3]) << 16);
       check_len(((result_len + 3) >> 2) * 4);
-      std::string result(data + 4, result_len);
+      std::string result(static_cast<std::size_t>(result_len), '\0');
+      std::memcpy(result.data(), data + 4, result.size());
       data += ((result_len + 7) >> 2) * 4;
       return result;
     }

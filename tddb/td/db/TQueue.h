@@ -13,6 +13,8 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
+#include "td/utils/FlatHashMap.h"
+
 #include <map>
 #include <memory>
 #include <utility>
@@ -151,7 +153,7 @@ class TQueueMemoryStorage final : public TQueue::StorageCallback {
 
  private:
   uint64 next_log_event_id_{1};
-  std::map<uint64, std::pair<QueueId, RawEvent>> events_;
+  FlatHashMap<uint64, std::pair<QueueId, RawEvent>> events_;
 };
 
 }  // namespace td

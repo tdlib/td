@@ -15,6 +15,7 @@
 #include "td/utils/tests.h"
 
 #include <atomic>
+#include <barrier>
 
 #if !TD_THREAD_UNSUPPORTED
 
@@ -245,6 +246,40 @@ TEST(ConcurrentHashMap, Benchmark) {
 #if TD_WITH_JUNCTION
   bench_hash_map<ConcurrentHashMapJunction<td::int32, td::int32>>();
 #endif
+}
+
+TEST(ConcurrentHashMap, SupportsThreadIdsBeyond64HazardSlots) {
+  constexpr td::int32 thread_count = td::kMaxRegisteredThreadId - 31;
+
+  td::ConcurrentHashMap<td::int32, td::int32> hash_map(static_cast<size_t>(thread_count) * 4);
+  std::barrier start_barrier(thread_count + 1);
+  std::atomic<bool> is_ok{true};
+
+  td::vector<td::thread> threads;
+  threads.reserve(thread_count);
+  for (td::int32 index = 0; index < thread_count; index++) {
+    threads.emplace_back([&, index] {
+      start_barrier.arrive_and_wait();
+
+      const auto key = index + 1;
+      const auto value = index + 1000;
+      if (hash_map.insert(key, value) != value) {
+        is_ok.store(false);
+      }
+    });
+  }
+
+  start_barrier.arrive_and_wait();
+  for (auto &thread : threads) {
+    thread.join();
+  }
+
+  ASSERT_TRUE(is_ok.load());
+  for (td::int32 index = 0; index < thread_count; index++) {
+    const auto key = index + 1;
+    const auto value = index + 1000;
+    ASSERT_EQ(value, hash_map.find(key, -1));
+  }
 }
 
 #endif

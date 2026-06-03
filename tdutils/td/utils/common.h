@@ -75,11 +75,18 @@
 
 #if defined(__has_feature)
 #define TD_HAS_FEATURE_ADDRESS_SANITIZER __has_feature(address_sanitizer)
+#define TD_HAS_FEATURE_LEAK_SANITIZER __has_feature(leak_sanitizer)
+#define TD_HAS_FEATURE_MEMORY_SANITIZER __has_feature(memory_sanitizer)
+#define TD_HAS_FEATURE_THREAD_SANITIZER __has_feature(thread_sanitizer)
 #else
 #define TD_HAS_FEATURE_ADDRESS_SANITIZER 0
+#define TD_HAS_FEATURE_LEAK_SANITIZER 0
+#define TD_HAS_FEATURE_MEMORY_SANITIZER 0
+#define TD_HAS_FEATURE_THREAD_SANITIZER 0
 #endif
 
-#if TD_USE_ASAN || defined(__SANITIZE_ADDRESS__) || TD_HAS_FEATURE_ADDRESS_SANITIZER
+#if TD_USE_ASAN || defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_LEAK__) || TD_HAS_FEATURE_ADDRESS_SANITIZER || \
+    TD_HAS_FEATURE_LEAK_SANITIZER
 #include <sanitizer/lsan_interface.h>
 #define TD_LSAN_IGNORE(x) __lsan_ignore_object(x)
 #else

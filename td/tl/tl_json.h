@@ -16,7 +16,6 @@
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
-#include "td/utils/TlDowncastHelper.h"
 
 #include <type_traits>
 
@@ -187,10 +186,10 @@ std::enable_if_t<!std::is_constructible<T>::value, Status> from_json(tl_object_p
     return Status::Error(PSLICE() << "Expected String or Integer, but receive " << constructor_value.type());
   }
 
-  TlDowncastHelper<T> helper(constructor);
   Status status;
-  bool ok = downcast_call(static_cast<T &>(helper), [&](auto &dummy) {
-    auto result = make_tl_object<std::decay_t<decltype(dummy)>>();
+  bool ok = downcast_construct_call(constructor, static_cast<T *>(nullptr), [&](auto &dummy) {
+    using Type = typename std::decay_t<decltype(dummy)>::type;
+    auto result = make_tl_object<Type>();
     status = from_json(*result, object);
     to = std::move(result);
   });

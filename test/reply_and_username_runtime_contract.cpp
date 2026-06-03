@@ -108,12 +108,22 @@ td::BufferSlice serialize_legacy_draft_with_reply(td::MessageId legacy_reply_to_
 
 td::Result<td::BufferSlice> parse_and_reserialize_draft(td::Slice payload) {
   td::ConcurrentScheduler scheduler(0, 0);
-  auto guard = scheduler.get_main_guard();
-  GlobalContextScope context_scope;
+  scheduler.start();
 
-  td::DraftMessage draft;
-  TRY_STATUS(td::log_event_parse(draft, payload));
-  return td::log_event_store(draft);
+  td::Result<td::BufferSlice> result;
+  {
+    auto guard = scheduler.get_main_guard();
+    GlobalContextScope context_scope;
+
+    result = [&]() -> td::Result<td::BufferSlice> {
+      td::DraftMessage draft;
+      TRY_STATUS(td::log_event_parse(draft, payload));
+      return td::log_event_store(draft);
+    }();
+  }
+
+  scheduler.finish();
+  return result;
 }
 
 struct StoredDraftView {
@@ -124,25 +134,35 @@ struct StoredDraftView {
 
 td::Result<StoredDraftView> parse_current_stored_draft(td::Slice payload) {
   td::ConcurrentScheduler scheduler(0, 0);
-  auto guard = scheduler.get_main_guard();
-  GlobalContextScope context_scope;
+  scheduler.start();
 
-  td::LogEventParser parser(payload);
-  StoredDraftView result;
+  td::Result<StoredDraftView> result;
+  {
+    auto guard = scheduler.get_main_guard();
+    GlobalContextScope context_scope;
 
-  result.flags = parser.fetch_int();
-  td::parse(result.date, parser);
-  if ((result.flags & kHasInputMessageTextFlag) != 0) {
-    td::InputMessageText input_message_text;
-    td::parse(input_message_text, parser);
+    result = [&]() -> td::Result<StoredDraftView> {
+      td::LogEventParser parser(payload);
+      StoredDraftView stored_draft;
+
+      stored_draft.flags = parser.fetch_int();
+      td::parse(stored_draft.date, parser);
+      if ((stored_draft.flags & kHasInputMessageTextFlag) != 0) {
+        td::InputMessageText input_message_text;
+        td::parse(input_message_text, parser);
+      }
+      if ((stored_draft.flags & kHasMessageInputReplyToFlag) != 0) {
+        td::parse(stored_draft.reply_to, parser);
+      }
+      parser.fetch_end();
+      if (parser.get_status().is_error()) {
+        return parser.get_status();
+      }
+      return stored_draft;
+    }();
   }
-  if ((result.flags & kHasMessageInputReplyToFlag) != 0) {
-    td::parse(result.reply_to, parser);
-  }
-  parser.fetch_end();
-  if (parser.get_status().is_error()) {
-    return parser.get_status();
-  }
+
+  scheduler.finish();
   return result;
 }
 

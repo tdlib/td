@@ -22,6 +22,7 @@ Custom client integrators should start with: [Custom Client Integration Guide](d
 
 ## Table of Contents
 - [What is this fork about?](#what-is-this-fork-about)
+- [Fork Maintenance Model](#fork-maintenance-model)
 - [Implementation Status](#implementation-status)
   - [Implemented Features](#implemented-features)
   - [Work in Progress / Not Yet Implemented](#work-in-progress--not-yet-implemented)
@@ -38,6 +39,23 @@ Standard MTProto traffic is highly susceptible to DPI classification due to pred
 **`tdlib-obf` addresses these threats through two primary pillars:**
 1. **DPI Evasion (Stealth Shaping):** Transforming the wire image of MTProto traffic to statistically match real-world HTTPS browser traffic (Chrome, Firefox, Safari, iOS, Android) using capture-driven profiles. This includes shaping packet sizes, timing, and connection multiplexing behaviors.
 2. **Transport Security Hardening:** Strengthening the internal connection lifecycle, protocol state management, and trust validation mechanisms to protect against network-level interference, unauthorized client modifications, and sophisticated traffic manipulation. *(Note: Specific security mechanisms are intentionally undocumented here to preserve their effectiveness against malicious actors).*
+
+## Fork Maintenance Model
+
+`tdlib-obf` is maintained as a vendor/security fork of [TDLib](https://github.com/tdlib/td), not as a close-tracking mirror.
+
+- `master` is the downstream integration branch and reflects the fork's shipped reality.
+- Upstream intake is selective: a change can land as an exact cherry-pick, a bounded local adaptation, or a documented defer/reject decision.
+- GitHub ahead/behind counters are ancestry-based only; they are not treated here as a proxy for semantic parity or security equivalence.
+- Each upstream intake cycle must record its exact upstream baseline as an annotated tag before downstream adaptation begins; the repeatable maintainer workflow lives in [docs/Documentation/FORK_MAINTENANCE_POLICY.md](docs/Documentation/FORK_MAINTENANCE_POLICY.md).
+
+Authoritative backport and adaptation records live in:
+
+- [CHANGELOG.md](CHANGELOG.md)
+- [docs/Documentation/FORK_MAINTENANCE_POLICY.md](docs/Documentation/FORK_MAINTENANCE_POLICY.md)
+- [docs/Plans/UPSTREAM_WAVE_5_ACTIVATION_PLAN_2026-05-24.md](docs/Plans/UPSTREAM_WAVE_5_ACTIVATION_PLAN_2026-05-24.md)
+- [docs/Plans/UPSTREAM_BACKPORT_MANIFEST_2026-05-08.md](docs/Plans/UPSTREAM_BACKPORT_MANIFEST_2026-05-08.md)
+- [docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md](docs/Plans/UPSTREAM_BACKPORT_GATING_PLAN_2026-05-08.md)
 
 ---
 

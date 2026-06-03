@@ -8,25 +8,25 @@ import pathlib
 import sys
 import unittest
 
-
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 REPO_ROOT = THIS_DIR.parent.parent
 TOOLS_SQLITE_DIR = REPO_ROOT / "tools" / "sqlite"
 if str(TOOLS_SQLITE_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_SQLITE_DIR))
 
-from audit_vendor import build_phase1_report
-from audit_vendor import render_markdown_audit
+from audit_vendor import build_phase1_report, render_markdown_audit
 
 
 class SqliteVendorAuditRepoTest(unittest.TestCase):
-    def test_current_tree_report_captures_version_sqlcipher_and_wrapper_surface(self) -> None:
+    def test_current_tree_report_captures_version_sqlcipher_and_wrapper_surface(
+        self,
+    ) -> None:
         report = build_phase1_report(REPO_ROOT)
         header_path = report["vendor_paths"]["header"]
         source_path = report["vendor_paths"]["source"]
 
         self.assertEqual("phase2_scaffold", report["vendor_layout_mode"])
-        self.assertEqual("3.51.3", report["sqlite_version"])
+        self.assertEqual("3.53.1", report["sqlite_version"])
         self.assertIn("SQLITE_HAS_CODEC", report["compile_definitions"])
         self.assertEqual("sqlite/upstream/sqlite3.h", header_path)
         self.assertEqual("sqlite/upstream/sqlite3.c", source_path)
@@ -35,7 +35,9 @@ class SqliteVendorAuditRepoTest(unittest.TestCase):
         self.assertIn("PRAGMA key", report["wrapper_sqlcipher_features"])
         self.assertIn("SELECT sqlcipher_export", report["wrapper_sqlcipher_features"])
 
-    def test_current_tree_report_marks_sqlite3session_surface_unused_outside_vendor_and_cmake(self) -> None:
+    def test_current_tree_report_marks_sqlite3session_surface_unused_outside_vendor_and_cmake(
+        self,
+    ) -> None:
         report = build_phase1_report(REPO_ROOT)
 
         self.assertEqual([], report["sqlite3session_external_usages"])

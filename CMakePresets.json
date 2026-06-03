@@ -32,8 +32,8 @@
       "generator": "Ninja",
       "environment": {
         "CMAKE_BUILD_PARALLEL_LEVEL": "14",
-        "CC": "gcc-16",
-        "CXX": "g++-16"
+        "CC": "clang-22",
+        "CXX": "clang++-22"
       },
       "cacheVariables": {
         "BUILD_SHARED_LIBS": "ON",
@@ -84,6 +84,36 @@
         "CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-sanitize-recover=all -fno-omit-frame-pointer -pipe",
         "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=thread -fno-sanitize-recover=all",
         "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=thread -fno-sanitize-recover=all"
+      }
+    },
+    {
+      "name": "sanitizer-msan",
+      "displayName": "Sanitizer MSan Strict RelWithDebInfo",
+      "description": "MemorySanitizer strict bug-finding lane using full RelWithDebInfo fidelity.",
+      "inherits": "sanitizer-base",
+      "binaryDir": "${sourceDir}/build-msan",
+      "environment": {
+        "CC": "clang-22",
+        "CXX": "clang++-22"
+      },
+      "cacheVariables": {
+        "CMAKE_C_FLAGS": "-fsanitize=memory -fsanitize-memory-track-origins=2 -fsanitize-ignorelist=${sourceDir}/tools/ci/msan.ignorelist -fno-sanitize-recover=all -fno-omit-frame-pointer -fno-optimize-sibling-calls -fPIE -pipe",
+        "CMAKE_CXX_FLAGS": "-fsanitize=memory -fsanitize-memory-track-origins=2 -fsanitize-ignorelist=${sourceDir}/tools/ci/msan.ignorelist -fno-sanitize-recover=all -fno-omit-frame-pointer -fno-optimize-sibling-calls -fPIE -pipe",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=memory -fsanitize-memory-track-origins=2 -fno-sanitize-recover=all -fPIE -pie",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=memory -fsanitize-memory-track-origins=2 -fno-sanitize-recover=all"
+      }
+    },
+    {
+      "name": "sanitizer-lsan",
+      "displayName": "Sanitizer LSan Strict RelWithDebInfo",
+      "description": "Standalone LeakSanitizer strict memory-leak lane using full RelWithDebInfo fidelity.",
+      "inherits": "sanitizer-base",
+      "binaryDir": "${sourceDir}/build-lsan",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS": "-fsanitize=leak -fno-omit-frame-pointer -pipe",
+        "CMAKE_CXX_FLAGS": "-fsanitize=leak -fno-omit-frame-pointer -pipe",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=leak",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=leak"
       }
     },
     {
@@ -161,6 +191,24 @@
       "name": "sanitizer-tsan-tests",
       "displayName": "Build run_all_tests (TSan)",
       "configurePreset": "sanitizer-tsan",
+      "targets": [
+        "run_all_tests"
+      ],
+      "jobs": 14
+    },
+    {
+      "name": "sanitizer-msan-tests",
+      "displayName": "Build run_all_tests (MSan)",
+      "configurePreset": "sanitizer-msan",
+      "targets": [
+        "run_all_tests"
+      ],
+      "jobs": 14
+    },
+    {
+      "name": "sanitizer-lsan-tests",
+      "displayName": "Build run_all_tests (LSan)",
+      "configurePreset": "sanitizer-lsan",
       "targets": [
         "run_all_tests"
       ],

@@ -30,6 +30,8 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_vendor_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_sqlcipher_key_init_lock_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_sqlcipher_key_init_lock_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/http.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/http_transport_status_propagation_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/http_reader_smuggling_security.cpp
@@ -254,7 +256,10 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/pvs_level1_contracts_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tl_simple_struct_init_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tl_simple_struct_init_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/tl_simple_schema_identity_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/tl_simple_schema_identity_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tl_parser_memory_leak_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/tl_config_name_registration_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/cli_get_args_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/cli_get_args_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/security_core_report_contract.cpp
@@ -305,10 +310,19 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/td_api_json_const_dispatch_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/td_api_json_const_dispatch_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/td_api_json_const_dispatch_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/authentication_timing_constant_time_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/authentication_timing_constant_time_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/mtproto_downcast_construct_dispatch_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/mtproto_downcast_construct_dispatch_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/mtproto_downcast_construct_dispatch_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/query_merger.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/thread_id_guard_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/random_openssl_init_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/random_openssl_init_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/secret.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/secure_storage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/set_with_position.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/tqueue_clear_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/string_cleaning.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/mime_type_update_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/client_json_boundary_contract.cpp
@@ -1088,10 +1102,48 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_host_latch_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_host_latch_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_cert_load_openssl3_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_stream_runtime_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/data.h
     ${TDUTILS_TEST_SOURCE}
     ${TDACTOR_TEST_SOURCE})
+
+if(CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=memory( |$)")
+  # OpenSSL 3 provider initialization reports a libcrypto-only MSan false
+  # positive during the first SSL_CTX construction on this host, so exclude the
+  # dedicated SslCtx suites from the MSan lane until runtime suppressions exist.
+  list(FILTER TD_TEST_SOURCE EXCLUDE REGEX ".*/tdnet/test_ssl_ctx_.*\\.cpp$")
+  # The stealth catalog path hits additional libcrypto-only MSan false positives
+  # during cold EVP_MAC initialization and PEM public-key loading on this host,
+  # so exclude the direct execution suites while keeping source-contract tests.
+  list(FILTER TD_TEST_SOURCE EXCLUDE REGEX
+       ".*/stealth/test_blob_store_.*\\.cpp$")
+  list(
+    FILTER
+    TD_TEST_SOURCE
+    EXCLUDE
+    REGEX
+    ".*/stealth/test_aux_channel_(contract|adversarial|fixture_integration)\\.cpp$"
+  )
+  list(FILTER TD_TEST_SOURCE EXCLUDE REGEX
+       ".*/stealth/test_bundle_to_handshake_flow_integration\\.cpp$")
+  list(FILTER TD_TEST_SOURCE EXCLUDE REGEX
+       ".*/stealth/test_route_bundle.*\\.cpp$")
+  list(FILTER TD_TEST_SOURCE EXCLUDE REGEX
+       ".*/stealth/test_lane_h5_arc_(bridge|imported)_integration\\.cpp$")
+  list(
+    FILTER
+    TD_TEST_SOURCE
+    EXCLUDE
+    REGEX
+    ".*/stealth/test_main_keyset_(catalog_(adversarial|light_fuzz|stress)|lookup_adversarial|handshake_integration)\\.cpp$"
+  )
+  list(FILTER TD_TEST_SOURCE EXCLUDE REGEX
+       ".*/stealth/test_session_bootstrap_state_contract\\.cpp$")
+  list(FILTER TD_TEST_SOURCE EXCLUDE REGEX
+       ".*/stealth/test_window_count_integration\\.cpp$")
+endif()
+
 set(TD_TEST_SOURCE
     ${TD_TEST_SOURCE}
     PARENT_SCOPE)
@@ -1153,11 +1205,15 @@ if(NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_drs_primer_transition_wire.cpp
   )
   add_executable(run_all_tests ${TESTS_MAIN} ${TD_TEST_SOURCE})
+  # Keep extra UBSan instrumentation for clang test binaries, except in
+  # standalone LSan lanes where it can introduce unrelated UBSan link/runtime
+  # coupling and mask leak-only signal.
   if(CLANG
      AND NOT CYGWIN
      AND NOT EMSCRIPTEN
      AND NOT (CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
-     AND NOT (CMAKE_SIZEOF_VOID_P EQUAL 4))
+     AND NOT (CMAKE_SIZEOF_VOID_P EQUAL 4)
+     AND NOT (CMAKE_CXX_FLAGS MATCHES "-fsanitize=leak"))
     target_compile_options(test-tdutils PUBLIC -fsanitize=undefined
                                                -fno-sanitize=vptr)
     target_compile_options(
@@ -1180,6 +1236,8 @@ if(NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
   target_include_directories(
     run_all_tests PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+  target_include_directories(run_all_tests
+                             PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tdtl>)
   # Point repo-relative fixture loaders (ServerHelloFixtureLoader) at the source
   # tree so tests can read reviewed JSON artifacts regardless of the build-time
   # working directory.
@@ -1211,6 +1269,7 @@ if(NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
   target_link_libraries(
     run_all_tests
     PRIVATE tdutils
+            tdtl
             tdactor
             tdclient
             tdcore

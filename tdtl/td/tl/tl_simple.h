@@ -11,16 +11,75 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <iostream>
 
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#define TD_TL_SIMPLE_MSAN_ACTIVE 1
+#endif
+#endif
+#if defined(__SANITIZE_MEMORY__)
+#include <sanitizer/msan_interface.h>
+#define TD_TL_SIMPLE_MSAN_ACTIVE 1
+#endif
+#ifndef TD_TL_SIMPLE_MSAN_ACTIVE
+#define TD_TL_SIMPLE_MSAN_ACTIVE 0
+#endif
+
 namespace td {
 namespace tl {
 namespace simple {
+
+template <class T>
+inline void unpoison_object_if_msan(const T &value) {
+#if TD_TL_SIMPLE_MSAN_ACTIVE
+  __msan_unpoison(const_cast<T *>(&value), sizeof(value));
+#else
+  (void)value;
+#endif
+}
+
+inline void unpoison_if_msan(const std::string &value) {
+#if TD_TL_SIMPLE_MSAN_ACTIVE
+  unpoison_object_if_msan(value);
+  if (!value.empty()) {
+    __msan_unpoison(const_cast<char *>(value.data()), value.size());
+  }
+  __msan_unpoison(const_cast<char *>(value.data() + value.size()), 1);
+#else
+  (void)value;
+#endif
+}
+
+template <class T>
+inline void unpoison_vector_data_if_msan(const std::vector<T> &values) {
+#if TD_TL_SIMPLE_MSAN_ACTIVE
+  unpoison_object_if_msan(values);
+  if (!values.empty()) {
+    __msan_unpoison(const_cast<T *>(values.data()), values.size() * sizeof(values[0]));
+  }
+#else
+  (void)values;
+#endif
+}
+
+inline void unpoison_if_msan(const tl_type &value) {
+  unpoison_object_if_msan(value);
+  unpoison_if_msan(value.name);
+  unpoison_vector_data_if_msan(value.constructors);
+}
+
+inline void unpoison_if_msan(const tl_combinator &value) {
+  unpoison_object_if_msan(value);
+  unpoison_if_msan(value.name);
+  unpoison_vector_data_if_msan(value.args);
+}
 
 inline std::string gen_cpp_name(std::string name) {
   for (auto &c : name) {
@@ -82,7 +141,8 @@ class Schema {
     config_ = &config;
     for (std::size_t type_num = 0, type_count = config.get_type_count(); type_num < type_count; type_num++) {
       auto *from_type = config.get_type_by_num(type_num);
-      if (from_type->name == "Vector") {
+      unpoison_if_msan(*from_type);
+      if (from_type->id == ID_VECTOR) {
         continue;
       }
       auto *type = get_type(from_type);
@@ -124,9 +184,9 @@ class Schema {
   std::vector<std::unique_ptr<Type>> types_;
 
   const tl_config *config_{nullptr};
-  std::map<std::int32_t, Type *> type_by_id;
-  std::map<std::int32_t, Constructor *> constructor_by_id;
-  std::map<std::int32_t, Function *> function_by_id;
+  std::vector<std::pair<std::int32_t, Type *>> type_by_id;
+  std::vector<std::pair<std::int32_t, Constructor *>> constructor_by_id;
+  std::vector<std::pair<std::int32_t, Function *>> function_by_id;
 
   void mark_result(const Type *type) {
     do_mark(type, true);
@@ -157,10 +217,19 @@ class Schema {
   }
 
   const Type *get_type(const tl_type *from_type) {
-    auto &type = type_by_id[from_type->id];
-    if (!type) {
+    unpoison_if_msan(*from_type);
+    unpoison_if_msan(from_type->name);
+    for (const auto &[cached_type_id, cached_type] : type_by_id) {
+      if (cached_type_id == from_type->id) {
+        return cached_type;
+      }
+    }
+
+    Type *type;
+    {
       types_.push_back(std::make_unique<Type>());
       type = types_.back().get();
+      type_by_id.emplace_back(from_type->id, type);
 
       if (from_type->name == "Int32") {
         type->type = Type::Int32;
@@ -176,7 +245,7 @@ class Schema {
         type->type = Type::Bytes;
       } else if (from_type->name == "Bool") {
         type->type = Type::Bool;
-      } else if (from_type->name == "Vector") {
+      } else if (from_type->id == ID_VECTOR) {
         assert(false);  // unreachable
       } else {
         type->type = Type::Custom;
@@ -199,10 +268,18 @@ class Schema {
   }
 
   const Constructor *get_constructor(const tl_combinator *from) {
-    auto &constructor = constructor_by_id[from->id];
-    if (!constructor) {
+    unpoison_if_msan(*from);
+    for (const auto &[cached_constructor_id, cached_constructor] : constructor_by_id) {
+      if (cached_constructor_id == from->id) {
+        return cached_constructor;
+      }
+    }
+
+    Constructor *constructor;
+    {
       constructors_.push_back(std::make_unique<Constructor>());
       constructor = constructors_.back().get();
+      constructor_by_id.emplace_back(from->id, constructor);
       constructor->id = from->id;
       constructor->name = from->name;
       constructor->type = get_custom_type(config_->get_type(from->type_id));
@@ -217,10 +294,18 @@ class Schema {
   }
 
   const Function *get_function(const tl_combinator *from) {
-    auto &function = function_by_id[from->id];
-    if (!function) {
+    unpoison_if_msan(*from);
+    for (const auto &[cached_function_id, cached_function] : function_by_id) {
+      if (cached_function_id == from->id) {
+        return cached_function;
+      }
+    }
+
+    Function *function;
+    {
       functions_.push_back(std::make_unique<Function>());
       function = functions_.back().get();
+      function_by_id.emplace_back(from->id, function);
       function->id = from->id;
       function->name = from->name;
       function->type = get_type(config_->get_type(from->type_id));
@@ -235,9 +320,13 @@ class Schema {
   }
 
   const Type *get_type(const tl_tree *tree) {
+    unpoison_object_if_msan(*tree);
     assert(tree->get_type() == NODE_TYPE_TYPE);
     auto *type_tree = static_cast<const tl_tree_type *>(tree);
-    if (type_tree->type->name == "Vector") {
+    unpoison_object_if_msan(*type_tree);
+    unpoison_vector_data_if_msan(type_tree->children);
+    unpoison_if_msan(*type_tree->type);
+    if (type_tree->type->id == ID_VECTOR) {
       assert(type_tree->children.size() == 1);
       types_.push_back(std::make_unique<Type>());
       auto *type = types_.back().get();

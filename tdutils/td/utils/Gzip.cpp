@@ -15,9 +15,37 @@ char disable_linker_warning_about_empty_file_gzip_cpp TD_UNUSED;
 #include <limits>
 #include <utility>
 
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#define TD_GZIP_MSAN_ACTIVE 1
+#endif
+#endif
+#if defined(__SANITIZE_MEMORY__)
+#include <sanitizer/msan_interface.h>
+#define TD_GZIP_MSAN_ACTIVE 1
+#endif
+#ifndef TD_GZIP_MSAN_ACTIVE
+#define TD_GZIP_MSAN_ACTIVE 0
+#endif
+
 #include <zlib.h>
 
 namespace td {
+
+namespace {
+void unpoison_if_msan(const unsigned char *ptr, size_t size) {
+#if TD_GZIP_MSAN_ACTIVE
+  if (size != 0) {
+    __msan_unpoison(ptr, size);
+  }
+#else
+  static_cast<void>(ptr);
+  static_cast<void>(size);
+#endif
+}
+
+}  // namespace
 
 class Gzip::Impl {
  public:
@@ -87,7 +115,6 @@ Result<Gzip::State> Gzip::run() {
     }
     if (ret == Z_STREAM_END) {
       // TODO(now): fail if input is not empty;
-      clear();
       return State::Done;
     }
     clear();
@@ -100,6 +127,17 @@ size_t Gzip::left_input() const {
 }
 size_t Gzip::left_output() const {
   return impl_->stream_.avail_out;
+}
+
+size_t Gzip::flush_output() {
+  auto res = used_output();
+  if (res != 0 && mode_ != Mode::Empty) {
+    auto *output_end = reinterpret_cast<const unsigned char *>(impl_->stream_.next_out);
+    CHECK(output_end != nullptr);
+    unpoison_if_msan(output_end - res, res);
+  }
+  output_size_ = left_output();
+  return res;
 }
 
 void Gzip::init_common() {

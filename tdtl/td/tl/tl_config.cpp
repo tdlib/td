@@ -9,9 +9,196 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <memory>
+#include <new>
+#include <set>
+#include <utility>
 
-namespace td {
-namespace tl {
+#if defined(__has_include)
+#if __has_include(<sanitizer/msan_interface.h>)
+#include <sanitizer/msan_interface.h>
+#define TD_TL_HAS_MSAN_INTERFACE 1
+#else
+#define TD_TL_HAS_MSAN_INTERFACE 0
+#endif
+#else
+#define TD_TL_HAS_MSAN_INTERFACE 0
+#endif
+
+#if TD_TL_HAS_MSAN_INTERFACE
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#define TD_TL_MSAN_ACTIVE 1
+#endif
+#endif
+#if defined(__SANITIZE_MEMORY__)
+#define TD_TL_MSAN_ACTIVE 1
+#endif
+#ifndef TD_TL_MSAN_ACTIVE
+#define TD_TL_MSAN_ACTIVE 0
+#endif
+#else
+#define TD_TL_MSAN_ACTIVE 0
+#endif
+
+namespace td::tl {
+
+template <class T, class... Args>
+T *allocate_zeroed(Args &&...args) {
+  auto *storage = static_cast<unsigned char *>(::operator new(sizeof(T)));
+  std::memset(storage, 0, sizeof(T));
+  return new (storage) T(std::forward<Args>(args)...);
+}
+
+template <class T>
+void destroy_zeroed(T *value) {
+  if (value == nullptr) {
+    return;
+  }
+  std::destroy_at(value);
+  ::operator delete(value);
+}
+
+template <class T>
+void unpoison_if_msan(T &value) {
+#if TD_TL_MSAN_ACTIVE
+  __msan_unpoison(&value, sizeof(value));
+#else
+  (void)value;
+#endif
+}
+
+void unpoison_if_msan(std::string &value) {
+#if TD_TL_MSAN_ACTIVE
+  __msan_unpoison(&value, sizeof(value));
+  if (!value.empty()) {
+    __msan_unpoison(value.data(), value.size());
+  }
+  __msan_unpoison(value.data() + value.size(), 1);
+#else
+  (void)value;
+#endif
+}
+
+template <class T>
+void unpoison_vector_data_if_msan(std::vector<T> &values) {
+#if TD_TL_MSAN_ACTIVE
+  __msan_unpoison(&values, sizeof(values));
+  if (!values.empty()) {
+    __msan_unpoison(values.data(), values.size() * sizeof(values[0]));
+  }
+#else
+  (void)values;
+#endif
+}
+
+void unpoison_tree_graph(tl_tree *tree, std::set<const tl_type *> &visited_types,
+                         std::set<const tl_combinator *> &visited_combinators,
+                         std::set<const tl_tree *> &visited_trees);
+
+void unpoison_arg_graph(arg &value, std::set<const tl_type *> &visited_types,
+                        std::set<const tl_combinator *> &visited_combinators,
+                        std::set<const tl_tree *> &visited_trees) {
+  unpoison_if_msan(value);
+  unpoison_if_msan(value.name);
+  if (value.type != nullptr) {
+    unpoison_tree_graph(value.type, visited_types, visited_combinators, visited_trees);
+  }
+}
+
+void unpoison_args_graph(std::vector<arg> &values, std::set<const tl_type *> &visited_types,
+                         std::set<const tl_combinator *> &visited_combinators,
+                         std::set<const tl_tree *> &visited_trees) {
+  unpoison_vector_data_if_msan(values);
+  for (auto &value : values) {
+    unpoison_arg_graph(value, visited_types, visited_combinators, visited_trees);
+  }
+}
+
+void unpoison_combinator_graph(tl_combinator *combinator, std::set<const tl_type *> &visited_types,
+                               std::set<const tl_combinator *> &visited_combinators,
+                               std::set<const tl_tree *> &visited_trees) {
+  if (combinator == nullptr || !visited_combinators.insert(combinator).second) {
+    return;
+  }
+
+  unpoison_if_msan(*combinator);
+  unpoison_if_msan(combinator->name);
+  unpoison_args_graph(combinator->args, visited_types, visited_combinators, visited_trees);
+  if (combinator->result != nullptr) {
+    unpoison_tree_graph(combinator->result, visited_types, visited_combinators, visited_trees);
+  }
+}
+
+void unpoison_type_graph(tl_type *type, std::set<const tl_type *> &visited_types,
+                         std::set<const tl_combinator *> &visited_combinators,
+                         std::set<const tl_tree *> &visited_trees) {
+  if (type == nullptr || !visited_types.insert(type).second) {
+    return;
+  }
+
+  unpoison_if_msan(*type);
+  unpoison_if_msan(type->name);
+  unpoison_vector_data_if_msan(type->constructors);
+  for (auto *constructor : type->constructors) {
+    unpoison_combinator_graph(constructor, visited_types, visited_combinators, visited_trees);
+  }
+}
+
+void unpoison_tree_graph(tl_tree *tree, std::set<const tl_type *> &visited_types,
+                         std::set<const tl_combinator *> &visited_combinators,
+                         std::set<const tl_tree *> &visited_trees) {
+  if (tree == nullptr || !visited_trees.insert(tree).second) {
+    return;
+  }
+
+  unpoison_if_msan(*tree);
+  switch (tree->get_type()) {
+    case NODE_TYPE_TYPE: {
+      auto *type_tree = static_cast<tl_tree_type *>(tree);
+      unpoison_if_msan(*type_tree);
+      unpoison_vector_data_if_msan(type_tree->children);
+      unpoison_type_graph(type_tree->type, visited_types, visited_combinators, visited_trees);
+      for (auto *child : type_tree->children) {
+        unpoison_tree_graph(child, visited_types, visited_combinators, visited_trees);
+      }
+      break;
+    }
+    case NODE_TYPE_ARRAY: {
+      auto *array_tree = static_cast<tl_tree_array *>(tree);
+      unpoison_if_msan(*array_tree);
+      unpoison_tree_graph(array_tree->multiplicity, visited_types, visited_combinators, visited_trees);
+      unpoison_args_graph(array_tree->args, visited_types, visited_combinators, visited_trees);
+      break;
+    }
+    case NODE_TYPE_NAT_CONST:
+      unpoison_if_msan(*static_cast<tl_tree_nat_const *>(tree));
+      break;
+    case NODE_TYPE_VAR_TYPE:
+      unpoison_if_msan(*static_cast<tl_tree_var_type *>(tree));
+      break;
+    case NODE_TYPE_VAR_NUM:
+      unpoison_if_msan(*static_cast<tl_tree_var_num *>(tree));
+      break;
+    default:
+      assert(false && "unexpected tl_tree node type");
+  }
+}
+
+void unpoison_config_graph(tl_config &config) {
+  std::set<const tl_type *> visited_types;
+  std::set<const tl_combinator *> visited_combinators;
+  std::set<const tl_tree *> visited_trees;
+
+  for (std::size_t type_num = 0; type_num < config.get_type_count(); type_num++) {
+    unpoison_type_graph(config.get_type_by_num(type_num), visited_types, visited_combinators, visited_trees);
+  }
+  for (std::size_t function_num = 0; function_num < config.get_function_count(); function_num++) {
+    unpoison_combinator_graph(config.get_function_by_num(function_num), visited_types, visited_combinators,
+                              visited_trees);
+  }
+}
 
 const std::int32_t TLS_SCHEMA_V2 = 0x3a2f9be2;
 const std::int32_t TLS_SCHEMA_V3 = 0xe4a8604b;
@@ -33,10 +220,60 @@ const std::int32_t TLS_TYPE_VAR = 0x0142ceae;
 const std::int32_t TLS_ARRAY = 0xd9fb20de;
 const std::int32_t TLS_TYPE_EXPR = 0xc1863d08;
 
+tl_config::~tl_config() {
+  clear();
+}
+
+tl_config::tl_config(tl_config &&other) noexcept {
+  *this = std::move(other);
+}
+
+tl_config &tl_config::operator=(tl_config &&other) noexcept {
+  if (this != &other) {
+    clear();
+
+    types = std::move(other.types);
+    id_to_type = std::move(other.id_to_type);
+    name_to_type = std::move(other.name_to_type);
+
+    functions = std::move(other.functions);
+    id_to_function = std::move(other.id_to_function);
+    name_to_function = std::move(other.name_to_function);
+
+    other.types.clear();
+    other.id_to_type.clear();
+    other.name_to_type.clear();
+
+    other.functions.clear();
+    other.id_to_function.clear();
+    other.name_to_function.clear();
+  }
+  return *this;
+}
+
+void tl_config::clear() {
+  for (auto *type : types) {
+    destroy_zeroed(type);
+  }
+  for (auto *function : functions) {
+    destroy_zeroed(function);
+  }
+
+  types.clear();
+  functions.clear();
+
+  id_to_type.clear();
+  name_to_type.clear();
+  id_to_function.clear();
+  name_to_function.clear();
+}
+
 void tl_config::add_type(tl_type *type) {
   types.push_back(type);
   id_to_type[type->id] = type;
-  name_to_type[type->name] = type;
+  // Rebuild the key from the initialized character range only, avoiding
+  // sanitizer-visible reads of inactive string storage.
+  name_to_type.insert_or_assign(std::string(type->name.data(), type->name.size()), type);
 }
 
 tl_type *tl_config::get_type(std::int32_t type_id) const {
@@ -52,7 +289,7 @@ tl_type *tl_config::get_type(const std::string &type_name) {
 void tl_config::add_function(tl_combinator *function) {
   functions.push_back(function);
   id_to_function[function->id] = function;
-  name_to_function[function->name] = function;
+  name_to_function.insert_or_assign(std::string(function->name.data(), function->name.size()), function);
 }
 
 tl_combinator *tl_config::get_function(std::int32_t function_id) {
@@ -88,12 +325,18 @@ std::int64_t tl_config_parser::try_parse_long() {
 }
 
 std::string tl_config_parser::try_parse_string() {
-  return try_parse(p.fetch_string());
+  std::string result = p.fetch_string();
+  if (p.get_error() != nullptr) {
+    std::fprintf(stderr, "Wrong TL-scheme specified: %s at %d\n", p.get_error(), static_cast<int>(p.get_error_pos()));
+    std::abort();
+  }
+
+  return result;
 }
 
 template <class T>
 T tl_config_parser::try_parse(const T &res) const {
-  if (p.get_error() != NULL) {
+  if (p.get_error() != nullptr) {
     std::fprintf(stderr, "Wrong TL-scheme specified: %s at %d\n", p.get_error(), static_cast<int>(p.get_error_pos()));
     std::abort();
   }
@@ -115,14 +358,14 @@ int tl_config_parser::get_schema_version(std::int32_t version_id) {
 }
 
 tl_tree *tl_config_parser::read_num_const() {
-  int num = static_cast<int>(try_parse_int());
+  auto num = static_cast<int>(try_parse_int());
 
   return new tl_tree_nat_const(FLAG_NOVAR, num);
 }
 
 tl_tree *tl_config_parser::read_num_var(int *var_count) {
   std::int32_t diff = try_parse_int();
-  int var_num = static_cast<int>(try_parse_int());
+  auto var_num = static_cast<int>(try_parse_int());
 
   if (var_num >= *var_count) {
     *var_count = var_num + 1;
@@ -132,7 +375,7 @@ tl_tree *tl_config_parser::read_num_var(int *var_count) {
 }
 
 tl_tree *tl_config_parser::read_type_var(int *var_count) {
-  int var_num = static_cast<int>(try_parse_int());
+  auto var_num = static_cast<int>(try_parse_int());
   std::int32_t flags = try_parse_int();
 
   if (var_num >= *var_count) {
@@ -147,33 +390,33 @@ tl_tree *tl_config_parser::read_array(int *var_count) {
   std::int32_t flags = FLAG_NOVAR;
   tl_tree *multiplicity = read_nat_expr(var_count);
 
-  tl_tree_array *T = new tl_tree_array(flags, multiplicity, read_args(var_count));
+  auto *tree = new tl_tree_array(flags, multiplicity, read_args(var_count));
 
-  for (std::size_t i = 0; i < T->args.size(); i++) {
-    if (!(T->args[i].flags & FLAG_NOVAR)) {
-      T->flags &= ~FLAG_NOVAR;
+  for (const auto &arg_entry : tree->args) {
+    if (!(arg_entry.flags & FLAG_NOVAR)) {
+      tree->flags &= ~FLAG_NOVAR;
     }
   }
-  return T;
+  return tree;
 }
 
 tl_tree *tl_config_parser::read_type(int *var_count) {
   tl_type *type = config.get_type(try_parse_int());
-  assert(type != NULL);
+  assert(type != nullptr);
   std::int32_t flags = try_parse_int() | FLAG_NOVAR;
-  int arity = static_cast<int>(try_parse_int());
+  auto arity = static_cast<int>(try_parse_int());
   assert(type->arity == arity);
 
-  tl_tree_type *T = new tl_tree_type(flags, type, arity);
+  auto *tree = new tl_tree_type(flags, type, arity);
   for (std::int32_t i = 0; i < arity; i++) {
     tl_tree *child = read_expr(var_count);
 
-    T->children[i] = child;
+    tree->children[i] = child;
     if (!(child->flags & FLAG_NOVAR)) {
-      T->flags &= ~FLAG_NOVAR;
+      tree->flags &= ~FLAG_NOVAR;
     }
   }
-  return T;
+  return tree;
 }
 
 tl_tree *tl_config_parser::read_type_expr(int *var_count) {
@@ -222,18 +465,18 @@ std::vector<arg> tl_config_parser::read_args(int *var_count) {
   const int schema_flag_opt_field = 2 << static_cast<int>(schema_version >= 3);
   const int schema_flag_has_vars = schema_flag_opt_field ^ 6;
 
-  std::size_t args_num = static_cast<size_t>(try_parse_int());
+  auto args_num = static_cast<std::size_t>(try_parse_int());
   std::vector<arg> args(args_num);
   for (std::size_t i = 0; i < args_num; i++) {
-    arg cur_arg;
-
-    std::int32_t arg_v = try_parse_int();
-    if (arg_v != TLS_ARG_V2) {
+    if (std::int32_t arg_v = try_parse_int(); arg_v != TLS_ARG_V2) {
       std::fprintf(stderr, "Wrong tls_arg magic %d\n", static_cast<int>(arg_v));
       std::abort();
     }
 
-    cur_arg.name = try_parse_string();
+    std::string parsed_arg_name = try_parse_string();
+    unpoison_if_msan(parsed_arg_name);
+    arg cur_arg(std::move(parsed_arg_name));
+    unpoison_if_msan(cur_arg.name);
     cur_arg.flags = try_parse_int();
 
     bool is_optional = false;
@@ -259,30 +502,32 @@ std::vector<arg> tl_config_parser::read_args(int *var_count) {
       cur_arg.exist_var_bit = 0;
     }
     cur_arg.type = read_type_expr(var_count);
-    if (/*cur_arg.var_num < 0 && cur_arg.exist_var_num < 0 && */ (cur_arg.type->flags & FLAG_NOVAR)) {
+    if (cur_arg.type->flags & FLAG_NOVAR) {
       cur_arg.flags |= FLAG_NOVAR;
     }
 
     args[i] = cur_arg;
+    unpoison_if_msan(args[i]);
   }
+  unpoison_if_msan(args);
   return args;
 }
 
 tl_combinator *tl_config_parser::read_combinator() {
-  std::int32_t t = try_parse_int();
-  if (t != TLS_COMBINATOR) {
+  if (std::int32_t t = try_parse_int(); t != TLS_COMBINATOR) {
     std::fprintf(stderr, "Wrong tls_combinator magic %d\n", static_cast<int>(t));
     std::abort();
   }
 
-  tl_combinator *combinator = new tl_combinator();
-  combinator->id = try_parse_int();
-  combinator->name = try_parse_string();
+  const auto combinator_id = try_parse_int();
+  std::string parsed_combinator_name = try_parse_string();
+  unpoison_if_msan(parsed_combinator_name);
+  auto *combinator = allocate_zeroed<tl_combinator>(combinator_id, std::move(parsed_combinator_name));
+  unpoison_if_msan(combinator->name);
   combinator->type_id = try_parse_int();
   combinator->var_count = 0;
 
-  std::int32_t left_type = try_parse_int();
-  if (left_type == TLS_COMBINATOR_LEFT) {
+  if (std::int32_t left_type = try_parse_int(); left_type == TLS_COMBINATOR_LEFT) {
     combinator->args = read_args(&combinator->var_count);
   } else {
     if (left_type != TLS_COMBINATOR_LEFT_BUILTIN) {
@@ -291,26 +536,27 @@ tl_combinator *tl_config_parser::read_combinator() {
     }
   }
 
-  std::int32_t right_ver = try_parse_int();
-  if (right_ver != TLS_COMBINATOR_RIGHT_V2) {
+  if (std::int32_t right_ver = try_parse_int(); right_ver != TLS_COMBINATOR_RIGHT_V2) {
     std::fprintf(stderr, "Wrong tls_combinator_right magic %d\n", static_cast<int>(right_ver));
     std::abort();
   }
   combinator->result = read_type_expr(&combinator->var_count);
+  unpoison_if_msan(*combinator);
 
   return combinator;
 }
 
 tl_type *tl_config_parser::read_type() {
-  std::int32_t t = try_parse_int();
-  if (t != TLS_TYPE) {
+  if (std::int32_t t = try_parse_int(); t != TLS_TYPE) {
     std::fprintf(stderr, "Wrong tls_type magic %d\n", t);
     std::abort();
   }
 
-  tl_type *type = new tl_type();
-  type->id = try_parse_int();
-  type->name = try_parse_string();
+  const auto type_id = try_parse_int();
+  std::string parsed_type_name = try_parse_string();
+  unpoison_if_msan(parsed_type_name);
+  auto *type = allocate_zeroed<tl_type>(type_id, std::move(parsed_type_name));
+  unpoison_if_msan(type->name);
   type->constructors_num = static_cast<std::size_t>(try_parse_int());
   type->constructors.reserve(type->constructors_num);
   type->flags = try_parse_int();
@@ -321,6 +567,7 @@ tl_type *tl_config_parser::read_type() {
   type->arity = static_cast<int>(try_parse_int());
 
   try_parse_long();  // unused
+  unpoison_if_msan(*type);
   return type;
 }
 
@@ -356,9 +603,9 @@ tl_config tl_config_parser::parse_config() {
   }
   p.fetch_end();
   try_parse(0);
+  unpoison_config_graph(config);
 
-  return config;
+  return std::move(config);
 }
 
-}  // namespace tl
-}  // namespace td
+}  // namespace td::tl

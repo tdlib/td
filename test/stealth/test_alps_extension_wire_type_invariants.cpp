@@ -70,7 +70,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 
-#include <set>
+#include <algorithm>
 #include <vector>
 
 namespace {
@@ -79,12 +79,12 @@ using td::mtproto::BrowserProfile;
 using td::mtproto::stealth::build_tls_client_hello_for_profile;
 using td::mtproto::stealth::EchMode;
 using td::mtproto::test::find_extension;
+using td::mtproto::test::fixtures::kAlpsChrome131;
+using td::mtproto::test::fixtures::kAlpsChrome133Plus;
 using td::mtproto::test::MockRng;
 using td::mtproto::test::parse_tls_client_hello;
 using td::mtproto::test::ParsedClientHello;
 using td::mtproto::test::ParsedExtension;
-using td::mtproto::test::fixtures::kAlpsChrome131;
-using td::mtproto::test::fixtures::kAlpsChrome133Plus;
 
 constexpr td::int32 kFixedUnixTime = 1712345678;
 constexpr td::Slice kSecret = td::Slice("0123456789secret");
@@ -115,8 +115,8 @@ OwnedParsedClientHello build_and_parse(BrowserProfile profile, EchMode ech_mode,
   result.wire = build_tls_client_hello_for_profile(kHost.str(), kSecret, kFixedUnixTime, profile, ech_mode, rng);
   auto parsed = parse_tls_client_hello(result.wire);
   if (parsed.is_error()) {
-    LOG(ERROR) << "parse failed for profile " << static_cast<int>(profile) << " seed " << seed
-               << ": " << parsed.error();
+    LOG(ERROR) << "parse failed for profile " << static_cast<int>(profile) << " seed " << seed << ": "
+               << parsed.error();
   }
   CHECK(parsed.is_ok());
   result.hello = parsed.move_as_ok();
@@ -212,9 +212,8 @@ TEST(AlpsExtensionWireType, ChromeAlpsBodyDoesNotContainAlpsTypePrefixBytes) {
 // A3 — non-Chrome profiles MUST NOT advertise ALPS at all (neither codepoint).
 //      Firefox, Safari, iOS, Android profiles do not support ALPS.
 TEST(AlpsExtensionWireType, NonChromeProfilesDoNotAdvertiseAlpsAtEither0x4469Or0x44CD) {
-  for (auto profile : {BrowserProfile::Firefox148, BrowserProfile::Firefox149_MacOS26_3,
-                       BrowserProfile::Safari26_3, BrowserProfile::IOS14,
-                       BrowserProfile::Android11_OkHttp_Advisory}) {
+  for (auto profile : {BrowserProfile::Firefox148, BrowserProfile::Firefox149_MacOS26_3, BrowserProfile::Safari26_3,
+                       BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp_Advisory}) {
     auto owned = build_and_parse(profile, EchMode::Disabled, 0xB16D);
     ASSERT_TRUE(find_extension(owned.hello, kAlpsChrome131) == nullptr);
     ASSERT_TRUE(find_extension(owned.hello, kAlpsChrome133Plus) == nullptr);
@@ -226,12 +225,15 @@ TEST(AlpsExtensionWireType, NonChromeProfilesDoNotAdvertiseAlpsAtEither0x4469Or0
 // regressions.
 TEST(AlpsExtensionWireType, ChromeAlpsBodyIsSeedIndependent) {
   for (auto profile : {BrowserProfile::Chrome120, BrowserProfile::Chrome131, BrowserProfile::Chrome133}) {
-    std::set<std::string> bodies;
+    std::vector<std::string> bodies;
     for (td::uint64 seed = 0; seed < 32; seed++) {
       auto owned = build_and_parse(profile, EchMode::Rfc9180Outer, seed);
       const auto *alps = find_alps(owned.hello);
       ASSERT_TRUE(alps != nullptr);
-      bodies.insert(alps->value.str());
+      auto body = alps->value.str();
+      if (std::find(bodies.begin(), bodies.end(), body) == bodies.end()) {
+        bodies.push_back(body);
+      }
     }
     ASSERT_EQ(static_cast<size_t>(1), bodies.size());
   }

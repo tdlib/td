@@ -6,11 +6,27 @@
 //
 #include "td/utils/Random.h"
 
+#include "td/utils/crypto.h"
+
 #include "td/utils/logging.h"
 #include "td/utils/port/thread_local.h"
 
 #if TD_HAVE_OPENSSL
 #include <openssl/rand.h>
+#endif
+
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#define TD_RANDOM_MSAN_ACTIVE 1
+#endif
+#endif
+#if defined(__SANITIZE_MEMORY__)
+#include <sanitizer/msan_interface.h>
+#define TD_RANDOM_MSAN_ACTIVE 1
+#endif
+#ifndef TD_RANDOM_MSAN_ACTIVE
+#define TD_RANDOM_MSAN_ACTIVE 0
 #endif
 
 #include <atomic>
@@ -24,6 +40,17 @@ namespace td {
 
 namespace {
 std::atomic<int64> random_seed_generation{0};
+
+int call_rand_bytes_with_msan_interceptor_suppression(unsigned char *ptr, int size) {
+#if TD_RANDOM_MSAN_ACTIVE
+  __msan_scoped_disable_interceptor_checks();
+  int result = RAND_bytes(ptr, size);
+  __msan_scoped_enable_interceptor_checks();
+  return result;
+#else
+  return RAND_bytes(ptr, size);
+#endif
+}
 }  // namespace
 
 void Random::secure_bytes(MutableSlice dest) {
@@ -44,6 +71,9 @@ void Random::secure_bytes(unsigned char *ptr, size_t size) {
     buf_pos = BUF_SIZE;
     return;
   }
+
+  init_crypto();
+
   if (generation != random_seed_generation.load(std::memory_order_relaxed)) {
     generation = random_seed_generation.load(std::memory_order_acquire);
     buf_pos = BUF_SIZE;
@@ -60,7 +90,7 @@ void Random::secure_bytes(unsigned char *ptr, size_t size) {
     }
   }
   if (size < BUF_SIZE) {
-    int err = RAND_bytes(buf, static_cast<int>(BUF_SIZE));
+    int err = call_rand_bytes_with_msan_interceptor_suppression(buf, static_cast<int>(BUF_SIZE));
     // TODO: it CAN fail
     LOG_IF(FATAL, err != 1);
     buf_pos = size;
@@ -69,7 +99,7 @@ void Random::secure_bytes(unsigned char *ptr, size_t size) {
   }
 
   CHECK(size <= static_cast<size_t>(std::numeric_limits<int>::max()));
-  int err = RAND_bytes(ptr, static_cast<int>(size));
+  int err = call_rand_bytes_with_msan_interceptor_suppression(ptr, static_cast<int>(size));
   // TODO: it CAN fail
   LOG_IF(FATAL, err != 1);
 }
@@ -99,6 +129,7 @@ uint64 Random::secure_uint64() {
 }
 
 void Random::add_seed(Slice bytes, double entropy) {
+  init_crypto();
   RAND_add(bytes.data(), static_cast<int>(bytes.size()), entropy);
   random_seed_generation++;
 }

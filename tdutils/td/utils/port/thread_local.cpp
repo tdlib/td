@@ -10,23 +10,40 @@ namespace td {
 
 namespace detail {
 
+class ThreadLocalDestructorGuard final {
+ public:
+  ~ThreadLocalDestructorGuard();
+};
+
+ThreadLocalDestructorGuard &get_thread_local_destructor_guard() {
+  static thread_local ThreadLocalDestructorGuard guard;
+  return guard;
+}
+
 static TD_THREAD_LOCAL int32 thread_id_;
 static TD_THREAD_LOCAL std::vector<unique_ptr<Destructor>> *thread_local_destructors;
 
 void add_thread_local_destructor(unique_ptr<Destructor> destructor) {
+  auto &guard = get_thread_local_destructor_guard();
+  (void)guard;
   if (thread_local_destructors == nullptr) {
-    thread_local_destructors = new std::vector<unique_ptr<Destructor>>();
+    auto destructors = std::make_unique<std::vector<unique_ptr<Destructor>>>();
+    thread_local_destructors = destructors.release();
   }
   thread_local_destructors->push_back(std::move(destructor));
+}
+
+ThreadLocalDestructorGuard::~ThreadLocalDestructorGuard() {
+  td::clear_thread_locals();
 }
 
 }  // namespace detail
 
 void clear_thread_locals() {
   // ensure that no destructors were added during destructors invocation
-  auto to_delete = detail::thread_local_destructors;
+  std::unique_ptr<std::vector<unique_ptr<Destructor>>> to_delete(detail::thread_local_destructors);
   detail::thread_local_destructors = nullptr;
-  delete to_delete;
+  to_delete.reset();
   // V547: defense-in-depth — verifies destructors didn't re-register themselves
   CHECK(detail::thread_local_destructors == nullptr);
 }

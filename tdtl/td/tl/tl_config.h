@@ -15,19 +15,29 @@
 #include <string>
 #include <vector>
 
-namespace td {
-namespace tl {
+namespace td::tl {
 
 class tl_config {
   std::vector<tl_type *> types;
   std::map<std::int32_t, tl_type *> id_to_type;
-  std::map<std::string, tl_type *> name_to_type;
+  std::map<std::string, tl_type *, std::less<>> name_to_type;
 
   std::vector<tl_combinator *> functions;
   std::map<std::int32_t, tl_combinator *> id_to_function;
-  std::map<std::string, tl_combinator *> name_to_function;
+  std::map<std::string, tl_combinator *, std::less<>> name_to_function;
 
  public:
+  tl_config() = default;
+  ~tl_config();
+
+  tl_config(const tl_config &) = delete;
+  tl_config &operator=(const tl_config &) = delete;
+
+  tl_config(tl_config &&other) noexcept;
+  tl_config &operator=(tl_config &&other) noexcept;
+
+  void clear();
+
   void add_type(tl_type *type);
 
   tl_type *get_type(std::int32_t type_id) const;
@@ -51,7 +61,7 @@ class tl_config {
 
 class tl_config_parser {
   tl_simple_parser p;
-  int schema_version;
+  int schema_version = -1;
   tl_config config;
 
   static int get_schema_version(std::int32_t version_id);
@@ -77,11 +87,10 @@ class tl_config_parser {
   std::string try_parse_string();
 
  public:
-  tl_config_parser(const char *s, std::size_t len) : p(s, len), schema_version(-1) {
+  tl_config_parser(const char *s, std::size_t len) : p(s, len) {
   }
 
   tl_config parse_config();
 };
 
-}  // namespace tl
-}  // namespace td
+}  // namespace td::tl

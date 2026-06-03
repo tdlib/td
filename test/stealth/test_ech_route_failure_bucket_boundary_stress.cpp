@@ -6,6 +6,8 @@
 
 #include "td/utils/tests.h"
 
+#include <limits>
+
 namespace {
 
 using td::int32;
@@ -20,6 +22,11 @@ using td::mtproto::stealth::reset_runtime_stealth_params_for_tests;
 using td::mtproto::stealth::set_runtime_stealth_params_for_tests;
 
 constexpr int32 kBucketSeconds = 86400;
+constexpr int32 kDestinationCount = 5000;
+constexpr int32 kMaxSafeBucket = std::numeric_limits<int32>::max() / kBucketSeconds;
+constexpr int32 kStartBucket = kMaxSafeBucket - kDestinationCount - 1;
+
+static_assert(kStartBucket > 0, "stress test bucket range must stay within positive int32 unix time");
 
 class RuntimeGuard final {
  public:
@@ -51,8 +58,8 @@ TEST(EchRouteFailureBucketBoundaryStress, ThousandsOfDestinationsStayDisabledAcr
   params.route_failure.ech_disable_ttl_seconds = 300.0;
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
 
-  for (int index = 0; index < 5000; index++) {
-    const int32 bucket = 30000 + index;
+  for (int index = 0; index < kDestinationCount; index++) {
+    const int32 bucket = kStartBucket + index;
     const int32 before_midnight = bucket * kBucketSeconds + (kBucketSeconds - 1);
     const int32 after_midnight = (bucket + 1) * kBucketSeconds;
     const td::string dest = "boundary-stress-" + td::to_string(index) + ".example.com";

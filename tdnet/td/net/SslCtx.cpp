@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/net/SslCtx.h"
 
@@ -16,6 +16,20 @@
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
+
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#define TD_SSL_CTX_MSAN_ACTIVE 1
+#endif
+#endif
+#if defined(__SANITIZE_MEMORY__)
+#include <sanitizer/msan_interface.h>
+#define TD_SSL_CTX_MSAN_ACTIVE 1
+#endif
+#ifndef TD_SSL_CTX_MSAN_ACTIVE
+#define TD_SSL_CTX_MSAN_ACTIVE 0
+#endif
 
 #if !TD_EMSCRIPTEN
 #include <openssl/err.h>
@@ -44,6 +58,21 @@ namespace td {
 
 namespace detail {
 namespace {
+class ScopedMsanInterceptorChecks final {
+ public:
+  ScopedMsanInterceptorChecks() {
+#if TD_SSL_CTX_MSAN_ACTIVE
+    __msan_scoped_disable_interceptor_checks();
+#endif
+  }
+
+  ~ScopedMsanInterceptorChecks() {
+#if TD_SSL_CTX_MSAN_ACTIVE
+    __msan_scoped_enable_interceptor_checks();
+#endif
+  }
+};
+
 int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
   if (!preverify_ok) {
     char buf[256];
@@ -309,6 +338,7 @@ Result<SslCtxPtr> do_create_ssl_ctx(CSlice cert_file, SslCtx::VerifyPeer verify_
   if (ssl_method == nullptr) {
     return create_openssl_error(-6, "Failed to create an SSL client method");
   }
+  ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
   auto ssl_ctx = SSL_CTX_new(ssl_method);
   if (!ssl_ctx) {
     return create_openssl_error(-7, "Failed to create an SSL context");
@@ -471,7 +501,7 @@ SslCtx::~SslCtx() = default;
 void SslCtx::init_openssl() {
   static bool is_inited = [] {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    return OPENSSL_init_ssl(0, nullptr) != 0;
+    return OPENSSL_init_ssl(OPENSSL_INIT_NO_LOAD_CONFIG, nullptr) != 0;
 #else
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();

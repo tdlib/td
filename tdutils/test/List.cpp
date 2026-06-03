@@ -165,5 +165,8 @@ TEST(Misc, TsListConcurrent) {
     threads.emplace_back(
         [&] { do_run_list_test<td::TsListNode<ListData>, td::TsList<ListData>, td::TsListNode<ListData>>(root, id); });
   }
+  for (auto &thread : threads) {
+    thread.join();
+  }
 }
 #endif

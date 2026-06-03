@@ -131,10 +131,10 @@ if(NOT CMAKE_CROSSCOMPILING)
   endif()
 
   function(td_disable_sanitizers_for_generator target_name)
-    if((CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=")
-       OR (CMAKE_CXX_FLAGS MATCHES "(^| )-fsanitize=")
-       OR (CMAKE_EXE_LINKER_FLAGS MATCHES "(^| )-fsanitize="))
-      if(NOT TD_SANITIZER_BUILD)
+    if(NOT TD_SANITIZER_BUILD)
+      if((CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=")
+         OR (CMAKE_CXX_FLAGS MATCHES "(^| )-fsanitize=")
+         OR (CMAKE_EXE_LINKER_FLAGS MATCHES "(^| )-fsanitize="))
         target_compile_options(${target_name} PRIVATE -fno-sanitize=all)
         if(COMMAND target_link_options)
           target_link_options(${target_name} PRIVATE -fno-sanitize=all)
@@ -149,14 +149,16 @@ if(NOT CMAKE_CROSSCOMPILING)
   endfunction()
 
   if(TD_SANITIZER_BUILD)
+    set(TD_GENERATOR_SANITIZER_ENV ASAN_OPTIONS=detect_leaks=0)
+
     set(TL_GENERATE_MTPROTO_COMMAND
-        ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0
+        ${CMAKE_COMMAND} -E env ${TD_GENERATOR_SANITIZER_ENV}
         $<TARGET_FILE:generate_mtproto>)
     set(TL_GENERATE_COMMON_COMMAND
-        ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0
+        ${CMAKE_COMMAND} -E env ${TD_GENERATOR_SANITIZER_ENV}
         $<TARGET_FILE:generate_common>)
     set(TL_GENERATE_C_COMMAND
-        ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0
+        ${CMAKE_COMMAND} -E env ${TD_GENERATOR_SANITIZER_ENV}
         $<TARGET_FILE:generate_c>)
     set(TL_GENERATE_JSON_COMMAND
         ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0

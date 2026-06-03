@@ -26,6 +26,15 @@ namespace td {
 
 namespace {
 
+#if TD_CLANG || TD_GCC
+#define TD_RETAINED_PEM __attribute__((used, retain))
+#else
+#define TD_RETAINED_PEM
+#endif
+
+TD_RETAINED_PEM const char kCatalogPrimaryRetentionMarker[] = "MIIBCgKCAQEA6LszBcC1LGzyr992NzE0";
+TD_RETAINED_PEM const char kCatalogSecondaryRetentionMarker[] = "MIIBCgKCAQEAyMEdY1aR+sCR3ZSJrtzt";
+
 CSlice catalog_primary_block() {
   return "-----BEGIN RSA PUBLIC KEY-----\n"
          "MIIBCgKCAQEA6LszBcC1LGzyr992NzE0ieY+BSaOW622Aa9Bd4ZHLl+TuFQ4lo4g\n"
@@ -68,6 +77,8 @@ uint64 load_uint64_le(Slice slice) {
   }
   return result;
 }
+
+#undef TD_RETAINED_PEM
 
 }  // namespace
 

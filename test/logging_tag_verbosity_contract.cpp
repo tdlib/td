@@ -10,11 +10,14 @@ namespace {
 using td::logging_hardening::test::load_repo_text;
 using td::logging_hardening::test::normalize_for_contract;
 
-TEST(LoggingTagVerbosityContract, TagRegistryStoresAtomicVerbosityPointers) {
+TEST(LoggingTagVerbosityContract, TagRegistryUsesStaticEntriesInsteadOfGlobalMapAllocation) {
   auto source = load_repo_text("td/telegram/Logging.cpp");
   auto normalized = normalize_for_contract(source);
 
-  ASSERT_TRUE(normalized.find("std::map<Slice,std::atomic<int>*>log_tags") != td::string::npos);
+  ASSERT_TRUE(normalized.find("structLogTagEntry{Slicename;std::atomic<int>*verbosity_level;") != td::string::npos);
+  ASSERT_TRUE(normalized.find("std::array<LogTagEntry,20>log_tags") != td::string::npos);
+  ASSERT_TRUE(source.find("find_log_tag_entry(") != td::string::npos);
+  ASSERT_TRUE(normalized.find("std::map<Slice,std::atomic<int>*>log_tags") == td::string::npos);
   ASSERT_TRUE(normalized.find("std::map<Slice,int*>log_tags") == td::string::npos);
 }
 

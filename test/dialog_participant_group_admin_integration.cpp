@@ -55,14 +55,19 @@ td::td_api::object_ptr<td::td_api::chatAdministratorRights> make_admin_rights_fo
 
 td::ChatManager::Chat roundtrip_chat(td::ChatManager::Chat chat) {
   td::ConcurrentScheduler scheduler(0, 0);
-  auto guard = scheduler.get_main_guard();
-  GlobalContextScope context_scope;
-
-  auto payload = td::log_event_store_impl(chat, __FILE__, __LINE__);
+  scheduler.start();
 
   td::ChatManager::Chat parsed_chat;
-  auto status = td::log_event_parse(parsed_chat, payload.as_slice());
-  ASSERT_TRUE(status.is_ok());
+  {
+    auto guard = scheduler.get_main_guard();
+    GlobalContextScope context_scope;
+
+    auto payload = td::log_event_store_impl(chat, __FILE__, __LINE__);
+    auto status = td::log_event_parse(parsed_chat, payload.as_slice());
+    ASSERT_TRUE(status.is_ok());
+  }
+
+  scheduler.finish();
   return parsed_chat;
 }
 

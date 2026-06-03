@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/net/SslStream.h"
 
@@ -16,6 +16,20 @@
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
+
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#define TD_SSL_STREAM_MSAN_ACTIVE 1
+#endif
+#endif
+#if defined(__SANITIZE_MEMORY__)
+#include <sanitizer/msan_interface.h>
+#define TD_SSL_STREAM_MSAN_ACTIVE 1
+#endif
+#ifndef TD_SSL_STREAM_MSAN_ACTIVE
+#define TD_SSL_STREAM_MSAN_ACTIVE 0
+#endif
 
 #include <openssl/bio.h>
 #include <openssl/err.h>
@@ -31,6 +45,21 @@ namespace td {
 
 namespace detail {
 namespace {
+class ScopedMsanInterceptorChecks final {
+ public:
+  ScopedMsanInterceptorChecks() {
+#if TD_SSL_STREAM_MSAN_ACTIVE
+    __msan_scoped_disable_interceptor_checks();
+#endif
+  }
+
+  ~ScopedMsanInterceptorChecks() {
+#if TD_SSL_STREAM_MSAN_ACTIVE
+    __msan_scoped_enable_interceptor_checks();
+#endif
+  }
+};
+
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 void *BIO_get_data(BIO *b) {
   return b->ptr;
@@ -121,10 +150,11 @@ BIO_METHOD *BIO_s_sslstream() {
 }
 
 struct SslHandleDeleter {
-  void operator()(SSL *ssl_handle) {
+  void operator()(SSL *ssl_handle) const {
     auto start_time = Time::now();
     if (SSL_is_init_finished(ssl_handle)) {
       clear_openssl_errors("Before SSL_shutdown");
+      ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
       SSL_set_quiet_shutdown(ssl_handle, 1);
       SSL_shutdown(ssl_handle);
       clear_openssl_errors("After SSL_shutdown");
@@ -209,6 +239,10 @@ static int spki_anchor_verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 
 class SslStreamImpl {
  public:
+  ~SslStreamImpl() {
+    ssl_handle_.reset();
+  }
+
   Status init(CSlice host, SslCtx ssl_ctx, bool check_ip_address_as_host) {
     if (!ssl_ctx) {
       return Status::Error("Invalid SSL context provided");
@@ -302,6 +336,7 @@ class SslStreamImpl {
   Result<size_t> write(Slice slice) {
     clear_openssl_errors("Before SslFd::write");
     auto start_time = Time::now();
+    ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
     auto size = SSL_write(ssl_handle_.get(), slice.data(), static_cast<int>(slice.size()));
     auto elapsed_time = Time::now() - start_time;
     if (elapsed_time >= 0.1) {
@@ -317,6 +352,7 @@ class SslStreamImpl {
   Result<size_t> read(MutableSlice slice) {
     clear_openssl_errors("Before SslFd::read");
     auto start_time = Time::now();
+    ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
     auto size = SSL_read(ssl_handle_.get(), slice.data(), static_cast<int>(slice.size()));
     auto elapsed_time = Time::now() - start_time;
     if (elapsed_time >= 0.1) {
@@ -326,7 +362,34 @@ class SslStreamImpl {
     if (size <= 0) {
       return process_ssl_error(size);
     }
+#if TD_SSL_STREAM_MSAN_ACTIVE
+    // libssl is not instrumented under MSan, so mark the produced plaintext as initialized.
+    __msan_unpoison(slice.data(), static_cast<size_t>(size));
+#endif
     return size;
+  }
+
+  bool has_received_shutdown() const {
+    return (SSL_get_shutdown(ssl_handle_.get()) & SSL_RECEIVED_SHUTDOWN) != 0;
+  }
+
+  Status shutdown_write() const {
+    if (!SSL_is_init_finished(ssl_handle_.get())) {
+      return Status::OK();
+    }
+    clear_openssl_errors("Before SslFd::shutdown_write");
+    ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
+    auto rc = SSL_shutdown(ssl_handle_.get());
+    if (rc >= 0) {
+      clear_openssl_errors("After SslFd::shutdown_write");
+      return Status::OK();
+    }
+    if (auto ssl_error = SSL_get_error(ssl_handle_.get(), rc);
+        ssl_error == SSL_ERROR_WANT_READ || ssl_error == SSL_ERROR_WANT_WRITE) {
+      clear_openssl_errors("After SslFd::shutdown_write retry");
+      return Status::OK();
+    }
+    return create_openssl_error(1, "SSL shutdown error ");
   }
 
   class SslReadByteFlow final : public ByteFlowBase {
@@ -341,7 +404,11 @@ class SslStreamImpl {
         return false;
       }
       auto size = r_size.move_as_ok();
+      stream_->write_flow_.retry_pending_plaintext();
       if (size == 0) {
+        if (stream_->has_received_shutdown() || !is_input_active_) {
+          finish(Status::OK());
+        }
         return false;
       }
       output_.confirm_append(size);
@@ -361,6 +428,15 @@ class SslStreamImpl {
     explicit SslWriteByteFlow(SslStreamImpl *stream) : stream_(stream) {
     }
     bool loop() final {
+      input_->sync_with_writer();
+      if (!is_input_active_ && input_->empty()) {
+        if (auto status = stream_->shutdown_write(); status.is_error()) {
+          finish(std::move(status));
+          return false;
+        }
+        finish(Status::OK());
+        return false;
+      }
       auto to_write = input_->prepare_read();
       auto r_size = stream_->write(to_write);
       if (r_size.is_error()) {
@@ -377,7 +453,20 @@ class SslStreamImpl {
 
     size_t write(Slice data) {
       output_.append(data);
+      on_output_updated();
       return data.size();
+    }
+
+    void retry_pending_plaintext() {
+      if (input_ == nullptr) {
+        return;
+      }
+      input_->sync_with_writer();
+      if (input_->empty()) {
+        return;
+      }
+      reset_need_size();
+      wakeup();
     }
 
    private:
@@ -444,6 +533,13 @@ int strm_write(BIO *b, const char *buf, int len) {
   CHECK(stream != nullptr);
   BIO_clear_retry_flags(b);
   CHECK(buf != nullptr);
+#if TD_SSL_STREAM_MSAN_ACTIVE
+  if (len > 0) {
+    // libssl fills BIO write buffers outside MSan instrumentation, so mark the
+    // ciphertext bytes as initialized before they enter the outgoing chain.
+    __msan_unpoison(const_cast<char *>(buf), static_cast<size_t>(len));
+  }
+#endif
   return narrow_cast<int>(stream->flow_write(Slice(buf, len)));
 }
 }  // namespace

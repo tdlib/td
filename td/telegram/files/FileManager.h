@@ -873,7 +873,7 @@ class FileManager final : public Actor {
 
   bool is_closed_ = false;
 
-  std::set<std::string> bad_paths_;
+  vector<string> bad_paths_;
 
   int file_node_size_warning_exp_ = 10;
 

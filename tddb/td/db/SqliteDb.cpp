@@ -9,6 +9,7 @@
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/port/Mutex.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/SliceBuilder.h"
@@ -21,6 +22,8 @@
 namespace td {
 
 namespace {
+Mutex sqlcipher_key_init_mutex;
+
 string quote_string(Slice str) {
   size_t cnt = 0;
   for (auto &c : str) {
@@ -232,6 +235,7 @@ Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, bool allow_creation, co
   SqliteDb db;
   TRY_STATUS(db.init(path, allow_creation));
   if (!db_key.is_empty()) {
+    auto key_init_lock = sqlcipher_key_init_mutex.lock();
     if (db.check_encryption().is_ok()) {
       return Status::Error(PSLICE() << "No key is needed for database \"" << path << '"');
     }
@@ -242,6 +246,8 @@ Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, bool allow_creation, co
       TRY_STATUS(db.exec(PSLICE() << "PRAGMA cipher_compatibility = " << cipher_version));
     }
     db.set_cipher_version(cipher_version);
+    TRY_STATUS_PREFIX(db.check_encryption(), "Can't check database: ");
+    return std::move(db);
   }
   TRY_STATUS_PREFIX(db.check_encryption(), "Can't check database: ");
   return std::move(db);

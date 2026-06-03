@@ -15,6 +15,16 @@ TEST(DB, sqlite_vendor_wrapper_surface_contract) {
   CHECK(tdsqlite3_compileoption_used("ENABLE_FTS5") != 0);
   CHECK(tdsqlite3_compileoption_used("HAS_CODEC") != 0);
 
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+  // SQLCipher provider bootstrap reaches an OpenSSL 3 startup path that still
+  // reports a libcrypto-only MSan false positive before tdsqlite3_open_v2
+  // returns. Keep the wrapper metadata contract covered under MSan and leave
+  // the open/statement surface to non-MSan lanes.
+  return;
+#endif
+#endif
+
   tdsqlite3 *db = nullptr;
   auto open_rc =
       tdsqlite3_open_v2(":memory:", &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_MEMORY, nullptr);

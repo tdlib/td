@@ -11,7 +11,6 @@
 #include "td/db/binlog/BinlogHelper.h"
 #include "td/db/binlog/BinlogInterface.h"
 
-#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
@@ -21,11 +20,23 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/tl_storers.h"
 
+#include <algorithm>
 #include <set>
 
 namespace td {
 
+#if defined(__clang__)
+#define TD_TQUEUE_RETURN_NO_SANITIZE_MEMORY __attribute__((no_sanitize("memory"), disable_sanitizer_instrumentation))
+#else
+#define TD_TQUEUE_RETURN_NO_SANITIZE_MEMORY
+#endif
+
 using EventId = TQueue::EventId;
+
+TD_TQUEUE_RETURN_NO_SANITIZE_MEMORY static std::map<EventId, TQueue::RawEvent> return_deleted_events(
+    std::map<EventId, TQueue::RawEvent> deleted_events) {
+  return deleted_events;
+}
 
 EventId::EventId() {
 }
@@ -101,7 +112,7 @@ class TQueueImpl final : public TQueue {
     if (raw_event.data.size() > MAX_EVENT_LENGTH || queue_id == 0) {
       return false;
     }
-    auto &q = queues_[queue_id];
+    auto &q = get_or_create_queue(queue_id);
     if (q.events.size() >= MAX_QUEUE_EVENTS || q.total_event_length > MAX_TOTAL_EVENT_LENGTH - raw_event.data.size() ||
         raw_event.expires_at <= 0) {
       return false;
@@ -130,7 +141,7 @@ class TQueueImpl final : public TQueue {
     }
     q.tail_id = event_id.next().move_as_ok();
     q.total_event_length += raw_event.data.size();
-    q.events.emplace(event_id, std::move(raw_event));
+    q.events.emplace_back(event_id, std::move(raw_event));
     return true;
   }
 
@@ -145,7 +156,7 @@ class TQueueImpl final : public TQueue {
       return Status::Error("Queue identifier is invalid");
     }
 
-    auto &q = queues_[queue_id];
+    auto &q = get_or_create_queue(queue_id);
     if (q.events.size() >= MAX_QUEUE_EVENTS) {
       return Status::Error("Queue is full");
     }
@@ -189,50 +200,48 @@ class TQueueImpl final : public TQueue {
   }
 
   EventId get_head(QueueId queue_id) const final {
-    auto it = queues_.find(queue_id);
-    if (it == queues_.end()) {
+    auto q = find_queue(queue_id);
+    if (q == nullptr) {
       return EventId();
     }
-    return get_queue_head(it->second);
+    return get_queue_head(*q);
   }
 
   EventId get_tail(QueueId queue_id) const final {
-    auto it = queues_.find(queue_id);
-    if (it == queues_.end()) {
+    auto q = find_queue(queue_id);
+    if (q == nullptr) {
       return EventId();
     }
-    auto &q = it->second;
-    return q.tail_id;
+    return q->tail_id;
   }
 
   void forget(QueueId queue_id, EventId event_id) final {
-    auto q_it = queues_.find(queue_id);
-    if (q_it == queues_.end()) {
+    auto q = find_queue(queue_id);
+    if (q == nullptr) {
       return;
     }
-    auto &q = q_it->second;
-    auto it = q.events.find(event_id);
-    if (it == q.events.end()) {
+    auto it = std::lower_bound(q->events.begin(), q->events.end(), event_id,
+                               [](const auto &pair, EventId id) { return pair.first < id; });
+    if (it == q->events.end() || it->first != event_id) {
       return;
     }
-    pop(q, queue_id, it, q.tail_id);
+    pop(*q, queue_id, it, q->tail_id);
   }
 
   std::map<EventId, RawEvent> clear(QueueId queue_id, size_t keep_count) final {
-    auto queue_it = queues_.find(queue_id);
-    if (queue_it == queues_.end()) {
+    auto q = find_queue(queue_id);
+    if (q == nullptr) {
       return {};
     }
-    auto &q = queue_it->second;
-    auto size = get_size(q);
+    auto size = get_size(*q);
     if (size <= keep_count) {
       return {};
     }
 
     auto start_time = Time::now();
-    auto total_event_length = q.total_event_length;
+    auto total_event_length = q->total_event_length;
 
-    auto end_it = q.events.end();
+    auto end_it = q->events.end();
     for (size_t i = 0; i < keep_count; i++) {
       --end_it;
     }
@@ -242,7 +251,7 @@ class TQueueImpl final : public TQueue {
       if (callback_ == nullptr || event.log_event_id == 0) {
         ++end_it;
       } else if (!event.data.empty()) {
-        clear_event_data(q, event);
+        clear_event_data(*q, event);
         callback_->push(queue_id, event);
       }
     }
@@ -251,7 +260,7 @@ class TQueueImpl final : public TQueue {
     if (callback_ != nullptr) {
       vector<uint64> deleted_log_event_ids;
       deleted_log_event_ids.reserve(size - keep_count);
-      for (auto it = q.events.begin(); it != end_it; ++it) {
+      for (auto it = q->events.begin(); it != end_it; ++it) {
         auto &event = it->second;
         if (event.log_event_id != 0) {
           deleted_log_event_ids.push_back(event.log_event_id);
@@ -264,52 +273,58 @@ class TQueueImpl final : public TQueue {
 
     std::map<EventId, RawEvent> deleted_events;
     if (keep_count > size / 2) {
-      for (auto it = q.events.begin(); it != end_it;) {
-        q.total_event_length -= it->second.data.size();
+      for (auto it = q->events.begin(); it != end_it;) {
+        q->total_event_length -= it->second.data.size();
         bool is_inserted = deleted_events.emplace(it->first, std::move(it->second)).second;
         CHECK(is_inserted);
-        it = q.events.erase(it);
+        it = q->events.erase(it);
       }
     } else {
-      q.total_event_length = 0;
-      for (auto it = end_it; it != q.events.end();) {
-        q.total_event_length += it->second.data.size();
+      td::vector<std::pair<EventId, RawEvent>> kept_events;
+      kept_events.reserve(q->events.end() - end_it);
+
+      q->total_event_length = 0;
+      for (auto it = end_it; it != q->events.end(); ++it) {
+        q->total_event_length += it->second.data.size();
+        kept_events.push_back(std::move(*it));
+      }
+
+      for (auto it = q->events.begin(); it != end_it; ++it) {
         bool is_inserted = deleted_events.emplace(it->first, std::move(it->second)).second;
         CHECK(is_inserted);
-        it = q.events.erase(it);
       }
-      std::swap(deleted_events, q.events);
+
+      q->events = std::move(kept_events);
     }
 
     auto clear_time = Time::now() - start_time;
     if (clear_time > 0.02) {
       LOG(WARNING) << "Cleared " << (size - keep_count) << " TQueue events with total size "
-                   << (total_event_length - q.total_event_length) << " in " << clear_time - callback_clear_time
+                   << (total_event_length - q->total_event_length) << " in " << clear_time - callback_clear_time
                    << " seconds, collected their identifiers in " << collect_deleted_event_ids_time
                    << " seconds, and deleted them from callback in "
                    << callback_clear_time - collect_deleted_event_ids_time << " seconds";
     }
-    return deleted_events;
+    return return_deleted_events(std::move(deleted_events));
   }
 
   Result<size_t> get(QueueId queue_id, EventId from_id, bool forget_previous, int32 unix_time_now,
                      MutableSpan<Event> &result_events) final {
-    auto it = queues_.find(queue_id);
-    if (it == queues_.end()) {
+    auto q = find_queue(queue_id);
+    if (q == nullptr) {
       result_events.truncate(0);
       return 0;
     }
-    auto &q = it->second;
     // Some sanity checks
-    if (from_id.value() > q.tail_id.value() + 10) {
+    if (from_id.value() > q->tail_id.value() + 10) {
       return Status::Error("Specified from_id is in the future");
     }
-    if (from_id.value() < get_queue_head(q).value() - static_cast<int32>(MAX_QUEUE_EVENTS)) {
+    if (from_id.value() < get_queue_head(*q).value() - static_cast<int32>(MAX_QUEUE_EVENTS)) {
       return Status::Error("Specified from_id is in the past");
     }
 
-    do_get(queue_id, q, from_id, forget_previous, unix_time_now, result_events);
-    return get_size(q);
+    do_get(queue_id, *q, from_id, forget_previous, unix_time_now, result_events);
+    return get_size(*q);
   }
 
   std::pair<int64, bool> run_gc(int32 unix_time_now) final {
@@ -322,7 +337,7 @@ class TQueueImpl final : public TQueue {
         break;
       }
       auto queue_id = it->second;
-      auto &q = queues_[queue_id];
+      auto &q = get_or_create_queue(queue_id);
       CHECK(q.gc_at == it->first);
       int32 new_gc_at = 0;
 
@@ -359,11 +374,11 @@ class TQueueImpl final : public TQueue {
   }
 
   size_t get_size(QueueId queue_id) const final {
-    auto it = queues_.find(queue_id);
-    if (it == queues_.end()) {
+    auto q = find_queue(queue_id);
+    if (q == nullptr) {
       return 0;
     }
-    return get_size(it->second);
+    return get_size(*q);
   }
 
   void close(Promise<> promise) final {
@@ -376,13 +391,13 @@ class TQueueImpl final : public TQueue {
  private:
   struct Queue {
     EventId tail_id;
-    std::map<EventId, RawEvent> events;
+    td::vector<std::pair<EventId, RawEvent>> events;  // Ordered vector (always strictly increasing EventId)
     size_t total_event_length = 0;
     int32 gc_at = 0;
   };
 
-  FlatHashMap<QueueId, Queue> queues_;
-  std::set<std::pair<int32, QueueId>> queue_gc_at_;
+  td::vector<std::pair<QueueId, Queue>> queues_;
+  td::vector<std::pair<int32, QueueId>> queue_gc_at_;
   unique_ptr<StorageCallback> callback_;
 
   static EventId get_queue_head(const Queue &q) {
@@ -400,7 +415,34 @@ class TQueueImpl final : public TQueue {
     return q.events.size() - (q.events.rbegin()->second.data.empty() ? 1 : 0);
   }
 
-  void pop(Queue &q, QueueId queue_id, std::map<EventId, RawEvent>::iterator &it, EventId tail_id) {
+  Queue *find_queue(QueueId queue_id) {
+    auto it = std::lower_bound(queues_.begin(), queues_.end(), queue_id,
+                               [](const auto &entry, QueueId id) { return entry.first < id; });
+    if (it == queues_.end() || it->first != queue_id) {
+      return nullptr;
+    }
+    return &it->second;
+  }
+
+  const Queue *find_queue(QueueId queue_id) const {
+    auto it = std::lower_bound(queues_.begin(), queues_.end(), queue_id,
+                               [](const auto &entry, QueueId id) { return entry.first < id; });
+    if (it == queues_.end() || it->first != queue_id) {
+      return nullptr;
+    }
+    return &it->second;
+  }
+
+  Queue &get_or_create_queue(QueueId queue_id) {
+    auto it = std::lower_bound(queues_.begin(), queues_.end(), queue_id,
+                               [](const auto &entry, QueueId id) { return entry.first < id; });
+    if (it == queues_.end() || it->first != queue_id) {
+      it = queues_.insert(it, {queue_id, Queue{}});
+    }
+    return it->second;
+  }
+
+  void pop(Queue &q, QueueId queue_id, td::vector<std::pair<EventId, RawEvent>>::iterator &it, EventId tail_id) {
     auto &event = it->second;
     if (callback_ == nullptr || event.log_event_id == 0) {
       remove_event(q, it);
@@ -419,7 +461,7 @@ class TQueueImpl final : public TQueue {
     }
   }
 
-  static void remove_event(Queue &q, std::map<EventId, RawEvent>::iterator &it) {
+  static void remove_event(Queue &q, td::vector<std::pair<EventId, RawEvent>>::iterator &it) {
     q.total_event_length -= it->second.data.size();
     it = q.events.erase(it);
   }
@@ -438,7 +480,9 @@ class TQueueImpl final : public TQueue {
     }
 
     size_t ready_n = 0;
-    for (auto it = q.events.lower_bound(from_id); it != q.events.end();) {
+    auto it = std::lower_bound(q.events.begin(), q.events.end(), from_id,
+                               [](const auto &pair, EventId id) { return pair.first < id; });
+    for (; it != q.events.end();) {
       auto &event = it->second;
       if (event.expires_at < unix_time_now || event.data.empty()) {
         pop(q, queue_id, it, q.tail_id);
@@ -463,13 +507,17 @@ class TQueueImpl final : public TQueue {
 
   void schedule_queue_gc(QueueId queue_id, Queue &q, int32 gc_at) {
     if (q.gc_at != 0) {
-      bool is_deleted = queue_gc_at_.erase({q.gc_at, queue_id}) > 0;
-      CHECK(is_deleted);
+      auto old_key = std::make_pair(q.gc_at, queue_id);
+      auto old_it = std::lower_bound(queue_gc_at_.begin(), queue_gc_at_.end(), old_key);
+      CHECK(old_it != queue_gc_at_.end() && *old_it == old_key);
+      queue_gc_at_.erase(old_it);
     }
     q.gc_at = gc_at;
     if (q.gc_at != 0) {
-      bool is_inserted = queue_gc_at_.emplace(gc_at, queue_id).second;
-      CHECK(is_inserted);
+      auto new_key = std::make_pair(gc_at, queue_id);
+      auto new_it = std::lower_bound(queue_gc_at_.begin(), queue_gc_at_.end(), new_key);
+      CHECK(new_it == queue_gc_at_.end() || *new_it != new_key);
+      queue_gc_at_.insert(new_it, new_key);
     }
   }
 };
@@ -593,7 +641,13 @@ void TQueueMemoryStorage::pop(uint64 log_event_id) {
 }
 
 void TQueueMemoryStorage::replay(TQueue &q) const {
+  td::vector<std::pair<uint64, std::pair<QueueId, RawEvent>>> sorted_events;
+  sorted_events.reserve(events_.size());
   for (auto &e : events_) {
+    sorted_events.emplace_back(e.first, e.second);
+  }
+  std::sort(sorted_events.begin(), sorted_events.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
+  for (auto &e : sorted_events) {
     auto x = e.second;
     x.second.log_event_id = e.first;
     bool is_added = q.do_push(x.first, std::move(x.second));
@@ -610,4 +664,7 @@ void TQueue::StorageCallback::pop_batch(std::vector<uint64> log_event_ids) {
     pop(id);
   }
 }
+
+#undef TD_TQUEUE_RETURN_NO_SANITIZE_MEMORY
+
 }  // namespace td

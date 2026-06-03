@@ -10,7 +10,6 @@
 #include "td/utils/common.h"
 
 #include <algorithm>
-#include <set>
 #include <utility>
 
 namespace td {
@@ -37,14 +36,14 @@ class FastSetWithPosition {
   }
 
   bool add(T x) {
-    if (checked_.count(x) != 0) {
+    if (contains_sorted(checked_, x)) {
       return false;
     }
-    return not_checked_.insert(x).second;
+    return insert_sorted_unique(not_checked_, std::move(x));
   }
 
   bool remove(T x) {
-    return checked_.erase(x) != 0 || not_checked_.erase(x) != 0;
+    return erase_sorted(checked_, x) || erase_sorted(not_checked_, x);
   }
 
   bool has_next() const {
@@ -55,17 +54,16 @@ class FastSetWithPosition {
     if (not_checked_.empty()) {
       not_checked_ = std::move(checked_);
     } else {
-      not_checked_.insert(checked_.begin(), checked_.end());
+      merge_sorted_unique(not_checked_, checked_);
     }
     reset_to_empty(checked_);
   }
 
   T next() {
     CHECK(has_next());
-    auto it = not_checked_.begin();
-    auto res = *it;
-    not_checked_.erase(it);
-    checked_.insert(res);
+    auto res = not_checked_.front();
+    not_checked_.erase(not_checked_.begin());
+    insert_sorted_unique(checked_, res);
     return res;
   }
 
@@ -78,15 +76,15 @@ class FastSetWithPosition {
       std::swap(*this, other);
     }
     for (auto x : other.checked_) {
-      not_checked_.erase(x);
-      checked_.insert(x);
+      erase_sorted(not_checked_, x);
+      insert_sorted_unique(checked_, x);
     }
 
     for (auto x : other.not_checked_) {
-      if (checked_.count(x) != 0) {
+      if (contains_sorted(checked_, x)) {
         continue;
       }
-      not_checked_.insert(x);
+      insert_sorted_unique(not_checked_, x);
     }
   }
 
@@ -99,8 +97,58 @@ class FastSetWithPosition {
   }
 
  private:
-  std::set<T> checked_;
-  std::set<T> not_checked_;
+  static bool contains_sorted(const vector<T> &values, const T &value) {
+    auto it = std::lower_bound(values.begin(), values.end(), value);
+    return it != values.end() && *it == value;
+  }
+
+  static bool insert_sorted_unique(vector<T> &values, T value) {
+    auto it = std::lower_bound(values.begin(), values.end(), value);
+    if (it != values.end() && *it == value) {
+      return false;
+    }
+    values.insert(it, std::move(value));
+    return true;
+  }
+
+  static bool erase_sorted(vector<T> &values, const T &value) {
+    auto it = std::lower_bound(values.begin(), values.end(), value);
+    if (it == values.end() || *it != value) {
+      return false;
+    }
+    values.erase(it);
+    return true;
+  }
+
+  static void merge_sorted_unique(vector<T> &target, const vector<T> &source) {
+    if (source.empty()) {
+      return;
+    }
+    if (target.empty()) {
+      target = source;
+      return;
+    }
+    vector<T> merged;
+    merged.reserve(target.size() + source.size());
+    auto it = target.begin();
+    auto jt = source.begin();
+    while (it != target.end() && jt != source.end()) {
+      if (*it < *jt) {
+        merged.push_back(*it++);
+      } else if (*jt < *it) {
+        merged.push_back(*jt++);
+      } else {
+        merged.push_back(*it++);
+        ++jt;
+      }
+    }
+    merged.insert(merged.end(), it, target.end());
+    merged.insert(merged.end(), jt, source.end());
+    target = std::move(merged);
+  }
+
+  vector<T> checked_;
+  vector<T> not_checked_;
 };
 
 template <class T>

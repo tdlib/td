@@ -64,7 +64,8 @@ TEST(LoggingTagVerbosityStress, SourceRequiresAtomicTagDeclarationsInAllKnownDef
   ASSERT_TRUE(td_cpp.find("std::atomic<int> VERBOSITY_NAME(td_init)") != td::string::npos);
   ASSERT_TRUE(td_cpp.find("std::atomic<int> VERBOSITY_NAME(td_requests)") != td::string::npos);
   ASSERT_TRUE(file_manager_cpp.find("std::atomic<int> VERBOSITY_NAME(update_file)") != td::string::npos);
-  ASSERT_TRUE(logging_cpp.find("std::map<Slice, std::atomic<int> *>") != td::string::npos);
+  ASSERT_TRUE(logging_cpp.find("struct LogTagEntry") != td::string::npos);
+  ASSERT_TRUE(logging_cpp.find("std::map<Slice, std::atomic<int> *>") == td::string::npos);
 }
 
 }  // namespace

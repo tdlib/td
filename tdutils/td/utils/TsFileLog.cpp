@@ -48,11 +48,10 @@ class TsFileLog final : public LogInterface {
     size_t id{0};
   };
 
-  static constexpr size_t MAX_THREAD_ID = 128;
   int64 rotate_threshold_ = 0;
   bool redirect_stderr_ = false;
   std::string path_;
-  std::array<Info, MAX_THREAD_ID> logs_;
+  std::array<Info, static_cast<size_t>(kThreadIdSlotCount)> logs_;
   std::mutex init_mutex_;
 
   LogInterface *get_current_logger() {

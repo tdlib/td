@@ -16,6 +16,9 @@
 
 namespace td {
 
+inline constexpr int32 kThreadIdSlotCount = 128;
+inline constexpr int32 kMaxRegisteredThreadId = kThreadIdSlotCount - 1;
+
 // clang-format off
 #if TD_GCC || TD_CLANG
   #define TD_THREAD_LOCAL __thread

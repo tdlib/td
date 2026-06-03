@@ -208,9 +208,10 @@ td::string build_res_pq_payload(const td::UInt128 &response_nonce) {
   }
 
   const td::vector<td::int64> fingerprints = {0x1111111111111111LL, 0x2222222222222222LL};
-  td::TLObjectStorer<td::mtproto_api::resPQ> storer(
-      td::mtproto_api::resPQ(response_nonce, server_nonce, td::string("\x13\x37", 2),
-                             td::mtproto_api::array<td::int64>(fingerprints.begin(), fingerprints.end())));
+  const td::string pq("\x13\x37", 2);
+  td::mtproto_api::array<td::int64> server_public_key_fingerprints(fingerprints.begin(), fingerprints.end());
+  td::mtproto_api::resPQ res_pq(response_nonce, server_nonce, pq, std::move(server_public_key_fingerprints));
+  td::TLObjectStorer<td::mtproto_api::resPQ> storer(res_pq);
 
   td::string payload(storer.size(), '\0');
   auto real_size = storer.store(td::MutableSlice(payload).ubegin());

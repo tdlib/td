@@ -379,10 +379,17 @@ class SqliteKV {
 class BaselineKV {
  public:
   td::string get(const td::string &key) {
-    return map_[key];
+    if (auto it = map_.find(key); it != map_.end()) {
+      return it->second;
+    }
+    return {};
   }
   SeqNo set(const td::string &key, td::string value) {
-    map_[key] = std::move(value);
+    if (auto it = map_.find(key); it != map_.end()) {
+      it->second = std::move(value);
+    } else {
+      map_.emplace(key, std::move(value));
+    }
     return ++current_tid_;
   }
   SeqNo erase(const td::string &key) {
@@ -399,7 +406,7 @@ class BaselineKV {
   }
 
  private:
-  std::map<td::string, td::string> map_;
+  td::FlatHashMap<td::string, td::string> map_;
   SeqNo current_tid_ = 0;
 };
 

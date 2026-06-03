@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
 // SPDX-License-Identifier: MIT
 
+#include "test/stealth/SourceContractFileReader.h"
+
 #include "td/utils/common.h"
 #include "td/utils/tests.h"
-
-#include <fstream>
 
 #if TD_PORT_POSIX
 #include <unistd.h>
@@ -23,9 +23,9 @@ td::string get_self_executable_path() {
 }
 
 td::string read_binary_file(td::Slice path) {
-  std::ifstream input(path.str(), std::ios::binary);
-  CHECK(input.is_open());
-  return td::string((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+  auto content = td::mtproto::test::read_existing_binary_file(path.str());
+  CHECK(!content.empty());
+  return content;
 }
 
 size_t count_token(const td::string &haystack, td::Slice needle) {

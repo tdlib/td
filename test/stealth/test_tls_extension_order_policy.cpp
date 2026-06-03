@@ -13,7 +13,6 @@
 #include "td/utils/tests.h"
 
 #include <algorithm>
-#include <set>
 #include <unordered_set>
 
 namespace {
@@ -75,8 +74,9 @@ td::string order_signature(const std::vector<td::uint16> &ext) {
   return signature;
 }
 
-std::multiset<td::uint16> to_multiset(const std::vector<td::uint16> &ext) {
-  return std::multiset<td::uint16>(ext.begin(), ext.end());
+std::vector<td::uint16> sorted_copy(std::vector<td::uint16> ext) {
+  std::sort(ext.begin(), ext.end());
+  return ext;
 }
 
 void assert_chrome_anchor_layout(const td::mtproto::test::ParsedClientHello &hello, bool padding_allowed) {
@@ -93,22 +93,23 @@ void assert_chrome_anchor_layout(const td::mtproto::test::ParsedClientHello &hel
 }
 
 TEST(TlsExtensionOrderPolicy, EchEnabledExtensionsMatchChromeShuffleModel) {
-  const std::multiset<td::uint16> expected = {0x0000,
-                                              kStatusRequest,
-                                              kSupportedGroups,
-                                              kEcPointFormats,
-                                              kSignatureAlgorithms,
-                                              kAlpn,
-                                              kSct,
-                                              kExtendedMasterSecret,
-                                              kCompressCertificate,
-                                              kSessionTicket,
-                                              kSupportedVersions,
-                                              kPskModes,
-                                              kKeyShare,
-                                              kAlps,
-                                              kEch,
-                                              kRenegotiationInfo};
+  const std::vector<td::uint16> expected = {0x0000,
+                                            kStatusRequest,
+                                            kSupportedGroups,
+                                            kEcPointFormats,
+                                            kSignatureAlgorithms,
+                                            kAlpn,
+                                            kSct,
+                                            kExtendedMasterSecret,
+                                            kCompressCertificate,
+                                            kSessionTicket,
+                                            kSupportedVersions,
+                                            kPskModes,
+                                            kKeyShare,
+                                            kAlps,
+                                            kEch,
+                                            kRenegotiationInfo};
+  const auto expected_sorted = sorted_copy(expected);
 
   std::unordered_set<td::string> observed_orders;
   std::unordered_set<size_t> renegotiation_positions;
@@ -128,7 +129,7 @@ TEST(TlsExtensionOrderPolicy, EchEnabledExtensionsMatchChromeShuffleModel) {
 
     auto ext = normalize_extensions(parsed.ok());
     ASSERT_EQ(16u, ext.size());
-    ASSERT_TRUE(expected == to_multiset(ext));
+    ASSERT_TRUE(expected_sorted == sorted_copy(ext));
 
     observed_orders.insert(order_signature(ext));
     auto it = std::find(ext.begin(), ext.end(), kRenegotiationInfo);
@@ -141,21 +142,22 @@ TEST(TlsExtensionOrderPolicy, EchEnabledExtensionsMatchChromeShuffleModel) {
 }
 
 TEST(TlsExtensionOrderPolicy, EchDisabledExtensionsMatchChromeShuffleModel) {
-  const std::multiset<td::uint16> expected = {0x0000,
-                                              kStatusRequest,
-                                              kSupportedGroups,
-                                              kEcPointFormats,
-                                              kSignatureAlgorithms,
-                                              kAlpn,
-                                              kSct,
-                                              kExtendedMasterSecret,
-                                              kCompressCertificate,
-                                              kSessionTicket,
-                                              kSupportedVersions,
-                                              kPskModes,
-                                              kKeyShare,
-                                              kAlps,
-                                              kRenegotiationInfo};
+  const std::vector<td::uint16> expected = {0x0000,
+                                            kStatusRequest,
+                                            kSupportedGroups,
+                                            kEcPointFormats,
+                                            kSignatureAlgorithms,
+                                            kAlpn,
+                                            kSct,
+                                            kExtendedMasterSecret,
+                                            kCompressCertificate,
+                                            kSessionTicket,
+                                            kSupportedVersions,
+                                            kPskModes,
+                                            kKeyShare,
+                                            kAlps,
+                                            kRenegotiationInfo};
+  const auto expected_sorted = sorted_copy(expected);
 
   std::unordered_set<td::string> observed_orders;
   std::unordered_set<size_t> renegotiation_positions;
@@ -175,7 +177,7 @@ TEST(TlsExtensionOrderPolicy, EchDisabledExtensionsMatchChromeShuffleModel) {
 
     auto ext = normalize_extensions(parsed.ok());
     ASSERT_EQ(15u, ext.size());
-    ASSERT_TRUE(expected == to_multiset(ext));
+    ASSERT_TRUE(expected_sorted == sorted_copy(ext));
 
     observed_orders.insert(order_signature(ext));
     auto it = std::find(ext.begin(), ext.end(), kRenegotiationInfo);

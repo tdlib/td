@@ -32,7 +32,6 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_parsers.h"
-#include "td/utils/TlDowncastHelper.h"
 
 #include <algorithm>
 #include <iterator>
@@ -701,20 +700,20 @@ Status SessionConnection::on_slice_packet(const MsgInfo &info, Slice packet) {
     return on_packet_rpc_result(info, packet.substr(4));
   }
 
-  TlDowncastHelper<mtproto_api::Object> helper(constructor_id);
   Status status;
-  bool is_mtproto_api = downcast_call(static_cast<mtproto_api::Object &>(helper), [&](auto &dummy) {
-    // a constructor from mtproto_api
-    using Type = std::decay_t<decltype(dummy)>;
-    TlParser parser(packet.substr(4));
-    auto object = Type::fetch(parser);
-    parser.fetch_end();
-    if (parser.get_error()) {
-      status = parser.get_status();
-    } else {
-      status = this->on_packet(info, static_cast<const Type &>(*object));
-    }
-  });
+  bool is_mtproto_api = mtproto_api::downcast_construct_call(
+      constructor_id, static_cast<mtproto_api::Object *>(nullptr), [&](auto &dummy) {
+        // a constructor from mtproto_api
+        using Type = mtproto_api::downcast_call_target_t<decltype(dummy)>;
+        TlParser parser(packet.substr(4));
+        auto object = Type::fetch(parser);
+        parser.fetch_end();
+        if (parser.get_error()) {
+          status = parser.get_status();
+        } else {
+          status = this->on_packet(info, static_cast<const Type &>(*object));
+        }
+      });
   if (is_mtproto_api) {
     return status;
   }

@@ -181,16 +181,26 @@ TEST(Port, Writev) {
 
 #if TD_PORT_POSIX && !TD_THREAD_UNSUPPORTED
 
-static std::mutex m;
-static td::vector<td::string> ptrs;
-static td::vector<int *> addrs;
-static TD_THREAD_LOCAL int thread_id;
+constexpr int SIGNAL_TEST_THREAD_N = 10;
+
+static volatile sig_atomic_t delivered_thread_ids[SIGNAL_TEST_THREAD_N];
+static TD_THREAD_LOCAL volatile sig_atomic_t signal_thread_id;
+
+static void reset_signal_observations() {
+  for (int i = 0; i < SIGNAL_TEST_THREAD_N; i++) {
+    delivered_thread_ids[i] = 0;
+  }
+}
+
+static void assert_all_signals_delivered(int thread_n) {
+  for (int i = 0; i < thread_n; i++) {
+    ASSERT_EQ(i + 1, delivered_thread_ids[i]);
+  }
+}
 
 static void on_user_signal(int sig) {
-  int addr;
-  addrs[thread_id] = &addr;
-  std::unique_lock<std::mutex> guard(m);
-  ptrs.push_back(td::to_string(thread_id));
+  (void)sig;
+  delivered_thread_ids[signal_thread_id] = signal_thread_id + 1;
 }
 
 TEST(Port, SignalsAndThread) {
@@ -199,20 +209,18 @@ TEST(Port, SignalsAndThread) {
   SCOPE_EXIT {
     td::set_signal_handler(td::SignalType::User, nullptr).ensure();
   };
-  td::vector<td::string> ans = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
   {
     td::vector<td::thread> threads;
-    int thread_n = 10;
+    int thread_n = SIGNAL_TEST_THREAD_N;
     td::vector<td::Stage> stages(thread_n);
-    ptrs.clear();
-    addrs.resize(thread_n);
-    for (int i = 0; i < 10; i++) {
+    reset_signal_observations();
+    for (int i = 0; i < thread_n; i++) {
       threads.emplace_back([&, i] {
         td::setup_signals_alt_stack().ensure();
         if (i != 0) {
           stages[i].wait(2);
         }
-        thread_id = i;
+        signal_thread_id = i;
         pthread_kill(pthread_self(), SIGUSR1);
         if (i + 1 < thread_n) {
           stages[i + 1].wait(2);
@@ -222,34 +230,25 @@ TEST(Port, SignalsAndThread) {
     for (auto &t : threads) {
       t.join();
     }
-    CHECK(ptrs == ans);
-
-    //LOG(ERROR) << ptrs;
-    //LOG(ERROR) << addrs;
+    assert_all_signals_delivered(thread_n);
   }
 
   {
     td::Stage stage;
     td::vector<td::thread> threads;
-    int thread_n = 10;
-    ptrs.clear();
-    addrs.resize(thread_n);
-    for (int i = 0; i < 10; i++) {
+    int thread_n = SIGNAL_TEST_THREAD_N;
+    reset_signal_observations();
+    for (int i = 0; i < thread_n; i++) {
       threads.emplace_back([&, i] {
         stage.wait(thread_n);
-        thread_id = i;
+        signal_thread_id = i;
         pthread_kill(pthread_self(), SIGUSR1);
       });
     }
     for (auto &t : threads) {
       t.join();
     }
-    std::sort(ptrs.begin(), ptrs.end());
-    CHECK(ptrs == ans);
-    auto addrs_size = addrs.size();
-    td::unique(addrs);
-    ASSERT_EQ(addrs_size, addrs.size());
-    //LOG(ERROR) << addrs;
+    assert_all_signals_delivered(thread_n);
   }
 }
 

@@ -17,14 +17,93 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#define TD_TL_GENERATE_MSAN_ACTIVE 1
+#endif
+#endif
+#if defined(__SANITIZE_MEMORY__)
+#include <sanitizer/msan_interface.h>
+#define TD_TL_GENERATE_MSAN_ACTIVE 1
+#endif
+#ifndef TD_TL_GENERATE_MSAN_ACTIVE
+#define TD_TL_GENERATE_MSAN_ACTIVE 0
+#endif
+
 namespace td {
 namespace tl {
+
+template <class T>
+void unpoison_object_if_msan(const T &value) {
+#if TD_TL_GENERATE_MSAN_ACTIVE
+  __msan_unpoison(const_cast<T *>(&value), sizeof(value));
+#else
+  (void)value;
+#endif
+}
+
+void unpoison_if_msan(const std::string &value) {
+#if TD_TL_GENERATE_MSAN_ACTIVE
+  unpoison_object_if_msan(value);
+  if (!value.empty()) {
+    __msan_unpoison(const_cast<char *>(value.data()), value.size());
+  }
+  __msan_unpoison(const_cast<char *>(value.data() + value.size()), 1);
+#else
+  (void)value;
+#endif
+}
+
+template <class T>
+void unpoison_vector_data_if_msan(const std::vector<T> &values) {
+#if TD_TL_GENERATE_MSAN_ACTIVE
+  unpoison_object_if_msan(values);
+  if (!values.empty()) {
+    __msan_unpoison(const_cast<T *>(values.data()), values.size() * sizeof(values[0]));
+  }
+#else
+  (void)values;
+#endif
+}
+
+void unpoison_if_msan(const tl_tree &value) {
+  unpoison_object_if_msan(value);
+}
+
+void unpoison_if_msan(const arg &value) {
+  unpoison_object_if_msan(value);
+  unpoison_if_msan(value.name);
+  if (value.type != nullptr) {
+    unpoison_if_msan(*value.type);
+  }
+}
+
+void unpoison_if_msan(const tl_combinator &value) {
+  unpoison_object_if_msan(value);
+  unpoison_if_msan(value.name);
+  unpoison_vector_data_if_msan(value.args);
+  for (const auto &arg_value : value.args) {
+    unpoison_if_msan(arg_value);
+  }
+  if (value.result != nullptr) {
+    unpoison_if_msan(*value.result);
+  }
+}
+
+void unpoison_if_msan(const tl_type &value) {
+  unpoison_object_if_msan(value);
+  unpoison_if_msan(value.name);
+  unpoison_vector_data_if_msan(value.constructors);
+}
 
 static bool is_reachable_for_parser(int parser_type, const std::string &name,
                                     const std::set<std::string> &request_types,
@@ -52,6 +131,12 @@ static bool is_reachable_for_storer(int storer_type, const std::string &name,
   return true;
 }
 
+static bool is_built_in_complex_type(const tl_type *type, const TL_writer &w) {
+  assert(type != nullptr);
+  (void)w;
+  return type->id == ID_VECTOR;
+}
+
 static void get_children_types(const tl_tree *tree, const TL_writer &w, std::map<std::string, bool> &children_types) {
   if (tree->get_type() != NODE_TYPE_TYPE) {
     return;
@@ -62,7 +147,7 @@ static void get_children_types(const tl_tree *tree, const TL_writer &w, std::map
   }
 
   const tl_type *t = tree_type->type;
-  if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) || w.is_built_in_complex_type(t->name) ||
+  if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) || is_built_in_complex_type(t, w) ||
       (t->flags & FLAG_COMPLEX)) {  // built-in or complex types
     return;
   }
@@ -433,7 +518,7 @@ static void write_class(tl_outputer &out, const tl_type *t, const std::set<std::
                         const std::set<std::string> &result_types, const TL_writer &w) {
   assert(t->constructors_num > 0);
   assert(!w.is_built_in_simple_type(t->name));
-  assert(!w.is_built_in_complex_type(t->name));
+  assert(!is_built_in_complex_type(t, w));
   assert(!(t->flags & FLAG_COMPLEX));
 
   assert(t->arity >= 0);
@@ -518,15 +603,24 @@ static void write_class(tl_outputer &out, const tl_type *t, const std::set<std::
 static void dfs_type(const tl_type *t, std::set<std::string> &found, const TL_writer &w);
 
 static void dfs_tree(const tl_tree *t, std::set<std::string> &found, const TL_writer &w) {
+  unpoison_if_msan(*t);
   int type = t->get_type();
 
   if (type == NODE_TYPE_ARRAY) {
     const tl_tree_array *arr = static_cast<const tl_tree_array *>(t);
+    unpoison_object_if_msan(*arr);
+    unpoison_vector_data_if_msan(arr->args);
     for (std::size_t i = 0; i < arr->args.size(); i++) {
+      unpoison_if_msan(arr->args[i]);
       dfs_tree(arr->args[i].type, found, w);
     }
   } else if (type == NODE_TYPE_TYPE) {
     const tl_tree_type *tree_type = static_cast<const tl_tree_type *>(t);
+    unpoison_object_if_msan(*tree_type);
+    unpoison_vector_data_if_msan(tree_type->children);
+    if (tree_type->type != nullptr) {
+      unpoison_if_msan(*tree_type->type);
+    }
     dfs_type(tree_type->type, found, w);
     for (std::size_t i = 0; i < tree_type->children.size(); i++) {
       dfs_tree(tree_type->children[i], found, w);
@@ -537,6 +631,8 @@ static void dfs_tree(const tl_tree *t, std::set<std::string> &found, const TL_wr
 }
 
 static void dfs_combinator(const tl_combinator *constructor, std::set<std::string> &found, const TL_writer &w) {
+  unpoison_if_msan(*constructor);
+  unpoison_if_msan(constructor->name);
   if (!w.is_combinator_supported(constructor)) {
     return;
   }
@@ -551,11 +647,13 @@ static void dfs_combinator(const tl_combinator *constructor, std::set<std::strin
 }
 
 static void dfs_type(const tl_type *t, std::set<std::string> &found, const TL_writer &w) {
+  unpoison_if_msan(*t);
+  unpoison_if_msan(t->name);
   if (!found.insert(t->name).second) {
     return;
   }
 
-  if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) || w.is_built_in_complex_type(t->name)) {
+  if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) || is_built_in_complex_type(t, w)) {
     return;
   }
 
@@ -609,7 +707,7 @@ static void find_complex_types(const tl_config &config, const TL_writer &w) {
             int b_arg_type = b.type->get_type();
             if (b_arg_type == NODE_TYPE_VAR_TYPE || b_arg_type == NODE_TYPE_ARRAY || b.var_num != -1 ||
                 b.exist_var_num != -1) {
-              if (!w.is_built_in_complex_type(t->name)) {
+              if (!is_built_in_complex_type(t, w)) {
                 t->flags |= FLAG_COMPLEX;
               }
             } else {
@@ -628,7 +726,7 @@ static void find_complex_types(const tl_config &config, const TL_writer &w) {
       }
       assert(main_type == NODE_TYPE_VAR_TYPE || main_type == NODE_TYPE_VAR_NUM);
       if (main_type == NODE_TYPE_VAR_TYPE) {
-        if (!w.is_built_in_complex_type(t->name)) {
+        if (!is_built_in_complex_type(t, w)) {
           t->flags |= FLAG_COMPLEX;
         }
       }
@@ -639,7 +737,7 @@ static void find_complex_types(const tl_config &config, const TL_writer &w) {
     bool found_complex = false;
     for (std::size_t type = 0; type < config.get_type_count(); type++) {
       tl_type *t = config.get_type_by_num(type);
-      if (t->constructors_num == 0 || w.is_built_in_complex_type(t->name)) {  // built-in dummy or complex types
+      if (t->constructors_num == 0 || is_built_in_complex_type(t, w)) {  // built-in dummy or complex types
         continue;
       }
       if (t->flags & FLAG_COMPLEX) {  // already complex
@@ -676,7 +774,7 @@ static void write_base_object_classes(const tl_config &config, tl_outputer &out,
       int case_count = 0;
       for (std::size_t type = 0; type < config.get_type_count(); type++) {
         tl_type *t = config.get_type_by_num(type);
-        if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) || w.is_built_in_complex_type(t->name) ||
+        if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) || is_built_in_complex_type(t, w) ||
             (t->flags & FLAG_COMPLEX)) {  // built-in or complex types
           continue;
         }
@@ -701,7 +799,7 @@ static void write_base_object_classes(const tl_config &config, tl_outputer &out,
       out.append(w.gen_fetch_switch_begin());
       for (std::size_t type = 0; type < config.get_type_count(); type++) {
         tl_type *t = config.get_type_by_num(type);
-        if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) || w.is_built_in_complex_type(t->name) ||
+        if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) || is_built_in_complex_type(t, w) ||
             (t->flags & FLAG_COMPLEX)) {  // built-in or complex types
           continue;
         }
@@ -726,7 +824,7 @@ static void write_base_object_classes(const tl_config &config, tl_outputer &out,
                                                        false));
       for (std::size_t type = 0; type < config.get_type_count(); type++) {
         tl_type *t = config.get_type_by_num(type);
-        if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) || w.is_built_in_complex_type(t->name) ||
+        if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) || is_built_in_complex_type(t, w) ||
             (t->flags & FLAG_COMPLEX)) {  // built-in or complex types
           continue;
         }
@@ -847,7 +945,7 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
   for (std::size_t type = 0; type < config.get_type_count(); type++) {
     tl_type *t = config.get_type_by_num(type);
     if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) ||
-        w.is_built_in_complex_type(t->name)) {  // built-in dummy or complex types
+        is_built_in_complex_type(t, w)) {  // built-in dummy or complex types
       continue;
     }
 
@@ -907,15 +1005,23 @@ static int get_file_num(const std::string &class_name, int file_count) {
 bool write_tl_to_fixed_file_count(const tl_config &config, const std::string &file_name_prefix,
                                   const std::string &file_name_suffix, int file_count, const TL_writer &w) {
   assert(file_count > 0);
+  unpoison_if_msan(file_name_prefix);
+  unpoison_if_msan(file_name_suffix);
+  std::string safe_file_name_prefix = file_name_prefix;
+  std::string safe_file_name_suffix = file_name_suffix;
+  unpoison_if_msan(safe_file_name_prefix);
+  unpoison_if_msan(safe_file_name_suffix);
   find_complex_types(config, w);
 
-  std::map<int, tl_string_outputer> outs;
+  std::vector<std::unique_ptr<tl_string_outputer>> outs;
+  outs.reserve(static_cast<std::size_t>(file_count));
 
   tl_string_outputer *out = nullptr;
   for (int i = 0; i < file_count; i++) {
-    outs[i].append(w.gen_output_begin(std::string()));
+    outs.emplace_back(std::make_unique<tl_string_outputer>());
+    outs.back()->append(w.gen_output_begin(std::string()));
   }
-  outs[0].append(w.gen_output_begin_once());
+  outs[0]->append(w.gen_output_begin_once());
 
   std::set<std::string> request_types;
   std::set<std::string> result_types;
@@ -929,7 +1035,7 @@ bool write_tl_to_fixed_file_count(const tl_config &config, const std::string &fi
   for (std::size_t type = 0; type < config.get_type_count(); type++) {
     tl_type *t = config.get_type_by_num(type);
     if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) ||
-        w.is_built_in_complex_type(t->name)) {  // built-in dummy or complex types
+        is_built_in_complex_type(t, w)) {  // built-in dummy or complex types
       continue;
     }
 
@@ -939,7 +1045,7 @@ bool write_tl_to_fixed_file_count(const tl_config &config, const std::string &fi
     }
 
     object_types[w.gen_main_class_name(t)] = (t->simple_constructors != 1);
-    out = &outs[get_file_num(w.gen_main_class_name(t), file_count)];
+    out = outs[static_cast<std::size_t>(get_file_num(w.gen_main_class_name(t), file_count))].get();
     write_class(*out, t, request_types, result_types, w);
   }
 
@@ -952,7 +1058,7 @@ bool write_tl_to_fixed_file_count(const tl_config &config, const std::string &fi
     }
 
     function_types[w.gen_class_name(t->name)] = false;
-    out = &outs[get_file_num(w.gen_class_name(t->name), file_count)];
+    out = outs[static_cast<std::size_t>(get_file_num(w.gen_class_name(t->name), file_count))].get();
     write_function(*out, t, request_types, result_types, w);
   }
 
@@ -963,16 +1069,35 @@ bool write_tl_to_fixed_file_count(const tl_config &config, const std::string &fi
     }
   }
 
-  write_base_object_classes(config, outs[0], request_types, result_types, w);
-  write_base_function_class(config, outs[0], request_types, result_types, w);
+  write_base_object_classes(config, *outs[0], request_types, result_types, w);
+  write_base_function_class(config, *outs[0], request_types, result_types, w);
 
   for (int i = 0; i < file_count; i++) {
-    outs[i].append(w.gen_output_end());
+    outs[static_cast<std::size_t>(i)]->append(w.gen_output_end());
   }
 
-  for (std::map<int, tl_string_outputer>::const_iterator it = outs.begin(); it != outs.end(); ++it) {
-    std::string file_name = file_name_prefix + "_" + TL_writer::int_to_string(it->first) + file_name_suffix;
-    if (!put_file_contents(file_name, it->second.get_result(), w.is_documentation_generated())) {
+  for (int i = 0; i < file_count; i++) {
+    std::string file_index = TL_writer::int_to_string(i);
+    unpoison_if_msan(file_index);
+
+    std::string file_name(safe_file_name_prefix.size() + 1 + file_index.size() + safe_file_name_suffix.size(), '\0');
+    std::size_t file_name_offset = 0;
+    if (!safe_file_name_prefix.empty()) {
+      std::memcpy(file_name.data() + file_name_offset, safe_file_name_prefix.data(), safe_file_name_prefix.size());
+      file_name_offset += safe_file_name_prefix.size();
+    }
+    file_name[file_name_offset++] = '_';
+    if (!file_index.empty()) {
+      std::memcpy(file_name.data() + file_name_offset, file_index.data(), file_index.size());
+      file_name_offset += file_index.size();
+    }
+    if (!safe_file_name_suffix.empty()) {
+      std::memcpy(file_name.data() + file_name_offset, safe_file_name_suffix.data(), safe_file_name_suffix.size());
+    }
+    unpoison_if_msan(file_name);
+
+    if (!put_file_contents(file_name, outs[static_cast<std::size_t>(i)]->get_result(),
+                           w.is_documentation_generated())) {
       return false;
     }
   }
@@ -1018,7 +1143,7 @@ bool write_tl_to_multiple_files(const tl_config &config, const std::string &file
   for (std::size_t type = 0; type < config.get_type_count(); type++) {
     tl_type *t = config.get_type_by_num(type);
     if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) ||
-        w.is_built_in_complex_type(t->name)) {  // built-in dummy or complex types
+        is_built_in_complex_type(t, w)) {  // built-in dummy or complex types
       continue;
     }
 

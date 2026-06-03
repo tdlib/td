@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/utils/BigNum.h"
 
@@ -234,11 +234,28 @@ string BigNum::to_le_binary(int exact_size) const {
 }
 
 string BigNum::to_decimal() const {
-  char *result = BN_bn2dec(impl_->big_num);
-  CHECK(result != nullptr);
-  string res(result);
-  OPENSSL_free(result);
-  return res;
+  if (BN_is_zero(impl_->big_num)) {
+    return "0";
+  }
+
+  auto value = clone();
+  const bool is_negative = BN_is_negative(value.impl_->big_num);
+  if (is_negative) {
+    BN_set_negative(value.impl_->big_num, 0);
+  }
+
+  string result;
+  result.reserve(static_cast<size_t>(BN_num_bits(value.impl_->big_num) / 3 + 3));
+  while (!BN_is_zero(value.impl_->big_num)) {
+    auto remainder = BN_div_word(value.impl_->big_num, 10);
+    LOG_IF(FATAL, remainder == static_cast<BN_ULONG>(-1));
+    result.push_back(static_cast<char>('0' + remainder));
+  }
+  if (is_negative) {
+    result.push_back('-');
+  }
+  std::reverse(result.begin(), result.end());
+  return result;
 }
 
 void BigNum::random(BigNum &r, int bits, int top, int bottom) {
