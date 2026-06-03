@@ -1369,9 +1369,10 @@ class WebPageBlockList final : public WebPageBlock {
 
     td_api::object_ptr<td_api::pageBlockListItem> get_page_block_list_item_object(Context *context) const {
       // if label is empty, then Bullet U+2022 is used as a label
-      return td_api::make_object<td_api::pageBlockListItem>(label.empty() ? "\xE2\x80\xA2" : label,
-                                                            get_page_blocks_object(page_blocks, context), has_checkbox,
-                                                            has_checkbox && is_checked, value, type);
+      return td_api::make_object<td_api::pageBlockListItem>(
+          label.empty() ? "\xE2\x80\xA2" : label, get_page_blocks_object(page_blocks, context), has_checkbox,
+          has_checkbox && is_checked, value,
+          (type.size() != 1u || Slice("aAiI1").find(type[0]) == Slice::npos) ? "1" : type);
     }
 
     template <class StorerT>
