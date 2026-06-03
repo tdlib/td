@@ -1368,11 +1368,14 @@ class WebPageBlockList final : public WebPageBlock {
     }
 
     td_api::object_ptr<td_api::pageBlockListItem> get_page_block_list_item_object(Context *context) const {
-      // if label is empty, then Bullet U+2022 is used as a label
-      return td_api::make_object<td_api::pageBlockListItem>(
-          label.empty() ? "\xE2\x80\xA2" : label, get_page_blocks_object(page_blocks, context), has_checkbox,
-          has_checkbox && is_checked, value,
-          (type.size() != 1u || Slice("aAiI1").find(type[0]) == Slice::npos) ? "1" : type);
+      if (label.empty()) {
+        // if label is empty, then Bullet U+2022 is used as a label
+        return td_api::make_object<td_api::pageBlockListItem>("\xE2\x80\xA2",
+                                                              get_page_blocks_object(page_blocks, context),
+                                                              has_checkbox, has_checkbox && is_checked, 0, string());
+      }
+      return td_api::make_object<td_api::pageBlockListItem>(label, get_page_blocks_object(page_blocks, context),
+                                                            has_checkbox, has_checkbox && is_checked, value, type);
     }
 
     template <class StorerT>
@@ -3184,6 +3187,13 @@ WebPageBlockCaption get_page_block_caption(tl_object_ptr<telegram_api::pageCapti
   return result;
 }
 
+static string get_ordered_list_type(const string &type) {
+  if (type.size() != 1u || Slice("aAiI1").find(type[0]) == Slice::npos) {
+    return "1";
+  }
+  return type;
+}
+
 unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::PageBlock> page_block_ptr,
                                             const FlatHashMap<int64, FileId> &animations,
                                             const FlatHashMap<int64, FileId> &audios,
@@ -3274,11 +3284,13 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::pageBlockOrderedList::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockOrderedList>(page_block_ptr);
-      int32 current_label = page_block->start_;
+      int32 current_label = page_block->start_ + (page_block->reversed_ ? 1 : -1);
+      auto base_type = get_ordered_list_type(page_block->type_);
       return td::make_unique<WebPageBlockList>(
           transform(std::move(page_block->items_),
                     [&](auto &&list_item_ptr) {
                       WebPageBlockList::Item item;
+                      bool has_value = false;
                       CHECK(list_item_ptr != nullptr);
                       switch (list_item_ptr->get_id()) {
                         case telegram_api::pageListOrderedItemText::ID: {
@@ -3289,8 +3301,9 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                               get_rich_text(std::move(list_item->text_), documents)));
                           item.has_checkbox = list_item->checkbox_;
                           item.is_checked = list_item->checked_;
+                          has_value = (list_item->flags_ & telegram_api::pageListOrderedItemText::VALUE_MASK) != 0;
                           item.value = list_item->value_;
-                          item.type = list_item->type_;
+                          item.type = list_item->type_.empty() ? base_type : get_ordered_list_type(list_item->type_);
                           break;
                         }
                         case telegram_api::pageListOrderedItemBlocks::ID: {
@@ -3301,15 +3314,22 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                                                                  documents, photos, videos, voice_notes);
                           item.has_checkbox = list_item->checkbox_;
                           item.is_checked = list_item->checked_;
+                          has_value = (list_item->flags_ & telegram_api::pageListOrderedItemBlocks::VALUE_MASK) != 0;
                           item.value = list_item->value_;
-                          item.type = list_item->type_;
+                          item.type = list_item->type_.empty() ? base_type : get_ordered_list_type(list_item->type_);
                           break;
                         }
+                        default:
+                          UNREACHABLE();
                       }
                       if (item.page_blocks.empty()) {
                         item.page_blocks.push_back(make_unique<WebPageBlockParagraph>(RichText()));
                       }
-                      current_label += page_block->reversed_ ? -1 : 1;
+                      if (has_value) {
+                        current_label = item.value;
+                      } else {
+                        current_label += page_block->reversed_ ? -1 : 1;
+                      }
                       if (item.label.empty()) {
                         item.label = PSTRING() << current_label << '.';
                       } else {
@@ -3317,7 +3337,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                       }
                       return item;
                     }),
-          page_block->start_, page_block->reversed_, page_block->type_);
+          page_block->start_, page_block->reversed_, base_type);
     }
     case telegram_api::pageBlockBlockquote::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockBlockquote>(page_block_ptr);

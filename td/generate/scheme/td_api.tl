@@ -3980,8 +3980,9 @@ pageBlockCaption text:RichText credit:RichText = PageBlockCaption;
 //@page_blocks Item blocks
 //@has_checkbox True, if the item has a checkbox
 //@is_checked True, if the item is checked
-//@value Value of the item; -1 if none
-//@type Type of the item numbering type; must be one of "a" for a lowercase letter, "A" for an uppercase letter, "i" for lowercase Roman numerals, "I" for uppercase Roman numerals, "1" for numbers
+//@value Value of the item; 0 for non-ordered lists
+//@type Type of the item numbering type; must be one of "a" for a lowercase letter, "A" for an uppercase letter, "i" for lowercase Roman numerals, "I" for uppercase Roman numerals,
+//-"1" for decimal numbers, or empty for non-ordered lists
 pageBlockListItem label:string page_blocks:vector<PageBlock> has_checkbox:Bool is_checked:Bool value:int32 type:string = PageBlockListItem;
 
 //@class PageBlockHorizontalAlignment @description Describes a horizontal alignment of a table cell content
