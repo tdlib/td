@@ -217,6 +217,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("poll_country_count_max", 12);
   set_default_integer_option("message_text_length_max", 4096);
   set_default_integer_option("rich_message_text_length_max", 32768);
+  set_default_integer_option("rich_message_block_count_max", 500);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
