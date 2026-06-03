@@ -3696,11 +3696,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
 }  // namespace
 
 void WebPageBlock::for_each_text(const std::function<void(Slice text)> &callback) const {
-  for_each_rich_text(true, [&](const RichText *text) {
-    if (text->type == RichText::Type::Plain) {
-      callback(text->content);
-    }
-  });
+  for_each_rich_text(false, [&](const RichText *text) { callback(text->get_full_text()); });
 }
 
 void WebPageBlock::append_user_ids(vector<UserId> &user_ids) const {
