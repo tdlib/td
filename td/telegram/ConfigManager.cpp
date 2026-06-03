@@ -1427,6 +1427,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"reactions_uniq_max", ""},
       {"reactions_user_max_default", ""},
       {"reactions_user_max_premium", ""},
+      {"rich_message_length_limit", "rich_message_text_length_max"},
       {"ringtone_duration_max", "notification_sound_duration_max"},
       {"ringtone_saved_count_max", "notification_sound_count_max"},
       {"ringtone_size_max", "notification_sound_size_max"},
