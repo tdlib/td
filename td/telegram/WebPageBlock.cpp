@@ -159,6 +159,17 @@ class RichText {
     callback(this);
   }
 
+  string get_full_text() const {
+    string result;
+    for_each_rich_text(true, [&](const RichText *text) {
+      if (text->type == RichText::Type::Plain || text->type == RichText::Type::Math ||
+          text->type == RichText::Type::CustomEmoji) {
+        result += text->content;
+      }
+    });
+    return result;
+  }
+
   friend bool operator==(const RichText &lhs, const RichText &rhs) {
     return lhs.type == rhs.type && lhs.content == rhs.content && lhs.texts == rhs.texts &&
            lhs.document_file_id == rhs.document_file_id && lhs.custom_emoji_id == rhs.custom_emoji_id &&
@@ -3714,12 +3725,7 @@ vector<string> WebPageBlock::get_hashtags() const {
   vector<string> result;
   for_each_rich_text(true, [&](const RichText *text) {
     if (text->type == RichText::Type::Hashtag) {
-      string hashtag;
-      text->for_each_rich_text(true, [&](const RichText *text) {
-        if (text->type == RichText::Type::Plain) {
-          hashtag += text->content;
-        }
-      });
+      auto hashtag = text->get_full_text();
       if (!hashtag.empty()) {
         if (hashtag[0] == '#') {
           hashtag = hashtag.substr(1);
