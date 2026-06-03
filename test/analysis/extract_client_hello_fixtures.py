@@ -171,6 +171,24 @@ def parse_compress_certificate(body: bytes) -> list[str]:
     return values
 
 
+def parse_supported_versions_raw(body: bytes) -> tuple[list[str], list[str]]:
+    if len(body) < 1:
+        raise ValueError("supported_versions extension body empty")
+    vec_len = body[0]
+    if vec_len != len(body) - 1:
+        raise ValueError("supported_versions length prefix mismatch")
+    if vec_len % 2 != 0:
+        raise ValueError("supported_versions vector length not even")
+    raw_versions = []
+    non_grease = []
+    for i in range(0, vec_len, 2):
+        v = (body[1 + i] << 8) | body[1 + i + 1]
+        raw_versions.append(u16_hex(v))
+        if not is_grease(v):
+            non_grease.append(u16_hex(v))
+    return raw_versions, non_grease
+
+
 def parse_ech(body: bytes) -> dict[str, Any]:
     reader = Reader(body)
     outer_type = reader.read_u8()
@@ -294,6 +312,8 @@ def parse_client_hello(record_sequence: bytes) -> dict[str, Any]:
     alpn_protocols: list[str] = []
     ech: dict[str, Any] | None = None
     compress_certificate_algorithms: list[str] = []
+    supported_versions_raw: list[str] = []
+    non_grease_supported_versions: list[str] = []
     sni = ""
 
     while extension_reader.left() > 0:
@@ -328,6 +348,8 @@ def parse_client_hello(record_sequence: bytes) -> dict[str, Any]:
             alpn_protocols = parse_alpn(ext_body)
         elif ext_type == 0x001B:
             compress_certificate_algorithms = parse_compress_certificate(ext_body)
+        elif ext_type == 0x002B:
+            supported_versions_raw, non_grease_supported_versions = parse_supported_versions_raw(ext_body)
         elif ext_type == 0x0033:
             key_share_entries = parse_key_share(ext_body)
         elif ext_type == 0xFE0D:
@@ -382,6 +404,8 @@ def parse_client_hello(record_sequence: bytes) -> dict[str, Any]:
         "non_grease_extensions": non_grease_extensions,
         "non_grease_extensions_without_padding": non_grease_extensions_without_padding,
         "has_grease_extension": any(entry["is_grease"] for entry in extensions),
+        "supported_versions_raw": supported_versions_raw,
+        "non_grease_supported_versions": non_grease_supported_versions,
         "extensions": extensions,
         "sni": sni,
         "alpn_protocols": alpn_protocols,

@@ -256,10 +256,9 @@ def _is_authoritative_entry(entry: dict[str, Any]) -> bool:
     return trust_tier != "advisory"
 
 
-def _source_identity(entry: dict[str, Any]) -> tuple[str, str, str]:
+def _source_identity(entry: dict[str, Any]) -> tuple[str, str]:
     return (
         str(entry.get("source_kind", "")),
-        str(entry.get("source_path", "")),
         str(entry.get("source_sha256", "")),
     )
 
@@ -418,7 +417,9 @@ def load_samples(input_dir: pathlib.Path) -> list[dict[str, Any]]:
         source_path = str(artifact.get("source_path", ""))
         source_sha256 = str(artifact.get("source_sha256", ""))
         trust_tier = str(artifact.get("trust_tier", "verified"))
-        scenario_id = str(artifact.get("scenario_id", artifact_path.stem))
+        scenario_id = str(artifact.get("scenario_id", "")).strip()
+        if not scenario_id:
+            scenario_id = artifact_path.stem  # diagnostic_only: legacy fallback
         capture_date_utc = str(artifact.get("capture_date_utc", ""))
         contributor_id = str(artifact.get("contributor_id", artifact.get("contributor", "")))
         device_id = str(artifact.get("device_id", artifact.get("device_hardware", "")))

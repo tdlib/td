@@ -10,7 +10,7 @@ import hashlib
 import json
 import pathlib
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 CANONICAL_ROUTE_MODES = {"unknown", "ru_egress", "non_ru_egress"}
@@ -61,6 +61,7 @@ class ClientHello:
     non_grease_extensions_without_padding: list[int]
     alpn_protocols: list[str]
     metadata: SampleMeta
+    non_grease_supported_versions: list[int] = field(default_factory=list)
     ech_payload_length: int | None = None
 
 
@@ -115,6 +116,70 @@ def normalize_os_family(os_family: str) -> str:
     return canonical
 
 
+REPO_TRAFFIC_DUMPS_PREFIX = "docs/Samples/Traffic dumps/"
+_KNOWN_WORKSPACE_PREFIXES = [
+    "/home/david_osipov/tdlib-obf/",
+]
+
+
+def validate_source_path_portable(source_path: str, repo_root: pathlib.Path | None = None) -> str:
+    """Validate and convert a source_path to repository-relative form.
+    Raises ValueError on traversal, symlink escape, or non-repo paths.
+    """
+    if not source_path:
+        raise ValueError("source_path must be non-empty")
+    # Strip known workspace prefixes
+    rel_path = source_path
+    for prefix in _KNOWN_WORKSPACE_PREFIXES:
+        if source_path.startswith(prefix):
+            rel_path = source_path[len(prefix):]
+            break
+    # Reject traversal
+    if ".." in rel_path.split("/"):
+        raise ValueError(f"source_path contains traversal: {source_path}")
+    # Must be under Traffic dumps
+    if not rel_path.startswith(REPO_TRAFFIC_DUMPS_PREFIX):
+        raise ValueError(f"source_path not under {REPO_TRAFFIC_DUMPS_PREFIX}: {rel_path}")
+    # Verify file exists if repo_root provided
+    if repo_root is not None:
+        full_path = repo_root / rel_path
+        if not full_path.exists():
+            raise ValueError(f"source_path does not exist: {full_path}")
+        # Check no symlink escape
+        try:
+            resolved = full_path.resolve()
+            if not str(resolved).startswith(str(repo_root.resolve())):
+                raise ValueError(f"source_path escapes repo root via symlink: {source_path}")
+        except OSError as e:
+            raise ValueError(f"source_path resolution failed: {e}") from e
+    return rel_path
+
+
+def normalize_source_path(source_path: str) -> str:
+    """Strip known workspace prefix, preserve exact byte spelling."""
+    for prefix in _KNOWN_WORKSPACE_PREFIXES:
+        if source_path.startswith(prefix):
+            return source_path[len(prefix):]
+    return source_path
+
+
+def source_paths_identical(a: str, b: str) -> bool:
+    """Two source paths are identical only if their normalized forms match byte-for-byte."""
+    return normalize_source_path(a) == normalize_source_path(b)
+
+
+def deduplicate_source_paths(paths: list[str]) -> list[str]:
+    """Deduplicate source paths by normalized form, preserving first occurrence order."""
+    seen: set[str] = set()
+    result: list[str] = []
+    for p in paths:
+        norm = normalize_source_path(p)
+        if norm not in seen:
+            seen.add(norm)
+            result.append(p)
+    return result
+
+
 def load_profile_registry(path: str | pathlib.Path) -> dict[str, Any]:
     registry_path = pathlib.Path(path)
     with registry_path.open("r", encoding="utf-8") as infile:
@@ -164,20 +229,73 @@ def _parse_u16_sequence(values: list[Any]) -> list[int]:
     return parsed
 
 
-def _infer_tls_gen(sample: dict[str, Any]) -> str:
-    explicit_tls_gen = sample.get("tls_gen")
-    if isinstance(explicit_tls_gen, str) and explicit_tls_gen:
-        return explicit_tls_gen
+def is_grease_version(v: int) -> bool:
+    return (v & 0x0F0F) == 0x0A0A
 
+
+def parse_supported_versions(body_hex: str | bytes) -> list[int]:
+    """Parse a supported_versions extension body (0x002B) from its hex encoding
+    or raw bytes.
+
+    Input: hex string of the extension body, e.g. "063a3a03040303",
+           or raw bytes of the extension body.
+    Output: ordered list of uint16 version values with GREASE removed.
+
+    The first byte is the vector length (number of remaining bytes).
+    Each version is 2 bytes big-endian.
+    Raises ValueError on malformed input.
+    """
+    if isinstance(body_hex, (bytes, bytearray)):
+        body_hex = body_hex.hex()
+    if not body_hex:
+        raise ValueError("supported_versions body is empty")
+    if len(body_hex) % 2 != 0:
+        raise ValueError("supported_versions body has odd hex length")
+    try:
+        raw_bytes = bytes.fromhex(body_hex)
+    except ValueError as exc:
+        raise ValueError(f"supported_versions body contains non-hex characters: {exc}") from exc
+    if len(raw_bytes) < 1:
+        raise ValueError("supported_versions body is empty")
+    vec_len = raw_bytes[0]
+    payload = raw_bytes[1:]
+    if vec_len != len(payload):
+        raise ValueError(
+            f"supported_versions length prefix mismatch: declared {vec_len}, "
+            f"actual {len(payload)}"
+        )
+    if vec_len == 0:
+        raise ValueError("supported_versions vector is empty")
+    if vec_len % 2 != 0:
+        raise ValueError(
+            f"supported_versions vector length {vec_len} is odd (must be even for uint16 pairs)"
+        )
+    versions: list[int] = []
+    for i in range(0, vec_len, 2):
+        v = (payload[i] << 8) | payload[i + 1]
+        if not is_grease_version(v):
+            versions.append(v)
+    return versions
+
+
+def _infer_tls_gen(sample: dict[str, Any]) -> str:
+    explicit = sample.get("tls_gen")
+    if isinstance(explicit, str) and explicit:
+        return explicit
     for entry in sample.get("extensions", []):
         if not isinstance(entry, dict):
             continue
         if str(entry.get("type", "")).lower() != "0x002b":
             continue
         body_hex = str(entry.get("body_hex", ""))
-        if "0304" in body_hex.lower():
+        try:
+            versions = parse_supported_versions(body_hex)
+        except ValueError:
+            continue
+        if 0x0304 in versions:
             return "tls13"
-
+        if 0x0303 in versions:
+            return "tls12"
     legacy_version = str(sample.get("legacy_version", "")).lower()
     if legacy_version == "0x0303":
         return "tls12"
@@ -338,10 +456,9 @@ def load_clienthello_artifact(path: str | pathlib.Path) -> list[ClientHello]:
 
     route_mode = normalize_route_mode(str(artifact.get("route_mode", "")))
     profile = _require_string_field(artifact, "profile_id")
-    scenario_id = (
-        str(artifact.get("scenario_id", artifact_path.stem)).strip()
-        or artifact_path.stem
-    )
+    scenario_id = str(artifact.get("scenario_id", "")).strip()
+    if not scenario_id:
+        raise ValueError("reviewed artifact must contain non-empty scenario_id")
     device_class = normalize_device_class(str(artifact.get("device_class", "desktop")))
     os_family = normalize_os_family(str(artifact.get("os_family", "unknown")))
     transport = _require_string_field(artifact, "transport")
@@ -397,6 +514,13 @@ def load_clienthello_artifact(path: str | pathlib.Path) -> list[ClientHello]:
             ts_us=0,
             fixture_id=fixture_id,
         )
+        # Find 0x002B extension body
+        supported_versions_body = ""
+        for ext in sample.get("extensions", []):
+            if isinstance(ext, dict) and str(ext.get("type", "")).lower() == "0x002b":
+                supported_versions_body = str(ext.get("body_hex", ""))
+                break
+        non_grease_sv = parse_supported_versions(supported_versions_body) if supported_versions_body else []
         samples.append(
             ClientHello(
                 raw=b"",
@@ -410,6 +534,7 @@ def load_clienthello_artifact(path: str | pathlib.Path) -> list[ClientHello]:
                 ),
                 alpn_protocols=list(sample.get("alpn_protocols", [])),
                 metadata=meta,
+                non_grease_supported_versions=non_grease_sv,
                 ech_payload_length=ech.get("payload_length"),
             )
         )
@@ -420,10 +545,9 @@ def _load_serverhello_common_metadata(
     artifact: dict[str, Any], artifact_path: pathlib.Path
 ) -> tuple[str, str, str, str, str, str, str, str, set[tuple[str, int]] | None]:
     route_mode = normalize_route_mode(str(artifact.get("route_mode", "")))
-    scenario_id = (
-        str(artifact.get("scenario_id", artifact_path.stem)).strip()
-        or artifact_path.stem
-    )
+    scenario_id = str(artifact.get("scenario_id", "")).strip()
+    if not scenario_id:
+        raise ValueError("reviewed artifact must contain non-empty scenario_id")
     source_path = _require_string_field(artifact, "source_path")
     source_sha256 = _require_string_field(artifact, "source_sha256").lower()
     _validate_sha256_hex("source_sha256", source_sha256)
