@@ -13,6 +13,7 @@
 #include "td/telegram/WebPageBlock.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 
 #include <functional>
 
@@ -23,9 +24,15 @@ class Dependencies;
 class Td;
 
 class RichMessage {
+  enum class InputType : int32 { None, Markdown, Html };
+
   vector<unique_ptr<WebPageBlock>> blocks_;
   bool is_rtl_ = false;
   bool is_full_ = false;
+
+  bool noautolink_ = false;
+  InputType input_type_ = InputType::None;
+  string source_;
 
   friend bool operator==(const RichMessage &lhs, const RichMessage &rhs);
 
@@ -38,6 +45,10 @@ class RichMessage {
   ~RichMessage() = default;
 
   RichMessage(Td *td, telegram_api::object_ptr<telegram_api::richMessage> &&rich_message, DialogId owner_dialog_id);
+
+  static Result<RichMessage> get_rich_message(Td *td, DialogId dialog_id,
+                                              td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
+                                              bool is_bot);
 
   bool is_full() const {
     return is_full_;
@@ -56,6 +67,8 @@ class RichMessage {
   vector<string> get_hashtags() const;
 
   bool can_send(const RestrictedRights &rights) const;
+
+  telegram_api::object_ptr<telegram_api::InputRichMessage> get_input_rich_message(const Td *td) const;
 
   td_api::object_ptr<td_api::richMessage> get_rich_message_object(Td *td, bool skip_bot_commands) const;
 

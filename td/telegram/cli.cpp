@@ -6367,6 +6367,14 @@ class CliClient final : public Actor {
       auto text = as_formatted_text("👍 😉 🧑‍🚒", std::move(entities));
       send_message(chat_id,
                    td_api::make_object<td_api::inputMessageText>(std::move(text), get_link_preview_options(), true));
+    } else if (op == "srmm") {
+      ChatId chat_id;
+      string message;
+      get_args(args, chat_id, message);
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessageRichMessage>(
+                       td_api::make_object<td_api::richMessageSourceMarkdown>(message), rand_bool(), rand_bool(), true),
+                   false, false);
     } else if (op == "alm") {
       ChatId chat_id;
       string sender_id;

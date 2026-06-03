@@ -1194,7 +1194,8 @@ class SendMessageQuery final : public Td::ResultHandler {
             const MessageInputReplyTo &input_reply_to, const MessageTopic &message_topic, int32 schedule_date,
             int32 schedule_repeat_period, MessageEffectId effect_id, int64 paid_message_star_count,
             const SuggestedPost *suggested_post, const unique_ptr<ReplyMarkup> &reply_markup, const FormattedText &text,
-            bool is_copy, int64 random_id, NetQueryRef *send_query_ref) {
+            telegram_api::object_ptr<telegram_api::InputRichMessage> input_rich_message, bool is_copy, int64 random_id,
+            NetQueryRef *send_query_ref) {
     random_id_ = random_id;
     dialog_id_ = dialog_id;
 
@@ -1220,6 +1221,9 @@ class SendMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_sendMessage::SUGGESTED_POST_MASK;
       post = suggested_post->get_input_suggested_post();
     }
+    if (input_rich_message != nullptr) {
+      flags |= telegram_api::messages_sendMessage::RICH_MESSAGE_MASK;
+    }
     if (false) {
       flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE;
       schedule_date = G()->unix_time() + 35;
@@ -1230,7 +1234,7 @@ class SendMessageQuery final : public Td::ResultHandler {
             flags, false, false, false, false, false, false, false, false, std::move(input_peer), std::move(reply_to),
             text.text, random_id, get_input_reply_markup(td_->user_manager_.get(), reply_markup), std::move(entities),
             schedule_date, schedule_repeat_period, std::move(as_input_peer), nullptr, effect_id.get(),
-            paid_message_star_count, std::move(post), nullptr),
+            paid_message_star_count, std::move(post), std::move(input_rich_message)),
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
@@ -22391,14 +22395,16 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
                         get_message_content_secret_input_media(content, td_, nullptr, BufferSlice(), layer));
   } else {
     const FormattedText *message_text = get_message_content_text(content);
-    CHECK(message_text != nullptr);
+    auto input_rich_message = get_message_content_input_rich_message(td_, content);
+    CHECK(message_text != nullptr || input_rich_message != nullptr);
     int64 random_id = begin_send_message(dialog_id, m);
     auto input_media = get_message_content_input_media_web_page(td_, content);
     if (input_media == nullptr) {
       td_->create_handler<SendMessageQuery>()->send(
           get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
           get_send_message_topic(dialog_id, m), get_message_schedule_date(m), get_message_schedule_repeat_period(m),
-          m->effect_id, m->paid_message_star_count, m->suggested_post.get(), m->reply_markup, *message_text, m->is_copy,
+          m->effect_id, m->paid_message_star_count, m->suggested_post.get(), m->reply_markup,
+          message_text == nullptr ? FormattedText() : *message_text, std::move(input_rich_message), m->is_copy,
           random_id, &m->send_query_ref);
     } else {
       td_->create_handler<SendMediaQuery>()->send(

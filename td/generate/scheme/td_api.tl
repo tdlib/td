@@ -122,6 +122,14 @@ formattedText text:string entities:vector<textEntity> = FormattedText;
 //@is_full True, if the object contains the full message. Otherwise, getFullRichMessage must be used to get the full message
 richMessage blocks:vector<PageBlock> is_rtl:Bool is_full:Bool = RichMessage;
 
+//@class RichMessageSource @description Describes source of a rich message
+
+//@description A Markdown-formatted rich message; for bots only @text Markdown-formatted text of the message
+richMessageSourceMarkdown text:string = RichMessageSource;
+
+//@description An HTML-formatted rich message; for bots only @text HTML-formatted text of the message
+richMessageSourceHtml text:string = RichMessageSource;
+
 //@description Represents a change of a text @offset Offset of the entity, in UTF-16 code units @length Length of the entity, in UTF-16 code units @type Type of the entity
 diffEntity offset:int32 length:int32 type:DiffEntityType = DiffEntity;
 
@@ -5746,8 +5754,15 @@ inputPollMediaVideo video:InputFile thumbnail:inputThumbnail cover:InputFile sta
 //@text Formatted text to be sent; 0-getOption("message_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, BlockQuote, ExpandableBlockQuote,
 //-Code, Pre, PreCode, TextUrl, MentionName, and DateTime entities are allowed to be specified manually
 //@link_preview_options Options to be used for generation of a link preview; may be null if none; pass null to use default link preview options
-//@clear_draft True, if the chat message draft must be deleted
+//@clear_draft Pass true to delete message draft in the chat
 inputMessageText text:formattedText link_preview_options:linkPreviewOptions clear_draft:Bool = InputMessageContent;
+
+//@description A rich message
+//@source Source of the rich message
+//@is_rtl Pass true if the message must be shown from right to left
+//@detect_automatic_blocks Pass true to enable detection of URLs, email addresses and other automatic blocks
+//@clear_draft Pass true to delete message draft in the chat
+inputMessageRichMessage source:RichMessageSource is_rtl:Bool detect_automatic_blocks:Bool clear_draft:Bool = InputMessageContent;
 
 //@description An animation message (GIF-style).
 //@animation Animation file to be sent
@@ -5850,7 +5865,7 @@ inputMessageVenue venue:venue = InputMessageContent;
 //@description A message containing a user contact @contact Contact to send
 inputMessageContact contact:contact = InputMessageContent;
 
-//@description A dice message @emoji Emoji on which the dice throw animation is based @clear_draft True, if the chat message draft must be deleted
+//@description A dice message @emoji Emoji on which the dice throw animation is based @clear_draft Pass true to delete message draft in the chat
 inputMessageDice emoji:string clear_draft:Bool = InputMessageContent;
 
 //@description A message with a game; not supported for channels or secret chats @bot_user_id User identifier of the bot that owns the game @game_short_name Short name of the game
@@ -5896,7 +5911,7 @@ inputMessagePoll question:formattedText options:vector<inputPollOption> descript
 //@state_hash Hash of the stake dice state. The state hash can be used only if it was received recently enough. Otherwise, a new state must be requested using getStakeDiceState
 //@stake_toncoin_amount The Toncoin amount that will be staked; in the smallest units of the currency. Must be in the range
 //-getOption("stake_dice_stake_amount_min")-getOption("stake_dice_stake_amount_max")
-//@clear_draft True, if the chat message draft must be deleted
+//@clear_draft Pass true to delete message draft in the chat
 inputMessageStakeDice state_hash:string stake_toncoin_amount:int53 clear_draft:Bool = InputMessageContent;
 
 //@description A message with a forwarded story. Stories can't be forwarded to secret chats. A story can be forwarded only if story.can_be_forwarded
@@ -15332,12 +15347,12 @@ clearAutosaveSettingsExceptions = Ok;
 
 
 //@description Changes web browser settings
-//@open_external_browser Pass true, if links must be opened in an external browser by default
-//@display_close_button Pass true, if a close button must be shown in the in-app browser; for Android app only
+//@open_external_browser Pass true if links must be opened in an external browser by default
+//@display_close_button Pass true if a close button must be shown in the in-app browser; for Android app only
 changeWebBrowserSettings open_external_browser:Bool display_close_button:Bool = Ok;
 
 //@description Adds a special handling for the opening of the specified URL
-//@open_external_browser Pass true, if the specified website must be opened in an external browser; pass false to open it in the in-app browser. There can be at most 100 exceptions in each list of the exceptions
+//@open_external_browser Pass true if the specified website must be opened in an external browser; pass false to open it in the in-app browser. There can be at most 100 exceptions in each list of the exceptions
 //@url URL of the website
 addWebBrowserSettingsException open_external_browser:Bool url:string = Ok;
 

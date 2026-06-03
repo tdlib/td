@@ -4722,6 +4722,13 @@ static Result<InputMessageContent> create_input_message_content(
                                              false, std::move(web_page_url));
       break;
     }
+    case td_api::inputMessageRichMessage::ID: {
+      auto input_rich_message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
+      clear_draft = input_rich_message->clear_draft_;
+      TRY_RESULT(rich_message, RichMessage::get_rich_message(td, dialog_id, std::move(input_message_content), is_bot));
+      content = td::make_unique<MessageRichText>(std::move(rich_message));
+      break;
+    }
     case td_api::inputMessageAnimation::ID: {
       auto input_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
 
@@ -5867,6 +5874,16 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
   bool is_optional = !text->text.text.empty();
   return telegram_api::make_object<telegram_api::inputMediaWebPage>(0, text->force_large_media, text->force_small_media,
                                                                     is_optional, text->web_page_url);
+}
+
+telegram_api::object_ptr<telegram_api::InputRichMessage> get_message_content_input_rich_message(
+    const Td *td, const MessageContent *content) {
+  CHECK(content != nullptr);
+  if (content->get_type() != MessageContentType::RichText) {
+    return nullptr;
+  }
+  auto *text = static_cast<const MessageRichText *>(content);
+  return text->text.get_input_rich_message(td);
 }
 
 bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {

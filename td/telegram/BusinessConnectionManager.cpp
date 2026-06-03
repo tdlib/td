@@ -177,7 +177,8 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
     }
 
     const FormattedText *message_text = get_message_content_text(message_->content_.get());
-    CHECK(message_text != nullptr);
+    auto input_rich_message = get_message_content_input_rich_message(td_, message_->content_.get());
+    CHECK(message_text != nullptr || input_rich_message != nullptr);
     auto entities = get_input_message_entities(td_->user_manager_.get(), message_text, "SendBusinessMessageQuery");
     if (!entities.empty()) {
       flags |= telegram_api::messages_sendMessage::ENTITIES_MASK;
@@ -186,15 +187,18 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
     if (message_->reply_markup_ != nullptr) {
       flags |= telegram_api::messages_sendMessage::REPLY_MARKUP_MASK;
     }
+    if (input_rich_message != nullptr) {
+      flags |= telegram_api::messages_sendMessage::RICH_MESSAGE_MASK;
+    }
 
     send_query(G()->net_query_creator().create_with_prefix(
         message_->business_connection_id_.get_invoke_prefix(),
         telegram_api::messages_sendMessage(
             flags, message_->disable_web_page_preview_, message_->disable_notification_, false, false,
             message_->noforwards_, false, message_->invert_media_, false, std::move(input_peer), std::move(reply_to),
-            message_text->text, message_->random_id_,
+            message_text == nullptr ? string() : message_text->text, message_->random_id_,
             get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_), std::move(entities), 0, 0,
-            nullptr, nullptr, message_->effect_id_.get(), 0, nullptr, nullptr),
+            nullptr, nullptr, message_->effect_id_.get(), 0, nullptr, std::move(input_rich_message)),
         td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
         {{message_->dialog_id_}}));
   }

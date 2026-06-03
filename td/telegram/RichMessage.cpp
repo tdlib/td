@@ -11,9 +11,11 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
@@ -82,6 +84,40 @@ RichMessage::RichMessage(Td *td, telegram_api::object_ptr<telegram_api::richMess
   is_full_ = !rich_message->part_;
 }
 
+Result<RichMessage> RichMessage::get_rich_message(
+    Td *td, DialogId dialog_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, bool is_bot) {
+  CHECK(input_message_content != nullptr);
+  CHECK(input_message_content->get_id() == td_api::inputMessageRichMessage::ID);
+  auto message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
+  if (message->source_ == nullptr) {
+    return Status::Error(400, "Rich message must be non-empty");
+  }
+  RichMessage rich_message;
+  rich_message.is_rtl_ = message->is_rtl_;
+  rich_message.noautolink_ = !message->detect_automatic_blocks_;
+  rich_message.is_full_ = true;
+  switch (message->source_->get_id()) {
+    case td_api::richMessageSourceMarkdown::ID: {
+      auto source = td_api::move_object_as<td_api::richMessageSourceMarkdown>(message->source_);
+      rich_message.source_ = std::move(source->text_);
+      rich_message.input_type_ = InputType::Markdown;
+      break;
+    }
+    case td_api::richMessageSourceHtml::ID: {
+      auto source = td_api::move_object_as<td_api::richMessageSourceHtml>(message->source_);
+      rich_message.source_ = std::move(source->text_);
+      rich_message.input_type_ = InputType::Html;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  if (!clean_input_string(rich_message.source_)) {
+    return Status::Error(400, "Strings must be encoded in UTF-8");
+  }
+  return std::move(rich_message);
+}
+
 void RichMessage::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
   for (const auto &block : blocks_) {
     block->append_file_ids(td, file_ids);
@@ -134,6 +170,23 @@ bool RichMessage::can_send(const RestrictedRights &rights) const {
   return true;
 }
 
+telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_rich_message(const Td *td) const {
+  switch (input_type_) {
+    case InputType::None:
+      // TODO
+      return telegram_api::make_object<telegram_api::inputRichMessageMarkdown>(0, is_rtl_, noautolink_, source_,
+                                                                               Auto());
+    case InputType::Markdown:
+      return telegram_api::make_object<telegram_api::inputRichMessageMarkdown>(0, is_rtl_, noautolink_, source_,
+                                                                               Auto());
+    case InputType::Html:
+      return telegram_api::make_object<telegram_api::inputRichMessageHTML>(0, is_rtl_, noautolink_, source_, Auto());
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 td_api::object_ptr<td_api::richMessage> RichMessage::get_rich_message_object(Td *td, bool skip_bot_commands) const {
   return td_api::make_object<td_api::richMessage>(
       get_page_blocks_object(blocks_, td, string(), string(), skip_bot_commands), is_rtl_, is_full_);
@@ -144,6 +197,9 @@ RichMessage RichMessage::clone() const {
   result.blocks_ = clone_web_page_blocks(blocks_);
   result.is_rtl_ = is_rtl_;
   result.is_full_ = is_full_;
+  result.noautolink_ = noautolink_;
+  result.input_type_ = input_type_;
+  result.source_ = source_;
   return result;
 }
 
