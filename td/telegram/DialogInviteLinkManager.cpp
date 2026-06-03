@@ -109,7 +109,8 @@ class ImportChatInviteQuery final : public Td::ResultHandler {
         td_->user_manager_->on_get_users(std::move(ptr->users_), "ImportChatInviteQuery");
         promise_.set_value(td_api::make_object<td_api::chatJoinResultGuardBotApprovalRequired>(
             td_->user_manager_->get_user_id_object(UserId(ptr->bot_id_), "chatJoinResultGuardBotApprovalRequired"),
-            ptr->webview_->url_, ptr->webview_->query_id_));
+            td_api::make_object<td_api::webAppUrl>(ptr->webview_->url_, ptr->webview_->same_origin_),
+            ptr->webview_->query_id_));
         break;
       }
       default:

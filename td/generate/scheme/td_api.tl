@@ -1062,6 +1062,65 @@ chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_docum
 chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_manage_topics:Bool can_promote_members:Bool can_manage_video_chats:Bool can_post_stories:Bool can_edit_stories:Bool can_delete_stories:Bool can_manage_direct_messages:Bool can_manage_tags:Bool is_anonymous:Bool = ChatAdministratorRights;
 
 
+//@description Contains parameters of the application theme
+//@background_color A color of the background in the RGB format
+//@secondary_background_color A secondary color for the background in the RGB format
+//@header_background_color A color of the header background in the RGB format
+//@bottom_bar_background_color A color of the bottom bar background in the RGB format
+//@section_background_color A color of the section background in the RGB format
+//@section_separator_color A color of the section separator in the RGB format
+//@text_color A color of text in the RGB format
+//@accent_text_color An accent color of the text in the RGB format
+//@section_header_text_color A color of text on the section headers in the RGB format
+//@subtitle_text_color A color of the subtitle text in the RGB format
+//@destructive_text_color A color of the text for destructive actions in the RGB format
+//@hint_color A color of hints in the RGB format
+//@link_color A color of links in the RGB format
+//@button_color A color of the buttons in the RGB format
+//@button_text_color A color of text on the buttons in the RGB format
+themeParameters background_color:int32 secondary_background_color:int32 header_background_color:int32 bottom_bar_background_color:int32 section_background_color:int32 section_separator_color:int32 text_color:int32 accent_text_color:int32 section_header_text_color:int32 subtitle_text_color:int32 destructive_text_color:int32 hint_color:int32 link_color:int32 button_color:int32 button_text_color:int32 = ThemeParameters;
+
+
+//@class WebAppOpenMode @description Describes mode in which a Web App is opened
+
+//@description The Web App is opened in the compact mode
+webAppOpenModeCompact = WebAppOpenMode;
+
+//@description The Web App is opened in the full-size mode
+webAppOpenModeFullSize = WebAppOpenMode;
+
+//@description The Web App is opened in the full-screen mode
+webAppOpenModeFullScreen = WebAppOpenMode;
+
+
+//@description Contains information about a Web App found by its short name
+//@web_app The Web App
+//@request_write_access True, if the user must be asked for the permission to the bot to send them messages
+//@skip_confirmation True, if there is no need to show an ordinary open URL confirmation before opening the Web App. The field must be ignored and confirmation must be shown anyway if the Web App link was hidden
+foundWebApp web_app:webApp request_write_access:Bool skip_confirmation:Bool = FoundWebApp;
+
+//@description Contains information about a Web App URL
+//@url The Web App URL to open in a web view
+//@require_same_origin True, if events from the Web App must be accepted only from the same origin as the URL
+webAppUrl url:string require_same_origin:Bool = WebAppUrl;
+
+//@description Contains information about a Web App
+//@launch_id Unique identifier for the Web App launch
+//@url The Web App URL to open in a web view
+webAppInfo launch_id:int64 url:webAppUrl = WebAppInfo;
+
+//@description Contains information about the main Web App of a bot
+//@url URL of the Web App to open
+//@mode The mode in which the Web App must be opened
+mainWebApp url:webAppUrl mode:WebAppOpenMode = MainWebApp;
+
+//@description Options to be used when a Web App is opened
+//@theme Preferred Web App theme; pass null to use the default theme
+//@application_name Short name of the current application; 0-64 English letters, digits, and underscores
+//@mode The mode in which the Web App is opened; pass null to open in webAppOpenModeFullSize
+webAppOpenParameters theme:themeParameters application_name:string mode:WebAppOpenMode = WebAppOpenParameters;
+
+
 //@class GiftResalePrice @description Describes price of a resold gift
 
 //@description Describes price of a resold gift in Telegram Stars
@@ -2433,7 +2492,7 @@ chatJoinResultRequestSent = ChatJoinResult;
 //@bot_user_id Identifier of the guard bot
 //@url The URL of the Web App to pass to getWebAppUrl
 //@query_id Unique identifier of the join request, which will be used in updateChatJoinResult
-chatJoinResultGuardBotApprovalRequired bot_user_id:int53 url:string query_id:int53 = ChatJoinResult;
+chatJoinResultGuardBotApprovalRequired bot_user_id:int53 url:webAppUrl query_id:int53 = ChatJoinResult;
 
 
 //@class ChatJoinRequestResult @description Describes result of a chat join request
@@ -3670,65 +3729,6 @@ loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 reque
 //@match_code_first True, if code matching dialog must be shown first and checkOauthRequestMatchCode must be called before acceptOauthRequest. Otherwise, checkOauthRequestMatchCode must not be called
 //@match_codes The list of codes to match; may be empty if irrelevant
 oauthLinkInfo user_id:int53 url:string domain:string from_app:Bool verified_app_name:string bot_user_id:int53 request_write_access:Bool request_phone_number_access:Bool browser:string platform:string ip_address:string location:string match_code_first:Bool match_codes:vector<string> = OauthLinkInfo;
-
-
-//@description Contains parameters of the application theme
-//@background_color A color of the background in the RGB format
-//@secondary_background_color A secondary color for the background in the RGB format
-//@header_background_color A color of the header background in the RGB format
-//@bottom_bar_background_color A color of the bottom bar background in the RGB format
-//@section_background_color A color of the section background in the RGB format
-//@section_separator_color A color of the section separator in the RGB format
-//@text_color A color of text in the RGB format
-//@accent_text_color An accent color of the text in the RGB format
-//@section_header_text_color A color of text on the section headers in the RGB format
-//@subtitle_text_color A color of the subtitle text in the RGB format
-//@destructive_text_color A color of the text for destructive actions in the RGB format
-//@hint_color A color of hints in the RGB format
-//@link_color A color of links in the RGB format
-//@button_color A color of the buttons in the RGB format
-//@button_text_color A color of text on the buttons in the RGB format
-themeParameters background_color:int32 secondary_background_color:int32 header_background_color:int32 bottom_bar_background_color:int32 section_background_color:int32 section_separator_color:int32 text_color:int32 accent_text_color:int32 section_header_text_color:int32 subtitle_text_color:int32 destructive_text_color:int32 hint_color:int32 link_color:int32 button_color:int32 button_text_color:int32 = ThemeParameters;
-
-
-//@class WebAppOpenMode @description Describes mode in which a Web App is opened
-
-//@description The Web App is opened in the compact mode
-webAppOpenModeCompact = WebAppOpenMode;
-
-//@description The Web App is opened in the full-size mode
-webAppOpenModeFullSize = WebAppOpenMode;
-
-//@description The Web App is opened in the full-screen mode
-webAppOpenModeFullScreen = WebAppOpenMode;
-
-
-//@description Contains information about a Web App found by its short name
-//@web_app The Web App
-//@request_write_access True, if the user must be asked for the permission to the bot to send them messages
-//@skip_confirmation True, if there is no need to show an ordinary open URL confirmation before opening the Web App. The field must be ignored and confirmation must be shown anyway if the Web App link was hidden
-foundWebApp web_app:webApp request_write_access:Bool skip_confirmation:Bool = FoundWebApp;
-
-//@description Contains information about a Web App URL
-//@url The Web App URL to open in a web view
-//@require_same_origin True, if events from the Web App must be accepted only from the same origin as the URL
-webAppUrl url:string require_same_origin:Bool = WebAppUrl;
-
-//@description Contains information about a Web App
-//@launch_id Unique identifier for the Web App launch
-//@url The Web App URL to open in a web view
-webAppInfo launch_id:int64 url:webAppUrl = WebAppInfo;
-
-//@description Contains information about the main Web App of a bot
-//@url URL of the Web App to open
-//@mode The mode in which the Web App must be opened
-mainWebApp url:webAppUrl mode:WebAppOpenMode = MainWebApp;
-
-//@description Options to be used when a Web App is opened
-//@theme Preferred Web App theme; pass null to use the default theme
-//@application_name Short name of the current application; 0-64 English letters, digits, and underscores
-//@mode The mode in which the Web App is opened; pass null to open in webAppOpenModeFullSize
-webAppOpenParameters theme:themeParameters application_name:string mode:WebAppOpenMode = WebAppOpenParameters;
 
 
 //@description Contains information about a message thread
