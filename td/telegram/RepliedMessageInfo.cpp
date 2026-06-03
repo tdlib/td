@@ -163,6 +163,8 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
           }
         }
       }
+    } else if (content_->get_type() == MessageContentType::RichText) {
+      content_ = nullptr;
     }
     auto origin_message_full_id = origin_.get_message_full_id();
     if (origin_message_full_id.get_message_id().is_valid()) {
