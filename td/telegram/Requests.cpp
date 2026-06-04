@@ -133,6 +133,7 @@
 #include "td/telegram/ReferralProgramSortOrder.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/RequestActor.h"
+#include "td/telegram/RichMessage.h"
 #include "td/telegram/SavedMessagesManager.h"
 #include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/ScopeNotificationSettings.h"
@@ -4803,6 +4804,19 @@ void Requests::on_request(uint64 id, td_api::sendTextMessageDraft &request) {
   }
   td_->dialog_action_manager_->send_dialog_action(dialog_id, message_topic, BusinessConnectionId(),
                                                   DialogAction(request.draft_id_, std::move(text)), std::move(promise));
+}
+
+void Requests::on_request(uint64 id, td_api::sendRichMessageDraft &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  DialogId dialog_id(request.chat_id_);
+  TRY_RESULT_PROMISE(promise, rich_message, RichMessage::get_rich_message(td_, dialog_id, std::move(request.message_), true));
+  MessageTopic message_topic;
+  if (request.forum_topic_id_ != 0) {
+    message_topic = MessageTopic::forum(dialog_id, ForumTopicId(request.forum_topic_id_));
+  }
+  td_->dialog_action_manager_->send_dialog_action(dialog_id, message_topic, BusinessConnectionId(),
+                                                  DialogAction(request.draft_id_, std::move(rich_message)), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::forwardMessages &request) {

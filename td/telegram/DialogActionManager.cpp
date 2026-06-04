@@ -275,13 +275,13 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
     if (it != active_actions.end()) {
       LOG(DEBUG) << "Re-add action of " << typing_dialog_id << " in " << dialog_id;
       prev_top_thread_message_id = it->top_thread_message_id;
-      prev_action = it->action;
+      prev_action = std::move(it->action);
       active_actions.erase(it);
     } else {
       LOG(DEBUG) << "Add action of " << typing_dialog_id << " in " << dialog_id;
     }
 
-    active_actions.emplace_back(top_thread_message_id, typing_dialog_id, action, Time::now());
+    active_actions.emplace_back(top_thread_message_id, typing_dialog_id, action.clone(), Time::now());
     if (top_thread_message_id == prev_top_thread_message_id && action == prev_action) {
       return;
     }
@@ -376,7 +376,7 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageTopic me
 
   auto new_query_ref = td_->create_handler<SetTypingQuery>(std::move(promise))
                            ->send(dialog_id, std::move(input_peer), message_topic, business_connection_id,
-                                  action.get_input_send_message_action(td_->user_manager_.get()));
+                                  action.get_input_send_message_action(td_));
   if (td_->auth_manager_->is_bot()) {
     return;
   }

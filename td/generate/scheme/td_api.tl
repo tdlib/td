@@ -12735,6 +12735,13 @@ sendChatAction chat_id:int53 topic_id:MessageTopic business_connection_id:string
 //@text Draft text of the message; pass null to show a "Thinking..." placeholder
 sendTextMessageDraft chat_id:int53 forum_topic_id:int32 draft_id:int64 text:formattedText = Ok;
 
+//@description Sends a draft for a being generated rich message; for bots only
+//@chat_id Chat identifier
+//@forum_topic_id The forum topic identifier in which the message will be sent; pass 0 if none
+//@draft_id Unique identifier of the draft
+//@message Draft of the message
+sendRichMessageDraft chat_id:int53 forum_topic_id:int32 draft_id:int64 message:inputRichMessage = Ok;
+
 
 //@description Informs TDLib that the chat is opened by the user. Many useful activities depend on the chat being opened or closed (e.g., in supergroups and channels all updates are received only for opened chats) @chat_id Chat identifier
 openChat chat_id:int53 = Ok;

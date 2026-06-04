@@ -8,6 +8,7 @@
 
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/RichMessage.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -39,13 +40,15 @@ class DialogAction {
     ChoosingSticker,
     WatchingAnimations,
     ClickingAnimatedEmoji,
-    TextDraft
+    TextDraft,
+    RichTextDraft
   };
   Type type_ = Type::Cancel;
   int32 progress_ = 0;
   string emoji_;
   int64 random_id_ = 0;
   FormattedText text_;
+  RichMessage message_;
 
   DialogAction(Type type, int32 progress);
 
@@ -58,6 +61,8 @@ class DialogAction {
   void init(Type type, int32 message_id, string emoji, const string &data);
 
   void init(Type type, int64 random_id, FormattedText &&text);
+
+  void init(Type type, int64 random_id, RichMessage &&message);
 
   static bool is_valid_emoji(string &emoji);
 
@@ -72,9 +77,15 @@ class DialogAction {
     init(Type::TextDraft, random_id, std::move(text));
   }
 
-  tl_object_ptr<telegram_api::SendMessageAction> get_input_send_message_action(const UserManager *user_manager) const;
+  DialogAction(int64 random_id, RichMessage &&message) {
+    init(Type::RichTextDraft, random_id, std::move(message));
+  }
 
-  tl_object_ptr<secret_api::SendMessageAction> get_secret_input_send_message_action() const;
+  DialogAction clone() const;
+
+  telegram_api::object_ptr<telegram_api::SendMessageAction> get_input_send_message_action(const Td *td) const;
+
+  secret_api::object_ptr<secret_api::SendMessageAction> get_secret_input_send_message_action() const;
 
   td_api::object_ptr<td_api::ChatAction> get_chat_action_object(const UserManager *user_manager) const;
 
