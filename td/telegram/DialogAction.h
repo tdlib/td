@@ -123,7 +123,8 @@ class DialogAction {
   RichMessageDraftInfo get_rich_message_draft_info() const;
 
   friend bool operator==(const DialogAction &lhs, const DialogAction &rhs) {
-    return lhs.type_ == rhs.type_ && lhs.progress_ == rhs.progress_ && lhs.emoji_ == rhs.emoji_;
+    return lhs.type_ == rhs.type_ && lhs.progress_ == rhs.progress_ && lhs.emoji_ == rhs.emoji_ &&
+           lhs.random_id_ == rhs.random_id_ && lhs.text_ == rhs.text_ && lhs.message_ == rhs.message_;
   }
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &action);
