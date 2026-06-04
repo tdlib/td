@@ -90,6 +90,8 @@ class ArtifactLineageContentHashContractTest(unittest.TestCase):
     Ensures that generated artifacts carry verifiable content hashes,
     upstream lineage metadata, and repository-relative paths so that
     any downstream consumer can audit the full provenance chain.
+
+    Covers: RISK-FP-24 (timestamp-only lineage)
     """
 
     def setUp(self) -> None:

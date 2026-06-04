@@ -133,7 +133,10 @@ class InvalidOutcomeTunedAdjustment(Exception):
 # ---------------------------------------------------------------------------
 
 class OutcomeTunedThresholdAdversarialTest(unittest.TestCase):
-    """Verify that the optional-stopping guard rejects retroactive weakening."""
+    """Verify that the optional-stopping guard rejects retroactive weakening.
+
+    Covers: RISK-FP-26 (optional stopping)
+    """
 
     # -- helpers -------------------------------------------------------------
 

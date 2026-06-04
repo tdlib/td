@@ -13,7 +13,7 @@ These are RED tests -- they define the contract for a canonical
 yet in ``common_tls.py``.  Every test in this module MUST fail against
 current HEAD; that is the proof that the feature gap is real.
 
-RISKS COVERED: RISK-FP-01, RISK-FP-09, RISK-FP-19
+RISKS COVERED: RISK-FP-01, RISK-FP-02, RISK-FP-09, RISK-FP-19
 """
 
 from __future__ import annotations

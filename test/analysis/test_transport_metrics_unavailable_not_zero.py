@@ -15,6 +15,8 @@ REPO_ROOT = THIS_DIR.resolve().parents[1]
 
 
 class TransportMetricsUnavailableNotZero(unittest.TestCase):
+    """Covers: RISK-FP-06 (transport score abuse)"""
+
     def test_extractor_output_keeps_unavailable_syn_metrics_as_null(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             output_path = pathlib.Path(tmp) / "transport_observations.json"

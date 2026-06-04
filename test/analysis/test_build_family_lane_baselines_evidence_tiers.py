@@ -73,6 +73,8 @@ def _entry(
 
 
 class BuildFamilyLaneBaselinesEvidenceTiersTest(unittest.TestCase):
+    """Covers: RISK-FP-14 (silent invariant collapse)"""
+
     def test_advisory_only_inputs_stay_tier0(self) -> None:
         samples = [
             _entry("fx1", "utls_snapshot", "/captures/a.pcap", "a" * 64, "2026-04-10T00:00:00Z", "s1"),

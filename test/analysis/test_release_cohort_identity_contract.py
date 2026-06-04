@@ -11,6 +11,8 @@ carry cohort_id metadata correctly, that legacy iOS (17.x / 18.x) samples
 are segregated from modern iOS 26 denominators, that missing cohort_id
 triggers a fail-closed posture, and that mixed-cohort groups are blocked
 from merging into a single baseline.
+
+Covers: RISK-FP-03 (family coarsening)
 """
 
 from __future__ import annotations
@@ -404,6 +406,179 @@ class ReleaseCohortIdentityContractTest(unittest.TestCase):
                 cat.get("wire_lengths", []),
                 [],
                 msg=f"Tier0 {entry['family_id']}/{entry['route_lane']} has wire_lengths",
+            )
+
+
+class InvariantCollapseDiagnosticsTest(unittest.TestCase):
+    """FP-12: Verify that collapse_reasons diagnostics are emitted correctly
+    when invariant fields disagree across samples in the same cohort group.
+
+    The collapse_reasons dict (added in Phase 3 of build_family_lane_baselines)
+    records why each exact-invariant field was degraded to the empty list.
+    These tests ensure that:
+      - disagreeing fields produce an explicit "mixed_values" reason code,
+      - agreeing fields produce no entry (empty reason),
+      - collapse diagnostics are never silently empty when degradation occurs.
+    """
+
+    @staticmethod
+    def _make_sample_entry(
+        cipher_suites: list[str] | None = None,
+        supported_groups: list[str] | None = None,
+        alpn: list[str] | None = None,
+        extensions: list[dict[str, str]] | None = None,
+    ) -> dict[str, Any]:
+        """Build a minimal sample dict suitable for _merge_exact_invariants."""
+        sample: dict[str, Any] = {}
+        if cipher_suites is not None:
+            sample["non_grease_cipher_suites"] = cipher_suites
+        else:
+            sample["non_grease_cipher_suites"] = ["0x1301", "0x1302", "0x1303"]
+        if supported_groups is not None:
+            sample["non_grease_supported_groups"] = supported_groups
+        else:
+            sample["non_grease_supported_groups"] = ["0x001D", "0x0017", "0x0018"]
+        if alpn is not None:
+            sample["alpn_protocols"] = alpn
+        else:
+            sample["alpn_protocols"] = ["h2", "http/1.1"]
+        sample["compress_certificate_algorithms"] = []
+        ext_list = extensions if extensions is not None else []
+        sample["extensions"] = ext_list
+        sample["extension_types"] = [e.get("type", "0x0000") for e in sample["extensions"]]
+        sample.setdefault("non_grease_extensions_without_padding", [
+            e.get("type", "0x0000") for e in sample["extensions"]
+        ])
+        return sample
+
+    @staticmethod
+    def _wrap_as_group(samples: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Wrap raw sample dicts into the entry format expected by _merge_exact_invariants."""
+        return [{"sample": s} for s in samples]
+
+    def test_mixed_supported_groups_produces_mixed_values_reason(self) -> None:
+        """When two samples have different supported_groups lists, the
+        collapse_reasons dict must contain
+        'supported_groups': 'mixed_values'."""
+        sample_a = self._make_sample_entry(supported_groups=["0x001D", "0x0017"])
+        sample_b = self._make_sample_entry(supported_groups=["0x001D", "0x0018"])
+        group = self._wrap_as_group([sample_a, sample_b])
+
+        result = baselines_mod._merge_exact_invariants(group)
+        collapse = result["collapse_reasons"]
+
+        self.assertIn("supported_groups", collapse)
+        self.assertEqual(
+            collapse["supported_groups"],
+            "mixed_values",
+            msg="differing supported_groups must produce 'mixed_values' reason",
+        )
+        # The collapsed invariant itself must be empty
+        self.assertEqual(result["supported_groups"], [])
+
+    def test_agreeing_fields_have_no_collapse_reason(self) -> None:
+        """When all samples agree on a field, the collapse_reasons dict must
+        NOT contain an entry for that field (empty reason is omitted)."""
+        identical_ciphers = ["0x1301", "0x1302", "0x1303"]
+        sample_a = self._make_sample_entry(cipher_suites=identical_ciphers)
+        sample_b = self._make_sample_entry(cipher_suites=identical_ciphers)
+        group = self._wrap_as_group([sample_a, sample_b])
+
+        result = baselines_mod._merge_exact_invariants(group)
+        collapse = result["collapse_reasons"]
+
+        self.assertNotIn(
+            "cipher_suites",
+            collapse,
+            msg="agreeing cipher_suites must not appear in collapse_reasons",
+        )
+        # The invariant itself must be preserved (not degraded)
+        self.assertEqual(result["cipher_suites"], [0x1301, 0x1302, 0x1303])
+
+    def test_collapse_reasons_not_silently_empty_on_degradation(self) -> None:
+        """When at least one list-valued invariant is degraded to the empty
+        list due to disagreement, the collapse_reasons dict must contain at
+        least one entry with a non-empty reason code.  This guards against
+        a silent-empty bug where degradation happens but no diagnostic is
+        recorded."""
+        # Make samples that disagree on cipher_suites AND supported_groups
+        sample_a = self._make_sample_entry(
+            cipher_suites=["0x1301", "0x1302"],
+            supported_groups=["0x001D"],
+        )
+        sample_b = self._make_sample_entry(
+            cipher_suites=["0x1302", "0x1301"],  # reversed order
+            supported_groups=["0x0017"],
+        )
+        group = self._wrap_as_group([sample_a, sample_b])
+
+        result = baselines_mod._merge_exact_invariants(group)
+        collapse = result["collapse_reasons"]
+
+        # At least cipher_suites and supported_groups should be degraded
+        degraded_fields = [
+            field for field in ("cipher_suites", "supported_groups")
+            if result.get(field) == []
+        ]
+        self.assertTrue(
+            degraded_fields,
+            msg="expected at least one degraded field in this test scenario",
+        )
+        # For every degraded field, there must be a reason code
+        for field in degraded_fields:
+            self.assertIn(
+                field,
+                collapse,
+                msg=f"degraded field '{field}' missing from collapse_reasons",
+            )
+            self.assertTrue(
+                collapse[field],
+                msg=f"collapse_reasons['{field}'] is empty string; must have a reason code",
+            )
+
+    def test_all_fields_mixed_produces_complete_collapse_reasons(self) -> None:
+        """When every list-valued invariant field disagrees across samples,
+        every such field must appear in collapse_reasons with 'mixed_values'.
+        This is the maximal-disagreement scenario."""
+        sample_a = self._make_sample_entry(
+            cipher_suites=["0x1301"],
+            supported_groups=["0x001D"],
+            alpn=["h2"],
+        )
+        sample_b = self._make_sample_entry(
+            cipher_suites=["0x1302"],
+            supported_groups=["0x0017"],
+            alpn=["http/1.1"],
+        )
+        # Give different extension types to trigger extension_set disagreement
+        sample_a["non_grease_extensions_without_padding"] = ["0x000A"]
+        sample_b["non_grease_extensions_without_padding"] = ["0x000B"]
+
+        group = self._wrap_as_group([sample_a, sample_b])
+        result = baselines_mod._merge_exact_invariants(group)
+        collapse = result["collapse_reasons"]
+
+        expected_mixed_fields = [
+            "cipher_suites",
+            "extension_set",
+            "supported_groups",
+            "alpn_protocols",
+        ]
+        for field in expected_mixed_fields:
+            self.assertIn(
+                field,
+                collapse,
+                msg=f"field '{field}' should be in collapse_reasons",
+            )
+            self.assertEqual(
+                collapse[field],
+                "mixed_values",
+                msg=f"collapse_reasons['{field}'] should be 'mixed_values', got '{collapse.get(field)}'",
+            )
+            self.assertEqual(
+                result[field],
+                [],
+                msg=f"invariant '{field}' should be degraded to empty list",
             )
 
 

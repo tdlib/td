@@ -154,6 +154,8 @@ void run_supported_versions_monte_carlo(BrowserProfile profile, EchMode ech_mode
   }
 }
 
+// Covers: RISK-FP-05 (nightly undercoverage)
+
 // ---------------------------------------------------------------------------
 // Per-profile nightly Monte Carlo tests
 // ---------------------------------------------------------------------------

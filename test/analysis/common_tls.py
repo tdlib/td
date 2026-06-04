@@ -16,6 +16,21 @@ from typing import Any
 CANONICAL_ROUTE_MODES = {"unknown", "ru_egress", "non_ru_egress"}
 CANONICAL_DEVICE_CLASSES = {"desktop", "mobile", "tablet", "unknown"}
 CANONICAL_OS_FAMILIES = {"android", "ios", "linux", "macos", "windows", "unknown"}
+AUTHORITATIVE_SOURCE_KINDS = frozenset({"browser_capture", "curl_cffi_capture", "pcap"})
+ADVISORY_SOURCE_KINDS = frozenset({"utls_snapshot", "advisory_code_sample"})
+CANONICAL_SOURCE_KINDS = AUTHORITATIVE_SOURCE_KINDS | ADVISORY_SOURCE_KINDS
+
+
+def validate_source_kind(source_kind: str) -> str:
+    if source_kind not in CANONICAL_SOURCE_KINDS:
+        raise ValueError(f"unknown source_kind: {source_kind!r}; must be one of {sorted(CANONICAL_SOURCE_KINDS)}")
+    return source_kind
+
+
+def is_authoritative_source_kind(source_kind: str) -> bool:
+    return source_kind in AUTHORITATIVE_SOURCE_KINDS
+
+
 LEGACY_ROUTE_MODE_ALIASES = {
     "non_ru": "non_ru_egress",
     "ru": "ru_egress",

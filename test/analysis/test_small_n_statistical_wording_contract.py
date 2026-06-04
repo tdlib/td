@@ -91,7 +91,10 @@ _QUALIFIED_PCT_RE = re.compile(
 
 
 class SmallNStatisticalWordingContractTest(unittest.TestCase):
-    """Contract: n_cluster < 3 must use count-first, not percentage wording."""
+    """Contract: n_cluster < 3 must use count-first, not percentage wording.
+
+    Covers: RISK-FP-25 (small-n overstatement)
+    """
 
     # ------------------------------------------------------------------
     # 1. n == 1: count-first wording

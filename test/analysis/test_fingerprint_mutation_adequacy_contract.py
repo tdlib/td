@@ -65,7 +65,10 @@ def _load_catalog() -> dict:
 
 
 class FingerprintMutationAdequacyContractTest(unittest.TestCase):
-    """Tests mutation catalog schema and mutation adequacy gates."""
+    """Tests mutation catalog schema and mutation adequacy gates.
+
+    Covers: RISK-FP-21 (test false negatives)
+    """
 
     @classmethod
     def setUpClass(cls) -> None:

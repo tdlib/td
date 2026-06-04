@@ -41,6 +41,16 @@ _MINIMUM_CAPTURE_THRESHOLDS = {
 }
 
 
+def wilson_lower_bound(x_pass: int, n_cluster: int, z: float = 1.96) -> float | None:
+    if n_cluster <= 0:
+        return None
+    p_hat = x_pass / n_cluster
+    denominator = 1 + z * z / n_cluster
+    center = p_hat + z * z / (2 * n_cluster)
+    spread = z * ((p_hat * (1 - p_hat) / n_cluster + z * z / (4 * n_cluster * n_cluster)) ** 0.5)
+    return (center - spread) / denominator
+
+
 def load_tier_spec(spec_path: pathlib.Path) -> dict[str, Any]:
     with spec_path.open("r", encoding="utf-8") as infile:
         loaded = json.load(infile)
@@ -313,6 +323,13 @@ def render_release_evidence_summary(
         "active_probing_nightly": resolved_active_probing_status,
         "transport_coherence_status": resolved_transport_status,
         "tier_policy": spec,
+        "statistical_metadata": {
+            "ci_method": "wilson",
+            "cluster_level": "capture",
+            "z_score": 1.96,
+            "bootstrap_resamples": None,
+            "note": "Cluster-collapsed Wilson score interval on capture-level Bernoulli outcomes. Bootstrap reserved for non-binary distributional metrics.",
+        },
     }
 
 

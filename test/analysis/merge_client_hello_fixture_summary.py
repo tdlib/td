@@ -137,6 +137,7 @@ def emit_fixture_block(artifact: dict[str, Any], sample: dict[str, Any], prefix:
     lines.append(f"inline constexpr const char {prefix}ParserVersion[] = {cpp_string(str(artifact['parser_version']))};")
     lines.append(f"inline constexpr const char {prefix}ScenarioId[] = {cpp_string(str(artifact['scenario_id']))};")
     lines.append(f"inline constexpr const char {prefix}RouteMode[] = {cpp_string(normalize_route_mode(artifact['route_mode']))};")
+    lines.append(f"inline constexpr const char {prefix}SourceKind[] = {cpp_string(str(artifact.get('source_kind', '')))};")
     lines.append(f"inline constexpr const char {prefix}Sni[] = {cpp_string(str(sample['sni']))};")
     lines.append(f"inline constexpr uint32 {prefix}FrameNumber = {sample['frame_number']};")
     lines.append(f"inline constexpr uint32 {prefix}TcpStream = {sample['tcp_stream']};")
@@ -151,6 +152,30 @@ def emit_fixture_block(artifact: dict[str, Any], sample: dict[str, Any], prefix:
     lines.append(cpp_string_vector(f"{prefix}AlpnProtocols", sample.get("alpn_protocols", [])))
     lines.append(cpp_u16_vector(f"{prefix}CompressCertificateAlgorithms", sample.get("compress_certificate_algorithms", [])))
     lines.append(cpp_key_share_vector(f"{prefix}KeyShareEntries", sample["key_share_entries"]))
+    # supported_versions (FP-02)
+    sv_raw = []
+    sv_non_grease = []
+    for ext in sample.get("extensions", []):
+        if isinstance(ext, dict) and str(ext.get("type", "")).lower() == "0x002b":
+            body_hex = str(ext.get("body_hex", ""))
+            if body_hex:
+                from common_tls import parse_supported_versions, is_grease_version
+                try:
+                    all_versions = []
+                    raw_bytes = bytes.fromhex(body_hex)
+                    if len(raw_bytes) > 0:
+                        vec_len = raw_bytes[0]
+                        for i in range(0, min(vec_len, len(raw_bytes) - 1), 2):
+                            v = (raw_bytes[1+i] << 8) | raw_bytes[1+i+1]
+                            all_versions.append(f"0x{v:04X}")
+                    non_grease = parse_supported_versions(body_hex)
+                    sv_raw = all_versions
+                    sv_non_grease = [f"0x{v:04X}" for v in non_grease]
+                except (ValueError, ImportError):
+                    pass
+            break
+    lines.append(cpp_u16_vector(f"{prefix}SupportedVersionsRaw", sv_raw))
+    lines.append(cpp_u16_vector(f"{prefix}NonGreaseSupportedVersions", sv_non_grease))
     lines.append(cpp_ech_expectation(f"{prefix}Ech", sample.get("ech")))
     return lines
 

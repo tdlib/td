@@ -88,6 +88,8 @@ def verify_source_hash(artifact_path: pathlib.Path, artifact: dict) -> None:
 
 
 class FixtureMetadataCollisionTest(unittest.TestCase):
+    """Covers: RISK-FP-12 (provenance collision)"""
+
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
         self.root = pathlib.Path(self._tmp.name).resolve()

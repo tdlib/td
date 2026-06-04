@@ -43,8 +43,7 @@ from typing import Any
 _FIREFOX_TOKENS = ("firefox", "librewolf", "ironfox", "firefoxzen")
 _SAFARI_TOKENS = ("safari",)
 
-AUTHORITATIVE_SOURCE_KINDS = {"browser_capture", "curl_cffi_capture", "pcap"}
-ADVISORY_SOURCE_KINDS = {"utls_snapshot", "advisory_code_sample"}
+from common_tls import AUTHORITATIVE_SOURCE_KINDS, ADVISORY_SOURCE_KINDS
 STALE_WARNING_DAYS = 90
 STALE_DOWNGRADE_DAYS = 180
 _PRIMARY_ROUTE_LANE = "non_ru_egress"
@@ -385,6 +384,7 @@ struct SetMembershipCatalog final {
 struct FamilyLaneBaseline final {
   Slice family_id;
   Slice route_lane;
+  Slice cohort_id;
   TierLevel tier;
     TierLevel raw_tier;
   size_t sample_count;
@@ -609,6 +609,10 @@ def _materialize_fail_closed_route_lanes(baselines: list[dict[str, Any]]) -> lis
         for lane in _FAIL_CLOSED_ROUTE_LANES:
             if lane in lanes:
                 continue
+            fc_invariants = _synthetic_fail_closed_invariants(donor)
+            sv = fc_invariants.get("supported_versions", [])
+            sv_key = "_".join(str(v) for v in sv) if sv else "unknown"
+            fc_cohort_id = f"{family_id}_sv_{sv_key}"
             augmented.append({
                 "family_id": family_id,
                 "route_lane": lane,
@@ -620,8 +624,9 @@ def _materialize_fail_closed_route_lanes(baselines: list[dict[str, Any]]) -> lis
                 "num_sessions": 0,
                 "stale_over_90_days": False,
                 "stale_over_180_days": False,
-                "invariants": _synthetic_fail_closed_invariants(donor),
+                "invariants": fc_invariants,
                 "set_catalog": _synthetic_fail_closed_catalog(),
+                "cohort_id": fc_cohort_id,
             })
 
     augmented.sort(key=lambda entry: (str(entry["family_id"]), str(entry["route_lane"])))
@@ -744,6 +749,7 @@ def render_header(baselines: list[dict[str, Any]]) -> str:
         lines.append("      FamilyLaneBaseline b;")
         lines.append(f"      b.family_id = Slice({_cpp_string(baseline['family_id'])});")
         lines.append(f"      b.route_lane = Slice({_cpp_string(baseline['route_lane'])});")
+        lines.append(f"      b.cohort_id = Slice({_cpp_string(baseline.get('cohort_id', ''))});")
         lines.append(f"      b.tier = TierLevel::{baseline['tier']};")
         lines.append(f"      b.raw_tier = TierLevel::{baseline['raw_tier']};")
         lines.append(f"      b.sample_count = {baseline['sample_count']}u;")

@@ -146,6 +146,35 @@ PY
             docs/Generated/FINGERPRINT_RELEASE_EVIDENCE_POLICY.generated.json \
             test/analysis/fingerprint_trust_tiers.json
 
+      - name: Verify cross-artifact lineage ordering
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          transport = json.loads(pathlib.Path("docs/Generated/FINGERPRINT_TRANSPORT_COHERENCE_STATUS.generated.json").read_text())
+          probing = json.loads(pathlib.Path("docs/Generated/FINGERPRINT_ACTIVE_PROBING_NIGHTLY_STATUS.generated.json").read_text())
+          evidence = json.loads(pathlib.Path("docs/Generated/FINGERPRINT_RELEASE_EVIDENCE_POLICY.generated.json").read_text())
+
+          transport_ts = transport.get("generated_at_utc", "")
+          probing_ts = probing.get("generated_at_utc", "")
+          evidence_ts = evidence.get("generated_at_utc", "")
+
+          errors = []
+          if evidence_ts < transport_ts:
+              errors.append(f"release evidence ({evidence_ts}) is older than transport ({transport_ts})")
+          if evidence_ts < probing_ts:
+              errors.append(f"release evidence ({evidence_ts}) is older than probing ({probing_ts})")
+
+          if errors:
+              for e in errors:
+                  print(f"LINEAGE ERROR: {e}", file=sys.stderr)
+              sys.exit(1)
+          print("Lineage ordering OK: evidence >= transport, evidence >= probing")
+          PY
+
   reviewed_corpus_smoke:
     name: reviewed_corpus_smoke
     if: github.event_name != 'schedule'

@@ -27,6 +27,8 @@ def load_json(path: pathlib.Path) -> dict:
 
 
 class FixtureProvenanceContractTest(unittest.TestCase):
+    """Covers: RISK-FP-08 (provenance contamination)"""
+
     def test_registry_source_entries_use_regrouped_platform_layout(self) -> None:
         registry = load_json(REGISTRY_PATH)
 

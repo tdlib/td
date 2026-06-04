@@ -61,6 +61,8 @@ ParsedClientHello build_and_parse(BrowserProfile profile, td::uint64 seed) {
   return parsed.move_as_ok();
 }
 
+// Covers: RISK-FP-28 (GREASE raw-wire drift)
+
 // ---------------------------------------------------------------------------
 // 1. Every GREASE value across all structural locations conforms to 0x_A_A.
 // ---------------------------------------------------------------------------

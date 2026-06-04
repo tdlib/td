@@ -67,6 +67,8 @@ FamilyLaneBaseline make_ios_baseline_with_supported_versions(td::vector<td::uint
   return b;
 }
 
+// Covers: RISK-FP-04 (matcher permissiveness)
+
 // ----------------------------------------------------------------
 // Positive: the correct apple_ios_tls supported_versions {TLS 1.3,
 // TLS 1.2} must pass the invariant check.

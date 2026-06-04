@@ -85,7 +85,10 @@ def _build_minimal_statistical_metadata(
 
 
 class StatisticalReleaseMetadataContractTest(unittest.TestCase):
-    """Contract: release evidence artifacts must carry statistical metadata."""
+    """Contract: release evidence artifacts must carry statistical metadata.
+
+    Covers: RISK-FP-11 (seed inflation)
+    """
 
     # ------------------------------------------------------------------
     # 1. Required field presence

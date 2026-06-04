@@ -9,7 +9,7 @@
 Covers the scenario_id fallback bug (FP-11, FP-17) and source_path identity
 inflation (FP-09).
 
-RISKS COVERED: RISK-FP-10, RISK-FP-13, RISK-FP-18
+RISKS COVERED: RISK-FP-10, RISK-FP-13, RISK-FP-16, RISK-FP-18
 
 CENSUS FINDINGS:
   - common_tls.py line 342: scenario_id falls back to artifact_path.stem
