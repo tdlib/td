@@ -53,6 +53,9 @@ class FormattedDate {
   telegram_api::object_ptr<telegram_api::messageEntityFormattedDate> get_input_message_entity_formatted_date(
       int32 offset, int32 length) const;
 
+  telegram_api::object_ptr<telegram_api::textDate> get_input_text_date(
+      telegram_api::object_ptr<telegram_api::RichText> &&text) const;
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

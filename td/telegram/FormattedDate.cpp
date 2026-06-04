@@ -168,6 +168,14 @@ FormattedDate::get_input_message_entity_formatted_date(int32 offset, int32 lengt
       (date_flags_ & DateFlags::LongDate) != 0, (date_flags_ & DateFlags::DayOfWeek) != 0, offset, length, date_);
 }
 
+telegram_api::object_ptr<telegram_api::textDate> FormattedDate::get_input_text_date(
+    telegram_api::object_ptr<telegram_api::RichText> &&text) const {
+  return telegram_api::make_object<telegram_api::textDate>(
+      0, (date_flags_ & DateFlags::Relative) != 0, (date_flags_ & DateFlags::ShortTime) != 0,
+      (date_flags_ & DateFlags::LongTime) != 0, (date_flags_ & DateFlags::ShortDate) != 0,
+      (date_flags_ & DateFlags::LongDate) != 0, (date_flags_ & DateFlags::DayOfWeek) != 0, std::move(text), date_);
+}
+
 bool operator==(const FormattedDate &lhs, const FormattedDate &rhs) {
   return lhs.date_ == rhs.date_ && lhs.date_flags_ == rhs.date_flags_;
 }
