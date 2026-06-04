@@ -23,6 +23,7 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DocumentsManager.hpp"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/FormattedDate.h"
 #include "td/telegram/FormattedDate.hpp"
 #include "td/telegram/LinkManager.h"
@@ -81,6 +82,13 @@ class RichText {
                                                                             GetWebPageBlockObjectContext *context) {
     return transform(rich_texts,
                      [context](const RichText &rich_text) { return rich_text.get_rich_text_object(context); });
+  }
+
+  static vector<telegram_api::object_ptr<telegram_api::RichText>> get_input_rich_texts(
+      const vector<RichText> &rich_texts, const Td *td,
+      vector<telegram_api::object_ptr<telegram_api::InputDocument>> &documents) {
+    return transform(rich_texts,
+                     [&](const RichText &rich_text) { return rich_text.get_input_rich_text(td, documents); });
   }
 
  public:
@@ -170,10 +178,88 @@ class RichText {
     return result;
   }
 
-  friend bool operator==(const RichText &lhs, const RichText &rhs) {
-    return lhs.type == rhs.type && lhs.content == rhs.content && lhs.texts == rhs.texts &&
-           lhs.document_file_id == rhs.document_file_id && lhs.custom_emoji_id == rhs.custom_emoji_id &&
-           lhs.web_page_id == rhs.web_page_id && lhs.date == rhs.date && lhs.user_id == rhs.user_id;
+  telegram_api::object_ptr<telegram_api::RichText> get_input_rich_text(
+      const Td *td, vector<telegram_api::object_ptr<telegram_api::InputDocument>> &documents) const {
+    switch (type) {
+      case Type::Plain:
+        if (content.empty()) {
+          return telegram_api::make_object<telegram_api::textEmpty>();
+        }
+        return telegram_api::make_object<telegram_api::textPlain>(content);
+      case Type::Bold:
+        return telegram_api::make_object<telegram_api::textBold>(texts[0].get_input_rich_text(td, documents));
+      case Type::Italic:
+        return telegram_api::make_object<telegram_api::textItalic>(texts[0].get_input_rich_text(td, documents));
+      case Type::Underline:
+        return telegram_api::make_object<telegram_api::textUnderline>(texts[0].get_input_rich_text(td, documents));
+      case Type::Strikethrough:
+        return telegram_api::make_object<telegram_api::textStrike>(texts[0].get_input_rich_text(td, documents));
+      case Type::Fixed:
+        return telegram_api::make_object<telegram_api::textFixed>(texts[0].get_input_rich_text(td, documents));
+      case Type::Url:
+        return telegram_api::make_object<telegram_api::textUrl>(texts[0].get_input_rich_text(td, documents), content,
+                                                                0);
+      case Type::EmailAddress:
+        return telegram_api::make_object<telegram_api::textEmail>(texts[0].get_input_rich_text(td, documents), content);
+      case Type::Concatenation:
+        return telegram_api::make_object<telegram_api::textConcat>(get_input_rich_texts(texts, td, documents));
+      case Type::Subscript:
+        return telegram_api::make_object<telegram_api::textSubscript>(texts[0].get_input_rich_text(td, documents));
+      case Type::Superscript:
+        return telegram_api::make_object<telegram_api::textSuperscript>(texts[0].get_input_rich_text(td, documents));
+      case Type::Marked:
+        return telegram_api::make_object<telegram_api::textMarked>(texts[0].get_input_rich_text(td, documents));
+      case Type::PhoneNumber:
+        return telegram_api::make_object<telegram_api::textPhone>(texts[0].get_input_rich_text(td, documents), content);
+      case Type::Icon: {
+        auto file_view = td->file_manager_->get_file_view(document_file_id);
+        const auto *main_remote_location = file_view.get_main_remote_location();
+        if (!file_view.is_encrypted() && main_remote_location != nullptr && !main_remote_location->is_web()) {
+          documents.push_back(main_remote_location->as_input_document());
+
+          auto dimensions = to_integer<uint32>(content);
+          auto width = static_cast<int32>(dimensions / 65536);
+          auto height = static_cast<int32>(dimensions % 65536);
+          return telegram_api::make_object<telegram_api::textImage>(main_remote_location->get_id(), width, height);
+        }
+        LOG(ERROR) << "Can't create textImage for " << document_file_id;
+        return telegram_api::make_object<telegram_api::textEmpty>();
+      }
+      case Type::Anchor:
+        return telegram_api::make_object<telegram_api::textAnchor>(texts[0].get_input_rich_text(td, documents),
+                                                                   content);
+      case Type::Math:
+        return telegram_api::make_object<telegram_api::textMath>(content);
+      case Type::CustomEmoji:
+        return telegram_api::make_object<telegram_api::textCustomEmoji>(custom_emoji_id.get(), content);
+      case Type::Spoiler:
+        return telegram_api::make_object<telegram_api::textSpoiler>(texts[0].get_input_rich_text(td, documents));
+      case Type::Mention:
+        return telegram_api::make_object<telegram_api::textMention>(texts[0].get_input_rich_text(td, documents));
+      case Type::Hashtag:
+        return telegram_api::make_object<telegram_api::textHashtag>(texts[0].get_input_rich_text(td, documents));
+      case Type::Cashtag:
+        return telegram_api::make_object<telegram_api::textCashtag>(texts[0].get_input_rich_text(td, documents));
+      case Type::BotCommand:
+        return telegram_api::make_object<telegram_api::textBotCommand>(texts[0].get_input_rich_text(td, documents));
+      case Type::AutoUrl:
+        return telegram_api::make_object<telegram_api::textAutoUrl>(texts[0].get_input_rich_text(td, documents));
+      case Type::AutoEmailAddress:
+        return telegram_api::make_object<telegram_api::textAutoEmail>(texts[0].get_input_rich_text(td, documents));
+      case Type::AutoPhoneNumber:
+        return telegram_api::make_object<telegram_api::textAutoPhone>(texts[0].get_input_rich_text(td, documents));
+      case Type::FormattedDate:
+        return date.get_input_text_date(texts[0].get_input_rich_text(td, documents));
+      case Type::BankCardNumber:
+        return telegram_api::make_object<telegram_api::textBankCard>(texts[0].get_input_rich_text(td, documents));
+      case Type::MentionName:
+        // input users will be added separately
+        return telegram_api::make_object<telegram_api::textMentionName>(texts[0].get_input_rich_text(td, documents),
+                                                                        user_id.get());
+      default:
+        UNREACHABLE();
+        return nullptr;
+    }
   }
 
   td_api::object_ptr<td_api::RichText> get_rich_text_object(GetWebPageBlockObjectContext *context) const {
@@ -295,6 +381,12 @@ class RichText {
         UNREACHABLE();
         return nullptr;
     }
+  }
+
+  friend bool operator==(const RichText &lhs, const RichText &rhs) {
+    return lhs.type == rhs.type && lhs.content == rhs.content && lhs.texts == rhs.texts &&
+           lhs.document_file_id == rhs.document_file_id && lhs.custom_emoji_id == rhs.custom_emoji_id &&
+           lhs.web_page_id == rhs.web_page_id && lhs.date == rhs.date && lhs.user_id == rhs.user_id;
   }
 
   template <class StorerT>
