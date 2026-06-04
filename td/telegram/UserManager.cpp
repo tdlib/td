@@ -8259,14 +8259,12 @@ void UserManager::remove_contacts(const vector<UserId> &user_ids, Promise<Unit> 
     return;
   }
 
-  vector<UserId> to_delete_user_ids;
   vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
   for (auto &user_id : user_ids) {
     const User *u = get_user(user_id);
     if (u != nullptr && u->is_contact) {
       auto r_input_user = get_input_user(user_id);
       if (r_input_user.is_ok()) {
-        to_delete_user_ids.push_back(user_id);
         input_users.push_back(r_input_user.move_as_ok());
       }
     }
