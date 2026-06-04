@@ -71,7 +71,8 @@ class DialogAction {
 
   explicit DialogAction(td_api::object_ptr<td_api::ChatAction> &&action_ptr);
 
-  DialogAction(const UserManager *user_manager, telegram_api::object_ptr<telegram_api::SendMessageAction> &&action_ptr);
+  DialogAction(Td *td, telegram_api::object_ptr<telegram_api::SendMessageAction> &&action_ptr,
+               DialogId owner_dialog_id);
 
   DialogAction(int64 random_id, FormattedText &&text) {
     init(Type::TextDraft, random_id, std::move(text));
@@ -114,6 +115,12 @@ class DialogAction {
     FormattedText text_;
   };
   TextDraftInfo get_text_draft_info() const;
+
+  struct RichMessageDraftInfo {
+    int64 random_id_ = 0;
+    const RichMessage *message_ = nullptr;
+  };
+  RichMessageDraftInfo get_rich_message_draft_info() const;
 
   friend bool operator==(const DialogAction &lhs, const DialogAction &rhs) {
     return lhs.type_ == rhs.type_ && lhs.progress_ == rhs.progress_ && lhs.emoji_ == rhs.emoji_;

@@ -4217,23 +4217,24 @@ bool UpdatesManager::is_channel_pts_update(const telegram_api::Update *update) {
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserTyping> update, Promise<Unit> &&promise) {
   DialogId dialog_id(UserId(update->user_id_));
   td_->dialog_action_manager_->on_dialog_action(dialog_id, MessageId(ServerMessageId(update->top_msg_id_)), dialog_id,
-                                                DialogAction(td_->user_manager_.get(), std::move(update->action_)),
+                                                DialogAction(td_, std::move(update->action_), dialog_id),
                                                 get_short_update_date());
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, Promise<Unit> &&promise) {
-  td_->dialog_action_manager_->on_dialog_action(
-      DialogId(ChatId(update->chat_id_)), MessageId(), DialogId(update->from_id_),
-      DialogAction(td_->user_manager_.get(), std::move(update->action_)), get_short_update_date());
+  DialogId dialog_id(ChatId(update->chat_id_));
+  td_->dialog_action_manager_->on_dialog_action(dialog_id, MessageId(), DialogId(update->from_id_),
+                                                DialogAction(td_, std::move(update->action_), dialog_id),
+                                                get_short_update_date());
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelUserTyping> update, Promise<Unit> &&promise) {
+  DialogId dialog_id(ChannelId(update->channel_id_));
   td_->dialog_action_manager_->on_dialog_action(
-      DialogId(ChannelId(update->channel_id_)), MessageId(ServerMessageId(update->top_msg_id_)),
-      DialogId(update->from_id_), DialogAction(td_->user_manager_.get(), std::move(update->action_)),
-      get_short_update_date());
+      dialog_id, MessageId(ServerMessageId(update->top_msg_id_)), DialogId(update->from_id_),
+      DialogAction(td_, std::move(update->action_), dialog_id), get_short_update_date());
   promise.set_value(Unit());
 }
 

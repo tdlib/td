@@ -184,8 +184,7 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
     auto text_draft_info = action.get_text_draft_info();
     if (text_draft_info.is_text_draft_) {
       auto period = td_->option_manager_->get_option_integer("pending_text_message_period", 0);
-      if (date > G()->unix_time() - period && dialog_type == DialogType::User && dialog_id == typing_dialog_id &&
-          td_->user_manager_->is_user_bot(dialog_id.get_user_id())) {
+      if (date > G()->unix_time() - period && dialog_type == DialogType::User && dialog_id == typing_dialog_id) {
         send_closure(
             G()->td(), &Td::send_update,
             td_api::make_object<td_api::updatePendingMessage>(
@@ -194,6 +193,23 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
                 td_api::make_object<td_api::messageText>(
                     get_formatted_text_object(td_->user_manager_.get(), text_draft_info.text_, false, -1), nullptr,
                     nullptr)));
+      }
+      return;
+    }
+  }
+
+  {
+    auto rich_message_draft_info = action.get_rich_message_draft_info();
+    if (rich_message_draft_info.message_ != nullptr) {
+      auto period = td_->option_manager_->get_option_integer("pending_rich_message_message_period", 0);
+      if (date > G()->unix_time() - period && dialog_type == DialogType::User && dialog_id == typing_dialog_id) {
+        send_closure(G()->td(), &Td::send_update,
+                     td_api::make_object<td_api::updatePendingMessage>(
+                         td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatAction"),
+                         ForumTopicId::from_top_thread_message_id(top_thread_message_id).get(),
+                         rich_message_draft_info.random_id_,
+                         td_api::make_object<td_api::messageRichMessage>(
+                             rich_message_draft_info.message_->get_rich_message_object(td_, false))));
       }
       return;
     }

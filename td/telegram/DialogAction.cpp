@@ -145,8 +145,8 @@ DialogAction::DialogAction(td_api::object_ptr<td_api::ChatAction> &&action_ptr) 
   }
 }
 
-DialogAction::DialogAction(const UserManager *user_manager,
-                           telegram_api::object_ptr<telegram_api::SendMessageAction> &&action_ptr) {
+DialogAction::DialogAction(Td *td, telegram_api::object_ptr<telegram_api::SendMessageAction> &&action_ptr,
+                           DialogId owner_dialog_id) {
   switch (action_ptr->get_id()) {
     case telegram_api::sendMessageCancelAction::ID:
       init(Type::Cancel);
@@ -221,12 +221,15 @@ DialogAction::DialogAction(const UserManager *user_manager,
     case telegram_api::sendMessageTextDraftAction::ID: {
       auto action = telegram_api::move_object_as<telegram_api::sendMessageTextDraftAction>(action_ptr);
       init(Type::TextDraft, action->random_id_,
-           get_formatted_text(user_manager, std::move(action->text_), true, false, "sendMessageTextDraftAction"));
+           get_formatted_text(td->user_manager_.get(), std::move(action->text_), true, false,
+                              "sendMessageTextDraftAction"));
       break;
     }
-    case telegram_api::sendMessageRichMessageDraftAction::ID:
-      init(Type::Typing);
+    case telegram_api::sendMessageRichMessageDraftAction::ID: {
+      auto action = telegram_api::move_object_as<telegram_api::sendMessageRichMessageDraftAction>(action_ptr);
+      init(Type::RichTextDraft, action->random_id_, RichMessage(td, std::move(action->rich_message_), owner_dialog_id));
       break;
+    }
     case telegram_api::inputSendMessageRichMessageDraftAction::ID:
       LOG(ERROR) << "Receive " << to_string(action_ptr);
       init(Type::Cancel);
@@ -568,6 +571,15 @@ DialogAction::TextDraftInfo DialogAction::get_text_draft_info() const {
     result.is_text_draft_ = true;
     result.random_id_ = random_id_;
     result.text_ = text_;
+  }
+  return result;
+}
+
+DialogAction::RichMessageDraftInfo DialogAction::get_rich_message_draft_info() const {
+  RichMessageDraftInfo result;
+  if (type_ == Type::RichTextDraft) {
+    result.random_id_ = random_id_;
+    result.message_ = &message_;
   }
   return result;
 }

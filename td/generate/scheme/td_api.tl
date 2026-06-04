@@ -10405,7 +10405,7 @@ updateChatAction chat_id:int53 topic_id:MessageTopic sender_id:MessageSender act
 //@chat_id Chat identifier
 //@forum_topic_id The forum topic identifier in which the message will be sent; 0 if none
 //@draft_id Unique identifier of the message draft within the message thread
-//@content Content of the message; always messageText
+//@content Content of the message; always of the type messageText or messageRichMessage
 updatePendingMessage chat_id:int53 forum_topic_id:int32 draft_id:int64 content:MessageContent = Update;
 
 //@description The user went online or offline @user_id User identifier @status New status of the user
