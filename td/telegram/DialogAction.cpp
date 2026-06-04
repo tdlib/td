@@ -568,9 +568,8 @@ DialogAction::ClickingAnimateEmojiInfo DialogAction::get_clicking_animated_emoji
 DialogAction::TextDraftInfo DialogAction::get_text_draft_info() const {
   TextDraftInfo result;
   if (type_ == Type::TextDraft) {
-    result.is_text_draft_ = true;
     result.random_id_ = random_id_;
-    result.text_ = text_;
+    result.text_ = &text_;
   }
   return result;
 }

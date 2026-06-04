@@ -110,9 +110,8 @@ class DialogAction {
   ClickingAnimateEmojiInfo get_clicking_animated_emoji_action_info() const;
 
   struct TextDraftInfo {
-    bool is_text_draft_ = false;
     int64 random_id_ = 0;
-    FormattedText text_;
+    const FormattedText *text_ = nullptr;
   };
   TextDraftInfo get_text_draft_info() const;
 

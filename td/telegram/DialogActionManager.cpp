@@ -182,7 +182,7 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
 
   {
     auto text_draft_info = action.get_text_draft_info();
-    if (text_draft_info.is_text_draft_) {
+    if (text_draft_info.text_ != nullptr) {
       auto period = td_->option_manager_->get_option_integer("pending_text_message_period", 0);
       if (date > G()->unix_time() - period && dialog_type == DialogType::User && dialog_id == typing_dialog_id) {
         send_closure(
@@ -191,7 +191,7 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
                 td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatAction"),
                 ForumTopicId::from_top_thread_message_id(top_thread_message_id).get(), text_draft_info.random_id_,
                 td_api::make_object<td_api::messageText>(
-                    get_formatted_text_object(td_->user_manager_.get(), text_draft_info.text_, false, -1), nullptr,
+                    get_formatted_text_object(td_->user_manager_.get(), *text_draft_info.text_, false, -1), nullptr,
                     nullptr)));
       }
       return;
