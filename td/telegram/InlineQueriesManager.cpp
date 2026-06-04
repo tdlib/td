@@ -33,6 +33,7 @@
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/ReplyMarkup.h"
+#include "td/telegram/RichMessage.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/TargetDialogTypes.h"
 #include "td/telegram/Td.h"
@@ -577,6 +578,19 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     return make_tl_object<telegram_api::inputBotInlineMessageText>(
         flags, input_message_text.disable_web_page_preview, input_message_text.show_above_text,
         std::move(input_message_text.text.text), std::move(entities), std::move(input_reply_markup));
+  }
+  if (constructor_id == td_api::inputMessageRichMessage::ID) {
+    TRY_RESULT(
+        rich_message,
+        RichMessage::get_rich_message(
+            td_, DialogId(),
+            std::move(static_cast<td_api::inputMessageRichMessage *>(input_message_content.get())->message_), true));
+    int32 flags = 0;
+    if (input_reply_markup != nullptr) {
+      flags |= telegram_api::inputBotInlineMessageRichMessage::REPLY_MARKUP_MASK;
+    }
+    return telegram_api::make_object<telegram_api::inputBotInlineMessageRichMessage>(
+        flags, std::move(input_reply_markup), rich_message.get_input_rich_message(td_));
   }
   if (constructor_id == td_api::inputMessageContact::ID) {
     TRY_RESULT(contact, process_input_message_contact(td_, std::move(input_message_content)));
