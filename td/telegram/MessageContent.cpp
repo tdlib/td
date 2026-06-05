@@ -6438,6 +6438,8 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     }
     case MessageContentType::Poll:
       return message_search_filter_index_mask(MessageSearchFilter::Poll);
+    case MessageContentType::RichText:
+      return static_cast<const MessageRichText *>(content)->text.get_index_mask();
     case MessageContentType::Text:
     case MessageContentType::Contact:
     case MessageContentType::Game:
@@ -6520,7 +6522,6 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
-    case MessageContentType::RichText:
       return 0;
     default:
       UNREACHABLE();

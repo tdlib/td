@@ -167,6 +167,10 @@ bool RichMessage::can_send(const RestrictedRights &rights) const {
   return true;
 }
 
+int32 RichMessage::get_index_mask() const {
+  return get_web_page_blocks_index_mask(blocks_);
+}
+
 telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_rich_message(const Td *td) const {
   switch (input_type_) {
     case InputType::None: {

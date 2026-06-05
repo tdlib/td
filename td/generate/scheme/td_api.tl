@@ -4967,7 +4967,7 @@ pollMediaVideo video:video alternative_videos:vector<alternativeVideo> storyboar
 //@link_preview_options Options which were used for generation of the link preview; may be null if default options were used
 messageText text:formattedText link_preview:linkPreview link_preview_options:linkPreviewOptions = MessageContent;
 
-//@description A rich message @message The rich message
+//@description A rich message; the message can have multiple media of the same type, all of which must be shown in the corresponding profile tab @message The rich message
 messageRichMessage message:richMessage = MessageContent;
 
 //@description An animation message (GIF-style).
@@ -11619,7 +11619,7 @@ searchChatRecentLocationMessages chat_id:int53 limit:int32 = Messages;
 //@date Point in time (Unix timestamp) relative to which to search for messages
 getChatMessageByDate chat_id:int53 date:int32 = Message;
 
-//@description Returns sparse positions of messages of the specified type in the chat to be used for shared media scroll implementation. Returns the results in reverse chronological order (i.e., in order of decreasing message_id).
+//@description Returns sparse positions of messages of the specified type in the chat to be used for Shared Media scroll implementation. Returns the results in reverse chronological order (i.e., in order of decreasing message_id).
 //-Cannot be used in secret chats or with searchMessagesFilterFailedToSend filter without an enabled message database
 //@chat_id Identifier of the chat in which to return information about message positions
 //@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterMention, searchMessagesFilterUnreadMention, searchMessagesFilterUnreadReaction,
