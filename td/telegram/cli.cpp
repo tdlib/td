@@ -2201,6 +2201,23 @@ class CliClient final : public Actor {
     return as_formatted_text(caption, std::move(entities));
   }
 
+  static td_api::object_ptr<td_api::inputRichMessage> as_input_rich_message(const string &message) {
+    return td_api::make_object<td_api::inputRichMessage>(
+        td_api::make_object<td_api::richMessageSourceMarkdown>(message), rand_bool(), rand_bool());
+  }
+
+  struct InputRichMessage {
+    string message;
+
+    operator td_api::object_ptr<td_api::inputRichMessage>() const {
+      return as_input_rich_message(message);
+    }
+  };
+
+  void get_args(string &args, InputRichMessage &arg) const {
+    arg.message = std::move(args);
+  }
+
   static td_api::object_ptr<td_api::NotificationSettingsScope> as_notification_settings_scope(Slice scope) {
     if (scope.empty()) {
       return nullptr;
@@ -6367,14 +6384,9 @@ class CliClient final : public Actor {
                    td_api::make_object<td_api::inputMessageText>(std::move(text), get_link_preview_options(), true));
     } else if (op == "srmm") {
       ChatId chat_id;
-      string message;
+      InputRichMessage message;
       get_args(args, chat_id, message);
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessageRichMessage>(
-                       td_api::make_object<td_api::inputRichMessage>(
-                           td_api::make_object<td_api::richMessageSourceMarkdown>(message), rand_bool(), rand_bool()),
-                       true),
-                   false, false);
+      send_message(chat_id, td_api::make_object<td_api::inputMessageRichMessage>(message, true), false, false);
     } else if (op == "alm") {
       ChatId chat_id;
       string sender_id;
