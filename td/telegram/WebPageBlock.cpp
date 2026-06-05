@@ -1947,11 +1947,15 @@ class WebPageBlockAnimation final : public WebPageBlock {
   FileId animation_file_id;
   WebPageBlockCaption caption;
   bool need_autoplay = false;
+  bool has_spoiler = false;
 
  public:
   WebPageBlockAnimation() = default;
-  WebPageBlockAnimation(FileId animation_file_id, WebPageBlockCaption &&caption, bool need_autoplay)
-      : animation_file_id(animation_file_id), caption(std::move(caption)), need_autoplay(need_autoplay) {
+  WebPageBlockAnimation(FileId animation_file_id, WebPageBlockCaption &&caption, bool need_autoplay, bool has_spoiler)
+      : animation_file_id(animation_file_id)
+      , caption(std::move(caption))
+      , need_autoplay(need_autoplay)
+      , has_spoiler(has_spoiler) {
   }
 
   Type get_type() const final {
@@ -1976,7 +1980,7 @@ class WebPageBlockAnimation final : public WebPageBlock {
   }
 
   unique_ptr<WebPageBlock> clone() const final {
-    return td::make_unique<WebPageBlockAnimation>(animation_file_id, caption.clone(), need_autoplay);
+    return td::make_unique<WebPageBlockAnimation>(animation_file_id, caption.clone(), need_autoplay, has_spoiler);
   }
 
   telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(
@@ -1986,8 +1990,9 @@ class WebPageBlockAnimation final : public WebPageBlock {
     const auto *main_remote_location = file_view.get_main_remote_location();
     if (!file_view.is_encrypted() && main_remote_location != nullptr && !main_remote_location->is_web()) {
       documents.push_back(main_remote_location->as_input_document());
-      return telegram_api::make_object<telegram_api::pageBlockVideo>(
-          0, need_autoplay, true, false, main_remote_location->get_id(), caption.get_input_page_caption(td, documents));
+      return telegram_api::make_object<telegram_api::pageBlockVideo>(0, need_autoplay, true, has_spoiler,
+                                                                     main_remote_location->get_id(),
+                                                                     caption.get_input_page_caption(td, documents));
     }
     LOG(ERROR) << "Can't create pageBlockVideo for " << animation_file_id;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
@@ -1996,12 +2001,12 @@ class WebPageBlockAnimation final : public WebPageBlock {
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
     return td_api::make_object<td_api::pageBlockAnimation>(
         context->td_->animations_manager_->get_animation_object(animation_file_id),
-        caption.get_page_block_caption_object(context), need_autoplay);
+        caption.get_page_block_caption_object(context), need_autoplay, has_spoiler);
   }
 
   friend bool operator==(const WebPageBlockAnimation &lhs, const WebPageBlockAnimation &rhs) {
     return lhs.animation_file_id == rhs.animation_file_id && lhs.caption == rhs.caption &&
-           lhs.need_autoplay == rhs.need_autoplay;
+           lhs.need_autoplay == rhs.need_autoplay && lhs.has_spoiler == rhs.has_spoiler;
   }
 
   template <class StorerT>
@@ -2012,6 +2017,7 @@ class WebPageBlockAnimation final : public WebPageBlock {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(need_autoplay);
     STORE_FLAG(has_empty_animation);
+    STORE_FLAG(has_spoiler);
     END_STORE_FLAGS();
 
     if (!has_empty_animation) {
@@ -2028,6 +2034,7 @@ class WebPageBlockAnimation final : public WebPageBlock {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(need_autoplay);
     PARSE_FLAG(has_empty_animation);
+    PARSE_FLAG(has_spoiler);
     END_PARSE_FLAGS();
 
     if (parser.version() >= static_cast<int32>(Version::FixWebPageInstantViewDatabase)) {
@@ -3879,8 +3886,9 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       bool is_looped = page_block->loop_;
       auto animations_it = animations.find(page_block->video_id_);
       if (animations_it != animations.end()) {
-        return make_unique<WebPageBlockAnimation>(
-            animations_it->second, get_page_block_caption(std::move(page_block->caption_), documents), need_autoplay);
+        return make_unique<WebPageBlockAnimation>(animations_it->second,
+                                                  get_page_block_caption(std::move(page_block->caption_), documents),
+                                                  need_autoplay, page_block->spoiler_);
       }
 
       auto it = videos.find(page_block->video_id_);

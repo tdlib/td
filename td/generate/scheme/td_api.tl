@@ -4101,7 +4101,8 @@ pageBlockPullQuote text:RichText credit:RichText = PageBlock;
 //@animation Animation file; may be null
 //@caption Animation caption
 //@need_autoplay True, if the animation must be played automatically
-pageBlockAnimation animation:animation caption:pageBlockCaption need_autoplay:Bool = PageBlock;
+//@has_spoiler True, if the animation preview must be covered by a spoiler animation
+pageBlockAnimation animation:animation caption:pageBlockCaption need_autoplay:Bool has_spoiler:Bool = PageBlock;
 
 //@description An audio file
 //@audio Audio file; may be null
