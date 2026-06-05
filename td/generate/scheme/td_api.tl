@@ -3964,7 +3964,7 @@ richTextPhoneNumber text:RichText phone_number:string = RichText;
 //@description A custom emoji @custom_emoji_id Unique identifier of the custom emoji @alternative_text Alternative text for the custom emoji
 richTextCustomEmoji custom_emoji_id:int64 alternative_text:string = RichText;
 
-//@description A small image inside the text
+//@description A small image inside the text; instant view only
 //@document The image represented as a document. The image can be in GIF, JPEG or PNG format
 //@width Width of a bounding box in which the image must be shown; 0 if unknown
 //@height Height of a bounding box in which the image must be shown; 0 if unknown
@@ -4042,25 +4042,25 @@ pageBlockRelatedArticle url:string title:string description:string photo:photo a
 
 //@class PageBlock @description Describes a block of an instant view for a web page
 
-//@description The title of a page @title Title
+//@description The title of a page; instant view only @title Title
 pageBlockTitle title:RichText = PageBlock;
 
-//@description The subtitle of a page @subtitle Subtitle
+//@description The subtitle of a page; instant view only @subtitle Subtitle
 pageBlockSubtitle subtitle:RichText = PageBlock;
 
-//@description The author and publishing date of a page @author Author @publish_date Point in time (Unix timestamp) when the article was published; 0 if unknown
+//@description The author and publishing date of a page; instant view only @author Author @publish_date Point in time (Unix timestamp) when the article was published; 0 if unknown
 pageBlockAuthorDate author:RichText publish_date:int32 = PageBlock;
 
-//@description A header @header Header
+//@description A header; instant view only @header Header
 pageBlockHeader header:RichText = PageBlock;
 
-//@description A subheader @subheader Subheader
+//@description A subheader; instant view only @subheader Subheader
 pageBlockSubheader subheader:RichText = PageBlock;
 
 //@description A section heading @text Text of the section heading @size Realtive size of the text font; 1-6, 1 is the largest, 6 is the smallest
 pageBlockSectionHeading text:RichText size:int32 = PageBlock;
 
-//@description A kicker @kicker Kicker
+//@description A kicker; instant view only @kicker Kicker
 pageBlockKicker kicker:RichText = PageBlock;
 
 //@description A text paragraph @text Paragraph text
@@ -4111,7 +4111,7 @@ pageBlockAudio audio:audio caption:pageBlockCaption = PageBlock;
 //@description A photo
 //@photo Photo file; may be null
 //@caption Photo caption
-//@url URL that needs to be opened when the photo is clicked
+//@url URL that needs to be opened when the photo is clicked; instant view only
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation
 pageBlockPhoto photo:photo caption:pageBlockCaption url:string has_spoiler:Bool = PageBlock;
 
@@ -4128,11 +4128,10 @@ pageBlockVideo video:video caption:pageBlockCaption need_autoplay:Bool is_looped
 //@caption Voice note caption
 pageBlockVoiceNote voice_note:voiceNote caption:pageBlockCaption = PageBlock;
 
-//@description A page cover
-//@cover Cover
+//@description A page cover; instant view only @cover Cover
 pageBlockCover cover:PageBlock = PageBlock;
 
-//@description An embedded web page
+//@description An embedded web page; instant view only
 //@url URL of the embedded page, if available
 //@html HTML-markup of the embedded page
 //@poster_photo Poster photo, if available; may be null
@@ -4143,7 +4142,7 @@ pageBlockCover cover:PageBlock = PageBlock;
 //@allow_scrolling True, if scrolling needs to be allowed
 pageBlockEmbedded url:string html:string poster_photo:photo width:int32 height:int32 caption:pageBlockCaption is_full_width:Bool allow_scrolling:Bool = PageBlock;
 
-//@description An embedded post
+//@description An embedded post; instant view only
 //@url URL of the embedded post
 //@author Post author
 //@author_photo Post author photo; may be null
@@ -4182,7 +4181,7 @@ pageBlockTable caption:RichText cells:vector<vector<pageBlockTableCell>> is_bord
 //@is_open True, if the block is open by default
 pageBlockDetails header:RichText page_blocks:vector<PageBlock> is_open:Bool = PageBlock;
 
-//@description Related articles
+//@description Related articles; instant view only
 //@header Block header
 //@articles List of related articles
 pageBlockRelatedArticles header:RichText articles:vector<pageBlockRelatedArticle> = PageBlock;
