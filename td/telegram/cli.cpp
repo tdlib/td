@@ -2218,6 +2218,15 @@ class CliClient final : public Actor {
     arg.message = std::move(args);
   }
 
+  td_api::object_ptr<td_api::InputMessageContent> as_input_message(const string &message, bool is_rich) const {
+    if (is_rich) {
+      return td_api::make_object<td_api::inputMessageRichMessage>(as_input_rich_message(message), true);
+    } else {
+      return td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(),
+                                                           true);
+    }
+  }
+
   static td_api::object_ptr<td_api::NotificationSettingsScope> as_notification_settings_scope(Slice scope) {
     if (scope.empty()) {
       return nullptr;
@@ -6276,8 +6285,7 @@ class CliClient final : public Actor {
                                     get_added_sticker_file_ids(), 0, 0, as_caption(message), show_caption_above_media_,
                                     get_message_self_destruct_type(), has_spoiler_));
         } else {
-          send_message(chat_id, td_api::make_object<td_api::inputMessageText>(as_formatted_text(message),
-                                                                              get_link_preview_options(), true));
+          send_message(chat_id, as_input_message(message, false));
         }
       }
     } else if (op == "ssm") {
@@ -6358,17 +6366,14 @@ class CliClient final : public Actor {
       get_args(args, suggested_post_price_);
     } else if (op == "sspsd") {
       get_args(args, suggested_post_send_date_);
-    } else if (op == "sm" || op == "sms" || op == "smf") {
+    } else if (op == "sm" || op == "sms" || op == "smf" || op == "srm") {
       ChatId chat_id;
       string message;
       get_args(args, chat_id, message);
       if (op == "smf") {
         message = string(5097, 'a');
       }
-      send_message(
-          chat_id,
-          td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(), true),
-          op == "sms", false);
+      send_message(chat_id, as_input_message(message, op == "srm"), op == "sms", false);
     } else if (op == "smce") {
       ChatId chat_id;
       get_args(args, chat_id);
@@ -6382,19 +6387,14 @@ class CliClient final : public Actor {
       auto text = as_formatted_text("👍 😉 🧑‍🚒", std::move(entities));
       send_message(chat_id,
                    td_api::make_object<td_api::inputMessageText>(std::move(text), get_link_preview_options(), true));
-    } else if (op == "srmm") {
-      ChatId chat_id;
-      InputRichMessage message;
-      get_args(args, chat_id, message);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageRichMessage>(message, true), false, false);
     } else if (op == "alm") {
       ChatId chat_id;
       string sender_id;
       string message;
       get_args(args, chat_id, sender_id, message);
-      send_request(td_api::make_object<td_api::addLocalMessage>(
-          chat_id, as_message_sender(sender_id), get_input_message_reply_to(), false,
-          td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(), true)));
+      send_request(td_api::make_object<td_api::addLocalMessage>(chat_id, as_message_sender(sender_id),
+                                                                get_input_message_reply_to(), false,
+                                                                as_input_message(message, false)));
     } else if (op == "spmp") {
       ChatId chat_id;
       get_args(args, chat_id, args);
@@ -6481,8 +6481,7 @@ class CliClient final : public Actor {
       MessageId message_id;
       string message;
       get_args(args, chat_id, message_id, message);
-      auto input_text =
-          td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(), true);
+      auto input_text = as_input_message(message, false);
       if (!business_connection_id_.empty()) {
         send_request(td_api::make_object<td_api::editBusinessMessageText>(business_connection_id_, chat_id, message_id,
                                                                           nullptr, std::move(input_text)));
@@ -6494,9 +6493,8 @@ class CliClient final : public Actor {
       MessageId message_id;
       string message;
       get_args(args, shortcut_id, message_id, message);
-      send_request(td_api::make_object<td_api::editQuickReplyMessage>(
-          shortcut_id, message_id,
-          td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(), true)));
+      send_request(td_api::make_object<td_api::editQuickReplyMessage>(shortcut_id, message_id,
+                                                                      as_input_message(message, false)));
     } else if (op == "eman") {
       ChatId chat_id;
       MessageId message_id;
