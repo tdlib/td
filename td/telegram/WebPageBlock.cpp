@@ -178,6 +178,10 @@ class RichText {
   int32 get_index_mask() const {
     switch (type) {
       case Type::Url:
+        if (content[0] == '#') {
+          return 0;
+        }
+        return message_search_filter_index_mask(MessageSearchFilter::Url);
       case Type::AutoUrl:
       case Type::EmailAddress:
       case Type::AutoEmailAddress:
