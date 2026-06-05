@@ -116,6 +116,8 @@ class WebPageBlock {
     return true;
   }
 
+  virtual int32 get_index_mask() const = 0;
+
   virtual unique_ptr<WebPageBlock> clone() const = 0;
 
   virtual telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(
@@ -144,6 +146,8 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     const FlatHashMap<int64, FileId> &animations, const FlatHashMap<int64, FileId> &audios,
     const FlatHashMap<int64, FileId> &documents, const FlatHashMap<int64, unique_ptr<Photo>> &photos,
     const FlatHashMap<int64, FileId> &videos, const FlatHashMap<int64, FileId> &voice_notes);
+
+int32 get_web_page_blocks_index_mask(const vector<unique_ptr<WebPageBlock>> &page_blocks);
 
 vector<unique_ptr<WebPageBlock>> clone_web_page_blocks(const vector<unique_ptr<WebPageBlock>> &page_blocks);
 

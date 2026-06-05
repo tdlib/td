@@ -28,6 +28,7 @@
 #include "td/telegram/FormattedDate.hpp"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/Location.h"
+#include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/PeerColor.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
@@ -135,10 +136,6 @@ class RichText {
     return type == Type::Plain && content.empty();
   }
 
-  RichText clone() const {
-    return *this;
-  }
-
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const {
     if (type == RichText::Type::Icon) {
       CHECK(document_file_id.is_valid());
@@ -176,6 +173,22 @@ class RichText {
       }
     });
     return result;
+  }
+
+  int32 get_index_mask() const {
+    switch (type) {
+      case Type::Url:
+      case Type::AutoUrl:
+      case Type::EmailAddress:
+      case Type::AutoEmailAddress:
+        return message_search_filter_index_mask(MessageSearchFilter::Url);
+      default:
+        return 0;
+    }
+  }
+
+  RichText clone() const {
+    return *this;
   }
 
   telegram_api::object_ptr<telegram_api::RichText> get_input_rich_text(
@@ -462,6 +475,10 @@ class WebPageBlockCaption {
     credit.for_each_rich_text(recurse_text, callback);
   }
 
+  int32 get_index_mask() const {
+    return text.get_index_mask() | credit.get_index_mask();
+  }
+
   WebPageBlockCaption clone() const {
     WebPageBlockCaption result;
     result.text = text.clone();
@@ -527,6 +544,10 @@ class WebPageBlockTableCell {
 
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const {
     text.for_each_rich_text(recurse_text, callback);
+  }
+
+  int32 get_index_mask() const {
+    return text.get_index_mask();
   }
 
   telegram_api::object_ptr<telegram_api::pageTableCell> get_input_page_table_cell(
@@ -771,6 +792,10 @@ class WebPageBlockTitle final : public WebPageBlock {
     title.for_each_rich_text(recurse_text, callback);
   }
 
+  int32 get_index_mask() const final {
+    return title.get_index_mask();
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockTitle>(title.clone());
   }
@@ -825,6 +850,10 @@ class WebPageBlockSubtitle final : public WebPageBlock {
 
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
     subtitle.for_each_rich_text(recurse_text, callback);
+  }
+
+  int32 get_index_mask() const final {
+    return subtitle.get_index_mask();
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -882,6 +911,10 @@ class WebPageBlockAuthorDate final : public WebPageBlock {
 
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
     author.for_each_rich_text(recurse_text, callback);
+  }
+
+  int32 get_index_mask() const final {
+    return author.get_index_mask();
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -943,6 +976,10 @@ class WebPageBlockHeader final : public WebPageBlock {
     header.for_each_rich_text(recurse_text, callback);
   }
 
+  int32 get_index_mask() const final {
+    return header.get_index_mask();
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockHeader>(header.clone());
   }
@@ -997,6 +1034,10 @@ class WebPageBlockSubheader final : public WebPageBlock {
 
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
     subheader.for_each_rich_text(recurse_text, callback);
+  }
+
+  int32 get_index_mask() const final {
+    return subheader.get_index_mask();
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1054,6 +1095,10 @@ class WebPageBlockHeading final : public WebPageBlock {
 
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
     text.for_each_rich_text(recurse_text, callback);
+  }
+
+  int32 get_index_mask() const final {
+    return text.get_index_mask();
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1135,6 +1180,10 @@ class WebPageBlockKicker final : public WebPageBlock {
     kicker.for_each_rich_text(recurse_text, callback);
   }
 
+  int32 get_index_mask() const final {
+    return kicker.get_index_mask();
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockKicker>(kicker.clone());
   }
@@ -1191,6 +1240,10 @@ class WebPageBlockParagraph final : public WebPageBlock {
     text.for_each_rich_text(recurse_text, callback);
   }
 
+  int32 get_index_mask() const final {
+    return text.get_index_mask();
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockParagraph>(text.clone());
   }
@@ -1245,6 +1298,10 @@ class WebPageBlockPreformatted final : public WebPageBlock {
 
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
     text.for_each_rich_text(recurse_text, callback);
+  }
+
+  int32 get_index_mask() const final {
+    return text.get_index_mask();
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1305,6 +1362,10 @@ class WebPageBlockFooter final : public WebPageBlock {
     footer.for_each_rich_text(recurse_text, callback);
   }
 
+  int32 get_index_mask() const final {
+    return footer.get_index_mask();
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockFooter>(footer.clone());
   }
@@ -1360,6 +1421,10 @@ class WebPageBlockThinking final : public WebPageBlock {
     text.for_each_rich_text(recurse_text, callback);
   }
 
+  int32 get_index_mask() const final {
+    return text.get_index_mask();
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockThinking>(text.clone());
   }
@@ -1410,6 +1475,10 @@ class WebPageBlockDivider final : public WebPageBlock {
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
   }
 
+  int32 get_index_mask() const final {
+    return 0;
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockDivider>();
   }
@@ -1456,6 +1525,10 @@ class WebPageBlockMath final : public WebPageBlock {
   }
 
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  }
+
+  int32 get_index_mask() const final {
+    return 0;
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1512,6 +1585,10 @@ class WebPageBlockAnchor final : public WebPageBlock {
   }
 
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  }
+
+  int32 get_index_mask() const final {
+    return 0;
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1583,6 +1660,10 @@ class WebPageBlockList final : public WebPageBlock {
         }
       }
       return true;
+    }
+
+    int32 get_index_mask() const {
+      return get_web_page_blocks_index_mask(page_blocks);
     }
 
     Item clone() const {
@@ -1720,6 +1801,14 @@ class WebPageBlockList final : public WebPageBlock {
     return true;
   }
 
+  int32 get_index_mask() const final {
+    int32 index_mask = 0;
+    for (const auto &item : items) {
+      index_mask |= item.get_index_mask();
+    }
+    return index_mask;
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     auto new_items = transform(items, [](const Item &item) { return item.clone(); });
     return td::make_unique<WebPageBlockList>(std::move(new_items), start, is_reversed, type);
@@ -1844,6 +1933,10 @@ class WebPageBlockBlockQuote final : public WebPageBlock {
     credit.for_each_rich_text(recurse_text, callback);
   }
 
+  int32 get_index_mask() const final {
+    return text.get_index_mask() | credit.get_index_mask();
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockBlockQuote>(text.clone(), credit.clone());
   }
@@ -1906,6 +1999,10 @@ class WebPageBlockPullQuote final : public WebPageBlock {
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
     text.for_each_rich_text(recurse_text, callback);
     credit.for_each_rich_text(recurse_text, callback);
+  }
+
+  int32 get_index_mask() const final {
+    return text.get_index_mask() | credit.get_index_mask();
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -1977,6 +2074,14 @@ class WebPageBlockAnimation final : public WebPageBlock {
 
   bool can_send(const RestrictedRights &rights) const final {
     return rights.can_send_animations();
+  }
+
+  int32 get_index_mask() const final {
+    int32 index_mask = caption.get_index_mask();
+    if (animation_file_id.is_valid()) {
+      return index_mask | message_search_filter_index_mask(MessageSearchFilter::Animation);
+    }
+    return index_mask;
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -2090,6 +2195,15 @@ class WebPageBlockPhoto final : public WebPageBlock {
     return rights.can_send_photos();
   }
 
+  int32 get_index_mask() const final {
+    int32 index_mask = caption.get_index_mask();
+    if (!photo.is_empty()) {
+      return index_mask | message_search_filter_index_mask(MessageSearchFilter::Photo) |
+             message_search_filter_index_mask(MessageSearchFilter::PhotoAndVideo);
+    }
+    return index_mask;
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockPhoto>(Photo(photo), caption.clone(), string(url), web_page_id, has_spoiler);
   }
@@ -2188,6 +2302,15 @@ class WebPageBlockVideo final : public WebPageBlock {
 
   bool can_send(const RestrictedRights &rights) const final {
     return rights.can_send_videos();
+  }
+
+  int32 get_index_mask() const final {
+    int32 index_mask = caption.get_index_mask();
+    if (video_file_id.is_valid()) {
+      return index_mask | message_search_filter_index_mask(MessageSearchFilter::Video) |
+             message_search_filter_index_mask(MessageSearchFilter::PhotoAndVideo);
+    }
+    return index_mask;
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -2293,6 +2416,10 @@ class WebPageBlockCover final : public WebPageBlock {
     return cover->can_send(rights);
   }
 
+  int32 get_index_mask() const final {
+    return cover->get_index_mask();
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockCover>(cover->clone());
   }
@@ -2366,6 +2493,10 @@ class WebPageBlockEmbedded final : public WebPageBlock {
 
   bool can_send(const RestrictedRights &rights) const final {
     return poster_photo.is_empty() || rights.can_send_photos();
+  }
+
+  int32 get_index_mask() const final {
+    return caption.get_index_mask();
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -2473,6 +2604,10 @@ class WebPageBlockEmbeddedPost final : public WebPageBlock {
     return author_photo.is_empty() || rights.can_send_photos();
   }
 
+  int32 get_index_mask() const final {
+    return caption.get_index_mask() | get_web_page_blocks_index_mask(page_blocks);
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockEmbeddedPost>(string(url), string(author), Photo(author_photo), date,
                                                      clone_web_page_blocks(page_blocks), caption.clone());
@@ -2563,6 +2698,10 @@ class WebPageBlockCollage final : public WebPageBlock {
     return true;
   }
 
+  int32 get_index_mask() const final {
+    return get_web_page_blocks_index_mask(page_blocks) | caption.get_index_mask();
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockCollage>(clone_web_page_blocks(page_blocks), caption.clone());
   }
@@ -2642,6 +2781,10 @@ class WebPageBlockSlideshow final : public WebPageBlock {
     return true;
   }
 
+  int32 get_index_mask() const final {
+    return get_web_page_blocks_index_mask(page_blocks) | caption.get_index_mask();
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockSlideshow>(clone_web_page_blocks(page_blocks), caption.clone());
   }
@@ -2707,6 +2850,10 @@ class WebPageBlockChatLink final : public WebPageBlock {
   }
 
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  }
+
+  int32 get_index_mask() const final {
+    return 0;
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -2835,6 +2982,14 @@ class WebPageBlockAudio final : public WebPageBlock {
     return rights.can_send_audios();
   }
 
+  int32 get_index_mask() const final {
+    int32 index_mask = caption.get_index_mask();
+    if (audio_file_id.is_valid()) {
+      return index_mask | message_search_filter_index_mask(MessageSearchFilter::Audio);
+    }
+    return index_mask;
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockAudio>(audio_file_id, caption.clone());
   }
@@ -2950,6 +3105,16 @@ class WebPageBlockTable final : public WebPageBlock {
     }
   }
 
+  int32 get_index_mask() const final {
+    int32 index_mask = title.get_index_mask();
+    for (auto &row : cells) {
+      for (auto &cell : row) {
+        index_mask |= cell.get_index_mask();
+      }
+    }
+    return index_mask;
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockTable>(title.clone(), vector<vector<WebPageBlockTableCell>>(cells), is_bordered,
                                               is_striped);
@@ -3049,6 +3214,10 @@ class WebPageBlockDetails final : public WebPageBlock {
     return true;
   }
 
+  int32 get_index_mask() const final {
+    return header.get_index_mask() | get_web_page_blocks_index_mask(page_blocks);
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockDetails>(header.clone(), clone_web_page_blocks(page_blocks), is_open);
   }
@@ -3135,6 +3304,10 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
     return true;
   }
 
+  int32 get_index_mask() const final {
+    return get_web_page_blocks_index_mask(page_blocks) | caption.get_index_mask();
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockBlockQuoteBlocks>(clone_web_page_blocks(page_blocks), caption.clone());
   }
@@ -3209,6 +3382,10 @@ class WebPageBlockRelatedArticles final : public WebPageBlock {
     }
   }
 
+  int32 get_index_mask() const final {
+    return header.get_index_mask();
+  }
+
   unique_ptr<WebPageBlock> clone() const final {
     return td::make_unique<WebPageBlockRelatedArticles>(header.clone(), vector<RelatedArticle>(related_articles));
   }
@@ -3273,6 +3450,10 @@ class WebPageBlockMap final : public WebPageBlock {
 
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
     caption.for_each_rich_text(recurse_text, callback);
+  }
+
+  int32 get_index_mask() const final {
+    return caption.get_index_mask();
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -3345,6 +3526,15 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
 
   bool can_send(const RestrictedRights &rights) const final {
     return rights.can_send_voice_notes();
+  }
+
+  int32 get_index_mask() const final {
+    int32 index_mask = caption.get_index_mask();
+    if (voice_note_file_id.is_valid()) {
+      return index_mask | message_search_filter_index_mask(MessageSearchFilter::VoiceNote) |
+             message_search_filter_index_mask(MessageSearchFilter::VoiceAndVideoNote);
+    }
+    return index_mask;
   }
 
   unique_ptr<WebPageBlock> clone() const final {
@@ -4304,6 +4494,14 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     }
   }
   return result;
+}
+
+int32 get_web_page_blocks_index_mask(const vector<unique_ptr<WebPageBlock>> &page_blocks) {
+  int32 index_mask = 0;
+  for (const auto &page_block : page_blocks) {
+    index_mask |= page_block->get_index_mask();
+  }
+  return index_mask;
 }
 
 vector<unique_ptr<WebPageBlock>> clone_web_page_blocks(const vector<unique_ptr<WebPageBlock>> &page_blocks) {
