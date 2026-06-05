@@ -770,7 +770,8 @@ class AccountManager::UnconfirmedAuthorizations {
 
   td_api::object_ptr<td_api::updateUnconfirmedSession> get_update_unconfirmed_session_object(Td *td) const {
     CHECK(!authorizations_.empty());
-    return td_api::make_object<td_api::updateUnconfirmedSession>(authorizations_[0].get_unconfirmed_session_object(td));
+    return td_api::make_object<td_api::updateUnconfirmedSession>(authorizations_[0].get_unconfirmed_session_object(td),
+                                                                 static_cast<int32>(authorizations_.size()));
   }
 
   void add_dependencies(Dependencies &dependencies) const {
@@ -1276,8 +1277,8 @@ void AccountManager::on_new_unconfirmed_authorization(bool is_bot, int64 hash, U
     CHECK(!unconfirmed_authorizations_->is_empty());
     if (is_first_changed) {
       update_unconfirmed_authorization_timeout(false);
-      send_update_unconfirmed_session();
     }
+    send_update_unconfirmed_session();
     save_unconfirmed_authorizations();
   }
 }
@@ -1292,8 +1293,8 @@ bool AccountManager::on_confirm_authorization(bool is_bot, int64 hash, UserId bo
     }
     if (is_first_changed) {
       update_unconfirmed_authorization_timeout(false);
-      send_update_unconfirmed_session();
     }
+    send_update_unconfirmed_session();
     save_unconfirmed_authorizations();
     return true;
   }
@@ -1337,7 +1338,7 @@ void AccountManager::update_unconfirmed_authorization_timeout(bool is_external) 
 
 td_api::object_ptr<td_api::updateUnconfirmedSession> AccountManager::get_update_unconfirmed_session() const {
   if (unconfirmed_authorizations_ == nullptr) {
-    return td_api::make_object<td_api::updateUnconfirmedSession>(nullptr);
+    return td_api::make_object<td_api::updateUnconfirmedSession>(nullptr, 0);
   }
   return unconfirmed_authorizations_->get_update_unconfirmed_session_object(td_);
 }

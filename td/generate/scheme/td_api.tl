@@ -10666,8 +10666,8 @@ updateAgeVerificationParameters parameters:ageVerificationParameters = Update;
 //@description New terms of service must be accepted by the user. If the terms of service are declined, then the deleteAccount method must be called with the reason "Decline ToS update" @terms_of_service_id Identifier of the terms of service @terms_of_service The new terms of service
 updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService = Update;
 
-//@description The first unconfirmed session has changed @session The unconfirmed session; may be null if none
-updateUnconfirmedSession session:unconfirmedSession = Update;
+//@description The first unconfirmed session has changed @session The unconfirmed session; may be null if none @unconfirmed_session_count The total number of unconfirmed sessions
+updateUnconfirmedSession session:unconfirmedSession unconfirmed_session_count:int32 = Update;
 
 //@description The list of bots added to attachment or side menu has changed @bots The new list of bots. The bots must not be shown on scheduled messages screen
 updateAttachmentMenuBots bots:vector<attachmentMenuBot> = Update;
