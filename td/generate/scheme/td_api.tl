@@ -2212,6 +2212,15 @@ giveawayPrizePremium month_count:int32 = GiveawayPrize;
 giveawayPrizeStars star_count:int53 = GiveawayPrize;
 
 
+//@description Options to be used for generation of a link preview
+//@is_disabled True, if link preview must be disabled
+//@url URL to use for link preview. If empty, then the first URL found in the message text will be used
+//@force_small_media True, if shown media preview must be small; ignored in secret chats or if the URL isn't explicitly specified
+//@force_large_media True, if shown media preview must be large; ignored in secret chats or if the URL isn't explicitly specified
+//@show_above_text True, if link preview must be shown above message text; otherwise, the link preview will be shown below the message text; ignored in secret chats
+linkPreviewOptions is_disabled:Bool url:string force_small_media:Bool force_large_media:Bool show_above_text:Bool = LinkPreviewOptions;
+
+
 //@description Contains information about supported accent color for user/chat name, background of empty chat photo, replies to messages and link previews
 //@id Accent color identifier
 //@built_in_accent_color_id Identifier of a built-in color to use in places, where only one color is needed; 0-6
@@ -3294,13 +3303,35 @@ reactionNotificationSourceAll = ReactionNotificationSource;
 reactionNotificationSettings message_reaction_source:ReactionNotificationSource story_reaction_source:ReactionNotificationSource poll_vote_source:ReactionNotificationSource sound_id:int64 show_preview:Bool = ReactionNotificationSettings;
 
 
+//@class DraftMessageContent @description Content of the message draft
+
+//@description A text message draft
+//@text Formatted text to be saved as a draft; 0-getOption("message_text_length_max") characters
+//@link_preview_options Options to be used for generation of a link preview; may be null if none; pass null to use default link preview options
+draftMessageContentText text:formattedText link_preview_options:linkPreviewOptions = DraftMessageContent;
+
+//@description A video note message draft
+//@file_path Path to the file with the video note
+//@duration Duration of the video, in seconds; 0-60
+//@length Video width and height; must be positive and not greater than 640
+//@self_destruct_type Video note self-destruct type; may be null if none; pass null if none; private chats only
+draftMessageContentVideoNote file_path:string duration:int32 length:int32 self_destruct_type:MessageSelfDestructType = DraftMessageContent;
+
+//@description A voice note message draft
+//@file_path Path to the file with the voice note
+//@duration Duration of the voice note, in seconds
+//@waveform Waveform representation of the voice note in 5-bit format
+//@self_destruct_type Voice note self-destruct type; may be null if none; pass null if none; private chats only
+draftMessageContentVoiceNote file_path:string duration:int32 waveform:bytes self_destruct_type:MessageSelfDestructType = DraftMessageContent;
+
+
 //@description Contains information about a message draft
 //@reply_to Information about the message to be replied; inputMessageReplyToStory is unsupported; may be null if none
 //@date Point in time (Unix timestamp) when the draft was created
-//@input_message_text Content of the message draft; must be of the type inputMessageText, inputMessageVideoNote, or inputMessageVoiceNote
+//@content Content of the message draft
 //@effect_id Identifier of the effect to apply to the message when it is sent; 0 if none
 //@suggested_post_info Information about the suggested post; may be null if none
-draftMessage reply_to:InputMessageReplyTo date:int32 input_message_text:InputMessageContent effect_id:int64 suggested_post_info:inputSuggestedPostInfo = DraftMessage;
+draftMessage reply_to:InputMessageReplyTo date:int32 content:DraftMessageContent effect_id:int64 suggested_post_info:inputSuggestedPostInfo = DraftMessage;
 
 
 //@class ChatType @description Describes the type of chat
@@ -3832,15 +3863,6 @@ forumTopic info:forumTopicInfo last_message:message order:int64 is_pinned:Bool u
 //@next_offset_message_id Offset message identifier for the next getForumTopics request
 //@next_offset_forum_topic_id Offset forum topic identifier for the next getForumTopics request
 forumTopics total_count:int32 topics:vector<forumTopic> next_offset_date:int32 next_offset_message_id:int53 next_offset_forum_topic_id:int32 = ForumTopics;
-
-
-//@description Options to be used for generation of a link preview
-//@is_disabled True, if link preview must be disabled
-//@url URL to use for link preview. If empty, then the first URL found in the message text will be used
-//@force_small_media True, if shown media preview must be small; ignored in secret chats or if the URL isn't explicitly specified
-//@force_large_media True, if shown media preview must be large; ignored in secret chats or if the URL isn't explicitly specified
-//@show_above_text True, if link preview must be shown above message text; otherwise, the link preview will be shown below the message text; ignored in secret chats
-linkPreviewOptions is_disabled:Bool url:string force_small_media:Bool force_large_media:Bool show_above_text:Bool = LinkPreviewOptions;
 
 
 //@description Contains information about a user shared with a bot
@@ -5851,7 +5873,7 @@ inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int
 //@voice_note Voice note to be sent. The voice note must be encoded with the Opus codec and stored inside an OGG container with a single audio channel, or be in MP3 or M4A format as regular audio
 //@duration Duration of the voice note, in seconds
 //@waveform Waveform representation of the voice note in 5-bit format
-//@caption Voice note caption; may be null if empty; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
+//@caption Voice note caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@self_destruct_type Voice note self-destruct type; may be null if none; pass null if none; private chats only
 inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption:formattedText self_destruct_type:MessageSelfDestructType = InputMessageContent;
 

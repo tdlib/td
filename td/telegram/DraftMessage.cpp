@@ -187,10 +187,9 @@ class DraftMessageContentVideoNote final : public DraftMessageContent {
     return DraftMessageContentType::VideoNote;
   }
 
-  td_api::object_ptr<td_api::InputMessageContent> get_draft_input_message_content_object() const final {
-    return td_api::make_object<td_api::inputMessageVideoNote>(td_api::make_object<td_api::inputFileLocal>(path_),
-                                                              nullptr, duration_, length_,
-                                                              ttl_.get_message_self_destruct_type_object());
+  td_api::object_ptr<td_api::DraftMessageContent> get_draft_message_content_object() const final {
+    return td_api::make_object<td_api::draftMessageContentVideoNote>(path_, duration_, length_,
+                                                                     ttl_.get_message_self_destruct_type_object());
   }
 
   template <class StorerT>
@@ -263,10 +262,9 @@ class DraftMessageContentVoiceNote final : public DraftMessageContent {
     return DraftMessageContentType::VoiceNote;
   }
 
-  td_api::object_ptr<td_api::InputMessageContent> get_draft_input_message_content_object() const final {
-    return td_api::make_object<td_api::inputMessageVoiceNote>(td_api::make_object<td_api::inputFileLocal>(path_),
-                                                              duration_, waveform_, nullptr,
-                                                              ttl_.get_message_self_destruct_type_object());
+  td_api::object_ptr<td_api::DraftMessageContent> get_draft_message_content_object() const final {
+    return td_api::make_object<td_api::draftMessageContentVoiceNote>(path_, duration_, waveform_,
+                                                                     ttl_.get_message_self_destruct_type_object());
   }
 
   template <class StorerT>
@@ -442,15 +440,15 @@ void DraftMessage::add_dependencies(Dependencies &dependencies) const {
 }
 
 td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object(Td *td) const {
-  td_api::object_ptr<td_api::InputMessageContent> input_message_content;
+  td_api::object_ptr<td_api::DraftMessageContent> content;
   if (local_content_ != nullptr) {
-    input_message_content = local_content_->get_draft_input_message_content_object();
+    content = local_content_->get_draft_message_content_object();
   } else {
-    input_message_content = input_message_text_.get_input_message_text_object(td->user_manager_.get());
+    content = input_message_text_.get_draft_message_content_object(td->user_manager_.get());
   }
   auto suggested_post = suggested_post_ == nullptr ? nullptr : suggested_post_->get_input_suggested_post_info_object();
   return td_api::make_object<td_api::draftMessage>(message_input_reply_to_.get_input_message_reply_to_object(td), date_,
-                                                   std::move(input_message_content), message_effect_id_.get(),
+                                                   std::move(content), message_effect_id_.get(),
                                                    std::move(suggested_post));
 }
 
@@ -496,41 +494,38 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
   TRY_RESULT(suggested_post, SuggestedPost::get_suggested_post(td, std::move(draft_message->suggested_post_info_)));
   result->suggested_post_ = std::move(suggested_post);
 
-  auto input_message_content = std::move(draft_message->input_message_text_);
-  if (input_message_content != nullptr) {
-    switch (input_message_content->get_id()) {
-      case td_api::inputMessageText::ID: {
+  auto content = std::move(draft_message->content_);
+  if (content != nullptr) {
+    switch (content->get_id()) {
+      case td_api::draftMessageContentText::ID: {
+        auto text = td_api::move_object_as<td_api::draftMessageContentText>(content);
         TRY_RESULT(input_message_text,
-                   process_input_message_text(td, dialog_id, std::move(input_message_content), false, true));
+                   process_input_message_text(td, dialog_id,
+                                              td_api::make_object<td_api::inputMessageText>(
+                                                  std::move(text->text_), std::move(text->link_preview_options_), true),
+                                              false, true));
         result->input_message_text_ = std::move(input_message_text);
         break;
       }
-      case td_api::inputMessageVideoNote::ID: {
-        auto video_note = td_api::move_object_as<td_api::inputMessageVideoNote>(input_message_content);
-        if (video_note->video_note_ == nullptr || video_note->video_note_->get_id() != td_api::inputFileLocal::ID) {
-          return Status::Error(400, "Invalid video message file specified");
-        }
+      case td_api::draftMessageContentVideoNote::ID: {
+        auto video_note = td_api::move_object_as<td_api::draftMessageContentVideoNote>(content);
         TRY_RESULT(ttl,
                    MessageSelfDestructType::get_message_self_destruct_type(std::move(video_note->self_destruct_type_)));
         result->local_content_ = td::make_unique<DraftMessageContentVideoNote>(
-            std::move(static_cast<td_api::inputFileLocal *>(video_note->video_note_.get())->path_),
-            video_note->duration_, video_note->length_, ttl);
+            std::move(video_note->file_path_), video_note->duration_, video_note->length_, ttl);
         break;
       }
-      case td_api::inputMessageVoiceNote::ID: {
-        auto voice_note = td_api::move_object_as<td_api::inputMessageVoiceNote>(input_message_content);
-        if (voice_note->voice_note_ == nullptr || voice_note->voice_note_->get_id() != td_api::inputFileLocal::ID) {
-          return Status::Error(400, "Invalid voice message file specified");
-        }
+      case td_api::draftMessageContentVoiceNote::ID: {
+        auto voice_note = td_api::move_object_as<td_api::draftMessageContentVoiceNote>(content);
         TRY_RESULT(ttl,
                    MessageSelfDestructType::get_message_self_destruct_type(std::move(voice_note->self_destruct_type_)));
         result->local_content_ = td::make_unique<DraftMessageContentVoiceNote>(
-            std::move(static_cast<td_api::inputFileLocal *>(voice_note->voice_note_.get())->path_),
-            voice_note->duration_, std::move(voice_note->waveform_), ttl);
+            std::move(voice_note->file_path_), voice_note->duration_, std::move(voice_note->waveform_), ttl);
         break;
       }
       default:
-        return Status::Error(400, "Input message content type must be InputMessageText");
+        UNREACHABLE();
+        return nullptr;
     }
   }
 
