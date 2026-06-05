@@ -171,6 +171,9 @@ vector<string> RichMessage::get_hashtags() const {
 }
 
 bool RichMessage::can_send(const RestrictedRights &rights) const {
+  if (!rights.can_send_messages()) {
+    return false;
+  }
   for (const auto &block : blocks_) {
     if (!block->can_send(rights)) {
       return false;
