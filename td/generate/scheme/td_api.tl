@@ -11928,7 +11928,7 @@ deleteChatMessagesByDate chat_id:int53 min_date:int32 max_date:int32 revoke:Bool
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message. Use messageProperties.can_be_edited to check whether the message can be edited
 //@reply_markup The new message reply markup; pass null if none; for bots only
-//@input_message_content New text content of the message. Must be of type inputMessageText
+//@input_message_content New text content of the message. Must be of type inputMessageText or inputMessageRichMessage
 editMessageText chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
 //@description Edits the message content of a live location. Messages can be edited for a limited period of time specified in the live location.

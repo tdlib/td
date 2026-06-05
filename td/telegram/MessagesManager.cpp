@@ -1841,7 +1841,8 @@ class EditMessageQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, MessageId message_id, bool edit_text, const FormattedText *text,
             bool disable_web_page_preview, telegram_api::object_ptr<telegram_api::InputMedia> &&input_media,
             bool invert_media, const unique_ptr<ReplyMarkup> &reply_markup, int32 schedule_date,
-            int32 schedule_repeat_period, bool is_media = false) {
+            int32 schedule_repeat_period, telegram_api::object_ptr<telegram_api::InputRichMessage> rich_message,
+            bool is_media = false) {
     dialog_id_ = dialog_id;
     message_id_ = message_id;
     is_media_ = is_media;
@@ -1869,6 +1870,9 @@ class EditMessageQuery final : public Td::ResultHandler {
         flags |= telegram_api::messages_editMessage::ENTITIES_MASK;
       }
     }
+    if (rich_message != nullptr) {
+      flags |= telegram_api::messages_editMessage::RICH_MESSAGE_MASK;
+    }
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editMessage::MEDIA_MASK;
     }
@@ -1885,7 +1889,7 @@ class EditMessageQuery final : public Td::ResultHandler {
         telegram_api::messages_editMessage(flags, disable_web_page_preview, invert_media, std::move(input_peer),
                                            server_message_id, text == nullptr ? string() : text->text,
                                            std::move(input_media), std::move(input_reply_markup), std::move(entities),
-                                           schedule_date, schedule_repeat_period, 0, nullptr),
+                                           schedule_date, schedule_repeat_period, 0, std::move(rich_message)),
         {{dialog_id}}));
   }
 
@@ -21861,7 +21865,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
         });
     td_->create_handler<EditMessageQuery>(std::move(promise))
         ->send(dialog_id, message_id, true, caption, false, std::move(input_media), edited_message->invert_media_,
-               edited_message->reply_markup_, schedule_date, schedule_repeat_period, true);
+               edited_message->reply_markup_, schedule_date, schedule_repeat_period, nullptr, true);
     return;
   }
 
@@ -23108,8 +23112,9 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
     return promise.set_error(400, "Can't edit message without new content");
   }
   int32 new_message_content_type = input_message_content->get_id();
-  if (new_message_content_type != td_api::inputMessageText::ID) {
-    return promise.set_error(400, "Input message content type must be InputMessageText");
+  if (new_message_content_type != td_api::inputMessageText::ID &&
+      new_message_content_type != td_api::inputMessageRichMessage::ID) {
+    return promise.set_error(400, "Input message content type must be inputMessageText or inputMessageRichMessage");
   }
 
   auto dialog_id = message_full_id.get_dialog_id();
@@ -23130,16 +23135,27 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
     return promise.set_error(400, "There is no text in the message to edit");
   }
 
-  TRY_RESULT_PROMISE(
-      promise, input_message_text,
-      process_input_message_text(td_, dialog_id, std::move(input_message_content), td_->auth_manager_->is_bot()));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(),
                                              has_message_sender_user_id(dialog_id, m)));
+  auto is_bot = td_->auth_manager_->is_bot();
+  if (new_message_content_type == td_api::inputMessageRichMessage::ID) {
+    auto input_rich_message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
+    TRY_RESULT_PROMISE(promise, rich_message,
+                       RichMessage::get_rich_message(td_, dialog_id, std::move(input_rich_message->message_), is_bot));
+    td_->create_handler<EditMessageQuery>(std::move(promise))
+        ->send(dialog_id, m->message_id, false, nullptr, false, nullptr, false, new_reply_markup,
+               get_message_schedule_date(m), get_message_schedule_repeat_period(m),
+               rich_message.get_input_rich_message(td_));
+    return;
+  }
+
+  TRY_RESULT_PROMISE(promise, input_message_text,
+                     process_input_message_text(td_, dialog_id, std::move(input_message_content), is_bot));
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(dialog_id, m->message_id, true, &input_message_text.text, input_message_text.disable_web_page_preview,
              input_message_text.get_input_media_web_page(), input_message_text.show_above_text, new_reply_markup,
-             get_message_schedule_date(m), get_message_schedule_repeat_period(m));
+             get_message_schedule_date(m), get_message_schedule_repeat_period(m), nullptr);
 }
 
 void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
@@ -23175,7 +23191,7 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
 
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(dialog_id, m->message_id, false, nullptr, false, location.get_input_media_geo_live(), false,
-             new_reply_markup, get_message_schedule_date(m), get_message_schedule_repeat_period(m));
+             new_reply_markup, get_message_schedule_date(m), get_message_schedule_repeat_period(m), nullptr);
 }
 
 void MessagesManager::edit_message_to_do_list(MessageFullId message_full_id,
@@ -23206,7 +23222,7 @@ void MessagesManager::edit_message_to_do_list(MessageFullId message_full_id,
   auto input_media = to_do_list.get_input_media_todo(td_->user_manager_.get());
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(dialog_id, m->message_id, false, nullptr, false, std::move(input_media), false, new_reply_markup,
-             get_message_schedule_date(m), get_message_schedule_repeat_period(m));
+             get_message_schedule_date(m), get_message_schedule_repeat_period(m), nullptr);
 }
 
 void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message) {
@@ -23431,7 +23447,7 @@ void MessagesManager::edit_message_caption(MessageFullId message_full_id,
 
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(dialog_id, m->message_id, true, &caption, false, nullptr, invert_media, new_reply_markup,
-             get_message_schedule_date(m), get_message_schedule_repeat_period(m));
+             get_message_schedule_date(m), get_message_schedule_repeat_period(m), nullptr);
 }
 
 void MessagesManager::edit_message_reply_markup(MessageFullId message_full_id,
@@ -23456,7 +23472,7 @@ void MessagesManager::edit_message_reply_markup(MessageFullId message_full_id,
 
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(dialog_id, m->message_id, false, nullptr, m->disable_web_page_preview, nullptr, m->invert_media,
-             new_reply_markup, get_message_schedule_date(m), get_message_schedule_repeat_period(m));
+             new_reply_markup, get_message_schedule_date(m), get_message_schedule_repeat_period(m), nullptr);
 }
 
 void MessagesManager::edit_message_scheduling_state(
@@ -23487,7 +23503,7 @@ void MessagesManager::edit_message_scheduling_state(
   if (schedule_date.first > 0) {
     td_->create_handler<EditMessageQuery>(std::move(promise))
         ->send(dialog_id, m->message_id, false, nullptr, m->disable_web_page_preview, nullptr, m->invert_media, nullptr,
-               m->edited_schedule_date, m->edited_schedule_repeat_period);
+               m->edited_schedule_date, m->edited_schedule_repeat_period, nullptr);
   } else {
     td_->create_handler<SendScheduledMessageQuery>(std::move(promise))->send(dialog_id, m->message_id);
   }
