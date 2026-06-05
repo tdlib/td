@@ -19,12 +19,11 @@ bool DialogId::is_valid() const {
 
 DialogType DialogId::get_type() const {
   // check that valid ranges are continuous
-  static_assert(ZERO_CHANNEL_ID + 1 == -ChatId::MAX_CHAT_ID, "");
-  static_assert(
-      ZERO_SECRET_CHAT_ID + std::numeric_limits<int32>::max() + 1 == ZERO_CHANNEL_ID - ChannelId::MAX_CHANNEL_ID, "");
+  static_assert(ZERO_CHANNEL_ID + 1 == -ChatId::MAX_CHAT_ID);
+  static_assert(ZERO_SECRET_CHAT_ID + std::numeric_limits<int32>::max() + 1 ==
+                ZERO_CHANNEL_ID - ChannelId::MAX_CHANNEL_ID);
   static_assert(ZERO_CHANNEL_ID - ChannelId::MIN_MONOFORUM_CHANNEL_ID + 1 ==
-                    ZERO_SECRET_CHAT_ID + std::numeric_limits<int32>::min(),
-                "");
+                ZERO_SECRET_CHAT_ID + std::numeric_limits<int32>::min());
   if (id < 0) {
     if (-ChatId::MAX_CHAT_ID <= id) {
       return DialogType::Chat;

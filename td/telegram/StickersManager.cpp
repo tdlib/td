@@ -92,11 +92,9 @@ class GetAllStickersQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_getMaskStickers::ReturnType,
-                               telegram_api::messages_getAllStickers::ReturnType>::value,
-                  "");
+                               telegram_api::messages_getAllStickers::ReturnType>::value);
     static_assert(std::is_same<telegram_api::messages_getEmojiStickers::ReturnType,
-                               telegram_api::messages_getAllStickers::ReturnType>::value,
-                  "");
+                               telegram_api::messages_getAllStickers::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::messages_getAllStickers>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -370,8 +368,7 @@ class GetFeaturedStickerSetsQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_getFeaturedStickers::ReturnType,
-                               telegram_api::messages_getFeaturedEmojiStickers::ReturnType>::value,
-                  "");
+                               telegram_api::messages_getFeaturedEmojiStickers::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::messages_getFeaturedStickers>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -858,8 +855,7 @@ class SearchStickerSetsQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_searchStickerSets::ReturnType,
-                               telegram_api::messages_searchEmojiStickerSets::ReturnType>::value,
-                  "");
+                               telegram_api::messages_searchEmojiStickerSets::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::messages_searchStickerSets>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -1137,8 +1133,7 @@ class AddStickerToSetQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::stickers_addStickerToSet::ReturnType,
-                               telegram_api::stickers_replaceSticker::ReturnType>::value,
-                  "");
+                               telegram_api::stickers_replaceSticker::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::stickers_addStickerToSet>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -1491,14 +1486,11 @@ class GetEmojiGroupsQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_getEmojiGroups::ReturnType,
-                               telegram_api::messages_getEmojiStatusGroups::ReturnType>::value,
-                  "");
+                               telegram_api::messages_getEmojiStatusGroups::ReturnType>::value);
     static_assert(std::is_same<telegram_api::messages_getEmojiGroups::ReturnType,
-                               telegram_api::messages_getEmojiProfilePhotoGroups::ReturnType>::value,
-                  "");
+                               telegram_api::messages_getEmojiProfilePhotoGroups::ReturnType>::value);
     static_assert(std::is_same<telegram_api::messages_getEmojiGroups::ReturnType,
-                               telegram_api::messages_getEmojiStickerGroups::ReturnType>::value,
-                  "");
+                               telegram_api::messages_getEmojiStickerGroups::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::messages_getEmojiGroups>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -1542,14 +1534,11 @@ class GetDefaultDialogPhotoEmojisQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::account_getDefaultProfilePhotoEmojis::ReturnType,
-                               telegram_api::account_getDefaultGroupPhotoEmojis::ReturnType>::value,
-                  "");
+                               telegram_api::account_getDefaultGroupPhotoEmojis::ReturnType>::value);
     static_assert(std::is_same<telegram_api::account_getDefaultBackgroundEmojis::ReturnType,
-                               telegram_api::account_getDefaultGroupPhotoEmojis::ReturnType>::value,
-                  "");
+                               telegram_api::account_getDefaultGroupPhotoEmojis::ReturnType>::value);
     static_assert(std::is_same<telegram_api::account_getChannelRestrictedStatusEmojis::ReturnType,
-                               telegram_api::account_getDefaultGroupPhotoEmojis::ReturnType>::value,
-                  "");
+                               telegram_api::account_getDefaultGroupPhotoEmojis::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::account_getDefaultGroupPhotoEmojis>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());

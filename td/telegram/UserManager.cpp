@@ -549,14 +549,11 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
     only_suggest_ = only_suggest;
 
     static_assert(static_cast<int32>(telegram_api::photos_uploadProfilePhoto::VIDEO_MASK) ==
-                      static_cast<int32>(telegram_api::photos_uploadContactProfilePhoto::VIDEO_MASK),
-                  "");
+                  static_cast<int32>(telegram_api::photos_uploadContactProfilePhoto::VIDEO_MASK));
     static_assert(static_cast<int32>(telegram_api::photos_uploadProfilePhoto::VIDEO_START_TS_MASK) ==
-                      static_cast<int32>(telegram_api::photos_uploadContactProfilePhoto::VIDEO_START_TS_MASK),
-                  "");
+                  static_cast<int32>(telegram_api::photos_uploadContactProfilePhoto::VIDEO_START_TS_MASK));
     static_assert(static_cast<int32>(telegram_api::photos_uploadProfilePhoto::FILE_MASK) ==
-                      static_cast<int32>(telegram_api::photos_uploadContactProfilePhoto::FILE_MASK),
-                  "");
+                  static_cast<int32>(telegram_api::photos_uploadContactProfilePhoto::FILE_MASK));
 
     int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputFile> photo_input_file;
@@ -636,8 +633,7 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::photos_uploadProfilePhoto::ReturnType,
-                               telegram_api::photos_uploadContactProfilePhoto::ReturnType>::value,
-                  "");
+                               telegram_api::photos_uploadContactProfilePhoto::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::photos_uploadProfilePhoto>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());

@@ -937,17 +937,13 @@ class SearchMessagesQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_getUnreadMentions::ReturnType,
-                               telegram_api::messages_search::ReturnType>::value,
-                  "");
+                               telegram_api::messages_search::ReturnType>::value);
     static_assert(std::is_same<telegram_api::messages_getUnreadReactions::ReturnType,
-                               telegram_api::messages_search::ReturnType>::value,
-                  "");
+                               telegram_api::messages_search::ReturnType>::value);
     static_assert(std::is_same<telegram_api::messages_getUnreadPollVotes::ReturnType,
-                               telegram_api::messages_search::ReturnType>::value,
-                  "");
+                               telegram_api::messages_search::ReturnType>::value);
     static_assert(
-        std::is_same<telegram_api::messages_getReplies::ReturnType, telegram_api::messages_search::ReturnType>::value,
-        "");
+        std::is_same<telegram_api::messages_getReplies::ReturnType, telegram_api::messages_search::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::messages_search>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());

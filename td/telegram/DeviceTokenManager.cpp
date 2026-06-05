@@ -421,8 +421,7 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
   CHECK(info.state != TokenInfo::State::Sync);
 
   static_assert(std::is_same<telegram_api::account_registerDevice::ReturnType,
-                             telegram_api::account_unregisterDevice::ReturnType>::value,
-                "");
+                             telegram_api::account_unregisterDevice::ReturnType>::value);
   auto r_flag = fetch_result<telegram_api::account_registerDevice>(std::move(net_query));
   if (r_flag.is_ok() && r_flag.ok()) {
     if (info.promise) {

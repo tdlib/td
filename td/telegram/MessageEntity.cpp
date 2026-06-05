@@ -59,7 +59,7 @@ int MessageEntity::get_type_priority(Type type) {
                                    99 /*CustomEmoji*/,
                                    0 /*ExpandableBlockQuote*/,
                                    30 /*FormattedDate*/};
-  static_assert(sizeof(priorities) / sizeof(priorities[0]) == static_cast<size_t>(MessageEntity::Type::Size), "");
+  static_assert(sizeof(priorities) / sizeof(priorities[0]) == static_cast<size_t>(MessageEntity::Type::Size));
   return priorities[static_cast<int32>(type)];
 }
 

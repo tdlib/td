@@ -402,8 +402,7 @@ class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::bots_addPreviewMedia::ReturnType,
-                               telegram_api::bots_editPreviewMedia::ReturnType>::value,
-                  "");
+                               telegram_api::bots_editPreviewMedia::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::bots_addPreviewMedia>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());

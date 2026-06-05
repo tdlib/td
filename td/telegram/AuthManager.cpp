@@ -1086,8 +1086,7 @@ void AuthManager::on_send_code_result(NetQueryPtr &&net_query) {
 
 void AuthManager::on_set_premium_purchase_transaction_result(NetQueryPtr &&net_query) {
   static_assert(std::is_same<telegram_api::payments_assignAppStoreTransaction::ReturnType,
-                             telegram_api::payments_assignPlayMarketTransaction::ReturnType>::value,
-                "");
+                             telegram_api::payments_assignPlayMarketTransaction::ReturnType>::value);
   auto result = fetch_result<telegram_api::payments_assignPlayMarketTransaction>(std::move(net_query));
   if (result.is_error()) {
     return on_current_query_error(result.move_as_error());

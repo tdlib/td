@@ -212,8 +212,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::payments_getStarsTransactionsByID::ReturnType,
-                               telegram_api::payments_getStarsTransactions::ReturnType>::value,
-                  "");
+                               telegram_api::payments_getStarsTransactions::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::payments_getStarsTransactions>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());

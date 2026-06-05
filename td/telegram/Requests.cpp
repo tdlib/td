@@ -2029,34 +2029,30 @@ Promise<SentEmailCode> Requests::create_sent_email_code_request_promise(uint64 i
 
 #define CREATE_REQUEST_PROMISE() auto promise = create_request_promise<std::decay_t<decltype(request)>::ReturnType>(id)
 
-#define CREATE_OK_REQUEST_PROMISE()                                                                                    \
-  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::ok>>::value, ""); \
+#define CREATE_OK_REQUEST_PROMISE()                                                                                \
+  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::ok>>::value); \
   auto promise = create_ok_request_promise(id)
 
-#define CREATE_TEXT_REQUEST_PROMISE()                                                                               \
-  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::text>>::value, \
-                "");                                                                                                \
+#define CREATE_TEXT_REQUEST_PROMISE()                                                                                \
+  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::text>>::value); \
   auto promise = create_text_request_promise(id)
 
-#define CREATE_DATA_REQUEST_PROMISE()                                                                               \
-  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::data>>::value, \
-                "");                                                                                                \
+#define CREATE_DATA_REQUEST_PROMISE()                                                                                \
+  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::data>>::value); \
   auto promise = create_data_request_promise(id)
 
-#define CREATE_HTTP_URL_REQUEST_PROMISE()                                                                              \
-  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::httpUrl>>::value, \
-                "");                                                                                                   \
+#define CREATE_HTTP_URL_REQUEST_PROMISE()                                                                     \
+  static_assert(                                                                                              \
+      std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::httpUrl>>::value); \
   auto promise = create_http_url_request_promise(id)
 
-#define CREATE_COUNT_REQUEST_PROMISE()                                                                               \
-  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::count>>::value, \
-                "");                                                                                                 \
+#define CREATE_COUNT_REQUEST_PROMISE()                                                                                \
+  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::count>>::value); \
   auto promise = create_count_request_promise(id)
 
-#define CREATE_SENT_EMAIL_CODE_REQUEST_PROMISE()                                                     \
-  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType,                            \
-                             td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>>::value, \
-                "");                                                                                 \
+#define CREATE_SENT_EMAIL_CODE_REQUEST_PROMISE()                                                      \
+  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType,                             \
+                             td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>>::value); \
   auto promise = create_sent_email_code_request_promise(id)
 
 void Requests::on_request(uint64 id, const td_api::setTdlibParameters &request) {

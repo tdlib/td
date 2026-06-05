@@ -1800,8 +1800,7 @@ Status SecretChatActor::on_update_chat(telegram_api::encryptedChatDiscarded &upd
 
 Status SecretChatActor::on_update_chat(NetQueryPtr query) {
   static_assert(std::is_same<telegram_api::messages_requestEncryption::ReturnType,
-                             telegram_api::messages_acceptEncryption::ReturnType>::value,
-                "");
+                             telegram_api::messages_acceptEncryption::ReturnType>::value);
   TRY_RESULT(config, fetch_result<telegram_api::messages_requestEncryption>(std::move(query)));
   TRY_STATUS(on_update_chat(std::move(config)));
   if (auth_state_.state == State::WaitRequestResponse) {

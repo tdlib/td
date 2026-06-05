@@ -17,7 +17,7 @@ namespace td {
 template <class T, size_t N = 256>
 class StealingQueue {
  public:
-  static_assert(N > 0 && (N & (N - 1)) == 0, "");
+  static_assert(N > 0 && (N & (N - 1)) == 0);
 
   // tries to put a value
   // returns if succeeded

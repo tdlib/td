@@ -312,8 +312,8 @@ struct AesBlock {
 #endif
   }
 };
-static_assert(sizeof(AesBlock) == 16, "");
-static_assert(sizeof(AesBlock) == AES_BLOCK_SIZE, "");
+static_assert(sizeof(AesBlock) == 16);
+static_assert(sizeof(AesBlock) == AES_BLOCK_SIZE);
 
 class Evp {
  public:

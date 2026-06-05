@@ -111,8 +111,7 @@ class CheckChannelUsernameQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::bots_checkUsername::ReturnType,
-                               telegram_api::channels_checkUsername::ReturnType>::value,
-                  "");
+                               telegram_api::channels_checkUsername::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::channels_checkUsername>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -251,8 +250,7 @@ class EditDialogTitleQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_editChatTitle::ReturnType,
-                               telegram_api::channels_editTitle::ReturnType>::value,
-                  "");
+                               telegram_api::channels_editTitle::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::messages_editChatTitle>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -316,8 +314,7 @@ class EditDialogPhotoQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_editChatPhoto::ReturnType,
-                               telegram_api::channels_editPhoto::ReturnType>::value,
-                  "");
+                               telegram_api::channels_editPhoto::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::messages_editChatPhoto>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -665,8 +662,7 @@ class UpdatePeerSettingsQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_reportSpam::ReturnType,
-                               telegram_api::messages_hidePeerSettingsBar::ReturnType>::value,
-                  "");
+                               telegram_api::messages_hidePeerSettingsBar::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::messages_reportSpam>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -1068,7 +1064,7 @@ class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
 
   void on_result(BufferSlice packet) final {
     static_assert(
-        std::is_same<telegram_api::contacts_block::ReturnType, telegram_api::contacts_unblock::ReturnType>::value, "");
+        std::is_same<telegram_api::contacts_block::ReturnType, telegram_api::contacts_unblock::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::contacts_block>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
