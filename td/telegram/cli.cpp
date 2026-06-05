@@ -6387,14 +6387,14 @@ class CliClient final : public Actor {
       auto text = as_formatted_text("👍 😉 🧑‍🚒", std::move(entities));
       send_message(chat_id,
                    td_api::make_object<td_api::inputMessageText>(std::move(text), get_link_preview_options(), true));
-    } else if (op == "alm") {
+    } else if (op == "alm" || op == "alrm") {
       ChatId chat_id;
       string sender_id;
       string message;
       get_args(args, chat_id, sender_id, message);
       send_request(td_api::make_object<td_api::addLocalMessage>(chat_id, as_message_sender(sender_id),
                                                                 get_input_message_reply_to(), false,
-                                                                as_input_message(message, false)));
+                                                                as_input_message(message, op == "alrm")));
     } else if (op == "spmp") {
       ChatId chat_id;
       get_args(args, chat_id, args);
@@ -6476,25 +6476,25 @@ class CliClient final : public Actor {
       attached_files = full_split(args);
       send_request(td_api::make_object<td_api::importMessages>(chat_id, as_input_file(message_file),
                                                                transform(attached_files, as_input_file)));
-    } else if (op == "em") {
+    } else if (op == "em" || op == "emrm") {
       ChatId chat_id;
       MessageId message_id;
       string message;
       get_args(args, chat_id, message_id, message);
-      auto input_text = as_input_message(message, false);
+      auto input_text = as_input_message(message, op == "emrm");
       if (!business_connection_id_.empty()) {
         send_request(td_api::make_object<td_api::editBusinessMessageText>(business_connection_id_, chat_id, message_id,
                                                                           nullptr, std::move(input_text)));
       } else {
         send_request(td_api::make_object<td_api::editMessageText>(chat_id, message_id, nullptr, std::move(input_text)));
       }
-    } else if (op == "eqrm") {
+    } else if (op == "eqrm" || op == "eqrrm") {
       ShortcutId shortcut_id;
       MessageId message_id;
       string message;
       get_args(args, shortcut_id, message_id, message);
       send_request(td_api::make_object<td_api::editQuickReplyMessage>(shortcut_id, message_id,
-                                                                      as_input_message(message, false)));
+                                                                      as_input_message(message, op == "eqrrm")));
     } else if (op == "eman") {
       ChatId chat_id;
       MessageId message_id;
