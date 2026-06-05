@@ -12041,7 +12041,7 @@ sendBusinessMessageAlbum business_connection_id:string chat_id:int53 reply_to:In
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message
 //@reply_markup The new message reply markup; pass null if none
-//@input_message_content New text content of the message. Must be of type inputMessageText
+//@input_message_content New text content of the message. Must be of type inputMessageText or inputMessageRichMessage
 editBusinessMessageText business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = BusinessMessage;
 
 //@description Edits the content of a live location in a message sent on behalf of a business account; for bots only

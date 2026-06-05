@@ -29,6 +29,7 @@
 #include "td/telegram/MessageTopic.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/ReplyMarkup.h"
+#include "td/telegram/RichMessage.h"
 #include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarAmount.h"
@@ -424,7 +425,8 @@ class BusinessConnectionManager::EditBusinessMessageQuery final : public Td::Res
   void send(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id, bool edit_text,
             const FormattedText *text, bool disable_web_page_preview,
             telegram_api::object_ptr<telegram_api::InputMedia> &&input_media, bool invert_media,
-            const unique_ptr<ReplyMarkup> &reply_markup) {
+            const unique_ptr<ReplyMarkup> &reply_markup,
+            telegram_api::object_ptr<telegram_api::InputRichMessage> rich_message) {
     business_connection_id_ = std::move(business_connection_id);
     dialog_id_ = dialog_id;
 
@@ -448,6 +450,9 @@ class BusinessConnectionManager::EditBusinessMessageQuery final : public Td::Res
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editMessage::MEDIA_MASK;
     }
+    if (rich_message != nullptr) {
+      flags |= telegram_api::messages_editMessage::RICH_MESSAGE_MASK;
+    }
 
     int32 server_message_id = message_id.get_server_message_id().get();
     send_query(G()->net_query_creator().create_with_prefix(
@@ -455,7 +460,7 @@ class BusinessConnectionManager::EditBusinessMessageQuery final : public Td::Res
         telegram_api::messages_editMessage(flags, disable_web_page_preview, invert_media, std::move(input_peer),
                                            server_message_id, text == nullptr ? string() : text->text,
                                            std::move(input_media), std::move(input_reply_markup), std::move(entities),
-                                           0, 0, 0, nullptr),
+                                           0, 0, 0, std::move(rich_message)),
         td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id_), {{dialog_id}}));
   }
 
@@ -1730,20 +1735,30 @@ void BusinessConnectionManager::edit_business_message_text(
     return promise.set_error(400, "Can't edit message without new content");
   }
   int32 new_message_content_type = input_message_content->get_id();
-  if (new_message_content_type != td_api::inputMessageText::ID) {
-    return promise.set_error(400, "Input message content type must be InputMessageText");
+  if (new_message_content_type != td_api::inputMessageText::ID &&
+      new_message_content_type != td_api::inputMessageRichMessage::ID) {
+    return promise.set_error(400, "Input message content type must be InputMessageText or inputMessageRichMessage");
   }
 
-  TRY_RESULT_PROMISE(
-      promise, input_message_text,
-      process_input_message_text(td_, DialogId(), std::move(input_message_content), td_->auth_manager_->is_bot()));
-  TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true));
+  auto is_bot = td_->auth_manager_->is_bot();
+  TRY_RESULT_PROMISE(promise, new_reply_markup, get_inline_reply_markup(std::move(reply_markup), is_bot, true));
 
+  if (new_message_content_type == td_api::inputMessageRichMessage::ID) {
+    auto input_rich_message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
+    TRY_RESULT_PROMISE(promise, rich_message,
+                       RichMessage::get_rich_message(td_, DialogId(), std::move(input_rich_message->message_), is_bot));
+    td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
+        ->send(business_connection_id, dialog_id, message_id, false, nullptr, false, nullptr, false, new_reply_markup,
+               rich_message.get_input_rich_message(td_));
+    return;
+  }
+
+  TRY_RESULT_PROMISE(promise, input_message_text,
+                     process_input_message_text(td_, DialogId(), std::move(input_message_content), is_bot));
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
       ->send(business_connection_id, dialog_id, message_id, true, &input_message_text.text,
              input_message_text.disable_web_page_preview, input_message_text.get_input_media_web_page(),
-             input_message_text.show_above_text, new_reply_markup);
+             input_message_text.show_above_text, new_reply_markup, nullptr);
 }
 
 void BusinessConnectionManager::edit_business_message_live_location(
@@ -1758,7 +1773,7 @@ void BusinessConnectionManager::edit_business_message_live_location(
 
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
       ->send(business_connection_id, dialog_id, message_id, false, nullptr, false, location.get_input_media_geo_live(),
-             false, new_reply_markup);
+             false, new_reply_markup, nullptr);
 }
 
 void BusinessConnectionManager::edit_business_message_to_do_list(
@@ -1775,7 +1790,7 @@ void BusinessConnectionManager::edit_business_message_to_do_list(
   auto input_media = to_do_list.get_input_media_todo(td_->user_manager_.get());
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
       ->send(business_connection_id, dialog_id, message_id, false, nullptr, false, std::move(input_media), false,
-             new_reply_markup);
+             new_reply_markup, nullptr);
 }
 
 void BusinessConnectionManager::edit_business_message_media(
@@ -1850,7 +1865,7 @@ void BusinessConnectionManager::do_edit_business_message_media(
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
       ->send(message->business_connection_id_, message->dialog_id_, message->message_id_, true,
              get_message_content_caption(message->content_.get()), false, std::move(upload_result.input_media_),
-             message->invert_media_, message->reply_markup_);
+             message->invert_media_, message->reply_markup_, nullptr);
 }
 
 void BusinessConnectionManager::edit_business_message_caption(
@@ -1867,7 +1882,7 @@ void BusinessConnectionManager::edit_business_message_caption(
 
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
       ->send(business_connection_id, dialog_id, message_id, true, &caption, false, nullptr, invert_media,
-             new_reply_markup);
+             new_reply_markup, nullptr);
 }
 
 void BusinessConnectionManager::edit_business_message_reply_markup(
@@ -1880,7 +1895,8 @@ void BusinessConnectionManager::edit_business_message_reply_markup(
                      get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true));
 
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
-      ->send(business_connection_id, dialog_id, message_id, false, nullptr, false, nullptr, false, new_reply_markup);
+      ->send(business_connection_id, dialog_id, message_id, false, nullptr, false, nullptr, false, new_reply_markup,
+             nullptr);
 }
 
 void BusinessConnectionManager::stop_poll(BusinessConnectionId business_connection_id, DialogId dialog_id,
