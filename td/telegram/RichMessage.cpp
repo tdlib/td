@@ -169,10 +169,28 @@ bool RichMessage::can_send(const RestrictedRights &rights) const {
 
 telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_rich_message(const Td *td) const {
   switch (input_type_) {
-    case InputType::None:
-      // TODO
-      return telegram_api::make_object<telegram_api::inputRichMessageMarkdown>(0, is_rtl_, noautolink_, source_,
-                                                                               Auto());
+    case InputType::None: {
+      int32 flags = 0;
+      vector<telegram_api::object_ptr<telegram_api::PageBlock>> blocks;
+      vector<telegram_api::object_ptr<telegram_api::InputPhoto>> photos;
+      vector<telegram_api::object_ptr<telegram_api::InputDocument>> documents;
+      for (const auto &block : blocks_) {
+        blocks.push_back(block->get_input_page_block(td, photos, documents));
+      }
+      if (!photos.empty()) {
+        flags |= telegram_api::inputRichMessage::PHOTOS_MASK;
+      }
+      if (!documents.empty()) {
+        flags |= telegram_api::inputRichMessage::DOCUMENTS_MASK;
+      }
+      auto input_users = td->user_manager_->get_input_users_force(get_user_ids());
+      if (!input_users.empty()) {
+        flags |= telegram_api::inputRichMessage::USERS_MASK;
+      }
+      return telegram_api::make_object<telegram_api::inputRichMessage>(flags, is_rtl_, noautolink_, std::move(blocks),
+                                                                       std::move(photos), std::move(documents),
+                                                                       std::move(input_users));
+    }
     case InputType::Markdown:
       return telegram_api::make_object<telegram_api::inputRichMessageMarkdown>(0, is_rtl_, noautolink_, source_,
                                                                                Auto());
