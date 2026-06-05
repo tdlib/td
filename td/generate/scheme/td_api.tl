@@ -3310,6 +3310,9 @@ reactionNotificationSettings message_reaction_source:ReactionNotificationSource 
 //@link_preview_options Options to be used for generation of a link preview; may be null if none; pass null to use default link preview options
 draftMessageContentText text:formattedText link_preview_options:linkPreviewOptions = DraftMessageContent;
 
+//@description A rich message draft; not supported in setChatDraftMessage @message The rich message; the message must not have not yet uploaded media
+draftMessageContentRichMessage message:richMessage = DraftMessageContent;
+
 //@description A video note message draft
 //@file_path Path to the file with the video note
 //@duration Duration of the video, in seconds; 0-60

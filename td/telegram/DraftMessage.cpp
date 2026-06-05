@@ -43,6 +43,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
 
     int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputReplyTo> input_reply_to;
+    telegram_api::object_ptr<telegram_api::InputRichMessage> input_rich_message;
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> input_message_entities;
     telegram_api::object_ptr<telegram_api::InputMedia> media;
     int64 message_effect_id = 0;
@@ -52,19 +53,24 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     if (draft_message != nullptr) {
       CHECK(!draft_message->is_local());
       input_reply_to = draft_message->message_input_reply_to_.get_input_reply_to(td_, message_topic, true);
-      if (draft_message->input_message_text_.disable_web_page_preview) {
-        disable_web_page_preview = true;
-      } else if (draft_message->input_message_text_.show_above_text) {
-        invert_media = true;
-      }
-      input_message_entities = get_input_message_entities(
-          td_->user_manager_.get(), draft_message->input_message_text_.text.entities, "SaveDraftMessageQuery");
-      if (!input_message_entities.empty()) {
-        flags |= telegram_api::messages_saveDraft::ENTITIES_MASK;
-      }
-      media = draft_message->input_message_text_.get_input_media_web_page();
-      if (media != nullptr) {
-        flags |= telegram_api::messages_saveDraft::MEDIA_MASK;
+      if (draft_message->is_rich_) {
+        input_rich_message = draft_message->rich_message_.get_input_rich_message(td_);
+        flags |= telegram_api::messages_saveDraft::RICH_MESSAGE_MASK;
+      } else {
+        if (draft_message->input_message_text_.disable_web_page_preview) {
+          disable_web_page_preview = true;
+        } else if (draft_message->input_message_text_.show_above_text) {
+          invert_media = true;
+        }
+        input_message_entities = get_input_message_entities(
+            td_->user_manager_.get(), draft_message->input_message_text_.text.entities, "SaveDraftMessageQuery");
+        if (!input_message_entities.empty()) {
+          flags |= telegram_api::messages_saveDraft::ENTITIES_MASK;
+        }
+        media = draft_message->input_message_text_.get_input_media_web_page();
+        if (media != nullptr) {
+          flags |= telegram_api::messages_saveDraft::MEDIA_MASK;
+        }
       }
       if (draft_message->message_effect_id_.is_valid()) {
         flags |= telegram_api::messages_saveDraft::EFFECT_MASK;
@@ -84,7 +90,8 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
         telegram_api::messages_saveDraft(
             flags, disable_web_page_preview, invert_media, std::move(input_reply_to), std::move(input_peer),
             draft_message == nullptr ? string() : draft_message->input_message_text_.text.text,
-            std::move(input_message_entities), std::move(media), message_effect_id, std::move(suggested_post), nullptr),
+            std::move(input_message_entities), std::move(media), message_effect_id, std::move(suggested_post),
+            std::move(input_rich_message)),
         {{dialog_id}}));
   }
 
@@ -396,7 +403,8 @@ bool DraftMessage::need_update_to(const DraftMessage &other, bool from_update) c
     return !from_update || other.is_local();
   }
   if (message_input_reply_to_ == other.message_input_reply_to_ && input_message_text_ == other.input_message_text_ &&
-      message_effect_id_ == other.message_effect_id_ && suggested_post_ == other.suggested_post_) {
+      rich_message_ == other.rich_message_ && message_effect_id_ == other.message_effect_id_ &&
+      suggested_post_ == other.suggested_post_) {
     return date_ < other.date_;
   } else {
     return !from_update || date_ <= other.date_;
@@ -411,6 +419,7 @@ unique_ptr<DraftMessage> DraftMessage::clone(const unique_ptr<DraftMessage> &dra
   result->date_ = draft_message->date_;
   result->message_input_reply_to_ = draft_message->message_input_reply_to_.clone();
   result->input_message_text_ = draft_message->input_message_text_;
+  result->rich_message_ = draft_message->rich_message_.clone();
   if (draft_message->local_content_ != nullptr) {
     switch (draft_message->local_content_->get_type()) {
       case DraftMessageContentType::VideoNote: {
@@ -437,12 +446,16 @@ unique_ptr<DraftMessage> DraftMessage::clone(const unique_ptr<DraftMessage> &dra
 void DraftMessage::add_dependencies(Dependencies &dependencies) const {
   message_input_reply_to_.add_dependencies(dependencies);
   input_message_text_.add_dependencies(dependencies);
+  rich_message_.add_dependencies(dependencies);
 }
 
 td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object(Td *td) const {
   td_api::object_ptr<td_api::DraftMessageContent> content;
   if (local_content_ != nullptr) {
     content = local_content_->get_draft_message_content_object();
+  } else if (is_rich_) {
+    content =
+        td_api::make_object<td_api::draftMessageContentRichMessage>(rich_message_.get_rich_message_object(td, true));
   } else {
     content = input_message_text_.get_draft_message_content_object(td->user_manager_.get());
   }
@@ -456,26 +469,31 @@ DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftM
   CHECK(draft_message != nullptr);
   date_ = draft_message->date_;
   message_input_reply_to_ = MessageInputReplyTo(td, std::move(draft_message->reply_to_));
-  auto draft_text = get_formatted_text(td->user_manager_.get(), std::move(draft_message->message_),
-                                       std::move(draft_message->entities_), true, true, "DraftMessage");
-  string web_page_url;
-  bool force_small_media = false;
-  bool force_large_media = false;
-  if (draft_message->media_ != nullptr) {
-    if (draft_message->media_->get_id() != telegram_api::inputMediaWebPage::ID) {
-      LOG(ERROR) << "Receive draft message with " << to_string(draft_message->media_);
-    } else {
-      auto media = telegram_api::move_object_as<telegram_api::inputMediaWebPage>(draft_message->media_);
-      web_page_url = std::move(media->url_);
-      if (web_page_url.empty()) {
-        LOG(ERROR) << "Have no URL in a draft with manual link preview";
+  if (draft_message->rich_message_ != nullptr) {
+    is_rich_ = true;
+    rich_message_ = RichMessage(td, std::move(draft_message->rich_message_), DialogId());
+  } else {
+    auto draft_text = get_formatted_text(td->user_manager_.get(), std::move(draft_message->message_),
+                                         std::move(draft_message->entities_), true, true, "DraftMessage");
+    string web_page_url;
+    bool force_small_media = false;
+    bool force_large_media = false;
+    if (draft_message->media_ != nullptr) {
+      if (draft_message->media_->get_id() != telegram_api::inputMediaWebPage::ID) {
+        LOG(ERROR) << "Receive draft message with " << to_string(draft_message->media_);
+      } else {
+        auto media = telegram_api::move_object_as<telegram_api::inputMediaWebPage>(draft_message->media_);
+        web_page_url = std::move(media->url_);
+        if (web_page_url.empty()) {
+          LOG(ERROR) << "Have no URL in a draft with manual link preview";
+        }
+        force_small_media = media->force_small_media_;
+        force_large_media = media->force_large_media_;
       }
-      force_small_media = media->force_small_media_;
-      force_large_media = media->force_large_media_;
     }
+    input_message_text_ = InputMessageText(std::move(draft_text), std::move(web_page_url), draft_message->no_webpage_,
+                                           force_small_media, force_large_media, draft_message->invert_media_, false);
   }
-  input_message_text_ = InputMessageText(std::move(draft_text), std::move(web_page_url), draft_message->no_webpage_,
-                                         force_small_media, force_large_media, draft_message->invert_media_, false);
   message_effect_id_ = MessageEffectId(draft_message->effect_);
   suggested_post_ = SuggestedPost::get_suggested_post(std::move(draft_message->suggested_post_));
 }
@@ -507,6 +525,16 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
         result->input_message_text_ = std::move(input_message_text);
         break;
       }
+      case td_api::draftMessageContentRichMessage::ID: {
+        auto message = td_api::move_object_as<td_api::draftMessageContentRichMessage>(content);
+        if (message->message_ == nullptr || true) {
+          break;
+        }
+        TRY_RESULT(rich_message, RichMessage::get_rich_message(td, dialog_id, std::move(message->message_), false));
+        result->rich_message_ = std::move(rich_message);
+        result->is_rich_ = true;
+        break;
+      }
       case td_api::draftMessageContentVideoNote::ID: {
         auto video_note = td_api::move_object_as<td_api::draftMessageContentVideoNote>(content);
         TRY_RESULT(ttl,
@@ -529,7 +557,7 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
     }
   }
 
-  if (!result->message_input_reply_to_.is_valid() && result->input_message_text_.is_empty() &&
+  if (!result->message_input_reply_to_.is_valid() && result->input_message_text_.is_empty() && !result->is_rich_ &&
       result->local_content_ == nullptr) {
     return nullptr;
   }

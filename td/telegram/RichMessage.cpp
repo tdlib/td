@@ -115,6 +115,18 @@ Result<RichMessage> RichMessage::get_rich_message(Td *td, DialogId dialog_id,
   return std::move(rich_message);
 }
 
+Result<RichMessage> RichMessage::get_rich_message(Td *td, DialogId dialog_id,
+                                                  td_api::object_ptr<td_api::richMessage> &&message, bool is_bot) {
+  if (message == nullptr) {
+    return Status::Error(400, "Rich message must be non-empty");
+  }
+  RichMessage rich_message;
+  // rich_message.blocks_ = std::move(blocks);
+  rich_message.is_rtl_ = message->is_rtl_;
+  rich_message.is_full_ = true;
+  return std::move(rich_message);
+}
+
 void RichMessage::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
   for (const auto &block : blocks_) {
     block->append_file_ids(td, file_ids);

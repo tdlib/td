@@ -31,6 +31,7 @@ void DraftMessage::store(StorerT &storer) const {
   STORE_FLAG(has_local_content);
   STORE_FLAG(has_message_effect_id);
   STORE_FLAG(has_suggested_post);
+  STORE_FLAG(is_rich_);
   END_STORE_FLAGS();
   td::store(date_, storer);
   if (has_input_message_text) {
@@ -47,6 +48,9 @@ void DraftMessage::store(StorerT &storer) const {
   }
   if (has_suggested_post) {
     td::store(suggested_post_, storer);
+  }
+  if (is_rich_) {
+    td::store(rich_message_, storer);
   }
 }
 
@@ -66,6 +70,7 @@ void DraftMessage::parse(ParserT &parser) {
     PARSE_FLAG(has_local_content);
     PARSE_FLAG(has_message_effect_id);
     PARSE_FLAG(has_suggested_post);
+    PARSE_FLAG(is_rich_);
     END_PARSE_FLAGS();
   } else {
     has_legacy_reply_to_message_id = true;
@@ -96,6 +101,9 @@ void DraftMessage::parse(ParserT &parser) {
   }
   if (has_suggested_post) {
     td::parse(suggested_post_, parser);
+  }
+  if (is_rich_) {
+    td::parse(rich_message_, parser);
   }
 }
 

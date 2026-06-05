@@ -49,6 +49,9 @@ class RichMessage {
   static Result<RichMessage> get_rich_message(Td *td, DialogId dialog_id,
                                               td_api::object_ptr<td_api::inputRichMessage> &&message, bool is_bot);
 
+  static Result<RichMessage> get_rich_message(Td *td, DialogId dialog_id,
+                                              td_api::object_ptr<td_api::richMessage> &&message, bool is_bot);
+
   bool is_full() const {
     return is_full_;
   }

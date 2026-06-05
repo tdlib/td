@@ -14,6 +14,7 @@
 #include "td/telegram/MessageEffectId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageTopic.h"
+#include "td/telegram/RichMessage.h"
 #include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -47,8 +48,10 @@ class DraftMessageContent {
 
 class DraftMessage {
   int32 date_ = 0;
+  bool is_rich_ = false;
   MessageInputReplyTo message_input_reply_to_;
   InputMessageText input_message_text_;
+  RichMessage rich_message_;
   unique_ptr<DraftMessageContent> local_content_;
   MessageEffectId message_effect_id_;
   unique_ptr<SuggestedPost> suggested_post_;
