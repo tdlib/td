@@ -768,9 +768,9 @@ class AccountManager::UnconfirmedAuthorizations {
     return authorizations_[0].get_date() + get_authorization_autoconfirm_period();
   }
 
-  td_api::object_ptr<td_api::unconfirmedSession> get_first_unconfirmed_session_object(Td *td) const {
+  td_api::object_ptr<td_api::updateUnconfirmedSession> get_update_unconfirmed_session_object(Td *td) const {
     CHECK(!authorizations_.empty());
-    return authorizations_[0].get_unconfirmed_session_object(td);
+    return td_api::make_object<td_api::updateUnconfirmedSession>(authorizations_[0].get_unconfirmed_session_object(td));
   }
 
   void add_dependencies(Dependencies &dependencies) const {
@@ -1339,8 +1339,7 @@ td_api::object_ptr<td_api::updateUnconfirmedSession> AccountManager::get_update_
   if (unconfirmed_authorizations_ == nullptr) {
     return td_api::make_object<td_api::updateUnconfirmedSession>(nullptr);
   }
-  return td_api::make_object<td_api::updateUnconfirmedSession>(
-      unconfirmed_authorizations_->get_first_unconfirmed_session_object(td_));
+  return unconfirmed_authorizations_->get_update_unconfirmed_session_object(td_);
 }
 
 void AccountManager::send_update_unconfirmed_session() const {
