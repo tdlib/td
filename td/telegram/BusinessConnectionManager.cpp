@@ -1313,8 +1313,7 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
     td_->create_handler<SendBusinessMediaQuery>(std::move(promise))->send(std::move(message), std::move(input_media));
     return;
   }
-  if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll ||
-      content_type == MessageContentType::Story) {
+  if (content_type == MessageContentType::Game || content_type == MessageContentType::Story) {
     return promise.set_error(400, "Message has no file");
   }
   upload_media(std::move(message), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
