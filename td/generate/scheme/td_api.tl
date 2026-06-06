@@ -9630,7 +9630,7 @@ autosaveSettings private_chat_settings:scopeAutosaveSettings group_settings:scop
 //@url URL for which the exception is done
 //@domain Domain of the URL. All URLs on the domain and subdomains of the domain are subject to the exception
 //@title Title of the website
-//@favicon_custom_emoji_id Identifier of the custom emoji with favicon of the website; may be 0 if unknown
+//@favicon_custom_emoji_id Identifier of the custom emoji with favicon of the website; may be 0 if unknown, in which case the first letter of the domain must be used
 webDomainException url:string domain:string title:string favicon_custom_emoji_id:int64 = WebDomainException;
 
 //@description Describes web browser settings
