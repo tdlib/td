@@ -936,11 +936,11 @@ void ConfigManager::lazy_request_config() {
   set_timeout_at(expire_time_.at());
 }
 
-void ConfigManager::reget_config(Promise<Unit> &&promise) {
+void ConfigManager::reload_config(Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  reget_config_queries_.push_back(std::move(promise));
-  if (reget_config_queries_.size() != 1) {
+  reload_config_queries_.push_back(std::move(promise));
+  if (reload_config_queries_.size() != 1) {
     return;
   }
 
@@ -948,7 +948,7 @@ void ConfigManager::reget_config(Promise<Unit> &&promise) {
 }
 
 void ConfigManager::try_request_app_config() {
-  if (get_app_config_queries_.size() + reget_app_config_queries_.size() != 1) {
+  if (get_app_config_queries_.size() + reload_app_config_queries_.size() != 1) {
     return;
   }
 
@@ -969,7 +969,7 @@ void ConfigManager::get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>
   try_request_app_config();
 }
 
-void ConfigManager::reget_app_config(Promise<Unit> &&promise) {
+void ConfigManager::reload_app_config(Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
@@ -977,7 +977,7 @@ void ConfigManager::reget_app_config(Promise<Unit> &&promise) {
     return promise.set_value(Unit());
   }
 
-  reget_app_config_queries_.push_back(std::move(promise));
+  reload_app_config_queries_.push_back(std::move(promise));
   try_request_app_config();
 }
 
@@ -1036,7 +1036,7 @@ void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sen
     return;
   }
   G()->set_option_boolean("ignore_sensitive_content_restrictions", ignore_sensitive_content_restrictions);
-  reget_app_config(Auto());
+  reload_app_config(Auto());
 }
 
 void ConfigManager::on_result(NetQueryPtr net_query) {
@@ -1082,8 +1082,8 @@ void ConfigManager::on_result(NetQueryPtr net_query) {
   if (token == 1) {
     auto promises = std::move(get_app_config_queries_);
     get_app_config_queries_.clear();
-    auto unit_promises = std::move(reget_app_config_queries_);
-    reget_app_config_queries_.clear();
+    auto unit_promises = std::move(reload_app_config_queries_);
+    reload_app_config_queries_.clear();
     CHECK(!promises.empty() || !unit_promises.empty());
     auto result_ptr = fetch_result<telegram_api::help_getAppConfig>(std::move(net_query));
     if (result_ptr.is_error()) {
@@ -1129,7 +1129,7 @@ void ConfigManager::on_result(NetQueryPtr net_query) {
       expire_time_ = Timestamp::in(60.0);  // try again in a minute
       set_timeout_in(expire_time_.in());
     }
-    fail_promises(reget_config_queries_, r_config.move_as_error());
+    fail_promises(reload_config_queries_, r_config.move_as_error());
   } else {
     on_dc_options_update(DcOptions());
     process_config(r_config.move_as_ok());
@@ -1137,7 +1137,7 @@ void ConfigManager::on_result(NetQueryPtr net_query) {
       G()->net_query_dispatcher().update_mtproto_header();
       reopen_sessions_after_get_config_ = false;
     }
-    set_promises(reget_config_queries_);
+    set_promises(reload_config_queries_);
   }
 }
 
@@ -1312,7 +1312,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   //  options.set_option_integer("push_chat_limit", config->push_chat_limit_);
 
   if (is_from_main_dc) {
-    reget_app_config(Auto());
+    reload_app_config(Auto());
     if (!options.have_option("can_ignore_sensitive_content_restrictions") ||
         !options.have_option("ignore_sensitive_content_restrictions")) {
       get_content_settings(Auto());

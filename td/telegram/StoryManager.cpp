@@ -2966,7 +2966,7 @@ void StoryManager::on_synchronized_archive_all_stories(bool set_archive_all_stor
   td_->option_manager_->set_option_empty("need_synchronize_archive_all_stories");
 
   if (result.is_error()) {
-    send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
+    send_closure(G()->config_manager(), &ConfigManager::reload_app_config, Promise<Unit>());
   }
 }
 

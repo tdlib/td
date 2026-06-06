@@ -4090,7 +4090,7 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
       }
       send_closure(G()->link_manager(), &LinkManager::get_external_link_info, std::move(link), std::move(promise));
     });
-    return send_closure(G()->config_manager(), &ConfigManager::reget_config, std::move(query_promise));
+    return send_closure(G()->config_manager(), &ConfigManager::reload_config, std::move(query_promise));
   }
 
   if (autologin_token_.empty()) {
