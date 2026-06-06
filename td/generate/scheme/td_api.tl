@@ -2513,7 +2513,7 @@ chatJoinResultRequestSent = ChatJoinResult;
 
 //@description An approval from a guard bot through a Web App is required to join the chat
 //@bot_user_id Identifier of the guard bot
-//@url The URL of the Web App to pass to getWebAppUrl
+//@url The URL of the Web App to open
 //@query_id Unique identifier of the join request, which will be used in updateChatJoinResult
 chatJoinResultGuardBotApprovalRequired bot_user_id:int53 url:webAppUrl query_id:int53 = ChatJoinResult;
 
@@ -10591,7 +10591,7 @@ updateUnreadMessageCount chat_list:ChatList unread_count:int32 unread_unmuted_co
 updateUnreadChatCount chat_list:ChatList total_count:int32 unread_count:int32 unread_unmuted_count:int32 marked_as_unread_count:int32 marked_as_unread_unmuted_count:int32 = Update;
 
 //@description A join request from the user was completed
-//@query_id Identifier of the join request query as received in chatJoinResultGuardBotApprovalRequired
+//@query_id Identifier of the join request query as received in chatJoinResultGuardBotApprovalRequired. If the corresponding Web App is stiil open, then it must be closed
 //@chat_id Identifier of the joined chat, or 0 if the request didn't succeed
 //@result Result of the join
 updateChatJoinResult query_id:int64 chat_id:int53 result:ChatJoinRequestResult = Update;
