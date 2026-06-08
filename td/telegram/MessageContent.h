@@ -51,6 +51,7 @@ class Game;
 class MultiPromiseActor;
 struct Photo;
 class RepliedMessageInfo;
+class RichMessage;
 class Td;
 class Venue;
 
@@ -327,6 +328,8 @@ FormattedText *get_message_content_text_mutable(MessageContent *content);
 const FormattedText *get_message_content_text(const MessageContent *content);
 
 const FormattedText *get_message_content_caption(const MessageContent *content);
+
+const RichMessage *get_message_content_rich_message(const MessageContent *content);
 
 int64 get_message_content_star_count(const MessageContent *content);
 

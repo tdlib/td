@@ -11969,6 +11969,16 @@ const FormattedText *get_message_content_caption(const MessageContent *content) 
   }
 }
 
+const RichMessage *get_message_content_rich_message(const MessageContent *content) {
+  CHECK(content != nullptr);
+  switch (content->get_type()) {
+    case MessageContentType::RichText:
+      return &static_cast<const MessageRichText *>(content)->text;
+    default:
+      return nullptr;
+  }
+}
+
 static bool get_message_content_has_spoiler(const MessageContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {

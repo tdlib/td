@@ -4194,12 +4194,21 @@ void MessagesManager::extract_authentication_codes(DialogId dialog_id, const Mes
                                                    vector<string> &authentication_codes) {
   CHECK(m != nullptr);
   if (dialog_id != DialogId(UserManager::get_service_notifications_user_id()) || !m->message_id.is_server() ||
-      m->content->get_type() != MessageContentType::Text || m->is_outgoing) {
+      m->is_outgoing) {
     return;
   }
-  auto *formatted_text = get_message_content_text(m->content.get());
-  CHECK(formatted_text != nullptr);
-  find_authentication_codes(formatted_text->text, authentication_codes);
+  switch (m->content->get_type()) {
+    case MessageContentType::Text:
+      find_authentication_codes(get_message_content_text(m->content.get())->text, authentication_codes);
+      break;
+    case MessageContentType::RichText:
+      get_message_content_rich_message(m->content.get())->for_each_text([&](Slice text) {
+        find_authentication_codes(text, authentication_codes);
+      });
+      break;
+    default:
+      break;
+  }
 }
 
 void MessagesManager::save_auth_notification_ids() {
