@@ -3956,14 +3956,11 @@ richTextFixed text:RichText = RichText;
 //@description A rich text that serves as a mention of a user @text Text @user_id Identifier of the mentioned user
 richTextMentionName text:RichText user_id:int53 = RichText;
 
-//@description A rich text URL link @text Text @url URL @is_cached True, if the URL has cached instant view server-side
+//@description A rich text URL link @text Text @url URL @is_cached True, if the URL has cached instant view server-side; instant view only
 richTextUrl text:RichText url:string is_cached:Bool = RichText;
 
 //@description A rich text email link @text Text @email_address Email address
 richTextEmailAddress text:RichText email_address:string = RichText;
-
-//@description An automatically found URL @text Text
-richTextAutoUrl text:RichText = RichText;
 
 //@description An automatically found email address @text Text
 richTextAutoEmailAddress text:RichText = RichText;

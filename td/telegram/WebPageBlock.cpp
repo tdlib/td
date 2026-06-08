@@ -380,7 +380,8 @@ class RichText {
         }
         return td_api::make_object<td_api::richTextBotCommand>(texts[0].get_rich_text_object(context));
       case RichText::Type::AutoUrl:
-        return td_api::make_object<td_api::richTextAutoUrl>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextUrl>(texts[0].get_rich_text_object(context),
+                                                        texts[0].get_full_text(), false);
       case RichText::Type::AutoEmailAddress:
         return td_api::make_object<td_api::richTextAutoEmailAddress>(texts[0].get_rich_text_object(context));
       case RichText::Type::AutoPhoneNumber:
