@@ -6829,8 +6829,10 @@ class CliClient final : public Actor {
       string title;
       string performer;
       get_args(args, chat_id, audio, duration, title, performer);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageAudio>(as_input_file(audio), get_input_thumbnail(),
-                                                                           duration, title, performer, get_caption()));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageAudio>(
+                                td_api::make_object<td_api::inputAudio>(as_input_file(audio), get_input_thumbnail(),
+                                                                        duration, title, performer),
+                                get_caption()));
     } else if (op == "svoice") {
       ChatId chat_id;
       string voice;
