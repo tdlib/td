@@ -5644,6 +5644,16 @@ diffEntityTypeDelete = DiffEntityType;
 inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
 
 
+//@description An animation to be sent
+//@animation Animation file to be sent
+//@thumbnail Animation thumbnail; pass null to skip thumbnail uploading
+//@added_sticker_file_ids File identifiers of the stickers added to the animation, if applicable
+//@duration Duration of the animation, in seconds
+//@width Width of the animation; may be replaced by the server
+//@height Height of the animation; may be replaced by the server
+inputAnimation animation:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 = InputAnimation;
+
+
 //@class InputPaidMediaType @description Describes type of paid media to sent
 
 //@description The media is a photo. The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20
@@ -5719,14 +5729,8 @@ messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText
 
 //@class InputPollMedia @description The content of a poll media to send
 
-//@description An animation
-//@animation Animation file to be sent
-//@thumbnail Animation thumbnail; pass null to skip thumbnail uploading
-//@added_sticker_file_ids File identifiers of the stickers added to the animation, if applicable
-//@duration Duration of the animation, in seconds
-//@width Width of the animation; may be replaced by the server
-//@height Height of the animation; may be replaced by the server
-inputPollMediaAnimation animation:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 = InputPollMedia;
+//@description An animation @animation The animation to be sent
+inputPollMediaAnimation animation:inputAnimation = InputPollMedia;
 
 //@description An audio
 //@audio Audio file to be sent
@@ -5792,16 +5796,11 @@ inputMessageText text:formattedText link_preview_options:linkPreviewOptions clea
 inputMessageRichMessage message:inputRichMessage clear_draft:Bool = InputMessageContent;
 
 //@description An animation message (GIF-style).
-//@animation Animation file to be sent
-//@thumbnail Animation thumbnail; pass null to skip thumbnail uploading
-//@added_sticker_file_ids File identifiers of the stickers added to the animation, if applicable
-//@duration Duration of the animation, in seconds
-//@width Width of the animation; may be replaced by the server
-//@height Height of the animation; may be replaced by the server
+//@animation The animation to be sent
 //@caption Animation caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@show_caption_above_media True, if the caption must be shown above the animation; otherwise, the caption must be shown below the animation; not supported in secret chats
 //@has_spoiler True, if the animation preview must be covered by a spoiler animation; not supported in secret chats
-inputMessageAnimation animation:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 caption:formattedText show_caption_above_media:Bool has_spoiler:Bool = InputMessageContent;
+inputMessageAnimation animation:inputAnimation caption:formattedText show_caption_above_media:Bool has_spoiler:Bool = InputMessageContent;
 
 //@description An audio message
 //@audio Audio file to be sent

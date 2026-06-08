@@ -4738,8 +4738,8 @@ static Result<InputMessageContent> create_input_message_content(
       bool has_stickers = !sticker_file_ids.empty();
       td->animations_manager_->create_animation(
           file_id, string(), std::move(thumbnail), AnimationSize(), has_stickers, std::move(sticker_file_ids),
-          std::move(file_name), std::move(mime_type), input_animation->duration_,
-          get_dimensions(input_animation->width_, input_animation->height_, nullptr), false);
+          std::move(file_name), std::move(mime_type), input_animation->animation_->duration_,
+          get_dimensions(input_animation->animation_->width_, input_animation->animation_->height_, nullptr), false);
 
       content = make_unique<MessageAnimation>(file_id, std::move(caption), input_animation->has_spoiler_ && !is_secret);
       break;
@@ -5066,12 +5066,16 @@ Result<InputMessageContent> get_input_message_content(
   switch (input_message_content->get_id()) {
     case td_api::inputMessageAnimation::ID: {
       auto input_message = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
+      auto *animation = input_message->animation_.get();
+      if (animation == nullptr) {
+        return Status::Error(400, "Animation must be non-empty");
+      }
       file_type = FileType::Animation;
-      input_file = std::move(input_message->animation_);
+      input_file = std::move(animation->animation_);
       allow_get_by_hash = true;
-      input_thumbnail = std::move(input_message->thumbnail_);
-      if (!input_message->added_sticker_file_ids_.empty()) {
-        sticker_file_ids = td->stickers_manager_->get_attached_sticker_file_ids(input_message->added_sticker_file_ids_);
+      input_thumbnail = std::move(animation->thumbnail_);
+      if (!animation->added_sticker_file_ids_.empty()) {
+        sticker_file_ids = td->stickers_manager_->get_attached_sticker_file_ids(animation->added_sticker_file_ids_);
       }
       break;
     }
@@ -5183,9 +5187,8 @@ Result<unique_ptr<MessageContent>> get_input_poll_media(DialogId dialog_id,
     switch (input_poll_media_id) {
       case td_api::inputPollMediaAnimation::ID: {
         auto content = td_api::move_object_as<td_api::inputPollMediaAnimation>(input_poll_media);
-        return td_api::make_object<td_api::inputMessageAnimation>(
-            std::move(content->animation_), std::move(content->thumbnail_), std::move(content->added_sticker_file_ids_),
-            content->duration_, content->width_, content->height_, nullptr, false, false);
+        return td_api::make_object<td_api::inputMessageAnimation>(std::move(content->animation_), nullptr, false,
+                                                                  false);
       }
       case td_api::inputPollMediaAudio::ID: {
         auto content = td_api::move_object_as<td_api::inputPollMediaAudio>(input_poll_media);

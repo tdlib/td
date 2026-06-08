@@ -6502,9 +6502,10 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, animation);
       send_request(td_api::make_object<td_api::editMessageMedia>(
           chat_id, message_id, nullptr,
-          td_api::make_object<td_api::inputMessageAnimation>(as_input_file(animation), get_input_thumbnail(),
-                                                             get_added_sticker_file_ids(), 0, 0, 0, get_caption(),
-                                                             show_caption_above_media_, has_spoiler_)));
+          td_api::make_object<td_api::inputMessageAnimation>(
+              td_api::make_object<td_api::inputAnimation>(as_input_file(animation), get_input_thumbnail(),
+                                                          get_added_sticker_file_ids(), 0, 0, 0),
+              get_caption(), show_caption_above_media_, has_spoiler_)));
     } else if (op == "emc") {
       ChatId chat_id;
       MessageId message_id;
@@ -6807,16 +6808,20 @@ class CliClient final : public Actor {
       int32 width;
       int32 height;
       get_args(args, chat_id, animation, width, height);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
-                                as_input_file(animation), get_input_thumbnail(), get_added_sticker_file_ids(), 60,
-                                width, height, get_caption(), show_caption_above_media_, has_spoiler_));
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessageAnimation>(
+                       td_api::make_object<td_api::inputAnimation>(as_input_file(animation), get_input_thumbnail(),
+                                                                   get_added_sticker_file_ids(), 60, width, height),
+                       get_caption(), show_caption_above_media_, has_spoiler_));
     } else if (op == "sanurl") {
       ChatId chat_id;
       string url;
       get_args(args, chat_id, url);
       send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
-                                as_generated_file(url, "#url#"), get_input_thumbnail(), get_added_sticker_file_ids(), 0,
-                                0, 0, get_caption(), show_caption_above_media_, has_spoiler_));
+                                td_api::make_object<td_api::inputAnimation>(as_generated_file(url, "#url#"),
+                                                                            get_input_thumbnail(),
+                                                                            get_added_sticker_file_ids(), 0, 0, 0),
+                                get_caption(), show_caption_above_media_, has_spoiler_));
     } else if (op == "sau") {
       ChatId chat_id;
       string audio;
