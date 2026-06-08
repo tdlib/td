@@ -404,7 +404,8 @@ class RichText {
         return td_api::make_object<td_api::richTextDateTime>(texts[0].get_rich_text_object(context), date.get_date(),
                                                              date.get_date_time_formatting_type_object());
       case RichText::Type::BankCardNumber:
-        return td_api::make_object<td_api::richTextBankCardNumber>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextBankCardNumber>(texts[0].get_rich_text_object(context),
+                                                                   texts[0].get_full_text());
       case RichText::Type::MentionName:
         return td_api::make_object<td_api::richTextMentionName>(
             texts[0].get_rich_text_object(context),
