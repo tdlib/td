@@ -59,6 +59,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import contextlib
 import dataclasses
 import datetime as dt
 import json
@@ -68,6 +69,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import typing as t
 
@@ -1141,6 +1143,7 @@ def run_command(
     cwd: pathlib.Path,
     env_overrides: dict[str, str],
     log_path: pathlib.Path,
+    mirror_log_paths: t.Sequence[pathlib.Path] | None = None,
     lane_name: str,
     phase_name: str,
     heartbeat_seconds: float,
@@ -1155,29 +1158,65 @@ def run_command(
     emit_status(f"{phase_label} log={log_path}")
     emit_status(f"{phase_label} command={' '.join(command)}")
 
-    log_path.parent.mkdir(parents=True, exist_ok=True)
+    all_log_paths: list[pathlib.Path] = [log_path]
+    for mirror_log_path in mirror_log_paths or ():
+        if mirror_log_path not in all_log_paths:
+            all_log_paths.append(mirror_log_path)
+
+    for current_log_path in all_log_paths:
+        current_log_path.parent.mkdir(parents=True, exist_ok=True)
     open_mode = "a" if append else "w"
     return_code: int | None = None
-    with log_path.open(open_mode, encoding="utf-8") as log_file:
-        if append and log_path.stat().st_size > 0:
-            log_file.write("\n# --- resumed command invocation ---\n")
-        log_file.write(f"# started_at={isoformat_utc(started_at)}\n")
-        log_file.write(f"# cwd={cwd}\n")
-        log_file.write(f"# command={' '.join(command)}\n")
-        if env_overrides:
-            for key, value in sorted(env_overrides.items()):
-                log_file.write(f"# env:{key}={value}\n")
-        log_file.write("\n")
-        log_file.flush()
+    with contextlib.ExitStack() as exit_stack:
+        log_files = [
+            exit_stack.enter_context(
+                current_log_path.open(open_mode, encoding="utf-8")
+            )
+            for current_log_path in all_log_paths
+        ]
+
+        primary_log_file = log_files[0]
+        for current_log_path, current_log_file in zip(all_log_paths, log_files):
+            if append and current_log_path.stat().st_size > 0:
+                current_log_file.write("\n# --- resumed command invocation ---\n")
+            current_log_file.write(f"# started_at={isoformat_utc(started_at)}\n")
+            current_log_file.write(f"# cwd={cwd}\n")
+            current_log_file.write(f"# command={' '.join(command)}\n")
+            if env_overrides:
+                for key, value in sorted(env_overrides.items()):
+                    current_log_file.write(f"# env:{key}={value}\n")
+            current_log_file.write("\n")
+            current_log_file.flush()
 
         process = subprocess.Popen(
             command,
             cwd=str(cwd),
             env=merged_env,
-            stdout=log_file,
+            stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         )
+        if process.stdout is None:
+            raise RuntimeError(f"{phase_label} started without a stdout pipe")
+
+        stream_error: list[BaseException] = []
+
+        def stream_output() -> None:
+            try:
+                for chunk in iter(lambda: process.stdout.read(8192), ""):
+                    if not chunk:
+                        break
+                    for current_log_file in log_files:
+                        current_log_file.write(chunk)
+                    for current_log_file in log_files:
+                        current_log_file.flush()
+            except BaseException as error:
+                stream_error.append(error)
+
+        output_thread = threading.Thread(target=stream_output, daemon=True)
+        output_thread.start()
         next_heartbeat_at = time.monotonic() + heartbeat_seconds
         last_log_size = log_path.stat().st_size
         last_output_at = started_at
@@ -1198,8 +1237,16 @@ def run_command(
                 )
                 next_heartbeat_at = now_monotonic + heartbeat_seconds
                 last_log_size = current_log_size
-                log_file.flush()
+                primary_log_file.flush()
             time.sleep(1.0)
+
+        process.wait()
+        output_thread.join()
+        process.stdout.close()
+        if stream_error:
+            raise RuntimeError(
+                f"{phase_label} log capture failed: {stream_error[0]}"
+            ) from stream_error[0]
 
     ended_at = utc_now()
     if return_code is None:
@@ -1427,7 +1474,7 @@ def audit_ctest_evidence(
     if not command_log_present:
         issues.append("ctest command log is missing or empty")
     if not output_log_present:
-        warnings.append("ctest --output-log artifact is missing or empty")
+        warnings.append("ctest mirrored output log artifact is missing or empty")
     if not junit_present:
         issues.append("ctest JUnit artifact is missing or empty")
 
@@ -2211,8 +2258,6 @@ def main() -> int:
             str(args.jobs),
             "--output-junit",
             str(ctest_junit),
-            "--output-log",
-            str(ctest_output_log),
         ]
         if args.ctest_timeout is not None:
             effective_ctest_timeout = (
@@ -2360,7 +2405,7 @@ def main() -> int:
                     lane_name=lane.name,
                     phase_name="test",
                     command=test_command,
-                    log_path=ctest_output_log,
+                    log_path=ctest_log,
                 ),
             )
             phase_results["test"] = run_command(
@@ -2368,6 +2413,7 @@ def main() -> int:
                 cwd=repo_root,
                 env_overrides=lane_test_env,
                 log_path=ctest_log,
+                mirror_log_paths=[ctest_output_log],
                 lane_name=lane.name,
                 phase_name="test",
                 heartbeat_seconds=args.heartbeat_seconds,

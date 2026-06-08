@@ -54,6 +54,8 @@ class RunSanitizerMatrixParallelismContractTest(unittest.TestCase):
         self.assertIn('lane_env["CMAKE_BUILD_PARALLEL_LEVEL"] = str(args.jobs)', source)
         self.assertIn('"build_jobs": args.jobs', source)
         self.assertIn('"test_jobs": args.jobs', source)
+        self.assertIn("mirror_log_paths=[ctest_output_log]", source)
+        self.assertNotIn('            "--output-log",', source)
 
     def test_runtime_findings_are_counted_in_lane_and_matrix_totals(self) -> None:
         normal = run_sanitizer_matrix.empty_findings_summary()
