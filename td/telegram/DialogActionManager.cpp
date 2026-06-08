@@ -201,7 +201,7 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
   {
     auto rich_message_draft_info = action.get_rich_message_draft_info();
     if (rich_message_draft_info.message_ != nullptr) {
-      auto period = td_->option_manager_->get_option_integer("pending_rich_message_message_period", 0);
+      auto period = td_->option_manager_->get_option_integer("pending_text_message_period", 0);
       if (date > G()->unix_time() - period && dialog_type == DialogType::User && dialog_id == typing_dialog_id) {
         send_closure(G()->td(), &Td::send_update,
                      td_api::make_object<td_api::updatePendingMessage>(
