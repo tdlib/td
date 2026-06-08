@@ -5661,6 +5661,12 @@ inputAnimation animation:InputFile thumbnail:inputThumbnail added_sticker_file_i
 //@performer Performer of the audio; 0-64 characters, may be replaced by the server
 inputAudio audio:InputFile album_cover_thumbnail:inputThumbnail duration:int32 title:string performer:string = InputAudio;
 
+//@description A document (general file) to be sent
+//@document File to be sent
+//@thumbnail Document thumbnail; pass null to skip thumbnail uploading
+//@disable_content_type_detection Pass true to disable automatic file type detection and send the document as a file. Always true for files sent to secret chats
+inputDocument document:InputFile thumbnail:inputThumbnail disable_content_type_detection:Bool = InputDocument;
+
 
 //@class InputPaidMediaType @description Describes type of paid media to sent
 
@@ -5743,11 +5749,8 @@ inputPollMediaAnimation animation:inputAnimation = InputPollMedia;
 //@description An audio @audio The audio to be sent
 inputPollMediaAudio audio:inputAudio = InputPollMedia;
 
-//@description A document (general file)
-//@document Document to be sent
-//@thumbnail Document thumbnail; pass null to skip thumbnail uploading
-//@disable_content_type_detection Pass true to disable automatic file type detection and send the document as a file
-inputPollMediaDocument document:InputFile thumbnail:inputThumbnail disable_content_type_detection:Bool = InputPollMedia;
+//@description A document (general file) @document The document to be sent
+inputPollMediaDocument document:inputDocument = InputPollMedia;
 
 //@description A link @url URL of the link
 inputPollMediaLink url:string = InputPollMedia;
@@ -5812,10 +5815,8 @@ inputMessageAudio audio:inputAudio caption:formattedText = InputMessageContent;
 
 //@description A document message (general file)
 //@document Document to be sent
-//@thumbnail Document thumbnail; pass null to skip thumbnail uploading
-//@disable_content_type_detection Pass true to disable automatic file type detection and send the document as a file. Always true for files sent to secret chats
 //@caption Document caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content_type_detection:Bool caption:formattedText = InputMessageContent;
+inputMessageDocument document:inputDocument caption:formattedText = InputMessageContent;
 
 //@description A message with paid media; can be used only in channel chats with supergroupFullInfo.has_paid_media_allowed
 //@star_count The number of Telegram Stars that must be paid to see the media; 1-getOption("paid_media_message_star_count_max")
