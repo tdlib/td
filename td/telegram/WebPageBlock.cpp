@@ -386,7 +386,8 @@ class RichText {
         return td_api::make_object<td_api::richTextEmailAddress>(texts[0].get_rich_text_object(context),
                                                                  texts[0].get_full_text());
       case RichText::Type::AutoPhoneNumber:
-        return td_api::make_object<td_api::richTextAutoPhoneNumber>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextPhoneNumber>(texts[0].get_rich_text_object(context),
+                                                                texts[0].get_full_text());
       case RichText::Type::FormattedDate:
         return td_api::make_object<td_api::richTextDateTime>(texts[0].get_rich_text_object(context), date.get_date(),
                                                              date.get_date_time_formatting_type_object());

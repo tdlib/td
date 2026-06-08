@@ -3962,9 +3962,6 @@ richTextUrl text:RichText url:string is_cached:Bool = RichText;
 //@description A rich text email address @text Text @email_address Email address
 richTextEmailAddress text:RichText email_address:string = RichText;
 
-//@description An automatically found phone number @text Text
-richTextAutoPhoneNumber text:RichText = RichText;
-
 //@description A bank card number @text Text
 richTextBankCardNumber text:RichText = RichText;
 
