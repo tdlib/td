@@ -3959,11 +3959,8 @@ richTextMentionName text:RichText user_id:int53 = RichText;
 //@description A rich text URL link @text Text @url URL @is_cached True, if the URL has cached instant view server-side; instant view only
 richTextUrl text:RichText url:string is_cached:Bool = RichText;
 
-//@description A rich text email link @text Text @email_address Email address
+//@description A rich text email address @text Text @email_address Email address
 richTextEmailAddress text:RichText email_address:string = RichText;
-
-//@description An automatically found email address @text Text
-richTextAutoEmailAddress text:RichText = RichText;
 
 //@description An automatically found phone number @text Text
 richTextAutoPhoneNumber text:RichText = RichText;
