@@ -92,6 +92,14 @@ class RichText {
                      [&](const RichText &rich_text) { return rich_text.get_input_rich_text(td, documents); });
   }
 
+  static string trim_first(const string &str, char c) {
+    if (!str.empty() && str[0] == 'c') {
+      return str.substr(1);
+    }
+    LOG(ERROR) << "Expected string starting with '" << c << "', but received \"" << str << '"';
+    return str;
+  }
+
  public:
   enum class Type : int32 {
     Plain,
@@ -369,16 +377,20 @@ class RichText {
       case RichText::Type::Spoiler:
         return td_api::make_object<td_api::richTextSpoiler>(texts[0].get_rich_text_object(context));
       case RichText::Type::Mention:
-        return td_api::make_object<td_api::richTextMention>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextMention>(texts[0].get_rich_text_object(context),
+                                                            trim_first(texts[0].get_full_text(), '@'));
       case RichText::Type::Hashtag:
-        return td_api::make_object<td_api::richTextHashtag>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextHashtag>(texts[0].get_rich_text_object(context),
+                                                            trim_first(texts[0].get_full_text(), '#'));
       case RichText::Type::Cashtag:
-        return td_api::make_object<td_api::richTextCashtag>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextCashtag>(texts[0].get_rich_text_object(context),
+                                                            trim_first(texts[0].get_full_text(), '$'));
       case RichText::Type::BotCommand:
         if (context->skip_bot_commands_) {
           return texts[0].get_rich_text_object(context);
         }
-        return td_api::make_object<td_api::richTextBotCommand>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextBotCommand>(texts[0].get_rich_text_object(context),
+                                                               trim_first(texts[0].get_full_text(), '/'));
       case RichText::Type::AutoUrl:
         return td_api::make_object<td_api::richTextUrl>(texts[0].get_rich_text_object(context),
                                                         texts[0].get_full_text(), false);

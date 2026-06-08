@@ -3938,17 +3938,17 @@ richTextSpoiler text:RichText = RichText;
 //@formatting_type Date and time formatting type; may be null if none and the original text must not be changed
 richTextDateTime text:RichText unix_time:int32 formatting_type:DateTimeFormattingType = RichText;
 
-//@description A mention of a Telegram user by a username @text Text
-richTextMention text:RichText = RichText;
+//@description A mention of a Telegram user by a username @text Text @username Username of the user
+richTextMention text:RichText username:string = RichText;
 
-//@description A hashtag @text Text
-richTextHashtag text:RichText = RichText;
+//@description A hashtag @text Text @hashtag The hashtag
+richTextHashtag text:RichText hashtag:string = RichText;
 
-//@description A cashtag @text Text
-richTextCashtag text:RichText = RichText;
+//@description A cashtag @text Text @cashtag The cashtag
+richTextCashtag text:RichText cashtag:string = RichText;
 
-//@description A bot command @text Text
-richTextBotCommand text:RichText = RichText;
+//@description A bot command @text Text @bot_command The bot command
+richTextBotCommand text:RichText bot_command:string = RichText;
 
 //@description A fixed-width rich text @text Text
 richTextFixed text:RichText = RichText;
