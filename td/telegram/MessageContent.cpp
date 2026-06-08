@@ -4811,17 +4811,20 @@ static Result<InputMessageContent> create_input_message_content(
       self_destruct_type = std::move(input_photo->self_destruct_type_);
       auto has_spoiler = input_photo->has_spoiler_ && !is_secret;
 
-      TRY_RESULT(photo, create_photo(td->file_manager_.get(), file_id, std::move(thumbnail), input_photo->width_,
-                                     input_photo->height_, std::move(sticker_file_ids)));
+      TRY_RESULT(photo,
+                 create_photo(td->file_manager_.get(), file_id, std::move(thumbnail), input_photo->photo_->width_,
+                              input_photo->photo_->height_, std::move(sticker_file_ids)));
 
       FileId video_file_id;
-      if (input_photo->video_ != nullptr) {
+      if (input_photo->photo_->video_ != nullptr) {
         auto video_file_type = self_destruct_type != nullptr ? FileType::SelfDestructingLivePhoto : FileType::LivePhoto;
-        TRY_RESULT_ASSIGN(video_file_id, td->file_manager_->get_input_file_id(video_file_type, input_photo->video_,
-                                                                              dialog_id, false, is_secret));
+        TRY_RESULT_ASSIGN(video_file_id,
+                          td->file_manager_->get_input_file_id(video_file_type, input_photo->photo_->video_, dialog_id,
+                                                               false, is_secret));
         td->videos_manager_->create_video(
             video_file_id, string(), PhotoSize(), AnimationSize(), false, vector<FileId>(), string(), "video/mp4", 0, 0,
-            get_dimensions(input_photo->width_, input_photo->height_, nullptr), false, false, 0, 0.0, string(), false);
+            get_dimensions(input_photo->photo_->width_, input_photo->photo_->height_, nullptr), false, false, 0, 0.0,
+            string(), false);
       }
       content = make_unique<MessagePhoto>(std::move(photo), video_file_id, std::move(caption), has_spoiler);
       break;
@@ -5105,11 +5108,15 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessagePhoto::ID: {
       auto input_message = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
+      auto *photo = input_message->photo_.get();
+      if (photo == nullptr) {
+        return Status::Error(400, "Photo must be non-empty");
+      }
       file_type = input_message->self_destruct_type_ != nullptr ? FileType::SelfDestructingPhoto : FileType::Photo;
-      input_file = std::move(input_message->photo_);
-      input_thumbnail = std::move(input_message->thumbnail_);
-      if (!input_message->added_sticker_file_ids_.empty()) {
-        sticker_file_ids = td->stickers_manager_->get_attached_sticker_file_ids(input_message->added_sticker_file_ids_);
+      input_file = std::move(photo->photo_);
+      input_thumbnail = std::move(photo->thumbnail_);
+      if (!photo->added_sticker_file_ids_.empty()) {
+        sticker_file_ids = td->stickers_manager_->get_attached_sticker_file_ids(photo->added_sticker_file_ids_);
       }
       break;
     }
@@ -5213,10 +5220,8 @@ Result<unique_ptr<MessageContent>> get_input_poll_media(DialogId dialog_id,
       }
       case td_api::inputPollMediaPhoto::ID: {
         auto content = td_api::move_object_as<td_api::inputPollMediaPhoto>(input_poll_media);
-        return td_api::make_object<td_api::inputMessagePhoto>(
-            std::move(content->photo_), nullptr, std::move(content->video_),
-            std::move(content->added_sticker_file_ids_), content->width_, content->height_, nullptr, false, nullptr,
-            false);
+        return td_api::make_object<td_api::inputMessagePhoto>(std::move(content->photo_), nullptr, false, nullptr,
+                                                              false);
       }
       case td_api::inputPollMediaSticker::ID: {
         auto content = td_api::move_object_as<td_api::inputPollMediaSticker>(input_poll_media);

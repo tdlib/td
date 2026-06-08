@@ -5667,6 +5667,15 @@ inputAudio audio:InputFile album_cover_thumbnail:inputThumbnail duration:int32 t
 //@disable_content_type_detection Pass true to disable automatic file type detection and send the document as a file. Always true for files sent to secret chats
 inputDocument document:InputFile thumbnail:inputThumbnail disable_content_type_detection:Bool = InputDocument;
 
+//@description A photo to be sent
+//@photo Photo to be sent. The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20
+//@thumbnail Photo thumbnail; pass null to skip thumbnail uploading. The thumbnail is sent to the other party only in secret chats
+//@video Video of the live photo; not supported in secret chats; pass null if the photo isn't a live photo
+//@added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable
+//@width Photo width; may be replaced by the server
+//@height Photo height; may be replaced by the server
+inputPhoto photo:InputFile thumbnail:inputThumbnail video:InputFile added_sticker_file_ids:vector<int32> width:int32 height:int32 = InputPhoto;
+
 
 //@class InputPaidMediaType @description Describes type of paid media to sent
 
@@ -5758,13 +5767,8 @@ inputPollMediaLink url:string = InputPollMedia;
 //@description A location @location Location to be sent
 inputPollMediaLocation location:location = InputPollMedia;
 
-//@description A photo
-//@photo Photo to send. The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20
-//@video Video of the live photo; pass null if the photo isn't a live photo
-//@added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable
-//@width Photo width
-//@height Photo height
-inputPollMediaPhoto photo:InputFile video:InputFile added_sticker_file_ids:vector<int32> width:int32 height:int32 = InputPollMedia;
+//@description A photo @photo Photo to be sent
+inputPollMediaPhoto photo:inputPhoto = InputPollMedia;
 
 //@description A sticker
 //@sticker Sticker to be sent
@@ -5827,17 +5831,12 @@ inputMessageDocument document:inputDocument caption:formattedText = InputMessage
 inputMessagePaidMedia star_count:int53 paid_media:vector<inputPaidMedia> caption:formattedText show_caption_above_media:Bool payload:string = InputMessageContent;
 
 //@description A photo message
-//@photo Photo to send. The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20
-//@thumbnail Photo thumbnail to be sent; pass null to skip thumbnail uploading. The thumbnail is sent to the other party only in secret chats
-//@video Video of the live photo; not supported in secret chats; pass null if the photo isn't a live photo
-//@added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable
-//@width Photo width
-//@height Photo height
+//@photo Photo to be sent
 //@caption Photo caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@show_caption_above_media True, if the caption must be shown above the photo; otherwise, the caption must be shown below the photo; not supported in secret chats
 //@self_destruct_type Photo self-destruct type; pass null if none; private chats only
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation; not supported in secret chats
-inputMessagePhoto photo:InputFile thumbnail:inputThumbnail video:InputFile added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText show_caption_above_media:Bool self_destruct_type:MessageSelfDestructType has_spoiler:Bool = InputMessageContent;
+inputMessagePhoto photo:inputPhoto caption:formattedText show_caption_above_media:Bool self_destruct_type:MessageSelfDestructType has_spoiler:Bool = InputMessageContent;
 
 //@description A sticker message
 //@sticker Sticker to be sent
