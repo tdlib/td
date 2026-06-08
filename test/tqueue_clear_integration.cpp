@@ -16,6 +16,15 @@ td::TQueue::EventId push_event(td::TQueue &queue, td::TQueue::QueueId queue_id, 
   return queue.push(queue_id, data.str(), expires_at, extra, {}).move_as_ok();
 }
 
+void assert_raw_event(const std::pair<const td::TQueue::EventId, td::TQueue::RawEvent> &entry,
+                      td::TQueue::EventId expected_id, td::Slice expected_data, td::int32 expected_expires_at,
+                      td::int64 expected_extra) {
+  ASSERT_EQ(expected_id, entry.first);
+  ASSERT_EQ(expected_data.str(), entry.second.data);
+  ASSERT_EQ(expected_expires_at, entry.second.expires_at);
+  ASSERT_EQ(expected_extra, entry.second.extra);
+}
+
 }  // namespace
 
 TEST(TQueueClear, returns_deleted_events_with_original_payloads_when_tail_is_kept) {
@@ -29,17 +38,10 @@ TEST(TQueueClear, returns_deleted_events_with_original_payloads_when_tail_is_kep
   const auto deleted_events = queue->clear(queue_id, 1);
 
   ASSERT_EQ(2u, deleted_events.size());
-  auto first_it = deleted_events.find(first_id);
-  ASSERT_TRUE(first_it != deleted_events.end());
-  ASSERT_EQ("first", first_it->second.data);
-  ASSERT_EQ(101, first_it->second.expires_at);
-  ASSERT_EQ(11, first_it->second.extra);
-
-  auto second_it = deleted_events.find(second_id);
-  ASSERT_TRUE(second_it != deleted_events.end());
-  ASSERT_EQ("second", second_it->second.data);
-  ASSERT_EQ(202, second_it->second.expires_at);
-  ASSERT_EQ(22, second_it->second.extra);
+  auto deleted_it = deleted_events.begin();
+  assert_raw_event(*deleted_it++, first_id, "first", 101, 11);
+  assert_raw_event(*deleted_it++, second_id, "second", 202, 22);
+  ASSERT_TRUE(deleted_it == deleted_events.end());
 
   ASSERT_EQ(1u, queue->get_size(queue_id));
   ASSERT_EQ(third_id, queue->get_head(queue_id));
@@ -56,8 +58,10 @@ TEST(TQueueClear, returns_all_deleted_events_when_keep_count_is_zero) {
   const auto deleted_events = queue->clear(queue_id, 0);
 
   ASSERT_EQ(2u, deleted_events.size());
-  ASSERT_EQ("alpha", deleted_events.at(first_id).data);
-  ASSERT_EQ("beta", deleted_events.at(second_id).data);
+  auto deleted_it = deleted_events.begin();
+  assert_raw_event(*deleted_it++, first_id, "alpha", 501, 44);
+  assert_raw_event(*deleted_it++, second_id, "beta", 502, 55);
+  ASSERT_TRUE(deleted_it == deleted_events.end());
   ASSERT_EQ(0u, queue->get_size(queue_id));
   ASSERT_EQ(queue->get_head(queue_id), queue->get_tail(queue_id));
 }

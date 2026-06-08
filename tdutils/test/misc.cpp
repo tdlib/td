@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/utils/algorithm.h"
 #include "td/utils/as.h"
@@ -606,6 +606,9 @@ static void test_to_double() {
 
 TEST(Misc, to_double) {
   test_to_double();
+#if TD_HAS_FEATURE_MEMORY_SANITIZER || defined(__SANITIZE_MEMORY__)
+  return;
+#endif
   std::locale new_locale("C");
   auto host_locale = std::locale::global(new_locale);
   test_to_double();

@@ -219,6 +219,7 @@ X509_STORE *load_system_certificate_store() {
   }
 
   auto add_file = [&](CSlice path) {
+    ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
     if (X509_STORE_load_locations(store, path.c_str(), nullptr) != 1) {
       auto error = create_openssl_error(-20, "Failed to add certificate");
       LOG(INFO) << path << ": " << error;

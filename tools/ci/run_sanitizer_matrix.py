@@ -113,6 +113,52 @@ class LaneFindingsView(t.TypedDict):
     runtime_findings: FindingsSummary
 
 
+class FailedTestRecord(t.TypedDict):
+    id: int
+    name: str
+    status: str
+
+
+class JunitSummary(t.TypedDict, total=False):
+    tests: int
+    failures: int
+    errors: int
+    skipped: int
+    time_seconds: float
+    path: str
+    parse_error: bool
+
+
+class CtestPassSummary(t.TypedDict):
+    path: str
+    percent: int
+    failed: int
+    total: int
+
+
+class CtestEvidenceAudit(t.TypedDict):
+    ok: bool
+    issues: list[str]
+    warnings: list[str]
+    command_log_present: bool
+    output_log_present: bool
+    junit_present: bool
+    ctest_pass_summaries: list[CtestPassSummary]
+
+
+class FailureReason(t.TypedDict, total=False):
+    category: str
+    phase: str
+    message: str
+    exit_code: int
+    log_path: str
+    phases: list[str]
+    tests: list[FailedTestRecord]
+    count: int
+    counts_by_category: dict[str, int]
+    counts_by_severity: dict[str, int]
+
+
 @dataclasses.dataclass(frozen=True)
 class ReportPaths:
     json_path: str
@@ -131,6 +177,59 @@ class CommandResult(t.TypedDict, total=False):
     appended: bool
     skipped: bool
     reason: str
+
+
+class DiscoveryResult(CommandResult, total=False):
+    test_count: int | None
+    artifact: str | None
+    stderr_log: str | None
+
+
+class RuntimeReportArtifacts(t.TypedDict):
+    runtime_report_dir: str
+    runtime_report_base: str
+    runtime_report_glob: str
+
+
+class LaneArtifacts(t.TypedDict):
+    configure_log: str
+    test_discovery_configure_log: str
+    build_log: str
+    ctest_command_log: str
+    ctest_output_log: str
+    ctest_junit: str
+    runtime_report_dir: str
+    runtime_report_base: str
+    runtime_report_glob: str
+    runtime_report_files: list[str]
+    unified_findings_report_json: str
+    unified_findings_report_text: str
+
+
+class RuntimeTooling(t.TypedDict):
+    symbolizer_binary: str | None
+    symbolizer_wrapper: str | None
+
+
+class LaneResult(t.TypedDict):
+    lane: str
+    configure_preset: str
+    build_preset: str
+    build_dir: str
+    env: dict[str, str]
+    runtime_tooling: RuntimeTooling
+    parallelism: dict[str, t.Any]
+    phase_results: dict[str, CommandResult]
+    artifacts: LaneArtifacts
+    junit_summary: JunitSummary | None
+    ctest_evidence: CtestEvidenceAudit
+    failed_tests: list[FailedTestRecord]
+    failed_tests_total: int
+    findings: FindingsSummary
+    runtime_findings: FindingsSummary
+    combined_findings: FindingsSummary
+    failure_reasons: list[FailureReason]
+    ok: bool
 
 
 DiskSpaceMode = t.Literal["off", "auto", "fresh-builds", "ephemeral-builds"]
@@ -226,6 +325,15 @@ STATUS_FILE_NAME = "status.json"
 # CTest treats "--timeout 0" as "use built-in default timeout" (often 1500s).
 # Use a very large finite timeout to model "no timeout" requests reliably.
 CTEST_EFFECTIVE_NO_TIMEOUT_SECONDS = 315_360_000  # 10 years
+
+
+def detect_default_jobs() -> int:
+    if hasattr(os, "sched_getaffinity"):
+        try:
+            return max(1, len(os.sched_getaffinity(0)))
+        except OSError:
+            pass
+    return max(1, os.cpu_count() or 1)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -354,9 +462,12 @@ def parse_args() -> CliArgs:
     )
     parser.add_argument(
         "--jobs",
-        default=14,
+        default=detect_default_jobs(),
         type=int,
-        help="ctest parallel jobs for test execution.",
+        help=(
+            "Parallel jobs for sanitizer build and CTest execution. "
+            "Defaults to the current CPU affinity/core count."
+        ),
     )
     parser.add_argument(
         "--ctest-timeout",
@@ -528,7 +639,7 @@ def parse_args() -> CliArgs:
     )
 
 
-def write_json(path: pathlib.Path, payload: dict[str, t.Any]) -> None:
+def write_json(path: pathlib.Path, payload: t.Mapping[str, t.Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(as_json(payload) + "\n", encoding="utf-8")
 
@@ -672,6 +783,26 @@ def append_monitor_summary_lines(lines: list[str], status: dict[str, t.Any]) -> 
     lines.append(
         f"Completed lanes: {', '.join(completed_lanes) if completed_lanes else '(none)'}"
     )
+    failed_lanes = status.get("failed_lanes", [])
+    if isinstance(failed_lanes, list) and failed_lanes:
+        lines.append("Failed lane reasons:")
+        for lane in failed_lanes:
+            if not isinstance(lane, dict):
+                continue
+            lane_name = lane.get("lane", "?")
+            reasons = lane.get("failure_reasons", [])
+            if not isinstance(reasons, list) or not reasons:
+                lines.append(f"- {lane_name}: no structured reason recorded")
+                continue
+            reason_messages = []
+            for reason in reasons[:3]:
+                if isinstance(reason, dict):
+                    reason_messages.append(str(reason.get("message", reason)))
+                else:
+                    reason_messages.append(str(reason))
+            if len(reasons) > 3:
+                reason_messages.append("...")
+            lines.append(f"- {lane_name}: {'; '.join(reason_messages)}")
 
 
 def render_monitor(run_dir: pathlib.Path, tail_lines_count: int) -> str:
@@ -735,13 +866,13 @@ def make_active_phase(
 
 def load_completed_lane_results(
     run_dir: pathlib.Path, requested_lane_names: list[str]
-) -> list[dict[str, t.Any]]:
-    lane_results: list[dict[str, t.Any]] = []
+) -> list[LaneResult]:
+    lane_results: list[LaneResult] = []
     for lane_name in requested_lane_names:
         lane_summary_path = run_dir / lane_name / "lane_summary.json"
         if not lane_summary_path.exists():
             continue
-        lane_results.append(read_json(lane_summary_path))
+        lane_results.append(t.cast(LaneResult, read_json(lane_summary_path)))
     return lane_results
 
 
@@ -826,7 +957,7 @@ def append_sanitizer_options(
 
 def configure_lane_runtime_reports(
     lane_env: dict[str, str], lane_name: str, lane_dir: pathlib.Path
-) -> dict[str, str]:
+) -> RuntimeReportArtifacts:
     runtime_report_dir = lane_dir / "runtime-reports"
     runtime_report_dir.mkdir(parents=True, exist_ok=True)
     runtime_report_base = runtime_report_dir / "sanitizer"
@@ -1026,7 +1157,7 @@ def run_command(
 
     log_path.parent.mkdir(parents=True, exist_ok=True)
     open_mode = "a" if append else "w"
-    return_code: int
+    return_code: int | None = None
     with log_path.open(open_mode, encoding="utf-8") as log_file:
         if append and log_path.stat().st_size > 0:
             log_file.write("\n# --- resumed command invocation ---\n")
@@ -1071,6 +1202,8 @@ def run_command(
             time.sleep(1.0)
 
     ended_at = utc_now()
+    if return_code is None:
+        raise RuntimeError(f"{phase_label} finished without a process return code")
     duration = ended_at - started_at
     if return_code == 0:
         emit_status(
@@ -1104,7 +1237,7 @@ def try_collect_test_discovery(
     build_dir: pathlib.Path,
     lane_dir: pathlib.Path,
     env_overrides: dict[str, str],
-) -> CommandResult:
+) -> DiscoveryResult:
     discovery_path = lane_dir / "ctest-discovery.json"
     command = [
         "ctest",
@@ -1164,7 +1297,7 @@ def try_collect_test_discovery(
     }
 
 
-def parse_junit(junit_path: pathlib.Path) -> dict[str, t.Any] | None:
+def parse_junit(junit_path: pathlib.Path) -> JunitSummary | None:
     if not junit_path.exists():
         return None
 
@@ -1176,7 +1309,7 @@ def parse_junit(junit_path: pathlib.Path) -> dict[str, t.Any] | None:
             "path": str(junit_path),
         }
 
-    totals = {
+    totals: JunitSummary = {
         "tests": 0,
         "failures": 0,
         "errors": 0,
@@ -1200,6 +1333,263 @@ def parse_junit(junit_path: pathlib.Path) -> dict[str, t.Any] | None:
     totals["path"] = str(junit_path)
     totals["time_seconds"] = round(totals["time_seconds"], 3)
     return totals
+
+
+def parse_failed_ctest_tests(ctest_output_log: pathlib.Path) -> list[FailedTestRecord]:
+    if not ctest_output_log.exists():
+        return []
+
+    failures_by_name: dict[str, FailedTestRecord] = {}
+    inline_failure_re = re.compile(
+        r"^\s*\d+/\d+\s+Test\s+#?(?P<id>\d+):\s+(?P<name>\S+)\s+.*?(?P<status>\*\*\*Failed|Timeout)\b"
+    )
+    summary_failure_re = re.compile(
+        r"^\s*(?P<id>\d+)\s+-\s+(?P<name>\S+)\s+\((?P<status>Failed|Timeout)\)"
+    )
+
+    with ctest_output_log.open("r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            match = inline_failure_re.search(line)
+            if match is not None:
+                status = "Failed" if match.group("status") == "***Failed" else match.group("status")
+                failures_by_name.setdefault(
+                    match.group("name"),
+                    {
+                        "id": int(match.group("id")),
+                        "name": match.group("name"),
+                        "status": status,
+                    },
+                )
+                continue
+
+            match = summary_failure_re.search(line)
+            if match is not None:
+                failures_by_name[match.group("name")] = {
+                    "id": int(match.group("id")),
+                    "name": match.group("name"),
+                    "status": match.group("status"),
+                }
+
+    return sorted(failures_by_name.values(), key=lambda item: (item["id"], item["name"]))
+
+
+def merge_failed_ctest_tests(
+    failed_test_groups: t.Iterable[list[FailedTestRecord]],
+) -> list[FailedTestRecord]:
+    failures_by_name: dict[str, FailedTestRecord] = {}
+    for failed_tests in failed_test_groups:
+        for item in failed_tests:
+            failures_by_name[item["name"]] = item
+    return sorted(failures_by_name.values(), key=lambda item: (item["id"], item["name"]))
+
+
+def parse_ctest_pass_summary(log_path: pathlib.Path) -> CtestPassSummary | None:
+    if not log_path.exists():
+        return None
+
+    summary_re = re.compile(
+        r"(?P<percent>\d+)% tests passed,\s+"
+        r"(?P<failed>\d+) tests failed out of (?P<total>\d+)"
+    )
+    summary: CtestPassSummary | None = None
+    with log_path.open("r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            match = summary_re.search(line)
+            if match is not None:
+                summary = {
+                    "path": str(log_path),
+                    "percent": int(match.group("percent")),
+                    "failed": int(match.group("failed")),
+                    "total": int(match.group("total")),
+                }
+    return summary
+
+
+def audit_ctest_evidence(
+    *,
+    test_phase_result: CommandResult,
+    discovery_result: CommandResult,
+    ctest_command_log: pathlib.Path,
+    ctest_output_log: pathlib.Path,
+    ctest_junit: pathlib.Path,
+    junit_summary: JunitSummary | None,
+    failed_tests: list[FailedTestRecord],
+) -> CtestEvidenceAudit:
+    issues: list[str] = []
+    warnings: list[str] = []
+
+    command_log_present = ctest_command_log.exists() and ctest_command_log.stat().st_size > 0
+    output_log_present = ctest_output_log.exists() and ctest_output_log.stat().st_size > 0
+    junit_present = ctest_junit.exists() and ctest_junit.stat().st_size > 0
+
+    if not test_phase_result.get("ok"):
+        issues.append("ctest phase did not exit successfully")
+    if not command_log_present:
+        issues.append("ctest command log is missing or empty")
+    if not output_log_present:
+        warnings.append("ctest --output-log artifact is missing or empty")
+    if not junit_present:
+        issues.append("ctest JUnit artifact is missing or empty")
+
+    if junit_summary is None:
+        issues.append("ctest JUnit summary is unavailable")
+    elif junit_summary.get("parse_error"):
+        issues.append("ctest JUnit summary could not be parsed")
+    else:
+        junit_tests = int(junit_summary.get("tests", 0))
+        junit_failures = int(junit_summary.get("failures", 0))
+        junit_errors = int(junit_summary.get("errors", 0))
+        if junit_tests <= 0:
+            issues.append("ctest JUnit summary reports zero executed tests")
+        if junit_failures or junit_errors:
+            issues.append(
+                f"ctest JUnit summary reports failures={junit_failures} errors={junit_errors}"
+            )
+
+        discovery_count_obj = discovery_result.get("test_count")
+        discovery_count = (
+            discovery_count_obj if isinstance(discovery_count_obj, int) else None
+        )
+        if not discovery_result.get("ok"):
+            issues.append("ctest discovery did not exit successfully")
+        elif discovery_count is None:
+            issues.append("ctest discovery test count is unavailable")
+        elif discovery_count <= 0:
+            issues.append("ctest discovery reports zero tests")
+        elif junit_tests and discovery_count != junit_tests:
+            issues.append(
+                f"ctest discovery/JUnit test count mismatch: discovery={discovery_count} junit={junit_tests}"
+            )
+
+    if failed_tests:
+        failed_test_names = ", ".join(item["name"] for item in failed_tests[:5])
+        if len(failed_tests) > 5:
+            failed_test_names += ", ..."
+        issues.append(f"ctest output reports failed tests: {failed_test_names}")
+
+    pass_summaries = [
+        summary
+        for summary in (
+            parse_ctest_pass_summary(ctest_output_log),
+            parse_ctest_pass_summary(ctest_command_log),
+        )
+        if summary is not None
+    ]
+    if not pass_summaries:
+        warnings.append("no human-readable CTest pass summary was captured")
+    for summary in pass_summaries:
+        if summary["failed"] != 0:
+            issues.append(
+                f"CTest pass summary reports {summary['failed']} failed tests in {summary['path']}"
+            )
+        if junit_summary is not None and not junit_summary.get("parse_error"):
+            junit_tests = int(junit_summary.get("tests", 0))
+            if junit_tests and summary["total"] != junit_tests:
+                issues.append(
+                    f"CTest pass summary/JUnit test count mismatch in {summary['path']}: "
+                    f"summary={summary['total']} junit={junit_tests}"
+                )
+
+    return {
+        "ok": not issues,
+        "issues": issues,
+        "warnings": warnings,
+        "command_log_present": command_log_present,
+        "output_log_present": output_log_present,
+        "junit_present": junit_present,
+        "ctest_pass_summaries": pass_summaries,
+    }
+
+
+def summarize_failed_test_names(
+    failed_tests: list[FailedTestRecord], limit: int = 5
+) -> str:
+    failed_test_names = ", ".join(item["name"] for item in failed_tests[:limit])
+    if len(failed_tests) > limit:
+        failed_test_names += ", ..."
+    return failed_test_names
+
+
+def build_lane_failure_reasons(
+    *,
+    phase_results: dict[str, CommandResult],
+    ctest_evidence: CtestEvidenceAudit,
+    failed_tests: list[FailedTestRecord],
+    combined_findings: FindingsSummary,
+) -> list[FailureReason]:
+    reasons: list[FailureReason] = []
+    skipped_phases: list[str] = []
+
+    for phase_name in (
+        "configure",
+        "build",
+        "test_discovery_configure",
+        "discovery",
+        "test",
+    ):
+        phase_result = phase_results.get(phase_name, {})
+        if phase_result.get("ok"):
+            continue
+        if phase_result.get("skipped"):
+            skipped_phases.append(phase_name)
+            continue
+
+        exit_code = phase_result.get("exit_code")
+        log_path_obj = phase_result.get("log_path") or phase_result.get("stderr_log")
+        log_path = log_path_obj if isinstance(log_path_obj, str) else None
+        message = f"{phase_name} phase failed"
+        if exit_code is not None:
+            message += f" with exit code {exit_code}"
+        reason: FailureReason = {
+            "category": "phase_failed",
+            "phase": phase_name,
+            "message": message,
+        }
+        if exit_code is not None:
+            reason["exit_code"] = exit_code
+        if log_path:
+            reason["log_path"] = log_path
+        reasons.append(reason)
+
+    if not reasons and skipped_phases:
+        reasons.append(
+            {
+                "category": "phase_skipped",
+                "message": f"required phases were skipped: {', '.join(skipped_phases)}",
+                "phases": skipped_phases,
+            }
+        )
+
+    for issue in ctest_evidence.get("issues", []):
+        reasons.append(
+            {
+                "category": "ctest_evidence",
+                "message": str(issue),
+            }
+        )
+
+    if failed_tests:
+        reasons.append(
+            {
+                "category": "failed_tests",
+                "message": f"CTest failed tests: {summarize_failed_test_names(failed_tests)}",
+                "tests": failed_tests,
+                "count": len(failed_tests),
+            }
+        )
+
+    if combined_findings["total_matches"]:
+        reasons.append(
+            {
+                "category": "sanitizer_findings",
+                "message": f"sanitizer findings detected: {combined_findings['total_matches']}",
+                "count": combined_findings["total_matches"],
+                "counts_by_category": combined_findings["counts_by_category"],
+                "counts_by_severity": combined_findings["counts_by_severity"],
+            }
+        )
+
+    return reasons
 
 
 def iter_log_pattern_matches(
@@ -1266,23 +1656,84 @@ def collect_findings(
     }
 
 
+def merge_findings_summaries(
+    summaries: t.Iterable[FindingsSummary], max_sample_findings: int
+) -> FindingsSummary:
+    counts_by_category: dict[str, int] = {}
+    counts_by_severity: dict[str, int] = {}
+    sample_findings: list[FindingRecord] = []
+    total_matches = 0
+    sample_truncated = False
+
+    for summary in summaries:
+        total_matches += summary["total_matches"]
+        for category, count in summary["counts_by_category"].items():
+            counts_by_category[category] = counts_by_category.get(category, 0) + count
+        for severity, count in summary["counts_by_severity"].items():
+            counts_by_severity[severity] = counts_by_severity.get(severity, 0) + count
+
+        if max_sample_findings == -1:
+            sample_findings.extend(summary["sample_findings"])
+        else:
+            remaining = max_sample_findings - len(sample_findings)
+            if remaining > 0:
+                sample_findings.extend(summary["sample_findings"][:remaining])
+
+        if summary["sample_truncated"]:
+            sample_truncated = True
+
+    if max_sample_findings != -1 and total_matches > len(sample_findings):
+        sample_truncated = True
+
+    return {
+        "counts_by_category": counts_by_category,
+        "counts_by_severity": counts_by_severity,
+        "total_matches": total_matches,
+        "sample_findings": sample_findings,
+        "sample_limit": max_sample_findings,
+        "sample_truncated": sample_truncated,
+    }
+
+
 def set_latest_pointer(output_root: pathlib.Path, run_dir: pathlib.Path) -> None:
     latest_file = output_root / "latest_run_path.txt"
     latest_file.write_text(str(run_dir) + "\n", encoding="utf-8")
 
 
-def compute_overall_counts(lane_results: list[dict[str, t.Any]]) -> dict[str, t.Any]:
+def compute_overall_counts(
+    lane_results: t.Sequence[t.Mapping[str, object]],
+) -> dict[str, t.Any]:
     lanes_total = len(lane_results)
     lanes_ok = sum(1 for lane in lane_results if lane.get("ok"))
     lanes_failed = lanes_total - lanes_ok
 
     total_findings = 0
+    ctest_evidence_issues_total = 0
+    ctest_evidence_warnings_total = 0
     severity_counts: dict[str, int] = {}
     for lane in lane_results:
-        findings = lane.get("findings", {})
-        total_findings += int(findings.get("total_matches", 0))
-        for severity, count in findings.get("counts_by_severity", {}).items():
-            severity_counts[severity] = severity_counts.get(severity, 0) + int(count)
+        summaries = [lane.get("combined_findings")]
+        if summaries[0] is None:
+            summaries = [lane.get("findings"), lane.get("runtime_findings")]
+
+        for findings in summaries:
+            if not isinstance(findings, dict):
+                continue
+            total_findings += int(findings.get("total_matches", 0))
+            counts_by_severity = findings.get("counts_by_severity", {})
+            if not isinstance(counts_by_severity, dict):
+                continue
+            for severity, count in counts_by_severity.items():
+                severity_counts[severity] = severity_counts.get(severity, 0) + int(count)
+
+        ctest_evidence = lane.get("ctest_evidence")
+        if isinstance(ctest_evidence, dict):
+            issues = ctest_evidence.get("issues", [])
+            warnings = ctest_evidence.get("warnings", [])
+            if isinstance(issues, list):
+                ctest_evidence_issues_total += len(issues)
+            if isinstance(warnings, list):
+                ctest_evidence_warnings_total += len(warnings)
 
     return {
         "lanes_total": lanes_total,
@@ -1290,6 +1741,8 @@ def compute_overall_counts(lane_results: list[dict[str, t.Any]]) -> dict[str, t.
         "lanes_failed": lanes_failed,
         "findings_total": total_findings,
         "findings_by_severity": severity_counts,
+        "ctest_evidence_issues_total": ctest_evidence_issues_total,
+        "ctest_evidence_warnings_total": ctest_evidence_warnings_total,
     }
 
 
@@ -1550,18 +2003,31 @@ def write_status(
     *,
     run_id: str,
     run_started_at: str,
-    lane_results: list[dict[str, t.Any]],
+    lane_results: list[LaneResult],
     in_progress_lane: str | None,
     output_dir: pathlib.Path,
     parallelism: dict[str, t.Any],
     active_phase: dict[str, t.Any] | None,
 ) -> None:
+    failed_lanes = []
+    for lane in lane_results:
+        if lane.get("ok"):
+            continue
+        failed_lanes.append(
+            {
+                "lane": lane.get("lane"),
+                "failure_reasons": lane.get("failure_reasons", []),
+                "failed_tests": lane.get("failed_tests", []),
+                "failed_tests_total": lane.get("failed_tests_total", 0),
+            }
+        )
     payload = {
         "run_id": run_id,
         "run_started_at": run_started_at,
         "updated_at": isoformat_utc(utc_now()),
         "in_progress_lane": in_progress_lane,
         "completed_lanes": [lane["lane"] for lane in lane_results],
+        "failed_lanes": failed_lanes,
         "counts": compute_overall_counts(lane_results),
         "output_dir": str(output_dir),
         "parallelism": parallelism,
@@ -1621,10 +2087,11 @@ def main() -> int:
         "build_jobs": args.jobs,
         "test_jobs": args.jobs,
         "test_parallelism_note": (
-            "CTest discovery currently exposes a single umbrella test, run_all_tests, so test execution may not saturate all CPU cores even with -j set to the full core count."
+            "The runner refreshes CMake test discovery after building run_all_tests so CTest can schedule exact test cases across the requested jobs."
         ),
     }
 
+    lane_results: list[LaneResult]
     if args.resume_run_dir:
         run_dir = pathlib.Path(args.resume_run_dir).resolve()
         status_path = run_dir / STATUS_FILE_NAME
@@ -1699,6 +2166,7 @@ def main() -> int:
 
         lane_env = dict(lane_test_env)
         configure_lane_non_test_phase_env(lane_env, lane.name)
+        lane_env["CMAKE_BUILD_PARALLEL_LEVEL"] = str(args.jobs)
 
         # Scope sanitizer runtime log_path/log_exe_name to test execution only.
         # Applying them to configure/build can surface generator-tool findings and
@@ -1711,6 +2179,7 @@ def main() -> int:
         )
 
         configure_log = lane_dir / "configure.log"
+        test_discovery_configure_log = lane_dir / "test-discovery-configure.log"
         build_log = lane_dir / "build.log"
         ctest_log = lane_dir / "ctest-command.log"
         ctest_output_log = lane_dir / "ctest-output.log"
@@ -1835,6 +2304,39 @@ def main() -> int:
                 parallelism=parallelism,
                 active_phase=make_active_phase(
                     lane_name=lane.name,
+                    phase_name="test-discovery-configure",
+                    command=configure_command,
+                    log_path=test_discovery_configure_log,
+                ),
+            )
+            phase_results["test_discovery_configure"] = run_command(
+                command=configure_command,
+                cwd=repo_root,
+                env_overrides=lane_env,
+                log_path=test_discovery_configure_log,
+                lane_name=lane.name,
+                phase_name="test-discovery-configure",
+                heartbeat_seconds=args.heartbeat_seconds,
+                status_detail=args.status_detail,
+                append=resumed_lane and test_discovery_configure_log.exists(),
+            )
+        else:
+            phase_results["test_discovery_configure"] = {
+                "skipped": True,
+                "reason": "build_failed",
+            }
+
+        if phase_results["test_discovery_configure"].get("ok"):
+            write_status(
+                status_path,
+                run_id=run_id,
+                run_started_at=isoformat_utc(run_started),
+                lane_results=lane_results,
+                in_progress_lane=lane.name,
+                output_dir=run_dir,
+                parallelism=parallelism,
+                active_phase=make_active_phase(
+                    lane_name=lane.name,
                     phase_name="discovery",
                     command=discovery_command,
                     log_path=lane_dir / "ctest-discovery.json",
@@ -1873,16 +2375,27 @@ def main() -> int:
                 append=resumed_lane and ctest_log.exists(),
             )
         else:
+            test_skip_reason = (
+                "build_failed"
+                if not phase_results["build"].get("ok")
+                else "test_discovery_configure_failed"
+            )
             phase_results["discovery"] = {
                 "skipped": True,
-                "reason": "build_failed",
+                "reason": test_skip_reason,
             }
             phase_results["test"] = {
                 "skipped": True,
-                "reason": "build_failed",
+                "reason": test_skip_reason,
             }
 
-        log_paths = [configure_log, build_log, ctest_log, ctest_output_log]
+        log_paths = [
+            configure_log,
+            test_discovery_configure_log,
+            build_log,
+            ctest_log,
+            ctest_output_log,
+        ]
         findings = collect_findings(
             log_paths=log_paths,
             max_sample_findings=effective_max_sample_findings,
@@ -1892,42 +2405,82 @@ def main() -> int:
             log_paths=runtime_report_files,
             max_sample_findings=effective_max_sample_findings,
         )
+        combined_findings = merge_findings_summaries(
+            [findings, runtime_findings],
+            max_sample_findings=effective_max_sample_findings,
+        )
+        failed_tests = merge_failed_ctest_tests(
+            [
+                parse_failed_ctest_tests(ctest_output_log),
+                parse_failed_ctest_tests(ctest_log),
+            ]
+        )
+        junit_summary = parse_junit(ctest_junit)
+        ctest_evidence = audit_ctest_evidence(
+            test_phase_result=phase_results["test"],
+            discovery_result=phase_results["discovery"],
+            ctest_command_log=ctest_log,
+            ctest_output_log=ctest_output_log,
+            ctest_junit=ctest_junit,
+            junit_summary=junit_summary,
+            failed_tests=failed_tests,
+        )
+        failure_reasons = build_lane_failure_reasons(
+            phase_results=phase_results,
+            ctest_evidence=ctest_evidence,
+            failed_tests=failed_tests,
+            combined_findings=combined_findings,
+        )
 
         lane_ok = bool(
             phase_results["configure"].get("ok")
             and phase_results["build"].get("ok")
+            and phase_results["test_discovery_configure"].get("ok")
             and phase_results["test"].get("ok")
-            and findings["total_matches"] == 0
+            and ctest_evidence["ok"]
+            and combined_findings["total_matches"] == 0
         )
 
-        lane_result = {
+        lane_artifacts: LaneArtifacts = {
+            "configure_log": str(configure_log),
+            "test_discovery_configure_log": str(test_discovery_configure_log),
+            "build_log": str(build_log),
+            "ctest_command_log": str(ctest_log),
+            "ctest_output_log": str(ctest_output_log),
+            "ctest_junit": str(ctest_junit),
+            "runtime_report_dir": runtime_report_artifacts["runtime_report_dir"],
+            "runtime_report_base": runtime_report_artifacts["runtime_report_base"],
+            "runtime_report_glob": runtime_report_artifacts["runtime_report_glob"],
+            "runtime_report_files": [str(path) for path in runtime_report_files],
+            "unified_findings_report_json": "",
+            "unified_findings_report_text": "",
+        }
+        runtime_tooling: RuntimeTooling = {
+            "symbolizer_binary": (
+                str(symbolizer_binary) if symbolizer_binary is not None else None
+            ),
+            "symbolizer_wrapper": (
+                str(symbolizer_wrapper) if symbolizer_wrapper is not None else None
+            ),
+        }
+        lane_result: LaneResult = {
             "lane": lane.name,
             "configure_preset": lane.configure_preset,
             "build_preset": lane.build_preset,
             "build_dir": lane.build_dir,
             "env": lane.env,
-            "runtime_tooling": {
-                "symbolizer_binary": (
-                    str(symbolizer_binary) if symbolizer_binary is not None else None
-                ),
-                "symbolizer_wrapper": (
-                    str(symbolizer_wrapper) if symbolizer_wrapper is not None else None
-                ),
-            },
+            "runtime_tooling": runtime_tooling,
             "parallelism": parallelism,
             "phase_results": phase_results,
-            "artifacts": {
-                "configure_log": str(configure_log),
-                "build_log": str(build_log),
-                "ctest_command_log": str(ctest_log),
-                "ctest_output_log": str(ctest_output_log),
-                "ctest_junit": str(ctest_junit),
-                **runtime_report_artifacts,
-                "runtime_report_files": [str(path) for path in runtime_report_files],
-            },
-            "junit_summary": parse_junit(ctest_junit),
+            "artifacts": lane_artifacts,
+            "junit_summary": junit_summary,
+            "ctest_evidence": ctest_evidence,
+            "failed_tests": failed_tests,
+            "failed_tests_total": len(failed_tests),
             "findings": findings,
             "runtime_findings": runtime_findings,
+            "combined_findings": combined_findings,
+            "failure_reasons": failure_reasons,
             "ok": lane_ok,
         }
 
@@ -1943,27 +2496,42 @@ def main() -> int:
             lane_findings=[lane_findings_view],
             max_sample_findings=effective_max_sample_findings,
         )
-        lane_result["artifacts"][
-            "unified_findings_report_json"
-        ] = lane_report_artifacts.json_path
-        lane_result["artifacts"][
-            "unified_findings_report_text"
-        ] = lane_report_artifacts.text_path
+        lane_artifacts["unified_findings_report_json"] = lane_report_artifacts.json_path
+        lane_artifacts["unified_findings_report_text"] = lane_report_artifacts.text_path
 
         lane_results.append(lane_result)
         completed_lane_names.add(lane.name)
         emit_status(
-            f"lane {lane.name}: {'ok' if lane_ok else 'failed'} with findings={findings['total_matches']}"
+            f"lane {lane.name}: {'ok' if lane_ok else 'failed'} with findings={combined_findings['total_matches']}"
         )
-        emit_status(
-            f"lane {lane.name}: findings_by_severity={format_counts(findings['counts_by_severity'])}"
-        )
-        emit_status(
-            f"lane {lane.name}: findings_by_category={format_counts(findings['counts_by_category'])}"
-        )
-        if findings["sample_truncated"]:
+        if failure_reasons:
+            reason_messages = "; ".join(
+                str(reason.get("message", reason)) for reason in failure_reasons[:5]
+            )
+            if len(failure_reasons) > 5:
+                reason_messages += "; ..."
+            emit_status(f"lane {lane.name}: failure_reasons={reason_messages}")
+        if failed_tests:
             emit_status(
-                f"lane {lane.name}: findings samples truncated at limit={findings['sample_limit']}"
+                f"lane {lane.name}: failed_tests={len(failed_tests)} [{summarize_failed_test_names(failed_tests)}]"
+            )
+        if ctest_evidence["issues"]:
+            emit_status(
+                f"lane {lane.name}: ctest_evidence_issues={ctest_evidence['issues']}"
+            )
+        if ctest_evidence["warnings"]:
+            emit_status(
+                f"lane {lane.name}: ctest_evidence_warnings={ctest_evidence['warnings']}"
+            )
+        emit_status(
+            f"lane {lane.name}: findings_by_severity={format_counts(combined_findings['counts_by_severity'])}"
+        )
+        emit_status(
+            f"lane {lane.name}: findings_by_category={format_counts(combined_findings['counts_by_category'])}"
+        )
+        if combined_findings["sample_truncated"]:
+            emit_status(
+                f"lane {lane.name}: findings samples truncated at limit={combined_findings['sample_limit']}"
             )
         write_json(lane_dir / "lane_summary.json", lane_result)
         write_status(
@@ -2021,6 +2589,11 @@ def main() -> int:
         f"lanes_total={overall['overall_counts']['lanes_total']} "
         f"lanes_failed={overall['overall_counts']['lanes_failed']} "
         f"findings_total={overall['overall_counts']['findings_total']}"
+    )
+    emit_status(
+        "matrix ctest_evidence "
+        f"issues={overall['overall_counts']['ctest_evidence_issues_total']} "
+        f"warnings={overall['overall_counts']['ctest_evidence_warnings_total']}"
     )
     emit_status(
         f"matrix findings_by_severity={format_counts(overall['overall_counts']['findings_by_severity'])}"

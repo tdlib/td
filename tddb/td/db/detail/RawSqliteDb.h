@@ -1,12 +1,13 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
 #include "td/utils/optional.h"
+#include "td/utils/port/Mutex.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
@@ -24,6 +25,8 @@ class RawSqliteDb {
   RawSqliteDb &operator=(const RawSqliteDb &) = delete;
   RawSqliteDb &operator=(RawSqliteDb &&) = delete;
   ~RawSqliteDb();
+
+  static Mutex::Guard lock_sqlcipher_key_init_mutex() TD_WARN_UNUSED_RESULT;
 
   template <class F>
   static void with_db_path(Slice main_path, F &&f) {
@@ -67,15 +70,22 @@ class RawSqliteDb {
     cipher_version_ = cipher_version;
   }
 
+  void set_close_under_sqlcipher_key_init_mutex() {
+    close_under_sqlcipher_key_init_mutex_ = true;
+  }
+
   optional<int32> get_cipher_version() const {
     return cipher_version_.copy();
   }
 
  private:
+  void close();
+
   tdsqlite3 *db_;
   std::string path_;
   size_t begin_cnt_{0};
   optional<int32> cipher_version_;
+  bool close_under_sqlcipher_key_init_mutex_{false};
 };
 
 }  // namespace detail

@@ -1,24 +1,34 @@
 #include "td/db/DbKey.h"
 #include "td/db/SqliteDb.h"
 
+#include "td/utils/common.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Random.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/tests.h"
 
 #include <atomic>
+#include <chrono>
 #include <string>
 #include <thread>
 #include <vector>
 
 namespace {
 
+#if defined(__SANITIZE_THREAD__) || TD_HAS_FEATURE_THREAD_SANITIZER
+constexpr bool kUseWalJournalForStress = false;
+#else
+constexpr bool kUseWalJournalForStress = true;
+#endif
+
 td::string make_db_path(const char *prefix) {
   return PSTRING() << prefix << "_" << td::Random::secure_uint64();
 }
 
 void initialize_stress_table(td::SqliteDb &db) {
-  db.exec("PRAGMA journal_mode=WAL").ensure();
+  if (kUseWalJournalForStress) {
+    db.exec("PRAGMA journal_mode=WAL").ensure();
+  }
   db.exec(
         "CREATE TABLE stress_entries(writer_id INTEGER NOT NULL, seq_no INTEGER NOT NULL, payload BLOB NOT NULL, "
         "PRIMARY KEY(writer_id, seq_no))")
@@ -29,6 +39,22 @@ void wait_for_start(const std::atomic<bool> &start) {
   while (!start.load(std::memory_order_acquire)) {
     std::this_thread::yield();
   }
+}
+
+bool is_database_locked(const td::Status &status) {
+  return status.to_string().find("database is locked") != td::string::npos;
+}
+
+td::Status begin_write_transaction_with_busy_retry(td::SqliteDb &db) {
+  constexpr int MAX_ATTEMPTS = 100;
+  for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    auto status = db.begin_write_transaction();
+    if (status.is_ok() || !is_database_locked(status)) {
+      return status;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  return db.begin_write_transaction();
 }
 
 void run_concurrent_transaction_stress_case(const char *prefix, const td::DbKey &db_key, int writer_count,
@@ -50,34 +76,44 @@ void run_concurrent_transaction_stress_case(const char *prefix, const td::DbKey 
   const int total_threads = writer_count + reader_count;
   std::atomic<int> ready_threads{0};
   std::atomic<bool> start{false};
-  std::atomic<int> completed_writers{0};
+  std::atomic<int> finished_writers{0};
   std::vector<td::string> thread_errors(total_threads);
   std::vector<td::int64> reader_terminal_counts(reader_count, -1);
   td::vector<td::thread> threads(total_threads);
 
   for (int writer_id = 0; writer_id < writer_count; writer_id++) {
     threads[writer_id] = td::thread([&, writer_id] {
+      bool is_ready = false;
+      auto report_ready = [&] {
+        if (!is_ready) {
+          ready_threads.fetch_add(1, std::memory_order_acq_rel);
+          is_ready = true;
+        }
+      };
+      SCOPE_EXIT {
+        report_ready();
+        finished_writers.fetch_add(1, std::memory_order_acq_rel);
+      };
+
       auto r_db = td::SqliteDb::open_with_key(path, false, db_key);
       if (r_db.is_error()) {
         thread_errors[writer_id] = r_db.error().to_string();
-        ready_threads.fetch_add(1, std::memory_order_acq_rel);
         return;
       }
       auto db = r_db.move_as_ok();
       auto r_insert = db.get_statement("INSERT INTO stress_entries(writer_id, seq_no, payload) VALUES(?1, ?2, ?3)");
       if (r_insert.is_error()) {
         thread_errors[writer_id] = r_insert.error().to_string();
-        ready_threads.fetch_add(1, std::memory_order_acq_rel);
         return;
       }
       auto insert = r_insert.move_as_ok();
       auto payload = td::string(payload_size, static_cast<char>('a' + writer_id));
 
-      ready_threads.fetch_add(1, std::memory_order_acq_rel);
+      report_ready();
       wait_for_start(start);
 
       for (int seq_no = 0; seq_no < writes_per_writer; seq_no++) {
-        auto status = db.begin_write_transaction();
+        auto status = begin_write_transaction_with_busy_retry(db);
         if (status.is_error()) {
           thread_errors[writer_id] = status.to_string();
           return;
@@ -110,7 +146,6 @@ void run_concurrent_transaction_stress_case(const char *prefix, const td::DbKey 
         insert.reset();
       }
 
-      completed_writers.fetch_add(1, std::memory_order_acq_rel);
     });
   }
 
@@ -137,7 +172,7 @@ void run_concurrent_transaction_stress_case(const char *prefix, const td::DbKey 
 
       td::int64 last_count = 0;
       int tail_checks_left = reader_tail_checks;
-      while (completed_writers.load(std::memory_order_acquire) != writer_count || tail_checks_left > 0) {
+      while (finished_writers.load(std::memory_order_acquire) != writer_count || tail_checks_left > 0) {
         auto status = db.begin_read_transaction();
         if (status.is_error()) {
           thread_errors[slot] = status.to_string();
@@ -177,7 +212,7 @@ void run_concurrent_transaction_stress_case(const char *prefix, const td::DbKey 
         }
 
         last_count = count;
-        if (completed_writers.load(std::memory_order_acquire) == writer_count) {
+        if (finished_writers.load(std::memory_order_acquire) == writer_count) {
           tail_checks_left--;
         }
       }

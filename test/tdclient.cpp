@@ -974,129 +974,137 @@ TEST(Client, Manager) {
 
 #if !TD_EVENTFD_UNSUPPORTED  // Client must be used from a single thread if there is no EventFd
 TEST(Client, Close) {
-  std::atomic<bool> stop_send{false};
-  std::atomic<bool> can_stop_receive{false};
-  std::atomic<td::int64> send_count{1};
-  std::atomic<td::int64> receive_count{0};
   td::Client client;
+  constexpr td::uint64 CLOSE_REQUEST_ID = 1;
+  constexpr td::uint64 FIRST_DATA_REQUEST_ID = 2;
+  constexpr td::uint64 PRE_CLOSE_REQUEST_COUNT = 512;
+  constexpr td::uint64 POST_CLOSE_REQUEST_COUNT = 512;
+  constexpr td::uint64 FIRST_POST_CLOSE_REQUEST_ID = FIRST_DATA_REQUEST_ID + PRE_CLOSE_REQUEST_COUNT;
+  constexpr td::uint64 LAST_DATA_REQUEST_ID = FIRST_POST_CLOSE_REQUEST_ID + POST_CLOSE_REQUEST_COUNT - 1;
+  constexpr td::uint64 EXPECTED_REQUEST_RESPONSES = 1 + PRE_CLOSE_REQUEST_COUNT + POST_CLOSE_REQUEST_COUNT;
 
-  std::mutex request_ids_mutex;
-  td::vector<td::uint64> request_ids;
-  request_ids.push_back(1);
   td::thread send_thread([&] {
-    td::uint64 request_id = 2;
-    while (!stop_send.load()) {
-      {
-        std::unique_lock<std::mutex> guard(request_ids_mutex);
-        request_ids.push_back(request_id);
-      }
+    td::uint64 request_id = FIRST_DATA_REQUEST_ID;
+    for (td::uint64 i = 0; i < PRE_CLOSE_REQUEST_COUNT; i++) {
       client.send({request_id++, td::make_tl_object<td::td_api::testSquareInt>(3)});
-      send_count++;
     }
-    can_stop_receive = true;
-  });
-
-  td::thread receive_thread([&] {
-    auto max_continue_send = td::Random::fast_bool() ? 0 : 1000;
-    while (true) {
-      auto response = client.receive(10.0);
-      if (response.object == nullptr) {
-        if (!stop_send) {
-          stop_send = true;
-        } else {
-          return;
-        }
-      }
-      if (response.id > 0) {
-        if (!stop_send && response.object->get_id() == td::td_api::error::ID &&
-            static_cast<td::td_api::error &>(*response.object).code_ == 500 &&
-            td::Random::fast(0, max_continue_send) == 0) {
-          stop_send = true;
-        }
-        receive_count++;
-        {
-          std::unique_lock<std::mutex> guard(request_ids_mutex);
-          auto it = std::find(request_ids.begin(), request_ids.end(), response.id);
-          CHECK(it != request_ids.end());
-          request_ids.erase(it);
-        }
-      }
-      if (can_stop_receive && receive_count == send_count) {
-        break;
-      }
+    client.send({CLOSE_REQUEST_ID, td::make_tl_object<td::td_api::close>()});
+    for (td::uint64 i = 0; i < POST_CLOSE_REQUEST_COUNT; i++) {
+      client.send({request_id++, td::make_tl_object<td::td_api::testSquareInt>(3)});
     }
   });
 
-  td::usleep_for((td::Random::fast_bool() ? 0 : 1000) * (td::Random::fast_bool() ? 1 : 50));
-  client.send({1, td::make_tl_object<td::td_api::close>()});
+  std::vector<bool> seen_request_ids(LAST_DATA_REQUEST_ID + 1, false);
+  td::uint64 receive_count = 0;
+  td::uint64 pre_close_success_count = 0;
+  td::uint64 post_close_abort_count = 0;
+  bool close_ack_seen = false;
+
+  while (receive_count != EXPECTED_REQUEST_RESPONSES) {
+    auto response = client.receive(10.0);
+    if (response.object == nullptr || response.id == 0) {
+      continue;
+    }
+
+    ASSERT_TRUE(response.id < seen_request_ids.size());
+    ASSERT_FALSE(seen_request_ids[response.id]);
+    seen_request_ids[response.id] = true;
+    receive_count++;
+
+    if (response.id == CLOSE_REQUEST_ID) {
+      close_ack_seen = true;
+      ASSERT_EQ(td::td_api::ok::ID, response.object->get_id());
+      continue;
+    }
+
+    if (response.id < FIRST_POST_CLOSE_REQUEST_ID) {
+      ASSERT_EQ(td::td_api::testInt::ID, response.object->get_id());
+      pre_close_success_count++;
+      continue;
+    }
+
+    ASSERT_EQ(td::td_api::error::ID, response.object->get_id());
+    ASSERT_EQ(500, static_cast<td::td_api::error &>(*response.object).code_);
+    post_close_abort_count++;
+  }
 
   send_thread.join();
-  receive_thread.join();
-  ASSERT_EQ(send_count.load(), receive_count.load());
-  ASSERT_TRUE(request_ids.empty());
+  ASSERT_TRUE(close_ack_seen);
+  ASSERT_EQ(PRE_CLOSE_REQUEST_COUNT, pre_close_success_count);
+  ASSERT_EQ(POST_CLOSE_REQUEST_COUNT, post_close_abort_count);
 }
 
 TEST(Client, ManagerClose) {
-  std::atomic<bool> stop_send{false};
-  std::atomic<bool> can_stop_receive{false};
-  std::atomic<td::int64> send_count{1};
-  std::atomic<td::int64> receive_count{0};
   td::ClientManager client_manager;
   auto client_id = client_manager.create_client_id();
+  constexpr td::uint64 CLOSE_REQUEST_ID = 1;
+  constexpr td::uint64 FIRST_DATA_REQUEST_ID = 2;
+  constexpr td::uint64 PRE_CLOSE_REQUEST_COUNT = 512;
+  constexpr td::uint64 POST_CLOSE_REQUEST_COUNT = 512;
+  constexpr td::uint64 FIRST_POST_CLOSE_REQUEST_ID = FIRST_DATA_REQUEST_ID + PRE_CLOSE_REQUEST_COUNT;
+  constexpr td::uint64 LAST_DATA_REQUEST_ID = FIRST_POST_CLOSE_REQUEST_ID + POST_CLOSE_REQUEST_COUNT - 1;
+  constexpr td::uint64 EXPECTED_REQUEST_RESPONSES = 1 + PRE_CLOSE_REQUEST_COUNT + POST_CLOSE_REQUEST_COUNT;
 
-  std::mutex request_ids_mutex;
-  td::vector<td::uint64> request_ids;
-  request_ids.push_back(1);
   td::thread send_thread([&] {
-    td::uint64 request_id = 2;
-    while (!stop_send.load()) {
-      {
-        std::unique_lock<std::mutex> guard(request_ids_mutex);
-        request_ids.push_back(request_id);
-      }
+    td::uint64 request_id = FIRST_DATA_REQUEST_ID;
+    for (td::uint64 i = 0; i < PRE_CLOSE_REQUEST_COUNT; i++) {
       client_manager.send(client_id, request_id++, td::make_tl_object<td::td_api::testSquareInt>(3));
-      send_count++;
     }
-    can_stop_receive = true;
-  });
-
-  td::thread receive_thread([&] {
-    auto max_continue_send = td::Random::fast_bool() ? 0 : 1000;
-    bool can_stop_send = false;
-    while (true) {
-      auto response = client_manager.receive(10.0);
-      if (response.object == nullptr) {
-        if (!stop_send) {
-          can_stop_send = true;
-        } else {
-          return;
-        }
-      }
-      if (can_stop_send && max_continue_send-- <= 0) {
-        stop_send = true;
-      }
-      if (response.request_id > 0) {
-        receive_count++;
-        {
-          std::unique_lock<std::mutex> guard(request_ids_mutex);
-          auto it = std::find(request_ids.begin(), request_ids.end(), response.request_id);
-          CHECK(it != request_ids.end());
-          request_ids.erase(it);
-        }
-      }
-      if (can_stop_receive && receive_count == send_count) {
-        break;
-      }
+    client_manager.send(client_id, CLOSE_REQUEST_ID, td::make_tl_object<td::td_api::close>());
+    for (td::uint64 i = 0; i < POST_CLOSE_REQUEST_COUNT; i++) {
+      client_manager.send(client_id, request_id++, td::make_tl_object<td::td_api::testSquareInt>(3));
     }
   });
 
-  td::usleep_for((td::Random::fast_bool() ? 0 : 1000) * (td::Random::fast_bool() ? 1 : 50));
-  client_manager.send(client_id, 1, td::make_tl_object<td::td_api::close>());
+  std::vector<bool> seen_request_ids(LAST_DATA_REQUEST_ID + 1, false);
+  td::uint64 receive_count = 0;
+  td::uint64 pre_close_success_count = 0;
+  td::uint64 post_close_abort_count = 0;
+  bool close_ack_seen = false;
+  bool closed_update_seen = false;
+
+  while (receive_count != EXPECTED_REQUEST_RESPONSES || !closed_update_seen) {
+    auto response = client_manager.receive(10.0);
+    if (response.object == nullptr) {
+      continue;
+    }
+    ASSERT_EQ(client_id, response.client_id);
+
+    if (response.request_id == 0) {
+      if (response.object->get_id() == td::td_api::updateAuthorizationState::ID) {
+        closed_update_seen |= static_cast<td::td_api::updateAuthorizationState &>(*response.object)
+                                  .authorization_state_->get_id() == td::td_api::authorizationStateClosed::ID;
+      }
+      continue;
+    }
+
+    ASSERT_TRUE(response.request_id < seen_request_ids.size());
+    ASSERT_FALSE(seen_request_ids[response.request_id]);
+    seen_request_ids[response.request_id] = true;
+    receive_count++;
+
+    if (response.request_id == CLOSE_REQUEST_ID) {
+      close_ack_seen = true;
+      ASSERT_EQ(td::td_api::ok::ID, response.object->get_id());
+      continue;
+    }
+
+    if (response.request_id < FIRST_POST_CLOSE_REQUEST_ID) {
+      ASSERT_EQ(td::td_api::testInt::ID, response.object->get_id());
+      pre_close_success_count++;
+      continue;
+    }
+
+    ASSERT_EQ(td::td_api::error::ID, response.object->get_id());
+    ASSERT_EQ(500, static_cast<td::td_api::error &>(*response.object).code_);
+    post_close_abort_count++;
+  }
 
   send_thread.join();
-  receive_thread.join();
-  ASSERT_EQ(send_count.load(), receive_count.load());
-  ASSERT_TRUE(request_ids.empty());
+  ASSERT_TRUE(close_ack_seen);
+  ASSERT_TRUE(closed_update_seen);
+  ASSERT_EQ(PRE_CLOSE_REQUEST_COUNT, pre_close_success_count);
+  ASSERT_EQ(POST_CLOSE_REQUEST_COUNT, post_close_abort_count);
 }
 #endif
 #endif

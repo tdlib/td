@@ -54,7 +54,10 @@ SqliteStatement::SqliteStatement(tdsqlite3_stmt *stmt, std::shared_ptr<detail::R
     : stmt_(stmt), db_(std::move(db)) {
   CHECK(stmt != nullptr);
 }
-SqliteStatement::~SqliteStatement() = default;
+SqliteStatement::~SqliteStatement() {
+  stmt_.reset();
+  db_.reset();
+}
 
 Result<string> SqliteStatement::explain() {
   if (empty()) {

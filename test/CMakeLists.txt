@@ -30,6 +30,7 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_vendor_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_statement_lifetime_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_sqlcipher_key_init_lock_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_sqlcipher_key_init_lock_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/http.cpp
@@ -1322,7 +1323,7 @@ if(NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
 
         if(TD_RUN_ALL_TEST_NAME
            MATCHES
-           "^(Test_DB_key_value|Test_DB_key_value_set_all|Test_SecureStorage_secret|Test_Misc_update_atime_change_atime|Test_Misc_update_atime_saves_mtime|Test_FamilyLaneMatcherContract_ReviewedTableByIndexCountMatches|Test_HmacTimestampAdversarial1k_AllProfilesSameSeedSameTimestampProduceDifferentClientRandom|Test_AuthenticationTimingConsistency_StringComparisonNoEarlyExit|Test_DB_sqlite_phase3_corruption_cleanup_deletes_damaged_database_files_after_.*)$"
+           "^(Test_DB_key_value|Test_DB_key_value_set_all|Test_SecureStorage_secret|Test_Misc_update_atime_change_atime|Test_Misc_update_atime_saves_mtime|Test_FamilyLaneMatcherContract_ReviewedTableByIndexCountMatches|Test_HmacTimestampAdversarial1k_AllProfilesSameSeedSameTimestampProduceDifferentClientRandom|Test_AuthenticationTimingConsistency_StringComparisonNoEarlyExit|Test_AuthenticationTimingConsistency_HmacVerificationConstantTime|Test_DB_sqlite_phase3_.*|Test_DBSqlcipherKeyInitLockAdversarial_adversarial_sqlcipher_.*)$"
         )
           set_tests_properties("${TD_RUN_ALL_TEST_NAME}" PROPERTIES RUN_SERIAL
                                                                     TRUE)

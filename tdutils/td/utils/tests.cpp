@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/utils/tests.h"
 
@@ -19,6 +19,12 @@
 #include "td/utils/Time.h"
 
 #include <map>
+
+#if (TD_HAS_FEATURE_MEMORY_SANITIZER || defined(__SANITIZE_MEMORY__)) && defined(__clang__)
+#define TD_TESTS_MSAN_NO_SANITIZE __attribute__((no_sanitize("memory")))
+#else
+#define TD_TESTS_MSAN_NO_SANITIZE
+#endif
 
 namespace td {
 
@@ -96,6 +102,7 @@ class RegressionTesterImpl final : public RegressionTester {
     mkdir(db_cache_dir_).ensure();
   }
 
+  TD_TESTS_MSAN_NO_SANITIZE
   Status verify_test(Slice name, Slice result) final {
 #if TD_HAVE_OPENSSL
     auto hash = PSTRING() << format::as_hex_dump<0>(Slice(sha256(result)));

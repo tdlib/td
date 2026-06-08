@@ -29,8 +29,15 @@ using td::mtproto::test::MockClock;
 using td::mtproto::test::MockRng;
 using td::mtproto::test::RecordingTransport;
 
-#if defined(__SANITIZE_LEAK__) || TD_HAS_FEATURE_LEAK_SANITIZER || defined(__SANITIZE_MEMORY__) || \
-    TD_HAS_FEATURE_MEMORY_SANITIZER || defined(__SANITIZE_THREAD__) || TD_HAS_FEATURE_THREAD_SANITIZER
+#if defined(__has_feature)
+#define TD_TEST_HAS_UNDEFINED_BEHAVIOR_SANITIZER __has_feature(undefined_behavior_sanitizer)
+#else
+#define TD_TEST_HAS_UNDEFINED_BEHAVIOR_SANITIZER 0
+#endif
+
+#if TD_USE_ASAN || defined(__SANITIZE_ADDRESS__) || TD_HAS_FEATURE_ADDRESS_SANITIZER || defined(__SANITIZE_LEAK__) || \
+    TD_HAS_FEATURE_LEAK_SANITIZER || defined(__SANITIZE_MEMORY__) || TD_HAS_FEATURE_MEMORY_SANITIZER ||              \
+    defined(__SANITIZE_THREAD__) || TD_HAS_FEATURE_THREAD_SANITIZER || TD_TEST_HAS_UNDEFINED_BEHAVIOR_SANITIZER
 constexpr bool kFatalAbortChildSanitizerBuild = true;
 #else
 constexpr bool kFatalAbortChildSanitizerBuild = false;

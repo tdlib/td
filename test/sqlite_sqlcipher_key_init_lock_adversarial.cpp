@@ -46,7 +46,7 @@ td::string extract_region(std::string_view source, td::Slice begin_marker, td::S
 }  // namespace
 
 TEST(DBSqlcipherKeyInitLockAdversarial, SqlcipherInitDeclaresDedicatedSerializationMutex) {
-  const auto source = td::mtproto::test::read_repo_text_file("tddb/td/db/SqliteDb.cpp");
+  const auto source = td::mtproto::test::read_repo_text_file("tddb/td/db/detail/RawSqliteDb.cpp");
   const auto normalized = normalize_for_contract(source);
 
   ASSERT_TRUE(normalized.find("Mutexsqlcipher_key_init_mutex;") != td::string::npos);
@@ -58,8 +58,24 @@ TEST(DBSqlcipherKeyInitLockAdversarial, SqlcipherInitAvoidsUnsynchronizedKeyPrag
       source, "Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, bool allow_creation, const DbKey &db_key,",
       "TRY_STATUS_PREFIX(db.check_encryption(), \"Can't check database: \""));
 
-  ASSERT_EQ(td::string::npos,
-            region.find("if(!db_key.is_empty()){if(db.check_encryption().is_ok()){returnStatus::Error"));
+  const auto wrapper = normalize_for_contract(extract_region(
+      source, "Result<SqliteDb> SqliteDb::open_with_key(CSlice path, bool allow_creation, const DbKey &db_key,",
+      "Result<SqliteDb> SqliteDb::do_open_with_key"));
+
+  ASSERT_NE(td::string::npos, region.find("if(!db_key.is_empty()){if(db.check_encryption().is_ok()){returnStatus::Error"));
+  ASSERT_TRUE(wrapper.find("autokey_init_lock=detail::RawSqliteDb::lock_sqlcipher_key_init_mutex();") <
+              wrapper.find("autores=do_open_with_key(path,allow_creation,db_key,"));
+}
+
+TEST(DBSqlcipherKeyInitLockAdversarial, KeyedOpenSerializesSqlcipherBeforeNativeOpen) {
+  const auto source = td::mtproto::test::read_repo_text_file("tddb/td/db/SqliteDb.cpp");
+  const auto region = normalize_for_contract(extract_region(
+      source, "Result<SqliteDb> SqliteDb::open_with_key(CSlice path, bool allow_creation, const DbKey &db_key,",
+      "Result<SqliteDb> SqliteDb::do_open_with_key"));
+
+  ASSERT_NE(td::string::npos,
+            region.find("if(!db_key.is_empty()){autokey_init_lock=detail::RawSqliteDb::lock_sqlcipher_key_init_mutex();"
+                        "autores=do_open_with_key(path,allow_creation,db_key,"));
 }
 
 TEST(DBSqlcipherKeyInitLockAdversarial, EncryptedPathMustNotPerformPostKeyCheckAfterLockIsReleased) {
@@ -70,6 +86,18 @@ TEST(DBSqlcipherKeyInitLockAdversarial, EncryptedPathMustNotPerformPostKeyCheckA
       td::string::npos,
       normalized.find(
           "db.set_cipher_version(cipher_version);}TRY_STATUS_PREFIX(db.check_encryption(),\"Can'tcheckdatabase:\");"));
+}
+
+TEST(DBSqlcipherKeyInitLockAdversarial, ErrorPathLockReleaseUsesKeyedOpen) {
+  const auto source = td::mtproto::test::read_repo_text_file("test/sqlite_sqlcipher_key_init_lock_adversarial.cpp");
+  const auto region = normalize_for_contract(extract_region(
+      source, "// leaking file descriptors or leaving behind partial state.\n"
+              "TEST(DBSqlcipherKeyInitLockAdversarial, adversarial_sqlcipher_error_path_lock_release)",
+      "// Test 4: Mixed encrypted and unencrypted opens racing on different databases."));
+
+  ASSERT_TRUE(region.find("constautodb_key=td::DbKey::password(") != td::string::npos);
+  ASSERT_TRUE(region.find("open_with_key(path,false,db_key)") != td::string::npos);
+  ASSERT_EQ(td::string::npos, region.find("td::DbKey::empty()"));
 }
 
 // ---------------------------------------------------------------------------
@@ -244,6 +272,7 @@ TEST(DBSqlcipherKeyInitLockAdversarial, adversarial_sqlcipher_concurrent_encrypt
 // leaking file descriptors or leaving behind partial state.
 TEST(DBSqlcipherKeyInitLockAdversarial, adversarial_sqlcipher_error_path_lock_release) {
   constexpr int kThreadCount = 8;
+  const auto db_key = td::DbKey::password("adversarial-error-path-key");
 
   // Use a path that does not exist and forbid creation.
   auto path = make_adversarial_db_path("adv_error_path_nonexistent");
@@ -252,7 +281,7 @@ TEST(DBSqlcipherKeyInitLockAdversarial, adversarial_sqlcipher_error_path_lock_re
 
   std::atomic<int> ready{0};
   std::atomic<bool> go{false};
-  std::vector<bool> got_error(kThreadCount, false);
+  std::vector<char> got_error(kThreadCount, 0);
   td::vector<td::thread> threads(kThreadCount);
 
   for (int i = 0; i < kThreadCount; i++) {
@@ -261,8 +290,8 @@ TEST(DBSqlcipherKeyInitLockAdversarial, adversarial_sqlcipher_error_path_lock_re
       wait_for_go(go);
 
       // allow_creation = false on a missing path must return an error.
-      auto r_db = td::SqliteDb::open_with_key(path, false, td::DbKey::empty());
-      got_error[i] = r_db.is_error();
+      auto r_db = td::SqliteDb::open_with_key(path, false, db_key);
+      got_error[i] = static_cast<char>(r_db.is_error());
     });
   }
 
@@ -280,13 +309,9 @@ TEST(DBSqlcipherKeyInitLockAdversarial, adversarial_sqlcipher_error_path_lock_re
   }
 
   // After all error-path threads complete, the mutex must still be usable:
-  // open a valid database to confirm no deadlock or permanent lock state.
-  auto verify_path = make_adversarial_db_path("adv_error_path_verify");
-  SCOPE_EXIT {
-    td::SqliteDb::destroy(verify_path).ignore();
-  };
-  auto r_db = td::SqliteDb::open_with_key(verify_path, true, td::DbKey::empty());
-  ASSERT_TRUE(r_db.is_ok());
+  // repeat the keyed error path to confirm no deadlock or permanent lock state.
+  auto r_db = td::SqliteDb::open_with_key(path, false, db_key);
+  ASSERT_TRUE(r_db.is_error());
 }
 
 // Test 4: Mixed encrypted and unencrypted opens racing on different databases.

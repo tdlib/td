@@ -7,8 +7,6 @@
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/tests.h"
 
-#include <fstream>
-
 namespace {
 
 using td::logging_hardening::test::repo_path;
@@ -28,8 +26,7 @@ td::JsonValue read_import_manifest_root(td::string &content_storage) {
 }
 
 bool repo_file_exists(td::Slice relative_path) {
-  std::ifstream input(repo_path(relative_path), std::ios::binary);
-  return input.good();
+  return td::read_file_str(repo_path(relative_path), 1).is_ok();
 }
 
 TEST(LoggingFixtureRouteEchIntegration, ImportedManifestRetainsRealTrafficPairingContract) {

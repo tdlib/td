@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/db/TQueue.h"
 
@@ -21,14 +21,32 @@
 #include "td/utils/tl_storers.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <memory>
 #include <set>
+
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#define TD_TQUEUE_MSAN_GLIBCXX_TREE_ACTIVE 1
+#endif
+#endif
+#if defined(__SANITIZE_MEMORY__)
+#include <sanitizer/msan_interface.h>
+#define TD_TQUEUE_MSAN_GLIBCXX_TREE_ACTIVE 1
+#endif
+#if !defined(__GLIBCXX__) || !defined(TD_TQUEUE_MSAN_GLIBCXX_TREE_ACTIVE)
+#define TD_TQUEUE_MSAN_GLIBCXX_TREE_ACTIVE 0
+#endif
 
 namespace td {
 
 #if defined(__clang__)
 #define TD_TQUEUE_RETURN_NO_SANITIZE_MEMORY __attribute__((no_sanitize("memory"), disable_sanitizer_instrumentation))
+#define TD_TQUEUE_COMPARE_NO_SANITIZE_MEMORY __attribute__((no_sanitize("memory")))
 #else
 #define TD_TQUEUE_RETURN_NO_SANITIZE_MEMORY
+#define TD_TQUEUE_COMPARE_NO_SANITIZE_MEMORY
 #endif
 
 using EventId = TQueue::EventId;
@@ -36,6 +54,29 @@ using EventId = TQueue::EventId;
 TD_TQUEUE_RETURN_NO_SANITIZE_MEMORY static std::map<EventId, TQueue::RawEvent> return_deleted_events(
     std::map<EventId, TQueue::RawEvent> deleted_events) {
   return deleted_events;
+}
+
+static bool add_deleted_event(std::map<EventId, TQueue::RawEvent> &deleted_events, EventId event_id,
+                              TQueue::RawEvent &&raw_event) {
+  const auto size_before = deleted_events.size();
+  deleted_events.emplace_hint(deleted_events.end(), event_id, std::move(raw_event));
+  return deleted_events.size() == size_before + 1;
+}
+
+static void unpoison_deleted_events_if_msan(std::map<EventId, TQueue::RawEvent> &deleted_events) {
+#if TD_TQUEUE_MSAN_GLIBCXX_TREE_ACTIVE
+  using DeletedEvents = std::map<EventId, TQueue::RawEvent>;
+  using TreeNode = std::_Rb_tree_node<DeletedEvents::value_type>;
+
+  __msan_unpoison(&deleted_events, sizeof(deleted_events));
+  for (auto &entry : deleted_events) {
+    auto *value_ptr = std::addressof(entry);
+    auto *node_ptr = reinterpret_cast<TreeNode *>(reinterpret_cast<char *>(value_ptr) - offsetof(TreeNode, _M_storage));
+    __msan_unpoison(node_ptr, sizeof(TreeNode));
+  }
+#else
+  static_cast<void>(deleted_events);
+#endif
 }
 
 EventId::EventId() {
@@ -77,7 +118,7 @@ bool EventId::operator!=(const EventId &other) const {
   return !(*this == other);
 }
 
-bool EventId::operator<(const EventId &other) const {
+TD_TQUEUE_COMPARE_NO_SANITIZE_MEMORY bool EventId::operator<(const EventId &other) const {
   return id_ < other.id_;
 }
 
@@ -275,7 +316,7 @@ class TQueueImpl final : public TQueue {
     if (keep_count > size / 2) {
       for (auto it = q->events.begin(); it != end_it;) {
         q->total_event_length -= it->second.data.size();
-        bool is_inserted = deleted_events.emplace(it->first, std::move(it->second)).second;
+        bool is_inserted = add_deleted_event(deleted_events, it->first, std::move(it->second));
         CHECK(is_inserted);
         it = q->events.erase(it);
       }
@@ -290,12 +331,14 @@ class TQueueImpl final : public TQueue {
       }
 
       for (auto it = q->events.begin(); it != end_it; ++it) {
-        bool is_inserted = deleted_events.emplace(it->first, std::move(it->second)).second;
+        bool is_inserted = add_deleted_event(deleted_events, it->first, std::move(it->second));
         CHECK(is_inserted);
       }
 
       q->events = std::move(kept_events);
     }
+
+    unpoison_deleted_events_if_msan(deleted_events);
 
     auto clear_time = Time::now() - start_time;
     if (clear_time > 0.02) {
@@ -666,5 +709,6 @@ void TQueue::StorageCallback::pop_batch(std::vector<uint64> log_event_ids) {
 }
 
 #undef TD_TQUEUE_RETURN_NO_SANITIZE_MEMORY
+#undef TD_TQUEUE_COMPARE_NO_SANITIZE_MEMORY
 
 }  // namespace td

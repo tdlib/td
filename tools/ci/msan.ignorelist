@@ -20,12 +20,9 @@ fun:sqlcipher_openssl_hmac
 [memory]
 fun:td::warmup_openssl_random_generators
 
-# TQueue Queue::events is a std::map<EventId,RawEvent> whose tree nodes have
-# uninitialised colour/parent/link bytes in libstdc++.  The false positive fires
-# when do_push calls emplace() (node allocation) and do_get calls lower_bound()
-# (node traversal).  The EventId key and RawEvent data themselves are always
-# fully initialised; only the internal Rb_tree node header bytes are at issue.
-# Suppress the entire TQueue implementation file rather than trying to surgically
-# suppress just do_push/do_get (ignorelist fun: patterns don't reliably match
-# instantiated template code in libstdc++).
-src:*/tddb/td/db/TQueue.cpp
+# GCC libstdc++ red-black tree nodes leave internal bookkeeping bytes in a
+# state that trips MSan when instrumented test code traverses std::map,
+# std::set, or std::multiset. Keep the suppression on the container internals;
+# poisoned user values still surface in their own comparison/hash code.
+src:*/bits/stl_tree.h
+fun:*_Rb_tree*

@@ -782,7 +782,6 @@ void AesCtrState::decrypt(Slice from, MutableSlice to) {
   encrypt(from, to);
 }
 
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
 class ScopedMsanInterceptorChecks final {
  public:
   ScopedMsanInterceptorChecks() {
@@ -798,6 +797,7 @@ class ScopedMsanInterceptorChecks final {
   }
 };
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
 static void make_digest(Slice data, MutableSlice output, const EVP_MD_CTX *evp_md_ctx) {
   static TD_THREAD_LOCAL EVP_MD_CTX *ctx;
   if (unlikely(ctx == nullptr)) {
@@ -1118,6 +1118,11 @@ void hmac_sha256(Slice key, Slice message, MutableSlice dest) {
 #else
   hmac_impl(EVP_sha256(), key, message, dest);
 #endif
+#if TD_CRYPTO_MSAN_ACTIVE
+  // OpenSSL's HMAC implementation is not instrumented, so mark the finalized
+  // digest bytes as initialized for MemorySanitizer.
+  __msan_unpoison(dest.ubegin(), dest.size());
+#endif
 }
 
 void hmac_sha512(Slice key, Slice message, MutableSlice dest) {
@@ -1126,6 +1131,11 @@ void hmac_sha512(Slice key, Slice message, MutableSlice dest) {
   hmac_impl_sha512(key, message, dest);
 #else
   hmac_impl(EVP_sha512(), key, message, dest);
+#endif
+#if TD_CRYPTO_MSAN_ACTIVE
+  // OpenSSL's HMAC implementation is not instrumented, so mark the finalized
+  // digest bytes as initialized for MemorySanitizer.
+  __msan_unpoison(dest.ubegin(), dest.size());
 #endif
 }
 
@@ -1152,6 +1162,7 @@ Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data) {
     BIO_vfree(mem_bio);
   };
 
+  ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
   EVP_PKEY *pkey = PEM_read_bio_PUBKEY(mem_bio, nullptr, nullptr, nullptr);
   if (!pkey) {
     return Status::Error("Cannot read public key");
@@ -1189,11 +1200,18 @@ Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data) {
   if (EVP_PKEY_encrypt(ctx, nullptr, &outlen, data.ubegin(), data.size()) <= 0) {
     return Status::Error("Cannot calculate encrypted length");
   }
+#if TD_CRYPTO_MSAN_ACTIVE
+  __msan_unpoison(&outlen, sizeof(outlen));
+#endif
   BufferSlice res(outlen);
   if (EVP_PKEY_encrypt(ctx, res.as_mutable_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
 #endif
     return Status::Error("Cannot encrypt");
   }
+#if TD_CRYPTO_MSAN_ACTIVE
+  __msan_unpoison(&outlen, sizeof(outlen));
+  __msan_unpoison(res.as_mutable_slice().ubegin(), outlen);
+#endif
   return std::move(res);
 }
 
@@ -1204,6 +1222,7 @@ Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice private_key, Slice data) {
     BIO_vfree(mem_bio);
   };
 
+  ScopedMsanInterceptorChecks scoped_msan_interceptor_checks;
   EVP_PKEY *pkey = PEM_read_bio_PrivateKey(mem_bio, nullptr, nullptr, nullptr);
   if (!pkey) {
     return Status::Error("Cannot read private key");
@@ -1225,6 +1244,7 @@ Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice private_key, Slice data) {
     return Status::Error("Cannot decrypt");
   }
   res.truncate(inlen);
+  outlen = static_cast<size_t>(inlen);
 #else
   EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, nullptr);
   if (!ctx) {
@@ -1245,10 +1265,17 @@ Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice private_key, Slice data) {
   if (EVP_PKEY_decrypt(ctx, nullptr, &outlen, data.ubegin(), data.size()) <= 0) {
     return Status::Error("Cannot calculate decrypted length");
   }
+#if TD_CRYPTO_MSAN_ACTIVE
+  __msan_unpoison(&outlen, sizeof(outlen));
+#endif
   BufferSlice res(outlen);
   if (EVP_PKEY_decrypt(ctx, res.as_mutable_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
     return Status::Error("Cannot decrypt");
   }
+#endif
+#if TD_CRYPTO_MSAN_ACTIVE
+  __msan_unpoison(&outlen, sizeof(outlen));
+  __msan_unpoison(res.as_mutable_slice().ubegin(), outlen);
 #endif
   return std::move(res);
 }

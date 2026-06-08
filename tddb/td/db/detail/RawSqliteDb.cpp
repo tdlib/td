@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/db/detail/RawSqliteDb.h"
 
@@ -20,6 +20,11 @@ namespace td {
 namespace detail {
 
 static std::atomic<bool> was_database_destroyed{false};
+static Mutex sqlcipher_key_init_mutex;
+
+Mutex::Guard RawSqliteDb::lock_sqlcipher_key_init_mutex() {
+  return sqlcipher_key_init_mutex.lock();
+}
 
 Status RawSqliteDb::last_error(tdsqlite3 *db, CSlice path) {
   return Status::Error(PSLICE() << Slice(tdsqlite3_errmsg(db)) << " for database \"" << path << '"');
@@ -52,6 +57,15 @@ bool RawSqliteDb::was_any_database_destroyed() {
 }
 
 RawSqliteDb::~RawSqliteDb() {
+  if (close_under_sqlcipher_key_init_mutex_) {
+    auto key_init_lock = lock_sqlcipher_key_init_mutex();
+    close();
+    return;
+  }
+  close();
+}
+
+void RawSqliteDb::close() {
   auto rc = tdsqlite3_close(db_);
   LOG_IF(FATAL, rc != SQLITE_OK) << last_error(db_, path());
 }

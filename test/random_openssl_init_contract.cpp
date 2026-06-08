@@ -186,6 +186,16 @@ TEST(RandomOpenSslInitContract, ssl_stream_read_scopes_msan_interceptor_checks_a
   ASSERT_NE(td::string::npos, read_region.find("__msan_unpoison(slice.data(),static_cast<size_t>(size));"));
 }
 
+TEST(RandomOpenSslInitContract, ssl_ctx_system_cert_load_scopes_msan_interceptor_checks) {
+  const auto source = td::mtproto::test::read_repo_text_file("tdnet/td/net/SslCtx.cpp");
+  const auto normalized = normalize_for_contract(extract_region(source, "auto add_file = [&](CSlice path) {",
+                                                                "auto add_cert_dir = [&](CSlice cert_dir) {"));
+
+  ASSERT_NE(td::string::npos,
+            normalized.find("ScopedMsanInterceptorChecksscoped_msan_interceptor_checks;"
+                            "if(X509_STORE_load_locations(store,path.c_str(),nullptr)!=1)"));
+}
+
 TEST(RandomOpenSslInitContract, ssl_stream_custom_bio_write_unpoisons_ciphertext_before_buffering) {
   const auto source = td::mtproto::test::read_repo_text_file("tdnet/td/net/SslStream.cpp");
   const auto normalized = normalize_for_contract(

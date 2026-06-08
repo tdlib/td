@@ -13,6 +13,7 @@
 #include "td/utils/tl_storers.h"
 
 #include "test/stealth/SourceContractFileReader.h"
+#include "test/stealth/MsanOpenSslInterceptorScope.h"
 
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
@@ -87,6 +88,7 @@ td::int64 bundle_rsa_public_key_sha1_fingerprint(td::Slice pem) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
+  td::mtproto::test::MsanOpenSslInterceptorScope msan_openssl_interceptor_scope;
   auto *rsa = PEM_read_bio_RSAPublicKey(input, nullptr, nullptr, nullptr);
   CHECK(rsa != nullptr);
   SCOPE_EXIT {

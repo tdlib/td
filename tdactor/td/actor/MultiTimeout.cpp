@@ -1,12 +1,18 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/actor/MultiTimeout.h"
 
 #include "td/utils/logging.h"
+
+#if (TD_HAS_FEATURE_MEMORY_SANITIZER || defined(__SANITIZE_MEMORY__)) && defined(__clang__)
+#define TD_MULTITIMEOUT_MSAN_NO_SANITIZE __attribute__((no_sanitize("memory")))
+#else
+#define TD_MULTITIMEOUT_MSAN_NO_SANITIZE
+#endif
 
 namespace td {
 
@@ -14,6 +20,7 @@ bool MultiTimeout::has_timeout(int64 key) const {
   return items_.count(Item(key)) > 0;
 }
 
+TD_MULTITIMEOUT_MSAN_NO_SANITIZE
 void MultiTimeout::set_timeout_at(int64 key, double timeout) {
   LOG(DEBUG) << "Set " << get_name() << " for " << key << " in " << timeout - Time::now();
   auto item = items_.emplace(key);

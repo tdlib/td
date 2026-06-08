@@ -1,14 +1,15 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
+#include "td/utils/SpinLock.h"
 
 #include <atomic>
 #include <cstdio>
@@ -53,6 +54,7 @@ class MemoryLog final : public LogInterface {
 
     uint32 start_pos = real_pos & (buffer_size - 1);
     uint32 end_pos = start_pos + total_size;
+    auto lock = lock_.lock();
     if (likely(end_pos <= buffer_size)) {
       std::memcpy(&buffer_[start_pos + MAGIC_SIZE], slice.data(), slice_size);
       std::memcpy(&buffer_[start_pos + MAGIC_SIZE + slice_size], "               ", pad_size);
@@ -74,6 +76,7 @@ class MemoryLog final : public LogInterface {
 
   char buffer_[buffer_size];
   std::atomic<uint32> pos_{0};
+  SpinLock lock_;
 };
 
 }  // namespace td

@@ -26,6 +26,16 @@ class TQueueClearMsanContractTest(unittest.TestCase):
             source,
         )
 
+    def test_clear_appends_deleted_events_without_lower_bound_tree_search(self) -> None:
+        source = normalize(TQUEUE_CPP)
+
+        self.assertIn("staticbooladd_deleted_event(", source)
+        self.assertIn("deleted_events.emplace_hint(deleted_events.end(),event_id,std::move(raw_event))", source)
+        self.assertIn("staticvoidunpoison_deleted_events_if_msan(", source)
+        self.assertIn("__msan_unpoison(&deleted_events,sizeof(deleted_events));", source)
+        self.assertIn("__msan_unpoison(node_ptr,sizeof(TreeNode));", source)
+        self.assertNotIn("deleted_events.emplace(it->first,std::move(it->second))", source)
+
     def test_runtime_clear_test_does_not_skip_msan_with_stale_map_rationale(
         self,
     ) -> None:

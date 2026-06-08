@@ -1,15 +1,14 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/db/SqliteDb.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
-#include "td/utils/port/Mutex.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/SliceBuilder.h"
@@ -22,8 +21,6 @@
 namespace td {
 
 namespace {
-Mutex sqlcipher_key_init_mutex;
-
 string quote_string(Slice str) {
   size_t cnt = 0;
   for (auto &c : str) {
@@ -223,10 +220,15 @@ Status SqliteDb::check_encryption() {
 
 Result<SqliteDb> SqliteDb::open_with_key(CSlice path, bool allow_creation, const DbKey &db_key,
                                          optional<int32> cipher_version) {
-  auto res = do_open_with_key(path, allow_creation, db_key, cipher_version ? cipher_version.value() : 0);
-  if (res.is_error() && !cipher_version && !db_key.is_empty()) {
-    return do_open_with_key(path, false, db_key, 3);
+  if (!db_key.is_empty()) {
+    auto key_init_lock = detail::RawSqliteDb::lock_sqlcipher_key_init_mutex();
+    auto res = do_open_with_key(path, allow_creation, db_key, cipher_version ? cipher_version.value() : 0);
+    if (res.is_error() && !cipher_version) {
+      return do_open_with_key(path, false, db_key, 3);
+    }
+    return res;
   }
+  auto res = do_open_with_key(path, allow_creation, db_key, cipher_version ? cipher_version.value() : 0);
   return res;
 }
 
@@ -235,7 +237,6 @@ Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, bool allow_creation, co
   SqliteDb db;
   TRY_STATUS(db.init(path, allow_creation));
   if (!db_key.is_empty()) {
-    auto key_init_lock = sqlcipher_key_init_mutex.lock();
     if (db.check_encryption().is_ok()) {
       return Status::Error(PSLICE() << "No key is needed for database \"" << path << '"');
     }
@@ -247,6 +248,7 @@ Result<SqliteDb> SqliteDb::do_open_with_key(CSlice path, bool allow_creation, co
     }
     db.set_cipher_version(cipher_version);
     TRY_STATUS_PREFIX(db.check_encryption(), "Can't check database: ");
+    db.raw_->set_close_under_sqlcipher_key_init_mutex();
     return std::move(db);
   }
   TRY_STATUS_PREFIX(db.check_encryption(), "Can't check database: ");
