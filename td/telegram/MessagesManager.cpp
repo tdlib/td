@@ -4190,26 +4190,7 @@ void MessagesManager::extract_authentication_codes(DialogId dialog_id, const Mes
   }
   auto *formatted_text = get_message_content_text(m->content.get());
   CHECK(formatted_text != nullptr);
-  const string &text = formatted_text->text;
-  for (size_t i = 0; i < text.size(); i++) {
-    if (is_digit(text[i])) {
-      string code;
-      do {
-        if (is_digit(text[i])) {
-          code += text[i++];
-          continue;
-        }
-        if (text[i] == '-') {
-          i++;
-          continue;
-        }
-        break;
-      } while (true);
-      if (5 <= code.size() && code.size() <= 7) {
-        authentication_codes.push_back(code);
-      }
-    }
-  }
+  find_authentication_codes(formatted_text->text, authentication_codes);
 }
 
 void MessagesManager::save_auth_notification_ids() {
