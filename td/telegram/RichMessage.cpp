@@ -165,7 +165,7 @@ bool RichMessage::has_bot_commands() const {
 vector<string> RichMessage::get_hashtags() const {
   vector<string> hashtags;
   for (const auto &block : blocks_) {
-    td::append(hashtags, block->get_hashtags());
+    append(hashtags, block->get_hashtags());
   }
   return hashtags;
 }

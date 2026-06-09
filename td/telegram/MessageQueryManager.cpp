@@ -98,7 +98,7 @@ class GetRichMessageQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetFullRichMessageQuery: " << to_string(ptr);
+    LOG(INFO) << "Receive result for GetRichMessageQuery: " << to_string(ptr);
     auto info = get_messages_info(td_, dialog_id_, std::move(ptr), "GetRichMessageQuery");
     if (info.messages.size() != 1u || info.messages[0]->get_id() != telegram_api::message::ID) {
       return promise_.set_value(nullptr);

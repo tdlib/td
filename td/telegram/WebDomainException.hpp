@@ -30,7 +30,7 @@ void WebDomainException::store(StorerT &storer) const {
 template <class ParserT>
 void WebDomainException::parse(ParserT &parser) {
   using td::parse;
-  bool has_favicon_custom_emoji_id = favicon_custom_emoji_id_.is_valid();
+  bool has_favicon_custom_emoji_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_favicon_custom_emoji_id);
   END_PARSE_FLAGS();

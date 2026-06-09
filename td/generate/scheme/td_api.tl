@@ -4010,9 +4010,9 @@ pageBlockCaption text:RichText credit:RichText = PageBlockCaption;
 //@blocks Item blocks
 //@has_checkbox True, if the item has a checkbox
 //@is_checked True, if the item is checked
-//@value Value of the item; 0 for non-ordered lists
+//@value Value of the item; 0 for unordered lists
 //@type Type of the item numbering type; must be one of "a" for a lowercase letter, "A" for an uppercase letter, "i" for lowercase Roman numerals, "I" for uppercase Roman numerals,
-//-"1" for decimal numbers, or empty for non-ordered lists
+//-"1" for decimal numbers, or empty for unordered lists
 pageBlockListItem label:string blocks:vector<PageBlock> has_checkbox:Bool is_checked:Bool value:int32 type:string = PageBlockListItem;
 
 //@class PageBlockHorizontalAlignment @description Describes a horizontal alignment of a table cell content
@@ -8771,7 +8771,7 @@ accountTtl days:int32 = AccountTtl;
 messageAutoDeleteTime time:int32 = MessageAutoDeleteTime;
 
 
-//@class SessionType @description Describes type of a user session
+//@class SessionType @description Describes type of user session
 
 //@description A regular session from a device
 //@session_id Unique identifier of the session. Use terminateSession to terminate it or confirmSession to confirm it if it isn't confirmed yet
@@ -9619,13 +9619,13 @@ webDomainException url:string domain:string title:string favicon_custom_emoji_id
 
 //@description Describes web browser settings
 //@open_external_browser True, if links are opened in an external browser by default
-//@external_exceptions The list of websites which must be always opened in an external browser
-//@in_app_exceptions The list of websites which must be always opened in the in-app browser
+//@external_exceptions The list of websites which must always be opened in an external browser
+//@in_app_exceptions The list of websites which must always be opened in the in-app browser
 //@display_close_button True, if a close button must be shown in the in-app browser; for Android app only
 webBrowserSettings open_external_browser:Bool external_exceptions:vector<webDomainException> in_app_exceptions:vector<webDomainException> display_close_button:Bool = WebBrowserSettings;
 
 
-//@class WebBrowserType @description Describes the type of a web browser
+//@class WebBrowserType @description Describes the type of web browser
 
 //@description An external web browser
 webBrowserTypeExternal = WebBrowserType;
@@ -10576,7 +10576,7 @@ updateUnreadChatCount chat_list:ChatList total_count:int32 unread_count:int32 un
 
 //@description A join request from the user was completed
 //@query_id Identifier of the join request query as received in chatJoinResultGuardBotApprovalRequired. If the corresponding Web App is stiil open, then it must be closed
-//@chat_id Identifier of the joined chat, or 0 if the request didn't succeed
+//@chat_id Identifier of the joined chat, or 0 if the request wasn't approved
 //@result Result of the join
 updateChatJoinResult query_id:int64 chat_id:int53 result:ChatJoinRequestResult = Update;
 
@@ -10887,7 +10887,7 @@ updateChatMember chat_id:int53 actor_user_id:int53 date:int32 invite_link:chatIn
 //@request Join request
 //@user_chat_id Chat identifier of the private chat with the user
 //@invite_link The invite link, which was used to send join request; may be null
-//@query_id Identifier of the join request query, which can be used in processChatJoinRequestQuery; 0 if none
+//@query_id Identifier of the join request query, which can be used in answerChatJoinRequestQuery; 0 if none
 updateNewChatJoinRequest chat_id:int53 request:chatJoinRequest user_chat_id:int53 invite_link:chatInviteLink query_id:int64 = Update;
 
 //@description A chat boost has changed; for bots only
@@ -12202,7 +12202,7 @@ readdQuickReplyShortcutMessages shortcut_name:string message_ids:vector<int53> =
 //-The type of message content in an album can't be changed with exception of replacing a photo with a video or vice versa
 //@shortcut_id Unique identifier of the quick reply shortcut with the message
 //@message_id Identifier of the message
-//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageChecklist, inputMessageDocument, inputMessagePhoto, inputMessageRichText, inputMessageText, or inputMessageVideo
+//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageChecklist, inputMessageDocument, inputMessagePhoto, inputMessageRichMessage, inputMessageText, or inputMessageVideo
 editQuickReplyMessage shortcut_id:int32 message_id:int53 input_message_content:InputMessageContent = Ok;
 
 
