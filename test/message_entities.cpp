@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/CustomEmojiId.h"
+#include "td/telegram/FormattedDate.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/UserId.h"
 

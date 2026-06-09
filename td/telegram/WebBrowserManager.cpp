@@ -10,11 +10,13 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/WebBrowserSettings.hpp"
 
 #include "td/utils/buffer.h"
 #include "td/utils/HttpUrl.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Promise.h"
 

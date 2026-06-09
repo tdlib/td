@@ -20,6 +20,7 @@
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/WebPageId.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"

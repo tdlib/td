@@ -6,6 +6,8 @@
 //
 #include "td/telegram/FormattedDate.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 FormattedDate::FormattedDate(int32 date, bool relative, bool short_time, bool long_time, bool short_date,

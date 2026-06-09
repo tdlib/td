@@ -12,6 +12,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/emoji.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"

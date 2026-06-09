@@ -7,8 +7,6 @@
 #include "td/telegram/DialogInviteLinkManager.h"
 
 #include "td/telegram/AccessRights.h"
-#include "td/telegram/ChannelId.h"
-#include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogManager.h"
