@@ -2883,7 +2883,7 @@ class WebPageBlockChatLink final : public WebPageBlock {
   telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(
       const Td *td, vector<telegram_api::object_ptr<telegram_api::InputPhoto>> &photos,
       vector<telegram_api::object_ptr<telegram_api::InputDocument>> &documents) const final {
-    LOG(ERROR) << "Have pageBlockChatLink in a message";
+    LOG(ERROR) << "Have pageBlockChatLink";
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
   }
 
