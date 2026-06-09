@@ -11926,12 +11926,13 @@ td_api::object_ptr<td_api::CraftGiftResult> get_message_content_craft_gift_resul
 }
 
 bool get_message_content_has_bot_commands(const MessageContent *content) {
-  auto text = get_message_content_text(content);
+  const auto *text = get_message_content_text(content);
   if (text != nullptr) {
     return has_bot_commands(text);
   }
-  if (content->get_type() == MessageContentType::RichText) {
-    return static_cast<const MessageRichText *>(content)->text.has_bot_commands();
+  const auto *rich_message = get_message_content_rich_message(content);
+  if (rich_message != nullptr) {
+    return rich_message->has_bot_commands();
   }
   return false;
 }
@@ -13337,8 +13338,9 @@ void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date) 
 void update_used_hashtags(Td *td, const MessageContent *content) {
   const FormattedText *text = get_message_content_text(content);
   if (text == nullptr || text->text.empty()) {
-    if (content->get_type() == MessageContentType::RichText) {
-      for (const auto &hashtag : static_cast<const MessageRichText *>(content)->text.get_hashtags()) {
+    const auto *rich_message = get_message_content_rich_message(content);
+    if (rich_message != nullptr) {
+      for (const auto &hashtag : rich_message->get_hashtags()) {
         send_closure(td->hashtag_hints_, &HashtagHints::hashtag_used, hashtag);
       }
     }

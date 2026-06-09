@@ -665,18 +665,18 @@ class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHan
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editMessage::MEDIA_MASK;
     }
-    auto rich_message = get_message_content_input_rich_message(td_, content);
-    if (rich_message != nullptr) {
+    auto input_rich_message = get_message_content_input_rich_message(td_, content);
+    if (input_rich_message != nullptr) {
       flags |= telegram_api::messages_editMessage::RICH_MESSAGE_MASK;
     }
 
     CHECK(m->shortcut_id.is_server());
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_editMessage(flags, m->edited_disable_web_page_preview, m->edited_invert_media,
-                                           telegram_api::make_object<telegram_api::inputPeerSelf>(),
-                                           m->message_id.get_server_message_id().get(),
-                                           text != nullptr ? text->text : string(), std::move(input_media), nullptr,
-                                           std::move(entities), 0, 0, m->shortcut_id.get(), std::move(rich_message)),
+        telegram_api::messages_editMessage(
+            flags, m->edited_disable_web_page_preview, m->edited_invert_media,
+            telegram_api::make_object<telegram_api::inputPeerSelf>(), m->message_id.get_server_message_id().get(),
+            text != nullptr ? text->text : string(), std::move(input_media), nullptr, std::move(entities), 0, 0,
+            m->shortcut_id.get(), std::move(input_rich_message)),
         {{"me"}}));
   }
 
