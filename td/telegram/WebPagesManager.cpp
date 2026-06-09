@@ -1613,12 +1613,12 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
         break;
       case td_api::pageBlockCollage::ID: {
         auto *collage = static_cast<td_api::pageBlockCollage *>(block_object.get());
-        process_album(std::move(collage->page_blocks_), std::move(collage->caption_));
+        process_album(std::move(collage->blocks_), std::move(collage->caption_));
         break;
       }
       case td_api::pageBlockSlideshow::ID: {
         auto *collage = static_cast<td_api::pageBlockSlideshow *>(block_object.get());
-        process_album(std::move(collage->page_blocks_), std::move(collage->caption_));
+        process_album(std::move(collage->blocks_), std::move(collage->caption_));
         break;
       }
       default:

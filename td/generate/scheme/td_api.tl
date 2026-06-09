@@ -4007,13 +4007,13 @@ pageBlockCaption text:RichText credit:RichText = PageBlockCaption;
 
 //@description Describes an item of a list page block
 //@label Item label
-//@page_blocks Item blocks
+//@blocks Item blocks
 //@has_checkbox True, if the item has a checkbox
 //@is_checked True, if the item is checked
 //@value Value of the item; 0 for non-ordered lists
 //@type Type of the item numbering type; must be one of "a" for a lowercase letter, "A" for an uppercase letter, "i" for lowercase Roman numerals, "I" for uppercase Roman numerals,
 //-"1" for decimal numbers, or empty for non-ordered lists
-pageBlockListItem label:string page_blocks:vector<PageBlock> has_checkbox:Bool is_checked:Bool value:int32 type:string = PageBlockListItem;
+pageBlockListItem label:string blocks:vector<PageBlock> has_checkbox:Bool is_checked:Bool value:int32 type:string = PageBlockListItem;
 
 //@class PageBlockHorizontalAlignment @description Describes a horizontal alignment of a table cell content
 
@@ -4164,19 +4164,19 @@ pageBlockEmbedded url:string html:string poster_photo:photo width:int32 height:i
 //@author Post author
 //@author_photo Post author photo; may be null
 //@date Point in time (Unix timestamp) when the post was created; 0 if unknown
-//@page_blocks Post content
+//@blocks Post content
 //@caption Post caption
-pageBlockEmbeddedPost url:string author:string author_photo:photo date:int32 page_blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
+pageBlockEmbeddedPost url:string author:string author_photo:photo date:int32 blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
 
 //@description A collage
-//@page_blocks Collage item contents
+//@blocks Collage item contents
 //@caption Block caption
-pageBlockCollage page_blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
+pageBlockCollage blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
 
 //@description A slideshow
-//@page_blocks Slideshow item contents
+//@blocks Slideshow item contents
 //@caption Block caption
-pageBlockSlideshow page_blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
+pageBlockSlideshow blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
 
 //@description A link to a chat; instant view only
 //@title Chat title
@@ -4194,9 +4194,9 @@ pageBlockTable caption:RichText cells:vector<vector<pageBlockTableCell>> is_bord
 
 //@description A collapsible block
 //@header Always visible heading for the block
-//@page_blocks Block contents
+//@blocks Block contents
 //@is_open True, if the block is open by default
-pageBlockDetails header:RichText page_blocks:vector<PageBlock> is_open:Bool = PageBlock;
+pageBlockDetails header:RichText blocks:vector<PageBlock> is_open:Bool = PageBlock;
 
 //@description Related articles; instant view only
 //@header Block header
@@ -4213,13 +4213,13 @@ pageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageB
 
 
 //@description Describes an instant view page for a web page
-//@page_blocks Content of the instant view page
+//@blocks Content of the instant view page
 //@view_count Number of the instant view views; 0 if unknown
 //@version Version of the instant view; currently, can be 1 or 2
 //@is_rtl True, if the instant view must be shown from right to left
 //@is_full True, if the instant view contains the full page. A network request might be needed to get the full instant view
 //@feedback_link An internal link to be opened to leave feedback about the instant view
-webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 is_rtl:Bool is_full:Bool feedback_link:InternalLinkType = WebPageInstantView;
+webPageInstantView blocks:vector<PageBlock> view_count:int32 version:int32 is_rtl:Bool is_full:Bool feedback_link:InternalLinkType = WebPageInstantView;
 
 
 //@class LinkPreviewAlbumMedia @description Describes a media from a link preview album
