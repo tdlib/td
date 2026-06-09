@@ -13245,8 +13245,11 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::NoForwardsRequest:
       break;
-    case MessageContentType::ManagedBotCreated:
+    case MessageContentType::ManagedBotCreated: {
+      const auto *content = static_cast<const MessageManagedBotCreated *>(message_content);
+      dependencies.add(content->bot_user_id);
       break;
+    }
     case MessageContentType::PollAppendAnswer:
       break;
     case MessageContentType::PollDeleteAnswer:
