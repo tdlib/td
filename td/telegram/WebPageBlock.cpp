@@ -93,7 +93,7 @@ class RichText {
   }
 
   static string trim_first(const string &str, char c) {
-    if (!str.empty() && str[0] == 'c') {
+    if (!str.empty() && str[0] == c) {
       return str.substr(1);
     }
     LOG(ERROR) << "Expected string starting with '" << c << "', but received \"" << str << '"';
