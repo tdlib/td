@@ -306,8 +306,7 @@ class RichText {
       case RichText::Type::Fixed:
         return td_api::make_object<td_api::richTextFixed>(texts[0].get_rich_text_object(context));
       case RichText::Type::Url:
-        if (!context->base_url_.empty() && begins_with(content, context->base_url_) &&
-            content[context->base_url_.size()] == '#') {
+        if (begins_with(content, context->base_url_) && content[context->base_url_.size()] == '#') {
           if (context->is_first_pass_) {
             context->has_anchor_urls_ = true;
           } else {
