@@ -28,7 +28,7 @@ void ToDoItem::parse(ParserT &parser) {
   END_PARSE_FLAGS();
   td::parse(id_, parser);
   td::parse(title_, parser);
-  validate("parse");
+  validate(0, "parse");
 }
 
 }  // namespace td

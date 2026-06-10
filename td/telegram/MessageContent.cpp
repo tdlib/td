@@ -9857,7 +9857,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto completions = transform(std::move(media->completions_),
                                    [](auto &&completion) { return ToDoCompletion(std::move(completion)); });
       td::remove_if(completions, [](const auto &completion) { return !completion.is_valid(); });
-      return td::make_unique<MessageToDoList>(ToDoList(td->user_manager_.get(), std::move(media->todo_)),
+      return td::make_unique<MessageToDoList>(ToDoList(td->user_manager_.get(), std::move(media->todo_), message_date),
                                               std::move(completions));
     }
     case telegram_api::messageMediaUnsupported::ID:
@@ -10878,9 +10878,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                    << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
-      auto items = transform(std::move(action->list_), [user_manager = td->user_manager_.get()](auto &&item) {
-        return ToDoItem(user_manager, std::move(item));
-      });
+      auto items =
+          transform(std::move(action->list_), [message_date, user_manager = td->user_manager_.get()](auto &&item) {
+            return ToDoItem(user_manager, std::move(item), message_date);
+          });
       return td::make_unique<MessageTodoAppendTasks>(reply_to_message_id, std::move(items));
     }
     case telegram_api::messageActionSuggestedPostApproval::ID: {
