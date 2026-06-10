@@ -11300,17 +11300,13 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
-      td_api::object_ptr<td_api::PollMedia> media;
-      if (m->attached_media != nullptr) {
-        media = get_poll_media_object(m->attached_media.get(), td);
-      }
       auto can_add_option = !td->auth_manager_->is_bot() && !is_forward && message_id.is_server() &&
                             td->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) &&
                             td->poll_manager_->get_poll_can_add_option(m->poll_id) && is_real_message_content;
       return make_tl_object<td_api::messagePoll>(
           td->poll_manager_->get_poll_object(m->poll_id, dialog_id, message_id, initial_dialog_id, initial_date,
                                              is_real_message_content),
-          get_text_object(m->caption), std::move(media), can_add_option);
+          get_text_object(m->caption), get_poll_media_object(m->attached_media.get(), td), can_add_option);
     }
     case MessageContentType::Dice: {
       const auto *m = static_cast<const MessageDice *>(content);
@@ -11814,7 +11810,9 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
 }
 
 td_api::object_ptr<td_api::PollMedia> get_poll_media_object(const MessageContent *content, Td *td) {
-  CHECK(content != nullptr);
+  if (content == nullptr) {
+    return nullptr;
+  }
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       const auto *m = static_cast<const MessageAnimation *>(content);

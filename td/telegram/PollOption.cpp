@@ -120,13 +120,9 @@ td_api::object_ptr<td_api::pollOption> PollOption::get_poll_option_object(Td *td
                     : get_min_message_sender_object(td, added_by_dialog_id_, "pollOption");
   bool is_added = author != nullptr;
   auto recent_voter_ids = get_min_message_senders_object(td, recent_voter_dialog_ids_, "pollOption recent voter");
-  td_api::object_ptr<td_api::PollMedia> media;
-  if (media_ != nullptr) {
-    media = get_poll_media_object(media_.get(), td);
-  }
-  return td_api::make_object<td_api::pollOption>(data_, get_formatted_text_object(nullptr, text_, true, -1),
-                                                 std::move(media), voter_count_, 0, std::move(recent_voter_ids),
-                                                 is_chosen_, false, std::move(author), is_added ? added_date_ : 0);
+  return td_api::make_object<td_api::pollOption>(
+      data_, get_formatted_text_object(nullptr, text_, true, -1), get_poll_media_object(media_.get(), td), voter_count_,
+      0, std::move(recent_voter_ids), is_chosen_, false, std::move(author), is_added ? added_date_ : 0);
 }
 
 telegram_api::object_ptr<telegram_api::PollAnswer> PollOption::get_input_poll_answer(
