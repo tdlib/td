@@ -4105,12 +4105,12 @@ pageBlockList items:vector<pageBlockListItem> = PageBlock;
 
 //@description A block quote
 //@blocks Quote blocks
-//@credit Quote credit
+//@credit Quote credit; may be null if none
 pageBlockBlockQuote blocks:vector<PageBlock> credit:RichText = PageBlock;
 
 //@description A pull quote
 //@text Quote text
-//@credit Quote credit
+//@credit Quote credit; may be null if none
 pageBlockPullQuote text:RichText credit:RichText = PageBlock;
 
 //@description An animation
@@ -4186,7 +4186,7 @@ pageBlockSlideshow blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock
 pageBlockChatLink title:string photo:chatPhotoInfo accent_color_id:int32 username:string = PageBlock;
 
 //@description A table
-//@caption Table caption
+//@caption Table caption; may be null if none
 //@cells Table cells
 //@is_bordered True, if the table is bordered
 //@is_striped True, if the table is striped
