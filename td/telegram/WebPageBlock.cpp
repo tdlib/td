@@ -1014,11 +1014,11 @@ class WebPageBlockHeader final : public WebPageBlock {
   telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(
       const Td *td, vector<telegram_api::object_ptr<telegram_api::InputPhoto>> &photos,
       vector<telegram_api::object_ptr<telegram_api::InputDocument>> &documents) const final {
+    LOG(ERROR) << "Have pageBlockHeader";
     return telegram_api::make_object<telegram_api::pageBlockHeader>(header.get_input_rich_text(td, documents));
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
-    LOG(ERROR) << "Have pageBlockHeader";
     return td_api::make_object<td_api::pageBlockHeader>(header.get_rich_text_object(context));
   }
 
