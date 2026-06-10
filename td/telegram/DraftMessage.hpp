@@ -90,7 +90,7 @@ void DraftMessage::parse(ParserT &parser) {
     td::parse(message_input_reply_to_, parser);
 
     auto message_id = message_input_reply_to_.get_same_chat_reply_to_message_id();
-    if (message_id.is_valid() && message_id.is_yet_unsent()) {
+    if (message_id.is_valid() && (message_id.is_yet_unsent() || message_id.is_local())) {
       message_input_reply_to_ = {};
     }
   }
