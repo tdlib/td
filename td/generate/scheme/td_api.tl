@@ -3992,13 +3992,16 @@ richTextIcon document:document width:int32 height:int32 = RichText;
 //@description A mathematical expression @expression The expression in LaTeX format
 richTextMathematicalExpression expression:string = RichText;
 
-//@description A reference to a richTexts object on the same page @text The text @anchor_name The name of a richTextAnchor object, which is the first element of the target richTexts object @url An HTTP URL, opening the reference
-richTextReference text:RichText anchor_name:string url:string = RichText;
+//@description A reference @name Reference name @text Text of the reference
+richTextReference name:string text:RichText = RichText;
+
+//@description A link to a reference on the same page @text The link text @reference_name The reference name @url An HTTP URL that opens the reference
+richTextReferenceLink text:RichText reference_name:string url:string = RichText;
 
 //@description An anchor @name Anchor name
 richTextAnchor name:string = RichText;
 
-//@description A link to an anchor on the same page @text The link text @anchor_name The anchor name. If the name is empty, the link must bring back to top @url An HTTP URL, opening the anchor
+//@description A link to an anchor on the same page @text The link text @anchor_name The anchor name. If the name is empty, the link must bring back to top @url An HTTP URL that opens the anchor
 richTextAnchorLink text:RichText anchor_name:string url:string = RichText;
 
 //@description A concatenation of rich texts @texts Texts

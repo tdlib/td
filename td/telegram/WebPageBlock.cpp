@@ -324,8 +324,8 @@ class RichText {
                   return td_api::make_object<td_api::richTextAnchorLink>(texts[0].get_rich_text_object(context),
                                                                          anchor.str(), content);
                 } else {
-                  return td_api::make_object<td_api::richTextReference>(texts[0].get_rich_text_object(context),
-                                                                        anchor.str(), content);
+                  return td_api::make_object<td_api::richTextReferenceLink>(texts[0].get_rich_text_object(context),
+                                                                            anchor.str(), content);
                 }
               }
             }
@@ -368,10 +368,7 @@ class RichText {
         if (texts[0].empty()) {
           return td_api::make_object<td_api::richTextAnchor>(content);
         }
-        auto result = td_api::make_object<td_api::richTexts>();
-        result->texts_.push_back(td_api::make_object<td_api::richTextAnchor>(content));
-        result->texts_.push_back(texts[0].get_rich_text_object(context));
-        return std::move(result);
+        return td_api::make_object<td_api::richTextReference>(content, texts[0].get_rich_text_object(context));
       }
       case RichText::Type::Math:
         return td_api::make_object<td_api::richTextMathematicalExpression>(content);
