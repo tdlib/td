@@ -4115,26 +4115,26 @@ pageBlockPullQuote text:RichText credit:RichText = PageBlock;
 
 //@description An animation
 //@animation Animation file; may be null
-//@caption Animation caption
+//@caption Animation caption; may be null if none
 //@need_autoplay True, if the animation must be played automatically
 //@has_spoiler True, if the animation preview must be covered by a spoiler animation
 pageBlockAnimation animation:animation caption:pageBlockCaption need_autoplay:Bool has_spoiler:Bool = PageBlock;
 
 //@description An audio file
 //@audio Audio file; may be null
-//@caption Audio file caption
+//@caption Audio file caption; may be null if none
 pageBlockAudio audio:audio caption:pageBlockCaption = PageBlock;
 
 //@description A photo
 //@photo Photo file; may be null
-//@caption Photo caption
+//@caption Photo caption; may be null if none
 //@url URL that needs to be opened when the photo is clicked; instant view only
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation
 pageBlockPhoto photo:photo caption:pageBlockCaption url:string has_spoiler:Bool = PageBlock;
 
 //@description A video
 //@video Video file; may be null
-//@caption Video caption
+//@caption Video caption; may be null if none
 //@need_autoplay True, if the video must be played automatically
 //@is_looped True, if the video must be looped
 //@has_spoiler True, if the video preview must be covered by a spoiler animation
@@ -4142,7 +4142,7 @@ pageBlockVideo video:video caption:pageBlockCaption need_autoplay:Bool is_looped
 
 //@description A voice note
 //@voice_note Voice note; may be null
-//@caption Voice note caption
+//@caption Voice note caption; may be null if none
 pageBlockVoiceNote voice_note:voiceNote caption:pageBlockCaption = PageBlock;
 
 //@description A page cover; instant view only @cover Cover
@@ -4154,7 +4154,7 @@ pageBlockCover cover:PageBlock = PageBlock;
 //@poster_photo Poster photo, if available; may be null
 //@width Block width; 0 if unknown
 //@height Block height; 0 if unknown
-//@caption Block caption
+//@caption Block caption; may be null if none
 //@is_full_width True, if the block must be full width
 //@allow_scrolling True, if scrolling needs to be allowed
 pageBlockEmbedded url:string html:string poster_photo:photo width:int32 height:int32 caption:pageBlockCaption is_full_width:Bool allow_scrolling:Bool = PageBlock;
@@ -4165,17 +4165,17 @@ pageBlockEmbedded url:string html:string poster_photo:photo width:int32 height:i
 //@author_photo Post author photo; may be null
 //@date Point in time (Unix timestamp) when the post was created; 0 if unknown
 //@blocks Post content
-//@caption Post caption
+//@caption Post caption; may be null if none
 pageBlockEmbeddedPost url:string author:string author_photo:photo date:int32 blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
 
 //@description A collage
 //@blocks Collage item contents
-//@caption Block caption
+//@caption Block caption; may be null if none
 pageBlockCollage blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
 
 //@description A slideshow
 //@blocks Slideshow item contents
-//@caption Block caption
+//@caption Block caption; may be null if none
 pageBlockSlideshow blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
 
 //@description A link to a chat; instant view only
@@ -4208,7 +4208,7 @@ pageBlockRelatedArticles header:RichText articles:vector<pageBlockRelatedArticle
 //@zoom Map zoom level
 //@width Map width
 //@height Map height
-//@caption Block caption
+//@caption Block caption; may be null if none
 pageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageBlockCaption = PageBlock;
 
 

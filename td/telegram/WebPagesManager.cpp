@@ -1599,10 +1599,12 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
           break;
       }
     }
-    if (caption != nullptr && caption->text_ != nullptr && caption->text_->get_id() == td_api::richTextPlain::ID) {
-      caption_text = std::move(static_cast<td_api::richTextPlain *>(caption->text_.get())->text_);
-    } else {
-      LOG(ERROR) << "Receive instead of caption text: " << to_string(caption);
+    if (caption != nullptr) {
+      if (caption->text_ != nullptr && caption->text_->get_id() == td_api::richTextPlain::ID) {
+        caption_text = std::move(static_cast<td_api::richTextPlain *>(caption->text_.get())->text_);
+      } else {
+        LOG(ERROR) << "Receive instead of caption text: " << to_string(caption);
+      }
     }
   };
 

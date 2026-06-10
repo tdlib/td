@@ -514,6 +514,9 @@ class WebPageBlockCaption {
 
   td_api::object_ptr<td_api::pageBlockCaption> get_page_block_caption_object(
       GetWebPageBlockObjectContext *context) const {
+    if (text.empty() && credit.empty()) {
+      return nullptr;
+    }
     return td_api::make_object<td_api::pageBlockCaption>(text.get_rich_text_object(context),
                                                          credit.get_rich_text_object(context));
   }
