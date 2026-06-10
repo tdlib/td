@@ -13314,14 +13314,18 @@ void move_message_content_sticker_set_to_top(Td *td, const MessageContent *conte
     return;
   }
 
-  auto text = get_message_content_text(content);
-  if (text == nullptr) {
-    return;
-  }
   vector<CustomEmojiId> custom_emoji_ids;
-  for (auto &entity : text->entities) {
-    if (entity.type == MessageEntity::Type::CustomEmoji) {
-      custom_emoji_ids.push_back(entity.custom_emoji_id);
+  auto text = get_message_content_text(content);
+  if (text != nullptr) {
+    for (auto &entity : text->entities) {
+      if (entity.type == MessageEntity::Type::CustomEmoji) {
+        custom_emoji_ids.push_back(entity.custom_emoji_id);
+      }
+    }
+  } else {
+    const auto *rich_message = get_message_content_rich_message(content);
+    if (rich_message != nullptr) {
+      custom_emoji_ids = rich_message->get_custom_emoji_ids();
     }
   }
   if (!custom_emoji_ids.empty()) {

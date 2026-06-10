@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
@@ -70,6 +71,8 @@ class RichMessage {
   bool has_bot_commands() const;
 
   vector<string> get_hashtags() const;
+
+  vector<CustomEmojiId> get_custom_emoji_ids() const;
 
   bool can_send(const RestrictedRights &rights) const;
 

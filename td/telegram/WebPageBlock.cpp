@@ -4386,6 +4386,16 @@ vector<string> WebPageBlock::get_hashtags() const {
   return result;
 }
 
+vector<CustomEmojiId> WebPageBlock::get_custom_emoji_ids() const {
+  vector<CustomEmojiId> custom_emoji_ids;
+  for_each_rich_text(true, [&](const RichText *text) {
+    if (text->custom_emoji_id.is_valid()) {
+      custom_emoji_ids.push_back(text->custom_emoji_id);
+    }
+  });
+  return custom_emoji_ids;
+}
+
 template <class F>
 void WebPageBlock::call_impl(Type type, const WebPageBlock *ptr, F &&f) {
   switch (type) {

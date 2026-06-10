@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -112,6 +113,8 @@ class WebPageBlock {
   bool has_bot_commands() const;
 
   vector<string> get_hashtags() const;
+
+  vector<CustomEmojiId> get_custom_emoji_ids() const;
 
   virtual bool can_send(const RestrictedRights &rights) const {
     return true;

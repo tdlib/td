@@ -170,6 +170,14 @@ vector<string> RichMessage::get_hashtags() const {
   return hashtags;
 }
 
+vector<CustomEmojiId> RichMessage::get_custom_emoji_ids() const {
+  vector<CustomEmojiId> custom_emoji_ids;
+  for (const auto &block : blocks_) {
+    append(custom_emoji_ids, block->get_custom_emoji_ids());
+  }
+  return custom_emoji_ids;
+}
+
 bool RichMessage::can_send(const RestrictedRights &rights) const {
   if (!rights.can_send_messages()) {
     return false;
