@@ -473,8 +473,9 @@ class JoinChatQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (status.message() == "INVITE_REQUEST_SENT" || status.message() == "JOIN_GUARD_TIMEOUT") {
-      return promise_.set_value(td_api::make_object<td_api::chatJoinResultRequestSent>());
+    auto chat_join_result = DialogParticipantManager::get_chat_join_result_object(status);
+    if (chat_join_result != nullptr) {
+      return promise_.set_value(std::move(chat_join_result));
     }
     promise_.set_error(std::move(status));
   }
@@ -2666,6 +2667,13 @@ void DialogParticipantManager::add_channel_participant(
   td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, {user_id}, std::move(input_users));
 }
 
+td_api::object_ptr<td_api::ChatJoinResult> DialogParticipantManager::get_chat_join_result_object(const Status &error) {
+  if (error.message() == "INVITE_REQUEST_SENT" || error.message() == "JOIN_GUARD_TIMEOUT") {
+    return td_api::make_object<td_api::chatJoinResultRequestSent>();
+  }
+  return nullptr;
+}
+
 void DialogParticipantManager::on_join_channel(
     ChannelId channel_id, bool was_speculatively_updated, DialogParticipantStatus &&old_status,
     DialogParticipantStatus &&new_status,
@@ -2705,12 +2713,14 @@ void DialogParticipantManager::on_join_channel(
     if (was_speculatively_updated) {
       speculative_add_channel_user(channel_id, td_->user_manager_->get_my_id(), old_status, new_status);
     }
-    if (result.error().message() == "INVITE_REQUEST_SENT" || result.error().message() == "JOIN_GUARD_TIMEOUT") {
+    auto status = result.move_as_error();
+    auto chat_join_result = DialogParticipantManager::get_chat_join_result_object(status);
+    if (chat_join_result != nullptr) {
       for (auto &promise : promises) {
-        promise.set_value(td_api::make_object<td_api::chatJoinResultRequestSent>());
+        promise.set_value(DialogParticipantManager::get_chat_join_result_object(status));
       }
     } else {
-      fail_promises(promises, result.move_as_error());
+      fail_promises(promises, std::move(status));
     }
   }
 }

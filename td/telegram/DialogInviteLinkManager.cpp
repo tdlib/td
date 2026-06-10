@@ -118,8 +118,9 @@ class ImportChatInviteQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->dialog_invite_link_manager_->invalidate_invite_link_info(invite_link_);
-    if (status.message() == "INVITE_REQUEST_SENT" || status.message() == "JOIN_GUARD_TIMEOUT") {
-      return promise_.set_value(td_api::make_object<td_api::chatJoinResultRequestSent>());
+    auto chat_join_result = DialogParticipantManager::get_chat_join_result_object(status);
+    if (chat_join_result != nullptr) {
+      return promise_.set_value(std::move(chat_join_result));
     }
     promise_.set_error(std::move(status));
   }

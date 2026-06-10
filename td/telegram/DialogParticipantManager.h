@@ -42,6 +42,8 @@ class DialogParticipantManager final : public Actor {
   DialogParticipantManager &operator=(DialogParticipantManager &&) = delete;
   ~DialogParticipantManager() final;
 
+  static td_api::object_ptr<td_api::ChatJoinResult> get_chat_join_result_object(const Status &error);
+
   void on_join_dialog(DialogId dialog_id, Promise<td_api::object_ptr<td_api::ChatJoinResult>> &&promise);
 
   void update_user_online_member_count(UserId user_id);
