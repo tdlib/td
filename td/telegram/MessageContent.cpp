@@ -11882,7 +11882,7 @@ td_api::object_ptr<td_api::PollMedia> get_poll_media_object(const MessageContent
           std::move(storyboards), get_photo_object(td->file_manager_.get(), m->cover), m->start_timestamp);
     }
     default:
-      return td_api::make_object<td_api::pollMediaLink>();
+      return nullptr;
   }
 }
 
