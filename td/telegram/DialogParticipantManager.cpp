@@ -2671,6 +2671,9 @@ td_api::object_ptr<td_api::ChatJoinResult> DialogParticipantManager::get_chat_jo
   if (error.message() == "INVITE_REQUEST_SENT" || error.message() == "JOIN_GUARD_TIMEOUT") {
     return td_api::make_object<td_api::chatJoinResultRequestSent>();
   }
+  if (error.message() == "INVITE_REQUEST_DECLINED") {
+    return td_api::make_object<td_api::chatJoinResultDeclined>();
+  }
   return nullptr;
 }
 
