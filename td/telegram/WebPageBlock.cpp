@@ -287,9 +287,13 @@ class RichText {
     }
   }
 
-  td_api::object_ptr<td_api::RichText> get_rich_text_object(GetWebPageBlockObjectContext *context) const {
+  td_api::object_ptr<td_api::RichText> get_rich_text_object(GetWebPageBlockObjectContext *context,
+                                                            bool allow_null = false) const {
     switch (type) {
       case RichText::Type::Plain:
+        if (allow_null && content.empty()) {
+          return nullptr;
+        }
         return td_api::make_object<td_api::richTextPlain>(content);
       case RichText::Type::Bold:
         return td_api::make_object<td_api::richTextBold>(texts[0].get_rich_text_object(context));
@@ -518,7 +522,7 @@ class WebPageBlockCaption {
       return nullptr;
     }
     return td_api::make_object<td_api::pageBlockCaption>(text.get_rich_text_object(context),
-                                                         credit.get_rich_text_object(context));
+                                                         credit.get_rich_text_object(context, true));
   }
 
   friend bool operator==(const WebPageBlockCaption &lhs, const WebPageBlockCaption &rhs) {

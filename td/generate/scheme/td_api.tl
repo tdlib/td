@@ -4002,7 +4002,7 @@ richTextAnchorLink text:RichText anchor_name:string url:string = RichText;
 richTexts texts:vector<RichText> = RichText;
 
 
-//@description Contains a caption of another block @text Content of the caption @credit Block credit (like HTML tag <cite>)
+//@description Contains a caption of another block @text Content of the caption @credit Block credit (like HTML tag <cite>); may be null if none
 pageBlockCaption text:RichText credit:RichText = PageBlockCaption;
 
 //@description Describes an item of a list page block
