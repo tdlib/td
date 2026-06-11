@@ -260,23 +260,23 @@ class RichText {
       case Type::Spoiler:
         return telegram_api::make_object<telegram_api::textSpoiler>(texts[0].get_input_rich_text(td, documents));
       case Type::Mention:
-        return telegram_api::make_object<telegram_api::textMention>(texts[0].get_input_rich_text(td, documents));
+        return texts[0].get_input_rich_text(td, documents);
       case Type::Hashtag:
-        return telegram_api::make_object<telegram_api::textHashtag>(texts[0].get_input_rich_text(td, documents));
+        return texts[0].get_input_rich_text(td, documents);
       case Type::Cashtag:
-        return telegram_api::make_object<telegram_api::textCashtag>(texts[0].get_input_rich_text(td, documents));
+        return texts[0].get_input_rich_text(td, documents);
       case Type::BotCommand:
-        return telegram_api::make_object<telegram_api::textBotCommand>(texts[0].get_input_rich_text(td, documents));
+        return texts[0].get_input_rich_text(td, documents);
       case Type::AutoUrl:
-        return telegram_api::make_object<telegram_api::textAutoUrl>(texts[0].get_input_rich_text(td, documents));
+        return texts[0].get_input_rich_text(td, documents);
       case Type::AutoEmailAddress:
-        return telegram_api::make_object<telegram_api::textAutoEmail>(texts[0].get_input_rich_text(td, documents));
+        return texts[0].get_input_rich_text(td, documents);
       case Type::AutoPhoneNumber:
-        return telegram_api::make_object<telegram_api::textAutoPhone>(texts[0].get_input_rich_text(td, documents));
+        return texts[0].get_input_rich_text(td, documents);
       case Type::FormattedDate:
         return date.get_input_text_date(texts[0].get_input_rich_text(td, documents));
       case Type::BankCardNumber:
-        return telegram_api::make_object<telegram_api::textBankCard>(texts[0].get_input_rich_text(td, documents));
+        return texts[0].get_input_rich_text(td, documents);
       case Type::MentionName:
         // input users will be added separately
         return telegram_api::make_object<telegram_api::textMentionName>(texts[0].get_input_rich_text(td, documents),
