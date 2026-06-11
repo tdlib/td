@@ -148,6 +148,9 @@ void WebBrowserManager::tear_down() {
 }
 
 void WebBrowserManager::on_authorization_success() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   send_update_web_browser_settings();
   reload_web_browser_settings();
 }
