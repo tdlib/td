@@ -575,16 +575,19 @@ class WebPageBlockTableCell {
 
   telegram_api::object_ptr<telegram_api::pageTableCell> get_input_page_table_cell(
       const Td *td, vector<telegram_api::object_ptr<telegram_api::InputDocument>> &documents) const {
-    int32 flags = telegram_api::pageTableCell::TEXT_MASK;
+    int32 flags = 0;
     if (colspan != 1) {
       flags |= telegram_api::pageTableCell::COLSPAN_MASK;
     }
     if (rowspan != 1) {
       flags |= telegram_api::pageTableCell::ROWSPAN_MASK;
     }
+    if (!text.empty()) {
+      flags |= telegram_api::pageTableCell::TEXT_MASK;
+    }
     return telegram_api::make_object<telegram_api::pageTableCell>(
-        0, is_header, align_center, align_right, valign_middle, valign_bottom, text.get_input_rich_text(td, documents),
-        colspan, rowspan);
+        flags, is_header, align_center, align_right, valign_middle, valign_bottom,
+        text.empty() ? nullptr : text.get_input_rich_text(td, documents), colspan, rowspan);
   }
 
   td_api::object_ptr<td_api::pageBlockTableCell> get_page_block_table_cell_object(
