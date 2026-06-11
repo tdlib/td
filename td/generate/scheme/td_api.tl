@@ -159,7 +159,7 @@ textCompositionStyleExample source_text:formattedText result_text:formattedText 
 //@is_creator True, if the user is creator of the style
 //@install_count Number of users that installed the style; for created custom styles only; 0 if unknown
 //@prompt Prompt of the style; for created custom styles only
-//@creator_user_id User identifier of the creator of the style; 0 if none of unknown
+//@creator_user_id User identifier of the creator of the style; 0 if none or unknown
 //@english_example Example of the style usage in English; may be null if unknown
 textCompositionStyle name:string custom_emoji_id:int64 title:string is_custom:Bool is_creator:Bool install_count:int32 prompt:string creator_user_id:int53 english_example:textCompositionStyleExample = TextCompositionStyle;
 
@@ -11270,7 +11270,7 @@ getMessageAuthor chat_id:int53 message_id:int53 = User;
 //@description Returns information about a file. This is an offline method @file_id Identifier of the file to get
 getFile file_id:int32 = File;
 
-//@description Returns information about a file by its remote identifier. This is an offline method. Can be used to register a URL as a file for further uploading, or sending as a message. Even the request succeeds, the file can be used only if it is still accessible to the user.
+//@description Returns information about a file by its remote identifier. This is an offline method. Can be used to register a URL as a file for further uploading, or sending as a message. Even if the request succeeds, the file can be used only if it is still accessible to the user.
 //-For example, if the file is from a message, then the message must be not deleted and accessible to the user. If the file database is disabled, then the corresponding object with the file must be preloaded by the application
 //@remote_file_id Remote identifier of the file to get
 //@file_type File type; pass null if unknown
@@ -14914,7 +14914,7 @@ getUpgradedGiftVariants regular_gift_id:int64 return_upgrade_models:Bool return_
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@received_gift_id Identifier of the gift
 //@keep_original_details Pass true to keep the original gift text, sender and receiver in the upgraded gift
-//@star_count The Telegram Star amount required to pay for the upgrade. It the gift has prepaid_upgrade_star_count > 0, then pass 0, otherwise, pass gift.upgrade_star_count
+//@star_count The Telegram Star amount required to pay for the upgrade. If the gift has prepaid_upgrade_star_count > 0, then pass 0, otherwise, pass gift.upgrade_star_count
 upgradeGift business_connection_id:string received_gift_id:string keep_original_details:Bool star_count:int53 = UpgradeGiftResult;
 
 //@description Pays for upgrade of a regular gift that is owned by another user or channel chat
