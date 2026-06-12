@@ -13,6 +13,7 @@
 #include "td/net/TransparentProxy.h"
 
 #include "td/utils/common.h"
+#include "td/utils/optional.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Status.h"
@@ -38,17 +39,25 @@ class TlsInit final : public TransparentProxy {
   friend struct ::td::mtproto::test::TlsInitTestPeer;
 
  public:
+  // `selected_profile`, when set, is the single runtime profile chosen for this
+  // whole connection attempt at connection setup. send_hello() uses it verbatim
+  // for the emitted ClientHello so it matches the transport-shaping config, instead
+  // of running a second independent selection. Empty => self-select (tests /
+  // legacy callers).
   TlsInit(SocketFd socket_fd, string domain, string secret, unique_ptr<Callback> callback, ActorShared<> parent,
-          double server_time_difference, stealth::NetworkRouteHints route_hints = {})
+          double server_time_difference, stealth::NetworkRouteHints route_hints = {},
+          td::optional<BrowserProfile> selected_profile = {})
       : TransparentProxy(std::move(socket_fd), IPAddress(), std::move(domain), std::move(secret), std::move(callback),
                          std::move(parent))
       , server_time_difference_(server_time_difference)
-      , route_hints_(route_hints) {
+      , route_hints_(route_hints)
+      , preselected_profile_(std::move(selected_profile)) {
   }
 
  private:
   double server_time_difference_{0};
   stealth::NetworkRouteHints route_hints_;
+  td::optional<BrowserProfile> preselected_profile_;
   int32 hello_unix_time_{0};
   bool hello_uses_ech_{false};
   bool hello_profile_allows_ech_{false};

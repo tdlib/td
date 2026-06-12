@@ -273,25 +273,35 @@ void TlsInit::send_hello() {
   hello_ech_disabled_by_circuit_breaker_ = decision.disabled_by_circuit_breaker;
   hello_ech_reenabled_after_ttl_ = decision.reenabled_after_ttl;
 
-  // One adaptive selection for this connection attempt, computed against the same
-  // ECH decision above. The chosen wire variant (profile + hello_uses_ech) drives
-  // the emitted ClientHello here and is the exact unit that failure/success
-  // accounting and quarantine key on. Unified across all platforms (Darwin,
-  // Linux, Windows, mobile) so macOS is no longer a predictable Chrome133. When
-  // the rotation policy is disabled this is exactly the legacy weighted baseline.
+  // One profile for this whole connection attempt. If the connection path already
+  // selected it (the single-selection handoff), use it verbatim so the emitted
+  // ClientHello matches the transport-shaping config and one attempt carries one
+  // wire variant. Otherwise self-select adaptively against the same ECH decision
+  // above (tests / legacy callers). Either way the chosen (profile + hello_uses_ech)
+  // is the exact unit failure/success accounting and quarantine key on. Unified
+  // across all platforms so macOS is no longer a predictable Chrome133; with the
+  // rotation policy disabled this is exactly the legacy weighted baseline.
   auto platform = stealth::default_runtime_platform_hints();
-  auto selection = stealth::pick_runtime_profile_adaptive(username_, hello_unix_time_, platform, decision.ech_mode);
-  hello_profile_ = selection.profile;
-  hello_profile_name_ = stealth::profile_spec(selection.profile).name.str();
-  hello_profile_allows_ech_ = stealth::profile_spec(selection.profile).allows_ech;
-  hello_uses_ech_ = selection.hello_uses_ech;
+  BrowserProfile profile;
+  if (preselected_profile_) {
+    profile = preselected_profile_.value();
+    hello_profile_rotation_avoided_quarantined_ = false;
+    hello_profile_rotation_quarantined_candidates_ = 0;
+  } else {
+    auto selection = stealth::pick_runtime_profile_adaptive(username_, hello_unix_time_, platform, decision.ech_mode);
+    profile = selection.profile;
+    hello_profile_rotation_avoided_quarantined_ = selection.avoided_quarantined_profile;
+    hello_profile_rotation_quarantined_candidates_ = selection.quarantined_candidate_count;
+  }
+  hello_profile_ = profile;
+  hello_profile_name_ = stealth::profile_spec(profile).name.str();
+  hello_profile_allows_ech_ = stealth::profile_spec(profile).allows_ech;
+  hello_uses_ech_ = hello_profile_allows_ech_ && decision.ech_mode == stealth::EchMode::Rfc9180Outer;
   hello_profile_rotation_enabled_ = stealth::get_runtime_stealth_params_snapshot().profile_rotation.enabled;
-  hello_profile_rotation_avoided_quarantined_ = selection.avoided_quarantined_profile;
-  hello_profile_rotation_quarantined_candidates_ = selection.quarantined_candidate_count;
   hello_failure_recorded_ = false;
   hello_profile_failure_recorded_ = false;
   auto hello = stealth::build_proxy_tls_client_hello_for_profile(
-      username_, password_, hello_unix_time_, selection.profile,
+      username_, password_, hello_unix_time_, profile,
       hello_uses_ech_ ? stealth::EchMode::Rfc9180Outer : stealth::EchMode::Disabled);
 
   if (hello.size() < kTlsHelloResponseRandomOffset + kTlsHelloResponseRandomSize) {

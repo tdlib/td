@@ -427,6 +427,7 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_runtime_profile_rotation_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_runtime_profile_rotation_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_runtime_profile_rotation_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_runtime_profile_rotation_handoff.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_registry_provenance.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_platform_coherence.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_platform_defaults.cpp

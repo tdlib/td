@@ -134,7 +134,14 @@ unique_ptr<IStreamTransport> create_transport(TransportType type) {
 #if TDLIB_STEALTH_SHAPING
       if (secret_copy.emulate_tls()) {
         auto rng = stealth::make_connection_rng();
-        auto config = stealth::make_transport_stealth_config(secret_copy, *rng);
+        // Single-selection handoff: when the connection path already chose one
+        // profile for this attempt, shape the transport with that exact profile so
+        // it matches the emitted ClientHello (no split profile state). Otherwise
+        // fall back to independent selection (legacy; coherent only while rotation
+        // is disabled).
+        auto config = type.selected_profile
+                          ? stealth::make_transport_stealth_config(secret_copy, *rng, type.selected_profile.value())
+                          : stealth::make_transport_stealth_config(secret_copy, *rng);
         if (config.is_error()) {
           auto error = config.move_as_error();
           auto safe_status_message = sanitize_stealth_activation_status_message(

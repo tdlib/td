@@ -34,14 +34,17 @@ two missing compile-time/validation backstops.
 
 | ID | Severity | Title | Status |
 |----|----------|-------|--------|
-| H1 | High | Split-profile wire incoherence when rotation is enabled | **Deferred** (gate before enabling rotation) |
+| H1 | High | Split-profile wire incoherence when rotation is enabled | **Resolved** — single-selection handoff wired |
 | M1 | Medium | No compile-time guard tying `profile_index` to the positional arrays | **Resolved** |
-| M2 | Medium | Small `ios14` policy values silently zero the verified iOS lanes | **Deferred / documented** |
-| M3 | Medium | Active adversary can force fail-closed-on-baseline via forged post-hello rejection | **Deferred** (tuning/hardening) |
-| M4 | Medium | Failure-driven rotation order is a deterministic, enumerable fingerprint | **Deferred** (hardening) |
+| M2 | Medium | Small `ios14` policy values silently zero the verified iOS lanes | **Resolved** — policy floor added |
+| M3 | Medium | Active adversary can force fail-closed-on-baseline via forged post-hello rejection | **Decision: keep + tune** (see deferred-fixes plan) |
+| M4 | Medium | Failure-driven rotation order is a deterministic, enumerable fingerprint | **Decision: keep deterministic** (see deferred-fixes plan) |
 | L1 | Low | Quarantine key has no `\|` delimiter sanitization (bounded aliasing) | **Accepted** (fail-safe) |
 | L2 | Low | Sub-threshold quarantine count is reset by TTL expiry on read | **Accepted** (intentional, fail-safe) |
 | L3 | Low | `note_runtime_profile_success` runs even when rotation is disabled | **Accepted** (intentional) |
+
+> H1, M2, M3, M4 implementation/decision details:
+> [ADAPTIVE_RUNTIME_PROFILE_ROTATION_DEFERRED_FIXES_PLAN_2026-06-12.md](./ADAPTIVE_RUNTIME_PROFILE_ROTATION_DEFERRED_FIXES_PLAN_2026-06-12.md).
 
 ---
 
@@ -49,7 +52,12 @@ two missing compile-time/validation backstops.
 
 ### H1 — Split-profile wire incoherence: enabling rotation makes the ClientHello and the transport-shaping profile diverge per connection
 
-**Status:** Deferred — hard gate before `profile_rotation.enabled = true` ships.
+**Status:** **Resolved** — the single-selection handoff is wired. `ConnectionCreator`
+now computes one `pick_runtime_profile_adaptive` per attempt and stamps it onto
+`TransportType::selected_profile`; `TlsInit` uses it for the ClientHello and
+`create_transport` uses the explicit-profile `make_transport_stealth_config`
+overload, so both sides carry one profile. Needs a Linux-CI integration run before
+`profile_rotation.enabled = true`.
 **Files:** `td/mtproto/TlsInit.cpp` (`send_hello`, adaptive pick) vs
 `td/mtproto/stealth/StealthConfig.cpp` (`from_secret`, legacy pick).
 
@@ -140,7 +148,10 @@ alignment check to verify `PROFILE_FIXTURES[i].id == ALL_PROFILES[i]`.
 
 ### M2 — Small `policy.mobile.ios14` values silently zero the verified Apple iOS TLS lane
 
-**Status:** Deferred / documented (default config is correct).
+**Status:** **Resolved** — `validate_runtime_profile_selection_policy` now requires
+`policy.mobile.ios14 == 0 || policy.mobile.ios14 >= 7`, so the policy path can no
+longer truncate both verified iOS carves to 0. Explicit flat `profile_weights`
+configs are unaffected.
 **Files:** `td/mtproto/stealth/StealthRuntimeParams.cpp`
 (`effective_profile_weights_for_platform`), mirrored in
 `StealthParamsLoader.cpp` (`flatten_profile_selection`); validators in

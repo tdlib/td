@@ -62,6 +62,28 @@ int64 lifecycle_now_ms(double now_seconds = Time::now()) {
   return static_cast<int64>(now_seconds * 1000.0);
 }
 
+// Single-selection handoff: computes the one runtime profile for an emulate_tls
+// connection attempt and stamps it onto transport_type.selected_profile, so the
+// same profile reaches both the TLS ClientHello (TlsInit) and the transport-shaping
+// config (create_transport) and one attempt cannot carry split profile state. Must
+// run before the connection promise copies transport_type. No-op for non-emulate_tls
+// transports; with the rotation policy disabled the result equals the legacy
+// deterministic baseline.
+void stamp_runtime_profile_selection(mtproto::TransportType &transport_type) {
+  if (!transport_type.secret.emulate_tls()) {
+    return;
+  }
+  auto domain = transport_type.secret.get_domain();
+  auto route_hints =
+      mtproto::stealth::route_hints_from_country_code(G()->get_option_string("stealth_route_country_code"));
+  mtproto::stealth::set_runtime_ech_failure_store(G()->td_db()->get_config_pmc_shared());
+  auto unix_time = static_cast<int32>(Time::now() + G()->get_dns_time_difference());
+  auto platform = mtproto::stealth::default_runtime_platform_hints();
+  auto ech_mode = mtproto::stealth::get_runtime_ech_decision(domain, unix_time, route_hints).ech_mode;
+  transport_type.selected_profile =
+      mtproto::stealth::pick_runtime_profile_adaptive(domain, unix_time, platform, ech_mode).profile;
+}
+
 int32 clamp_backoff_event_time_to_int32(double now) {
   if (!std::isfinite(now)) {
     return std::numeric_limits<int32>::max();
@@ -779,6 +801,7 @@ void ConnectionCreator::ping_proxy_resolved(Proxy &&proxy, IPAddress ip_address,
   }
   auto socket_fd = r_socket_fd.move_as_ok();
 
+  stamp_runtime_profile_selection(extra.transport_type);
   auto connection_promise = PromiseCreator::lambda([actor_id = actor_id(this), ip_address, promise = std::move(promise),
                                                     transport_type = extra.transport_type, debug_str = extra.debug_str,
                                                     proxy](Result<ConnectionData> r_connection_data) mutable {
@@ -1264,6 +1287,7 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtpro
     socket_fd = std::move(opened_socket_fd);
   }
 
+  stamp_runtime_profile_selection(effective_transport_type);
   auto connection_promise = PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
                                                     effective_transport_type, network_generation = network_generation_,
                                                     ip_address](Result<ConnectionData> r_connection_data) mutable {
@@ -1443,7 +1467,7 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
       return ActorOwn<>(create_actor<mtproto::TlsInit>(
           PSLICE() << actor_name_prefix << "TlsInit", std::move(socket_fd), transport_type.secret.get_domain(),
           transport_type.secret.get_proxy_secret().str(), std::move(callback), std::move(parent),
-          G()->get_dns_time_difference(), route_hints));
+          G()->get_dns_time_difference(), route_hints, transport_type.selected_profile));
     } else {
       UNREACHABLE();
     }
@@ -1621,6 +1645,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       client.checking_connections++;
     }
 
+    stamp_runtime_profile_selection(extra.transport_type);
     auto promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), check_mode, transport_type = extra.transport_type, hash = client.hash,
          debug_str = extra.debug_str,

@@ -176,6 +176,15 @@ Status validate_runtime_profile_selection_policy(const RuntimeProfileSelectionPo
   if (mobile_total != 100) {
     return Status::Error("profile_weights.mobile must sum to 100");
   }
+  // The iOS share is carved into the verified iOS Chromium and Apple iOS TLS lanes
+  // by integer division (ios14 / 7 each). For ios14 in [1, 6] both carves truncate
+  // to 0, silently collapsing iOS back onto the advisory IOS14 lane and re-opening
+  // the release-grade gap. Require either no iOS share or one large enough to keep
+  // both verified lanes reachable. (Explicit flat profile_weights configs set
+  // apple_ios_tls directly and are not affected by this policy-path floor.)
+  if (policy.mobile.ios14 != 0 && policy.mobile.ios14 < kIosChromiumShareDivisor) {
+    return Status::Error("profile_weights.mobile.ios14 must be 0 or at least 7 so the verified iOS lanes stay reachable");
+  }
   return Status::OK();
 }
 
