@@ -252,13 +252,6 @@ set (CMAKE_SYSTEM_FRAMEWORK_PATH
     ${CMAKE_IOS_SDK_ROOT}/Developer/Library/Frameworks
 )
 
-# CMAKE_FIND_ROOT_PATH_MODE_PROGRAM below is overly restrictive for host tools.
-# Find Git before restricting search paths, so GetGitRevisionDescription.cmake works with this iOS toolchain.
-if (NOT Git_FOUND)
-    set (CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-    find_package(Git QUIET)
-endif()
-
 # only search the iOS sdks, not the remainder of the host filesystem
 set (CMAKE_FIND_ROOT_PATH_MODE_PROGRAM ONLY)
 set (CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
