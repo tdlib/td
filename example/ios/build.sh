@@ -55,7 +55,7 @@ do
       fi
 
       echo "iOS platform = ${ios_platform}"
-      other_options="-DIOS_PLATFORM=${ios_platform} -DCMAKE_TOOLCHAIN_FILE=${td_path}/CMake/iOS.cmake -DCMAKE_MAKE_PROGRAM=make"
+      other_options="-DIOS_PLATFORM=${ios_platform} -DCMAKE_TOOLCHAIN_FILE=${td_path}/CMake/iOS.cmake"
     fi
 
     set_cmake_options $platform
