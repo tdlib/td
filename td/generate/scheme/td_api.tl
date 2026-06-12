@@ -4017,7 +4017,7 @@ pageBlockCaption text:RichText credit:RichText = PageBlockCaption;
 //@has_checkbox True, if the item has a checkbox
 //@is_checked True, if the item is checked
 //@value Value of the item; 0 for unordered lists
-//@type Type of the item numbering type; must be one of "a" for a lowercase letters, "A" for an uppercase letters, "i" for lowercase Roman numerals, "I" for uppercase Roman numerals,
+//@type Type of the item numbering type; must be one of "a" for lowercase letters, "A" for uppercase letters, "i" for lowercase Roman numerals, "I" for uppercase Roman numerals,
 //-"1" for decimal numbers, or empty for unordered lists
 pageBlockListItem label:string blocks:vector<PageBlock> has_checkbox:Bool is_checked:Bool value:int32 type:string = PageBlockListItem;
 
