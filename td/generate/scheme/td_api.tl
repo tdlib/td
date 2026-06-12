@@ -533,7 +533,7 @@ inputChecklist title:formattedText tasks:vector<inputChecklistTask> others_can_a
 //@height Height of the animation
 //@file_name Original name of the file; as defined by the sender
 //@mime_type MIME type of the file, usually "image/gif" or "video/mp4"
-//@has_stickers True, if stickers were added to the animation. The list of corresponding sticker set can be received using getAttachedStickerSets
+//@has_stickers True, if stickers were added to the animation. The list of corresponding sticker sets can be received using getAttachedStickerSets
 //@minithumbnail Animation minithumbnail; may be null
 //@thumbnail Animation thumbnail in JPEG or MPEG4 format; may be null
 //@animation File containing the animation
