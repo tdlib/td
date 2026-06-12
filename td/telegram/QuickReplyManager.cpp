@@ -1215,10 +1215,12 @@ td_api::object_ptr<td_api::MessageContent> QuickReplyManager::get_quick_reply_me
   if (m->edited_content != nullptr) {
     return get_message_content_object(m->edited_content.get(), td_, DialogId(), MessageId(), DialogId(), false, true,
                                       false, DialogId(), 0, 0, false, true, -1, m->edited_invert_media,
-                                      m->edited_disable_web_page_preview);
+                                      m->edited_disable_web_page_preview,
+                                      "get_quick_reply_message_message_content_object 1");
   }
   return get_message_content_object(m->content.get(), td_, DialogId(), m->message_id, DialogId(), false, true, false,
-                                    DialogId(), 0, 0, false, true, -1, m->invert_media, m->disable_web_page_preview);
+                                    DialogId(), 0, 0, false, true, -1, m->invert_media, m->disable_web_page_preview,
+                                    "get_quick_reply_message_message_content_object 2");
 }
 
 td_api::object_ptr<td_api::quickReplyMessage> QuickReplyManager::get_quick_reply_message_object(

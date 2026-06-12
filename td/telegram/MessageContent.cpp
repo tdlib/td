@@ -7343,7 +7343,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       auto get_content_object = [td, dialog_id](const MessageContent *content) {
         return to_string(get_message_content_object(content, td, dialog_id, MessageId(), dialog_id, true, false, false,
                                                     DialogId(), -1, -1, false, false, std::numeric_limits<int32>::max(),
-                                                    false, false));
+                                                    false, false, "merge_message_contents"));
       };
       if (old_->text.text != new_->text.text) {
         if (need_message_changed_warning && need_message_text_changed_warning(old_, new_)) {
@@ -11039,7 +11039,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     const MessageContent *content, Td *td, DialogId dialog_id, MessageId message_id, DialogId initial_dialog_id,
     bool is_real_message_content, bool is_outgoing, bool is_forward, DialogId sender_dialog_id, int32 message_date,
     int32 initial_date, bool is_content_secret, bool skip_bot_commands, int32 max_media_timestamp, bool invert_media,
-    bool disable_web_page_preview) {
+    bool disable_web_page_preview, const char *source) {
   CHECK(content != nullptr);
   auto is_server =
       message_id != MessageId() && message_id.is_any_server() && dialog_id.get_type() != DialogType::SecretChat;
@@ -11096,7 +11096,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       const auto *m = static_cast<const MessagePhoto *>(content);
       auto photo = get_photo_object(td->file_manager_.get(), m->photo);
       if (photo == nullptr) {
-        LOG(ERROR) << "Have empty " << m->photo << " in " << message_id << " in " << dialog_id;
+        LOG(ERROR) << "Have empty " << m->photo << " in " << message_id << " in " << dialog_id << " from " << source;
         return make_tl_object<td_api::messageExpiredPhoto>();
       }
       return make_tl_object<td_api::messagePhoto>(
@@ -11134,7 +11134,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
         disable_web_page_preview = false;
       } else if (disable_web_page_preview && web_page != nullptr) {
         LOG(ERROR) << "Have " << m->web_page_id << " in " << message_id << " in " << dialog_id
-                   << " with link preview disabled";
+                   << " with link preview disabled from " << source;
         web_page = nullptr;
       }
       td_api::object_ptr<td_api::linkPreviewOptions> link_preview_options;
@@ -11198,7 +11198,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       const auto *m = static_cast<const MessageChatChangePhoto *>(content);
       auto photo = get_chat_photo_object(td->file_manager_.get(), m->photo);
       if (photo == nullptr) {
-        LOG(ERROR) << "Have empty chat " << m->photo << " in " << message_id << " in " << dialog_id;
+        LOG(ERROR) << "Have empty chat " << m->photo << " in " << message_id << " in " << dialog_id << " from "
+                   << source;
         return make_tl_object<td_api::messageChatDeletePhoto>();
       }
       return make_tl_object<td_api::messageChatChangePhoto>(std::move(photo));
@@ -11376,7 +11377,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
           }
         }
       } else {
-        LOG(ERROR) << "Receive gifted premium in " << message_id << " in " << dialog_id;
+        LOG(ERROR) << "Receive gifted premium in " << message_id << " in " << dialog_id << " from " << source;
       }
       auto month_count = get_premium_duration_month_count(m->days);
       return td_api::make_object<td_api::messageGiftedPremium>(
@@ -11397,7 +11398,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       const auto *m = static_cast<const MessageSuggestProfilePhoto *>(content);
       auto photo = get_chat_photo_object(td->file_manager_.get(), m->photo);
       if (photo == nullptr) {
-        LOG(ERROR) << "Have empty suggested profile " << m->photo << " in " << message_id << " in " << dialog_id;
+        LOG(ERROR) << "Have empty suggested profile " << m->photo << " in " << message_id << " in " << dialog_id
+                   << " from " << source;
         return make_tl_object<td_api::messageUnsupported>();
       }
       return make_tl_object<td_api::messageSuggestProfilePhoto>(std::move(photo));
@@ -11533,7 +11535,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
           }
         }
       } else {
-        LOG(ERROR) << "Receive gifted stars in " << message_id << " in " << dialog_id;
+        LOG(ERROR) << "Receive gifted stars in " << message_id << " in " << dialog_id << " from " << source;
       }
       return td_api::make_object<td_api::messageGiftedStars>(
           gifter_user_id, receiver_user_id, m->currency, m->amount, m->crypto_currency, m->crypto_amount, m->star_count,
@@ -11698,7 +11700,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
           }
         }
       } else {
-        LOG(ERROR) << "Receive gifted TON in " << message_id << " in " << dialog_id;
+        LOG(ERROR) << "Receive gifted TON in " << message_id << " in " << dialog_id << " from " << source;
       }
       return td_api::make_object<td_api::messageGiftedTon>(
           gifter_user_id, receiver_user_id, m->crypto_amount, m->transaction_id,
@@ -11726,7 +11728,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       if (m->is_balance_too_low) {
         auto price = m->price.get_suggested_post_price_object();
         if (price == nullptr) {
-          LOG(ERROR) << "Have no price for messageSuggestedPostApprovalFailed in " << message_id << " in " << dialog_id;
+          LOG(ERROR) << "Have no price for messageSuggestedPostApprovalFailed in " << message_id << " in " << dialog_id
+                     << " from " << source;
           price = td_api::make_object<td_api::suggestedPostPriceStar>(1);
         }
         return td_api::make_object<td_api::messageSuggestedPostApprovalFailed>(m->suggested_post_message_id.get(),

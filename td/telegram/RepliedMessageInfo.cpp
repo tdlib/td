@@ -154,8 +154,9 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
       *content_text = FormattedText();
 
       if (content_->get_type() == MessageContentType::Text) {
-        auto content = get_message_content_object(content_.get(), td, DialogId(), MessageId(), DialogId(), false, false,
-                                                  true, DialogId(), 0, 0, false, true, -1, false, false);
+        auto content =
+            get_message_content_object(content_.get(), td, DialogId(), MessageId(), DialogId(), false, false, true,
+                                       DialogId(), 0, 0, false, true, -1, false, false, "RepliedMessageInfo");
         if (content->get_id() == td_api::messageText::ID) {
           const auto *message_text = static_cast<const td_api::messageText *>(content.get());
           if (message_text->link_preview_ == nullptr && message_text->link_preview_options_ == nullptr) {
@@ -343,7 +344,8 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
   td_api::object_ptr<td_api::MessageContent> content;
   if (content_ != nullptr) {
     content = get_message_content_object(content_.get(), td, DialogId(), message_id, DialogId(), false, false, true,
-                                         DialogId(), 0, 0, false, true, -1, false, false);
+                                         DialogId(), 0, 0, false, true, -1, false, false,
+                                         "get_message_reply_to_message_object");
     switch (content->get_id()) {
       case td_api::messageUnsupported::ID:
         content = nullptr;

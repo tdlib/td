@@ -311,7 +311,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     const MessageContent *content, Td *td, DialogId dialog_id, MessageId message_id, DialogId initial_dialog_id,
     bool is_real_message_content, bool is_outgoing, bool is_forward, DialogId sender_dialog_id, int32 message_date,
     int32 initial_date, bool is_content_secret, bool skip_bot_commands, int32 max_media_timestamp, bool invert_media,
-    bool disable_web_page_preview);
+    bool disable_web_page_preview, const char *source);
 
 td_api::object_ptr<td_api::PollMedia> get_poll_media_object(const MessageContent *content, Td *td);
 

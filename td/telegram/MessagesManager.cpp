@@ -4280,12 +4280,13 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   bool is_content_secret = ttl.is_secret_message_content(content->get_type());
 
   if (update->popup_) {
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateServiceNotification>(
-                     update->type_, get_message_content_object(
-                                        content.get(), td_, owner_dialog_id, MessageId(ServerMessageId(1)),
-                                        owner_dialog_id, false, false, false, owner_dialog_id, date, date,
-                                        is_content_secret, true, -1, update->invert_media_, disable_web_page_preview)));
+    send_closure(
+        G()->td(), &Td::send_update,
+        td_api::make_object<td_api::updateServiceNotification>(
+            update->type_, get_message_content_object(
+                               content.get(), td_, owner_dialog_id, MessageId(ServerMessageId(1)), owner_dialog_id,
+                               false, false, false, owner_dialog_id, date, date, is_content_secret, true, -1,
+                               update->invert_media_, disable_web_page_preview, "on_update_service_notification")));
   }
   if (has_date && is_user) {
     Dialog *d = get_service_notifications_dialog();
@@ -20235,7 +20236,8 @@ td_api::object_ptr<td_api::MessageContent> MessagesManager::get_message_message_
   return get_message_content_object(m->content.get(), td_, dialog_id, m->message_id, original_dialog_id, true,
                                     m->is_outgoing, is_message_forward(m), get_message_sender(m), live_location_date,
                                     original_date, m->is_content_secret, need_skip_bot_commands(dialog_id, m),
-                                    get_message_max_media_timestamp(m), m->invert_media, m->disable_web_page_preview);
+                                    get_message_max_media_timestamp(m), m->invert_media, m->disable_web_page_preview,
+                                    "get_message_message_content_object");
 }
 
 td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_message_object(
@@ -20276,9 +20278,10 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
   }();
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   auto reply_markup = get_reply_markup_object(td_->user_manager_.get(), m->reply_markup);
-  auto content = get_message_content_object(
-      m->content.get(), td_, dialog_id, m->message_id, DialogId(), false, m->is_outgoing, false, get_message_sender(m),
-      0, 0, false, true, get_message_own_max_media_timestamp(m), m->invert_media, m->disable_web_page_preview);
+  auto content = get_message_content_object(m->content.get(), td_, dialog_id, m->message_id, DialogId(), false,
+                                            m->is_outgoing, false, get_message_sender(m), 0, 0, false, true,
+                                            get_message_own_max_media_timestamp(m), m->invert_media,
+                                            m->disable_web_page_preview, "get_dialog_event_log_message_object");
 
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
