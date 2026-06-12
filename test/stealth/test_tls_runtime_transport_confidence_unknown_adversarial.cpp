@@ -76,7 +76,9 @@ TEST(TlsRuntimeTransportConfidenceUnknownAdversarial, IosNeverEscapesTlsOnlyProf
     auto unix_time = static_cast<td::int32>(1712345678 + i * 137);
     td::string domain = "unknown-conf-ios-" + td::to_string(i) + ".example";
     auto profile = pick_runtime_profile(domain, unix_time, params.platform_hints);
-    ASSERT_TRUE(profile == BrowserProfile::IOS14);
+    // iOS at Unknown confidence now exposes both the advisory IOS14 lane and the
+    // verified Apple iOS TLS lane (both TlsOnly); neither cross-layer lane appears.
+    ASSERT_TRUE(profile == BrowserProfile::IOS14 || profile == BrowserProfile::AppleIosTls);
   }
 }
 

@@ -457,9 +457,17 @@ StealthConfig StealthConfig::from_secret(const ProxySecret &secret, IRng &rng) {
 
 StealthConfig StealthConfig::from_secret(const ProxySecret &secret, IRng &rng, int32 unix_time,
                                          const RuntimePlatformHints &platform) {
+  return from_secret(secret, rng, unix_time, platform,
+                     pick_runtime_profile(secret.get_domain(), unix_time, platform));
+}
+
+StealthConfig StealthConfig::from_secret(const ProxySecret &secret, IRng &rng, int32 unix_time,
+                                         const RuntimePlatformHints &platform, BrowserProfile profile) {
   auto config = default_config(rng);
   if (secret.emulate_tls()) {
-    config.profile = pick_runtime_profile(secret.get_domain(), unix_time, platform);
+    // Use the caller-selected profile verbatim: no second pick_runtime_profile
+    // call, so the shaping config cannot diverge from the emitted ClientHello.
+    config.profile = profile;
     apply_profile_record_size_limit(config, platform);
     config.padding_policy.enabled = false;
     config.greeting_camouflage_policy = make_default_greeting_camouflage_policy();
@@ -520,6 +528,16 @@ Result<StealthConfig> make_transport_stealth_config(const ProxySecret &secret, I
     return transport_stealth_config_factory(secret, rng);
   }
   auto config = StealthConfig::from_secret(secret, rng);
+  TRY_STATUS(config.validate());
+  return config;
+}
+
+Result<StealthConfig> make_transport_stealth_config(const ProxySecret &secret, IRng &rng, BrowserProfile profile) {
+  if (transport_stealth_config_factory != nullptr) {
+    return transport_stealth_config_factory(secret, rng);
+  }
+  auto config = StealthConfig::from_secret(secret, rng, static_cast<int32>(Time::now_cached()),
+                                           default_runtime_platform_hints(), profile);
   TRY_STATUS(config.validate());
   return config;
 }

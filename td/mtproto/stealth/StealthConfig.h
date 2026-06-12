@@ -114,6 +114,12 @@ struct StealthConfig final {
   static StealthConfig from_secret(const ProxySecret &secret, IRng &rng);
   static StealthConfig from_secret(const ProxySecret &secret, IRng &rng, int32 unix_time,
                                    const RuntimePlatformHints &platform);
+  // Explicit-profile construction: the caller has already selected one runtime
+  // profile for this connection attempt (e.g. the TLS hello path) and threads it
+  // here so the transport-shaping config and the emitted ClientHello cannot
+  // diverge into split profile state. Profile selection is not repeated.
+  static StealthConfig from_secret(const ProxySecret &secret, IRng &rng, int32 unix_time,
+                                   const RuntimePlatformHints &platform, BrowserProfile profile);
   static StealthConfig default_config(IRng &rng);
 
   Status validate() const;
@@ -125,6 +131,11 @@ struct StealthConfig final {
 using StealthConfigFactory = Result<StealthConfig> (*)(const ProxySecret &secret, IRng &rng);
 
 Result<StealthConfig> make_transport_stealth_config(const ProxySecret &secret, IRng &rng);
+// Explicit-profile transport config for the connection single-selection path. The
+// profile chosen for the emitted ClientHello is threaded in so the shaping
+// decorator and the hello carry the same wire variant. The test factory, when
+// installed, still takes precedence.
+Result<StealthConfig> make_transport_stealth_config(const ProxySecret &secret, IRng &rng, BrowserProfile profile);
 StealthConfigFactory set_stealth_config_factory_for_tests(StealthConfigFactory factory);
 
 }  // namespace stealth

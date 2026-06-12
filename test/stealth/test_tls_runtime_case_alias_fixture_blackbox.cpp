@@ -359,6 +359,9 @@ TEST(TlsRuntimeCaseAliasFixtureBlackBox, IosCaseAliasesProduceIdenticalRuntimeWi
   params.platform_hints = make_ios_platform();
   params.profile_weights.ios14 = 1;
   params.profile_weights.chrome147_ios_chromium = 1;
+  // Pin the verified Apple iOS TLS lane to 0 so this case-alias test keeps
+  // exercising exactly the IOS14 and Chrome147_IOSChromium lanes it asserts on.
+  params.profile_weights.apple_ios_tls = 0;
   params.profile_weights.chrome133 = 0;
   params.profile_weights.chrome131 = 0;
   params.profile_weights.chrome120 = 0;

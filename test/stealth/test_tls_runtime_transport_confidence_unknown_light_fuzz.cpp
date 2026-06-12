@@ -86,7 +86,9 @@ TEST(TlsRuntimeTransportConfidenceUnknownLightFuzz, WindowsAndIosNeverSelectCros
   for (td::uint32 i = 0; i < 10000; i++) {
     auto unix_time = static_cast<int32>(1712345678 + static_cast<int32>(i * 19));
     auto profile = pick_runtime_profile(mutate_domain(i + 10000), unix_time, ios_params.platform_hints);
-    ASSERT_TRUE(profile == BrowserProfile::IOS14);
+    // iOS at Unknown confidence now exposes both the advisory IOS14 lane and the
+    // verified Apple iOS TLS lane (both TlsOnly).
+    ASSERT_TRUE(profile == BrowserProfile::IOS14 || profile == BrowserProfile::AppleIosTls);
   }
 }
 

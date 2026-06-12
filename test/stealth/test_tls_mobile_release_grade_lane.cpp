@@ -10,12 +10,14 @@
 // iOS share for the verified iOS Chromium lane, making it reachable once
 // transport_confidence permits its cross-layer claim.
 //
-// Honest residual (documented, not a bug to "fix" by fabricating evidence): at
-// the default Unknown transport_confidence iOS still selects the advisory IOS14
-// lane — only a TlsOnly-claim profile may be used without confidence evidence, so
-// the advisory default is the conservative correct choice. Android now carries a
-// reviewed ALPS-bearing Chromium lane, but it must remain unreachable at Unknown
-// confidence so the runtime stays fail-closed onto the advisory okhttp fallback.
+// The iOS/default Unknown release-grade gap is now closed by the verified
+// browser-capture Apple iOS TLS lane (AppleIosTls): it is TlsOnly + release-gated,
+// so at Unknown transport_confidence iOS is no longer limited to the advisory
+// IOS14 lane — AppleIosTls is reachable alongside it, while the cross-layer-claim
+// Chrome147_IOSChromium lane stays unreachable without confidence evidence.
+// Android still carries a reviewed ALPS-bearing Chromium lane that must remain
+// unreachable at Unknown confidence so the runtime stays fail-closed onto the
+// advisory okhttp fallback.
 
 #include "td/mtproto/stealth/StealthRuntimeParams.h"
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
@@ -62,10 +64,11 @@ TEST(MobileReleaseGradeLane, IosChromiumLaneHasNonZeroEffectiveWeight) {
   Guard guard;
   auto weights = default_runtime_stealth_params().profile_weights;
   ASSERT_TRUE(weights.chrome147_ios_chromium > 0);
+  ASSERT_TRUE(weights.apple_ios_tls > 0);
   ASSERT_TRUE(weights.ios14 > 0);
-  // The carve-out comes out of the iOS share: ios14 + chrome147_ios_chromium
-  // equals the configured iOS weight (70 by default).
-  ASSERT_EQ(70, weights.ios14 + weights.chrome147_ios_chromium);
+  // The carve-outs come out of the iOS share: ios14 + chrome147_ios_chromium +
+  // apple_ios_tls equals the configured iOS weight (70 by default).
+  ASSERT_EQ(70, weights.ios14 + weights.chrome147_ios_chromium + weights.apple_ios_tls);
 }
 
 // With transport_confidence established, iOS can reach the verified Chromium lane
@@ -91,19 +94,27 @@ TEST(MobileReleaseGradeLane, IosReachesVerifiedChromiumLaneAtEstablishedConfiden
   ASSERT_TRUE(saw_ios14);
 }
 
-// At the default Unknown confidence iOS selects only the advisory IOS14 lane: a
-// cross-layer-claim profile may not be used without confidence evidence.
-TEST(MobileReleaseGradeLane, IosDefaultsToAdvisoryLaneAtUnknownConfidence) {
+// At the default Unknown confidence iOS selects only TlsOnly-claim lanes — the
+// advisory IOS14 lane and the verified Apple iOS TLS lane — never the
+// cross-layer-claim Chrome147_IOSChromium lane (which needs confidence evidence).
+// The verified Apple iOS TLS lane is reachable here, so IOS14 is no longer the
+// only Unknown-confidence iOS lane (the closed iOS/default release-grade gap).
+TEST(MobileReleaseGradeLane, IosUnknownConfidenceSelectsOnlyTlsOnlyLanes) {
   Guard guard;
   auto params = default_runtime_stealth_params();
   params.transport_confidence = TransportConfidence::Unknown;
   params.platform_hints = ios_platform();
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
 
-  for (int i = 0; i < 128; i++) {
+  bool saw_apple_ios_tls = false;
+  for (int i = 0; i < 256; i++) {
     auto profile = pick_runtime_profile("ios-unk-" + td::to_string(i) + ".example", kUnixTime + i, ios_platform());
-    ASSERT_TRUE(profile == BrowserProfile::IOS14);
+    ASSERT_TRUE(profile == BrowserProfile::IOS14 || profile == BrowserProfile::AppleIosTls);
+    if (profile == BrowserProfile::AppleIosTls) {
+      saw_apple_ios_tls = true;
+    }
   }
+  ASSERT_TRUE(saw_apple_ios_tls);
 }
 
 TEST(MobileReleaseGradeLane, AndroidChromiumLaneHasNonZeroEffectiveWeight) {

@@ -702,6 +702,18 @@ BrowserProfileSpec make_ios14_impl() {
   return profile;
 }
 
+BrowserProfileSpec make_apple_ios_tls_impl() {
+  // Reviewed Apple iOS TLS family lane. The wire image is the proven iOS Apple
+  // TLS family shape (identical to make_ios14_impl); what distinguishes this lane
+  // is its verified browser-capture provenance plus release-gated, TlsOnly trust
+  // metadata in the registry, not a new wire image. Mirrors how
+  // make_android_chromium_alps_impl promotes a proven family shape as a dedicated
+  // runtime profile rather than inventing a new wire image.
+  auto profile = make_ios14_impl();
+  profile.name = "apple_ios_tls";
+  return profile;
+}
+
 BrowserProfileSpec make_android_chromium_alps_impl() {
   // The reviewed ALPS-bearing android_chromium / non_ru_egress lane is already
   // proxied by the Chrome133 family in corpus and similarity tests. Promote it
@@ -796,6 +808,10 @@ const BrowserProfileSpec &get_profile_spec(BrowserProfile profile_id) {
     }
     case BrowserProfile::IOS14: {
       static const BrowserProfileSpec spec = make_ios14_impl();
+      return spec;
+    }
+    case BrowserProfile::AppleIosTls: {
+      static const BrowserProfileSpec spec = make_apple_ios_tls_impl();
       return spec;
     }
     case BrowserProfile::AndroidChromium_Alps: {

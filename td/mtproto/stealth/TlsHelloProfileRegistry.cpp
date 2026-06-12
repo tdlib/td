@@ -48,6 +48,7 @@ constexpr BrowserProfile ALL_PROFILES[] = {
     BrowserProfile::ChromiumMacOS_4469,
     BrowserProfile::ChromiumMacOS_44CD,
     BrowserProfile::Firefox149_Android,
+    BrowserProfile::AppleIosTls,
 };
 
 constexpr BrowserProfile DARWIN_DESKTOP_PROFILES[] = {
@@ -73,6 +74,7 @@ constexpr BrowserProfile WINDOWS_DESKTOP_PROFILES[] = {
 constexpr BrowserProfile MOBILE_PROFILES[] = {
     BrowserProfile::IOS14,
     BrowserProfile::Chrome147_IOSChromium,
+    BrowserProfile::AppleIosTls,
     BrowserProfile::AndroidChromium_Alps,
     BrowserProfile::Firefox149_Android,
     BrowserProfile::Android11_OkHttp_Advisory,
@@ -81,6 +83,7 @@ constexpr BrowserProfile MOBILE_PROFILES[] = {
 constexpr BrowserProfile IOS_MOBILE_PROFILES[] = {
     BrowserProfile::IOS14,
     BrowserProfile::Chrome147_IOSChromium,
+    BrowserProfile::AppleIosTls,
 };
 
 constexpr BrowserProfile ANDROID_MOBILE_PROFILES[] = {
@@ -143,6 +146,13 @@ constexpr ProfileSpec PROFILE_SPECS[] = {
      0x00, 0x0001, 0x0001, 0, 32, ExtensionOrderPolicy::ChromeShuffleAnchored},
     {BrowserProfile::Firefox149_Android, Slice("firefox149_android"), 0, 0x4001, true, false, true, true, 0x11EC,
      0x00, 0x0001, 0x0001, 399, 32, ExtensionOrderPolicy::FixedFromFixture},
+    // Reviewed Apple iOS TLS family lane. Wire image is the proven iOS Apple TLS
+    // family shape (same has_pq/pq_group_id=X25519MLKEM768, no ECH — matches
+    // make_apple_ios_tls_impl, which is anchored to make_ios14_impl). Its trust
+    // metadata in PROFILE_FIXTURES, not this wire spec, is what makes it the
+    // verified release-gated iOS lane.
+    {BrowserProfile::AppleIosTls, Slice("apple_ios_tls"), 0, 0, false, false, true, true, 0x11EC, 0x00, 0x0001, 0x0001,
+     0, 32, ExtensionOrderPolicy::FixedFromFixture},
 };
 
 constexpr ProfileFixtureMetadata PROFILE_FIXTURES[] = {
@@ -178,7 +188,47 @@ constexpr ProfileFixtureMetadata PROFILE_FIXTURES[] = {
      ProfileTrustTier::Verified, true, false, true, TransportClaimLevel::CrossLayerStrong},
     {Slice("browser_capture:firefox149_android"), ProfileFixtureSourceKind::BrowserCapture, ProfileTrustTier::Verified,
      true, false, false, TransportClaimLevel::CrossLayerStrong},
+    // Apple iOS TLS verified lane: browser-capture provenance, release-gated, and
+    // a TlsOnly transport claim so it is reachable at TransportConfidence::Unknown.
+    // This is the conjunction (TlsOnly + release_gating + Verified) the advisory
+    // IOS14 and CrossLayerStrong Chrome147_IOSChromium lanes cannot satisfy.
+    {Slice("browser_capture:apple_ios_tls"), ProfileFixtureSourceKind::BrowserCapture, ProfileTrustTier::Verified, true,
+     false, true, TransportClaimLevel::TlsOnly},
 };
+
+// Compile-time alignment guard. ALL_PROFILES, PROFILE_SPECS, and PROFILE_FIXTURES
+// are bound to the BrowserProfile enum only by array position, because
+// profile_index(p) == static_cast<size_t>(p) indexes PROFILE_SPECS/PROFILE_FIXTURES
+// directly. A mis-insertion or reordering would silently hand back the wrong wire
+// spec or trust metadata for a profile (e.g. an advisory lane inheriting a
+// release-gated, Verified fixture and defeating the release gate). Pin the
+// invariant at build time so any future profile edit that breaks position fails to
+// compile instead of corrupting selection at runtime. (PROFILE_FIXTURES carries no
+// id field, so it is count-checked here and kept in lockstep with PROFILE_SPECS;
+// giving it an explicit BrowserProfile id is a recommended follow-up.)
+constexpr size_t kRegisteredProfileCount = sizeof(ALL_PROFILES) / sizeof(ALL_PROFILES[0]);
+
+constexpr bool profile_registry_arrays_are_index_aligned() {
+  if (sizeof(PROFILE_SPECS) / sizeof(PROFILE_SPECS[0]) != kRegisteredProfileCount) {
+    return false;
+  }
+  if (sizeof(PROFILE_FIXTURES) / sizeof(PROFILE_FIXTURES[0]) != kRegisteredProfileCount) {
+    return false;
+  }
+  for (size_t i = 0; i < kRegisteredProfileCount; i++) {
+    if (static_cast<size_t>(ALL_PROFILES[i]) != i) {
+      return false;
+    }
+    if (PROFILE_SPECS[i].id != ALL_PROFILES[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static_assert(profile_registry_arrays_are_index_aligned(),
+              "BrowserProfile enum, ALL_PROFILES, PROFILE_SPECS, and PROFILE_FIXTURES must stay index-aligned: "
+              "profile_index(p) == static_cast<size_t>(p) positionally indexes PROFILE_SPECS and PROFILE_FIXTURES");
 
 constexpr Slice kRuntimeEchStoreKeyPrefix("stealth_ech_cb#");
 constexpr uint32 kRouteFailureKeyBucketSeconds = 86400;
@@ -270,6 +320,9 @@ RouteFailureCacheEntry make_fail_closed_route_failure_cache_entry() {
 }
 
 size_t profile_index(BrowserProfile profile) {
+  // Fail fast on an out-of-enum value instead of an out-of-bounds read into the
+  // positional PROFILE_SPECS/PROFILE_FIXTURES arrays.
+  CHECK(static_cast<size_t>(profile) < kRegisteredProfileCount);
   return static_cast<size_t>(profile);
 }
 
@@ -880,6 +933,8 @@ uint8 profile_weight(const ProfileWeights &weights, BrowserProfile profile) {
       return weights.safari26_3;
     case BrowserProfile::IOS14:
       return weights.ios14;
+    case BrowserProfile::AppleIosTls:
+      return weights.apple_ios_tls;
     case BrowserProfile::AndroidChromium_Alps:
       return weights.android_chromium_alps;
     case BrowserProfile::Android11_OkHttp_Advisory:
@@ -983,6 +1038,187 @@ bool transport_confidence_allows_profile(const StealthRuntimeParams &runtime_par
     return true;
   }
   return profile_fixture_metadata(profile).transport_claim_level == TransportClaimLevel::TlsOnly;
+}
+
+// ---------------------------------------------------------------------------
+// Adaptive runtime profile rotation (in-memory only, Phase 1).
+// ---------------------------------------------------------------------------
+
+// One in-memory quarantine entry for a single emitted wire variant. The map is
+// keyed by normalized_destination + BrowserProfile + hello_uses_ech only, never
+// by route labels, platform strings, status text, or secrets.
+struct RuntimeProfileFailureEntry final {
+  uint32 recent_failures{0};
+  Timestamp quarantined_until;
+};
+
+struct RuntimeProfileRotationCounterStorage final {
+  std::atomic<uint64> profile_quarantine_hit_total{0};
+  std::atomic<uint64> profile_quarantine_all_blocked_total{0};
+  std::atomic<uint64> profile_failure_recorded_total{0};
+  std::atomic<uint64> profile_success_cleared_total{0};
+};
+
+std::mutex &profile_quarantine_mutex() {
+  static std::mutex mutex;
+  return mutex;
+}
+
+std::unordered_map<string, RuntimeProfileFailureEntry> &profile_quarantine_map() {
+  static std::unordered_map<string, RuntimeProfileFailureEntry> map;
+  return map;
+}
+
+RuntimeProfileRotationCounterStorage &runtime_profile_rotation_counters() {
+  static RuntimeProfileRotationCounterStorage counters;
+  return counters;
+}
+
+// Quarantine key derived ONLY from normalized destination + profile id + final
+// ECH-on-the-wire flag. The normalized destination collapses case-only and
+// trailing-dot aliases so `Example.COM` and `example.com.` share one entry.
+string profile_quarantine_key(Slice destination, BrowserProfile profile, bool hello_uses_ech) {
+  string key = normalized_runtime_destination_key(destination);
+  key += '|';
+  key += to_string(static_cast<int>(profile));
+  key += '|';
+  key += hello_uses_ech ? '1' : '0';
+  return key;
+}
+
+// The emitted hello uses ECH only when the selected profile permits ECH AND the
+// route decision resolved to RFC 9180 outer. A profile with allows_ech=false
+// emits a non-ECH hello even when the route would otherwise enable ECH, so the
+// wire variant must be keyed on this resolved value, not on the route intent.
+bool hello_uses_ech_for_profile(BrowserProfile profile, EchMode ech_mode) {
+  return profile_spec(profile).allows_ech && ech_mode == EchMode::Rfc9180Outer;
+}
+
+// Reads (and opportunistically reaps) the quarantine entry for one wire variant.
+// A variant is actively quarantined only while its TTL is in the future AND it has
+// reached the failure threshold. Expired entries are erased on read.
+bool is_profile_variant_quarantined_locked(Slice destination, BrowserProfile profile, bool hello_uses_ech,
+                                           uint32 failure_threshold) {
+  auto &map = profile_quarantine_map();
+  auto it = map.find(profile_quarantine_key(destination, profile, hello_uses_ech));
+  if (it == map.end()) {
+    return false;
+  }
+  if (!it->second.quarantined_until || it->second.quarantined_until.is_in_past()) {
+    map.erase(it);
+    return false;
+  }
+  return it->second.recent_failures >= failure_threshold;
+}
+
+// Deterministic weighted pick over a non-empty profile pool using the same stable
+// per-destination/time-bucket hash as the legacy selector, so selection stays
+// sticky (anti-churn) while excluding quarantined variants. Requires total
+// weight > 0; every pool member is pre-filtered to weight > 0 by the caller.
+BrowserProfile weighted_pick(const std::vector<BrowserProfile> &profiles, const ProfileWeights &weights,
+                             const SelectionKey &key, const RuntimePlatformHints &platform) {
+  uint32 total_weight = 0;
+  for (auto profile : profiles) {
+    total_weight += profile_weight(weights, profile);
+  }
+  CHECK(total_weight > 0);
+  auto roll = stable_selection_hash(key, platform) % total_weight;
+  uint32 cumulative_weight = 0;
+  for (auto profile : profiles) {
+    cumulative_weight += profile_weight(weights, profile);
+    if (roll < cumulative_weight) {
+      return profile;
+    }
+  }
+  return profiles.back();
+}
+
+// Shared core of legacy and adaptive selection. Returns the final selectable pool
+// (post transport-confidence and post release-gating filtering) plus the weighted
+// baseline pick over that pool. advisory_blocked_total bookkeeping is preserved
+// byte-for-byte from the legacy pick_runtime_profile so the disabled path is
+// behaviour-neutral.
+struct RuntimeProfileResolution final {
+  std::vector<BrowserProfile> selectable;
+  BrowserProfile baseline{BrowserProfile::Chrome133};
+  SelectionKey key;
+};
+
+RuntimeProfileResolution resolve_runtime_profile(const StealthRuntimeParams &runtime_params, Slice destination,
+                                                 int32 unix_time, const RuntimePlatformHints &platform) {
+  RuntimeProfileResolution resolution;
+  auto allowed_profiles = allowed_profiles_for_platform(platform);
+  resolution.key = make_profile_selection_key(destination, unix_time);
+  const auto &weights = runtime_params.profile_weights;
+
+  std::vector<BrowserProfile> confidence_allowed_profiles;
+  confidence_allowed_profiles.reserve(allowed_profiles.size());
+  for (auto profile : allowed_profiles) {
+    if (!transport_confidence_allows_profile(runtime_params, profile)) {
+      continue;
+    }
+    if (profile_weight(weights, profile) == 0) {
+      continue;
+    }
+    confidence_allowed_profiles.push_back(profile);
+  }
+
+  if (confidence_allowed_profiles.empty()) {
+    for (auto profile : allowed_profiles) {
+      if (transport_confidence_allows_profile(runtime_params, profile)) {
+        resolution.selectable = {profile};
+        resolution.baseline = profile;
+        return resolution;
+      }
+    }
+    auto fallback = allowed_profiles.back();
+    resolution.selectable = {fallback};
+    resolution.baseline = fallback;
+    return resolution;
+  }
+
+  auto baseline = weighted_pick(confidence_allowed_profiles, weights, resolution.key, platform);
+
+  if (!runtime_params.release_mode_profile_gating) {
+    resolution.baseline = baseline;
+    resolution.selectable = std::move(confidence_allowed_profiles);
+    return resolution;
+  }
+
+  bool blocked_advisory = !profile_fixture_metadata(baseline).release_gating;
+  std::vector<BrowserProfile> release_profiles;
+  release_profiles.reserve(confidence_allowed_profiles.size());
+  for (auto profile : confidence_allowed_profiles) {
+    if (!profile_fixture_metadata(profile).release_gating) {
+      continue;
+    }
+    if (profile_weight(weights, profile) == 0) {
+      continue;
+    }
+    release_profiles.push_back(profile);
+  }
+
+  if (release_profiles.empty()) {
+    runtime_profile_selection_counters().advisory_blocked_total.fetch_add(1, std::memory_order_relaxed);
+    for (auto profile : confidence_allowed_profiles) {
+      if (profile_fixture_metadata(profile).release_gating) {
+        resolution.selectable = {profile};
+        resolution.baseline = profile;
+        return resolution;
+      }
+    }
+    resolution.selectable = {baseline};
+    resolution.baseline = baseline;
+    return resolution;
+  }
+
+  if (blocked_advisory) {
+    runtime_profile_selection_counters().advisory_blocked_total.fetch_add(1, std::memory_order_relaxed);
+  }
+
+  resolution.baseline = weighted_pick(release_profiles, weights, resolution.key, platform);
+  resolution.selectable = std::move(release_profiles);
+  return resolution;
 }
 
 }  // namespace tls_hello_profile_registry_internal
@@ -1213,94 +1449,152 @@ BrowserProfile pick_profile_sticky(const ProfileWeights &weights, const Selectio
 }
 
 BrowserProfile pick_runtime_profile(Slice destination, int32 unix_time, const RuntimePlatformHints &platform) {
+  // Legacy stable wrapper: one weighted pick over the confidence/release-filtered
+  // pool, no quarantine. Adaptive rotation is a strict superset reachable via
+  // pick_runtime_profile_adaptive when the rotation policy is enabled.
   auto runtime_params = get_runtime_stealth_params_snapshot();
-  auto allowed_profiles = allowed_profiles_for_platform(platform);
-  auto key = make_profile_selection_key(destination, unix_time);
-  auto weights = runtime_params.profile_weights;
+  return tls_hello_profile_registry_internal::resolve_runtime_profile(runtime_params, destination, unix_time, platform)
+      .baseline;
+}
 
-  std::vector<BrowserProfile> confidence_allowed_profiles;
-  confidence_allowed_profiles.reserve(allowed_profiles.size());
+RuntimeProfileSelectionDecision pick_runtime_profile_adaptive(Slice destination, int32 unix_time,
+                                                              const RuntimePlatformHints &platform, EchMode ech_mode) {
+  using namespace tls_hello_profile_registry_internal;
+  auto runtime_params = get_runtime_stealth_params_snapshot();
+  auto resolution = resolve_runtime_profile(runtime_params, destination, unix_time, platform);
 
-  uint32 total_weight = 0;
-  for (auto profile : allowed_profiles) {
-    if (!tls_hello_profile_registry_internal::transport_confidence_allows_profile(runtime_params, profile)) {
-      continue;
-    }
-    auto weight = tls_hello_profile_registry_internal::profile_weight(weights, profile);
-    if (weight == 0) {
-      continue;
-    }
-    total_weight += weight;
-    confidence_allowed_profiles.push_back(profile);
+  RuntimeProfileSelectionDecision decision;
+  decision.profile = resolution.baseline;
+  decision.hello_uses_ech = hello_uses_ech_for_profile(resolution.baseline, ech_mode);
+
+  // Rotation is opt-in; an empty/degenerate destination has no stable quarantine
+  // identity. In both cases the decision is the legacy baseline, leaving the
+  // disabled path behaviour-neutral. A single-element pool still runs the logic
+  // below so that quarantining the only allowed lane records the all-blocked
+  // fail-closed accounting instead of silently returning a quarantined variant.
+  if (!runtime_params.profile_rotation.enabled || !has_runtime_destination_identity(destination)) {
+    return decision;
   }
 
-  if (confidence_allowed_profiles.empty()) {
-    for (auto profile : allowed_profiles) {
-      if (tls_hello_profile_registry_internal::transport_confidence_allows_profile(runtime_params, profile)) {
-        return profile;
-      }
-    }
-    return allowed_profiles.back();
-  }
-  CHECK(total_weight > 0);
+  auto failure_threshold = runtime_params.profile_rotation.failure_threshold;
+  auto lock = std::scoped_lock(profile_quarantine_mutex());
 
-  auto roll = tls_hello_profile_registry_internal::stable_selection_hash(key, platform) % total_weight;
-  uint32 cumulative_weight = 0;
-  BrowserProfile baseline_profile = confidence_allowed_profiles.back();
-  for (auto profile : confidence_allowed_profiles) {
-    cumulative_weight += tls_hello_profile_registry_internal::profile_weight(weights, profile);
-    if (roll < cumulative_weight) {
-      baseline_profile = profile;
-      break;
+  uint32 quarantined_count = 0;
+  for (auto profile : resolution.selectable) {
+    if (is_profile_variant_quarantined_locked(destination, profile, hello_uses_ech_for_profile(profile, ech_mode),
+                                              failure_threshold)) {
+      quarantined_count++;
     }
   }
+  decision.quarantined_candidate_count = quarantined_count;
 
-  if (!runtime_params.release_mode_profile_gating) {
-    return baseline_profile;
+  if (!is_profile_variant_quarantined_locked(destination, resolution.baseline, decision.hello_uses_ech,
+                                             failure_threshold)) {
+    return decision;
   }
 
-  bool blocked_advisory = !profile_fixture_metadata(baseline_profile).release_gating;
-  uint32 release_weight_total = 0;
-  std::vector<BrowserProfile> release_profiles;
-  release_profiles.reserve(confidence_allowed_profiles.size());
-  for (auto profile : confidence_allowed_profiles) {
-    if (!profile_fixture_metadata(profile).release_gating) {
-      continue;
-    }
-    auto weight = tls_hello_profile_registry_internal::profile_weight(weights, profile);
-    if (weight == 0) {
-      continue;
-    }
-    release_weight_total += weight;
-    release_profiles.push_back(profile);
-  }
-
-  if (release_weight_total == 0 || release_profiles.empty()) {
-    tls_hello_profile_registry_internal::runtime_profile_selection_counters().advisory_blocked_total.fetch_add(
-        1, std::memory_order_relaxed);
-    for (auto profile : confidence_allowed_profiles) {
-      if (profile_fixture_metadata(profile).release_gating) {
-        return profile;
-      }
-    }
-    return baseline_profile;
-  }
-
-  if (blocked_advisory) {
-    tls_hello_profile_registry_internal::runtime_profile_selection_counters().advisory_blocked_total.fetch_add(
-        1, std::memory_order_relaxed);
-  }
-
-  auto release_roll = tls_hello_profile_registry_internal::stable_selection_hash(key, platform) % release_weight_total;
-  uint32 release_cumulative = 0;
-  for (auto profile : release_profiles) {
-    release_cumulative += tls_hello_profile_registry_internal::profile_weight(weights, profile);
-    if (release_roll < release_cumulative) {
-      return profile;
+  std::vector<BrowserProfile> available;
+  available.reserve(resolution.selectable.size());
+  for (auto profile : resolution.selectable) {
+    if (!is_profile_variant_quarantined_locked(destination, profile, hello_uses_ech_for_profile(profile, ech_mode),
+                                               failure_threshold)) {
+      available.push_back(profile);
     }
   }
 
-  return release_profiles.back();
+  if (available.empty()) {
+    // Every allowed wire variant is quarantined: fail closed by keeping the
+    // baseline. Rotation never widens beyond the already-allowed platform set.
+    runtime_profile_rotation_counters().profile_quarantine_all_blocked_total.fetch_add(1, std::memory_order_relaxed);
+    return decision;
+  }
+
+  decision.profile = weighted_pick(available, runtime_params.profile_weights, resolution.key, platform);
+  decision.hello_uses_ech = hello_uses_ech_for_profile(decision.profile, ech_mode);
+  decision.avoided_quarantined_profile = true;
+  runtime_profile_rotation_counters().profile_quarantine_hit_total.fetch_add(1, std::memory_order_relaxed);
+  return decision;
+}
+
+bool runtime_profile_failure_signal_is_quarantine_eligible(RuntimeProfileFailureSignal signal) noexcept {
+  switch (signal) {
+    case RuntimeProfileFailureSignal::MalformedHelloResponse:
+    case RuntimeProfileFailureSignal::TransportRejectionAfterHello:
+      return true;
+    case RuntimeProfileFailureSignal::None:
+    case RuntimeProfileFailureSignal::WrongRegime:
+    case RuntimeProfileFailureSignal::ResponseHashMismatch:
+      return false;
+  }
+  // Garbage / out-of-enum signal: fail closed, never quarantine.
+  return false;
+}
+
+void note_runtime_profile_failure(Slice destination, const RuntimeProfileWireVariant &variant,
+                                  RuntimeProfileFailureSignal signal) {
+  using namespace tls_hello_profile_registry_internal;
+  // Conservative attribution: only wire-shape rejections quarantine a profile.
+  // Wrong-regime / response-hash-mismatch / pre-hello signals are no-ops and must
+  // not even touch counters (false-positive resistance + fail-closed fuzz input).
+  if (!runtime_profile_failure_signal_is_quarantine_eligible(signal)) {
+    return;
+  }
+  if (!has_runtime_destination_identity(destination)) {
+    return;
+  }
+  auto runtime_params = get_runtime_stealth_params_snapshot();
+  if (!runtime_params.profile_rotation.enabled) {
+    return;
+  }
+
+  auto lock = std::scoped_lock(profile_quarantine_mutex());
+  auto &entry =
+      profile_quarantine_map()[profile_quarantine_key(destination, variant.profile, variant.hello_uses_ech)];
+  if (entry.quarantined_until && entry.quarantined_until.is_in_past()) {
+    entry = RuntimeProfileFailureEntry{};
+  }
+  if (entry.recent_failures < std::numeric_limits<uint32>::max()) {
+    entry.recent_failures++;
+  }
+  entry.quarantined_until = Timestamp::in(runtime_params.profile_rotation.quarantine_ttl_seconds);
+  runtime_profile_rotation_counters().profile_failure_recorded_total.fetch_add(1, std::memory_order_relaxed);
+}
+
+void note_runtime_profile_success(Slice destination, const RuntimeProfileWireVariant &variant) {
+  using namespace tls_hello_profile_registry_internal;
+  if (!has_runtime_destination_identity(destination)) {
+    return;
+  }
+  auto lock = std::scoped_lock(profile_quarantine_mutex());
+  auto erased =
+      profile_quarantine_map().erase(profile_quarantine_key(destination, variant.profile, variant.hello_uses_ech));
+  if (erased != 0) {
+    runtime_profile_rotation_counters().profile_success_cleared_total.fetch_add(1, std::memory_order_relaxed);
+  }
+}
+
+RuntimeProfileRotationCounters get_runtime_profile_rotation_counters() noexcept {
+  auto &counters = tls_hello_profile_registry_internal::runtime_profile_rotation_counters();
+  RuntimeProfileRotationCounters result;
+  result.profile_quarantine_hit_total = counters.profile_quarantine_hit_total.load(std::memory_order_relaxed);
+  result.profile_quarantine_all_blocked_total =
+      counters.profile_quarantine_all_blocked_total.load(std::memory_order_relaxed);
+  result.profile_failure_recorded_total = counters.profile_failure_recorded_total.load(std::memory_order_relaxed);
+  result.profile_success_cleared_total = counters.profile_success_cleared_total.load(std::memory_order_relaxed);
+  return result;
+}
+
+void reset_runtime_profile_rotation_counters_for_tests() noexcept {
+  auto &counters = tls_hello_profile_registry_internal::runtime_profile_rotation_counters();
+  counters.profile_quarantine_hit_total.store(0, std::memory_order_relaxed);
+  counters.profile_quarantine_all_blocked_total.store(0, std::memory_order_relaxed);
+  counters.profile_failure_recorded_total.store(0, std::memory_order_relaxed);
+  counters.profile_success_cleared_total.store(0, std::memory_order_relaxed);
+}
+
+void reset_runtime_profile_quarantine_state_for_tests() {
+  auto lock = std::scoped_lock(tls_hello_profile_registry_internal::profile_quarantine_mutex());
+  tls_hello_profile_registry_internal::profile_quarantine_map().clear();
 }
 
 EchMode ech_mode_for_route(const NetworkRouteHints &route, const RouteFailureState &state) noexcept {

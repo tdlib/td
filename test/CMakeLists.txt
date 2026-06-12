@@ -420,6 +420,13 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ech_circuit_breaker_reload_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ech_cb_ttl_reconcile_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_registry.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_runtime_profile_rotation_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_runtime_profile_rotation_positive.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_runtime_profile_rotation_negative.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_runtime_profile_rotation_edge.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_runtime_profile_rotation_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_runtime_profile_rotation_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_runtime_profile_rotation_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_registry_provenance.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_platform_coherence.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_platform_defaults.cpp

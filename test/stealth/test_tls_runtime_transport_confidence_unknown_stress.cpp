@@ -109,7 +109,9 @@ TEST(TlsRuntimeTransportConfidenceUnknownStress, LongRunUnknownConfidenceRemains
     td::string domain = "stress-unknown-ios-" + td::to_string(i) + ".example";
 
     auto profile = pick_runtime_profile(domain, unix_time, ios_params.platform_hints);
-    ASSERT_TRUE(profile == BrowserProfile::IOS14);
+    // iOS at Unknown confidence now exposes both the advisory IOS14 lane and the
+    // verified Apple iOS TLS lane (both TlsOnly).
+    ASSERT_TRUE(profile == BrowserProfile::IOS14 || profile == BrowserProfile::AppleIosTls);
 
     ASSERT_TRUE(runtime_ech_mode_for_route(domain, unix_time, ru_route()) == EchMode::Disabled);
 

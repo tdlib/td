@@ -49,8 +49,8 @@ ProfileWeights expected_profile_weights_for_platform(const RuntimePlatformHints 
   // macOS Firefox is bridged from the darwin firefox ratio (10) on every platform.
   // Dedicated macOS Chromium cohorts are bridged from the darwin Chromium shares.
   // Mobile shares are bridged into explicit verified/advisory lanes without changing
-  // the plan-style mobile policy schema: iOS(70) -> {Chromium 10, IOS14 60} and
-  // Android(30) -> {AndroidChromium_Alps 20, Firefox149_Android 5,
+  // the plan-style mobile policy schema: iOS(70) -> {Chromium 10, AppleIosTls 10,
+  // IOS14 50} and Android(30) -> {AndroidChromium_Alps 20, Firefox149_Android 5,
   // Android11_OkHttp_Advisory 5}.
   weights.chrome147_windows = 50;
   weights.chromium_macos_no_alps = 10;
@@ -59,7 +59,8 @@ ProfileWeights expected_profile_weights_for_platform(const RuntimePlatformHints 
   weights.firefox149_macos26_3 = 10;
   weights.firefox149_windows = 15;
   weights.chrome147_ios_chromium = 10;
-  weights.ios14 = 60;
+  weights.apple_ios_tls = 10;
+  weights.ios14 = 50;
   weights.firefox149_android = 5;
   weights.android_chromium_alps = 20;
   weights.android11_okhttp_advisory = 5;
@@ -81,6 +82,7 @@ void assert_profile_weights_eq(const ProfileWeights &lhs, const ProfileWeights &
   ASSERT_EQ(lhs.firefox149_windows, rhs.firefox149_windows);
   ASSERT_EQ(lhs.safari26_3, rhs.safari26_3);
   ASSERT_EQ(lhs.ios14, rhs.ios14);
+  ASSERT_EQ(lhs.apple_ios_tls, rhs.apple_ios_tls);
   ASSERT_EQ(lhs.android_chromium_alps, rhs.android_chromium_alps);
   ASSERT_EQ(lhs.android11_okhttp_advisory, rhs.android11_okhttp_advisory);
 }

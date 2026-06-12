@@ -103,6 +103,11 @@ struct ProfileWeights final {
   uint8 firefox149_windows{15};
   uint8 safari26_3{20};
   uint8 ios14{70};
+  // Verified browser-capture Apple iOS TLS lane. Carved from the iOS share in
+  // effective_profile_weights_for_platform / flatten_profile_selection so it has
+  // a non-zero effective weight and IOS14 is no longer the only Unknown-confidence
+  // iOS lane. See AppleIosTls in BrowserProfile.h.
+  uint8 apple_ios_tls{10};
   uint8 android_chromium_alps{20};
   uint8 android11_okhttp_advisory{10};
 };
@@ -153,6 +158,44 @@ struct RuntimeProfileSelectionCounters final {
   uint64 advisory_blocked_total{0};
 };
 
+// One quarantinable emitted wire variant: a destination's selected profile plus
+// whether that hello actually carried ECH on the wire. Two route classes that
+// converge to the same (profile, hello_uses_ech) pair share one quarantine unit.
+struct RuntimeProfileWireVariant final {
+  BrowserProfile profile{BrowserProfile::Chrome133};
+  bool hello_uses_ech{false};
+};
+
+// Result of one adaptive selection for a single connection attempt. profile and
+// hello_uses_ech together identify the exact emitted wire variant to account
+// failure/success against.
+struct RuntimeProfileSelectionDecision final {
+  BrowserProfile profile{BrowserProfile::Chrome133};
+  bool hello_uses_ech{false};
+  bool avoided_quarantined_profile{false};
+  uint32 quarantined_candidate_count{0};
+};
+
+// Typed, conservative failure attribution for profile quarantine. Only wire-shape
+// rejections (MalformedHelloResponse, TransportRejectionAfterHello) are eligible.
+// WrongRegime / ResponseHashMismatch / pre-hello (None) signals never quarantine:
+// they indicate a wrong secret or protocol regime that no profile can repair, so
+// rotating on them would be fingerprint roulette against a misconfigured proxy.
+enum class RuntimeProfileFailureSignal : uint8 {
+  None = 0,
+  WrongRegime = 1,
+  ResponseHashMismatch = 2,
+  MalformedHelloResponse = 3,
+  TransportRejectionAfterHello = 4,
+};
+
+struct RuntimeProfileRotationCounters final {
+  uint64 profile_quarantine_hit_total{0};
+  uint64 profile_quarantine_all_blocked_total{0};
+  uint64 profile_failure_recorded_total{0};
+  uint64 profile_success_cleared_total{0};
+};
+
 RuntimePlatformHints default_runtime_platform_hints() noexcept;
 SelectionKey make_profile_selection_key(Slice destination, int32 unix_time);
 void set_runtime_ech_failure_store(std::shared_ptr<KeyValueSyncInterface> store);
@@ -182,6 +225,20 @@ BrowserProfile pick_profile_sticky(const ProfileWeights &weights, const Selectio
                                    const RuntimePlatformHints &platform, Span<BrowserProfile> allowed_profiles,
                                    IRng &rng);
 BrowserProfile pick_runtime_profile(Slice destination, int32 unix_time, const RuntimePlatformHints &platform);
+// Adaptive single-attempt selection. Returns the legacy baseline unless the
+// rotation policy is enabled AND the baseline's wire variant is quarantined for
+// this destination, in which case it rotates to another already-allowed,
+// non-quarantined wire variant (or stays fail-closed on the baseline if every
+// candidate is quarantined). ech_mode is the route's resolved ECH decision.
+RuntimeProfileSelectionDecision pick_runtime_profile_adaptive(Slice destination, int32 unix_time,
+                                                              const RuntimePlatformHints &platform, EchMode ech_mode);
+bool runtime_profile_failure_signal_is_quarantine_eligible(RuntimeProfileFailureSignal signal) noexcept;
+void note_runtime_profile_failure(Slice destination, const RuntimeProfileWireVariant &variant,
+                                  RuntimeProfileFailureSignal signal);
+void note_runtime_profile_success(Slice destination, const RuntimeProfileWireVariant &variant);
+RuntimeProfileRotationCounters get_runtime_profile_rotation_counters() noexcept;
+void reset_runtime_profile_rotation_counters_for_tests() noexcept;
+void reset_runtime_profile_quarantine_state_for_tests();
 EchMode ech_mode_for_route(const NetworkRouteHints &route, const RouteFailureState &state) noexcept;
 RuntimeEchDecision get_runtime_ech_decision(Slice destination, int32 unix_time,
                                             const NetworkRouteHints &route) noexcept;

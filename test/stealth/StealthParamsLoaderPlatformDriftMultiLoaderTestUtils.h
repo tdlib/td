@@ -172,7 +172,9 @@ inline void assert_ios_lane_stable() {
   auto platform = default_runtime_platform_hints();
   assert_ios_platform_published(platform);
   auto profile = pick_runtime_profile("multiloader-lock.example.com", 1712345678, platform);
-  ASSERT_TRUE(profile == BrowserProfile::IOS14);
+  // iOS at the default Unknown confidence now exposes both the advisory IOS14 lane
+  // and the verified Apple iOS TLS lane (both TlsOnly).
+  ASSERT_TRUE(profile == BrowserProfile::IOS14 || profile == BrowserProfile::AppleIosTls);
 }
 
 }  // namespace test_helpers

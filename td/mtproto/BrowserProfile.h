@@ -30,6 +30,13 @@ enum class BrowserProfile : uint8 {
   ChromiumMacOS_4469,
   ChromiumMacOS_44CD,
   Firefox149_Android,
+  // Reviewed browser-capture Apple iOS TLS family lane. Distinct from the
+  // advisory utls `IOS14` lane: it carries verified browser-capture provenance,
+  // a `TlsOnly` transport claim, and `release_gating=true`, so it is the single
+  // iOS profile that is simultaneously reachable at `TransportConfidence::Unknown`
+  // and eligible under release-mode profile gating. Kept last so existing
+  // `profile_index` positional arrays stay stable.
+  AppleIosTls,
 };
 
 enum class TlsVersion : uint16 {

@@ -128,7 +128,9 @@ TEST(TlsRuntimeTransportConfidenceUnknownIntegration, IosRuntimeWireStaysInsideA
     td::string domain = "unknown-integration-ios-" + td::to_string(i) + ".example.com";
 
     auto picked = pick_runtime_profile(domain, unix_time, params.platform_hints);
-    ASSERT_TRUE(picked == BrowserProfile::IOS14);
+    // iOS at Unknown confidence now exposes two TlsOnly lanes: the advisory IOS14
+    // lane and the verified Apple iOS TLS lane (the closed release-grade gap).
+    ASSERT_TRUE(picked == BrowserProfile::IOS14 || picked == BrowserProfile::AppleIosTls);
 
     MockRng rng(0x72000000u + static_cast<td::uint64>(i));
     auto wire = build_runtime_tls_client_hello(domain, kSecret, unix_time, non_ru_route(), rng);

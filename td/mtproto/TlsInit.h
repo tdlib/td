@@ -8,6 +8,7 @@
 #pragma once
 
 #include "td/mtproto/stealth/Interfaces.h"
+#include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
 #include "td/net/TransparentProxy.h"
 
@@ -55,6 +56,12 @@ class TlsInit final : public TransparentProxy {
   bool hello_ech_disabled_by_circuit_breaker_{false};
   bool hello_ech_reenabled_after_ttl_{false};
   bool hello_failure_recorded_{false};
+  // Adaptive profile rotation state for the wire variant emitted this attempt.
+  BrowserProfile hello_profile_{BrowserProfile::Chrome133};
+  bool hello_profile_rotation_enabled_{false};
+  bool hello_profile_rotation_avoided_quarantined_{false};
+  uint32 hello_profile_rotation_quarantined_candidates_{0};
+  bool hello_profile_failure_recorded_{false};
   enum class State {
     SendHello,
     WaitHelloResponse,
@@ -64,6 +71,9 @@ class TlsInit final : public TransparentProxy {
   std::string hello_rand_;
 
   bool record_ech_failure_once();
+  // Records at most one profile-quarantine failure for the emitted wire variant
+  // this attempt, and only for quarantine-eligible (wire-shape) signals.
+  void record_profile_failure_once(stealth::RuntimeProfileFailureSignal signal);
   void send_hello();
   Status wait_hello_response();
 

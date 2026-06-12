@@ -74,6 +74,12 @@ struct RuntimeMobileProfileWeights final {
 // claim, while keeping the policy schema (ios14 + android = 100) and its config
 // loader backward-compatible. 1/7 of 70 == 10.
 constexpr uint8 kIosChromiumShareDivisor = 7;
+// Fraction of the iOS share given to the verified browser-capture Apple iOS TLS
+// lane (AppleIosTls). Carved alongside kIosChromiumShareDivisor so iOS gains a
+// verified TlsOnly + release-gated lane and IOS14 is no longer the only
+// Unknown-confidence iOS lane, while the ios14 + android = 100 mobile policy
+// schema (and its loader) stays unchanged. 1/7 of 70 == 10.
+constexpr uint8 kAppleIosTlsShareDivisor = 7;
 constexpr uint8 kAndroidChromiumVerifiedShareNumerator = 2;
 constexpr uint8 kAndroidChromiumVerifiedShareDenominator = 3;
 constexpr uint8 kAndroidFirefoxResidualShareDivisor = 2;
@@ -83,6 +89,19 @@ struct RuntimeProfileSelectionPolicy final {
   RuntimeDesktopProfileWeights desktop_darwin{35, 25, 10, 10, 20};
   RuntimeDesktopProfileWeights desktop_non_darwin{50, 20, 15, 15, 0};
   RuntimeMobileProfileWeights mobile;
+};
+
+// Bounded, failure-driven runtime profile rotation. When a specific emitted wire
+// variant (destination + BrowserProfile + whether the hello used ECH) is rejected
+// `failure_threshold` times, it is quarantined for `quarantine_ttl_seconds` so the
+// next connection attempt to that destination can avoid that one fingerprint and
+// try another already-allowed wire shape. Rotation never widens the platform
+// allowed set, never bypasses transport-confidence or release gating, and stays
+// in-memory only. Disabled by default so the first landing is behaviour-neutral.
+struct RuntimeProfileRotationPolicy final {
+  bool enabled{false};
+  uint32 failure_threshold{2};
+  double quarantine_ttl_seconds{300.0};
 };
 
 struct StealthRuntimeParams final {
@@ -95,6 +114,7 @@ struct StealthRuntimeParams final {
   RuntimePlatformHints platform_hints;
   RuntimeFlowBehaviorPolicy flow_behavior;
   RuntimeProfileSelectionPolicy profile_selection;
+  RuntimeProfileRotationPolicy profile_rotation;
   bool release_mode_profile_gating{false};
   TransportConfidence transport_confidence{TransportConfidence::Unknown};
   RuntimeRoutePolicy route_policy;

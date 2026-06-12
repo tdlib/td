@@ -7,6 +7,7 @@
 
 #include "td/mtproto/TlsInit.h"
 
+#include "td/mtproto/stealth/StealthRuntimeParams.h"
 #include "td/mtproto/stealth/TlsHelloBuilder.h"
 
 #include "td/net/ProxySetupError.h"
@@ -98,6 +99,25 @@ Status tls_hello_hash_mismatch_error(size_t response_bytes) {
                                 PSLICE() << "Response hash mismatch: response_bytes=" << response_bytes
                                          << " random_offset=" << kTlsHelloResponseRandomOffset
                                          << " random_size=" << kTlsHelloResponseRandomSize);
+}
+
+// Maps a typed TLS-hello ProxySetupError into the conservative profile-quarantine
+// vocabulary, mirroring the ConnectionRetryPolicy taxonomy without depending on
+// the higher td/telegram layer. Only a malformed hello response is a wire-shape
+// rejection; wrong-regime and response-hash-mismatch indicate a wrong protocol
+// regime or proxy secret that no fingerprint change can repair, so they never
+// quarantine. Anything else is treated as None (not eligible).
+stealth::RuntimeProfileFailureSignal profile_failure_signal_for_status(const Status &status) {
+  switch (static_cast<ProxySetupErrorCode>(status.code())) {
+    case ProxySetupErrorCode::TlsHelloMalformedResponse:
+      return stealth::RuntimeProfileFailureSignal::MalformedHelloResponse;
+    case ProxySetupErrorCode::TlsHelloWrongRegime:
+      return stealth::RuntimeProfileFailureSignal::WrongRegime;
+    case ProxySetupErrorCode::TlsHelloResponseHashMismatch:
+      return stealth::RuntimeProfileFailureSignal::ResponseHashMismatch;
+    default:
+      return stealth::RuntimeProfileFailureSignal::None;
+  }
 }
 
 Status consume_tls_hello_response_records(ChainBufferReader *it, bool *is_complete) {
@@ -231,6 +251,20 @@ bool TlsInit::record_ech_failure_once() {
   return true;
 }
 
+void TlsInit::record_profile_failure_once(stealth::RuntimeProfileFailureSignal signal) {
+  if (hello_profile_failure_recorded_) {
+    return;
+  }
+  // Only burn the once-guard on a quarantine-eligible signal, so an earlier
+  // ineligible rejection (e.g. wrong regime) does not suppress a later genuine
+  // wire-shape failure in the same attempt.
+  if (!stealth::runtime_profile_failure_signal_is_quarantine_eligible(signal)) {
+    return;
+  }
+  stealth::note_runtime_profile_failure(username_, {hello_profile_, hello_uses_ech_}, signal);
+  hello_profile_failure_recorded_ = true;
+}
+
 void TlsInit::send_hello() {
   hello_unix_time_ = static_cast<int32>(Time::now() + server_time_difference_);
   auto decision = stealth::get_runtime_ech_decision(username_, hello_unix_time_, route_hints_);
@@ -239,18 +273,25 @@ void TlsInit::send_hello() {
   hello_ech_disabled_by_circuit_breaker_ = decision.disabled_by_circuit_breaker;
   hello_ech_reenabled_after_ttl_ = decision.reenabled_after_ttl;
 
-  // Unified profile selection for all platforms (Darwin, Linux, Windows, mobile, etc.)
-  // Removes hardcoding of Chrome133 on Darwin to prevent platform distinguishability:
-  // - Before fix: macOS always Chrome133 (100% predictable, DPI detects platform)
-  // - After fix: Darwin clients rotate through available profiles like non-Darwin
+  // One adaptive selection for this connection attempt, computed against the same
+  // ECH decision above. The chosen wire variant (profile + hello_uses_ech) drives
+  // the emitted ClientHello here and is the exact unit that failure/success
+  // accounting and quarantine key on. Unified across all platforms (Darwin,
+  // Linux, Windows, mobile) so macOS is no longer a predictable Chrome133. When
+  // the rotation policy is disabled this is exactly the legacy weighted baseline.
   auto platform = stealth::default_runtime_platform_hints();
-  auto profile = stealth::pick_runtime_profile(username_, hello_unix_time_, platform);
-  hello_profile_name_ = stealth::profile_spec(profile).name.str();
-  hello_profile_allows_ech_ = stealth::profile_spec(profile).allows_ech;
-  hello_uses_ech_ = hello_profile_allows_ech_ && decision.ech_mode == stealth::EchMode::Rfc9180Outer;
+  auto selection = stealth::pick_runtime_profile_adaptive(username_, hello_unix_time_, platform, decision.ech_mode);
+  hello_profile_ = selection.profile;
+  hello_profile_name_ = stealth::profile_spec(selection.profile).name.str();
+  hello_profile_allows_ech_ = stealth::profile_spec(selection.profile).allows_ech;
+  hello_uses_ech_ = selection.hello_uses_ech;
+  hello_profile_rotation_enabled_ = stealth::get_runtime_stealth_params_snapshot().profile_rotation.enabled;
+  hello_profile_rotation_avoided_quarantined_ = selection.avoided_quarantined_profile;
+  hello_profile_rotation_quarantined_candidates_ = selection.quarantined_candidate_count;
   hello_failure_recorded_ = false;
+  hello_profile_failure_recorded_ = false;
   auto hello = stealth::build_proxy_tls_client_hello_for_profile(
-      username_, password_, hello_unix_time_, profile,
+      username_, password_, hello_unix_time_, selection.profile,
       hello_uses_ech_ ? stealth::EchMode::Rfc9180Outer : stealth::EchMode::Disabled);
 
   if (hello.size() < kTlsHelloResponseRandomOffset + kTlsHelloResponseRandomSize) {
@@ -271,7 +312,10 @@ void TlsInit::send_hello() {
              << tag("ech_disabled_by_route", hello_ech_disabled_by_route_)
              << tag("ech_disabled_by_circuit_breaker", hello_ech_disabled_by_circuit_breaker_)
              << tag("ech_reenabled_after_ttl", hello_ech_reenabled_after_ttl_)
-             << tag("hello_unix_time", hello_unix_time_);
+             << tag("hello_unix_time", hello_unix_time_)
+             << tag("profile_rotation_enabled", hello_profile_rotation_enabled_)
+             << tag("profile_rotation_avoided_quarantined", hello_profile_rotation_avoided_quarantined_)
+             << tag("profile_rotation_quarantined_candidates", hello_profile_rotation_quarantined_candidates_);
 
   stealth::note_runtime_ech_decision(decision, hello_uses_ech_);
   hello_rand_ = hello.substr(kTlsHelloResponseRandomOffset, kTlsHelloResponseRandomSize);
@@ -291,8 +335,13 @@ Status TlsInit::wait_hello_response() {
                  << tag("ech_reenabled_after_ttl", hello_ech_reenabled_after_ttl_)
                  << tag("hello_unix_time", hello_unix_time_) << tag("failure_stage", failure_stage)
                  << tag("status_code", status.code()) << tag("status_message", status.public_message())
-                 << tag("recorded_ech_failure", recorded_ech_failure) << tag("buffered_bytes", buffered_bytes)
-                 << tag("parsed_bytes", parsed_bytes) << tag("parse_complete", parse_complete);
+                 << tag("recorded_ech_failure", recorded_ech_failure)
+                 << tag("profile_rotation_enabled", hello_profile_rotation_enabled_)
+                 << tag("profile_rotation_avoided_quarantined", hello_profile_rotation_avoided_quarantined_)
+                 << tag("profile_rotation_quarantined_candidates", hello_profile_rotation_quarantined_candidates_)
+                 << tag("profile_rotation_failure_recorded", hello_profile_failure_recorded_)
+                 << tag("buffered_bytes", buffered_bytes) << tag("parsed_bytes", parsed_bytes)
+                 << tag("parse_complete", parse_complete);
   };
 
   auto buffered_bytes = fd_.input_buffer().size();
@@ -302,6 +351,10 @@ Status TlsInit::wait_hello_response() {
   auto parsed_bytes = buffered_bytes - it.size();
   if (status.is_error()) {
     bool recorded_ech_failure = record_ech_failure_once();
+    // A wrong-regime parse rejection classifies as not-eligible and is a no-op for
+    // quarantine; only a malformed-hello parse rejection counts as a wire-shape
+    // rejection against this profile variant.
+    record_profile_failure_once(profile_failure_signal_for_status(status));
     log_hello_rejection("record_parse", status, recorded_ech_failure, buffered_bytes, parsed_bytes, false);
     return status;
   }
@@ -315,6 +368,7 @@ Status TlsInit::wait_hello_response() {
     auto error = tls_hello_malformed_response_error(PSLICE() << "response is shorter than minimal TLS hello envelope: "
                                                              << "response_bytes=" << response.size()
                                                              << " min_expected=" << kTlsHelloMinEnvelopeLength);
+    record_profile_failure_once(profile_failure_signal_for_status(error));
     log_hello_rejection("response_too_short", error, recorded_ech_failure, response.size(), response.size(), true);
     return error;
   }
@@ -327,6 +381,10 @@ Status TlsInit::wait_hello_response() {
   if (!constant_time_equals(hash_dest, response_rand)) {
     bool recorded_ech_failure = record_ech_failure_once();
     auto error = tls_hello_hash_mismatch_error(response.size());
+    // Response-hash mismatch points at a wrong proxy secret / TLS-init contract,
+    // not a blocked fingerprint: classified not-eligible, so it never quarantines
+    // the profile (false-positive resistance).
+    record_profile_failure_once(profile_failure_signal_for_status(error));
     log_hello_rejection("response_hash", error, recorded_ech_failure, response.size(), response.size(), true);
     return error;
   }
@@ -334,6 +392,8 @@ Status TlsInit::wait_hello_response() {
   if (hello_uses_ech_) {
     stealth::note_runtime_ech_success(username_, hello_unix_time_);
   }
+  // A verified hello response clears any quarantine for this exact wire variant.
+  stealth::note_runtime_profile_success(username_, {hello_profile_, hello_uses_ech_});
 
   LOG(DEBUG) << "TlsInit hello response accepted " << tag("destination", username_)
              << tag("route_known", route_hints_.is_known) << tag("route_ru", route_hints_.is_ru)
@@ -342,7 +402,10 @@ Status TlsInit::wait_hello_response() {
              << tag("ech_disabled_by_route", hello_ech_disabled_by_route_)
              << tag("ech_disabled_by_circuit_breaker", hello_ech_disabled_by_circuit_breaker_)
              << tag("ech_reenabled_after_ttl", hello_ech_reenabled_after_ttl_)
-             << tag("hello_unix_time", hello_unix_time_) << tag("response_bytes", response.size());
+             << tag("hello_unix_time", hello_unix_time_) << tag("response_bytes", response.size())
+             << tag("profile_rotation_enabled", hello_profile_rotation_enabled_)
+             << tag("profile_rotation_avoided_quarantined", hello_profile_rotation_avoided_quarantined_)
+             << tag("profile_rotation_quarantined_candidates", hello_profile_rotation_quarantined_candidates_);
 
   if (!empty()) {
     stop();
@@ -354,6 +417,12 @@ void TlsInit::on_proxy_setup_error(const Status &status) {
   if (!status.is_error() || state_ != State::WaitHelloResponse) {
     return;
   }
+
+  // Transport/setup rejection after the hello was sent and while waiting for the
+  // response is the classic post-ClientHello block signal, so it is a
+  // quarantine-eligible wire-shape rejection for this profile variant (recorded
+  // at most once per attempt). This is independent of the ECH circuit breaker.
+  record_profile_failure_once(stealth::RuntimeProfileFailureSignal::TransportRejectionAfterHello);
 
   auto recorded_ech_failure = record_ech_failure_once();
   if (!recorded_ech_failure) {

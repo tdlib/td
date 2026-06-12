@@ -430,9 +430,12 @@ ProfileWeights flatten_profile_selection(const RuntimeProfileSelectionPolicy &po
   // (matches effective_profile_weights_for_platform so loaded and default params
   // agree).
   weights.firefox149_macos26_3 = policy.desktop_darwin.firefox148;
-  // Carve a slice of the iOS share for the verified iOS Chromium lane instead of
-  // pinning it to 0; the remainder stays with the advisory IOS14 lane.
+  // Carve slices of the iOS share for the verified iOS Chromium and Apple iOS TLS
+  // lanes instead of pinning them to 0; the remainder stays with the advisory
+  // IOS14 lane. Mirrors effective_profile_weights_for_platform so loaded and
+  // default params agree.
   auto ios_chromium_weight = static_cast<uint8>(policy.mobile.ios14 / kIosChromiumShareDivisor);
+  auto apple_ios_tls_weight = static_cast<uint8>(policy.mobile.ios14 / kAppleIosTlsShareDivisor);
   auto android_chromium_alps_weight = static_cast<uint8>(
       policy.mobile.android11_okhttp_advisory * kAndroidChromiumVerifiedShareNumerator /
       kAndroidChromiumVerifiedShareDenominator);
@@ -440,9 +443,10 @@ ProfileWeights flatten_profile_selection(const RuntimeProfileSelectionPolicy &po
       static_cast<uint8>(policy.mobile.android11_okhttp_advisory - android_chromium_alps_weight);
   auto android_firefox_weight = static_cast<uint8>(android_residual_weight / kAndroidFirefoxResidualShareDivisor);
   weights.chrome147_ios_chromium = ios_chromium_weight;
+  weights.apple_ios_tls = apple_ios_tls_weight;
   weights.firefox148 = desktop_weights->firefox148;
   weights.safari26_3 = desktop_weights->safari26_3;
-  weights.ios14 = static_cast<uint8>(policy.mobile.ios14 - ios_chromium_weight);
+  weights.ios14 = static_cast<uint8>(policy.mobile.ios14 - ios_chromium_weight - apple_ios_tls_weight);
   weights.firefox149_android = android_firefox_weight;
   weights.android_chromium_alps = android_chromium_alps_weight;
   weights.android11_okhttp_advisory =
@@ -462,7 +466,7 @@ Result<ProfileWeights> parse_flat_profile_weights(JsonValue value) {
                                  Slice("chromium_macos_44cd"), Slice("chrome147_ios_chromium"), Slice("firefox148"),
                                  Slice("firefox149_android"), Slice("firefox149_macos26_3"),
                                  Slice("firefox149_windows"), Slice("safari26_3"), Slice("ios14"),
-                                 Slice("android_chromium_alps"),
+                                 Slice("apple_ios_tls"), Slice("android_chromium_alps"),
                                  Slice("android11_okhttp_advisory")}));
 
   ProfileWeights weights;
@@ -481,6 +485,7 @@ Result<ProfileWeights> parse_flat_profile_weights(JsonValue value) {
   TRY_RESULT(chromium_macos_44cd, parse_optional_weight_field(object, "chromium_macos_44cd", chrome133));
   TRY_RESULT(chrome147_ios_chromium,
              parse_optional_weight_field(object, "chrome147_ios_chromium", static_cast<uint8>(0)));
+  TRY_RESULT(apple_ios_tls, parse_optional_weight_field(object, "apple_ios_tls", static_cast<uint8>(0)));
   TRY_RESULT(firefox149_android, parse_optional_weight_field(object, "firefox149_android", static_cast<uint8>(0)));
   TRY_RESULT(firefox149_macos26_3, parse_optional_weight_field(object, "firefox149_macos26_3", firefox148));
   TRY_RESULT(firefox149_windows, parse_optional_weight_field(object, "firefox149_windows", firefox148));
@@ -498,6 +503,7 @@ Result<ProfileWeights> parse_flat_profile_weights(JsonValue value) {
   weights.firefox149_windows = firefox149_windows;
   weights.safari26_3 = safari26_3;
   weights.ios14 = ios14;
+  weights.apple_ios_tls = apple_ios_tls;
   weights.android_chromium_alps = android_chromium_alps;
   weights.android11_okhttp_advisory = android11_okhttp_advisory;
   return weights;
@@ -781,6 +787,32 @@ string sanitize_reload_status_message(Slice status_message, Slice fallback_messa
   return message;
 }
 
+Result<RuntimeProfileRotationPolicy> parse_profile_rotation(JsonValue value) {
+  if (value.type() != JsonValue::Type::Object) {
+    return Status::Error("profile_rotation must be an object");
+  }
+  auto &object = value.get_object();
+  TRY_STATUS(ensure_exact_object_shape(
+      "profile_rotation", object,
+      {Slice("enabled"), Slice("failure_threshold"), Slice("quarantine_ttl_seconds")}));
+
+  RuntimeProfileRotationPolicy rotation;
+  TRY_RESULT(enabled, object.get_required_bool_field("enabled"));
+  rotation.enabled = enabled;
+
+  TRY_RESULT(failure_threshold, object.get_required_int_field("failure_threshold"));
+  if (failure_threshold < 0) {
+    return Status::Error("profile_rotation.failure_threshold must be non-negative");
+  }
+  rotation.failure_threshold = static_cast<uint32>(failure_threshold);
+
+  // Range bounds ([2, 8] threshold, [30, 3600] ttl) are enforced by
+  // validate_runtime_stealth_params, which parse_and_validate runs last.
+  TRY_RESULT(quarantine_ttl_seconds, object.get_required_double_field("quarantine_ttl_seconds"));
+  rotation.quarantine_ttl_seconds = quarantine_ttl_seconds;
+  return rotation;
+}
+
 }  // namespace stealth_params_loader_internal
 
 StealthParamsLoader::StealthParamsLoader(string config_path)
@@ -984,7 +1016,8 @@ Result<StealthRuntimeParams> StealthParamsLoader::parse_and_validate(string cont
       "root", object,
       {Slice("version"), Slice("active_policy"), Slice("ipt"), Slice("drs"), Slice("flow_behavior"),
        Slice("platform_hints"), Slice("profile_weights"), Slice("route_policy"), Slice("route_failure"),
-       Slice("release_mode_profile_gating"), Slice("transport_confidence"), Slice("bulk_threshold_bytes")}));
+       Slice("profile_rotation"), Slice("release_mode_profile_gating"), Slice("transport_confidence"),
+       Slice("bulk_threshold_bytes")}));
 
   TRY_RESULT(version, object.get_required_int_field("version"));
   if (version != 1) {
@@ -1026,6 +1059,12 @@ Result<StealthRuntimeParams> StealthParamsLoader::parse_and_validate(string cont
     TRY_RESULT(transport_confidence,
                stealth_params_loader_internal::parse_transport_confidence(transport_confidence_name));
     params.transport_confidence = transport_confidence;
+  }
+  if (object.has_field("profile_rotation")) {
+    TRY_RESULT(profile_rotation_value, object.extract_required_field("profile_rotation", JsonValue::Type::Object));
+    TRY_RESULT(profile_rotation,
+               stealth_params_loader_internal::parse_profile_rotation(std::move(profile_rotation_value)));
+    params.profile_rotation = profile_rotation;
   }
   TRY_RESULT(profile_weights_value, object.extract_required_field("profile_weights", JsonValue::Type::Object));
   TRY_RESULT(route_policy_value, object.extract_required_field("route_policy", JsonValue::Type::Object));
