@@ -71,7 +71,11 @@ function(get_git_head_revision _refspecvar _hashvar)
     return()
   endif()
 
-  find_package(Git QUIET)
+  if (COMMAND find_host_package)
+    find_host_package(Git QUIET)
+  else()
+    find_package(Git QUIET)
+  endif()
 
   # Check if the current source dir is a git submodule or a worktree.
   # In both cases .git is a file instead of a directory.
