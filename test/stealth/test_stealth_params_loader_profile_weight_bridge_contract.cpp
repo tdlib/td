@@ -18,7 +18,6 @@ namespace {
 
 using td::FileFd;
 using td::mtproto::stealth::BrowserProfile;
-using td::mtproto::stealth::default_runtime_platform_hints;
 using td::mtproto::stealth::DesktopOs;
 using td::mtproto::stealth::DeviceClass;
 using td::mtproto::stealth::MobileOs;
@@ -89,8 +88,13 @@ TEST(StealthParamsLoaderProfileWeightBridgeContract,
     "chrome131": 20,
     "chrome120": 15,
     "chrome147_windows": 0,
+    "chromium_macos_no_alps": 10,
+    "chromium_macos_4469": 25,
+    "chromium_macos_44cd": 35,
     "chrome147_ios_chromium": 100,
     "firefox148": 15,
+    "firefox149_android": 0,
+    "firefox149_macos26_3": 10,
     "firefox149_windows": 100,
     "safari26_3": 20,
     "ios14": 0,
@@ -119,7 +123,7 @@ TEST(StealthParamsLoaderProfileWeightBridgeContract,
   ASSERT_EQ(0, params.profile_weights.ios14);
 
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
-  auto platform = default_runtime_platform_hints();
+  auto platform = params.platform_hints;
   ASSERT_TRUE(platform.device_class == DeviceClass::Mobile);
   ASSERT_TRUE(platform.mobile_os == MobileOs::IOS);
   ASSERT_TRUE(platform.desktop_os == DesktopOs::Unknown);
@@ -128,6 +132,151 @@ TEST(StealthParamsLoaderProfileWeightBridgeContract,
     auto profile = pick_runtime_profile("ios-lane-bridge.example.com", 1712345678 + day * 86400, platform);
     ASSERT_TRUE(profile == BrowserProfile::Chrome147_IOSChromium);
   }
+}
+
+TEST(StealthParamsLoaderProfileWeightBridgeContract,
+     StrictLoadParsesFlatAndroidChromiumAlpsWeightForAndroidRuntimeSelection) {
+  RuntimeParamsGuard guard;
+  ScopedTempDir temp_dir;
+  auto path = join_path(temp_dir.path(), "stealth-params.json");
+
+  write_file(path,
+             R"json({
+  "version": 1,
+  "platform_hints": {
+    "device_class": "mobile",
+    "mobile_os": "android",
+    "desktop_os": "unknown"
+  },
+  "transport_confidence": "strong",
+  "profile_weights": {
+    "chrome133": 50,
+    "chrome131": 20,
+    "chrome120": 15,
+    "chrome147_windows": 0,
+    "chromium_macos_no_alps": 10,
+    "chromium_macos_4469": 25,
+    "chromium_macos_44cd": 35,
+    "chrome147_ios_chromium": 0,
+    "firefox148": 15,
+    "firefox149_android": 0,
+    "firefox149_macos26_3": 10,
+    "firefox149_windows": 0,
+    "safari26_3": 20,
+    "ios14": 0,
+    "android_chromium_alps": 100,
+    "android11_okhttp_advisory": 0
+  },
+  "route_policy": {
+    "unknown": {"ech_mode": "disabled", "allow_quic": false},
+    "ru": {"ech_mode": "disabled", "allow_quic": false},
+    "non_ru": {"ech_mode": "rfc9180_outer", "allow_quic": false}
+  },
+  "route_failure": {
+    "ech_failure_threshold": 3,
+    "ech_disable_ttl_seconds": 300.0,
+    "persist_across_restart": true
+  },
+  "bulk_threshold_bytes": 8192
+})json");
+
+  auto result = StealthParamsLoader::try_load_strict(path);
+  ASSERT_TRUE(result.is_ok());
+
+  auto params = result.move_as_ok();
+  ASSERT_EQ(100, params.profile_weights.android_chromium_alps);
+  ASSERT_EQ(0, params.profile_weights.firefox149_android);
+  ASSERT_EQ(0, params.profile_weights.android11_okhttp_advisory);
+
+  ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
+  auto platform = params.platform_hints;
+  ASSERT_TRUE(platform.device_class == DeviceClass::Mobile);
+  ASSERT_TRUE(platform.mobile_os == MobileOs::Android);
+  ASSERT_TRUE(platform.desktop_os == DesktopOs::Unknown);
+
+  for (td::int32 day = 0; day < 32; day++) {
+    auto profile =
+        pick_runtime_profile("android-flat-verified.example.com", 1712345678 + day * 86400, platform);
+    ASSERT_TRUE(profile == BrowserProfile::AndroidChromium_Alps);
+  }
+}
+
+TEST(StealthParamsLoaderProfileWeightBridgeContract,
+     StrictLoadBridgesLegacyAndroidMobileShareIntoVerifiedAndAdvisoryRuntimeLanes) {
+  RuntimeParamsGuard guard;
+  ScopedTempDir temp_dir;
+  auto path = join_path(temp_dir.path(), "stealth-params.json");
+
+  write_file(path,
+             R"json({
+  "version": 1,
+  "platform_hints": {
+    "device_class": "mobile",
+    "mobile_os": "android",
+    "desktop_os": "unknown"
+  },
+  "transport_confidence": "strong",
+  "profile_weights": {
+    "allow_cross_class_rotation": false,
+    "desktop_darwin": {
+      "Chrome133": 35,
+      "Chrome131": 25,
+      "Chrome120": 10,
+      "Safari26_3": 20,
+      "Firefox148": 10
+    },
+    "desktop_non_darwin": {
+      "Chrome133": 50,
+      "Chrome131": 20,
+      "Chrome120": 15,
+      "Safari26_3": 0,
+      "Firefox148": 15
+    },
+    "mobile": {
+      "IOS14": 70,
+      "Android11_OkHttp_Advisory": 30
+    }
+  },
+  "route_policy": {
+    "unknown": {"ech_mode": "disabled", "allow_quic": false},
+    "ru": {"ech_mode": "disabled", "allow_quic": false},
+    "non_ru": {"ech_mode": "rfc9180_outer", "allow_quic": false}
+  },
+  "route_failure": {
+    "ech_failure_threshold": 3,
+    "ech_disable_ttl_seconds": 300.0,
+    "persist_across_restart": true
+  },
+  "bulk_threshold_bytes": 8192
+})json");
+
+  auto result = StealthParamsLoader::try_load_strict(path);
+  ASSERT_TRUE(result.is_ok());
+
+  auto params = result.move_as_ok();
+  ASSERT_EQ(20, params.profile_weights.android_chromium_alps);
+  ASSERT_EQ(5, params.profile_weights.firefox149_android);
+  ASSERT_EQ(5, params.profile_weights.android11_okhttp_advisory);
+
+  ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
+  auto platform = params.platform_hints;
+  ASSERT_TRUE(platform.device_class == DeviceClass::Mobile);
+  ASSERT_TRUE(platform.mobile_os == MobileOs::Android);
+  ASSERT_TRUE(platform.desktop_os == DesktopOs::Unknown);
+
+  bool saw_verified = false;
+  bool saw_firefox = false;
+  bool saw_advisory = false;
+  for (td::int32 day = 0; day < 256 && !(saw_verified && saw_firefox && saw_advisory); day++) {
+    auto profile =
+        pick_runtime_profile("android-legacy-bridge.example.com", 1714345678 + day * 86400, platform);
+    saw_verified = saw_verified || profile == BrowserProfile::AndroidChromium_Alps;
+    saw_firefox = saw_firefox || profile == BrowserProfile::Firefox149_Android;
+    saw_advisory = saw_advisory || profile == BrowserProfile::Android11_OkHttp_Advisory;
+  }
+  ASSERT_TRUE(saw_verified);
+  ASSERT_TRUE(saw_firefox);
+  ASSERT_TRUE(saw_advisory);
 }
 
 TEST(StealthParamsLoaderProfileWeightBridgeContract, StrictLoadAllowsIosChromiumOnlyLaneWithoutAndroidFallbackWeight) {
@@ -178,7 +327,7 @@ TEST(StealthParamsLoaderProfileWeightBridgeContract, StrictLoadAllowsIosChromium
   ASSERT_EQ(0, params.profile_weights.android11_okhttp_advisory);
 
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
-  auto platform = default_runtime_platform_hints();
+  auto platform = params.platform_hints;
   ASSERT_TRUE(platform.device_class == DeviceClass::Mobile);
   ASSERT_TRUE(platform.mobile_os == MobileOs::IOS);
   ASSERT_TRUE(platform.desktop_os == DesktopOs::Unknown);
@@ -239,7 +388,7 @@ TEST(StealthParamsLoaderProfileWeightBridgeContract,
   ASSERT_EQ(0, params.profile_weights.firefox148);
 
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
-  auto platform = default_runtime_platform_hints();
+  auto platform = params.platform_hints;
   ASSERT_TRUE(platform.device_class == DeviceClass::Desktop);
   ASSERT_TRUE(platform.mobile_os == MobileOs::None);
   ASSERT_TRUE(platform.desktop_os == DesktopOs::Windows);

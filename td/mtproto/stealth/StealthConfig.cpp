@@ -286,14 +286,8 @@ void clamp_phase_model_to_max_payload_cap(DrsPhaseModel &model, int32 max_payloa
   }
 }
 
-void apply_profile_record_size_limit(StealthConfig &config) {
-  auto record_size_limit = profile_spec(config.profile).record_size_limit;
-  auto capped_payload_cap = payload_cap_from_record_size_limit(record_size_limit);
-  if (capped_payload_cap == 0) {
-    return;
-  }
-
-  config.drs_policy.max_payload_cap = std::min(config.drs_policy.max_payload_cap, capped_payload_cap);
+void apply_record_size_cap(StealthConfig &config, int32 max_payload_cap) {
+  config.drs_policy.max_payload_cap = std::min(config.drs_policy.max_payload_cap, max_payload_cap);
   config.drs_policy.min_payload_cap = std::min(config.drs_policy.min_payload_cap, config.drs_policy.max_payload_cap);
   clamp_phase_model_to_max_payload_cap(config.drs_policy.slow_start, config.drs_policy.max_payload_cap);
   clamp_phase_model_to_max_payload_cap(config.drs_policy.congestion_open, config.drs_policy.max_payload_cap);
@@ -305,13 +299,52 @@ void apply_profile_record_size_limit(StealthConfig &config) {
       std::min(config.record_size_policy.slow_start_min, config.record_size_policy.slow_start_max);
 
   // Clamp greeting and chaff record models to the same cap so they can never
-  // emit records that exceed the profile's declared record_size_limit.
+  // emit records that exceed the declared record_size_limit.
   for (size_t i = 0; i < config.greeting_camouflage_policy.greeting_record_count; i++) {
     clamp_phase_model_to_max_payload_cap(config.greeting_camouflage_policy.record_models[i],
                                          config.drs_policy.max_payload_cap);
   }
   if (config.chaff_policy.enabled) {
     clamp_phase_model_to_max_payload_cap(config.chaff_policy.record_model, config.drs_policy.max_payload_cap);
+  }
+}
+
+// Floor record_size_limit cap across every profile the platform may put on the
+// wire. kMaxTlsPayloadCap when no allowed profile declares a record_size_limit.
+int32 platform_record_size_floor(const RuntimePlatformHints &platform) {
+  int32 floor_cap = kMaxTlsPayloadCap;
+  bool any_declared = false;
+  for (auto profile : allowed_profiles_for_platform(platform)) {
+    auto cap = payload_cap_from_record_size_limit(profile_spec(profile).record_size_limit);
+    if (cap == 0) {
+      continue;  // profile declares no record_size_limit -> imposes no floor
+    }
+    any_declared = true;
+    floor_cap = std::min(floor_cap, cap);
+  }
+  return any_declared ? floor_cap : kMaxTlsPayloadCap;
+}
+
+void apply_profile_record_size_limit(StealthConfig &config, const RuntimePlatformHints &platform) {
+  // Per-selected-profile clamp (existing contract: cap == config.profile's limit).
+  auto profile_cap = payload_cap_from_record_size_limit(profile_spec(config.profile).record_size_limit);
+  if (profile_cap != 0) {
+    apply_record_size_cap(config, profile_cap);
+  }
+
+  // Single-binding defence (F3). config.profile is selected at config-construction
+  // time while TlsInit selects the ClientHello profile at hello-send time; across
+  // a sticky-rotation-window boundary those two pick_runtime_profile calls can
+  // disagree (TOCTOU), so a clamp tied only to config.profile could let the
+  // decorator emit records larger than the record_size_limit the wire actually
+  // declared. Additionally bounding the cap to the floor across all profiles the
+  // platform may select makes the decorator consistent with whichever profile
+  // the wire used, independent of which profile config-time selection landed on.
+  // No-op while every profile maps to the same effective cap (true today), so the
+  // per-profile contract above is unchanged.
+  auto floor_cap = platform_record_size_floor(platform);
+  if (floor_cap < kMaxTlsPayloadCap) {
+    apply_record_size_cap(config, floor_cap);
   }
 }
 
@@ -427,7 +460,7 @@ StealthConfig StealthConfig::from_secret(const ProxySecret &secret, IRng &rng, i
   auto config = default_config(rng);
   if (secret.emulate_tls()) {
     config.profile = pick_runtime_profile(secret.get_domain(), unix_time, platform);
-    apply_profile_record_size_limit(config);
+    apply_profile_record_size_limit(config, platform);
     config.padding_policy.enabled = false;
     config.greeting_camouflage_policy = make_default_greeting_camouflage_policy();
     config.chaff_policy.enabled = true;

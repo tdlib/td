@@ -59,7 +59,7 @@
   },
   "notes": "",
   "observation_generated_at_utc": "2026-04-26T00:00:00Z",
-  "observation_input_path": "/tmp/tmpfd8yppnf/transport_observations.json",
+  "observation_input_path": "/tmp/.ctx-mode-q5fBni/tmp4mbn9mor/transport_observations.json",
   "required_metrics": [
     "ttl_bucket_match_rate",
     "syn_option_order_class_match_rate",

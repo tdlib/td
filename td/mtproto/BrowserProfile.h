@@ -24,7 +24,12 @@ enum class BrowserProfile : uint8 {
   Firefox149_Windows,
   Safari26_3,
   IOS14,
+  AndroidChromium_Alps,
   Android11_OkHttp_Advisory,
+  ChromiumMacOS_NoAlps,
+  ChromiumMacOS_4469,
+  ChromiumMacOS_44CD,
+  Firefox149_Android,
 };
 
 enum class TlsVersion : uint16 {

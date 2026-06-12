@@ -24,7 +24,7 @@ using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
 using namespace td::mtproto::test::fixtures::reviewed;
 
-constexpr uint64 kCorpusIterations = kQuickIterations;
+const uint64 kCorpusIterations = spot_or_full_corpus_iterations();
 constexpr int32 kUnixTime = 1712345678;
 
 string build_firefox_macos_hello(Slice domain, int32 unix_time, EchMode ech_mode, uint64 seed) {

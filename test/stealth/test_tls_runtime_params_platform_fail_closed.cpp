@@ -39,6 +39,7 @@ TEST(TlsRuntimeParamsPlatformFailClosed, IosPlatformRejectsZeroAllowedProfileWei
   params.platform_hints.mobile_os = MobileOs::IOS;
   params.platform_hints.desktop_os = DesktopOs::Unknown;
   params.profile_weights.ios14 = 0;
+  params.profile_weights.chrome147_ios_chromium = 0;
   params.profile_weights.android11_okhttp_advisory = 100;
 
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_error());
@@ -52,6 +53,8 @@ TEST(TlsRuntimeParamsPlatformFailClosed, AndroidPlatformRejectsZeroAllowedProfil
   params.platform_hints.mobile_os = MobileOs::Android;
   params.platform_hints.desktop_os = DesktopOs::Unknown;
   params.profile_weights.ios14 = 100;
+  params.profile_weights.android_chromium_alps = 0;
+  params.profile_weights.firefox149_android = 0;
   params.profile_weights.android11_okhttp_advisory = 0;
 
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_error());

@@ -15,8 +15,8 @@
 // These tests verify that:
 //   A — iOS profiles (Safari26_3, IOS14, Chrome147_IOSChromium) are NEVER
 //       selected on Linux/Windows desktop platforms.
-//   B — Android profiles (Android11_OkHttp_Advisory) are NEVER selected
-//       on desktop platforms.
+//   B — Android profiles (AndroidChromium_Alps, Firefox149_Android,
+//       Android11_OkHttp_Advisory) are NEVER selected on desktop platforms.
 //   C — Desktop Chrome/Firefox profiles are NEVER selected on iOS platforms.
 //   D — Darwin desktop profiles include Safari but NOT iOS14.
 
@@ -112,6 +112,8 @@ TEST(MaskingProfilePlatformIsolationAdversarial, AndroidProfilesNeverSelectedOnL
   auto allowed = allowed_profiles_for_platform(linux_platform);
 
   for (auto profile : allowed) {
+    ASSERT_TRUE(profile != BrowserProfile::AndroidChromium_Alps);
+    ASSERT_TRUE(profile != BrowserProfile::Firefox149_Android);
     ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
   }
 }
@@ -136,6 +138,8 @@ TEST(MaskingProfilePlatformIsolationAdversarial, AndroidProfilesNeverSelectedOnW
   auto allowed = allowed_profiles_for_platform(win_platform);
 
   for (auto profile : allowed) {
+    ASSERT_TRUE(profile != BrowserProfile::AndroidChromium_Alps);
+    ASSERT_TRUE(profile != BrowserProfile::Firefox149_Android);
     ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
   }
 }
@@ -150,6 +154,8 @@ TEST(MaskingProfilePlatformIsolationAdversarial, DarwinDesktopDoesNotIncludeIOS1
 
   for (auto profile : allowed) {
     ASSERT_TRUE(profile != BrowserProfile::IOS14);
+    ASSERT_TRUE(profile != BrowserProfile::AndroidChromium_Alps);
+    ASSERT_TRUE(profile != BrowserProfile::Firefox149_Android);
     ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
   }
 }

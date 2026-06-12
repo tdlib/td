@@ -87,12 +87,18 @@ inline stealth::ProfileWeights zero_profile_weights() {
   weights.chrome133 = 0;
   weights.chrome131 = 0;
   weights.chrome120 = 0;
+  weights.chromium_macos_no_alps = 0;
+  weights.chromium_macos_4469 = 0;
+  weights.chromium_macos_44cd = 0;
   weights.chrome147_windows = 0;
   weights.chrome147_ios_chromium = 0;
   weights.firefox148 = 0;
+  weights.firefox149_android = 0;
+  weights.firefox149_macos26_3 = 0;
   weights.firefox149_windows = 0;
   weights.safari26_3 = 0;
   weights.ios14 = 0;
+  weights.android_chromium_alps = 0;
   weights.android11_okhttp_advisory = 0;
   return weights;
 }
@@ -130,7 +136,19 @@ inline stealth::StealthRuntimeParams single_runtime_profile_params(stealth::Brow
       break;
     case stealth::BrowserProfile::Firefox149_MacOS26_3:
       params.platform_hints = darwin_platform();
-      params.profile_weights.firefox148 = 100;
+      params.profile_weights.firefox149_macos26_3 = 100;
+      break;
+    case stealth::BrowserProfile::ChromiumMacOS_NoAlps:
+      params.platform_hints = darwin_platform();
+      params.profile_weights.chromium_macos_no_alps = 100;
+      break;
+    case stealth::BrowserProfile::ChromiumMacOS_4469:
+      params.platform_hints = darwin_platform();
+      params.profile_weights.chromium_macos_4469 = 100;
+      break;
+    case stealth::BrowserProfile::ChromiumMacOS_44CD:
+      params.platform_hints = darwin_platform();
+      params.profile_weights.chromium_macos_44cd = 100;
       break;
     case stealth::BrowserProfile::Chrome147_IOSChromium:
       params.platform_hints = ios_platform();
@@ -143,6 +161,14 @@ inline stealth::StealthRuntimeParams single_runtime_profile_params(stealth::Brow
     case stealth::BrowserProfile::IOS14:
       params.platform_hints = ios_platform();
       params.profile_weights.ios14 = 100;
+      break;
+    case stealth::BrowserProfile::AndroidChromium_Alps:
+      params.platform_hints = android_platform();
+      params.profile_weights.android_chromium_alps = 100;
+      break;
+    case stealth::BrowserProfile::Firefox149_Android:
+      params.platform_hints = android_platform();
+      params.profile_weights.firefox149_android = 100;
       break;
     case stealth::BrowserProfile::Android11_OkHttp_Advisory:
       params.platform_hints = android_platform();

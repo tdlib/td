@@ -45,13 +45,24 @@ ProfileWeights expected_profile_weights_for_platform(const RuntimePlatformHints 
     weights.safari26_3 = 0;
   }
 
-  // Platform-specific explicit lanes are always bridged from the non-darwin
-  // desktop ratios, and legacy schema leaves iOS Chromium disabled by default.
+  // Platform-specific explicit lanes are always bridged from the desktop ratios.
+  // macOS Firefox is bridged from the darwin firefox ratio (10) on every platform.
+  // Dedicated macOS Chromium cohorts are bridged from the darwin Chromium shares.
+  // Mobile shares are bridged into explicit verified/advisory lanes without changing
+  // the plan-style mobile policy schema: iOS(70) -> {Chromium 10, IOS14 60} and
+  // Android(30) -> {AndroidChromium_Alps 20, Firefox149_Android 5,
+  // Android11_OkHttp_Advisory 5}.
   weights.chrome147_windows = 50;
+  weights.chromium_macos_no_alps = 10;
+  weights.chromium_macos_4469 = 25;
+  weights.chromium_macos_44cd = 35;
+  weights.firefox149_macos26_3 = 10;
   weights.firefox149_windows = 15;
-  weights.chrome147_ios_chromium = 0;
-  weights.ios14 = 70;
-  weights.android11_okhttp_advisory = 30;
+  weights.chrome147_ios_chromium = 10;
+  weights.ios14 = 60;
+  weights.firefox149_android = 5;
+  weights.android_chromium_alps = 20;
+  weights.android11_okhttp_advisory = 5;
   return weights;
 }
 
@@ -60,11 +71,17 @@ void assert_profile_weights_eq(const ProfileWeights &lhs, const ProfileWeights &
   ASSERT_EQ(lhs.chrome131, rhs.chrome131);
   ASSERT_EQ(lhs.chrome120, rhs.chrome120);
   ASSERT_EQ(lhs.chrome147_windows, rhs.chrome147_windows);
+  ASSERT_EQ(lhs.chromium_macos_no_alps, rhs.chromium_macos_no_alps);
+  ASSERT_EQ(lhs.chromium_macos_4469, rhs.chromium_macos_4469);
+  ASSERT_EQ(lhs.chromium_macos_44cd, rhs.chromium_macos_44cd);
   ASSERT_EQ(lhs.chrome147_ios_chromium, rhs.chrome147_ios_chromium);
   ASSERT_EQ(lhs.firefox148, rhs.firefox148);
+  ASSERT_EQ(lhs.firefox149_android, rhs.firefox149_android);
+  ASSERT_EQ(lhs.firefox149_macos26_3, rhs.firefox149_macos26_3);
   ASSERT_EQ(lhs.firefox149_windows, rhs.firefox149_windows);
   ASSERT_EQ(lhs.safari26_3, rhs.safari26_3);
   ASSERT_EQ(lhs.ios14, rhs.ios14);
+  ASSERT_EQ(lhs.android_chromium_alps, rhs.android_chromium_alps);
   ASSERT_EQ(lhs.android11_okhttp_advisory, rhs.android11_okhttp_advisory);
 }
 

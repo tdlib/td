@@ -46,6 +46,7 @@ TEST(TlsRuntimePlatformLaneStress, LinuxDesktopNeverBleedsIntoWindowsOrMobilePro
   params.profile_weights.chrome147_windows = 100;
   params.profile_weights.firefox149_windows = 100;
   params.profile_weights.ios14 = 100;
+  params.profile_weights.android_chromium_alps = 100;
   params.profile_weights.android11_okhttp_advisory = 100;
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
 
@@ -60,6 +61,8 @@ TEST(TlsRuntimePlatformLaneStress, LinuxDesktopNeverBleedsIntoWindowsOrMobilePro
     ASSERT_TRUE(profile != BrowserProfile::Safari26_3);
     ASSERT_TRUE(profile != BrowserProfile::IOS14);
     ASSERT_TRUE(profile != BrowserProfile::Chrome147_IOSChromium);
+    ASSERT_TRUE(profile != BrowserProfile::AndroidChromium_Alps);
+    ASSERT_TRUE(profile != BrowserProfile::Firefox149_Android);
     ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
   }
 }
@@ -70,6 +73,7 @@ TEST(TlsRuntimePlatformLaneStress, WindowsDesktopNeverBleedsIntoAppleOrMobilePro
   auto params = td::mtproto::stealth::default_runtime_stealth_params();
   params.profile_weights.safari26_3 = 100;
   params.profile_weights.ios14 = 100;
+  params.profile_weights.android_chromium_alps = 100;
   params.profile_weights.android11_okhttp_advisory = 100;
   params.profile_weights.chrome147_windows = 100;
   params.profile_weights.firefox149_windows = 100;
@@ -84,6 +88,8 @@ TEST(TlsRuntimePlatformLaneStress, WindowsDesktopNeverBleedsIntoAppleOrMobilePro
     ASSERT_TRUE(profile != BrowserProfile::Firefox149_MacOS26_3);
     ASSERT_TRUE(profile != BrowserProfile::IOS14);
     ASSERT_TRUE(profile != BrowserProfile::Chrome147_IOSChromium);
+    ASSERT_TRUE(profile != BrowserProfile::AndroidChromium_Alps);
+    ASSERT_TRUE(profile != BrowserProfile::Firefox149_Android);
     ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
   }
 }

@@ -45,11 +45,20 @@ td::uint8 profile_weight_of(const ProfileWeights &weights, BrowserProfile profil
       return weights.chrome120;
     case BrowserProfile::Chrome147_Windows:
       return weights.chrome147_windows;
+    case BrowserProfile::ChromiumMacOS_NoAlps:
+      return weights.chromium_macos_no_alps;
+    case BrowserProfile::ChromiumMacOS_4469:
+      return weights.chromium_macos_4469;
+    case BrowserProfile::ChromiumMacOS_44CD:
+      return weights.chromium_macos_44cd;
     case BrowserProfile::Chrome147_IOSChromium:
       return weights.chrome147_ios_chromium;
     case BrowserProfile::Firefox148:
-    case BrowserProfile::Firefox149_MacOS26_3:
       return weights.firefox148;
+    case BrowserProfile::Firefox149_Android:
+      return weights.firefox149_android;
+    case BrowserProfile::Firefox149_MacOS26_3:
+      return weights.firefox149_macos26_3;
     case BrowserProfile::Firefox149_Windows:
       return weights.firefox149_windows;
     case BrowserProfile::Safari26_3:
@@ -94,10 +103,16 @@ TEST(ProfileSelectionWeightAdversarial, SingleAllowedProfileAlwaysSelected) {
   w.firefox148 = 0;
   w.safari26_3 = 0;
   w.ios14 = 0;
+  w.chromium_macos_no_alps = 0;
+  w.chromium_macos_4469 = 0;
+  w.chromium_macos_44cd = 0;
+  w.firefox149_android = 0;
   w.android11_okhttp_advisory = 0;
   w.chrome147_windows = 0;
   w.chrome147_ios_chromium = 0;
+  w.firefox149_macos26_3 = 0;
   w.firefox149_windows = 0;
+  w.android_chromium_alps = 0;
 
   const BrowserProfile only[] = {BrowserProfile::Chrome133};
   auto allowed = td::Span<BrowserProfile>(only);
@@ -121,10 +136,16 @@ TEST(ProfileSelectionWeightAdversarial, ZeroWeightEntryIsNeverSelected) {
   w.firefox148 = 0;
   w.safari26_3 = 0;
   w.ios14 = 0;
+  w.chromium_macos_no_alps = 0;
+  w.chromium_macos_4469 = 0;
+  w.chromium_macos_44cd = 0;
+  w.firefox149_android = 0;
   w.android11_okhttp_advisory = 0;
   w.chrome147_windows = 0;
   w.chrome147_ios_chromium = 0;
+  w.firefox149_macos26_3 = 0;
   w.firefox149_windows = 0;
+  w.android_chromium_alps = 0;
 
   const BrowserProfile allowed_arr[] = {BrowserProfile::Chrome133, BrowserProfile::Chrome131};
   auto allowed = td::Span<BrowserProfile>(allowed_arr);
@@ -187,10 +208,16 @@ TEST(ProfileSelectionWeightAdversarial, HighWeightsTotalStillFitsUint32) {
   w.firefox148 = 255;
   w.safari26_3 = 255;
   w.ios14 = 255;
+  w.chromium_macos_no_alps = 255;
+  w.chromium_macos_4469 = 255;
+  w.chromium_macos_44cd = 255;
+  w.firefox149_android = 255;
   w.android11_okhttp_advisory = 255;
   w.chrome147_windows = 255;
   w.chrome147_ios_chromium = 255;
+  w.firefox149_macos26_3 = 255;
   w.firefox149_windows = 255;
+  w.android_chromium_alps = 255;
 
   td::uint64 total = 0;
   for (auto p : all_profiles()) {

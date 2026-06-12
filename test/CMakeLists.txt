@@ -956,13 +956,14 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_wire_size_distribution_1k.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_statistical_sampling_1k.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_fixed_mobile_profile_invariance_1k.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_cross_platform_contamination_1k.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_cross_platform_contamination.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_hmac_timestamp_adversarial_1k.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_grease_autocorrelation_adversarial_1k.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_cross_platform_contamination_extended_1k.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_structural_key_material_stress_1k.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_android_chromium_alps_baseline.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_android_chromium_no_alps_baseline.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_android_firefox_baseline.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_ios_apple_tls_baseline.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_ios_chromium_baseline.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_ios_chromium_stats.cpp
@@ -970,11 +971,17 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_linux_chrome_stats.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_linux_firefox_baseline.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_linux_firefox_stats.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_macos_chromium_baseline.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_macos_firefox_baseline.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_macos_firefox_stats.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_ios_apple_tls_stats.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_windows_chrome_stats.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_windows_firefox_stats.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_release_similarity_unavailable_fail_closed.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_generator_fixture_exact_fields_gate.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_generator_extension_count_similarity.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_generator_wire_length_fixture_gate.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_generator_shuffle_similarity.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_nightly_wire_baseline_monte_carlo.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_nightly_boundary_falsification.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_nightly_cross_family_distance.cpp
@@ -1045,6 +1052,9 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_route_hints_country_boundary_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_fingerprint_classifier_blackhat.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_profile_selection_weight_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_firefox_weight_independence.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_selection_per_install_entropy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_mobile_release_grade_lane.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ech_circuit_breaker_concurrency_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ech_route_failure_serialization_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ech_route_failure_numeric_overflow_adversarial.cpp

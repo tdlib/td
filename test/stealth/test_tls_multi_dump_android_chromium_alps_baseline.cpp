@@ -4,16 +4,13 @@
 // telemt: https://t.me/telemtrs
 //
 
-// Multi-dump baseline suite: drives Chrome133 (ALPS type 0x44CD)
-// generated ClientHellos against the reviewed android_chromium
+// Multi-dump baseline suite: drives the dedicated AndroidChromium_Alps
+// profile (ALPS type 0x44CD) against the reviewed android_chromium
 // FamilyLaneBaseline for 20 deterministic seeds per TEST(). The
 // android_chromium lane shares Chrome's non-GREASE cipher-suite order
 // and supported-groups list with desktop Chromium and additionally
 // pins ALPS 0x44CD via the reviewed observed_alps_types catalog; the
-// upstream-rule verifier enforces that. BrowserProfile does not
-// currently expose a dedicated Android-Chromium variant, so the
-// existing corpus test suites also proxy Chrome133 for this lane —
-// we mirror that convention.
+// upstream-rule verifier enforces that.
 
 #include "test/stealth/FamilyLaneMatchers.h"
 #include "test/stealth/MockRng.h"
@@ -42,7 +39,7 @@ constexpr int kSeedCount = 20;
 constexpr td::int32 kUnixTime = 1712345678;
 constexpr double kWireLengthTolerancePercent = 10.0;
 
-TEST(TLS_MultiDumpAndroidChromiumAlpsBaseline, Chrome133EchOnMatchesAndroidChromiumBaseline) {
+TEST(TLS_MultiDumpAndroidChromiumAlpsBaseline, AndroidChromiumAlpsEchOnMatchesAndroidChromiumBaseline) {
   const auto *baseline = get_baseline(Slice("android_chromium"), Slice("non_ru_egress"));
   ASSERT_TRUE(baseline != nullptr);
   FamilyLaneMatcher matcher(*baseline);
@@ -50,7 +47,7 @@ TEST(TLS_MultiDumpAndroidChromiumAlpsBaseline, Chrome133EchOnMatchesAndroidChrom
   for (int seed = 0; seed < kSeedCount; seed++) {
     MockRng rng(static_cast<td::uint64>(seed));
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
-                                                   BrowserProfile::Chrome133, EchMode::Rfc9180Outer, rng);
+                                                   BrowserProfile::AndroidChromium_Alps, EchMode::Rfc9180Outer, rng);
     auto parsed_res = parse_tls_client_hello(wire);
     ASSERT_TRUE(parsed_res.is_ok());
     auto parsed = parsed_res.move_as_ok();
@@ -63,7 +60,7 @@ TEST(TLS_MultiDumpAndroidChromiumAlpsBaseline, Chrome133EchOnMatchesAndroidChrom
   }
 }
 
-TEST(TLS_MultiDumpAndroidChromiumAlpsBaseline, Chrome131EchOnMatchesAndroidChromiumBaseline) {
+TEST(TLS_MultiDumpAndroidChromiumAlpsBaseline, AndroidChromiumAlpsKeepsWireInsideAndroidChromiumBaseline) {
   const auto *baseline = get_baseline(Slice("android_chromium"), Slice("non_ru_egress"));
   ASSERT_TRUE(baseline != nullptr);
   FamilyLaneMatcher matcher(*baseline);
@@ -71,7 +68,7 @@ TEST(TLS_MultiDumpAndroidChromiumAlpsBaseline, Chrome131EchOnMatchesAndroidChrom
   for (int seed = 0; seed < kSeedCount; seed++) {
     MockRng rng(static_cast<td::uint64>(seed));
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
-                                                   BrowserProfile::Chrome131, EchMode::Rfc9180Outer, rng);
+                                                   BrowserProfile::AndroidChromium_Alps, EchMode::Rfc9180Outer, rng);
     auto parsed_res = parse_tls_client_hello(wire);
     ASSERT_TRUE(parsed_res.is_ok());
     auto parsed = parsed_res.move_as_ok();

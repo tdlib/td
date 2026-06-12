@@ -66,6 +66,18 @@ struct RuntimeMobileProfileWeights final {
   uint8 android11_okhttp_advisory{30};
 };
 
+// Fraction of the iOS share given to the verified browser-capture iOS Chromium
+// lane (Chrome147_IOSChromium) when flattening the mobile policy into effective
+// weights. The iOS share previously went entirely to the advisory utls IOS14
+// lane (chrome147_ios_chromium was pinned to 0), so iOS had no verified lane; the
+// carve-out makes it reachable once transport_confidence permits its cross-layer
+// claim, while keeping the policy schema (ios14 + android = 100) and its config
+// loader backward-compatible. 1/7 of 70 == 10.
+constexpr uint8 kIosChromiumShareDivisor = 7;
+constexpr uint8 kAndroidChromiumVerifiedShareNumerator = 2;
+constexpr uint8 kAndroidChromiumVerifiedShareDenominator = 3;
+constexpr uint8 kAndroidFirefoxResidualShareDivisor = 2;
+
 struct RuntimeProfileSelectionPolicy final {
   bool allow_cross_class_rotation{false};
   RuntimeDesktopProfileWeights desktop_darwin{35, 25, 10, 10, 20};

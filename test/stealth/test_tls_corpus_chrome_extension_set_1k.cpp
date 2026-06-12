@@ -22,7 +22,7 @@ using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
 
-constexpr uint64 kCorpusIterations = kQuickIterations;
+const uint64 kCorpusIterations = spot_or_full_corpus_iterations();
 constexpr int32 kUnixTime = 1712345678;
 
 string build_client_hello(BrowserProfile profile, EchMode ech_mode, uint64 seed) {

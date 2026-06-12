@@ -423,13 +423,30 @@ ProfileWeights flatten_profile_selection(const RuntimeProfileSelectionPolicy &po
   // instead of silently falling back to the first allowed profile.
   weights.chrome147_windows = policy.desktop_non_darwin.chrome133;
   weights.firefox149_windows = policy.desktop_non_darwin.firefox148;
-  // Legacy plan-style mobile schema has no dedicated iOS Chromium lane.
-  // Keep it disabled unless explicitly provided through flat profile_weights.
-  weights.chrome147_ios_chromium = 0;
+  weights.chromium_macos_no_alps = policy.desktop_darwin.chrome120;
+  weights.chromium_macos_4469 = policy.desktop_darwin.chrome131;
+  weights.chromium_macos_44cd = policy.desktop_darwin.chrome133;
+  // macOS Firefox lane gets its own slot, bridged from the darwin firefox ratio
+  // (matches effective_profile_weights_for_platform so loaded and default params
+  // agree).
+  weights.firefox149_macos26_3 = policy.desktop_darwin.firefox148;
+  // Carve a slice of the iOS share for the verified iOS Chromium lane instead of
+  // pinning it to 0; the remainder stays with the advisory IOS14 lane.
+  auto ios_chromium_weight = static_cast<uint8>(policy.mobile.ios14 / kIosChromiumShareDivisor);
+  auto android_chromium_alps_weight = static_cast<uint8>(
+      policy.mobile.android11_okhttp_advisory * kAndroidChromiumVerifiedShareNumerator /
+      kAndroidChromiumVerifiedShareDenominator);
+  auto android_residual_weight =
+      static_cast<uint8>(policy.mobile.android11_okhttp_advisory - android_chromium_alps_weight);
+  auto android_firefox_weight = static_cast<uint8>(android_residual_weight / kAndroidFirefoxResidualShareDivisor);
+  weights.chrome147_ios_chromium = ios_chromium_weight;
   weights.firefox148 = desktop_weights->firefox148;
   weights.safari26_3 = desktop_weights->safari26_3;
-  weights.ios14 = policy.mobile.ios14;
-  weights.android11_okhttp_advisory = policy.mobile.android11_okhttp_advisory;
+  weights.ios14 = static_cast<uint8>(policy.mobile.ios14 - ios_chromium_weight);
+  weights.firefox149_android = android_firefox_weight;
+  weights.android_chromium_alps = android_chromium_alps_weight;
+  weights.android11_okhttp_advisory =
+      static_cast<uint8>(android_residual_weight - android_firefox_weight);
   return weights;
 }
 
@@ -441,8 +458,12 @@ Result<ProfileWeights> parse_flat_profile_weights(JsonValue value) {
   TRY_STATUS(
       ensure_exact_object_shape("profile_weights", object,
                                 {Slice("chrome133"), Slice("chrome131"), Slice("chrome120"), Slice("chrome147_windows"),
-                                 Slice("chrome147_ios_chromium"), Slice("firefox148"), Slice("firefox149_windows"),
-                                 Slice("safari26_3"), Slice("ios14"), Slice("android11_okhttp_advisory")}));
+                                 Slice("chromium_macos_no_alps"), Slice("chromium_macos_4469"),
+                                 Slice("chromium_macos_44cd"), Slice("chrome147_ios_chromium"), Slice("firefox148"),
+                                 Slice("firefox149_android"), Slice("firefox149_macos26_3"),
+                                 Slice("firefox149_windows"), Slice("safari26_3"), Slice("ios14"),
+                                 Slice("android_chromium_alps"),
+                                 Slice("android11_okhttp_advisory")}));
 
   ProfileWeights weights;
   TRY_RESULT(chrome133, parse_weight_field(object, "chrome133"));
@@ -452,19 +473,32 @@ Result<ProfileWeights> parse_flat_profile_weights(JsonValue value) {
   TRY_RESULT(safari26_3, parse_weight_field(object, "safari26_3"));
   TRY_RESULT(ios14, parse_weight_field(object, "ios14"));
   TRY_RESULT(android11_okhttp_advisory, parse_weight_field(object, "android11_okhttp_advisory"));
+  TRY_RESULT(android_chromium_alps,
+             parse_optional_weight_field(object, "android_chromium_alps", static_cast<uint8>(0)));
   TRY_RESULT(chrome147_windows, parse_optional_weight_field(object, "chrome147_windows", chrome133));
+  TRY_RESULT(chromium_macos_no_alps, parse_optional_weight_field(object, "chromium_macos_no_alps", chrome120));
+  TRY_RESULT(chromium_macos_4469, parse_optional_weight_field(object, "chromium_macos_4469", chrome131));
+  TRY_RESULT(chromium_macos_44cd, parse_optional_weight_field(object, "chromium_macos_44cd", chrome133));
   TRY_RESULT(chrome147_ios_chromium,
              parse_optional_weight_field(object, "chrome147_ios_chromium", static_cast<uint8>(0)));
+  TRY_RESULT(firefox149_android, parse_optional_weight_field(object, "firefox149_android", static_cast<uint8>(0)));
+  TRY_RESULT(firefox149_macos26_3, parse_optional_weight_field(object, "firefox149_macos26_3", firefox148));
   TRY_RESULT(firefox149_windows, parse_optional_weight_field(object, "firefox149_windows", firefox148));
   weights.chrome133 = chrome133;
   weights.chrome131 = chrome131;
   weights.chrome120 = chrome120;
   weights.chrome147_windows = chrome147_windows;
+  weights.chromium_macos_no_alps = chromium_macos_no_alps;
+  weights.chromium_macos_4469 = chromium_macos_4469;
+  weights.chromium_macos_44cd = chromium_macos_44cd;
   weights.chrome147_ios_chromium = chrome147_ios_chromium;
   weights.firefox148 = firefox148;
+  weights.firefox149_android = firefox149_android;
+  weights.firefox149_macos26_3 = firefox149_macos26_3;
   weights.firefox149_windows = firefox149_windows;
   weights.safari26_3 = safari26_3;
   weights.ios14 = ios14;
+  weights.android_chromium_alps = android_chromium_alps;
   weights.android11_okhttp_advisory = android11_okhttp_advisory;
   return weights;
 }

@@ -471,10 +471,20 @@ TEST(WireClassifierBlackhat, LOOCVExtOrderChromiumLinuxDesktopNotGrosslyLeaking)
                         0xC0FFEE03ULL);
 }
 
-// chromium_macos / non_ru_egress (Chrome133, Tier3, 21 templates)
-TEST(WireClassifierBlackhat, LOOCVExtOrderChromiumMacosNotGrosslyLeaking) {
-  loocv::run_loocv_gate("chromium_macos", "non_ru_egress", BrowserProfile::Chrome133, EchMode::Rfc9180Outer,
-                        0xC0FFEE04ULL);
+// chromium_macos / non_ru_egress (mixed no-ALPS, 0x4469, 0x44CD cohorts; Tier3, 21 templates)
+TEST(WireClassifierBlackhat, LOOCVExtOrderChromiumMacosNoAlpsNotGrosslyLeaking) {
+  loocv::run_loocv_gate("chromium_macos", "non_ru_egress", BrowserProfile::ChromiumMacOS_NoAlps,
+                        EchMode::Rfc9180Outer, 0xC0FFEE04ULL);
+}
+
+TEST(WireClassifierBlackhat, LOOCVExtOrderChromiumMacos4469NotGrosslyLeaking) {
+  loocv::run_loocv_gate("chromium_macos", "non_ru_egress", BrowserProfile::ChromiumMacOS_4469,
+                        EchMode::Rfc9180Outer, 0xC0FFEE05ULL);
+}
+
+TEST(WireClassifierBlackhat, LOOCVExtOrderChromiumMacos44CDNotGrosslyLeaking) {
+  loocv::run_loocv_gate("chromium_macos", "non_ru_egress", BrowserProfile::ChromiumMacOS_44CD,
+                        EchMode::Rfc9180Outer, 0xC0FFEE06ULL);
 }
 
 }  // namespace

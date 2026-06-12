@@ -336,6 +336,14 @@ Release-mode suppression of advisory selections is observable via advisory_block
 3. Route matrix hardening: test_tls_route_ech_quic_block_matrix.cpp
 4. Classifier gate shape: test_tls_wire_pattern_distinguisher_contract.cpp
 
+### Real-Corpus Similarity Gates vs Seed-Stress Diagnostics
+
+A real-corpus similarity gate compares generated TLS ClientHello fields against reviewed browser-capture evidence for the same `(family_id, cohort_id, route_lane, evidence_lane)`. These gates consume `test/analysis/fixtures/clienthello/` through generated reviewed baselines and fail closed when exact release-critical evidence is unavailable or mixed. Examples: `TlsReleaseSimilarityUnavailableFailClosed`, `TlsGeneratorFixtureExactFieldsGate`, `TlsGeneratorExtensionCountSimilarity`, `TlsGeneratorWireLengthFixtureGate`, `TlsGeneratorShuffleSimilarity`.
+
+A seed-stress diagnostic exercises runtime variability across deterministic seeds. Seed-stress diagnostics are valuable for detecting degenerate RNG behavior, duplicate wire images, weak GREASE diversity, and pinned shuffle positions, but generated seeds are not independent browser evidence and may not be used as release-facing denominators. Example: `TLS_NightlyWireBaselineMonteCarlo`.
+
+As a rule, self-calibrated generator tests are not real-browser similarity evidence. A test that derives expected wire lengths, extension counts, or envelopes from the generator under test can only prove internal stability. Note that some fixture-derived gates (for example wire length) still admit the builder's documented padding-target entropy as an explicit tolerance; this is bounded by the reviewed catalog, not self-calibrated from the generator.
+
 ---
 
 ## Trust Tiers and Release Gates

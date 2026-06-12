@@ -28,10 +28,6 @@ constexpr int32 kUnixTime = 1712345678;
 constexpr size_t kClientRandomOffset = 11;
 constexpr size_t kClientRandomLength = 32;
 
-uint64 quick_seed(uint64 iteration_index) {
-  return corpus_seed_for_iteration(iteration_index, kQuickIterations);
-}
-
 uint64 corpus_seed(uint64 iteration_index) {
   return corpus_seed_for_iteration(iteration_index, kCorpusIterations);
 }
@@ -95,8 +91,8 @@ string build_profile_wire(BrowserProfile profile, EchMode ech_mode, uint64 seed)
 
 TEST(CorpusStatisticalSampling1k, AllProfilesKeepThirtyTwoByteSessionIds) {
   for (auto profile : all_profiles()) {
-    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
-      ASSERT_EQ(32u, build_profile_hello(profile, EchMode::Disabled, quick_seed(seed)).session_id.size());
+    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+      ASSERT_EQ(32u, build_profile_hello(profile, EchMode::Disabled, corpus_seed(seed)).session_id.size());
     }
   }
 }
@@ -179,20 +175,20 @@ TEST(CorpusStatisticalSampling1k, RuntimeChrome133RoutePolicyControlsEchAtScale)
   unknown_route.is_known = false;
   unknown_route.is_ru = false;
 
-  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
-    MockRng non_ru_rng(quick_seed(seed));
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+    MockRng non_ru_rng(corpus_seed(seed));
     auto non_ru = parse_tls_client_hello(build_default_tls_client_hello(candidate.domain, "0123456789secret",
                                                                         candidate.unix_time, non_ru_route, non_ru_rng));
     CHECK(non_ru.is_ok());
     ASSERT_TRUE(find_extension(non_ru.ok(), fixtures::kEchExtensionType) != nullptr);
 
-    MockRng ru_rng(quick_seed(seed));
+    MockRng ru_rng(corpus_seed(seed));
     auto ru = parse_tls_client_hello(
         build_default_tls_client_hello(candidate.domain, "0123456789secret", candidate.unix_time, ru_route, ru_rng));
     CHECK(ru.is_ok());
     ASSERT_TRUE(find_extension(ru.ok(), fixtures::kEchExtensionType) == nullptr);
 
-    MockRng unknown_rng(quick_seed(seed));
+    MockRng unknown_rng(corpus_seed(seed));
     auto unknown = parse_tls_client_hello(build_default_tls_client_hello(
         candidate.domain, "0123456789secret", candidate.unix_time, unknown_route, unknown_rng));
     CHECK(unknown.is_ok());
@@ -202,8 +198,8 @@ TEST(CorpusStatisticalSampling1k, RuntimeChrome133RoutePolicyControlsEchAtScale)
 
 TEST(CorpusStatisticalSampling1k, ProxyChrome133AdvertisesHttp11OnlyAlpn) {
   static const string kHttp11OnlyAlpn("\x00\x09\x08\x68\x74\x74\x70\x2f\x31\x2e\x31", 11);
-  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
-    MockRng rng(quick_seed(seed));
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+    MockRng rng(corpus_seed(seed));
     auto parsed = parse_tls_client_hello(build_proxy_tls_client_hello_for_profile(
         "www.google.com", "0123456789secret", kUnixTime, BrowserProfile::Chrome133, EchMode::Disabled, rng));
     CHECK(parsed.is_ok());
@@ -215,8 +211,8 @@ TEST(CorpusStatisticalSampling1k, ProxyChrome133AdvertisesHttp11OnlyAlpn) {
 
 TEST(CorpusStatisticalSampling1k, AllProfilesKeepClientLegacyVersionTls12Marker) {
   for (auto profile : all_profiles()) {
-    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
-      ASSERT_EQ(0x0303u, build_profile_hello(profile, EchMode::Disabled, quick_seed(seed)).client_legacy_version);
+    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+      ASSERT_EQ(0x0303u, build_profile_hello(profile, EchMode::Disabled, corpus_seed(seed)).client_legacy_version);
     }
   }
 }

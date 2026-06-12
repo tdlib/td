@@ -114,9 +114,10 @@ TEST(StreamTransportSeam, InvalidRuntimeStealthConfigFailsClosedToInnerTransport
       create_transport(TransportType{TransportType::ObfuscatedTcp, 2, ProxySecret::from_raw(make_tls_secret())});
   auto wire = flush_transport_write(*transport, 4096);
   auto lengths = extract_tls_record_lengths(wire);
-  ASSERT_FALSE(lengths.empty());
-
-  ASSERT_TRUE(lengths[0] > 1460u);
+  ASSERT_TRUE(wire.empty());
+  ASSERT_TRUE(lengths.empty());
+  ASSERT_FALSE(transport->can_write());
+  ASSERT_FALSE(transport->supports_tls_record_sizing());
 }
 
 TEST(StreamTransportSeam, DefaultSeamMethodsRemainSafeNoOps) {

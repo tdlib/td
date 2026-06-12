@@ -89,12 +89,22 @@ struct ProfileWeights final {
   uint8 chrome131{20};
   uint8 chrome120{15};
   uint8 chrome147_windows{50};
+  uint8 chromium_macos_no_alps{10};
+  uint8 chromium_macos_4469{25};
+  uint8 chromium_macos_44cd{35};
   uint8 chrome147_ios_chromium{30};
   uint8 firefox148{15};
+  uint8 firefox149_android{5};
+  // Firefox 149 on macOS is a distinct fingerprint from Firefox 148 on Linux
+  // (different cohort, ECH params). It gets its own weight slot so an operator
+  // can tune or zero the macOS Firefox lane without also disabling the Linux
+  // Firefox lane (and vice versa); previously both aliased `firefox148`.
+  uint8 firefox149_macos26_3{10};
   uint8 firefox149_windows{15};
   uint8 safari26_3{20};
   uint8 ios14{70};
-  uint8 android11_okhttp_advisory{30};
+  uint8 android_chromium_alps{20};
+  uint8 android11_okhttp_advisory{10};
 };
 
 struct ProfileSpec final {
@@ -146,6 +156,14 @@ struct RuntimeProfileSelectionCounters final {
 RuntimePlatformHints default_runtime_platform_hints() noexcept;
 SelectionKey make_profile_selection_key(Slice destination, int32 unix_time);
 void set_runtime_ech_failure_store(std::shared_ptr<KeyValueSyncInterface> store);
+// Per-installation profile-selection salt. A non-zero salt de-correlates which
+// profile installations on the same destination/platform/time bucket select.
+// When a KV store is configured the salt is minted and persisted automatically
+// (stable per install); a host may also set an externally persisted value.
+// Passing 0 clears it (deterministic, no entropy). See effective_per_install_selection_salt.
+void set_per_install_selection_salt(uint64 salt) noexcept;
+uint64 get_per_install_selection_salt() noexcept;
+void reset_per_install_selection_salt_for_tests() noexcept;
 void reconcile_runtime_ech_failure_ttl(double ttl_seconds);
 void note_runtime_ech_decision(const RuntimeEchDecision &decision, bool ech_enabled) noexcept;
 void note_runtime_ech_failure(Slice destination, int32 unix_time);

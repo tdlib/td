@@ -124,6 +124,18 @@ bool hello_has_ech_extension(const ParsedClientHello &hello) {
   return find_extension(hello, 0xFE0Du) != nullptr;
 }
 
+bool sequence_in_catalog(const vector<uint16> &observed, const vector<vector<uint16>> &catalog) {
+  if (catalog.empty()) {
+    return false;
+  }
+  for (const auto &entry : catalog) {
+    if (entry == observed) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
 bool FamilyLaneMatcher::matches_exact_invariants(const ParsedClientHello &hello) const {
@@ -177,6 +189,58 @@ bool FamilyLaneMatcher::matches_exact_invariants(const ParsedClientHello &hello)
     return false;
   }
   return true;
+}
+
+bool FamilyLaneMatcher::matches_release_critical_field(const ParsedClientHello &hello,
+                                                       ReleaseCriticalField field) const {
+  using baselines::EvidenceFieldStatus;
+  const auto &inv = baseline_.invariants;
+  const auto &cat = baseline_.set_catalog;
+
+  switch (field) {
+    case ReleaseCriticalField::CipherSuites: {
+      auto observed = non_grease_cipher_suites_ordered(hello);
+      switch (baseline_.non_grease_cipher_suites_status) {
+        case EvidenceFieldStatus::Exact:
+          return !inv.non_grease_cipher_suites_ordered.empty() &&
+                 observed == inv.non_grease_cipher_suites_ordered;
+        case EvidenceFieldStatus::Catalog:
+          return sequence_in_catalog(observed, cat.observed_cipher_suite_sequences);
+        default:
+          // Policy (no named matcher yet), Unavailable, Mixed: fail closed.
+          return false;
+      }
+    }
+    case ReleaseCriticalField::ExtensionSet: {
+      auto observed = non_grease_extension_types_without_padding(hello);
+      std::sort(observed.begin(), observed.end());
+      switch (baseline_.non_grease_extension_set_status) {
+        case EvidenceFieldStatus::Exact: {
+          auto expected = inv.non_grease_extension_set;
+          std::sort(expected.begin(), expected.end());
+          return !expected.empty() && observed == expected;
+        }
+        case EvidenceFieldStatus::Catalog:
+          // observed_extension_sets entries are stored sorted by the generator.
+          return sequence_in_catalog(observed, cat.observed_extension_sets);
+        default:
+          return false;
+      }
+    }
+    case ReleaseCriticalField::SupportedVersions: {
+      auto observed = non_grease_supported_versions(hello);
+      switch (baseline_.non_grease_supported_versions_status) {
+        case EvidenceFieldStatus::Exact:
+          return !inv.non_grease_supported_versions.empty() &&
+                 observed == inv.non_grease_supported_versions;
+        case EvidenceFieldStatus::Catalog:
+          return sequence_in_catalog(observed, cat.observed_supported_versions_sequences);
+        default:
+          return false;
+      }
+    }
+  }
+  return false;
 }
 
 bool FamilyLaneMatcher::passes_upstream_rule_legality(const ParsedClientHello &hello) const {
@@ -241,6 +305,20 @@ bool FamilyLaneMatcher::within_wire_length_envelope(size_t wire_length, double t
     double diff = std::fabs(static_cast<double>(wire_length) - static_cast<double>(sample));
     double allowed = std::fabs(static_cast<double>(sample)) * tol;
     if (diff <= allowed) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool FamilyLaneMatcher::within_wire_length_byte_model(size_t wire_length, size_t max_byte_delta) const {
+  const auto &observed = baseline_.set_catalog.observed_wire_lengths;
+  if (observed.empty()) {
+    return false;
+  }
+  for (auto sample : observed) {
+    size_t diff = wire_length > sample ? wire_length - sample : sample - wire_length;
+    if (diff <= max_byte_delta) {
       return true;
     }
   }

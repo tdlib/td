@@ -36,7 +36,7 @@ std::unordered_set<uint16> symmetric_difference(const std::unordered_set<uint16>
   return result;
 }
 
-TEST(CrossPlatformContamination1k, LinuxDesktopChromeNeverMatchesAppleTlsSet) {
+TEST(CrossPlatformContamination, LinuxDesktopChromeNeverMatchesAppleTlsSet) {
   auto apple_tls = make_unordered_set(chrome147_0_7727_47_ios26_4_aNonGreaseExtensionsWithoutPadding);
   ASSERT_TRUE(kChrome133EchExtensionSet != apple_tls);
   ASSERT_EQ(13u, apple_tls.size());
@@ -44,7 +44,7 @@ TEST(CrossPlatformContamination1k, LinuxDesktopChromeNeverMatchesAppleTlsSet) {
   ASSERT_TRUE(apple_tls.count(0x44CD) == 0);
 }
 
-TEST(CrossPlatformContamination1k, LinuxDesktopFirefoxNeverMatchesAppleTlsSet) {
+TEST(CrossPlatformContamination, LinuxDesktopFirefoxNeverMatchesAppleTlsSet) {
   auto firefox_linux = make_unordered_set(firefox148_linux_desktopNonGreaseExtensionsWithoutPadding);
   auto apple_tls = make_unordered_set(chrome147_0_7727_47_ios26_4_aNonGreaseExtensionsWithoutPadding);
   ASSERT_TRUE(firefox_linux != apple_tls);
@@ -52,7 +52,7 @@ TEST(CrossPlatformContamination1k, LinuxDesktopFirefoxNeverMatchesAppleTlsSet) {
   ASSERT_EQ(13u, apple_tls.size());
 }
 
-TEST(CrossPlatformContamination1k, IosAppleTlsNeverMatchesAndroidChromiumNoAlpsSet) {
+TEST(CrossPlatformContamination, IosAppleTlsNeverMatchesAndroidChromiumNoAlpsSet) {
   auto apple_tls = make_unordered_set(chrome147_0_7727_47_ios26_4_aNonGreaseExtensionsWithoutPadding);
   auto android_no_alps = make_unordered_set(chrome146_177_android16NonGreaseExtensionsWithoutPadding);
   ASSERT_TRUE(apple_tls != android_no_alps);
@@ -60,7 +60,7 @@ TEST(CrossPlatformContamination1k, IosAppleTlsNeverMatchesAndroidChromiumNoAlpsS
   ASSERT_TRUE(android_no_alps.count(fixtures::kEchExtensionType) != 0);
 }
 
-TEST(CrossPlatformContamination1k, AndroidYandexDeviceFamiliesRemainDistinct) {
+TEST(CrossPlatformContamination, AndroidYandexDeviceFamiliesRemainDistinct) {
   auto yandex_samsung = make_unordered_set(yandex26_3_4_android16_samsungNonGreaseExtensionsWithoutPadding);
   auto yandex_oneplus = make_unordered_set(yandex26_3_4_128_oxygenos16_oneplus13NonGreaseExtensionsWithoutPadding);
   ASSERT_TRUE(yandex_samsung != yandex_oneplus);
@@ -70,7 +70,7 @@ TEST(CrossPlatformContamination1k, AndroidYandexDeviceFamiliesRemainDistinct) {
   ASSERT_EQ(15u, yandex_oneplus.size());
 }
 
-TEST(CrossPlatformContamination1k, ChromeIos261AndIos264FamiliesRetainAlpsSplit) {
+TEST(CrossPlatformContamination, ChromeIos261AndIos264FamiliesRetainAlpsSplit) {
   auto ios_261 = make_unordered_set(chrome146_0_7680_151_ios26_1NonGreaseExtensionsWithoutPadding);
   auto ios_264 = make_unordered_set(chrome147_0_7727_47_ios26_4_aNonGreaseExtensionsWithoutPadding);
   ASSERT_TRUE(ios_261.count(0x44CD) != 0);
@@ -79,7 +79,7 @@ TEST(CrossPlatformContamination1k, ChromeIos261AndIos264FamiliesRetainAlpsSplit)
   ASSERT_TRUE(ios_264.count(fixtures::kEchExtensionType) == 0);
 }
 
-TEST(CrossPlatformContamination1k, MacosFirefoxAndLinuxFirefoxDifferOnlyBySessionTicketWhenIgnoringPsk) {
+TEST(CrossPlatformContamination, MacosFirefoxAndLinuxFirefoxDifferOnlyBySessionTicketWhenIgnoringPsk) {
   auto firefox_linux =
       without_type(make_unordered_set(firefox149_linux_desktopNonGreaseExtensionsWithoutPadding), 0x0029);
   auto firefox_macos = without_type(make_unordered_set(firefox149_macos26_3NonGreaseExtensionsWithoutPadding), 0x0029);
@@ -88,7 +88,7 @@ TEST(CrossPlatformContamination1k, MacosFirefoxAndLinuxFirefoxDifferOnlyBySessio
   ASSERT_TRUE(diff.count(0x0023) != 0);
 }
 
-TEST(CrossPlatformContamination1k, MacosFirefoxEchPayloadRemainsDistinctFromLinuxFirefox) {
+TEST(CrossPlatformContamination, MacosFirefoxEchPayloadRemainsDistinctFromLinuxFirefox) {
   ASSERT_EQ(239u, firefox149_linux_desktopEch.payload_length);
   ASSERT_EQ(399u, firefox149_macos26_3Ech.payload_length);
 }

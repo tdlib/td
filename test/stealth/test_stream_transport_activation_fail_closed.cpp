@@ -230,7 +230,7 @@ TEST(StreamTransportActivationFailClosed, NullTestTransportFactoryFallsBackToSin
   ASSERT_EQ(TransportType::ObfuscatedTcp, transport->get_type().type);
 }
 
-TEST(StreamTransportActivationFailClosed, InvalidRuntimeConfigLogsStructuredDisableReason) {
+TEST(StreamTransportActivationFailClosed, InvalidRuntimeConfigFailsClosedAndLogsReason) {
 #if !TDLIB_STEALTH_SHAPING
   ASSERT_TRUE(true);
   return;
@@ -253,8 +253,17 @@ TEST(StreamTransportActivationFailClosed, InvalidRuntimeConfigLogsStructuredDisa
       create_transport(TransportType{TransportType::ObfuscatedTcp, 2, ProxySecret::from_raw(make_tls_secret())});
 
   ASSERT_EQ(1, g_config_factory_calls);
+  // Fail-closed: a transport is still returned (the factory cannot signal an
+  // error), but it must NOT be a usable un-shaped channel. It keeps the
+  // ObfuscatedTcp type for upstream logging while refusing to operate: it never
+  // accepts writes and fails the connection on the first read so the unmasked
+  // legacy obfuscated-MTProto fingerprint is never put on the wire.
   ASSERT_EQ(TransportType::ObfuscatedTcp, transport->get_type().type);
-  ASSERT_TRUE(capture.contains("Stealth shaping disabled for emulate_tls transport"));
+  ASSERT_FALSE(transport->can_write());
+  td::BufferSlice message;
+  td::uint32 quick_ack = 0;
+  ASSERT_TRUE(transport->read_next(&message, &quick_ack).is_error());
+  ASSERT_TRUE(capture.contains("Stealth shaping unavailable; refusing emulate_tls transport (fail-closed)"));
   ASSERT_TRUE(capture.contains("[reason:config_validation_failed]"));
   ASSERT_TRUE(capture.contains("[dc_id:2]"));
   ASSERT_TRUE(capture.contains("[tls_emulation:true]"));
@@ -286,7 +295,7 @@ TEST(StreamTransportActivationFailClosed, InvalidRuntimeConfigLogRedactsProxySec
 
   ASSERT_EQ(1, g_config_factory_calls);
   ASSERT_EQ(TransportType::ObfuscatedTcp, transport->get_type().type);
-  ASSERT_TRUE(capture.contains("Stealth shaping disabled for emulate_tls transport"));
+  ASSERT_TRUE(capture.contains("Stealth shaping unavailable; refusing emulate_tls transport (fail-closed)"));
   ASSERT_TRUE(capture.contains("[reason:config_validation_failed]"));
   ASSERT_TRUE(capture.contains("[status_code:"));
   ASSERT_TRUE(capture.contains("stealth runtime config rejected"));
@@ -319,7 +328,7 @@ TEST(StreamTransportActivationFailClosed, InvalidRuntimeConfigLogRejectsMultilin
 
   ASSERT_EQ(1, g_config_factory_calls);
   ASSERT_EQ(TransportType::ObfuscatedTcp, transport->get_type().type);
-  ASSERT_TRUE(capture.contains("Stealth shaping disabled for emulate_tls transport"));
+  ASSERT_TRUE(capture.contains("Stealth shaping unavailable; refusing emulate_tls transport (fail-closed)"));
   ASSERT_TRUE(capture.contains("stealth runtime config rejected; review stealth params and proxy setup"));
   ASSERT_FALSE(capture.contains("line2"));
 }
@@ -349,7 +358,7 @@ TEST(StreamTransportActivationFailClosed, InvalidRuntimeConfigLogRejectsNonAscii
 
   ASSERT_EQ(1, g_config_factory_calls);
   ASSERT_EQ(TransportType::ObfuscatedTcp, transport->get_type().type);
-  ASSERT_TRUE(capture.contains("Stealth shaping disabled for emulate_tls transport"));
+  ASSERT_TRUE(capture.contains("Stealth shaping unavailable; refusing emulate_tls transport (fail-closed)"));
   ASSERT_TRUE(capture.contains("stealth runtime config rejected; review stealth params and proxy setup"));
   ASSERT_FALSE(capture.contains("suffix"));
 }

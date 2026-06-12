@@ -393,7 +393,8 @@ TEST(StealthLoggingSourceContract, StreamTransportActivationLogsAreStructuredAnd
                                       "StreamTransportFactoryForTests set_transport_factory_for_tests(");
   auto normalized = normalize_for_contract(region);
 
-  ASSERT_TRUE(normalized.find("Stealthshapingdisabledforemulate_tlstransport") != td::string::npos);
+  ASSERT_TRUE(normalized.find("Stealthshapingunavailable;refusingemulate_tlstransport(fail-closed)") !=
+              td::string::npos);
   ASSERT_TRUE(normalized.find("sanitize_stealth_activation_status_message(error,secret_copy,") != td::string::npos);
   ASSERT_TRUE(normalized.find("tag(\"reason\"") != td::string::npos);
   ASSERT_TRUE(normalized.find("tag(\"dc_id\"") != td::string::npos);

@@ -98,6 +98,14 @@ class CountingEchRouteFailureStore final : public KeyValueSyncInterface {
   size_t erase_calls{0};
   size_t erase_batch_calls{0};
 
+  void reset_counters() {
+    get_calls = 0;
+    prefix_get_calls = 0;
+    set_calls = 0;
+    erase_calls = 0;
+    erase_batch_calls = 0;
+  }
+
  private:
   SeqNo seq_no_{0};
   std::unordered_map<string, string, Hash<string>> map_;
@@ -151,6 +159,7 @@ TEST(EchRouteFailureLookupBudgetAdversarial, EmptyDestinationFailsClosedWithoutS
   ScopedRuntimeEchStore scoped_store(store);
 
   td::mtproto::stealth::reset_runtime_ech_failure_state_for_tests();
+  store->reset_counters();
 
   const RuntimeEchDecision decision = td::mtproto::stealth::get_runtime_ech_decision("", 2 * 86400, non_ru_route());
 
@@ -166,6 +175,7 @@ TEST(EchRouteFailureLookupBudgetAdversarial, DegenerateDotOnlyDestinationFailsCl
   ScopedRuntimeEchStore scoped_store(store);
 
   td::mtproto::stealth::reset_runtime_ech_failure_state_for_tests();
+  store->reset_counters();
 
   td::mtproto::stealth::note_runtime_ech_failure("....", 2 * 86400);
   td::mtproto::stealth::note_runtime_ech_success("....", 2 * 86400);

@@ -220,12 +220,24 @@ inline Slice representative_server_hello_path_for_family(Slice family_hint) {
   if (lower.find("firefox149") != string::npos && lower.find("windows") != string::npos) {
     return Slice("windows/firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb.serverhello.json");
   }
+  if (lower.find("chromium_macos_no_alps") != string::npos) {
+    return Slice("macos/chromium130_macos26_3_301a8e50.serverhello.json");
+  }
+  if (lower.find("chromium_macos_4469") != string::npos) {
+    return Slice("macos/chromium130_macos26_3_301a8e50.serverhello.json");
+  }
+  if (lower.find("chromium_macos_44cd") != string::npos) {
+    return Slice("macos/chrome147_macos26_4_81b7d4cc.serverhello.json");
+  }
   if (lower.find("chrome133") != string::npos || lower.find("chrome131") != string::npos ||
       lower.find("chrome120") != string::npos) {
     return Slice("linux_desktop/chrome144_linux_desktop.serverhello.json");
   }
   if (lower.find("firefox148") != string::npos) {
     return Slice("linux_desktop/firefox148_linux_desktop.serverhello.json");
+  }
+  if (lower.find("firefox149_android") != string::npos || lower.find("firefox_android") != string::npos) {
+    return Slice("android/firefox_android16_build_bp2a_250605_015_3156bb61.serverhello.json");
   }
   if (lower.find("firefox149") != string::npos || lower.find("firefox_macos") != string::npos) {
     return Slice("macos/firefox149_macos26_3.serverhello.json");

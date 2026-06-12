@@ -32,10 +32,6 @@ constexpr size_t kClientRandomLength = 32;
 constexpr size_t kTimestampTailOffset = 28;
 constexpr size_t kTimestampTailLength = 4;
 
-uint64 quick_seed(uint64 iteration_index) {
-  return corpus_seed_for_iteration(iteration_index, kQuickIterations);
-}
-
 uint64 corpus_seed(uint64 iteration_index) {
   return corpus_seed_for_iteration(iteration_index, kCorpusIterations);
 }
@@ -74,8 +70,8 @@ string build_wire_with_secret(string domain, string secret, uint64 seed, int32 u
 // -- Determinism tests --
 
 TEST(HmacTimestampAdversarial1k, SameSeedSameInputsProduceIdenticalWire) {
-  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
-    auto mapped_seed = quick_seed(seed);
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+    auto mapped_seed = corpus_seed(seed);
     auto wire1 = build_wire(BrowserProfile::Chrome133, EchMode::Disabled, mapped_seed, 1712345678);
     auto wire2 = build_wire(BrowserProfile::Chrome133, EchMode::Disabled, mapped_seed, 1712345678);
     ASSERT_EQ(wire1, wire2);
@@ -91,8 +87,8 @@ TEST(HmacTimestampAdversarial1k, DifferentSeedsNeverProduceIdenticalWire) {
 }
 
 TEST(HmacTimestampAdversarial1k, DifferentTimestampsSameSeedProduceDifferentTimestampTail) {
-  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
-    auto mapped_seed = quick_seed(seed);
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+    auto mapped_seed = corpus_seed(seed);
     auto wire1 = build_wire(BrowserProfile::Chrome133, EchMode::Disabled, mapped_seed, 1000000000);
     auto wire2 = build_wire(BrowserProfile::Chrome133, EchMode::Disabled, mapped_seed, 1000000001);
     // The HMAC digest (first 28 bytes of client_random) does not change when only the timestamp changes
@@ -104,8 +100,8 @@ TEST(HmacTimestampAdversarial1k, DifferentTimestampsSameSeedProduceDifferentTime
 }
 
 TEST(HmacTimestampAdversarial1k, DifferentSecretsSameSeedProduceDifferentClientRandom) {
-  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
-    auto mapped_seed = quick_seed(seed);
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+    auto mapped_seed = corpus_seed(seed);
     auto wire1 = build_wire_with_secret("www.google.com", "0123456789secret", mapped_seed, 1712345678);
     auto wire2 = build_wire_with_secret("www.google.com", "secret9876543210", mapped_seed, 1712345678);
     ASSERT_NE(extract_client_random(wire1).str(), extract_client_random(wire2).str());
@@ -113,8 +109,8 @@ TEST(HmacTimestampAdversarial1k, DifferentSecretsSameSeedProduceDifferentClientR
 }
 
 TEST(HmacTimestampAdversarial1k, DifferentDomainsSameSeedProduceDifferentClientRandom) {
-  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
-    auto mapped_seed = quick_seed(seed);
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+    auto mapped_seed = corpus_seed(seed);
     auto wire1 = build_wire_with_secret("www.google.com", "0123456789secret", mapped_seed, 1712345678);
     auto wire2 = build_wire_with_secret("www.example.com", "0123456789secret", mapped_seed, 1712345678);
     ASSERT_NE(extract_client_random(wire1).str(), extract_client_random(wire2).str());
@@ -225,11 +221,11 @@ TEST(HmacTimestampAdversarial1k, ClientRandomNoNullTerminationBias) {
 
 TEST(HmacTimestampAdversarial1k, AllProfilesSameSeedSameTimestampProduceDifferentClientRandom) {
   auto profiles = all_profiles();
-  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
     std::set<string> randoms;
     std::set<string> normalized_wires;
     for (auto profile : profiles) {
-      auto wire = build_wire(profile, EchMode::Disabled, quick_seed(seed), 1712345678);
+      auto wire = build_wire(profile, EchMode::Disabled, corpus_seed(seed), 1712345678);
       randoms.insert(extract_client_random(wire).str());
       normalized_wires.insert(normalize_wire_without_client_random(wire));
     }

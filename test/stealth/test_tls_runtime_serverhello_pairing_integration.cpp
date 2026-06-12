@@ -38,10 +38,16 @@ struct Scenario final {
   td::uint64 seed;
 };
 
-const std::array<Scenario, 11> kScenarios{{
+const std::array<Scenario, 15> kScenarios{{
     {BrowserProfile::Chrome133, "runtime-pairing-linux-chrome133.example.com", 1712341111, 0x81000011u},
     {BrowserProfile::Chrome131, "runtime-pairing-linux-chrome131.example.com", 1712342222, 0x81000012u},
     {BrowserProfile::Chrome120, "runtime-pairing-linux-chrome120.example.com", 1712343333, 0x81000013u},
+    {BrowserProfile::ChromiumMacOS_NoAlps, "runtime-pairing-macos-chromium-noalps.example.com", 1712343500,
+     0x81000021u},
+    {BrowserProfile::ChromiumMacOS_4469, "runtime-pairing-macos-chromium-4469.example.com", 1712343600,
+     0x81000022u},
+    {BrowserProfile::ChromiumMacOS_44CD, "runtime-pairing-macos-chromium-44cd.example.com", 1712343700,
+     0x81000023u},
     {BrowserProfile::Chrome147_Windows, "runtime-pairing-win-chrome.example.com", 1712345678, 0x81000001u},
     {BrowserProfile::Firefox149_Windows, "runtime-pairing-win-firefox.example.com", 1712346789, 0x81000002u},
     {BrowserProfile::Firefox148, "runtime-pairing-linux-firefox148.example.com", 1712347400, 0x81000014u},
@@ -49,6 +55,7 @@ const std::array<Scenario, 11> kScenarios{{
     {BrowserProfile::Chrome147_IOSChromium, "runtime-pairing-ios-chromium.example.com", 1712347890, 0x81000003u},
     {BrowserProfile::Safari26_3, "runtime-pairing-safari.example.com", 1712348901, 0x81000004u},
     {BrowserProfile::IOS14, "runtime-pairing-ios-native.example.com", 1712350012, 0x81000005u},
+    {BrowserProfile::Firefox149_Android, "runtime-pairing-android-firefox.example.com", 1712350500, 0x81000024u},
     {BrowserProfile::Android11_OkHttp_Advisory, "runtime-pairing-android-okhttp.example.com", 1712351123, 0x81000006u},
 }};
 

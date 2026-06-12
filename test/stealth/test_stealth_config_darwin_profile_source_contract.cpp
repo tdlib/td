@@ -41,7 +41,7 @@ TEST(StealthConfigDarwinProfileSourceContract,
   ASSERT_TRUE(normalized.find("if(secret.emulate_tls()){") != td::string::npos);
   ASSERT_TRUE(normalized.find("config.profile=pick_runtime_profile(secret.get_domain(),unix_time,platform);") !=
               td::string::npos);
-  ASSERT_TRUE(normalized.find("apply_profile_record_size_limit(config);") != td::string::npos);
+  ASSERT_TRUE(normalized.find("apply_profile_record_size_limit(config,platform);") != td::string::npos);
   ASSERT_TRUE(normalized.find("config.padding_policy.enabled=false;") != td::string::npos);
   ASSERT_TRUE(normalized.find("config.greeting_camouflage_policy=make_default_greeting_camouflage_policy();") !=
               td::string::npos);

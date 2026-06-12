@@ -38,6 +38,20 @@ RuntimePlatformHints darwin_platform() {
   return platform;
 }
 
+RuntimePlatformHints ios_platform() {
+  RuntimePlatformHints platform;
+  platform.device_class = DeviceClass::Mobile;
+  platform.mobile_os = td::mtproto::stealth::MobileOs::IOS;
+  return platform;
+}
+
+RuntimePlatformHints android_platform() {
+  RuntimePlatformHints platform;
+  platform.device_class = DeviceClass::Mobile;
+  platform.mobile_os = td::mtproto::stealth::MobileOs::Android;
+  return platform;
+}
+
 StealthRuntimeParams make_default_params() {
   return StealthRuntimeParams{};
 }
@@ -48,11 +62,17 @@ ProfileWeights zero_profile_weights() {
   weights.chrome131 = 0;
   weights.chrome120 = 0;
   weights.chrome147_windows = 0;
+  weights.chromium_macos_no_alps = 0;
+  weights.chromium_macos_4469 = 0;
+  weights.chromium_macos_44cd = 0;
   weights.chrome147_ios_chromium = 0;
   weights.firefox148 = 0;
+  weights.firefox149_android = 0;
+  weights.firefox149_macos26_3 = 0;
   weights.firefox149_windows = 0;
   weights.safari26_3 = 0;
   weights.ios14 = 0;
+  weights.android_chromium_alps = 0;
   weights.android11_okhttp_advisory = 0;
   return weights;
 }
@@ -119,6 +139,39 @@ TEST(TlsRuntimeProfilePolicyFailClosed, RejectsReleaseModeWhenPlatformHasOnlyAdv
   params.profile_weights = zero_profile_weights();
   params.profile_weights.safari26_3 = 100;
 
+  assert_invalid(params,
+                 "release_mode_profile_gating requires at least one release_gating profile weight for platform_hints");
+}
+
+TEST(TlsRuntimeProfilePolicyFailClosed, RejectsReleaseModeForCurrentIosCuration) {
+  RuntimeParamsGuard guard;
+
+  auto params = make_default_params();
+  params.platform_hints = ios_platform();
+  params.transport_confidence = TransportConfidence::Partial;
+  params.release_mode_profile_gating = true;
+
+  assert_invalid(params,
+                 "release_mode_profile_gating requires at least one release_gating profile weight for platform_hints");
+}
+
+TEST(TlsRuntimeProfilePolicyFailClosed, AllowsReleaseModeForVerifiedAndroidCurationAtEstablishedConfidence) {
+  RuntimeParamsGuard guard;
+
+  auto params = make_default_params();
+  params.platform_hints = android_platform();
+  params.transport_confidence = TransportConfidence::Strong;
+  params.release_mode_profile_gating = true;
+  ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
+}
+
+TEST(TlsRuntimeProfilePolicyFailClosed, RejectsReleaseModeForAndroidAtUnknownConfidence) {
+  RuntimeParamsGuard guard;
+
+  auto params = make_default_params();
+  params.platform_hints = android_platform();
+  params.transport_confidence = TransportConfidence::Unknown;
+  params.release_mode_profile_gating = true;
   assert_invalid(params,
                  "release_mode_profile_gating requires at least one release_gating profile weight for platform_hints");
 }

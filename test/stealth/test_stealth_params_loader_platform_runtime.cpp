@@ -114,8 +114,11 @@ TEST(StealthParamsLoaderPlatformRuntime, ReloadPublishesPlatformHintsToRuntimeCo
   ASSERT_TRUE(platform.mobile_os == MobileOs::Android);
   ASSERT_TRUE(platform.desktop_os == DesktopOs::Unknown);
 
-  for (td::int32 day = 0; day < 32; day++) {
-    auto profile = pick_runtime_profile("runtime-platform.example.com", 1712345678 + day * 86400, platform);
+  for (td::int32 day = 0; day < 64; day++) {
+    auto domain = "runtime-platform-" + td::to_string(day) + ".example.com";
+    auto profile = pick_runtime_profile(domain, 1712345678 + day * 86400, platform);
+    ASSERT_TRUE(profile != BrowserProfile::IOS14);
+    ASSERT_TRUE(profile != BrowserProfile::Chrome147_IOSChromium);
     ASSERT_TRUE(profile == BrowserProfile::Android11_OkHttp_Advisory);
   }
 }

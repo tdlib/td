@@ -1,0 +1,143 @@
+{
+  "phase_id": "stealth-corpus-real-dump-similarity",
+  "status": "local_pass_cpp_verification_deferred_to_linux_ci",
+  "agent": "claude-opus-4-8",
+  "timestamp_utc": "2026-06-08T21:00:00Z",
+  "agent_gate_artifact": "docs/Plans/fingerprint-hardening-master-plan-2026-05-24/handoffs/stealth_corpus_similarity_claude_2026-06-08.json",
+  "plan_ref": "docs/Plans/STEALTH_CORPUS_REAL_DUMP_SIMILARITY_TEST_PLAN_2026-06-08.md",
+
+  "summary": {
+    "real_corpus_similarity_gates": [
+      "TlsReleaseSimilarityUnavailableFailClosed",
+      "TlsGeneratorFixtureExactFieldsGate",
+      "TlsGeneratorExtensionCountSimilarity",
+      "TlsGeneratorWireLengthFixtureGate",
+      "TlsGeneratorShuffleSimilarity"
+    ],
+    "seed_stress_diagnostics_reclassified": [
+      "TLS_NightlyWireBaselineMonteCarlo"
+    ],
+    "release_evidence_rule": "Generated seeds are runtime stress inputs, not independent browser evidence. Release-facing similarity gates consume reviewed fixture-derived baselines and fail closed when exact release-critical evidence is unavailable or mixed."
+  },
+
+  "tasks": {
+    "Task_1_to_4": "Evidence model (prior sessions, committed df6b019a4..187493474): fixture-derived oracle, truthful 1k iteration-tier naming, generated EvidenceFieldStatus / per-field status / extension-count histograms into ReviewedFamilyLaneBaselines.h, and the fail-closed unavailable gate.",
+    "Task_5": "test_tls_generator_fixture_exact_fields_gate.cpp -- per-family exact-invariant gate (chromium_linux_desktop/Chrome133, firefox_linux_desktop/Firefox148, apple_ios_tls/IOS14). Status enforceability asserted, matches_exact_invariants over 64 seeds. Pre-proven by existing *_baseline.cpp suites.",
+    "Task_6": "test_tls_generator_extension_count_similarity.cpp -- generated non-GREASE/non-padding extension count must appear in the reviewed histogram Catalog (chromium 16 in {15,16,17}, firefox 17 in {17}, apple 13 in {13}); counts pinned by existing test_tls_corpus_ios_apple_tls_1k.cpp:193-195.",
+    "Task_7": "test_tls_generator_wire_length_fixture_gate.cpp + nightly Monte Carlo reclassified diagnostic. SANCTIONED DEVIATION: not byte-exact (see deviations).",
+    "Task_8": "test_tls_generator_shuffle_similarity.cpp -- chromium shuffle legality+diversity+reviewed-set membership; apple fixed-order template match. SANCTIONED DEVIATION: chromium set checked via template catalog, not forced Exact (see deviations).",
+    "Task_9": "Replaced 3 silent empty-baseline early returns in test_tls_multi_dump_windows_chrome_stats.cpp with fail-closed status assertions; added test_similarity_release_gate_contract.py. test_tls_multi_dump_ios_apple_tls_stats.cpp required no change (no offending skips).",
+    "Task_10": "Documentation: real-corpus similarity gates vs seed-stress diagnostics, plus a docs contract.",
+    "Task_11": "Verification (this environment): the three plan-specified Python analysis suites pass; all five C++ similarity gates are CMake-registered; working tree clean. C++ build / run_all_tests / ctest deferred to Linux CI.",
+    "Task_12": "This closeout artifact."
+  },
+
+  "sanctioned_deviations": [
+    {
+      "task": "Task_7",
+      "what": "Plan drafted a byte-exact wire-length gate (within_wire_length_envelope(size, 0.0)).",
+      "why": "TlsHelloBuilder.cpp injects config.padding_target_entropy = rng.bounded(256u): 0..255 bytes of per-build padding entropy as an anti-DPI measure, so wire.size() is non-deterministic by design and a byte-exact gate cannot go green without removing a security feature. observed_wire_lengths are raw reviewed record_length values (SNI-specific, not normalized).",
+      "resolution": "Fixture-anchored envelope at a tolerance derived from that documented entropy budget (15% on ~1.5-2.2 KB wires); fail-closed on wire_lengths_status. Same mechanism as the existing passing test_tls_multi_dump_ios_apple_tls_baseline.cpp. Tests named '...StaysWithinReviewed...Catalog', not '...IsExactlyReviewed...'.",
+      "rule_basis": "Plan execution-order steps 1-3 (fix buggy plan premises) + TDD_approach sec 4.4 (anti-green-washing: code correct, drafted test wrong)."
+    },
+    {
+      "task": "Task_8",
+      "what": "Plan Test 2 compared generated set to baseline->invariants.non_grease_extension_set and Step 3 said to make chromium non_grease_extension_set Exact.",
+      "why": "chromium_linux_desktop pools Chrome builds whose extension set genuinely differs (reviewed sizes 15/16/17; size-16 alone has 2 distinct sets). By the plan's own Exact rule ('every reviewed sample has the same value') that field is a per-template Catalog with a correctly empty collapsed invariant; forcing Exact would fabricate evidence.",
+      "resolution": "Test 2 requires the generated set to equal the set of some reviewed order template (membership in the fixture-derived catalog). No oracle/header change. Proven safe: kChrome133EchExtensionSet is the reviewed chrome146_75_linux_desktop set, a cohort source.",
+      "rule_basis": "Same as Task_7; plan Non-Negotiable Rule 6/7 (Exact requires identical samples; generation-aware cohorts)."
+    },
+    {
+      "task": "Task_9",
+      "what": "Plan listed test_tls_multi_dump_ios_apple_tls_stats.cpp as a file to modify.",
+      "why": "That file has no empty-baseline early-return skips; only legitimate ASSERT_TRUE(!wire.empty()) calls.",
+      "resolution": "Left unchanged; the new contract test confirms it is already clean."
+    }
+  ],
+
+  "commands": [
+    {
+      "command": "python3 -m unittest discover -s test/analysis -p 'test_family_lane_oracle_generation.py'",
+      "status": "pass",
+      "result": "Ran 3 tests, OK"
+    },
+    {
+      "command": "python3 -m unittest discover -s test/analysis -p 'test_corpus_iteration_tier_naming_contract.py'",
+      "status": "pass",
+      "result": "Ran 2 tests, OK"
+    },
+    {
+      "command": "python3 -m unittest discover -s test/analysis -p 'test_similarity_release_gate_contract.py'",
+      "status": "pass",
+      "result": "Ran 2 tests, OK",
+      "note": "Plan drafted these as 'python3 -m unittest test.analysis.X'; the discover form is used because the dotted module path collides with the stdlib 'test' package on this interpreter."
+    },
+    {
+      "command": "cmake -S . -B build ... -DTDLIB_STEALTH_SHAPING=ON && cmake --build build --target run_all_tests",
+      "status": "not_run",
+      "reason": "macOS cannot build TDLib in this environment (zlib>=1.3.2 configure gate, missing htole32/64, and std::atomic<std::shared_ptr> unsupported by Apple libc++). Source-only verification performed instead; build + run_all_tests deferred to the team's Linux CI."
+    },
+    {
+      "command": "./build/test/run_all_tests --filter 'TlsReleaseSimilarityUnavailableFailClosed|TlsGeneratorFixtureExactFieldsGate|TlsGeneratorExtensionCountSimilarity|TlsGeneratorWireLengthFixtureGate|TlsGeneratorShuffleSimilarity'",
+      "status": "not_run",
+      "reason": "Depends on the C++ build above. Deferred to Linux CI."
+    },
+    {
+      "command": "ctest --test-dir build --output-on-failure",
+      "status": "not_run",
+      "reason": "Depends on the C++ build above. Deferred to Linux CI."
+    },
+    {
+      "command": "grep registration check for the 5 new C++ gates in test/CMakeLists.txt",
+      "status": "pass",
+      "result": "All five similarity-gate sources registered in run_all_tests."
+    }
+  ],
+
+  "source_only_cpp_verification": {
+    "method": "Each new/changed C++ test was verified against the real headers and generated data: symbol signatures (get_baseline, FamilyLaneMatcher, EvidenceFieldStatus, ExtensionCountBucket, ExtensionOrderVerifier, build_tls_client_hello_for_profile, parse_tls_client_hello, MockRng, CorpusStatHelpers), the generated ReviewedFamilyLaneBaselines.h statuses/invariants for each targeted family, and existing passing tests that pin the same generator behavior.",
+    "predicted_pass_evidence": {
+      "exact_fields": "test_tls_multi_dump_{linux_chrome,linux_firefox,ios_apple_tls}_baseline.cpp already call matches_exact_invariants for the identical profile/family/ECH triples.",
+      "extension_counts": "test_tls_corpus_ios_apple_tls_1k.cpp:193-195 pins chrome=16, firefox=17, apple=13; Python histogram derivation uses the same GREASE+0x0015 exclusion.",
+      "shuffle": "kChrome133EchExtensionSet equals the reviewed chrome146_75_linux_desktop set; IosAppleTlsCorpus1k.NonGreaseExtensionOrderExactMatchCaptureFamily pins the fixed iOS order."
+    }
+  },
+
+  "changed_files": [
+    "docs/Documentation/FINGERPRINT_GENERATION_PIPELINE.md",
+    "docs/Documentation/Lessons_Learnt.md",
+    "test/CMakeLists.txt",
+    "test/analysis/build_family_lane_baselines.py",
+    "test/analysis/test_corpus_iteration_tier_naming_contract.py",
+    "test/analysis/test_family_lane_oracle_generation.py",
+    "test/analysis/test_similarity_release_gate_contract.py",
+    "test/stealth/ReviewedFamilyLaneBaselines.h",
+    "test/stealth/test_tls_generator_extension_count_similarity.cpp",
+    "test/stealth/test_tls_generator_fixture_exact_fields_gate.cpp",
+    "test/stealth/test_tls_generator_shuffle_similarity.cpp",
+    "test/stealth/test_tls_generator_wire_length_fixture_gate.cpp",
+    "test/stealth/test_tls_multi_dump_windows_chrome_stats.cpp",
+    "test/stealth/test_tls_nightly_wire_baseline_monte_carlo.cpp",
+    "test/stealth/test_tls_release_similarity_unavailable_fail_closed.cpp",
+    "test/stealth/test_tls_corpus_*_1k.cpp (Task 2 iteration-tier naming; many files)"
+  ],
+
+  "commits_this_session": [
+    {"sha": "3d775393a", "message": "test: compare generated TLS fields to reviewed fixture invariants", "task": 5},
+    {"sha": "13a543f93", "message": "test: gate generated extension counts against reviewed fixture catalogs", "task": 6},
+    {"sha": "271fa8038", "message": "test: use reviewed fixture wire lengths for similarity gates", "task": 7},
+    {"sha": "f7c6fe73f", "message": "test: gate Chrome shuffle against reviewed corpus policy", "task": 8},
+    {"sha": "c0466d987", "message": "test: remove silent skips from release similarity tests", "task": 9},
+    {"sha": "eb3ab51ac", "message": "docs: distinguish real-corpus gates from seed-stress diagnostics", "task": 10}
+  ],
+
+  "residual_risks": [
+    "C++ build and run_all_tests/ctest were not executed in this environment (macOS cannot build TDLib). The five similarity gates are source-only verified and CMake-registered; Linux CI must confirm the runtime pass.",
+    "Task 9 site 1: test_tls_multi_dump_windows_chrome_stats.cpp now runs matches_exact_invariants and the conditional ECH-payload coverage for Chrome147_Windows for the first time (previously skipped). The matches_exact_invariants part only enforces universal version/record constants for chromium_windows (Catalog cohort), but covers_observed_ech_payload_length against the chromium_windows ECH catalog is newly exercised; Linux CI must confirm the generated ECH payload length is in the reviewed catalog.",
+    "Task 7 wire-length gate is an entropy-bounded envelope, not byte-exact, by builder design (documented deviation).",
+    "Task 8 chromium extension-set similarity is template-catalog membership, not an Exact invariant, by cohort-pooling reality (documented deviation).",
+    "Statistical distribution tests remain limited by reviewed corpus size.",
+    "Imported fixtures remain diagnostic until promoted through reviewed-lane provenance rules.",
+    "Unrelated/pre-existing: test/analysis/test_zlib_min_version_contract.py fails locally (asserts a zlib dfsg gate in the root CMakeLists.txt); not in this phase's scope and untouched by these changes."
+  ]
+}

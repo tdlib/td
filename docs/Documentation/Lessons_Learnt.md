@@ -319,3 +319,11 @@ All three passed after the test logic was corrected.
 | Existing Chromium shuffle regression tests | `test/stealth/test_tls_extension_order_policy.cpp` |
 | New contract tests from this session | `test/stealth/test_tls_extension_order_template_catalog_contract.cpp` |
 | Fixture-derived Chrome extension-set coverage | `test/stealth/test_tls_corpus_chrome_extension_set_1k.cpp` |
+
+---
+
+## Real-Corpus Similarity Evidence
+
+Self-calibrated generator tests are not real-browser similarity evidence. Release-facing fingerprint claims must use reviewed fixture evidence from real packet captures, disclose the cohort denominator, and fail closed when exact release-critical fields are unavailable or mixed. Seed-stress diagnostics remain useful, but they prove generator diversity and stability rather than similarity to browser dumps.
+
+A practical corollary learned while wiring the fixture-derived wire-length gate: a byte-exact wire-length equality check is the wrong gate, because `TlsHelloBuilder` injects 0..255 bytes of per-build padding-target entropy as an anti-DPI measure. The release gate must bound the generated length to the reviewed catalog with a tolerance derived from that documented entropy budget, not assert a single byte length.

@@ -11,7 +11,9 @@
 
 #include "tddb/td/db/KeyValueSyncInterface.h"
 
+#include "td/utils/Random.h"
 #include "td/utils/crypto.h"
+#include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
 #include "td/utils/Time.h"
 
@@ -40,13 +42,18 @@ constexpr BrowserProfile ALL_PROFILES[] = {
     BrowserProfile::Firefox149_Windows,
     BrowserProfile::Safari26_3,
     BrowserProfile::IOS14,
+    BrowserProfile::AndroidChromium_Alps,
     BrowserProfile::Android11_OkHttp_Advisory,
+    BrowserProfile::ChromiumMacOS_NoAlps,
+    BrowserProfile::ChromiumMacOS_4469,
+    BrowserProfile::ChromiumMacOS_44CD,
+    BrowserProfile::Firefox149_Android,
 };
 
 constexpr BrowserProfile DARWIN_DESKTOP_PROFILES[] = {
-    BrowserProfile::Chrome133,
-    BrowserProfile::Chrome131,
-    BrowserProfile::Chrome120,
+    BrowserProfile::ChromiumMacOS_NoAlps,
+    BrowserProfile::ChromiumMacOS_4469,
+    BrowserProfile::ChromiumMacOS_44CD,
     BrowserProfile::Safari26_3,
     BrowserProfile::Firefox149_MacOS26_3,
 };
@@ -66,6 +73,8 @@ constexpr BrowserProfile WINDOWS_DESKTOP_PROFILES[] = {
 constexpr BrowserProfile MOBILE_PROFILES[] = {
     BrowserProfile::IOS14,
     BrowserProfile::Chrome147_IOSChromium,
+    BrowserProfile::AndroidChromium_Alps,
+    BrowserProfile::Firefox149_Android,
     BrowserProfile::Android11_OkHttp_Advisory,
 };
 
@@ -75,8 +84,12 @@ constexpr BrowserProfile IOS_MOBILE_PROFILES[] = {
 };
 
 constexpr BrowserProfile ANDROID_MOBILE_PROFILES[] = {
+    BrowserProfile::AndroidChromium_Alps,
+    BrowserProfile::Firefox149_Android,
     BrowserProfile::Android11_OkHttp_Advisory,
 };
+
+constexpr Slice kPerInstallSelectionSaltStoreKey("stealth_profile_selection_salt");
 
 constexpr ProfileSpec PROFILE_SPECS[] = {
     {BrowserProfile::Chrome133, Slice("chrome133"), 0x44CD, 0, true, true, true, true, 0x11EC, 0x00, 0x0001, 0x0001, 0,
@@ -118,8 +131,18 @@ constexpr ProfileSpec PROFILE_SPECS[] = {
      32, ExtensionOrderPolicy::FixedFromFixture},
     {BrowserProfile::IOS14, Slice("ios14"), 0, 0, false, false, true, true, 0x11EC, 0x00, 0x0001, 0x0001, 0, 32,
      ExtensionOrderPolicy::FixedFromFixture},
+    {BrowserProfile::AndroidChromium_Alps, Slice("android_chromium_alps"), 0x44CD, 0, true, true, true, true, 0x11EC,
+     0x00, 0x0001, 0x0001, 0, 32, ExtensionOrderPolicy::ChromeShuffleAnchored},
     {BrowserProfile::Android11_OkHttp_Advisory, Slice("android11_okhttp_advisory"), 0, 0, false, false, true, false, 0,
      0x00, 0x0001, 0x0001, 0, 32, ExtensionOrderPolicy::FixedFromFixture},
+    {BrowserProfile::ChromiumMacOS_NoAlps, Slice("chromium_macos_no_alps"), 0, 0, true, true, true, true, 0x11EC,
+     0x00, 0x0001, 0x0001, 0, 32, ExtensionOrderPolicy::ChromeShuffleAnchored},
+    {BrowserProfile::ChromiumMacOS_4469, Slice("chromium_macos_4469"), 0x4469, 0, true, true, true, true, 0x11EC,
+     0x00, 0x0001, 0x0001, 0, 32, ExtensionOrderPolicy::ChromeShuffleAnchored},
+    {BrowserProfile::ChromiumMacOS_44CD, Slice("chromium_macos_44cd"), 0x44CD, 0, true, true, true, true, 0x11EC,
+     0x00, 0x0001, 0x0001, 0, 32, ExtensionOrderPolicy::ChromeShuffleAnchored},
+    {BrowserProfile::Firefox149_Android, Slice("firefox149_android"), 0, 0x4001, true, false, true, true, 0x11EC,
+     0x00, 0x0001, 0x0001, 399, 32, ExtensionOrderPolicy::FixedFromFixture},
 };
 
 constexpr ProfileFixtureMetadata PROFILE_FIXTURES[] = {
@@ -143,8 +166,18 @@ constexpr ProfileFixtureMetadata PROFILE_FIXTURES[] = {
      false, TransportClaimLevel::TlsOnly},
     {Slice("utls:HelloIOS_14"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Advisory, false, false, false,
      TransportClaimLevel::TlsOnly},
+    {Slice("browser_capture:android_chromium_alps"), ProfileFixtureSourceKind::BrowserCapture,
+     ProfileTrustTier::Verified, true, false, true, TransportClaimLevel::CrossLayerStrong},
     {Slice("utls:HelloAndroid_11_OkHttp"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Advisory, false,
      false, false, TransportClaimLevel::TlsOnly},
+    {Slice("browser_capture:chromium_macos_no_alps"), ProfileFixtureSourceKind::BrowserCapture,
+     ProfileTrustTier::Verified, true, false, true, TransportClaimLevel::TlsOnly},
+    {Slice("browser_capture:chromium_macos_4469"), ProfileFixtureSourceKind::BrowserCapture,
+     ProfileTrustTier::Verified, true, false, true, TransportClaimLevel::CrossLayerStrong},
+    {Slice("browser_capture:chromium_macos_44cd"), ProfileFixtureSourceKind::BrowserCapture,
+     ProfileTrustTier::Verified, true, false, true, TransportClaimLevel::CrossLayerStrong},
+    {Slice("browser_capture:firefox149_android"), ProfileFixtureSourceKind::BrowserCapture, ProfileTrustTier::Verified,
+     true, false, false, TransportClaimLevel::CrossLayerStrong},
 };
 
 constexpr Slice kRuntimeEchStoreKeyPrefix("stealth_ech_cb#");
@@ -827,23 +860,102 @@ uint8 profile_weight(const ProfileWeights &weights, BrowserProfile profile) {
       return weights.chrome120;
     case BrowserProfile::Chrome147_Windows:
       return weights.chrome147_windows;
+    case BrowserProfile::ChromiumMacOS_NoAlps:
+      return weights.chromium_macos_no_alps;
+    case BrowserProfile::ChromiumMacOS_4469:
+      return weights.chromium_macos_4469;
+    case BrowserProfile::ChromiumMacOS_44CD:
+      return weights.chromium_macos_44cd;
     case BrowserProfile::Chrome147_IOSChromium:
       return weights.chrome147_ios_chromium;
     case BrowserProfile::Firefox148:
-    case BrowserProfile::Firefox149_MacOS26_3:
       return weights.firefox148;
+    case BrowserProfile::Firefox149_Android:
+      return weights.firefox149_android;
+    case BrowserProfile::Firefox149_MacOS26_3:
+      return weights.firefox149_macos26_3;
     case BrowserProfile::Firefox149_Windows:
       return weights.firefox149_windows;
     case BrowserProfile::Safari26_3:
       return weights.safari26_3;
     case BrowserProfile::IOS14:
       return weights.ios14;
+    case BrowserProfile::AndroidChromium_Alps:
+      return weights.android_chromium_alps;
     case BrowserProfile::Android11_OkHttp_Advisory:
       return weights.android11_okhttp_advisory;
     default:
       UNREACHABLE();
       return 0;
   }
+}
+
+std::atomic<uint64> &per_install_selection_salt_cache() {
+  static std::atomic<uint64> salt{0};
+  return salt;
+}
+
+Result<uint64> parse_persisted_per_install_selection_salt(Slice encoded_salt) {
+  if (encoded_salt.empty()) {
+    return Status::Error("missing persisted per-install selection salt");
+  }
+  TRY_RESULT(salt, to_integer_safe<uint64>(encoded_salt));
+  if (salt == 0) {
+    return Status::Error("persisted per-install selection salt must be non-zero");
+  }
+  return salt;
+}
+
+uint64 mint_per_install_selection_salt() {
+  uint64 salt = 0;
+  while (salt == 0) {
+    salt = Random::secure_uint64();
+  }
+  return salt;
+}
+
+void persist_per_install_selection_salt_locked(const std::shared_ptr<KeyValueSyncInterface> &store, uint64 salt) {
+  if (store == nullptr) {
+    return;
+  }
+  if (salt == 0) {
+    store->erase(kPerInstallSelectionSaltStoreKey.str());
+    return;
+  }
+  store->set(kPerInstallSelectionSaltStoreKey.str(), to_string(salt));
+}
+
+void initialize_per_install_selection_salt_locked(const std::shared_ptr<KeyValueSyncInterface> &store) {
+  if (store == nullptr) {
+    return;
+  }
+
+  auto encoded_salt = store->get(kPerInstallSelectionSaltStoreKey.str());
+  auto persisted_salt = parse_persisted_per_install_selection_salt(encoded_salt);
+  if (persisted_salt.is_ok()) {
+    per_install_selection_salt_cache().store(persisted_salt.ok(), std::memory_order_relaxed);
+    return;
+  }
+
+  auto minted_salt = mint_per_install_selection_salt();
+  per_install_selection_salt_cache().store(minted_salt, std::memory_order_relaxed);
+  persist_per_install_selection_salt_locked(store, minted_salt);
+}
+
+// Per-installation salt mixed into stable_selection_hash so two installations
+// sharing the same destination, platform, and time bucket do not deterministically
+// pick the same profile (population-correlation defence against DPI). 0 is the
+// "unset / no entropy" sentinel and reproduces the legacy deterministic vector.
+//
+// When a runtime KV store is configured, the salt is minted once, persisted
+// there, and restored automatically on later launches. A host may also inject an
+// externally persisted value via set_per_install_selection_salt(). A salt that
+// changed each start would rotate the chosen profile across restarts and itself
+// become a fingerprint, so the value must stay stable per installation. Tests
+// still rely on the explicit 0 sentinel to reproduce the legacy deterministic
+// vector.
+uint64 effective_per_install_selection_salt() {
+  return per_install_selection_salt_cache().load(std::memory_order_relaxed);
 }
 
 uint32 stable_selection_hash(const SelectionKey &key, const RuntimePlatformHints &platform) {
@@ -856,6 +968,13 @@ uint32 stable_selection_hash(const SelectionKey &key, const RuntimePlatformHints
   material += to_string(static_cast<int>(platform.mobile_os));
   material += '|';
   material += to_string(static_cast<int>(platform.desktop_os));
+  auto salt = effective_per_install_selection_salt();
+  if (salt != 0) {
+    // Only appended when a salt is configured, so the salt-free material (and
+    // therefore every existing deterministic selection vector) is unchanged.
+    material += '|';
+    material += to_string(salt);
+  }
   return crc32(material);
 }
 
@@ -894,6 +1013,23 @@ void set_runtime_ech_failure_store(std::shared_ptr<KeyValueSyncInterface> store)
   auto lock = std::scoped_lock(tls_hello_profile_registry_internal::route_failure_cache_mutex());
   tls_hello_profile_registry_internal::route_failure_store() = std::move(store);
   tls_hello_profile_registry_internal::route_failure_cache().clear();
+  tls_hello_profile_registry_internal::initialize_per_install_selection_salt_locked(
+      tls_hello_profile_registry_internal::route_failure_store());
+}
+
+void set_per_install_selection_salt(uint64 salt) noexcept {
+  tls_hello_profile_registry_internal::per_install_selection_salt_cache().store(salt, std::memory_order_relaxed);
+  auto lock = std::scoped_lock(tls_hello_profile_registry_internal::route_failure_cache_mutex());
+  tls_hello_profile_registry_internal::persist_per_install_selection_salt_locked(
+      tls_hello_profile_registry_internal::route_failure_store(), salt);
+}
+
+uint64 get_per_install_selection_salt() noexcept {
+  return tls_hello_profile_registry_internal::per_install_selection_salt_cache().load(std::memory_order_relaxed);
+}
+
+void reset_per_install_selection_salt_for_tests() noexcept {
+  tls_hello_profile_registry_internal::per_install_selection_salt_cache().store(0, std::memory_order_relaxed);
 }
 
 void reconcile_runtime_ech_failure_ttl(double ttl_seconds) {

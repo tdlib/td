@@ -40,7 +40,8 @@ TEST(TlsProfilePlatformCoherence, AndroidRuntimeSelectionNeverUsesIosProfile) {
   auto allowed = allowed_profiles_for_platform(platform);
   for (td::uint32 bucket = 20000; bucket < 20256; bucket++) {
     auto profile = pick_profile_sticky(default_profile_weights(), make_selection_key(bucket), platform, allowed, rng);
-    ASSERT_TRUE(BrowserProfile::Android11_OkHttp_Advisory == profile);
+    ASSERT_TRUE(profile != BrowserProfile::IOS14);
+    ASSERT_TRUE(profile != BrowserProfile::Chrome147_IOSChromium);
   }
 }
 
@@ -53,6 +54,8 @@ TEST(TlsProfilePlatformCoherence, IosRuntimeSelectionNeverUsesAndroidProfile) {
   auto allowed = allowed_profiles_for_platform(platform);
   for (td::uint32 bucket = 20000; bucket < 20256; bucket++) {
     auto profile = pick_profile_sticky(default_profile_weights(), make_selection_key(bucket), platform, allowed, rng);
+    ASSERT_TRUE(profile != BrowserProfile::AndroidChromium_Alps);
+    ASSERT_TRUE(profile != BrowserProfile::Firefox149_Android);
     ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
   }
 }
@@ -67,6 +70,9 @@ TEST(TlsProfilePlatformCoherence, DesktopSelectionNeverFallsIntoMobileProfilesEv
   for (td::uint32 bucket = 20000; bucket < 20256; bucket++) {
     auto profile = pick_profile_sticky(default_profile_weights(), make_selection_key(bucket), platform, allowed, rng);
     ASSERT_TRUE(profile != BrowserProfile::IOS14);
+    ASSERT_TRUE(profile != BrowserProfile::Chrome147_IOSChromium);
+    ASSERT_TRUE(profile != BrowserProfile::AndroidChromium_Alps);
+    ASSERT_TRUE(profile != BrowserProfile::Firefox149_Android);
     ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
   }
 }

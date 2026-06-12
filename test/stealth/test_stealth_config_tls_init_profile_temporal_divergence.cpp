@@ -24,25 +24,34 @@
 //
 // Currently all profiles have record_size_limit values that map to the same
 // effective cap (16384 = kMaxTlsPayloadCap), so apply_profile_record_size_limit
-// is currently a no-op for every existing profile. The risk is forward-looking:
-// if a profile with a smaller limit is added, the divergence becomes a concrete
+// is a no-op for every existing profile. The risk was forward-looking: if a
+// profile with a smaller limit is added, the divergence would become a concrete
 // DRS violation.
 //
-// Additionally: Firefox149_MacOS26_3 and Firefox149_Windows SHARE the
-// `firefox148` weight slot in ProfileWeights. Independent weight tuning for
-// these variants is impossible without changing the struct.
+// MITIGATION (F3): apply_profile_record_size_limit now ALSO clamps the decorator
+// to platform_record_size_floor() — the floor record_size_limit across every
+// profile the platform may select — so even when config.profile (T1) diverges
+// from the ClientHello profile (T2), the decorator can never exceed the limit the
+// wire actually declared. The cosmetic config.profile-vs-wire divergence (tests A,
+// B, D below) still exists but no longer has a record-size impact. The floor is a
+// no-op while every profile maps to the same cap, so the per-profile contract in
+// test_stealth_config_profile_record_limit_consistency is unchanged.
+//
+// FIXED (F5): Firefox149_MacOS26_3 now has its own ProfileWeights slot
+// (firefox149_macos26_3) instead of aliasing `firefox148`, so each Firefox
+// variant is tuned/zeroed independently (tests E, F, G below).
 //
 // === RISK REGISTER ===
 //
-//   RISK: StealthProfileDivergence-1 (temporal)
+//   RISK: StealthProfileDivergence-1 (temporal) — MITIGATED by platform floor
 //     category: TOCTOU / protocol state machine
 //     attack: sticky rotation window boundary causes profile mismatch
 //     impact: DRS fingerprint inconsistency when small-record-size profiles added
 //     test_ids: StealthConfigTlsInitProfileTemporalDivergence_*
 //
-//   RISK: StealthProfileDivergence-2 (weight aliasing)
+//   RISK: StealthProfileDivergence-2 (weight aliasing) — FIXED (independent slots)
 //     category: configuration aliasing
-//     attack: operator sets firefox148=0 but Firefox149_MacOS/Windows suppressed too
+//     attack: operator sets firefox148=0 but Firefox149_MacOS suppressed too
 //     impact: profile distribution / fingerprint mix diverges from operator intent
 //     test_ids: StealthConfigTlsInitProfileTemporalDivergence_Firefox149*
 
@@ -56,6 +65,8 @@
 
 #include "td/utils/common.h"
 #include "td/utils/tests.h"
+
+#include <algorithm>
 
 namespace {
 
@@ -212,6 +223,51 @@ TEST(StealthConfigTlsInitProfileTemporalDivergence, AllCurrentProfileRecordSizeL
   }
 }
 
+// ─── C2: decorator record-size cap is bound to the platform floor (F3) ───────
+// Whatever profile config-time selection lands on, the decorator's payload cap
+// must never exceed the floor record_size_limit across the platform's allowed
+// profiles, so it cannot exceed the limit the ClientHello (TlsInit) declares even
+// when the two selections diverge across a sticky-rotation boundary.
+
+TEST(StealthConfigTlsInitProfileTemporalDivergence, DecoratorPayloadCapNeverExceedsPlatformRecordSizeFloor) {
+  Guard guard;
+  auto params = default_runtime_stealth_params();
+  params.transport_confidence = td::mtproto::stealth::TransportConfidence::Partial;
+  params.platform_hints = make_linux_platform();
+  params.flow_behavior.sticky_domain_rotation_window_sec = 60;
+  ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
+
+  const auto platform = make_linux_platform();
+  // Floor record_size_limit cap across allowed profiles (replica of
+  // payload_cap_from_record_size_limit: 0 means "no declared limit").
+  td::int32 floor_cap = 16384;
+  bool any_declared = false;
+  for (auto profile : allowed_profiles_for_platform(platform)) {
+    auto limit = profile_spec(profile).record_size_limit;
+    if (limit <= 1) {
+      continue;
+    }
+    any_declared = true;
+    td::int32 cap = static_cast<td::int32>(limit) - 1;
+    if (cap > 16384) {
+      cap = 16384;
+    }
+    floor_cap = std::min(floor_cap, cap);
+  }
+  if (!any_declared) {
+    floor_cap = 16384;
+  }
+
+  const td::int32 base = 1712345678;
+  for (int i = 0; i < 256; i++) {
+    auto secret = make_tls_secret("floor-bind-" + td::to_string(i) + ".example");
+    td::mtproto::test::MockRng rng(static_cast<td::uint64>(i) + 1);
+    auto config = StealthConfig::from_secret(secret, rng, base + i, platform);
+    ASSERT_TRUE(config.validate().is_ok());
+    ASSERT_TRUE(config.drs_policy.max_payload_cap <= floor_cap);
+  }
+}
+
 // ─── D: 900s default window boundary is observable across domains ─────────────
 
 TEST(StealthConfigTlsInitProfileTemporalDivergence, Default900sBucketBoundaryCausesProfileDivergenceForSomeDomain) {
@@ -236,33 +292,37 @@ TEST(StealthConfigTlsInitProfileTemporalDivergence, Default900sBucketBoundaryCau
   ASSERT_TRUE(found);
 }
 
-// ─── E: Firefox149_MacOS26_3 shares the `firefox148` weight slot ─────────────
+// ─── E: Firefox149_MacOS26_3 has its own independent weight slot (F5 fixed) ───
 
 TEST(StealthConfigTlsInitProfileTemporalDivergence,
-     Firefox149MacOsSharesWeightSlotWithFirefox148CannotBeIndependentlyZeroed) {
+     Firefox149MacOsHasIndependentWeightSlotFromFirefox148) {
   Guard guard;
   auto darwin = make_darwin_platform();
   auto params = default_runtime_stealth_params();
   params.transport_confidence = td::mtproto::stealth::TransportConfidence::Partial;
   params.platform_hints = darwin;
-  // Zero out firefox148; Chrome133=1 to keep total_weight > 0.
+  // macOS Firefox slot off; firefox148 (Linux slot) high and Chrome133=1 keep
+  // total_weight > 0. A non-zero firefox148 must NOT enable the macOS lane.
   params.profile_weights.chrome133 = 1;
   params.profile_weights.chrome131 = 0;
   params.profile_weights.chrome120 = 0;
-  params.profile_weights.firefox148 = 0;
+  params.profile_weights.firefox148 = 100;
+  params.profile_weights.firefox149_macos26_3 = 0;
   params.profile_weights.safari26_3 = 0;
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
 
   const td::int32 base = 1712345678;
-  // Firefox149_MacOS26_3 must never be chosen when its shared slot = 0.
+  // Firefox149_MacOS26_3 must never be chosen when its OWN slot = 0, regardless
+  // of firefox148.
   for (int i = 0; i < 50; i++) {
     td::string d = "mac-zero-" + td::to_string(i) + ".example";
     ASSERT_TRUE(pick_runtime_profile(d, base + i, darwin) != BrowserProfile::Firefox149_MacOS26_3);
   }
 
-  // Enable via firefox148=100 (this IS the shared slot).
+  // Enable via its own dedicated slot (firefox148 stays 0 to prove independence).
   params.profile_weights.chrome133 = 0;
-  params.profile_weights.firefox148 = 100;
+  params.profile_weights.firefox148 = 0;
+  params.profile_weights.firefox149_macos26_3 = 100;
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
 
   bool found_macos_fx = false;
@@ -276,7 +336,7 @@ TEST(StealthConfigTlsInitProfileTemporalDivergence,
 }
 
 // ─── F: Firefox149_Windows has its own independent weight slot ───────────────
-// (verifying it IS independent, unlike macOS Firefox which shares firefox148)
+// (both Windows and macOS Firefox now have independent slots; see test E)
 
 TEST(StealthConfigTlsInitProfileTemporalDivergence, Firefox149WindowsHasIndependentWeightSlotFirefox149Windows) {
   Guard guard;
@@ -311,27 +371,24 @@ TEST(StealthConfigTlsInitProfileTemporalDivergence, Firefox149WindowsHasIndepend
   ASSERT_TRUE(found);
 }
 
-// ─── G: Firefox149_MacOS26_3 and Firefox149_Windows zero simultaneously ──────
-// Setting firefox148=0 does NOT zero Firefox149_Windows (independent slot),
-// but DOES zero Firefox149_MacOS26_3.  This asymmetry is the aliasing bug.
+// ─── G: firefox148=0 disables neither Windows nor macOS Firefox (F5 fixed) ────
+// After the de-aliasing fix every Firefox variant has its own slot, so setting
+// firefox148 (the Linux slot) to 0 affects neither Firefox149_Windows nor
+// Firefox149_MacOS26_3.
 
-TEST(StealthConfigTlsInitProfileTemporalDivergence, Firefox148ZeroOnlyDisablesLinuxAndMacOsFirefoxNotWindowsFirefox) {
+TEST(StealthConfigTlsInitProfileTemporalDivergence, Firefox148ZeroDoesNotDisableWindowsOrMacOsFirefox) {
   Guard guard;
 
-  // On Windows platform, trying to zero "all Firefox" by setting firefox148=0
-  // actually doesn't affect Firefox149_Windows (which has its own slot).
-  // This is the inverse of the Mac problem: Windows Firefox IS independently
-  // controllable.
+  // Windows: firefox148=0 does not affect Firefox149_Windows (its own slot).
   auto windows = make_windows_platform();
   auto params = default_runtime_stealth_params();
   params.transport_confidence = td::mtproto::stealth::TransportConfidence::Partial;
   params.platform_hints = windows;
   params.profile_weights.chrome147_windows = 1;
   params.profile_weights.firefox149_windows = 100;
-  params.profile_weights.firefox148 = 0;  // zeroing this should NOT affect Win Firefox
+  params.profile_weights.firefox148 = 0;  // zeroing this must NOT affect Win Firefox
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
 
-  // Firefox149_Windows must still be selectable (its own slot is 100).
   const td::int32 base = 1712345678;
   bool found_win_fx = false;
   for (int i = 0; i < 100 && !found_win_fx; i++) {
@@ -340,21 +397,27 @@ TEST(StealthConfigTlsInitProfileTemporalDivergence, Firefox148ZeroOnlyDisablesLi
       found_win_fx = true;
     }
   }
-  // Windows Firefox is NOT affected by firefox148=0 → found_win_fx must be true.
   ASSERT_TRUE(found_win_fx);
 
-  // Now on Darwin: setting firefox148=0 DOES disable Firefox149_MacOS26_3.
+  // Darwin: firefox148=0 does not affect Firefox149_MacOS26_3 (its own slot).
   auto darwin = make_darwin_platform();
   params.platform_hints = darwin;
-  params.profile_weights.chrome133 = 1;
-  params.profile_weights.firefox148 = 0;  // this IS the macOS Firefox slot
+  params.profile_weights.chrome133 = 0;
+  params.profile_weights.chrome131 = 0;
+  params.profile_weights.chrome120 = 0;
+  params.profile_weights.safari26_3 = 0;
+  params.profile_weights.firefox148 = 0;             // Linux slot off
+  params.profile_weights.firefox149_macos26_3 = 100;  // macOS slot still drives selection
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
 
-  for (int i = 0; i < 50; i++) {
+  bool found_mac_fx = false;
+  for (int i = 0; i < 100 && !found_mac_fx; i++) {
     td::string d = "mac-asym-" + td::to_string(i) + ".example";
-    // firefox148=0 → Firefox149_MacOS26_3 must never be selected on Darwin.
-    ASSERT_TRUE(pick_runtime_profile(d, base + i, darwin) != BrowserProfile::Firefox149_MacOS26_3);
+    if (pick_runtime_profile(d, base + i, darwin) == BrowserProfile::Firefox149_MacOS26_3) {
+      found_mac_fx = true;
+    }
   }
+  ASSERT_TRUE(found_mac_fx);
 }
 
 }  // namespace

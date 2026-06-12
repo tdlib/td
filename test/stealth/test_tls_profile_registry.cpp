@@ -47,9 +47,9 @@ TEST(TlsProfileRegistry, FixtureMetadataExposesExplicitSourceKind) {
   }
 }
 
-TEST(TlsProfileRegistry, VerifiedProfilesCarryNetworkCorroboration) {
-  for (auto profile : {BrowserProfile::Chrome133, BrowserProfile::Chrome131, BrowserProfile::Chrome120,
-                       BrowserProfile::Firefox148, BrowserProfile::Firefox149_MacOS26_3}) {
+TEST(TlsProfileRegistry, VerifiedProfilesWithUtlsCorroborationCarryNetworkCorroboration) {
+  for (auto profile :
+       {BrowserProfile::Chrome133, BrowserProfile::Chrome131, BrowserProfile::Chrome120, BrowserProfile::Firefox148}) {
     auto metadata = profile_fixture_metadata(profile);
     ASSERT_TRUE(metadata.trust_tier == ProfileTrustTier::Verified);
     ASSERT_TRUE(metadata.source_kind == ProfileFixtureSourceKind::BrowserCapture ||
@@ -60,7 +60,46 @@ TEST(TlsProfileRegistry, VerifiedProfilesCarryNetworkCorroboration) {
   }
 }
 
-TEST(TlsProfileRegistry, SafariAndMobileProfilesRemainAdvisoryUntilNetworkFixturesLand) {
+TEST(TlsProfileRegistry, Firefox149MacosIsVerifiedReleaseGatedWithoutUtlsCorroboration) {
+  auto metadata = profile_fixture_metadata(BrowserProfile::Firefox149_MacOS26_3);
+  ASSERT_TRUE(metadata.trust_tier == ProfileTrustTier::Verified);
+  ASSERT_TRUE(metadata.source_kind == ProfileFixtureSourceKind::BrowserCapture);
+  ASSERT_TRUE(metadata.has_independent_network_provenance);
+  ASSERT_TRUE(metadata.has_utls_snapshot_corroboration);
+  ASSERT_TRUE(metadata.release_gating);
+}
+
+TEST(TlsProfileRegistry, AndroidChromiumAlpsIsVerifiedReleaseGatedWithoutUtlsCorroboration) {
+  auto metadata = profile_fixture_metadata(BrowserProfile::AndroidChromium_Alps);
+  ASSERT_TRUE(metadata.trust_tier == ProfileTrustTier::Verified);
+  ASSERT_TRUE(metadata.source_kind == ProfileFixtureSourceKind::BrowserCapture);
+  ASSERT_TRUE(metadata.has_independent_network_provenance);
+  ASSERT_FALSE(metadata.has_utls_snapshot_corroboration);
+  ASSERT_TRUE(metadata.release_gating);
+}
+
+TEST(TlsProfileRegistry, Firefox149AndroidIsVerifiedWithoutReleaseGating) {
+  auto metadata = profile_fixture_metadata(BrowserProfile::Firefox149_Android);
+  ASSERT_TRUE(metadata.trust_tier == ProfileTrustTier::Verified);
+  ASSERT_TRUE(metadata.source_kind == ProfileFixtureSourceKind::BrowserCapture);
+  ASSERT_TRUE(metadata.has_independent_network_provenance);
+  ASSERT_FALSE(metadata.has_utls_snapshot_corroboration);
+  ASSERT_FALSE(metadata.release_gating);
+}
+
+TEST(TlsProfileRegistry, MacosChromiumProfilesAreVerifiedReleaseGatedWithoutUtlsCorroboration) {
+  for (auto profile : {BrowserProfile::ChromiumMacOS_NoAlps, BrowserProfile::ChromiumMacOS_4469,
+                       BrowserProfile::ChromiumMacOS_44CD}) {
+    auto metadata = profile_fixture_metadata(profile);
+    ASSERT_TRUE(metadata.trust_tier == ProfileTrustTier::Verified);
+    ASSERT_TRUE(metadata.source_kind == ProfileFixtureSourceKind::BrowserCapture);
+    ASSERT_TRUE(metadata.has_independent_network_provenance);
+    ASSERT_FALSE(metadata.has_utls_snapshot_corroboration);
+    ASSERT_TRUE(metadata.release_gating);
+  }
+}
+
+TEST(TlsProfileRegistry, SafariAndLegacyMobileFallbackProfilesRemainAdvisory) {
   for (auto profile : {BrowserProfile::Safari26_3, BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp_Advisory}) {
     auto metadata = profile_fixture_metadata(profile);
     ASSERT_TRUE(metadata.trust_tier == ProfileTrustTier::Advisory);
@@ -96,7 +135,9 @@ TEST(TlsProfileRegistry, MobileClassUsesOnlyMobileProfiles) {
   for (td::uint32 bucket = 0; bucket < 128; bucket++) {
     key.time_bucket = 20260406 + bucket;
     auto profile = pick_profile_sticky(default_profile_weights(), key, platform, allowed, rng);
-    ASSERT_TRUE(profile == BrowserProfile::IOS14 || profile == BrowserProfile::Android11_OkHttp_Advisory);
+    ASSERT_TRUE(profile == BrowserProfile::AndroidChromium_Alps ||
+                profile == BrowserProfile::Firefox149_Android ||
+                profile == BrowserProfile::Android11_OkHttp_Advisory);
   }
 }
 
@@ -111,10 +152,34 @@ TEST(TlsProfileRegistry, IosMobileClassAllowsAppleTlsAndChromiumOnly) {
   for (auto profile : allowed) {
     saw_ios14 = saw_ios14 || profile == BrowserProfile::IOS14;
     saw_ios_chromium = saw_ios_chromium || profile == BrowserProfile::Chrome147_IOSChromium;
+    ASSERT_TRUE(profile != BrowserProfile::AndroidChromium_Alps);
+    ASSERT_TRUE(profile != BrowserProfile::Firefox149_Android);
     ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
   }
   ASSERT_TRUE(saw_ios14);
   ASSERT_TRUE(saw_ios_chromium);
+}
+
+TEST(TlsProfileRegistry, DarwinDesktopAllowsDedicatedMacosChromiumProfiles) {
+  RuntimePlatformHints platform;
+  platform.device_class = DeviceClass::Desktop;
+  platform.desktop_os = DesktopOs::Darwin;
+
+  auto allowed = allowed_profiles_for_platform(platform);
+  bool saw_no_alps = false;
+  bool saw_4469 = false;
+  bool saw_44cd = false;
+  for (auto profile : allowed) {
+    saw_no_alps = saw_no_alps || profile == BrowserProfile::ChromiumMacOS_NoAlps;
+    saw_4469 = saw_4469 || profile == BrowserProfile::ChromiumMacOS_4469;
+    saw_44cd = saw_44cd || profile == BrowserProfile::ChromiumMacOS_44CD;
+    ASSERT_TRUE(profile != BrowserProfile::Chrome133);
+    ASSERT_TRUE(profile != BrowserProfile::Chrome131);
+    ASSERT_TRUE(profile != BrowserProfile::Chrome120);
+  }
+  ASSERT_TRUE(saw_no_alps);
+  ASSERT_TRUE(saw_4469);
+  ASSERT_TRUE(saw_44cd);
 }
 
 TEST(TlsProfileRegistry, DesktopClassNeverUsesMobileProfiles) {
@@ -131,6 +196,8 @@ TEST(TlsProfileRegistry, DesktopClassNeverUsesMobileProfiles) {
     auto profile = pick_profile_sticky(default_profile_weights(), key, platform, allowed, rng);
     ASSERT_TRUE(profile != BrowserProfile::IOS14);
     ASSERT_TRUE(profile != BrowserProfile::Chrome147_IOSChromium);
+    ASSERT_TRUE(profile != BrowserProfile::AndroidChromium_Alps);
+    ASSERT_TRUE(profile != BrowserProfile::Firefox149_Android);
     ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
   }
 }

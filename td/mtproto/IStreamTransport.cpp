@@ -14,12 +14,81 @@
 
 #include "td/utils/logging.h"
 
+#include <utility>
+
 namespace td {
 namespace mtproto {
 
 namespace {
 
 StreamTransportFactoryForTests stream_transport_factory_for_tests = nullptr;
+
+// Returned in place of a working transport when an emulate_tls() connection was
+// requested but stealth shaping could not be activated (runtime config rejected
+// or decorator init failed). Fail-closed: unlike the previous downgrade path it
+// never falls back to a plain tcp::ObfuscatedTransport, so the unmasked legacy
+// obfuscated-MTProto fingerprint that emulate_tls was meant to hide is never put
+// on the wire. write() drops outbound data and can_write() is false so the
+// engine never hands it un-shaped bytes; read_next() fails the connection so the
+// MTProto reconnect path tears it down (and keeps refusing) instead of silently
+// using an un-shaped channel.
+class FailClosedStealthTransport final : public IStreamTransport {
+ public:
+  explicit FailClosedStealthTransport(TransportType type) : type_(std::move(type)) {
+  }
+
+  Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) final {
+    (void)message;
+    (void)quick_ack;
+    return Status::Error(
+        "stealth shaping unavailable for emulate_tls transport; refusing to send unmasked traffic");
+  }
+
+  bool support_quick_ack() const final {
+    return false;
+  }
+
+  void write(BufferWriter &&message, bool quick_ack) final {
+    // Drop outbound data: emitting it here would write the very unmasked
+    // obfuscated-MTProto bytes that emulate_tls was supposed to camouflage.
+    (void)message;
+    (void)quick_ack;
+  }
+
+  bool can_read() const final {
+    // Stay readable so the connection's read loop calls read_next() and fails
+    // fast instead of idling on an un-shaped channel.
+    return true;
+  }
+
+  bool can_write() const final {
+    return false;
+  }
+
+  void init(ChainBufferReader *input, ChainBufferWriter *output) final {
+    (void)input;
+    (void)output;
+  }
+
+  size_t max_prepend_size() const final {
+    return 0;
+  }
+
+  size_t max_append_size() const final {
+    return 0;
+  }
+
+  TransportType get_type() const final {
+    return type_;
+  }
+
+  bool use_random_padding() const final {
+    return false;
+  }
+
+ private:
+  TransportType type_;
+};
 
 string sanitize_stealth_activation_status_message(const Status &status, const ProxySecret &secret,
                                                   Slice fallback_message) {
@@ -70,11 +139,14 @@ unique_ptr<IStreamTransport> create_transport(TransportType type) {
           auto error = config.move_as_error();
           auto safe_status_message = sanitize_stealth_activation_status_message(
               error, secret_copy, "stealth runtime config rejected; review stealth params and proxy setup");
-          LOG(WARNING) << "Stealth shaping disabled for emulate_tls transport"
+          LOG(WARNING) << "Stealth shaping unavailable; refusing emulate_tls transport (fail-closed)"
                        << tag("reason", "config_validation_failed") << tag("transport", "obfuscated_tcp")
                        << tag("dc_id", type.dc_id) << tag("tls_emulation", true) << tag("status_code", error.code())
                        << tag("status_message", safe_status_message);
-          return inner;
+          // Fail-closed: drop the unmasked legacy transport instead of returning it.
+          inner.reset();
+          return td::make_unique<FailClosedStealthTransport>(
+              TransportType{TransportType::ObfuscatedTcp, type.dc_id, std::move(secret_copy)});
         }
         auto decorator = stealth::StealthTransportDecorator::create(std::move(inner), config.move_as_ok(),
                                                                     std::move(rng), stealth::make_clock());
@@ -82,10 +154,14 @@ unique_ptr<IStreamTransport> create_transport(TransportType type) {
           auto error = decorator.move_as_error();
           auto safe_status_message = sanitize_stealth_activation_status_message(
               error, secret_copy, "stealth decorator initialization failed; check transport capabilities");
-          LOG(WARNING) << "Stealth shaping disabled for emulate_tls transport" << tag("reason", "decorator_init_failed")
-                       << tag("transport", "obfuscated_tcp") << tag("dc_id", type.dc_id) << tag("tls_emulation", true)
-                       << tag("status_code", error.code()) << tag("status_message", safe_status_message);
-          return td::make_unique<tcp::ObfuscatedTransport>(type.dc_id, std::move(secret_copy));
+          LOG(WARNING) << "Stealth shaping unavailable; refusing emulate_tls transport (fail-closed)"
+                       << tag("reason", "decorator_init_failed") << tag("transport", "obfuscated_tcp")
+                       << tag("dc_id", type.dc_id) << tag("tls_emulation", true) << tag("status_code", error.code())
+                       << tag("status_message", safe_status_message);
+          // Fail-closed: the decorator consumed `inner`; do not rebuild a plain
+          // ObfuscatedTransport that would leak the unmasked fingerprint.
+          return td::make_unique<FailClosedStealthTransport>(
+              TransportType{TransportType::ObfuscatedTcp, type.dc_id, std::move(secret_copy)});
         }
         LOG(INFO) << "Stealth shaping enabled for emulate_tls transport" << tag("transport", "obfuscated_tcp")
                   << tag("dc_id", type.dc_id) << tag("tls_emulation", true);

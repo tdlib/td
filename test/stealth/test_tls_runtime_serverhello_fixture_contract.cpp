@@ -67,6 +67,30 @@ TEST(TlsRuntimeServerHelloFixtureContract, Firefox149MacOsResolvesToReviewedMacO
   ASSERT_TRUE(load_server_hello_fixture_relative(td::CSlice(relative)).is_ok());
 }
 
+TEST(TlsRuntimeServerHelloFixtureContract, ChromiumMacosNoAlpsResolvesToReviewedMacOsCapture) {
+  const auto relative =
+      representative_server_hello_path_for_family(profile_spec(BrowserProfile::ChromiumMacOS_NoAlps).name).str();
+
+  ASSERT_EQ(td::string("macos/chromium130_macos26_3_301a8e50.serverhello.json"), relative);
+  ASSERT_TRUE(load_server_hello_fixture_relative(td::CSlice(relative)).is_ok());
+}
+
+TEST(TlsRuntimeServerHelloFixtureContract, ChromiumMacos4469ResolvesToReviewedMacOsCapture) {
+  const auto relative =
+      representative_server_hello_path_for_family(profile_spec(BrowserProfile::ChromiumMacOS_4469).name).str();
+
+  ASSERT_EQ(td::string("macos/chromium130_macos26_3_301a8e50.serverhello.json"), relative);
+  ASSERT_TRUE(load_server_hello_fixture_relative(td::CSlice(relative)).is_ok());
+}
+
+TEST(TlsRuntimeServerHelloFixtureContract, ChromiumMacos44CDResolvesToReviewedMacOsCapture) {
+  const auto relative =
+      representative_server_hello_path_for_family(profile_spec(BrowserProfile::ChromiumMacOS_44CD).name).str();
+
+  ASSERT_EQ(td::string("macos/chrome147_macos26_4_81b7d4cc.serverhello.json"), relative);
+  ASSERT_TRUE(load_server_hello_fixture_relative(td::CSlice(relative)).is_ok());
+}
+
 TEST(TlsRuntimeServerHelloFixtureContract, Firefox149WindowsResolvesToReviewedWindowsCapture) {
   const auto relative =
       representative_server_hello_path_for_family(profile_spec(BrowserProfile::Firefox149_Windows).name).str();
@@ -103,6 +127,14 @@ TEST(TlsRuntimeServerHelloFixtureContract, Android11OkHttpResolvesToAndroidCompa
       representative_server_hello_path_for_family(profile_spec(BrowserProfile::Android11_OkHttp_Advisory).name).str();
 
   ASSERT_EQ(td::string("android/chrome146_177_android16.serverhello.json"), relative);
+  ASSERT_TRUE(load_server_hello_fixture_relative(td::CSlice(relative)).is_ok());
+}
+
+TEST(TlsRuntimeServerHelloFixtureContract, Firefox149AndroidResolvesToReviewedAndroidCapture) {
+  const auto relative =
+      representative_server_hello_path_for_family(profile_spec(BrowserProfile::Firefox149_Android).name).str();
+
+  ASSERT_EQ(td::string("android/firefox_android16_build_bp2a_250605_015_3156bb61.serverhello.json"), relative);
   ASSERT_TRUE(load_server_hello_fixture_relative(td::CSlice(relative)).is_ok());
 }
 

@@ -34,7 +34,7 @@ TEST(EchRouteFailureLegacyMigrationStress, BulkLegacyMigrationDoesNotCrossContam
     ASSERT_FALSE(store->get(td::mtproto::test::canonical_store_key(destination)).empty());
   }
 
-  ASSERT_EQ(kCount, store->get_all().size());
+  ASSERT_EQ(kCount, store->prefix_get("stealth_ech_cb#").size());
 }
 
 }  // namespace

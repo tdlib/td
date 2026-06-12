@@ -23,7 +23,7 @@ using namespace td;
 using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 
-constexpr uint64 kCorpusIterations = kQuickIterations;
+const uint64 kCorpusIterations = spot_or_full_corpus_iterations();
 constexpr int32 kUnixTime = 1712345678;
 
 string build_mobile_hello(BrowserProfile profile, uint64 seed) {

@@ -46,6 +46,10 @@ constexpr PairingCase kVerifiedProfilePairings[] = {
     {BrowserProfile::Chrome120, "linux_desktop/chrome144_linux_desktop.serverhello.json"},
     {BrowserProfile::Firefox148, "linux_desktop/firefox148_linux_desktop.serverhello.json"},
     {BrowserProfile::Firefox149_MacOS26_3, "macos/firefox149_macos26_3.serverhello.json"},
+    {BrowserProfile::AndroidChromium_Alps, "android/chrome146_177_android16.serverhello.json"},
+    {BrowserProfile::ChromiumMacOS_NoAlps, "macos/chromium130_macos26_3_301a8e50.serverhello.json"},
+    {BrowserProfile::ChromiumMacOS_4469, "macos/chromium130_macos26_3_301a8e50.serverhello.json"},
+    {BrowserProfile::ChromiumMacOS_44CD, "macos/chrome147_macos26_4_81b7d4cc.serverhello.json"},
 };
 
 bool pairing_table_contains_profile(BrowserProfile profile) {

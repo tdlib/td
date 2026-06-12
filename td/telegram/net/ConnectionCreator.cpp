@@ -1969,6 +1969,7 @@ void ConnectionCreator::start_up() {
     ActorId<ConnectionCreator> connection_creator_;
   };
   send_closure(G()->state_manager(), &StateManager::add_callback, make_unique<StateCallback>(actor_id(this)));
+  mtproto::stealth::set_runtime_ech_failure_store(G()->td_db()->get_config_pmc_shared());
 
   auto serialized_dc_options = G()->td_db()->get_binlog_pmc()->get("dc_options");
   DcOptions dc_options;

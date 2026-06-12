@@ -69,12 +69,32 @@ ProfileWeights effective_profile_weights_for_platform(const RuntimeProfileSelect
   // Windows lanes inherit desktop_non_darwin desktop-family ratios.
   weights.chrome147_windows = policy.desktop_non_darwin.chrome133;
   weights.firefox149_windows = policy.desktop_non_darwin.firefox148;
-  // Legacy policy schema has no dedicated iOS Chromium slot.
-  weights.chrome147_ios_chromium = 0;
+  weights.chromium_macos_no_alps = policy.desktop_darwin.chrome120;
+  weights.chromium_macos_4469 = policy.desktop_darwin.chrome131;
+  weights.chromium_macos_44cd = policy.desktop_darwin.chrome133;
+  // Carve a slice of the iOS share for the verified iOS Chromium lane instead of
+  // pinning it to 0 (which left iOS with only the advisory utls IOS14 lane); the
+  // remainder stays with IOS14. Keeps the ios14+android policy schema unchanged.
+  auto ios_chromium_weight = static_cast<uint8>(policy.mobile.ios14 / kIosChromiumShareDivisor);
+  weights.chrome147_ios_chromium = ios_chromium_weight;
   weights.firefox148 = desktop_weights->firefox148;
+  // macOS Firefox (Firefox149_MacOS26_3) is the Firefox lane on Darwin desktop;
+  // bridge it from the darwin policy's firefox ratio so it can be tuned
+  // independently of the Linux firefox148 lane. Populated on every platform
+  // (like the windows lanes) but only selected where it is an allowed profile.
+  weights.firefox149_macos26_3 = policy.desktop_darwin.firefox148;
   weights.safari26_3 = desktop_weights->safari26_3;
-  weights.ios14 = policy.mobile.ios14;
-  weights.android11_okhttp_advisory = policy.mobile.android11_okhttp_advisory;
+  weights.ios14 = static_cast<uint8>(policy.mobile.ios14 - ios_chromium_weight);
+  auto android_chromium_alps_weight = static_cast<uint8>(
+      policy.mobile.android11_okhttp_advisory * kAndroidChromiumVerifiedShareNumerator /
+      kAndroidChromiumVerifiedShareDenominator);
+  auto android_residual_weight =
+      static_cast<uint8>(policy.mobile.android11_okhttp_advisory - android_chromium_alps_weight);
+  auto android_firefox_weight = static_cast<uint8>(android_residual_weight / kAndroidFirefoxResidualShareDivisor);
+  weights.firefox149_android = android_firefox_weight;
+  weights.android_chromium_alps = android_chromium_alps_weight;
+  weights.android11_okhttp_advisory =
+      static_cast<uint8>(android_residual_weight - android_firefox_weight);
   return weights;
 }
 
@@ -193,8 +213,11 @@ Status validate_route_entry(Slice name, const RuntimeRoutePolicyEntry &entry, bo
 
 Status validate_profile_weights(const ProfileWeights &weights) {
   const uint32 total = weights.chrome133 + weights.chrome131 + weights.chrome120 + weights.chrome147_windows +
-                       weights.chrome147_ios_chromium + weights.firefox148 + weights.firefox149_windows +
-                       weights.safari26_3 + weights.ios14 + weights.android11_okhttp_advisory;
+                       weights.chromium_macos_no_alps + weights.chromium_macos_4469 + weights.chromium_macos_44cd +
+                       weights.chrome147_ios_chromium + weights.firefox148 + weights.firefox149_android +
+                       weights.firefox149_macos26_3 + weights.firefox149_windows + weights.safari26_3 + weights.ios14 +
+                       weights.android_chromium_alps +
+                       weights.android11_okhttp_advisory;
   if (total == 0) {
     return Status::Error("profile_weights must not be empty");
   }
@@ -210,15 +233,17 @@ Status validate_allowed_profile_weights_for_platform(const ProfileWeights &weigh
         allowed_total = weights.ios14 + weights.chrome147_ios_chromium;
         break;
       case MobileOs::Android:
-        allowed_total = weights.android11_okhttp_advisory;
+        allowed_total = weights.android_chromium_alps + weights.firefox149_android + weights.android11_okhttp_advisory;
         break;
       case MobileOs::None:
       default:
-        allowed_total = weights.ios14 + weights.chrome147_ios_chromium + weights.android11_okhttp_advisory;
+        allowed_total = weights.ios14 + weights.chrome147_ios_chromium + weights.android_chromium_alps +
+                        weights.firefox149_android + weights.android11_okhttp_advisory;
         break;
     }
   } else if (platform.desktop_os == DesktopOs::Darwin) {
-    allowed_total = weights.chrome133 + weights.chrome131 + weights.chrome120 + weights.firefox148 + weights.safari26_3;
+    allowed_total = weights.chromium_macos_no_alps + weights.chromium_macos_4469 + weights.chromium_macos_44cd +
+                    weights.firefox149_macos26_3 + weights.safari26_3;
   } else if (platform.desktop_os == DesktopOs::Windows) {
     allowed_total = weights.chrome147_windows + weights.firefox149_windows;
   } else {
@@ -241,17 +266,28 @@ uint8 profile_weight_for_runtime_validation(const ProfileWeights &weights, Brows
       return weights.chrome120;
     case BrowserProfile::Chrome147_Windows:
       return weights.chrome147_windows;
+    case BrowserProfile::ChromiumMacOS_NoAlps:
+      return weights.chromium_macos_no_alps;
+    case BrowserProfile::ChromiumMacOS_4469:
+      return weights.chromium_macos_4469;
+    case BrowserProfile::ChromiumMacOS_44CD:
+      return weights.chromium_macos_44cd;
     case BrowserProfile::Chrome147_IOSChromium:
       return weights.chrome147_ios_chromium;
     case BrowserProfile::Firefox148:
-    case BrowserProfile::Firefox149_MacOS26_3:
       return weights.firefox148;
+    case BrowserProfile::Firefox149_Android:
+      return weights.firefox149_android;
+    case BrowserProfile::Firefox149_MacOS26_3:
+      return weights.firefox149_macos26_3;
     case BrowserProfile::Firefox149_Windows:
       return weights.firefox149_windows;
     case BrowserProfile::Safari26_3:
       return weights.safari26_3;
     case BrowserProfile::IOS14:
       return weights.ios14;
+    case BrowserProfile::AndroidChromium_Alps:
+      return weights.android_chromium_alps;
     case BrowserProfile::Android11_OkHttp_Advisory:
       return weights.android11_okhttp_advisory;
     default:
@@ -290,6 +326,10 @@ Status validate_release_mode_profile_gating(const StealthRuntimeParams &params) 
   auto allowed_profiles = allowed_profiles_for_platform(params.platform_hints);
   for (auto profile : allowed_profiles) {
     if (!profile_fixture_metadata(profile).release_gating) {
+      continue;
+    }
+    if (params.transport_confidence == TransportConfidence::Unknown &&
+        profile_fixture_metadata(profile).transport_claim_level != TransportClaimLevel::TlsOnly) {
       continue;
     }
     release_weight_total += profile_weight_for_runtime_validation(params.profile_weights, profile);

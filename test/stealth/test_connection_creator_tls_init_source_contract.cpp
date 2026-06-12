@@ -55,4 +55,18 @@ TEST(ConnectionCreatorTlsInitSourceContract, TlsBranchWiresRouteHintsAndFailureS
   ASSERT_TRUE(normalized.find("transport_type.secret.get_proxy_secret().str()") != td::string::npos);
 }
 
+TEST(ConnectionCreatorTlsInitSourceContract, StartUpInitializesStealthPersistenceStore) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/net/ConnectionCreator.cpp");
+  auto start_up = extract_source_region(source, "void ConnectionCreator::start_up() {",
+                                        "void ConnectionCreator::init_proxies()");
+  auto normalized = normalize_for_contract(start_up);
+
+  auto store_pos = normalized.find("set_runtime_ech_failure_store(G()->td_db()->get_config_pmc_shared())");
+  auto init_pos = normalized.find("is_inited_=true;");
+
+  ASSERT_TRUE(store_pos != td::string::npos);
+  ASSERT_TRUE(init_pos != td::string::npos);
+  ASSERT_TRUE(store_pos < init_pos);
+}
+
 }  // namespace

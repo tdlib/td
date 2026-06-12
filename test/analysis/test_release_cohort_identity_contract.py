@@ -121,6 +121,60 @@ def _classify_fixture(artifact: dict[str, Any]) -> str:
     return baselines_mod.classify_family_id(profile_id, os_family)
 
 
+def _make_minimal_baseline_sample(
+    *,
+    cipher_suites: list[str],
+    extension_types: list[str],
+    supported_groups: list[str] | None = None,
+    supported_versions: list[str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "non_grease_cipher_suites": cipher_suites,
+        "non_grease_supported_groups": supported_groups or ["0x001D", "0x0017"],
+        "non_grease_supported_versions": supported_versions or ["0x0304", "0x0303"],
+        "alpn_protocols": ["h2", "http/1.1"],
+        "compress_certificate_algorithms": [],
+        "extensions": [{"type": ext} for ext in extension_types],
+        "extension_types": extension_types,
+        "non_grease_extensions_without_padding": extension_types,
+        "record_length": 1234,
+        "handshake_length": 1111,
+        "record_lengths": [1234],
+        "handshake_lengths": [1111],
+        "ech_present": False,
+        "record_version": "0x0303",
+        "legacy_version": "0x0303",
+    }
+
+
+def _make_baseline_entry(
+    sample: dict[str, Any],
+    *,
+    source_kind: str,
+    trust_tier: str,
+    source_sha256: str,
+    scenario_id: str,
+) -> dict[str, Any]:
+    return {
+        "family_id": "chromium_linux_desktop",
+        "route_lane": "non_ru_egress",
+        "profile_id": "chrome_133_linux",
+        "sample": sample,
+        "artifact_path": REPO_ROOT / "test" / "analysis" / "fixtures" / "clienthello" / "synthetic.clienthello.json",
+        "source_kind": source_kind,
+        "source_path": "docs/Samples/Traffic dumps/synthetic.pcap",
+        "source_sha256": source_sha256,
+        "trust_tier": trust_tier,
+        "scenario_id": scenario_id,
+        "capture_date_utc": "2026-06-01T00:00:00Z",
+        "contributor_id": "contract-test",
+        "device_id": "linux-box",
+        "os_build": "6.8",
+        "browser_build": "133.0",
+        "network_asn_country": "us",
+    }
+
+
 # ---------------------------------------------------------------------------
 # Test cases
 # ---------------------------------------------------------------------------
@@ -407,6 +461,53 @@ class ReleaseCohortIdentityContractTest(unittest.TestCase):
                 [],
                 msg=f"Tier0 {entry['family_id']}/{entry['route_lane']} has wire_lengths",
             )
+
+    def test_release_baseline_ignores_advisory_samples_for_invariants_and_catalogs(self) -> None:
+        """Release-facing evidence must be derived only from authoritative samples."""
+        authoritative = _make_baseline_entry(
+            _make_minimal_baseline_sample(
+                cipher_suites=["0x1301", "0x1302", "0x1303"],
+                extension_types=["0x000A", "0x002B", "0x0033"],
+            ),
+            source_kind="browser_capture",
+            trust_tier="verified",
+            source_sha256="auth-sha",
+            scenario_id="auth-scenario",
+        )
+        advisory = _make_baseline_entry(
+            _make_minimal_baseline_sample(
+                cipher_suites=["0x1301", "0x1302", "0x1304"],
+                extension_types=["0x000A", "0x0010", "0x002D"],
+            ),
+            source_kind="advisory_code_sample",
+            trust_tier="advisory",
+            source_sha256="adv-sha",
+            scenario_id="adv-scenario",
+        )
+
+        baselines = baselines_mod.build_baselines([authoritative, advisory], now_utc="2026-06-12T00:00:00Z")
+        target = next(
+            b for b in baselines
+            if b["family_id"] == "chromium_linux_desktop" and b["route_lane"] == "non_ru_egress"
+        )
+
+        self.assertEqual(
+            target["invariants"]["cipher_suites"],
+            [0x1301, 0x1302, 0x1303],
+            msg="advisory samples must not degrade authoritative cipher-suite invariants",
+        )
+        self.assertEqual(
+            target["set_catalog"]["cipher_suite_sequences"],
+            [[0x1301, 0x1302, 0x1303]],
+            msg="advisory cipher catalogs must not widen release-facing evidence",
+        )
+        self.assertEqual(
+            target["set_catalog"]["extension_sets"],
+            [[0x000A, 0x002B, 0x0033]],
+            msg="advisory extension catalogs must not widen release-facing evidence",
+        )
+        self.assertEqual(1, target["authoritative_sample_count"])
+        self.assertEqual(2, target["sample_count"])
 
 
 class InvariantCollapseDiagnosticsTest(unittest.TestCase):

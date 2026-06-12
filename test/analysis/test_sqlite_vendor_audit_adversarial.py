@@ -29,6 +29,48 @@ def write_text(path: pathlib.Path, content: str) -> None:
 
 
 class SqliteVendorAuditAdversarialTest(unittest.TestCase):
+    def test_report_keeps_compile_definitions_on_private_and_closing_paren_lines(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = pathlib.Path(temp_dir)
+            write_text(
+                repo_root / "sqlite/CMakeLists.txt",
+                """
+                target_compile_definitions(
+                  tdsqlite
+                  PRIVATE -DOMIT_MEMLOCK
+                          -DSQLITE_HAS_CODEC
+                          -DSQLITE_TEMP_STORE=2)
+                """,
+            )
+            write_text(
+                repo_root / "sqlite/sqlite/sqlite3.h",
+                """
+                #define SQLITE_VERSION "3.31.0"
+                #define SQLITE_SOURCE_ID "2020-01-22 18:38:59 b86e75a273"
+                /* BEGIN SQLCIPHER */
+                """,
+            )
+            write_text(
+                repo_root / "sqlite/sqlite/sqlite3.c",
+                """
+                /* BEGIN SQLCIPHER */
+                int tdsqlite3_key_v2(void);
+                """,
+            )
+            write_text(
+                repo_root / "tddb/td/db/SqliteDb.cpp",
+                """
+                const char *kSqlcipher_features = "PRAGMA key; SELECT sqlcipher_export";
+                """,
+            )
+
+            report = build_phase1_report(repo_root)
+
+            self.assertEqual(
+                ["OMIT_MEMLOCK", "SQLITE_HAS_CODEC", "SQLITE_TEMP_STORE=2"],
+                report["compile_definitions"],
+            )
+
     def test_report_ignores_documentation_and_audit_artifacts_but_catches_real_session_consumers(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = pathlib.Path(temp_dir)

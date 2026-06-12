@@ -46,6 +46,7 @@ using td::mtproto::stealth::DeviceClass;
 using td::mtproto::stealth::EchMode;
 using td::mtproto::stealth::MobileOs;
 using td::mtproto::stealth::RuntimePlatformHints;
+using td::mtproto::test::baselines::EvidenceFieldStatus;
 using td::mtproto::test::baselines::get_baseline;
 using td::mtproto::test::FamilyLaneMatcher;
 using td::mtproto::test::MockRng;
@@ -84,15 +85,15 @@ TEST(TLS_MultiDumpWindowsChromeStats, Chrome147WindowsEchOnPassesUpstreamLegalit
 }
 
 TEST(TLS_MultiDumpWindowsChromeStats, Chrome147WindowsExactInvariantsMatchWhenBaselineIsPopulated) {
-  // When chromium_windows baseline is fully reviewed (cipher_suites not
-  // empty), every generated ClientHello must satisfy exact invariants.
+  // Release-facing exact-invariant gate. Fail closed when reviewed cipher
+  // evidence is unavailable or mixed; enforce every populated exact invariant
+  // on every generated ClientHello (empty multi-source Catalog fields are not
+  // enforced by the matcher).
   const auto *baseline = get_baseline(Slice("chromium_windows"), Slice("non_ru_egress"));
   ASSERT_TRUE(baseline != nullptr);
 
-  if (baseline->invariants.non_grease_cipher_suites_ordered.empty()) {
-    // Baseline review still in progress — skip exact-invariant asserts.
-    return;
-  }
+  ASSERT_TRUE(baseline->non_grease_cipher_suites_status != EvidenceFieldStatus::Unavailable);
+  ASSERT_TRUE(baseline->non_grease_cipher_suites_status != EvidenceFieldStatus::Mixed);
 
   FamilyLaneMatcher matcher(*baseline);
   for (int seed = 0; seed < kSeedCount; seed++) {
@@ -318,9 +319,8 @@ TEST(TLS_MultiDumpWindowsChromeStats, WindowsChromeDoesNotLeakDesktopOsInTlsWire
   const auto *linux_baseline = get_baseline(Slice("chromium_linux_desktop"), Slice("non_ru_egress"));
   ASSERT_TRUE(linux_baseline != nullptr);
 
-  if (linux_baseline->invariants.non_grease_cipher_suites_ordered.empty()) {
-    return;  // Linux baseline not yet populated — skip.
-  }
+  ASSERT_TRUE(linux_baseline->non_grease_cipher_suites_status != EvidenceFieldStatus::Unavailable);
+  ASSERT_TRUE(linux_baseline->non_grease_cipher_suites_status != EvidenceFieldStatus::Mixed);
 
   MockRng rng(7);
   auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
@@ -347,9 +347,8 @@ TEST(TLS_MultiDumpWindowsChromeStats, WindowsChromeWireLengthsMatchReviewedWindo
   const auto *baseline = get_baseline(Slice("chromium_windows"), Slice("non_ru_egress"));
   ASSERT_TRUE(baseline != nullptr);
 
-  if (baseline->set_catalog.observed_wire_lengths.empty()) {
-    return;  // Corpus not yet reviewed — skip.
-  }
+  ASSERT_TRUE(baseline->wire_lengths_status != EvidenceFieldStatus::Unavailable);
+  ASSERT_FALSE(baseline->set_catalog.observed_wire_lengths.empty());
 
   FamilyLaneMatcher matcher(*baseline);
   for (int seed = 0; seed < kSeedCount; seed++) {

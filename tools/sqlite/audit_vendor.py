@@ -567,8 +567,45 @@ def _extract_required_match(pattern: re.Pattern[str], text: str, label: str) -> 
     return match.group(1)
 
 
+def _extract_tdsqlite_compile_definition_block(cmake_text: str) -> str:
+    target_marker = "target_compile_definitions("
+    search_offset = 0
+
+    while True:
+        start = cmake_text.find(target_marker, search_offset)
+        if start == -1:
+            raise ValueError("Missing tdsqlite target_compile_definitions block")
+
+        depth = 0
+        end = None
+        for index in range(start, len(cmake_text)):
+            char = cmake_text[index]
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+                if depth == 0:
+                    end = index + 1
+                    break
+
+        if end is None:
+            raise ValueError("Unterminated tdsqlite target_compile_definitions block")
+
+        block = cmake_text[start:end]
+        block_head = block[len(target_marker) :].lstrip()
+        if block_head.startswith("tdsqlite"):
+            return block
+
+        search_offset = end
+
+
 def _collect_compile_definitions(cmake_text: str) -> list[str]:
-    return sorted(set(COMPILE_DEFINITION_RE.findall(cmake_text)))
+    block = _extract_tdsqlite_compile_definition_block(cmake_text)
+    definitions = set()
+    for raw_line in block.splitlines():
+        line = raw_line.split("#", 1)[0]
+        definitions.update(re.findall(r"-D([A-Z0-9_]+(?:=[^\s)]+)?)", line))
+    return sorted(definitions)
 
 
 def _collect_present_markers(text: str, markers: tuple[str, ...]) -> list[str]:

@@ -3,8 +3,16 @@
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-// Nightly-scale wire baseline Monte Carlo. Gated on TD_NIGHTLY_CORPUS; in
-// PR-scope this file compiles in but every TEST returns in 0ms.
+// Nightly-scale generator-stability Monte Carlo. This suite is DIAGNOSTIC: it
+// verifies that generated profiles stay internally stable over many seeds
+// (non-GREASE cipher/extension counts, ECH presence, no length blow-up). It is
+// NOT release-facing real-browser similarity evidence -- its wire envelope is
+// calibrated by sampling the generator under test, not from reviewed dumps.
+// Fixture-derived wire-length similarity gates live in
+// test_tls_generator_wire_length_fixture_gate.cpp.
+//
+// Gated on TD_NIGHTLY_CORPUS; in PR-scope this file compiles in but every TEST
+// returns in 0ms.
 
 #include "test/stealth/CorpusIterationTiers.h"
 #include "test/stealth/CorpusStatHelpers.h"

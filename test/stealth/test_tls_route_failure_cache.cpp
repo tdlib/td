@@ -209,11 +209,11 @@ TEST(TlsRouteFailureCache, PersistentStoreReloadsCircuitBreakerStateAfterMemoryR
   note_runtime_ech_failure(destination, unix_time);
   note_runtime_ech_failure(destination, unix_time);
   note_runtime_ech_failure(destination, unix_time);
-  ASSERT_EQ(1u, store->get_all().size());
+  ASSERT_EQ(1u, store->prefix_get("stealth_ech_cb#").size());
   ASSERT_TRUE(EchMode::Disabled == runtime_ech_mode_for_route(destination, unix_time, route_hints));
 
   reset_runtime_ech_failure_state_for_tests();
-  ASSERT_EQ(1u, store->get_all().size());
+  ASSERT_EQ(1u, store->prefix_get("stealth_ech_cb#").size());
   ASSERT_TRUE(EchMode::Disabled == runtime_ech_mode_for_route(destination, unix_time, route_hints));
 }
 

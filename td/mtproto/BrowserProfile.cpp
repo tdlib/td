@@ -6,6 +6,8 @@
 
 #include "td/mtproto/BrowserProfile.h"
 
+#include <algorithm>
+
 namespace td {
 namespace mtproto {
 
@@ -391,6 +393,29 @@ BrowserProfileSpec make_chrome147_windows_impl() {
   return profile;
 }
 
+BrowserProfileSpec make_chromium_macos_no_alps_impl() {
+  auto profile = make_chrome133_impl();
+  profile.name = "chromium_macos_no_alps";
+  profile.extensions.erase(
+      std::remove_if(profile.extensions.begin(), profile.extensions.end(), [](const BrowserExtension &extension) {
+        return extension.type == TlsExtensionType::ApplicationSettings;
+      }),
+      profile.extensions.end());
+  return profile;
+}
+
+BrowserProfileSpec make_chromium_macos_4469_impl() {
+  auto profile = make_chrome131_impl();
+  profile.name = "chromium_macos_4469";
+  return profile;
+}
+
+BrowserProfileSpec make_chromium_macos_44cd_impl() {
+  auto profile = make_chrome133_impl();
+  profile.name = "chromium_macos_44cd";
+  return profile;
+}
+
 BrowserProfileSpec make_chrome147_ios_chromium_impl() {
   BrowserProfileSpec profile;
   profile.name = "chrome147_ios_chromium";
@@ -577,6 +602,39 @@ BrowserProfileSpec make_firefox149_macos_impl() {
   return profile;
 }
 
+BrowserProfileSpec make_firefox149_android_impl() {
+  BrowserProfileSpec profile;
+  profile.name = "firefox149_android";
+
+  profile.cipher_suites = {4865,  4867,  4866,  49195, 49199, 52393, 52392, 49196, 49200,
+                           49162, 49161, 49171, 49172, 156,   157,   47,    53};
+  profile.supported_groups = {4588, 29, 23, 24, 25, 256, 257};
+  profile.ec_point_formats = {0};
+  profile.alpn = {"h2", "http/1.1"};
+  profile.grease = {false, 0};
+  profile.extensions = {
+      make_extension(TlsExtensionType::ServerName, true),
+      make_extension(TlsExtensionType::ExtendedMasterSecret),
+      make_raw_extension(TlsExtensionType::RenegotiationInfo, "\x00"),
+      make_u16_extension(TlsExtensionType::SupportedGroups, {4588, 29, 23, 24, 25, 256, 257}),
+      make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
+      make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
+      make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
+      make_u16_extension(TlsExtensionType::DelegatedCredentials, {1027, 1283, 1539, 515}),
+      make_key_share_extension({KeyShareKind::X25519MlKem768, KeyShareKind::X25519, KeyShareKind::Secp256r1}),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771}),
+      make_u16_extension(TlsExtensionType::SignatureAlgorithms,
+                         {1027, 1283, 1539, 1284, 1285, 1286, 1025, 1281, 1537, 515, 513}),
+      make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
+      make_custom_extension(28, "\x40\x01"),
+      make_raw_extension(TlsExtensionType::CompressCertificate, "\x06\x00\x01\x00\x02\x00\x03"),
+      make_extension(TlsExtensionType::EncryptedClientHello, true),
+      make_extension(TlsExtensionType::PreSharedKey),
+  };
+  profile.layout_template = make_firefox_ech_layout();
+  return profile;
+}
+
 BrowserProfileSpec make_safari_impl() {
   BrowserProfileSpec profile;
   profile.name = "safari26_3";
@@ -644,6 +702,16 @@ BrowserProfileSpec make_ios14_impl() {
   return profile;
 }
 
+BrowserProfileSpec make_android_chromium_alps_impl() {
+  // The reviewed ALPS-bearing android_chromium / non_ru_egress lane is already
+  // proxied by the Chrome133 family in corpus and similarity tests. Promote it
+  // as a dedicated runtime/browser profile first, while preserving the proven
+  // structural shape instead of inventing a new Android-only wire image here.
+  auto profile = make_chrome133_impl();
+  profile.name = "android_chromium_alps";
+  return profile;
+}
+
 BrowserProfileSpec make_android_okhttp_impl() {
   BrowserProfileSpec profile;
   profile.name = "android11_okhttp_advisory";
@@ -690,6 +758,18 @@ const BrowserProfileSpec &get_profile_spec(BrowserProfile profile_id) {
       static const BrowserProfileSpec spec = make_chrome147_windows_impl();
       return spec;
     }
+    case BrowserProfile::ChromiumMacOS_NoAlps: {
+      static const BrowserProfileSpec spec = make_chromium_macos_no_alps_impl();
+      return spec;
+    }
+    case BrowserProfile::ChromiumMacOS_4469: {
+      static const BrowserProfileSpec spec = make_chromium_macos_4469_impl();
+      return spec;
+    }
+    case BrowserProfile::ChromiumMacOS_44CD: {
+      static const BrowserProfileSpec spec = make_chromium_macos_44cd_impl();
+      return spec;
+    }
     case BrowserProfile::Chrome147_IOSChromium: {
       static const BrowserProfileSpec spec = make_chrome147_ios_chromium_impl();
       return spec;
@@ -706,12 +786,20 @@ const BrowserProfileSpec &get_profile_spec(BrowserProfile profile_id) {
       static const BrowserProfileSpec spec = make_firefox149_windows_impl();
       return spec;
     }
+    case BrowserProfile::Firefox149_Android: {
+      static const BrowserProfileSpec spec = make_firefox149_android_impl();
+      return spec;
+    }
     case BrowserProfile::Safari26_3: {
       static const BrowserProfileSpec spec = make_safari_impl();
       return spec;
     }
     case BrowserProfile::IOS14: {
       static const BrowserProfileSpec spec = make_ios14_impl();
+      return spec;
+    }
+    case BrowserProfile::AndroidChromium_Alps: {
+      static const BrowserProfileSpec spec = make_android_chromium_alps_impl();
       return spec;
     }
     case BrowserProfile::Android11_OkHttp_Advisory: {
