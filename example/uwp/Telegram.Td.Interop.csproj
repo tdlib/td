@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.18362.0</TargetPlatformMinVersion>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU</Platforms>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <CSWinRTIncludes>
+      Telegram.Td;
+    </CSWinRTIncludes>
+    <CSWinRTWindowsMetadata>local</CSWinRTWindowsMetadata>
+    <CsWinRTGenerateProjection>true</CsWinRTGenerateProjection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Telegram.Td">
+      <HintPath>$(MSBuildThisFileDirectory)build-uwp\nupkg\lib\uap10.0\Telegram.Td.winmd</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>
