@@ -893,7 +893,7 @@ businessAwayMessageSettings shortcut_id:int32 recipients:businessRecipients sche
 //@description Describes settings for greeting messages that are automatically sent by a Telegram Business account as response to incoming messages in an inactive private chat
 //@shortcut_id Unique quick reply shortcut identifier for the greeting messages
 //@recipients Chosen recipients of the greeting messages
-//@inactivity_days The number of days after which a chat will be considered as inactive; currently, must be on of 7, 14, 21, or 28
+//@inactivity_days The number of days after which a chat will be considered as inactive; currently, must be one of 7, 14, 21, or 28
 businessGreetingMessageSettings shortcut_id:int32 recipients:businessRecipients inactivity_days:int32 = BusinessGreetingMessageSettings;
 
 //@description Describes rights of a business bot
@@ -948,8 +948,8 @@ businessOpeningHours time_zone_id:string opening_hours:vector<businessOpeningHou
 
 //@description Contains information about a Telegram Business account
 //@location Location of the business; may be null if none
-//@opening_hours Opening hours of the business; may be null if none. The hours are guaranteed to be valid and has already been split by week days
-//@local_opening_hours Opening hours of the business in the local time; may be null if none. The hours are guaranteed to be valid and has already been split by week days.
+//@opening_hours Opening hours of the business; may be null if none. The hours are guaranteed to be valid and have already been split by week days
+//@local_opening_hours Opening hours of the business in the local time; may be null if none. The hours are guaranteed to be valid and have already been split by week days.
 //-Local time zone identifier will be empty. An updateUserFullInfo update is not triggered when value of this field changes
 //@next_open_in Time left before the business will open the next time, in seconds; 0 if unknown. An updateUserFullInfo update is not triggered when value of this field changes
 //@next_close_in Time left before the business will close the next time, in seconds; 0 if unknown. An updateUserFullInfo update is not triggered when value of this field changes
@@ -1194,7 +1194,7 @@ suggestedPostInfo price:SuggestedPostPrice send_date:int32 state:SuggestedPostSt
 
 //@description Contains information about a post to suggest
 //@price Price of the suggested post; pass null to suggest a post without payment. If the current user isn't an administrator of the channel direct messages chat
-//-and has no enough funds to pay for the post, then the error "BALANCE_TOO_LOW" will be returned immediately
+//-and doesn't have enough funds to pay for the post, then the error "BALANCE_TOO_LOW" will be returned immediately
 //@send_date Point in time (Unix timestamp) when the post is expected to be published; pass 0 if the date isn't restricted. If specified,
 //-then the date must be getOption("suggested_post_send_delay_min")-getOption("suggested_post_send_delay_max") seconds in the future
 inputSuggestedPostInfo price:SuggestedPostPrice send_date:int32 = InputSuggestedPostInfo;
@@ -1219,7 +1219,7 @@ starAmount star_count:int53 nanostar_count:int32 = StarAmount;
 
 //@description Describes a subscription to a channel chat
 //@can_reuse True, if the subscription is active and the user can use the method reuseStarSubscription to join the subscribed chat again
-//@invite_link The invite link that can be used to renew the subscription if it has been expired; may be empty, if the link isn't available anymore
+//@invite_link The invite link that can be used to renew the subscription if it has expired; may be empty if the link isn't available anymore
 starSubscriptionTypeChannel can_reuse:Bool invite_link:string = StarSubscriptionType;
 
 //@description Describes a subscription in a bot or a business account
@@ -1240,7 +1240,7 @@ starSubscriptionPricing period:int32 star_count:int53 = StarSubscriptionPricing;
 //@chat_id Identifier of the chat that is subscribed
 //@expiration_date Point in time (Unix timestamp) when the subscription will expire or expired
 //@is_canceled True, if the subscription was canceled
-//@is_expiring True, if the subscription expires soon and there are no enough Telegram Stars on the user's balance to extend it
+//@is_expiring True, if the subscription expires soon and there aren't enough Telegram Stars on the user's balance to extend it
 //@pricing The subscription plan
 //@type Type of the subscription
 starSubscription id:string chat_id:int53 expiration_date:int32 is_canceled:Bool is_expiring:Bool pricing:starSubscriptionPricing type:StarSubscriptionType = StarSubscription;
@@ -1487,7 +1487,7 @@ upgradedGiftOriginResale price:GiftResalePrice = UpgradedGiftOrigin;
 //@description The gift was assigned from blockchain and isn't owned by the current user. The gift can't be transferred, resold or withdrawn to blockchain
 upgradedGiftOriginBlockchain = UpgradedGiftOrigin;
 
-//@description The sender or receiver of the message has paid for upgraid of the gift, which has been completed
+//@description The sender or receiver of the message has paid for upgrade of the gift, which has been completed
 upgradedGiftOriginPrepaidUpgrade = UpgradedGiftOrigin;
 
 //@description The gift was bought through an offer @price Price paid for the gift
@@ -1575,10 +1575,10 @@ upgradedGiftColors id:int64 model_custom_emoji_id:int64 symbol_custom_emoji_id:i
 //@next_send_date Point in time (Unix timestamp) when the gift can be sent next time by the current user; may be 0 or a date in the past.
 //-If the date is in the future, then call canSendGift to get the reason, why the gift can't be sent now
 //@user_limits Number of times the gift can be purchased by the current user; may be null if not limited
-//@overall_limits Number of times the gift can be purchased all users; may be null if not limited
+//@overall_limits Number of times the gift can be purchased by all users; may be null if not limited
 //@background Background of the gift
-//@first_send_date Point in time (Unix timestamp) when the gift was send for the first time; for sold out gifts only
-//@last_send_date Point in time (Unix timestamp) when the gift was send for the last time; for sold out gifts only
+//@first_send_date Point in time (Unix timestamp) when the gift was sent for the first time; for sold out gifts only
+//@last_send_date Point in time (Unix timestamp) when the gift was sent for the last time; for sold out gifts only
 gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 upgrade_variant_count:int32 has_colors:Bool is_for_birthday:Bool is_premium:Bool auction_info:giftAuction next_send_date:int32 user_limits:giftPurchaseLimits overall_limits:giftPurchaseLimits background:giftBackground first_send_date:int32 last_send_date:int32 = Gift;
 
 //@description Describes an upgraded gift that can be transferred to another owner or transferred to the TON blockchain as an NFT
@@ -1591,7 +1591,7 @@ gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_s
 //@total_upgraded_count Total number of gifts that were upgraded from the same gift
 //@max_upgraded_count The maximum number of gifts that can be upgraded from the same gift
 //@is_burned True, if the gift was used to craft another gift
-//@is_crafted True, if the gift was craft from another gifts
+//@is_crafted True, if the gift was crafted from other gifts
 //@is_premium True, if the original gift could have been bought only by Telegram Premium subscribers
 //@is_theme_available True, if the gift can be used to set a theme in a chat
 //@used_theme_chat_id Identifier of the chat for which the gift is used to set a theme; 0 if none or the gift isn't owned by the current user
@@ -1768,7 +1768,7 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@next_resale_date Point in time (Unix timestamp) when the gift can be resold to another user; can be in the past; 0 if the gift can't be resold; only for the receiver of the gift
 //@export_date Point in time (Unix timestamp) when the upgraded gift can be transferred to the TON blockchain as an NFT; can be in the past; 0 if NFT export isn't possible; only for the receiver of the gift
 //@prepaid_upgrade_hash If non-empty, then the user can pay for an upgrade of the gift using buyGiftUpgrade
-//@craft_date Point in time (Unix timestamp) when the gift can be used to craft another gift can be in the past; only for the receiver of the gift
+//@craft_date Point in time (Unix timestamp) when the gift can be used to craft another gift; can be in the past; only for the receiver of the gift
 receivedGift received_gift_id:string sender_id:MessageSender text:formattedText unique_gift_number:int32 is_private:Bool is_saved:Bool is_pinned:Bool can_be_upgraded:Bool can_be_transferred:Bool was_refunded:Bool date:int32 gift:SentGift collection_ids:vector<int32> sell_star_count:int53 prepaid_upgrade_star_count:int53 is_upgrade_separate:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 prepaid_upgrade_hash:string craft_date:int32 = ReceivedGift;
 
 //@description Represents a list of gifts received by a user or a chat
@@ -2526,7 +2526,7 @@ chatJoinResultDeclined = ChatJoinResult;
 //@description The request was approved
 chatJoinRequestResultApproved = ChatJoinRequestResult;
 
-//@description The request was decline
+//@description The request was declined
 chatJoinRequestResultDeclined = ChatJoinRequestResult;
 
 //@description The request was postponed without a decision
@@ -5376,7 +5376,7 @@ messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string a
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiftedTon gifter_user_id:int53 receiver_user_id:int53 ton_amount:int53 transaction_id:string sticker:sticker = MessageContent;
 
-//@description A Telegram Stars were received by the current user from a giveaway
+//@description Telegram Stars were received by the current user from a giveaway
 //@star_count Number of Telegram Stars that were received
 //@transaction_id Identifier of the transaction for Telegram Stars credit
 //@boosted_chat_id Identifier of the supergroup or channel chat, which was automatically boosted by the winners of the giveaway
@@ -5421,7 +5421,7 @@ messageGift gift:gift sender_id:MessageSender receiver_id:MessageSender received
 //@next_transfer_date Point in time (Unix timestamp) when the gift can be transferred to another owner; can be in the past; 0 if the gift can be transferred immediately or transfer isn't possible; only for the receiver of the gift
 //@next_resale_date Point in time (Unix timestamp) when the gift can be resold to another user; can be in the past; 0 if the gift can't be resold; only for the receiver of the gift
 //@export_date Point in time (Unix timestamp) when the gift can be transferred to the TON blockchain as an NFT; can be in the past; 0 if NFT export isn't possible; only for the receiver of the gift
-//@craft_date Point in time (Unix timestamp) when the gift can be used to craft another gift can be in the past; only for the receiver of the gift
+//@craft_date Point in time (Unix timestamp) when the gift can be used to craft another gift; can be in the past; only for the receiver of the gift
 messageUpgradedGift gift:upgradedGift sender_id:MessageSender receiver_id:MessageSender origin:UpgradedGiftOrigin received_gift_id:string is_saved:Bool can_be_transferred:Bool was_transferred:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 craft_date:int32 = MessageContent;
 
 //@description A gift which purchase, upgrade or transfer were refunded
@@ -5468,7 +5468,7 @@ messageChecklistTasksDone checklist_message_id:int53 marked_as_done_task_ids:vec
 //@tasks List of tasks added to the checklist
 messageChecklistTasksAdded checklist_message_id:int53 tasks:vector<checklistTask> = MessageContent;
 
-//@description Approval of suggested post has failed, because the user which proposed the post had no enough funds
+//@description Approval of suggested post has failed, because the user who proposed the post didn't have enough funds
 //@suggested_post_message_id Identifier of the message with the suggested post; may be 0 or an identifier of a deleted message
 //@price Price of the suggested post
 messageSuggestedPostApprovalFailed suggested_post_message_id:int53 price:SuggestedPostPrice = MessageContent;
@@ -5686,7 +5686,7 @@ inputPhoto photo:InputFile thumbnail:inputThumbnail video:InputFile added_sticke
 inputVideo video:InputFile thumbnail:inputThumbnail cover:InputFile start_timestamp:int32 added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 supports_streaming:Bool = InputVideo;
 
 
-//@class InputPaidMediaType @description Describes type of paid media to sent
+//@class InputPaidMediaType @description Describes type of paid media to send
 
 //@description The media is a photo. The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20
 //@video Video of the live photo; pass null if the photo isn't a live photo
@@ -6267,7 +6267,7 @@ storyAreaTypeLocation location:location address:locationAddress = StoryAreaType;
 //@description An area pointing to a venue @venue Information about the venue
 storyAreaTypeVenue venue:venue = StoryAreaType;
 
-//@description An area pointing to a suggested reaction. App needs to show a clickable reaction on the area and call setStoryReaction when the are is clicked
+//@description An area pointing to a suggested reaction. App needs to show a clickable reaction on the area and call setStoryReaction when the area is clicked
 //@reaction_type Type of the reaction
 //@total_count Number of times the reaction was added
 //@is_dark True, if reaction has a dark background
@@ -6459,7 +6459,7 @@ storyInteractionInfo view_count:int32 forward_count:int32 reaction_count:int32 r
 //@can_toggle_is_posted_to_chat_page True, if the story's is_posted_to_chat_page value can be changed
 //@can_get_statistics True, if the story statistics are available through getStoryStatistics
 //@can_get_interactions True, if interactions with the story can be received through getStoryInteractions
-//@has_expired_viewers True, if users viewed the story can't be received, because the story has expired more than getOption("story_viewers_expiration_delay") seconds ago
+//@has_expired_viewers True, if users who viewed the story can't be received, because the story has expired more than getOption("story_viewers_expiration_delay") seconds ago
 //@repost_info Information about the original story; may be null if the story wasn't reposted
 //@interaction_info Information about interactions with the story; may be null if the story isn't owned or there were no interactions
 //@chosen_reaction_type Type of the chosen reaction; may be null if none
@@ -9571,7 +9571,7 @@ networkStatistics since_date:int32 entries:vector<NetworkStatisticsEntry> = Netw
 //@video_upload_bitrate The maximum suggested bitrate for uploaded videos, in kbit/s
 //@preload_large_videos True, if the beginning of video files needs to be preloaded for instant playback
 //@preload_next_audio True, if the next audio track needs to be preloaded while the user is listening to an audio file
-//@preload_stories True, if stories needs to be preloaded
+//@preload_stories True, if stories need to be preloaded
 //@use_less_data_for_calls True, if "use less data for calls" option needs to be enabled
 autoDownloadSettings is_auto_download_enabled:Bool max_photo_file_size:int32 max_video_file_size:int53 max_other_file_size:int53 video_upload_bitrate:int32 preload_large_videos:Bool preload_next_audio:Bool preload_stories:Bool use_less_data_for_calls:Bool = AutoDownloadSettings;
 
@@ -10559,7 +10559,7 @@ updateNewCallSignalingData call_id:int32 data:bytes = Update;
 //@description State of a gift auction was updated @state New state of the auction
 updateGiftAuctionState state:giftAuctionState = Update;
 
-//@description The list of auctions in which participate the current user has changed @states New states of the auctions
+//@description The list of auctions in which the current user participates has changed @states New states of the auctions
 updateActiveGiftAuctions states:vector<giftAuctionState> = Update;
 
 //@description Some privacy setting rules have been changed @setting The privacy setting @rules New privacy rules
@@ -10581,7 +10581,7 @@ updateUnreadMessageCount chat_list:ChatList unread_count:int32 unread_unmuted_co
 updateUnreadChatCount chat_list:ChatList total_count:int32 unread_count:int32 unread_unmuted_count:int32 marked_as_unread_count:int32 marked_as_unread_unmuted_count:int32 = Update;
 
 //@description A join request from the user was completed
-//@query_id Identifier of the join request query as received in chatJoinResultGuardBotApprovalRequired. If the corresponding Web App is stiil open, then it must be closed
+//@query_id Identifier of the join request query as received in chatJoinResultGuardBotApprovalRequired. If the corresponding Web App is still open, then it must be closed
 //@chat_id Identifier of the joined chat, or 0 if the request wasn't approved
 //@result Result of the join
 updateChatJoinResult query_id:int64 chat_id:int53 result:ChatJoinRequestResult = Update;
@@ -10674,7 +10674,7 @@ updateConnectionState state:ConnectionState = Update;
 //@appeal_link The link to open to send an appeal to unfreeze the account
 updateFreezeState is_frozen:Bool freezing_date:int32 deletion_date:int32 appeal_link:string = Update;
 
-//@description The parameters for age verification of the current user's account has changed
+//@description The parameters for age verification of the current user's account have changed
 //@parameters Parameters for the age verification; may be null if age verification isn't needed
 updateAgeVerificationParameters parameters:ageVerificationParameters = Update;
 
@@ -10733,7 +10733,7 @@ updateStarRevenueStatus owner_id:MessageSender status:starRevenueStatus = Update
 //@status New Toncoin revenue status
 updateTonRevenueStatus status:tonRevenueStatus = Update;
 
-//@description The parameters of speech recognition without Telegram Premium subscription has changed
+//@description The parameters of speech recognition without Telegram Premium subscription have changed
 //@max_media_duration The maximum allowed duration of media for speech recognition without Telegram Premium subscription, in seconds
 //@weekly_count The total number of allowed speech recognitions per week; 0 if none
 //@left_count Number of left speech recognition attempts this week
@@ -10755,7 +10755,7 @@ updateStakeDiceState state:stakeDiceState = Update;
 //@sticker The animated sticker to be played
 updateAnimatedEmojiMessageClicked chat_id:int53 message_id:int53 sticker:sticker = Update;
 
-//@description The parameters of animation search through getOption("animation_search_bot_username") bot has changed @provider Name of the animation search provider @emojis The new list of emojis suggested for searching
+//@description The parameters of animation search through getOption("animation_search_bot_username") bot have changed @provider Name of the animation search provider @emojis The new list of emojis suggested for searching
 updateAnimationSearchParameters provider:string emojis:vector<string> = Update;
 
 //@description The styles supported for text composition have changed @styles The new list of supported styles
@@ -10764,7 +10764,7 @@ updateTextCompositionStyles styles:vector<textCompositionStyle> = Update;
 //@description The list of suggested to the user actions has changed @added_actions Added suggested actions @removed_actions Removed suggested actions
 updateSuggestedActions added_actions:vector<SuggestedAction> removed_actions:vector<SuggestedAction> = Update;
 
-//@description Download or upload file speed for the user was limited, but it can be restored by subscription to Telegram Premium. The notification can be postponed until a being downloaded or uploaded file is visible to the user.
+//@description Download or upload file speed for the user was limited, but it can be restored by subscription to Telegram Premium. The notification can be postponed until a file being downloaded or uploaded is visible to the user.
 //-Use getOption("premium_download_speedup") or getOption("premium_upload_speedup") to get expected speedup after subscription to Telegram Premium
 //@is_upload True, if upload speed was limited; false, if download speed was limited
 updateSpeedLimitNotification is_upload:Bool = Update;
@@ -13128,7 +13128,7 @@ addChatMembers chat_id:int53 user_ids:vector<int53> = FailedToAddMembers;
 
 //@description Changes the status of a chat member; requires can_invite_users member right to add a chat member, can_promote_members administrator right to change administrator rights of the member,
 //-and can_restrict_members administrator right to change restrictions of a user. This function is currently not suitable for transferring chat ownership; use transferChatOwnership instead.
-//-Use addChatMember or banChatMember if some additional parameters needs to be passed
+//-Use addChatMember or banChatMember if some additional parameters need to be passed
 //@chat_id Chat identifier
 //@member_id Member identifier. Chats can be only banned and unbanned in supergroups and channels
 //@status The new status of the member in the chat
@@ -13674,7 +13674,7 @@ getChatInviteLinkCounts chat_id:int53 = ChatInviteLinkCounts;
 //@description Returns invite links for a chat created by specified administrator. Requires administrator privileges and can_invite_users right in the chat to get own links and owner privileges to get other links
 //@chat_id Chat identifier
 //@creator_user_id User identifier of a chat administrator. Must be an identifier of the current user for non-owner
-//@is_revoked Pass true if revoked links needs to be returned instead of active or expired
+//@is_revoked Pass true if revoked links need to be returned instead of active or expired
 //@offset_date Creation date of an invite link starting after which to return invite links; use 0 to get results from the beginning
 //@offset_invite_link Invite link starting after which to return invite links; use empty string to get results from the beginning
 //@limit The maximum number of invite links to return; up to 100
@@ -15408,7 +15408,7 @@ setPassportElement element:InputPassportElement password:string = PassportElemen
 //@description Deletes a Telegram Passport element @type Element type
 deletePassportElement type:PassportElementType = Ok;
 
-//@description Informs the user who some of the elements in their Telegram Passport contain errors; for bots only. The user will not be able to resend the elements, until the errors are fixed @user_id User identifier @errors The errors
+//@description Informs the user that some of the elements in their Telegram Passport contain errors; for bots only. The user will not be able to resend the elements, until the errors are fixed @user_id User identifier @errors The errors
 setPassportElementErrors user_id:int53 errors:vector<inputPassportElementError> = Ok;
 
 
@@ -15451,7 +15451,7 @@ setBotUpdatesStatus pending_update_count:int32 error_message:string = Ok;
 //@description Uploads a file with a sticker; returns the uploaded file
 //@user_id Sticker file owner; ignored for regular users
 //@sticker_format Sticker format
-//@sticker File file to upload; must fit in a 512x512 square. For WEBP stickers the file must be in WEBP or PNG format, which will be converted to WEBP server-side.
+//@sticker File to upload; must fit in a 512x512 square. For WEBP stickers the file must be in WEBP or PNG format, which will be converted to WEBP server-side.
 //-See https://core.telegram.org/animated_stickers#technical-requirements for technical requirements
 uploadStickerFile user_id:int53 sticker_format:StickerFormat sticker:InputFile = File;
 
@@ -15614,7 +15614,7 @@ getStarGiveawayPaymentOptions = StarGiveawayPaymentOptions;
 getStarTransactions owner_id:MessageSender subscription_id:string direction:TransactionDirection offset:string limit:int32 = StarTransactions;
 
 //@description Returns the list of Telegram Star subscriptions for the current user
-//@only_expiring Pass true to receive only expiring subscriptions for which there are no enough Telegram Stars to extend
+//@only_expiring Pass true to receive only expiring subscriptions for which there aren't enough Telegram Stars to extend
 //@offset Offset of the first subscription to return as received from the previous request; use empty string to get the first chunk of results
 getStarSubscriptions only_expiring:Bool offset:string = StarSubscriptions;
 
@@ -15673,7 +15673,7 @@ disconnectAffiliateProgram affiliate:AffiliateType url:string = ConnectedAffilia
 getConnectedAffiliateProgram affiliate:AffiliateType bot_user_id:int53 = ConnectedAffiliateProgram;
 
 //@description Returns affiliate programs that were connected to the given affiliate
-//@affiliate The affiliate to which the affiliate program were connected
+//@affiliate The affiliate to which the affiliate programs were connected
 //@offset Offset of the first affiliate program to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of affiliate programs to return
 getConnectedAffiliatePrograms affiliate:AffiliateType offset:string limit:int32 = ConnectedAffiliatePrograms;
@@ -15683,7 +15683,7 @@ getConnectedAffiliatePrograms affiliate:AffiliateType offset:string limit:int32 
 getBusinessFeatures source:BusinessFeature = BusinessFeatures;
 
 
-//@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier
+//@description Accepts Telegram terms of service @terms_of_service_id Terms of service identifier
 acceptTermsOfService terms_of_service_id:string = Ok;
 
 
