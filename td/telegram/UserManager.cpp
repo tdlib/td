@@ -10084,16 +10084,10 @@ void UserManager::update_user_full(UserFull *user_full, UserId user_id, const ch
   }
   if (true) {
     vector<FileId> file_ids;
-    if (!user_full->personal_photo.is_empty()) {
-      append(file_ids, photo_get_file_ids(user_full->personal_photo));
-    }
-    if (!user_full->fallback_photo.is_empty()) {
-      append(file_ids, photo_get_file_ids(user_full->fallback_photo));
-    }
+    photo_append_file_ids(user_full->personal_photo, file_ids);
+    photo_append_file_ids(user_full->fallback_photo, file_ids);
     if (user_full->bot_info != nullptr) {
-      if (!user_full->bot_info->description_photo.is_empty()) {
-        append(file_ids, photo_get_file_ids(user_full->bot_info->description_photo));
-      }
+      photo_append_file_ids(user_full->bot_info->description_photo, file_ids);
       if (user_full->bot_info->description_animation_file_id.is_valid()) {
         file_ids.push_back(user_full->bot_info->description_animation_file_id);
       }

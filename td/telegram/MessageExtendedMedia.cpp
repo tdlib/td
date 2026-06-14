@@ -274,9 +274,7 @@ void MessageExtendedMedia::append_file_ids(const Td *td, vector<FileId> &file_id
       if (video_file_id_.is_valid()) {
         Document(Document::Type::Video, video_file_id_).append_file_ids(td, file_ids);
       }
-      if (!photo_.is_empty()) {
-        append(file_ids, photo_get_file_ids(photo_));
-      }
+      photo_append_file_ids(photo_, file_ids);
       break;
     default:
       UNREACHABLE();

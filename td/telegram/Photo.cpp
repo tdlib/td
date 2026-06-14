@@ -434,12 +434,19 @@ telegram_api::object_ptr<telegram_api::InputMedia> photo_get_cover_input_media(c
 }
 
 vector<FileId> photo_get_file_ids(const Photo &photo) {
-  auto result = transform(photo.photos, [](auto &size) { return size.file_id; });
-  if (!photo.animations.empty()) {
-    // photo file IDs must be first
-    append(result, transform(photo.animations, [](auto &size) { return size.file_id; }));
+  vector<FileId> file_ids;
+  photo_append_file_ids(photo, file_ids);
+  return file_ids;
+}
+
+void photo_append_file_ids(const Photo &photo, vector<FileId> &file_ids) {
+  // photo file identifiers must be at the beginning for register_suggested_profile_photo
+  for (auto &photo_size : photo.photos) {
+    file_ids.push_back(photo_size.file_id);
   }
-  return result;
+  for (auto &animation_size : photo.animations) {
+    file_ids.push_back(animation_size.file_id);
+  }
 }
 
 FileId get_photo_any_file_id(const Photo &photo) {

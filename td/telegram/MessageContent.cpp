@@ -12443,20 +12443,18 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
       auto video = static_cast<const MessageVideo *>(content);
       auto file_ids = Document(Document::Type::Video, video->file_id).get_file_ids(td);
       for (auto file_id : video->alternative_file_ids) {
-        append(file_ids, Document(Document::Type::Video, file_id).get_file_ids(td));
+        Document(Document::Type::Video, file_id).append_file_ids(td, file_ids);
       }
       for (auto file_id : video->hls_file_ids) {
-        append(file_ids, Document(Document::Type::General, file_id).get_file_ids(td));
+        Document(Document::Type::General, file_id).append_file_ids(td, file_ids);
       }
       for (auto file_id : video->storyboard_file_ids) {
-        append(file_ids, Document(Document::Type::General, file_id).get_file_ids(td));
+        Document(Document::Type::General, file_id).append_file_ids(td, file_ids);
       }
       for (auto file_id : video->storyboard_map_file_ids) {
-        append(file_ids, Document(Document::Type::General, file_id).get_file_ids(td));
+        Document(Document::Type::General, file_id).append_file_ids(td, file_ids);
       }
-      if (!video->cover.is_empty()) {
-        append(file_ids, photo_get_file_ids(video->cover));
-      }
+      photo_append_file_ids(video->cover, file_ids);
       return file_ids;
     }
     case MessageContentType::Game:

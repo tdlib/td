@@ -248,7 +248,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       int32 commission_per_mille = 0;
       if (!transaction->title_.empty() || !transaction->description_.empty() || transaction->photo_ != nullptr) {
         auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(transaction->photo_), DialogId());
-        append(file_ids, photo_get_file_ids(photo));
+        photo_append_file_ids(photo, file_ids);
         product_info = get_product_info_object(td_, transaction->title_, transaction->description_, photo);
         transaction->title_.clear();
         transaction->description_.clear();

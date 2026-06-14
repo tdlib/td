@@ -700,9 +700,7 @@ class RelatedArticle {
   int32 published_date = 0;
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const {
-    if (!photo.is_empty()) {
-      append(file_ids, photo_get_file_ids(photo));
-    }
+    photo_append_file_ids(photo, file_ids);
   }
 
   void add_dependencies(Dependencies &dependencies) const {
@@ -2205,7 +2203,7 @@ class WebPageBlockPhoto final : public WebPageBlock {
   }
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
-    append(file_ids, photo_get_file_ids(photo));
+    photo_append_file_ids(photo, file_ids);
     caption.append_file_ids(td, file_ids);
   }
 
@@ -2506,7 +2504,7 @@ class WebPageBlockEmbedded final : public WebPageBlock {
   }
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
-    append(file_ids, photo_get_file_ids(poster_photo));
+    photo_append_file_ids(poster_photo, file_ids);
     caption.append_file_ids(td, file_ids);
   }
 
@@ -2606,7 +2604,7 @@ class WebPageBlockEmbeddedPost final : public WebPageBlock {
   }
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
-    append(file_ids, photo_get_file_ids(author_photo));
+    photo_append_file_ids(author_photo, file_ids);
     for (auto &page_block : page_blocks) {
       page_block->append_file_ids(td, file_ids);
     }
