@@ -50,6 +50,7 @@ constexpr PairingCase kVerifiedProfilePairings[] = {
     {BrowserProfile::ChromiumMacOS_NoAlps, "macos/chromium130_macos26_3_301a8e50.serverhello.json"},
     {BrowserProfile::ChromiumMacOS_4469, "macos/chromium130_macos26_3_301a8e50.serverhello.json"},
     {BrowserProfile::ChromiumMacOS_44CD, "macos/chrome147_macos26_4_81b7d4cc.serverhello.json"},
+    {BrowserProfile::AppleIosTls, "ios/safari26_3_ios26_3_1_83afd3bc.serverhello.json"},
 };
 
 bool pairing_table_contains_profile(BrowserProfile profile) {

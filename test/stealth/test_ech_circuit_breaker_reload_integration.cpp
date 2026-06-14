@@ -78,11 +78,11 @@ td::string make_runtime_config_json(td::Slice non_ru_ech_mode) {
          "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
       "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
          "\"route_policy\":{"
-         "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-         "\"ru\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
+         "\"unknown\":{\"ech_mode\":\"disabled\"},"
+         "\"ru\":{\"ech_mode\":\"disabled\"},"
          "\"non_ru\":{\"ech_mode\":\"" +
          non_ru_ech_mode.str() +
-         "\",\"allow_quic\":false}},"
+         "\"}},"
          "\"route_failure\":{"
          "\"ech_failure_threshold\":1,\"ech_disable_ttl_seconds\":300.0,\"persist_across_restart\":true},"
          "\"bulk_threshold_bytes\":8192"

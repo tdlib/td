@@ -122,6 +122,14 @@ TEST(TlsRuntimeServerHelloFixtureContract, IOS14ResolvesToReviewedAppleTlsCaptur
   ASSERT_TRUE(load_server_hello_fixture_relative(td::CSlice(relative)).is_ok());
 }
 
+TEST(TlsRuntimeServerHelloFixtureContract, AppleIosTlsResolvesToReviewedAppleTlsCapture) {
+  const auto relative =
+      representative_server_hello_path_for_family(profile_spec(BrowserProfile::AppleIosTls).name).str();
+
+  ASSERT_EQ(td::string("ios/safari26_3_ios26_3_1_83afd3bc.serverhello.json"), relative);
+  ASSERT_TRUE(load_server_hello_fixture_relative(td::CSlice(relative)).is_ok());
+}
+
 TEST(TlsRuntimeServerHelloFixtureContract, Android11OkHttpResolvesToAndroidCompatibilityFallbackCapture) {
   const auto relative =
       representative_server_hello_path_for_family(profile_spec(BrowserProfile::Android11_OkHttp_Advisory).name).str();

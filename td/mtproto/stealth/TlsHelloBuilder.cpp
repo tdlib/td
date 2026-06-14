@@ -10,6 +10,7 @@
 #include "td/mtproto/BrowserProfile.h"
 #include "td/mtproto/ClientHelloExecutor.h"
 #include "td/mtproto/ClientHelloOpMapper.h"
+#include "td/mtproto/stealth/SecureRngBounded.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Random.h"
@@ -35,19 +36,21 @@ uint32 SecureRng::secure_uint32() {
 }
 
 uint32 SecureRng::bounded(uint32 n) {
-  CHECK(n > 0);
-
-  auto threshold = static_cast<uint32>(-n) % n;
-  while (true) {
-    auto value = secure_uint32();
-    if (value >= threshold) {
-      return value % n;
-    }
-  }
+  return stealth_rng_internal::bounded_secure_uint32(*this, n);
 }
 
 bool should_enable_ech(const NetworkRouteHints &route_hints) {
   return route_hints.is_known && !route_hints.is_ru;
+}
+
+Status validate_tls_hello_builder_inputs(Slice domain, Slice secret) {
+  if (domain.empty()) {
+    return Status::Error("TLS hello domain must not be empty");
+  }
+  if (secret.size() != 16) {
+    return Status::Error("TLS hello secret must be exactly 16 bytes, got " + td::to_string(secret.size()));
+  }
+  return Status::OK();
 }
 
 int resolve_ech_payload_length(const ProfileSpec &spec, bool enable_ech, IRng &rng) {
@@ -81,11 +84,9 @@ mtproto::ExecutorConfig make_config(const ProfileSpec &spec, bool enable_ech, IR
   return config;
 }
 
-string build_tls_hello_impl(string domain, Slice secret, int32 unix_time, BrowserProfile profile_id, EchMode ech_mode,
-                            IRng &rng, bool proxy_mode) {
-  CHECK(!domain.empty());
-  CHECK(secret.size() == 16);
-
+Result<string> try_build_tls_hello_impl(string domain, Slice secret, int32 unix_time, BrowserProfile profile_id,
+                                        EchMode ech_mode, IRng &rng, bool proxy_mode) {
+  TRY_STATUS(validate_tls_hello_builder_inputs(domain, secret));
   auto &spec = profile_spec(profile_id);
   auto enable_ech = ech_mode == EchMode::Rfc9180Outer && spec.allows_ech;
   auto config = make_config(spec, enable_ech, rng);
@@ -96,9 +97,7 @@ string build_tls_hello_impl(string domain, Slice secret, int32 unix_time, Browse
   config.force_http11_only_alpn = proxy_mode;
   auto &profile = mtproto::get_profile_spec(profile_id);
   auto ops = mtproto::ClientHelloOpMapper::map(profile, config);
-  auto result = mtproto::ClientHelloExecutor::execute(ops, domain, secret, unix_time, config, rng);
-  CHECK(result.is_ok());
-  return result.move_as_ok();
+  return mtproto::ClientHelloExecutor::execute(ops, domain, secret, unix_time, config, rng);
 }
 
 string build_default_hello_impl(string domain, Slice secret, int32 unix_time, const NetworkRouteHints &route_hints,
@@ -123,9 +122,9 @@ string build_default_hello_impl(string domain, Slice secret, int32 unix_time, co
 
 }  // namespace tls_hello_builder_internal
 using tls_hello_builder_internal::build_default_hello_impl;
-using tls_hello_builder_internal::build_tls_hello_impl;
 using tls_hello_builder_internal::SecureRng;
 using tls_hello_builder_internal::should_enable_ech;
+using tls_hello_builder_internal::try_build_tls_hello_impl;
 
 namespace detail {
 
@@ -168,24 +167,47 @@ string build_default_tls_client_hello_with_options(string domain, Slice secret, 
 
 string build_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
                                           EchMode ech_mode, IRng &rng) {
-  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/false);
+  auto result =
+      try_build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/false);
+  CHECK(result.is_ok());
+  return result.move_as_ok();
 }
 
 string build_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
                                           EchMode ech_mode) {
   SecureRng rng;
-  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/false);
+  auto result =
+      try_build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/false);
+  CHECK(result.is_ok());
+  return result.move_as_ok();
+}
+
+Result<string> try_build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time,
+                                                            BrowserProfile profile, EchMode ech_mode, IRng &rng) {
+  return try_build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/true);
+}
+
+Result<string> try_build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time,
+                                                            BrowserProfile profile, EchMode ech_mode) {
+  SecureRng rng;
+  return try_build_proxy_tls_client_hello_for_profile(std::move(domain), secret, unix_time, profile, ech_mode, rng);
 }
 
 string build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
                                                 EchMode ech_mode, IRng &rng) {
-  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/true);
+  auto result = try_build_proxy_tls_client_hello_for_profile(std::move(domain), secret, unix_time, profile, ech_mode,
+                                                             rng);
+  CHECK(result.is_ok());
+  return result.move_as_ok();
 }
 
 string build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
                                                 EchMode ech_mode) {
   SecureRng rng;
-  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/true);
+  auto result = try_build_proxy_tls_client_hello_for_profile(std::move(domain), secret, unix_time, profile, ech_mode,
+                                                             rng);
+  CHECK(result.is_ok());
+  return result.move_as_ok();
 }
 
 string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,
@@ -196,19 +218,21 @@ string build_default_tls_client_hello(string domain, Slice secret, int32 unix_ti
 string build_proxy_tls_client_hello(string domain, Slice secret, int32 unix_time, const NetworkRouteHints &route_hints,
                                     IRng &rng) {
   auto ech_mode = should_enable_ech(route_hints) ? EchMode::Rfc9180Outer : EchMode::Disabled;
-  return build_tls_hello_impl(std::move(domain), secret, unix_time, BrowserProfile::Chrome133, ech_mode, rng,
-                              /*proxy_mode=*/true);
+  auto result = try_build_tls_hello_impl(std::move(domain), secret, unix_time, BrowserProfile::Chrome133, ech_mode, rng,
+                                         /*proxy_mode=*/true);
+  CHECK(result.is_ok());
+  return result.move_as_ok();
 }
 
 string build_runtime_tls_client_hello(string domain, Slice secret, int32 unix_time,
                                       const NetworkRouteHints &route_hints, IRng &rng) {
-  CHECK(!domain.empty());
-  CHECK(secret.size() == 16);
-
   auto platform = default_runtime_platform_hints();
-  auto profile = pick_runtime_profile(domain, unix_time, platform);
-  auto ech_mode = get_runtime_ech_decision(domain, unix_time, route_hints).ech_mode;
-  return build_proxy_tls_client_hello_for_profile(std::move(domain), secret, unix_time, profile, ech_mode, rng);
+  auto selection = select_runtime_profile_for_attempt(domain, unix_time, platform, route_hints);
+  auto result = try_build_proxy_tls_client_hello_for_profile(
+      std::move(domain), secret, unix_time, selection.profile,
+      selection.hello_uses_ech ? EchMode::Rfc9180Outer : EchMode::Disabled, rng);
+  CHECK(result.is_ok());
+  return result.move_as_ok();
 }
 
 string build_runtime_tls_client_hello(string domain, Slice secret, int32 unix_time,

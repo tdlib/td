@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
+//
 #include "td/db/DbKey.h"
 #include "td/db/SqliteDb.h"
 
@@ -45,16 +50,86 @@ bool is_database_locked(const td::Status &status) {
   return status.to_string().find("database is locked") != td::string::npos;
 }
 
-td::Status begin_write_transaction_with_busy_retry(td::SqliteDb &db) {
+template <class OperationT>
+td::Status retry_database_locked(OperationT &&operation) {
   constexpr int MAX_ATTEMPTS = 100;
   for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    auto status = db.begin_write_transaction();
+    auto status = operation();
     if (status.is_ok() || !is_database_locked(status)) {
       return status;
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::yield();
   }
-  return db.begin_write_transaction();
+  return operation();
+}
+
+td::Status begin_write_transaction_with_busy_retry(td::SqliteDb &db) {
+  return retry_database_locked([&] { return db.begin_write_transaction(); });
+}
+
+td::Status commit_transaction_with_busy_retry(td::SqliteDb &db) {
+  return retry_database_locked([&] { return db.commit_transaction(); });
+}
+
+struct StressReadSnapshot {
+  td::int64 count = 0;
+  td::int64 payload_bytes = 0;
+};
+
+td::Status finish_read_snapshot_attempt(td::SqliteDb &db, td::SqliteStatement &select, td::Status status,
+                                        bool &retryable_busy) {
+  select.reset();
+  auto cleanup_status = db.commit_transaction();
+  if (cleanup_status.is_error()) {
+    retryable_busy = false;
+    return cleanup_status;
+  }
+  return status;
+}
+
+td::Status read_stress_snapshot_once(td::SqliteDb &db, td::SqliteStatement &select, StressReadSnapshot &snapshot,
+                                     bool &retryable_busy) {
+  retryable_busy = false;
+
+  auto status = db.begin_read_transaction();
+  if (status.is_error()) {
+    retryable_busy = is_database_locked(status);
+    return status;
+  }
+
+  status = select.step();
+  if (status.is_error()) {
+    retryable_busy = is_database_locked(status);
+    return finish_read_snapshot_attempt(db, select, std::move(status), retryable_busy);
+  }
+  if (!select.has_row()) {
+    return finish_read_snapshot_attempt(db, select, td::Status::Error("reader query returned no row"), retryable_busy);
+  }
+
+  snapshot.count = select.view_int64(0);
+  snapshot.payload_bytes = select.view_int64(1);
+
+  status = select.step();
+  if (status.is_error()) {
+    retryable_busy = is_database_locked(status);
+    return finish_read_snapshot_attempt(db, select, std::move(status), retryable_busy);
+  }
+  return finish_read_snapshot_attempt(db, select, td::Status::OK(), retryable_busy);
+}
+
+td::Status read_stress_snapshot_with_busy_retry(td::SqliteDb &db, td::SqliteStatement &select,
+                                                 StressReadSnapshot &snapshot) {
+  constexpr int MAX_ATTEMPTS = 100;
+  for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    bool retryable_busy = false;
+    auto status = read_stress_snapshot_once(db, select, snapshot, retryable_busy);
+    if (status.is_ok() || !retryable_busy) {
+      return status;
+    }
+    std::this_thread::yield();
+  }
+  bool retryable_busy = false;
+  return read_stress_snapshot_once(db, select, snapshot, retryable_busy);
 }
 
 void run_concurrent_transaction_stress_case(const char *prefix, const td::DbKey &db_key, int writer_count,
@@ -138,7 +213,7 @@ void run_concurrent_transaction_stress_case(const char *prefix, const td::DbKey 
           thread_errors[writer_id] = status.to_string();
           return;
         }
-        status = db.commit_transaction();
+        status = commit_transaction_with_busy_retry(db);
         if (status.is_error()) {
           thread_errors[writer_id] = status.to_string();
           return;
@@ -173,41 +248,20 @@ void run_concurrent_transaction_stress_case(const char *prefix, const td::DbKey 
       td::int64 last_count = 0;
       int tail_checks_left = reader_tail_checks;
       while (finished_writers.load(std::memory_order_acquire) != writer_count || tail_checks_left > 0) {
-        auto status = db.begin_read_transaction();
+        StressReadSnapshot snapshot;
+        auto status = read_stress_snapshot_with_busy_retry(db, select, snapshot);
         if (status.is_error()) {
           thread_errors[slot] = status.to_string();
           return;
         }
-        status = select.step();
-        if (status.is_error()) {
-          thread_errors[slot] = status.to_string();
-          return;
-        }
-        if (!select.has_row()) {
-          thread_errors[slot] = "reader query returned no row";
-          return;
-        }
-
-        auto count = select.view_int64(0);
-        auto payload_bytes = select.view_int64(1);
+        auto count = snapshot.count;
+        auto payload_bytes = snapshot.payload_bytes;
         if (count < last_count) {
           thread_errors[slot] = "reader observed non-monotonic committed row count";
           return;
         }
         if (payload_bytes != count * payload_size) {
           thread_errors[slot] = "reader observed payload-length drift under concurrent commits";
-          return;
-        }
-
-        status = select.step();
-        if (status.is_error()) {
-          thread_errors[slot] = status.to_string();
-          return;
-        }
-        select.reset();
-        status = db.commit_transaction();
-        if (status.is_error()) {
-          thread_errors[slot] = status.to_string();
           return;
         }
 

@@ -62,9 +62,9 @@ TEST(StealthParamsLoader, StrictLoadAcceptsValidMinimalConfig) {
              "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
              "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},"
              "\"route_failure\":{"
              "\"ech_failure_threshold\":4,\"ech_disable_ttl_seconds\":600.0,\"persist_across_restart\":true},"
              "\"bulk_threshold_bytes\":16384}");
@@ -93,6 +93,16 @@ TEST(StealthParamsLoader, StrictLoadMissingConfigReturnsDefaults) {
   ASSERT_TRUE(params.route_policy.non_ru.ech_mode == EchMode::Rfc9180Outer);
 }
 
+TEST(StealthParamsLoader, StrictLoadRejectsMissingConfigWhenExplicitlyRequired) {
+  ScopedTempDir temp_dir;
+  auto path = config_path(temp_dir.path());
+
+  auto result = StealthParamsLoader::try_load_strict(
+      path, {.config_presence_requirement = StealthParamsLoader::ConfigPresenceRequirement::Required});
+  ASSERT_TRUE(result.is_error());
+  ASSERT_STREQ("Stealth params file is required but missing", result.error().message().c_str());
+}
+
 TEST(StealthParamsLoader, StrictLoadParsesIptOverrideBlock) {
   ScopedTempDir temp_dir;
   auto path = config_path(temp_dir.path());
@@ -107,9 +117,9 @@ TEST(StealthParamsLoader, StrictLoadParsesIptOverrideBlock) {
              "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
              "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},"
              "\"route_failure\":{"
              "\"ech_failure_threshold\":4,\"ech_disable_ttl_seconds\":600.0,\"persist_across_restart\":true},"
              "\"bulk_threshold_bytes\":16384}");
@@ -128,7 +138,7 @@ TEST(StealthParamsLoader, StrictLoadParsesIptOverrideBlock) {
   ASSERT_EQ(0.22, params.ipt_params.p_idle_to_burst);
 }
 
-TEST(StealthParamsLoader, StrictLoadAcceptsPlanStyleRouteFailureFields) {
+TEST(StealthParamsLoader, StrictLoadRejectsAllowQuicFieldAsUnsupportedSchema) {
   ScopedTempDir temp_dir;
   auto path = config_path(temp_dir.path());
   write_file(path,
@@ -142,18 +152,60 @@ TEST(StealthParamsLoader, StrictLoadAcceptsPlanStyleRouteFailureFields) {
              "\"ru\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
              "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\",\"allow_quic\":false}},"
              "\"route_failure\":{"
+             "\"ech_failure_threshold\":4,\"ech_disable_ttl_seconds\":600.0,\"persist_across_restart\":true},"
+             "\"bulk_threshold_bytes\":16384}");
+
+  auto result = StealthParamsLoader::try_load_strict(path);
+  ASSERT_TRUE(result.is_error());
+  ASSERT_TRUE(result.error().message().str().find("unknown field \"allow_quic\"") != td::string::npos);
+}
+
+TEST(StealthParamsLoader, StrictLoadRequiresPerInstallSelectionSaltWhenConfigured) {
+  ScopedTempDir temp_dir;
+  auto path = config_path(temp_dir.path());
+  write_file(path,
+             "{"
+             "\"version\":1,"
+             "\"require_per_install_selection_salt\":true,"
+             "\"profile_weights\":{"
+             "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
+             "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
+             "\"route_policy\":{"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},"
+             "\"route_failure\":{"
+             "\"ech_failure_threshold\":4,\"ech_disable_ttl_seconds\":600.0,\"persist_across_restart\":true},"
+             "\"bulk_threshold_bytes\":16384}");
+
+  auto result = StealthParamsLoader::try_load_strict(path);
+  ASSERT_TRUE(result.is_error());
+  ASSERT_STREQ("require_per_install_selection_salt requires a non-zero per-install selection salt",
+               result.error().message().c_str());
+}
+
+TEST(StealthParamsLoader, StrictLoadRejectsUnsupportedPlanFailureKindsField) {
+  ScopedTempDir temp_dir;
+  auto path = config_path(temp_dir.path());
+  write_file(path,
+             "{"
+             "\"version\":1,"
+             "\"profile_weights\":{"
+             "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
+             "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
+             "\"route_policy\":{"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},"
+             "\"route_failure\":{"
              "\"ech_fail_open_threshold\":4,\"ech_disable_ttl_sec\":600.0,"
              "\"failure_kinds\":[\"tcp_reset_after_ch\",\"hello_timeout\"],"
              "\"persist_across_restart\":true},"
              "\"bulk_threshold_bytes\":16384}");
 
   auto result = StealthParamsLoader::try_load_strict(path);
-  ASSERT_TRUE(result.is_ok());
-
-  auto params = result.move_as_ok();
-  ASSERT_EQ(4u, params.route_failure.ech_failure_threshold);
-  ASSERT_EQ(600.0, params.route_failure.ech_disable_ttl_seconds);
-  ASSERT_TRUE(params.route_failure.persist_across_restart);
+  ASSERT_TRUE(result.is_error());
+  ASSERT_TRUE(result.error().message().str().find("route_failure.failure_kinds is not implemented") != td::string::npos);
 }
 
 TEST(StealthParamsLoader, StrictLoadRejectsEmptyPlanFailureKinds) {
@@ -166,9 +218,9 @@ TEST(StealthParamsLoader, StrictLoadRejectsEmptyPlanFailureKinds) {
              "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
              "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},"
              "\"route_failure\":{"
              "\"ech_fail_open_threshold\":4,\"ech_disable_ttl_sec\":600.0,"
              "\"failure_kinds\":[],"
@@ -177,6 +229,7 @@ TEST(StealthParamsLoader, StrictLoadRejectsEmptyPlanFailureKinds) {
 
   auto result = StealthParamsLoader::try_load_strict(path);
   ASSERT_TRUE(result.is_error());
+  ASSERT_TRUE(result.error().message().str().find("route_failure.failure_kinds is not implemented") != td::string::npos);
 }
 
 TEST(StealthParamsLoader, StrictLoadRejectsUnknownPlanFailureKind) {
@@ -189,9 +242,9 @@ TEST(StealthParamsLoader, StrictLoadRejectsUnknownPlanFailureKind) {
              "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
              "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},"
              "\"route_failure\":{"
              "\"ech_fail_open_threshold\":4,\"ech_disable_ttl_sec\":600.0,"
              "\"failure_kinds\":[\"tcp_reset_after_ch\",\"nonexistent_failure_kind\"],"
@@ -200,6 +253,7 @@ TEST(StealthParamsLoader, StrictLoadRejectsUnknownPlanFailureKind) {
 
   auto result = StealthParamsLoader::try_load_strict(path);
   ASSERT_TRUE(result.is_error());
+  ASSERT_TRUE(result.error().message().str().find("route_failure.failure_kinds is not implemented") != td::string::npos);
 }
 
 TEST(StealthParamsLoader, StrictLoadAcceptsPlanStyleRoutePolicyNames) {
@@ -212,13 +266,11 @@ TEST(StealthParamsLoader, StrictLoadAcceptsPlanStyleRoutePolicyNames) {
              "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
              "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru_egress\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru_egress\":{\"ech_mode\":\"grease_draft17\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru_egress\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru_egress\":{\"ech_mode\":\"grease_draft17\"}},"
              "\"route_failure\":{"
-             "\"ech_fail_open_threshold\":4,\"ech_disable_ttl_sec\":600.0,"
-             "\"failure_kinds\":[\"tcp_reset_after_ch\"],"
-             "\"persist_across_restart\":true},"
+             "\"ech_fail_open_threshold\":4,\"ech_disable_ttl_sec\":600.0,\"persist_across_restart\":true},"
              "\"bulk_threshold_bytes\":16384}");
 
   auto result = StealthParamsLoader::try_load_strict(path);
@@ -249,13 +301,11 @@ TEST(StealthParamsLoader, StrictLoadParsesDrsOverrideBlock) {
              "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
              "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},"
              "\"route_failure\":{"
-             "\"ech_fail_open_threshold\":4,\"ech_disable_ttl_sec\":600.0,"
-             "\"failure_kinds\":[\"tcp_reset_after_ch\"],"
-             "\"persist_across_restart\":true},"
+             "\"ech_fail_open_threshold\":4,\"ech_disable_ttl_sec\":600.0,\"persist_across_restart\":true},"
              "\"bulk_threshold_bytes\":16384}");
 
   auto result = StealthParamsLoader::try_load_strict(path);
@@ -284,13 +334,11 @@ TEST(StealthParamsLoader, StrictLoadParsesActivePolicy) {
              "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
              "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru_egress\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru_egress\":{\"ech_mode\":\"grease_draft17\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru_egress\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru_egress\":{\"ech_mode\":\"grease_draft17\"}},"
              "\"route_failure\":{"
-             "\"ech_fail_open_threshold\":4,\"ech_disable_ttl_sec\":600.0,"
-             "\"failure_kinds\":[\"tcp_reset_after_ch\"],"
-             "\"persist_across_restart\":true},"
+             "\"ech_fail_open_threshold\":4,\"ech_disable_ttl_sec\":600.0,\"persist_across_restart\":true},"
              "\"bulk_threshold_bytes\":16384}");
 
   auto result = StealthParamsLoader::try_load_strict(path);
@@ -311,13 +359,11 @@ TEST(StealthParamsLoader, StrictLoadRejectsUnknownActivePolicy) {
              "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
              "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru_egress\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru_egress\":{\"ech_mode\":\"grease_draft17\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru_egress\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru_egress\":{\"ech_mode\":\"grease_draft17\"}},"
              "\"route_failure\":{"
-             "\"ech_fail_open_threshold\":4,\"ech_disable_ttl_sec\":600.0,"
-             "\"failure_kinds\":[\"tcp_reset_after_ch\"],"
-             "\"persist_across_restart\":true},"
+             "\"ech_fail_open_threshold\":4,\"ech_disable_ttl_sec\":600.0,\"persist_across_restart\":true},"
              "\"bulk_threshold_bytes\":16384}");
 
   auto result = StealthParamsLoader::try_load_strict(path);
@@ -334,9 +380,9 @@ TEST(StealthParamsLoader, StrictLoadRejectsUnknownTopLevelKey) {
              "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
              "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},"
              "\"route_failure\":{"
              "\"ech_failure_threshold\":3,\"ech_disable_ttl_seconds\":300.0,\"persist_across_restart\":true},"
              "\"bulk_threshold_bytes\":8192,"
@@ -356,9 +402,9 @@ TEST(StealthParamsLoader, ReloadKeepsLastKnownGoodSnapshotOnMalformedUpdate) {
              "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
              "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},"
              "\"route_failure\":{"
              "\"ech_failure_threshold\":3,\"ech_disable_ttl_seconds\":300.0,\"persist_across_restart\":true},"
              "\"bulk_threshold_bytes\":8192}");
@@ -383,9 +429,9 @@ TEST(StealthParamsLoader, ReloadMissingConfigKeepsLastKnownGoodSnapshot) {
              "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
              "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},"
              "\"route_failure\":{"
              "\"ech_failure_threshold\":4,\"ech_disable_ttl_seconds\":600.0,\"persist_across_restart\":true},"
              "\"bulk_threshold_bytes\":16384}");

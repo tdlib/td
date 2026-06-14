@@ -89,4 +89,28 @@ TEST(RuntimeProfileRotationFuzz, MalformedFailureClassFailsClosed) {
   ASSERT_FALSE(after.avoided_quarantined_profile);
 }
 
+// Route-level breakage after a completed hello is not evidence that a specific
+// fingerprint got blocked. Rotating on this signal burns profile budget on a
+// path outage and can hide the real failure mode from operators.
+TEST(RuntimeProfileRotationFuzz, TransportRejectionAfterHelloDoesNotQuarantineProfiles) {
+  RotationTestGuard guard;
+  auto params = rotation_params(linux_platform(), TransportConfidence::Strong, false, true, 2);
+  ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
+  const td::string dest = "transport-reject.example.com";
+
+  auto baseline = pick_runtime_profile_adaptive(dest, kUnixTime, linux_platform(), EchMode::Disabled);
+  ASSERT_FALSE(runtime_profile_failure_signal_is_quarantine_eligible(
+      RuntimeProfileFailureSignal::TransportRejectionAfterHello));
+
+  for (int i = 0; i < 8; i++) {
+    note_runtime_profile_failure(dest, RuntimeProfileWireVariant{baseline.profile, baseline.hello_uses_ech},
+                                 RuntimeProfileFailureSignal::TransportRejectionAfterHello);
+  }
+
+  ASSERT_EQ(0u, get_runtime_profile_rotation_counters().profile_failure_recorded_total);
+  auto after = pick_runtime_profile_adaptive(dest, kUnixTime, linux_platform(), EchMode::Disabled);
+  ASSERT_TRUE(after.profile == baseline.profile);
+  ASSERT_FALSE(after.avoided_quarantined_profile);
+}
+
 }  // namespace

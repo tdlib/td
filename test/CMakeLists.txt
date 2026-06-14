@@ -26,6 +26,7 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/session_new_session_resend_scope.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/db.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_stress_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_stress.cpp
@@ -405,6 +406,7 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_record_order_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_leftover_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_multi_record_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_reader_byte_flow_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_multirecord_rejection_matrix_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_route_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_stress.cpp
@@ -446,6 +448,7 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_route_integrity_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_route_integrity_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_proxy_route_source_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_pr22_spdx_header_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_ping_main_dc_log_source_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_tls_init_source_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_logging_source_contract.cpp
@@ -589,6 +592,7 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_grease_key_share_entry_invariants.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_pq_hybrid_key_share_format_invariants.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_secp256r1_key_share_irng_determinism.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_x25519_inverse_retry_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_profile_spec_pq_consistency_invariants.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_chrome144_differential.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_firefox148_differential.cpp
@@ -613,6 +617,7 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_security.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_expiry.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_builder_equivalence.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_hello_generation_fail_closed.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_real_fixture_alignment.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_runtime_profile_coverage_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_params.cpp
@@ -694,6 +699,7 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_hint_wiring_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_parse_error_diagnostics_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_service_ack_mix_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_service_query_cleanup_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_phase_hint_drift_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ping_connection_hint_wiring.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ping_connection_parse_error_adversarial.cpp
@@ -944,6 +950,8 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_traffic_classifier_query_bytes_boundary_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_ack_mix_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_grease_independence_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_client_hello_executor_mlkem_rng_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_rng_bounded_source_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_mlkem_coefficient_distribution.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_extension_order_entropy_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_total_length_distribution_adversarial.cpp

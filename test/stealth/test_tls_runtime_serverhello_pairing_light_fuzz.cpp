@@ -36,7 +36,7 @@ struct Scenario final {
   td::uint64 seed_base;
 };
 
-const std::array<Scenario, 11> kScenarios{{
+const std::array<Scenario, 12> kScenarios{{
     {BrowserProfile::Chrome133, "runtime-fuzz-linux-chrome133", 1712330000, 0x83100000u},
     {BrowserProfile::Chrome131, "runtime-fuzz-linux-chrome131", 1712340000, 0x83200000u},
     {BrowserProfile::Chrome120, "runtime-fuzz-linux-chrome120", 1712350000, 0x83300000u},
@@ -47,6 +47,7 @@ const std::array<Scenario, 11> kScenarios{{
     {BrowserProfile::Chrome147_IOSChromium, "runtime-fuzz-ios-chromium", 1712380000, 0x85000000u},
     {BrowserProfile::Safari26_3, "runtime-fuzz-safari", 1712390000, 0x86000000u},
     {BrowserProfile::IOS14, "runtime-fuzz-ios-native", 1712400000, 0x87000000u},
+    {BrowserProfile::AppleIosTls, "runtime-fuzz-apple-ios", 1712405000, 0x87500000u},
     {BrowserProfile::Android11_OkHttp_Advisory, "runtime-fuzz-android-okhttp", 1712410000, 0x88000000u},
 }};
 

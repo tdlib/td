@@ -42,13 +42,17 @@ TEST(TlsRuntimeBuilderSourceContract, RuntimeBuilderMustUseUnifiedProfileAndEchD
   auto normalized = normalize_for_contract(region);
 
   ASSERT_TRUE(normalized.find("autoplatform=default_runtime_platform_hints();") != td::string::npos);
-  ASSERT_TRUE(normalized.find("autoprofile=pick_runtime_profile(domain,unix_time,platform);") != td::string::npos);
-  ASSERT_TRUE(normalized.find("autoech_mode=get_runtime_ech_decision(domain,unix_time,route_hints).ech_mode;") !=
+  ASSERT_TRUE(normalized.find("autoselection=select_runtime_profile_for_attempt(domain,unix_time,platform,route_hints);") !=
               td::string::npos);
   ASSERT_TRUE(
-      normalized.find(
-          "returnbuild_proxy_tls_client_hello_for_profile(std::move(domain),secret,unix_time,profile,ech_mode,rng);") !=
+      normalized.find("autoresult=try_build_proxy_tls_client_hello_for_profile(std::move(domain),secret,unix_time,"
+                      "selection.profile,selection.hello_uses_ech?EchMode::Rfc9180Outer:EchMode::Disabled,rng);") !=
       td::string::npos);
+  ASSERT_TRUE(normalized.find("CHECK(result.is_ok());") != td::string::npos);
+  ASSERT_TRUE(normalized.find("returnresult.move_as_ok();") !=
+      td::string::npos);
+  ASSERT_TRUE(normalized.find("pick_runtime_profile(") == td::string::npos);
+  ASSERT_TRUE(normalized.find("get_runtime_ech_decision(") == td::string::npos);
   ASSERT_TRUE(normalized.find("TD_DARWIN") == td::string::npos);
   ASSERT_TRUE(normalized.find("build_default_tls_client_hello(") == td::string::npos);
 }

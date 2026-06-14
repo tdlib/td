@@ -38,9 +38,14 @@ TEST(StealthConfigDarwinProfileSourceContract,
                                       "Status StealthConfig::validate() const {");
   auto normalized = normalize_for_contract(region);
 
-  ASSERT_TRUE(normalized.find("if(secret.emulate_tls()){") != td::string::npos);
-  ASSERT_TRUE(normalized.find("config.profile=pick_runtime_profile(secret.get_domain(),unix_time,platform);") !=
+  ASSERT_TRUE(normalized.find(
+                  "if(!secret.emulate_tls()){returnfrom_secret(secret,rng,unix_time,platform,BrowserProfile::Chrome133);}") !=
               td::string::npos);
+  ASSERT_TRUE(normalized.find(
+                  "returnfrom_secret(secret,rng,unix_time,platform,pick_runtime_profile(secret.get_domain(),unix_time,platform));") !=
+              td::string::npos);
+  ASSERT_TRUE(normalized.find("if(secret.emulate_tls()){") != td::string::npos);
+  ASSERT_TRUE(normalized.find("config.profile=profile;") != td::string::npos);
   ASSERT_TRUE(normalized.find("apply_profile_record_size_limit(config,platform);") != td::string::npos);
   ASSERT_TRUE(normalized.find("config.padding_policy.enabled=false;") != td::string::npos);
   ASSERT_TRUE(normalized.find("config.greeting_camouflage_policy=make_default_greeting_camouflage_policy();") !=

@@ -72,8 +72,8 @@ const char *linux_config_json() {
          "25,\"Chrome120\":10,\"Safari26_3\":20,\"Firefox148\":10},\"desktop_non_darwin\":{\"Chrome133\":50,"
          "\"Chrome131\":20,\"Chrome120\":15,\"Safari26_3\":0,\"Firefox148\":15},\"mobile\":{\"IOS14\":70,\"Android11_"
          "OkHttp_Advisory\":30}},"
-         "\"route_policy\":{\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},\"ru\":{\"ech_mode\":"
-         "\"disabled\",\"allow_quic\":false},\"non_ru\":{\"ech_mode\":\"rfc9180_outer\",\"allow_quic\":false}},"
+         "\"route_policy\":{\"unknown\":{\"ech_mode\":\"disabled\"},\"ru\":{\"ech_mode\":"
+         "\"disabled\"},\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},"
          "\"route_failure\":{\"ech_failure_threshold\":3,\"ech_disable_ttl_seconds\":1800,\"persist_across_restart\":"
          "true},"
          "\"bulk_threshold_bytes\":8192}";
@@ -90,8 +90,8 @@ const char *android_config_json() {
          "25,\"Chrome120\":10,\"Safari26_3\":20,\"Firefox148\":10},\"desktop_non_darwin\":{\"Chrome133\":50,"
          "\"Chrome131\":20,\"Chrome120\":15,\"Safari26_3\":0,\"Firefox148\":15},\"mobile\":{\"IOS14\":0,\"Android11_"
          "OkHttp_Advisory\":100}},"
-         "\"route_policy\":{\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},\"ru\":{\"ech_mode\":"
-         "\"disabled\",\"allow_quic\":false},\"non_ru\":{\"ech_mode\":\"rfc9180_outer\",\"allow_quic\":false}},"
+         "\"route_policy\":{\"unknown\":{\"ech_mode\":\"disabled\"},\"ru\":{\"ech_mode\":"
+         "\"disabled\"},\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},"
          "\"route_failure\":{\"ech_failure_threshold\":3,\"ech_disable_ttl_seconds\":1800,\"persist_across_restart\":"
          "true},"
          "\"bulk_threshold_bytes\":8192}";

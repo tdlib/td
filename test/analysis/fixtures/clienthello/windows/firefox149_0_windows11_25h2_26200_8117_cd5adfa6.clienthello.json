@@ -1436,7 +1436,7 @@
   ],
   "scenario_id": "imported_firefox149_0_windows11_25h2_26200_8117_cd5adfa6_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap",
   "source_sha256": "86136e0070b4bc3c6cb2b437b9269c65b958b3d0431565f6f2c84b0d69279107",
   "tls_handshake_type": 1,
   "transport": "tcp"

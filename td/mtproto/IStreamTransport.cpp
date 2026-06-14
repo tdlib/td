@@ -9,6 +9,7 @@
 
 #include "td/mtproto/HttpTransport.h"
 #include "td/mtproto/stealth/StealthConfig.h"
+#include "td/mtproto/stealth/StealthRuntimeParams.h"
 #include "td/mtproto/stealth/StealthTransportDecorator.h"
 #include "td/mtproto/TcpTransport.h"
 
@@ -133,14 +134,25 @@ unique_ptr<IStreamTransport> create_transport(TransportType type) {
       auto inner = td::make_unique<tcp::ObfuscatedTransport>(type.dc_id, std::move(type.secret));
 #if TDLIB_STEALTH_SHAPING
       if (secret_copy.emulate_tls()) {
+        auto runtime_params = stealth::get_runtime_stealth_params_snapshot();
+        if (runtime_params.profile_rotation.enabled && !type.selected_runtime_profile) {
+          LOG(WARNING) << "Stealth shaping unavailable; refusing emulate_tls transport (fail-closed)"
+                       << tag("reason", "missing_runtime_profile_selection") << tag("transport", "obfuscated_tcp")
+                       << tag("dc_id", type.dc_id) << tag("tls_emulation", true)
+                       << tag("profile_rotation_enabled", true);
+          inner.reset();
+          return td::make_unique<FailClosedStealthTransport>(
+              TransportType{TransportType::ObfuscatedTcp, type.dc_id, std::move(secret_copy)});
+        }
         auto rng = stealth::make_connection_rng();
         // Single-selection handoff: when the connection path already chose one
         // profile for this attempt, shape the transport with that exact profile so
         // it matches the emitted ClientHello (no split profile state). Otherwise
         // fall back to independent selection (legacy; coherent only while rotation
         // is disabled).
-        auto config = type.selected_profile
-                          ? stealth::make_transport_stealth_config(secret_copy, *rng, type.selected_profile.value())
+        auto config = type.selected_runtime_profile
+                          ? stealth::make_transport_stealth_config(secret_copy, *rng,
+                                                                   type.selected_runtime_profile.value().profile)
                           : stealth::make_transport_stealth_config(secret_copy, *rng);
         if (config.is_error()) {
           auto error = config.move_as_error();

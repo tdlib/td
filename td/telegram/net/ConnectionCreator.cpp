@@ -62,28 +62,6 @@ int64 lifecycle_now_ms(double now_seconds = Time::now()) {
   return static_cast<int64>(now_seconds * 1000.0);
 }
 
-// Single-selection handoff: computes the one runtime profile for an emulate_tls
-// connection attempt and stamps it onto transport_type.selected_profile, so the
-// same profile reaches both the TLS ClientHello (TlsInit) and the transport-shaping
-// config (create_transport) and one attempt cannot carry split profile state. Must
-// run before the connection promise copies transport_type. No-op for non-emulate_tls
-// transports; with the rotation policy disabled the result equals the legacy
-// deterministic baseline.
-void stamp_runtime_profile_selection(mtproto::TransportType &transport_type) {
-  if (!transport_type.secret.emulate_tls()) {
-    return;
-  }
-  auto domain = transport_type.secret.get_domain();
-  auto route_hints =
-      mtproto::stealth::route_hints_from_country_code(G()->get_option_string("stealth_route_country_code"));
-  mtproto::stealth::set_runtime_ech_failure_store(G()->td_db()->get_config_pmc_shared());
-  auto unix_time = static_cast<int32>(Time::now() + G()->get_dns_time_difference());
-  auto platform = mtproto::stealth::default_runtime_platform_hints();
-  auto ech_mode = mtproto::stealth::get_runtime_ech_decision(domain, unix_time, route_hints).ech_mode;
-  transport_type.selected_profile =
-      mtproto::stealth::pick_runtime_profile_adaptive(domain, unix_time, platform, ech_mode).profile;
-}
-
 int32 clamp_backoff_event_time_to_int32(double now) {
   if (!std::isfinite(now)) {
     return std::numeric_limits<int32>::max();
@@ -316,18 +294,6 @@ Slice active_policy_name(mtproto::stealth::RuntimeActivePolicy policy) {
   }
 }
 
-bool quic_enabled_for_active_policy(const mtproto::stealth::StealthRuntimeParams &params) {
-  switch (params.active_policy) {
-    case mtproto::stealth::RuntimeActivePolicy::RuEgress:
-      return params.route_policy.ru.allow_quic;
-    case mtproto::stealth::RuntimeActivePolicy::NonRuEgress:
-      return params.route_policy.non_ru.allow_quic;
-    case mtproto::stealth::RuntimeActivePolicy::Unknown:
-    default:
-      return params.route_policy.unknown.allow_quic;
-  }
-}
-
 bool is_ipv6_mapped_ipv4(const IPAddress &ip_address) {
   if (!ip_address.is_ipv6()) {
     return false;
@@ -366,6 +332,26 @@ Result<IPAddress> normalize_peer_address(const IPAddress &ip_address) {
 }  // namespace
 
 std::atomic<int> VERBOSITY_NAME(connections) = VERBOSITY_NAME(INFO);
+
+// Single-selection handoff: computes the one runtime wire-variant snapshot for
+// an emulate_tls connection attempt and stamps it onto
+// transport_type.selected_runtime_profile, so the same immutable attempt state
+// reaches both TlsInit and create_transport. No-op for non-emulate_tls
+// transports; with rotation disabled the result still matches the legacy
+// baseline.
+void ConnectionCreator::stamp_runtime_profile_selection(mtproto::TransportType &transport_type) {
+  if (!transport_type.secret.emulate_tls()) {
+    return;
+  }
+  auto domain = transport_type.secret.get_domain();
+  auto route_hints =
+      mtproto::stealth::route_hints_from_country_code(G()->get_option_string("stealth_route_country_code"));
+  mtproto::stealth::set_runtime_ech_failure_store(G()->td_db()->get_config_pmc_shared());
+  auto unix_time = static_cast<int32>(Time::now() + G()->get_dns_time_difference());
+  auto platform = mtproto::stealth::default_runtime_platform_hints();
+  auto selection = mtproto::stealth::select_runtime_profile_for_attempt(domain, unix_time, platform, route_hints);
+  transport_type.selected_runtime_profile = selection;
+}
 
 namespace detail {
 
@@ -527,7 +513,7 @@ void ConnectionCreator::set_net_stats_callback(std::shared_ptr<NetStatsCallback>
 string ConnectionCreator::get_connection_lifecycle_report_json() const {
   auto runtime_params = mtproto::stealth::get_runtime_stealth_params_snapshot();
   return connection_lifecycle_report_->to_json(active_policy_name(runtime_params.active_policy),
-                                               quic_enabled_for_active_policy(runtime_params));
+                                               false);
 }
 
 void ConnectionCreator::add_proxy(int32 old_proxy_id, td_api::object_ptr<td_api::proxy> proxy, bool enable,
@@ -1467,7 +1453,7 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
       return ActorOwn<>(create_actor<mtproto::TlsInit>(
           PSLICE() << actor_name_prefix << "TlsInit", std::move(socket_fd), transport_type.secret.get_domain(),
           transport_type.secret.get_proxy_secret().str(), std::move(callback), std::move(parent),
-          G()->get_dns_time_difference(), route_hints, transport_type.selected_profile));
+          G()->get_dns_time_difference(), route_hints, transport_type.selected_runtime_profile));
     } else {
       UNREACHABLE();
     }

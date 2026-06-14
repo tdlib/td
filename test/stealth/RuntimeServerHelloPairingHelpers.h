@@ -98,6 +98,7 @@ inline stealth::ProfileWeights zero_profile_weights() {
   weights.firefox149_windows = 0;
   weights.safari26_3 = 0;
   weights.ios14 = 0;
+  weights.apple_ios_tls = 0;
   weights.android_chromium_alps = 0;
   weights.android11_okhttp_advisory = 0;
   return weights;
@@ -161,6 +162,10 @@ inline stealth::StealthRuntimeParams single_runtime_profile_params(stealth::Brow
     case stealth::BrowserProfile::IOS14:
       params.platform_hints = ios_platform();
       params.profile_weights.ios14 = 100;
+      break;
+    case stealth::BrowserProfile::AppleIosTls:
+      params.platform_hints = ios_platform();
+      params.profile_weights.apple_ios_tls = 100;
       break;
     case stealth::BrowserProfile::AndroidChromium_Alps:
       params.platform_hints = android_platform();

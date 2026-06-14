@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-
 #include "td/mtproto/stealth/StealthParamsLoader.h"
 
 #include "td/utils/format.h"
@@ -358,14 +358,12 @@ Result<RuntimeRoutePolicyEntry> parse_route_entry(Slice scope, JsonValue value) 
     return Status::Error(scope.str() + " must be an object");
   }
   auto &object = value.get_object();
-  TRY_STATUS(ensure_exact_object_shape(scope, object, {Slice("ech_mode"), Slice("allow_quic")}));
+  TRY_STATUS(ensure_exact_object_shape(scope, object, {Slice("ech_mode")}));
 
   RuntimeRoutePolicyEntry entry;
   TRY_RESULT(ech_mode_name, object.get_required_string_field("ech_mode"));
   TRY_RESULT(ech_mode, parse_ech_mode(ech_mode_name));
   entry.ech_mode = ech_mode;
-  TRY_RESULT(allow_quic, object.get_required_bool_field("allow_quic"));
-  entry.allow_quic = allow_quic;
   return entry;
 }
 
@@ -689,41 +687,8 @@ Result<RuntimeRouteFailurePolicy> parse_route_failure(JsonValue value) {
   }
 
   if (object.has_field("failure_kinds")) {
-    TRY_RESULT(failure_kinds_value, object.extract_required_field("failure_kinds", JsonValue::Type::Array));
-    const auto &failure_kinds = failure_kinds_value.get_array();
-    if (failure_kinds.empty()) {
-      return Status::Error("route_failure.failure_kinds must not be empty");
-    }
-
-    static const std::array<Slice, 4> kSupportedFailureKinds = {
-        Slice("tcp_reset_after_ch"),
-        Slice("hello_timeout"),
-        Slice("tls_alert_fatal"),
-        Slice("server_hello_parser_reject"),
-    };
-    std::unordered_set<string> seen_failure_kinds;
-    seen_failure_kinds.reserve(failure_kinds.size());
-
-    for (const auto &failure_kind : failure_kinds) {
-      if (failure_kind.type() != JsonValue::Type::String || failure_kind.get_string().empty()) {
-        return Status::Error("route_failure.failure_kinds entries must be non-empty strings");
-      }
-
-      auto failure_kind_name = failure_kind.get_string();
-      bool supported = false;
-      for (auto allowed_failure_kind : kSupportedFailureKinds) {
-        if (failure_kind_name == allowed_failure_kind) {
-          supported = true;
-          break;
-        }
-      }
-      if (!supported) {
-        return Status::Error("route_failure.failure_kinds has unsupported value \"" + failure_kind_name.str() + "\"");
-      }
-      if (!seen_failure_kinds.emplace(failure_kind_name.str()).second) {
-        return Status::Error("route_failure.failure_kinds must not contain duplicates");
-      }
-    }
+    return Status::Error(
+        "route_failure.failure_kinds is not implemented; omit the field until failure attribution is wired end-to-end");
   }
 
   TRY_RESULT(persist_across_restart, object.get_required_bool_field("persist_across_restart"));
@@ -821,11 +786,18 @@ StealthParamsLoader::StealthParamsLoader(string config_path)
 }
 
 Result<StealthRuntimeParams> StealthParamsLoader::try_load_strict(Slice config_path) noexcept {
+  return try_load_strict(config_path, LoadPolicy{});
+}
+
+Result<StealthRuntimeParams> StealthParamsLoader::try_load_strict(Slice config_path, LoadPolicy policy) noexcept {
   auto config_path_str = config_path.str();
 #if TD_PORT_POSIX
   struct ::stat st;
   if (::lstat(config_path_str.c_str(), &st) != 0) {
     if (errno == ENOENT || errno == ENOTDIR) {
+      if (policy.config_presence_requirement == ConfigPresenceRequirement::Required) {
+        return Status::Error("Stealth params file is required but missing");
+      }
       return default_runtime_stealth_params();
     }
     return Status::PosixError(errno, "Failed to stat stealth params file");
@@ -839,6 +811,9 @@ Result<StealthRuntimeParams> StealthParamsLoader::try_load_strict(Slice config_p
   // `StealthParamsLoader_StrictLoadMissingConfigReturnsDefaults` test
   // which exercises exactly this path on Windows).
   if (stat(config_path_str).is_error()) {
+    if (policy.config_presence_requirement == ConfigPresenceRequirement::Required) {
+      return Status::Error("Stealth params file is required but missing");
+    }
     return default_runtime_stealth_params();
   }
 #endif
@@ -1016,7 +991,8 @@ Result<StealthRuntimeParams> StealthParamsLoader::parse_and_validate(string cont
       "root", object,
       {Slice("version"), Slice("active_policy"), Slice("ipt"), Slice("drs"), Slice("flow_behavior"),
        Slice("platform_hints"), Slice("profile_weights"), Slice("route_policy"), Slice("route_failure"),
-       Slice("profile_rotation"), Slice("release_mode_profile_gating"), Slice("transport_confidence"),
+       Slice("profile_rotation"), Slice("release_mode_profile_gating"), Slice("require_per_install_selection_salt"),
+       Slice("transport_confidence"),
        Slice("bulk_threshold_bytes")}));
 
   TRY_RESULT(version, object.get_required_int_field("version"));
@@ -1053,6 +1029,10 @@ Result<StealthRuntimeParams> StealthParamsLoader::parse_and_validate(string cont
   if (object.has_field("release_mode_profile_gating")) {
     TRY_RESULT(release_mode_profile_gating, object.get_required_bool_field("release_mode_profile_gating"));
     params.release_mode_profile_gating = release_mode_profile_gating;
+  }
+  if (object.has_field("require_per_install_selection_salt")) {
+    TRY_RESULT(require_per_install_selection_salt, object.get_required_bool_field("require_per_install_selection_salt"));
+    params.require_per_install_selection_salt = require_per_install_selection_salt;
   }
   if (object.has_field("transport_confidence")) {
     TRY_RESULT(transport_confidence_name, object.get_required_string_field("transport_confidence"));

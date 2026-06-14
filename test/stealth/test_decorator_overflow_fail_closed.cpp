@@ -14,13 +14,6 @@
 #include "td/utils/buffer.h"
 #include "td/utils/tests.h"
 
-#include <cstdlib>
-
-#if TD_PORT_POSIX
-#include <sys/wait.h>
-#include <unistd.h>
-#endif
-
 namespace {
 
 using td::mtproto::stealth::StealthConfig;
@@ -29,112 +22,78 @@ using td::mtproto::test::MockClock;
 using td::mtproto::test::MockRng;
 using td::mtproto::test::RecordingTransport;
 
-#if defined(__has_feature)
-#define TD_TEST_HAS_UNDEFINED_BEHAVIOR_SANITIZER __has_feature(undefined_behavior_sanitizer)
-#else
-#define TD_TEST_HAS_UNDEFINED_BEHAVIOR_SANITIZER 0
-#endif
-
-#if TD_USE_ASAN || defined(__SANITIZE_ADDRESS__) || TD_HAS_FEATURE_ADDRESS_SANITIZER || defined(__SANITIZE_LEAK__) || \
-    TD_HAS_FEATURE_LEAK_SANITIZER || defined(__SANITIZE_MEMORY__) || TD_HAS_FEATURE_MEMORY_SANITIZER ||              \
-    defined(__SANITIZE_THREAD__) || TD_HAS_FEATURE_THREAD_SANITIZER || TD_TEST_HAS_UNDEFINED_BEHAVIOR_SANITIZER
-constexpr bool kFatalAbortChildSanitizerBuild = true;
-#else
-constexpr bool kFatalAbortChildSanitizerBuild = false;
-#endif
-
 td::BufferWriter make_test_buffer(size_t size) {
   return td::BufferWriter(td::Slice(td::string(size, 'x')), 32, 0);
 }
 
-TEST(DecoratorOverflowDeathLeaf, IntentionalOverflowTriggersFatalAbort) {
-  if (std::getenv("TD_STEALTH_EXPECT_OVERFLOW_FATAL") == nullptr) {
-    return;
+struct OverflowHarness final {
+  td::unique_ptr<StealthTransportDecorator> decorator;
+  RecordingTransport *inner{nullptr};
+  MockClock *clock{nullptr};
+
+  static OverflowHarness make(size_t ring_capacity) {
+    MockRng config_rng(1);
+    auto config = StealthConfig::default_config(config_rng);
+    config.ring_capacity = ring_capacity;
+    config.high_watermark = 1;
+    config.low_watermark = 0;
+    config.chaff_policy.enabled = false;
+    config.greeting_camouflage_policy.greeting_record_count = 0;
+    config.bidirectional_correlation_policy.enabled = false;
+
+    OverflowHarness harness;
+    auto inner = td::make_unique<RecordingTransport>();
+    harness.inner = inner.get();
+    auto clock = td::make_unique<MockClock>();
+    harness.clock = clock.get();
+
+    auto decorator_result = StealthTransportDecorator::create(std::move(inner), config, td::make_unique<MockRng>(7),
+                                                              std::move(clock));
+    CHECK(decorator_result.is_ok());
+    harness.decorator = decorator_result.move_as_ok();
+    return harness;
   }
-
-  MockRng rng(1);
-  auto config = StealthConfig::default_config(rng);
-  config.ring_capacity = 2;
-  config.high_watermark = 1;
-  config.low_watermark = 0;
-
-  auto decorator_result = StealthTransportDecorator::create(td::make_unique<RecordingTransport>(), config,
-                                                            td::make_unique<MockRng>(7), td::make_unique<MockClock>());
-  CHECK(decorator_result.is_ok());
-  auto decorator = decorator_result.move_as_ok();
-
-  decorator->write(make_test_buffer(17), false);
-  decorator->write(make_test_buffer(19), false);
-  decorator->write(make_test_buffer(23), false);
-}
-
-#if TD_PORT_POSIX
-
-struct ChildRunResult final {
-  int status{0};
-  td::string output;
 };
 
-td::string get_self_executable_path() {
-  td::string path(4096, '\0');
-  auto size = ::readlink("/proc/self/exe", &path[0], path.size() - 1);
-  CHECK(size > 0);
-  path.resize(static_cast<size_t>(size));
-  return path;
+// CONTRACT: once the combined ring capacity is exceeded, the decorator must
+// fail closed like the higher-level emulate_tls activation gate: stop accepting
+// writes, refuse to flush queued plaintext, and surface a transport error on
+// read instead of terminating the whole host process.
+TEST(DecoratorOverflowFailClosed, OverflowTurnsTransportIntoTerminalErrorState) {
+  auto harness = OverflowHarness::make(/*ring_capacity=*/2);
+
+  harness.inner->can_write_result = false;
+  harness.decorator->write(make_test_buffer(17), false);
+  harness.decorator->write(make_test_buffer(19), false);
+
+  // This is the red path under the historical behavior: it aborted the process.
+  harness.decorator->write(make_test_buffer(23), false);
+
+  ASSERT_FALSE(harness.decorator->can_write());
+  ASSERT_TRUE(harness.decorator->can_read());
+
+  td::BufferSlice packet;
+  td::uint32 quick_ack = 0;
+  auto result = harness.decorator->read_next(&packet, &quick_ack);
+  ASSERT_TRUE(result.is_error());
+  ASSERT_TRUE(result.error().message().str().find("ring overflow") != td::string::npos);
 }
 
-ChildRunResult run_child_test(td::Slice filter) {
-  int pipe_fds[2] = {-1, -1};
-  CHECK(::pipe(pipe_fds) == 0);
+// Black-hat scenario: after the overflow trigger fires, no queued data may
+// continue draining to the inner transport. Emitting already-buffered MTProto
+// after the decorator declared its state invalid would violate fail-closed.
+TEST(DecoratorOverflowFailClosed, OverflowPreventsQueuedWritesFromReachingInnerTransport) {
+  auto harness = OverflowHarness::make(/*ring_capacity=*/2);
 
-  auto executable = get_self_executable_path();
-  auto filter_string = filter.str();
-  auto child_pid = ::fork();
-  CHECK(child_pid >= 0);
+  harness.inner->can_write_result = false;
+  harness.decorator->write(make_test_buffer(29), false);
+  harness.decorator->write(make_test_buffer(31), false);
+  harness.decorator->write(make_test_buffer(37), false);
 
-  if (child_pid == 0) {
-    ::close(pipe_fds[0]);
-    CHECK(::dup2(pipe_fds[1], 1) >= 0);
-    CHECK(::dup2(pipe_fds[1], 2) >= 0);
-    ::close(pipe_fds[1]);
-    CHECK(::setenv("TD_STEALTH_EXPECT_OVERFLOW_FATAL", "1", 1) == 0);
-    ::execl(executable.c_str(), executable.c_str(), "--filter", filter_string.c_str(), nullptr);
-    _exit(127);
-  }
+  harness.inner->can_write_result = true;
+  harness.decorator->pre_flush_write(harness.clock->now());
 
-  ::close(pipe_fds[1]);
-
-  ChildRunResult result;
-  char buffer[1024];
-  while (true) {
-    auto read_size = ::read(pipe_fds[0], buffer, sizeof(buffer));
-    if (read_size <= 0) {
-      break;
-    }
-    result.output.append(buffer, static_cast<size_t>(read_size));
-  }
-  ::close(pipe_fds[0]);
-
-  CHECK(::waitpid(child_pid, &result.status, 0) == child_pid);
-  return result;
+  ASSERT_EQ(0, harness.inner->write_calls);
 }
-
-TEST(DecoratorOverflowFailClosed, IntentionalOverflowCrashesChildAndEmitsInvariantMessage) {
-  if (kFatalAbortChildSanitizerBuild) {
-    return;
-  }
-  auto result = run_child_test("DecoratorOverflowDeathLeaf_IntentionalOverflowTriggersFatalAbort");
-
-  ASSERT_FALSE(WIFEXITED(result.status) && WEXITSTATUS(result.status) == 0);
-  ASSERT_TRUE(result.output.find("Stealth ring overflow invariant broken") != td::string::npos);
-}
-
-#else
-
-TEST(DecoratorOverflowFailClosed, IntentionalOverflowCrashesChildAndEmitsInvariantMessage) {
-  ASSERT_TRUE(true);
-}
-
-#endif
 
 }  // namespace

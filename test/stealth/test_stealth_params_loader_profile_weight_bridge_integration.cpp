@@ -104,9 +104,9 @@ TEST(StealthParamsLoaderProfileWeightBridgeIntegration,
     }
   },
   "route_policy": {
-    "unknown": {"ech_mode": "disabled", "allow_quic": false},
-    "ru": {"ech_mode": "disabled", "allow_quic": false},
-    "non_ru": {"ech_mode": "rfc9180_outer", "allow_quic": false}
+    "unknown": {"ech_mode": "disabled"},
+    "ru": {"ech_mode": "disabled"},
+    "non_ru": {"ech_mode": "rfc9180_outer"}
   },
   "route_failure": {
     "ech_failure_threshold": 3,

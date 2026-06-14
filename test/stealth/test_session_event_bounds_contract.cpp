@@ -42,8 +42,8 @@ TEST(SessionEventBoundsContract, NewSessionFirstOccurrenceAcceptedWithSaltUpdate
   ASSERT_EQ(0u, snap.counters.session_init_rate_gate_total);
 }
 
-// Contract: second occurrence of the same unique_id within rate window
-// → AcceptWithoutSaltUpdate; session_init_replay_total counter fires.
+// Contract: second occurrence of the same unique_id is a replay signal, not a
+// rate-gated new session.
 TEST(SessionEventBoundsContract, DuplicateUniqueIdReturnedWithoutSaltUpdate) {
   td::net_health::reset_net_monitor_for_tests();
   SessionInitSequencer seq;
@@ -53,7 +53,7 @@ TEST(SessionEventBoundsContract, DuplicateUniqueIdReturnedWithoutSaltUpdate) {
   // Same unique_id again (typical replay scenario)
   auto decision = seq.on_event(0xAAAAAAAABBBBBBBBULL, kNow + 60.0);
 
-  ASSERT_TRUE(decision == SessionInitSequencer::Decision::AcceptWithoutSaltUpdate);
+  ASSERT_TRUE(decision == SessionInitSequencer::Decision::ReplayWithoutSaltUpdate);
   // Caller must fire the counter; verify we can call it
   td::net_health::note_session_init_replay();
   auto snap = td::net_health::get_net_monitor_snapshot();

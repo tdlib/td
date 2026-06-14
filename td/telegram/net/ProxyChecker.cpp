@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/net/ProxyChecker.h"
 
@@ -56,6 +56,9 @@ void ProxyChecker::test_proxy(Proxy &&proxy, int32 dc_id, double timeout, Promis
   auto request = make_unique<TestProxyRequest>();
   request->proxy_ = std::move(proxy);
   request->dc_id_ = static_cast<int16>(dc_id);
+  request->transport_type_ =
+      mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, request->dc_id_, request->proxy_.secret()};
+  ConnectionCreator::stamp_runtime_profile_selection(request->transport_type_);
   request->promise_ = std::move(promise);
 
   auto connection_promise =
@@ -63,7 +66,7 @@ void ProxyChecker::test_proxy(Proxy &&proxy, int32 dc_id, double timeout, Promis
         send_closure(actor_id, &ProxyChecker::on_test_proxy_connection_data, request_id, std::move(r_data));
       });
   request->child_ = ConnectionCreator::prepare_connection(
-      ip_address, std::move(proxy_socket.socket_fd), request->proxy_, mtproto_ip_address, request->get_transport(),
+      ip_address, std::move(proxy_socket.socket_fd), request->proxy_, mtproto_ip_address, request->transport_type_,
       "Test",
       "TestPingDC2", nullptr, {}, false, std::move(connection_promise));
 
@@ -103,7 +106,7 @@ void ProxyChecker::on_test_proxy_connection_data(uint64 request_id, Result<Conne
   auto handshake = make_unique<mtproto::AuthKeyHandshake>(request->dc_id_, 3600);
   auto data = r_data.move_as_ok();
   auto raw_connection = mtproto::RawConnection::create(data.ip_address, std::move(data.buffered_socket_fd),
-                                                       request->get_transport(), nullptr);
+                                                       request->transport_type_, nullptr);
   request->child_ = create_actor<mtproto::HandshakeActor>(
       "HandshakeActor", std::move(handshake), std::move(raw_connection), make_unique<HandshakeContext>(), 10.0,
       PromiseCreator::lambda(

@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-
 #include "td/mtproto/stealth/StealthTransportDecorator.h"
 
 #include "td/utils/buffer.h"
@@ -113,14 +113,6 @@ size_t max_small_records_in_window(const StealthConfig &config) {
 
 TrafficHint normalize_drs_hint(TrafficHint hint) {
   return hint == TrafficHint::Unknown ? TrafficHint::Interactive : hint;
-}
-
-void fail_closed_on_ring_overflow() {
-  // Emit a direct stderr marker before aborting so the death test remains
-  // deterministic even when the logging backend output is truncated.
-  static_cast<void>(std::fputs("Stealth ring overflow invariant broken\n", stderr));
-  static_cast<void>(std::fflush(stderr));
-  LOG(FATAL) << "Stealth ring overflow invariant broken";
 }
 
 size_t account_transport_payload_overhead(size_t written_bytes, TransportPayloadOverhead payload_overhead) {
@@ -363,6 +355,12 @@ Result<size_t> StealthTransportDecorator::read_next(BufferSlice *message, uint32
 }
 
 Result<size_t> StealthTransportDecorator::read_next(BufferSlice *message, uint32 *quick_ack, int32 *error_code) {
+  if (overflow_failed_) {
+    if (error_code != nullptr) {
+      *error_code = 0;
+    }
+    return Status::Error("stealth ring overflow fail-closed");
+  }
   auto result = inner_->read_next(message, quick_ack, error_code);
   if (result.is_ok()) {
     if (message != nullptr && !message->empty()) {
@@ -378,6 +376,9 @@ bool StealthTransportDecorator::support_quick_ack() const {
 }
 
 void StealthTransportDecorator::write(BufferWriter &&message, bool quick_ack) {
+  if (overflow_failed_) {
+    return;
+  }
   auto hint = pending_hint_;
   pending_hint_ = TrafficHint::Unknown;
   auto effective_hint = stealth_transport_decorator_internal::normalize_drs_hint(hint);
@@ -398,13 +399,15 @@ void StealthTransportDecorator::write(BufferWriter &&message, bool quick_ack) {
   ShaperPendingWrite pending_write{std::move(message), quick_ack, send_at, hint, response_jitter_delay_us};
   if (queued_write_count() >= config_.ring_capacity) {
     overflow_invariant_hits_++;
-    stealth_transport_decorator_internal::fail_closed_on_ring_overflow();
+    fail_closed_on_ring_overflow();
+    return;
   }
 
   auto &target_ring = delay_us == 0 ? bypass_ring_ : ring_;
   if (!target_ring.try_enqueue(std::move(pending_write))) {
     overflow_invariant_hits_++;
-    stealth_transport_decorator_internal::fail_closed_on_ring_overflow();
+    fail_closed_on_ring_overflow();
+    return;
   }
 
   if (queued_write_count() >= high_watermark_) {
@@ -413,11 +416,11 @@ void StealthTransportDecorator::write(BufferWriter &&message, bool quick_ack) {
 }
 
 bool StealthTransportDecorator::can_read() const {
-  return inner_->can_read();
+  return overflow_failed_ || inner_->can_read();
 }
 
 bool StealthTransportDecorator::can_write() const {
-  return inner_->can_write() && !backpressure_latched_;
+  return !overflow_failed_ && inner_->can_write() && !backpressure_latched_;
 }
 
 void StealthTransportDecorator::init(ChainBufferReader *input, ChainBufferWriter *output) {
@@ -458,6 +461,9 @@ void StealthTransportDecorator::configure_packet_info(PacketInfo *packet_info) c
 }
 
 void StealthTransportDecorator::pre_flush_write(double now) {
+  if (overflow_failed_) {
+    return;
+  }
   if (!stealth_transport_decorator_internal::is_finite_time(now)) {
     inner_->pre_flush_write(0.0);
     return;
@@ -487,8 +493,11 @@ void StealthTransportDecorator::pre_flush_write(double now) {
         stealth_transport_decorator_internal::TransportPayloadOverhead payload_overhead;
         if (is_greeting_phase_active()) {
           payload_cap = config_.sample_greeting_record_size(greeting_records_sent_, *rng_);
-          current_record_size_ = std::min(apply_small_record_budget(payload_cap),
-                                          stealth_transport_decorator_internal::kMaxGreetingRecordSize);
+          // Greeting camouflage is a first-flight template and must remain within
+          // the sampled browser-like bin instead of being normalized by the
+          // generic small-record budget used for later DRS/manual traffic.
+          current_record_size_ =
+              std::min(payload_cap, stealth_transport_decorator_internal::kMaxGreetingRecordSize);
           payload_overhead.bytes = inner_->tls_record_sizing_payload_overhead();
           effective_record_size = stealth_transport_decorator_internal::adjust_tls_record_size_for_payload_overhead(
               current_record_size_, payload_overhead);
@@ -667,6 +676,9 @@ void StealthTransportDecorator::pre_flush_write(double now) {
 }
 
 double StealthTransportDecorator::get_shaping_wakeup() const {
+  if (overflow_failed_) {
+    return 0.0;
+  }
   auto inner_wakeup = inner_->get_shaping_wakeup();
 
   bool has_wakeup = false;
@@ -758,6 +770,22 @@ size_t StealthTransportDecorator::traffic_bulk_threshold_bytes() const {
 
 size_t StealthTransportDecorator::queued_write_count() const {
   return bypass_ring_.size() + ring_.size();
+}
+
+void StealthTransportDecorator::fail_closed_on_ring_overflow() {
+  if (overflow_failed_) {
+    return;
+  }
+  overflow_failed_ = true;
+  backpressure_latched_ = true;
+  bypass_ring_ = ShaperRingBuffer(config_.ring_capacity);
+  ring_ = ShaperRingBuffer(config_.ring_capacity);
+  pending_post_response_jitter_us_ = 0;
+  pending_response_floor_bytes_ = 0;
+
+  LOG(WARNING) << "Stealth ring overflow detected; fail-closing transport"
+               << tag("ring_capacity", config_.ring_capacity)
+               << tag("overflow_invariant_hits", overflow_invariant_hits_);
 }
 
 }  // namespace stealth

@@ -78,6 +78,30 @@ StealthConfig make_budget_stress_config() {
   return config;
 }
 
+StealthConfig make_greeting_budget_isolation_config() {
+  MockRng rng(1);
+  auto config = StealthConfig::default_config(rng);
+  config.drs_policy.slow_start = make_exact_phase(300);
+  config.drs_policy.congestion_open = make_exact_phase(300);
+  config.drs_policy.steady_state = make_exact_phase(300);
+  config.drs_policy.slow_start_records = 16;
+  config.drs_policy.congestion_bytes = 1 << 20;
+  config.drs_policy.idle_reset_ms_min = 1000;
+  config.drs_policy.idle_reset_ms_max = 1000;
+  config.drs_policy.min_payload_cap = 300;
+  config.drs_policy.max_payload_cap = 300;
+
+  config.record_padding_policy.small_record_threshold = 400;
+  config.record_padding_policy.small_record_max_fraction = 0.0;
+  config.record_padding_policy.small_record_window_size = 8;
+
+  GreetingCamouflagePolicy greeting_policy;
+  greeting_policy.greeting_record_count = 1;
+  greeting_policy.record_models[0] = make_range_phase({{120, 140, 1}});
+  config.greeting_camouflage_policy = greeting_policy;
+  return config;
+}
+
 struct DecoratorFixture final {
   td::unique_ptr<StealthTransportDecorator> decorator;
   RecordingTransport *inner{nullptr};
@@ -257,6 +281,22 @@ TEST(PostHandshakeGreetingPolicyEdges, GreetingAppliesTransportPayloadOverheadTo
   ASSERT_EQ(1400, fixture.inner->stealth_record_padding_targets.back());
   ASSERT_FALSE(fixture.inner->max_tls_record_sizes.empty());
   ASSERT_EQ(1600, fixture.inner->max_tls_record_sizes.back());
+}
+
+TEST(PostHandshakeGreetingPolicyEdges, GreetingBypassesSmallRecordBudgetButPostGreetingDrsStillUsesIt) {
+  auto fixture = make_fixture(make_greeting_budget_isolation_config());
+
+  flush_once(fixture, "first");
+
+  ASSERT_FALSE(fixture.inner->stealth_record_padding_targets.empty());
+  auto greeting_target = fixture.inner->stealth_record_padding_targets.back();
+  ASSERT_TRUE(greeting_target >= 120);
+  ASSERT_TRUE(greeting_target <= 140);
+
+  flush_once(fixture, "second");
+
+  ASSERT_TRUE(fixture.inner->stealth_record_padding_targets.size() >= 2u);
+  ASSERT_EQ(400, fixture.inner->stealth_record_padding_targets.back());
 }
 
 }  // namespace

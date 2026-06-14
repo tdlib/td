@@ -57,6 +57,10 @@ namespace mtproto {
 
 class AuthData;
 
+namespace test {
+struct SessionConnectionTestPeer;
+}  // namespace test
+
 class SessionConnection final
     : public Named
     , private RawConnection::Callback {
@@ -147,6 +151,7 @@ class SessionConnection final
   };
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MsgInfo &info);
+  friend struct ::td::mtproto::test::SessionConnectionTestPeer;
 
   bool online_flag_ = false;
   bool is_main_ = false;
@@ -192,7 +197,9 @@ class SessionConnection final
   vector<MessageId> to_get_state_info_message_ids_;
   FlatHashMap<MessageId, ServiceQuery, MessageIdHash> service_queries_;
 
-  // nobody cleans up this map. But it should be really small.
+  // Tracks which container carried service-query helper messages so the parent
+  // failure path can replay them. Entries must be retired as soon as the helper
+  // query completes or the parent container fails.
   FlatHashMap<MessageId, vector<MessageId>, MessageIdHash> container_to_service_message_id_;
 
   double random_delay_ = 0;
@@ -285,6 +292,7 @@ class SessionConnection final
   Status on_main_packet(const PacketInfo &packet_info, Slice packet) TD_WARN_UNUSED_RESULT;
   void on_message_failed(MessageId message_id, Status status);
   void on_message_failed_inner(MessageId message_id);
+  void erase_container_service_link(MessageId container_message_id, MessageId service_message_id);
 
   void do_close(Status status);
 

@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-
 #include "td/mtproto/ClientHelloOpMapper.h"
 
 #include "td/utils/common.h"
@@ -219,6 +219,13 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
       }
       return {};
     case TlsExtensionType::ApplicationSettings: {
+      if (config.force_http11_only_alpn) {
+        // ALPS in the imported Chromium captures is negotiated for the `h2`
+        // ALPN lane only. Once proxy mode rewrites ALPN to `http/1.1`, keeping
+        // ALPS would advertise a browser-only HTTP/2 application-settings path
+        // that the MTProto-over-TLS transport cannot honor.
+        return {};
+      }
       // The ALPS extension uses two different IANA codepoints across
       // Chrome history:
       //   * 0x4469 — Chrome 106..132 (legacy ALPS, used by Chrome 120 / 131)

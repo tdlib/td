@@ -86,4 +86,22 @@ TEST(ConnectionCreatorProxyRouteSourceContract, PingProxyBufferedSocketLogsDoNot
   ASSERT_TRUE(normalized.find("transport_type.secret.emulate_tls()") == td::string::npos);
 }
 
+TEST(ConnectionCreatorProxyRouteSourceContract, ProxyCheckerStampsOneTransportAndReusesItAcrossHandshakePath) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/net/ProxyChecker.cpp");
+  auto header = td::mtproto::test::read_repo_text_file("td/telegram/net/ProxyChecker.h");
+  auto source_normalized = normalize_for_contract(source);
+  auto header_normalized = normalize_for_contract(header);
+
+  ASSERT_TRUE(header_normalized.find("mtproto::TransportTypetransport_type_;") != td::string::npos);
+  ASSERT_TRUE(header_normalized.find("get_transport()const") == td::string::npos);
+
+  ASSERT_TRUE(source_normalized.find("request->transport_type_=mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp,request->dc_id_,request->proxy_.secret()};") !=
+              td::string::npos);
+  ASSERT_TRUE(source_normalized.find("ConnectionCreator::stamp_runtime_profile_selection(request->transport_type_);") !=
+              td::string::npos);
+  ASSERT_TRUE(source_normalized.find("request->transport_type_,\"Test\"") != td::string::npos);
+  ASSERT_TRUE(source_normalized.find("request->transport_type_,nullptr)") != td::string::npos);
+  ASSERT_TRUE(source_normalized.find("request->get_transport()") == td::string::npos);
+}
+
 }  // namespace

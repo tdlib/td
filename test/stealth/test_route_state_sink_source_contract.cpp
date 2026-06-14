@@ -81,7 +81,7 @@ TEST(RouteStateSinkSourceContract, FutureSaltRateGateReturnsBeforeFutureSaltMuta
   ASSERT_TRUE(rate_gate_block.find("return Status::OK();") != td::string::npos);
 }
 
-TEST(RouteStateSinkSourceContract, SessionInitCallbackRemainsGatedAfterMessageIdRemap) {
+TEST(RouteStateSinkSourceContract, SessionInitReplayReturnsBeforeCallbackButRateGatedSessionStillNotifies) {
   auto source = td::mtproto::test::read_repo_text_file("td/mtproto/SessionConnection.cpp");
   auto region = extract_source_region(source,
                                       "Status SessionConnection::on_packet(const MsgInfo &info, const "
@@ -90,20 +90,26 @@ TEST(RouteStateSinkSourceContract, SessionInitCallbackRemainsGatedAfterMessageId
                                       "                                    const mtproto_api::bad_msg_notification "
                                       "&bad_msg_notification) {");
 
+  auto replay_pos = region.find("if (init_decision == SessionInitSequencer::Decision::ReplayWithoutSaltUpdate) {");
   auto remap_pos = region.find("if (it != service_queries_.end()) {");
-  auto gate_pos = region.find("if (init_decision == SessionInitSequencer::Decision::AcceptWithSaltUpdate) {");
+  auto rate_gate_pos = region.find("if (init_decision == SessionInitSequencer::Decision::AcceptWithoutSaltUpdate) {");
   auto callback_pos =
       region.find("callback_->on_new_session_created(new_session_created.unique_id_, first_message_id);");
 
+  ASSERT_TRUE(replay_pos != td::string::npos);
   ASSERT_TRUE(remap_pos != td::string::npos);
-  ASSERT_TRUE(gate_pos != td::string::npos);
+  ASSERT_TRUE(rate_gate_pos != td::string::npos);
   ASSERT_TRUE(callback_pos != td::string::npos);
-  ASSERT_TRUE(remap_pos < gate_pos);
-  ASSERT_TRUE(gate_pos < callback_pos);
+  ASSERT_TRUE(replay_pos < rate_gate_pos);
+  ASSERT_TRUE(rate_gate_pos < remap_pos);
+  ASSERT_TRUE(remap_pos < callback_pos);
 
-  auto gate_block = region.substr(gate_pos, callback_pos - gate_pos + 96);
-  ASSERT_TRUE(gate_block.find("AcceptWithSaltUpdate") != td::string::npos);
-  ASSERT_TRUE(gate_block.find("callback_->on_new_session_created") != td::string::npos);
+  auto replay_block = region.substr(replay_pos, remap_pos - replay_pos);
+  ASSERT_TRUE(replay_block.find("note_session_init_replay") != td::string::npos);
+  ASSERT_TRUE(replay_block.find("return Status::OK();") != td::string::npos);
+
+  auto rate_gate_block = region.substr(rate_gate_pos, callback_pos - rate_gate_pos);
+  ASSERT_TRUE(rate_gate_block.find("note_session_init_rate_gate") != td::string::npos);
 }
 
 }  // namespace route_state_sink_source_contract

@@ -94,13 +94,11 @@ TEST(StealthRuntimeDefaultsContract, DefaultRuntimeParamsValidateAndExposeFailCl
   ASSERT_TRUE(params.active_policy == RuntimeActivePolicy::Unknown);
   ASSERT_TRUE(params.transport_confidence == TransportConfidence::Unknown);
   ASSERT_FALSE(params.release_mode_profile_gating);
+  ASSERT_FALSE(params.require_per_install_selection_salt);
 
   ASSERT_TRUE(params.route_policy.unknown.ech_mode == EchMode::Disabled);
   ASSERT_TRUE(params.route_policy.ru.ech_mode == EchMode::Disabled);
   ASSERT_TRUE(params.route_policy.non_ru.ech_mode == EchMode::Rfc9180Outer);
-  ASSERT_FALSE(params.route_policy.unknown.allow_quic);
-  ASSERT_FALSE(params.route_policy.ru.allow_quic);
-  ASSERT_FALSE(params.route_policy.non_ru.allow_quic);
 
   ASSERT_EQ(3u, params.route_failure.ech_failure_threshold);
   ASSERT_EQ(300.0, params.route_failure.ech_disable_ttl_seconds);

@@ -11,6 +11,7 @@
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 
 namespace td {
 namespace mtproto {
@@ -60,6 +61,10 @@ string build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int
                                                 EchMode ech_mode, IRng &rng);
 string build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
                                                 EchMode ech_mode);
+Result<string> try_build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time,
+                                                            BrowserProfile profile, EchMode ech_mode, IRng &rng);
+Result<string> try_build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time,
+                                                            BrowserProfile profile, EchMode ech_mode);
 
 }  // namespace stealth
 }  // namespace mtproto

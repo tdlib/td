@@ -54,7 +54,7 @@ td::string join_path(td::Slice dir, td::Slice file_name) {
 }
 
 td::Slice valid_config_json() {
-  return R"json({"version":1,"profile_weights":{"chrome133":50,"chrome131":20,"chrome120":15,"firefox148":15,"safari26_3":20,"ios14":70,"android11_okhttp_advisory":30},"route_policy":{"unknown":{"ech_mode":"disabled","allow_quic":false},"ru":{"ech_mode":"disabled","allow_quic":false},"non_ru":{"ech_mode":"rfc9180_outer","allow_quic":false}},"route_failure":{"ech_failure_threshold":3,"ech_disable_ttl_seconds":300.0,"persist_across_restart":true},"bulk_threshold_bytes":8192})json";
+  return R"json({"version":1,"profile_weights":{"chrome133":50,"chrome131":20,"chrome120":15,"firefox148":15,"safari26_3":20,"ios14":70,"android11_okhttp_advisory":30},"route_policy":{"unknown":{"ech_mode":"disabled"},"ru":{"ech_mode":"disabled"},"non_ru":{"ech_mode":"rfc9180_outer"}},"route_failure":{"ech_failure_threshold":3,"ech_disable_ttl_seconds":300.0,"persist_across_restart":true},"bulk_threshold_bytes":8192})json";
 }
 
 #if !_WIN32

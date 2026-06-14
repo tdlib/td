@@ -5,17 +5,22 @@
 //
 
 #include "td/mtproto/stealth/StealthRuntimeParams.h"
+#include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/tests.h"
 
 namespace tls_runtime_profile_policy_fail_closed {
 
 using td::mtproto::stealth::DesktopOs;
 using td::mtproto::stealth::DeviceClass;
+using td::mtproto::stealth::get_per_install_selection_salt;
 using td::mtproto::stealth::get_runtime_stealth_params_snapshot;
 using td::mtproto::stealth::ProfileWeights;
+using td::mtproto::stealth::reset_per_install_selection_salt_for_tests;
 using td::mtproto::stealth::reset_runtime_stealth_params_for_tests;
 using td::mtproto::stealth::RuntimePlatformHints;
+using td::mtproto::stealth::set_per_install_selection_salt;
 using td::mtproto::stealth::set_runtime_stealth_params_for_tests;
 using td::mtproto::stealth::StealthRuntimeParams;
 using td::mtproto::stealth::TransportConfidence;
@@ -72,6 +77,7 @@ ProfileWeights zero_profile_weights() {
   weights.firefox149_windows = 0;
   weights.safari26_3 = 0;
   weights.ios14 = 0;
+  weights.apple_ios_tls = 0;
   weights.android_chromium_alps = 0;
   weights.android11_okhttp_advisory = 0;
   return weights;
@@ -143,7 +149,7 @@ TEST(TlsRuntimeProfilePolicyFailClosed, RejectsReleaseModeWhenPlatformHasOnlyAdv
                  "release_mode_profile_gating requires at least one release_gating profile weight for platform_hints");
 }
 
-TEST(TlsRuntimeProfilePolicyFailClosed, RejectsReleaseModeForCurrentIosCuration) {
+TEST(TlsRuntimeProfilePolicyFailClosed, AllowsReleaseModeForCurrentIosCurationAtPartialConfidence) {
   RuntimeParamsGuard guard;
 
   auto params = make_default_params();
@@ -151,8 +157,7 @@ TEST(TlsRuntimeProfilePolicyFailClosed, RejectsReleaseModeForCurrentIosCuration)
   params.transport_confidence = TransportConfidence::Partial;
   params.release_mode_profile_gating = true;
 
-  assert_invalid(params,
-                 "release_mode_profile_gating requires at least one release_gating profile weight for platform_hints");
+  ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
 }
 
 TEST(TlsRuntimeProfilePolicyFailClosed, AllowsReleaseModeForVerifiedAndroidCurationAtEstablishedConfidence) {
@@ -174,6 +179,33 @@ TEST(TlsRuntimeProfilePolicyFailClosed, RejectsReleaseModeForAndroidAtUnknownCon
   params.release_mode_profile_gating = true;
   assert_invalid(params,
                  "release_mode_profile_gating requires at least one release_gating profile weight for platform_hints");
+}
+
+TEST(TlsRuntimeProfilePolicyFailClosed, RejectsRequiredPerInstallSelectionSaltWhenUnset) {
+  RuntimeParamsGuard guard;
+  reset_per_install_selection_salt_for_tests();
+  SCOPE_EXIT {
+    reset_per_install_selection_salt_for_tests();
+  };
+
+  auto params = make_default_params();
+  params.require_per_install_selection_salt = true;
+  ASSERT_EQ(static_cast<td::uint64>(0), get_per_install_selection_salt());
+  assert_invalid(params, "require_per_install_selection_salt requires a non-zero per-install selection salt");
+}
+
+TEST(TlsRuntimeProfilePolicyFailClosed, AllowsRequiredPerInstallSelectionSaltWhenConfigured) {
+  RuntimeParamsGuard guard;
+  reset_per_install_selection_salt_for_tests();
+  SCOPE_EXIT {
+    reset_per_install_selection_salt_for_tests();
+  };
+
+  set_per_install_selection_salt(0x8F2A5D39C17B4E61ULL);
+
+  auto params = make_default_params();
+  params.require_per_install_selection_salt = true;
+  ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
 }
 
 TEST(TlsRuntimeProfilePolicyFailClosed, InvalidProfilePolicyDoesNotReplaceLastKnownGoodSnapshot) {

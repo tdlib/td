@@ -1148,7 +1148,7 @@
   ],
   "scenario_id": "imported_brave1_89_132_windows10_21h1_00fe6ad2_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/windows_10_21H1,_brave_1_89_132,_auto_Windows_10_0,_auto_Chromiu.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/windows_10_21H1,_brave_1_89_132,_auto_Windows_10_0,_auto_Chromiu.pcap",
   "source_sha256": "9c387f64a6a041b73912c006932eb22ffce20a631ef937736b265286aa7d61d6",
   "tls_handshake_type": 1,
   "transport": "tcp"

@@ -53,6 +53,30 @@ TEST(RuntimeProfileRotationAdversarial, CaseAndDotAliasesShareQuarantine) {
   ASSERT_TRUE(after.profile != baseline.profile);
 }
 
+// IOS14 and AppleIosTls currently emit the same wire image for the same inputs.
+// Quarantining one must therefore quarantine the other too; otherwise rotation can
+// claim it escaped a blocked fingerprint while only switching enum labels.
+TEST(RuntimeProfileRotationAdversarial, WireIdenticalIosAliasesShareOneQuarantineUnit) {
+  RotationTestGuard guard;
+  auto params = rotation_params(ios_platform(), TransportConfidence::Unknown, false, true, kThreshold);
+  params.profile_weights = {};
+  params.profile_weights.ios14 = 1;
+  params.profile_weights.apple_ios_tls = 1;
+  ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
+
+  const td::string dest = "ios-alias.example.com";
+  auto baseline = pick_runtime_profile_adaptive(dest, kUnixTime, ios_platform(), EchMode::Disabled);
+  ASSERT_TRUE(baseline.profile == BrowserProfile::IOS14 || baseline.profile == BrowserProfile::AppleIosTls);
+
+  quarantine_variant(dest, baseline.profile, baseline.hello_uses_ech, kThreshold);
+  auto blocked_before = get_runtime_profile_rotation_counters().profile_quarantine_all_blocked_total;
+
+  auto after = pick_runtime_profile_adaptive(dest, kUnixTime, ios_platform(), EchMode::Disabled);
+  ASSERT_FALSE(after.avoided_quarantined_profile);
+  ASSERT_TRUE(after.profile == baseline.profile);
+  ASSERT_TRUE(get_runtime_profile_rotation_counters().profile_quarantine_all_blocked_total > blocked_before);
+}
+
 // Quarantining the ECH-on wire variant must not poison the ECH-off variant of the
 // same profile/destination: they are distinct wire shapes.
 TEST(RuntimeProfileRotationAdversarial, EchSplitDoesNotPoisonOtherVariant) {

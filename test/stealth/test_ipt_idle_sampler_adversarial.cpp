@@ -1,5 +1,8 @@
-// Adversarial test suite for IptController idle delay sampling.
-
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
+//
 #include "td/mtproto/stealth/IptController.h"
 #include "td/utils/tests.h"
 
@@ -171,6 +174,26 @@ TEST(IptIdleSamplerAdversarial, MinimumAlpha) {
   for (auto s : samples) {
     ASSERT_TRUE(s >= scale_us);
     ASSERT_TRUE(s <= max_us);
+  }
+}
+
+TEST(IptIdleSamplerAdversarial, ExtremelySmallAlphaStillProducesBoundedDelay) {
+  auto p = make_test_params();
+  p.idle_alpha = 1e-300;
+  p.idle_scale_ms = 50.0;
+  p.idle_max_ms = 500.0;
+
+  DeterministicRng rng(7);
+  IptController ctrl(p, rng);
+
+  auto samples = collect_idle_samples(ctrl, 64);
+  auto scale_us = static_cast<td::uint64>(p.idle_scale_ms * 1000.0);
+  auto max_us = static_cast<td::uint64>(p.idle_max_ms * 1000.0);
+
+  for (auto s : samples) {
+    ASSERT_TRUE(s >= scale_us);
+    ASSERT_TRUE(s <= max_us);
+    ASSERT_TRUE(s != std::numeric_limits<td::uint64>::max());
   }
 }
 

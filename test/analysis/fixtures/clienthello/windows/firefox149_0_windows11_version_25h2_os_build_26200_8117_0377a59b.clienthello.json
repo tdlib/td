@@ -1720,7 +1720,7 @@
   ],
   "scenario_id": "imported_firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap",
   "source_sha256": "a2a77d9c936f96c6eb43ab699d654d185a1d74bd11b4d72d199f1063a6a67972",
   "tls_handshake_type": 1,
   "transport": "tcp"

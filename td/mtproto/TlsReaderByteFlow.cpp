@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/mtproto/TlsReaderByteFlow.h"
 
@@ -16,6 +16,7 @@ namespace mtproto {
 namespace {
 
 const Slice kFakeChangeCipherSpec("\x14\x03\x03\x00\x01\x01", 6);
+constexpr size_t kMaxTlsRecordPayloadSize = 1u << 14;
 
 }  // namespace
 
@@ -62,6 +63,13 @@ bool TlsReaderByteFlow::loop() {
     return false;
   }
   size_t len = (buf[3] << 8) | buf[4];
+  if (len > kMaxTlsRecordPayloadSize) {
+    LOG(WARNING) << "TLS emulation reader rejected oversized record"
+                 << " [declared_payload_size=" << len << "]"
+                 << " [max_allowed=" << kMaxTlsRecordPayloadSize << "]";
+    close_input(Status::Error("Oversized packet in emulated tls reader"));
+    return false;
+  }
   if (it.size() < len) {
     set_need_size(5 + len);
     return false;

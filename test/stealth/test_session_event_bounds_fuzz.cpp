@@ -38,6 +38,7 @@ TEST(SessionEventBoundsFuzz, RandomNewSessionEventsNeverCrash) {
     // Decision must be a valid enum value
     ASSERT_TRUE(decision == SessionInitSequencer::Decision::AcceptWithSaltUpdate ||
                 decision == SessionInitSequencer::Decision::AcceptWithoutSaltUpdate ||
+                decision == SessionInitSequencer::Decision::ReplayWithoutSaltUpdate ||
                 decision == SessionInitSequencer::Decision::Reject);
   }
 }

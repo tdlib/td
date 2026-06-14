@@ -267,43 +267,65 @@ void TlsInit::record_profile_failure_once(stealth::RuntimeProfileFailureSignal s
 
 void TlsInit::send_hello() {
   hello_unix_time_ = static_cast<int32>(Time::now() + server_time_difference_);
-  auto decision = stealth::get_runtime_ech_decision(username_, hello_unix_time_, route_hints_);
+
+  // One profile for this whole connection attempt. If the connection path already
+  // selected a full wire-variant snapshot (the single-selection handoff), use it
+  // verbatim so the emitted ClientHello matches the transport-shaping config and
+  // one attempt carries one immutable wire variant. Otherwise self-select now
+  // (tests / legacy callers). Either way the chosen (profile + hello_uses_ech) is
+  // the exact unit failure/success accounting and quarantine key on.
+  auto platform = stealth::default_runtime_platform_hints();
+  stealth::RuntimeProfileSelectionDecision selection;
+  if (preselected_runtime_profile_) {
+    selection = preselected_runtime_profile_.value();
+  } else {
+    selection = stealth::select_runtime_profile_for_attempt(username_, hello_unix_time_, platform, route_hints_);
+  }
+  stealth::RuntimeEchDecision decision;
+  decision.ech_mode = selection.ech_mode;
+  decision.disabled_by_route = selection.ech_disabled_by_route;
+  decision.disabled_by_circuit_breaker = selection.ech_disabled_by_circuit_breaker;
+  decision.reenabled_after_ttl = selection.ech_reenabled_after_ttl;
+
   hello_ech_mode_name_ = ech_mode_name(decision.ech_mode).str();
   hello_ech_disabled_by_route_ = decision.disabled_by_route;
   hello_ech_disabled_by_circuit_breaker_ = decision.disabled_by_circuit_breaker;
   hello_ech_reenabled_after_ttl_ = decision.reenabled_after_ttl;
-
-  // One profile for this whole connection attempt. If the connection path already
-  // selected it (the single-selection handoff), use it verbatim so the emitted
-  // ClientHello matches the transport-shaping config and one attempt carries one
-  // wire variant. Otherwise self-select adaptively against the same ECH decision
-  // above (tests / legacy callers). Either way the chosen (profile + hello_uses_ech)
-  // is the exact unit failure/success accounting and quarantine key on. Unified
-  // across all platforms so macOS is no longer a predictable Chrome133; with the
-  // rotation policy disabled this is exactly the legacy weighted baseline.
-  auto platform = stealth::default_runtime_platform_hints();
-  BrowserProfile profile;
-  if (preselected_profile_) {
-    profile = preselected_profile_.value();
-    hello_profile_rotation_avoided_quarantined_ = false;
-    hello_profile_rotation_quarantined_candidates_ = 0;
-  } else {
-    auto selection = stealth::pick_runtime_profile_adaptive(username_, hello_unix_time_, platform, decision.ech_mode);
-    profile = selection.profile;
-    hello_profile_rotation_avoided_quarantined_ = selection.avoided_quarantined_profile;
-    hello_profile_rotation_quarantined_candidates_ = selection.quarantined_candidate_count;
+  hello_profile_ = selection.profile;
+  hello_profile_name_ = stealth::profile_spec(selection.profile).name.str();
+  hello_profile_allows_ech_ = stealth::profile_spec(selection.profile).allows_ech;
+  hello_uses_ech_ = selection.hello_uses_ech;
+  auto expected_hello_uses_ech = hello_profile_allows_ech_ && decision.ech_mode == stealth::EchMode::Rfc9180Outer;
+  if (hello_uses_ech_ != expected_hello_uses_ech) {
+    LOG(ERROR) << "TlsInit runtime profile snapshot inconsistent " << tag("destination", username_)
+               << tag("profile", hello_profile_name_) << tag("ech_mode", hello_ech_mode_name_)
+               << tag("hello_uses_ech", hello_uses_ech_) << tag("expected_hello_uses_ech", expected_hello_uses_ech);
+    on_error(make_proxy_setup_error(
+        ProxySetupErrorCode::TlsHelloMalformedResponse,
+        PSLICE() << "runtime profile snapshot inconsistent with final ECH gate: profile=" << hello_profile_name_
+                 << " ech_mode=" << hello_ech_mode_name_ << " hello_uses_ech=" << hello_uses_ech_
+                 << " expected_hello_uses_ech=" << expected_hello_uses_ech));
+    return;
   }
-  hello_profile_ = profile;
-  hello_profile_name_ = stealth::profile_spec(profile).name.str();
-  hello_profile_allows_ech_ = stealth::profile_spec(profile).allows_ech;
-  hello_uses_ech_ = hello_profile_allows_ech_ && decision.ech_mode == stealth::EchMode::Rfc9180Outer;
+  hello_profile_rotation_avoided_quarantined_ = selection.avoided_quarantined_profile;
+  hello_profile_rotation_quarantined_candidates_ = selection.quarantined_candidate_count;
   hello_profile_rotation_enabled_ = stealth::get_runtime_stealth_params_snapshot().profile_rotation.enabled;
   hello_failure_recorded_ = false;
   hello_profile_failure_recorded_ = false;
-  auto hello = stealth::build_proxy_tls_client_hello_for_profile(
-      username_, password_, hello_unix_time_, profile,
+  auto hello_result = stealth::try_build_proxy_tls_client_hello_for_profile(
+      username_, password_, hello_unix_time_, selection.profile,
       hello_uses_ech_ ? stealth::EchMode::Rfc9180Outer : stealth::EchMode::Disabled);
+  if (hello_result.is_error()) {
+    auto error = hello_result.move_as_error();
+    LOG(ERROR) << "TlsInit hello generation failed " << tag("destination", username_)
+               << tag("profile", hello_profile_name_) << tag("status_code", error.code())
+               << tag("status_message", error.public_message());
+    on_error(make_proxy_setup_error(ProxySetupErrorCode::TlsHelloMalformedResponse,
+                                    PSLICE() << "TLS hello generation failed: " << error.public_message()));
+    return;
+  }
 
+  auto hello = hello_result.move_as_ok();
   if (hello.size() < kTlsHelloResponseRandomOffset + kTlsHelloResponseRandomSize) {
     LOG(ERROR) << "TlsInit hello generation failed " << tag("destination", username_)
                << tag("profile", hello_profile_name_) << tag("hello_bytes", hello.size())

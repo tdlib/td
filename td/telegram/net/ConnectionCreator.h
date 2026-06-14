@@ -124,6 +124,7 @@ class ConnectionCreator final : public NetQueryCallback {
                                        const IPAddress &actual_peer_address);
   static bool is_reviewed_route_address(const IPAddress &ip_address, [[maybe_unused]] bool is_test);
   static DcOptions filter_reviewed_route_options(DcOptions options, bool is_test);
+  static void stamp_runtime_profile_selection(mtproto::TransportType &transport_type);
 
  private:
   friend class ProxyChecker;

@@ -230,4 +230,61 @@ TEST(EchRouteFailureParseFailTtlRaceAdversarial,
   ASSERT_TRUE(remaining_ms <= 65000);
 }
 
+TEST(EchRouteFailureParseFailTtlRaceAdversarial,
+     BlockedStoreReadDoesNotSerializeIndependentRuntimeDecisionLookups) {
+  RuntimeGuard guard;
+
+  auto store = std::make_shared<BlockingReadStore>();
+  td::mtproto::test::ScopedRuntimeEchStore scoped_store(store);
+
+  const td::Slice blocked_destination("blocked-read.example.com");
+  const td::Slice independent_destination("independent-read.example.com");
+  constexpr int32 kUnixTime = 1712345678;
+  const auto blocked_key = td::mtproto::test::canonical_store_key(blocked_destination);
+
+  store->set(blocked_key, td::mtproto::test::serialize_store_entry(/*failures=*/5, /*blocked=*/true,
+                                                                   /*remaining_ms=*/60000,
+                                                                   td::mtproto::test::now_system_ms()));
+  store->set_block_key(blocked_key);
+
+  ASSERT_TRUE(set_runtime_stealth_params_for_tests(make_runtime_params(60.0, 1)).is_ok());
+
+  td::mtproto::stealth::RuntimeEchDecision blocked_decision;
+  std::thread blocked_reader([&] {
+    blocked_decision = get_runtime_ech_decision(blocked_destination, kUnixTime, td::mtproto::test::non_ru_route_hints());
+  });
+
+  ASSERT_TRUE(store->wait_until_blocked());
+
+  td::mtproto::stealth::RuntimeEchDecision independent_decision;
+  std::mutex independent_mutex;
+  std::condition_variable independent_cv;
+  bool independent_ready = false;
+  std::thread independent_reader([&] {
+    auto decision = get_runtime_ech_decision(independent_destination, kUnixTime, td::mtproto::test::non_ru_route_hints());
+    {
+      auto lock = std::lock_guard(independent_mutex);
+      independent_decision = decision;
+      independent_ready = true;
+    }
+    independent_cv.notify_one();
+  });
+
+  {
+    auto lock = std::unique_lock(independent_mutex);
+    ASSERT_TRUE(independent_cv.wait_for(lock, std::chrono::milliseconds(250), [&] { return independent_ready; }));
+  }
+  independent_reader.join();
+
+  ASSERT_TRUE(independent_decision.ech_mode == EchMode::Rfc9180Outer);
+  ASSERT_FALSE(independent_decision.disabled_by_route);
+  ASSERT_FALSE(independent_decision.disabled_by_circuit_breaker);
+
+  store->release_blocked_get();
+  blocked_reader.join();
+
+  ASSERT_TRUE(blocked_decision.ech_mode == EchMode::Disabled);
+  ASSERT_TRUE(blocked_decision.disabled_by_circuit_breaker);
+}
+
 }  // namespace ech_route_failure_parse_fail_ttl_race_adversarial

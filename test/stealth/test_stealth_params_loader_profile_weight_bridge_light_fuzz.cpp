@@ -67,9 +67,9 @@ td::string make_legacy_windows_flat_config(td::uint32 seed) {
   json += "\"ios14\":70,";
   json += "\"android11_okhttp_advisory\":30},";
   json += "\"route_policy\":{";
-  json += "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},";
-  json += "\"ru\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},";
-  json += "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\",\"allow_quic\":false}},";
+  json += "\"unknown\":{\"ech_mode\":\"disabled\"},";
+  json += "\"ru\":{\"ech_mode\":\"disabled\"},";
+  json += "\"non_ru\":{\"ech_mode\":\"rfc9180_outer\"}},";
   json += "\"route_failure\":{";
   json += "\"ech_failure_threshold\":3,";
   json += "\"ech_disable_ttl_seconds\":300.0,";

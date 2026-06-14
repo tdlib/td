@@ -1,10 +1,11 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-
 #include "td/mtproto/stealth/StealthConfig.h"
+#include "td/mtproto/stealth/SecureRngBounded.h"
 #include "td/mtproto/stealth/StealthRecordSizeBaselines.h"
 #include "td/mtproto/stealth/StealthRuntimeParams.h"
 
@@ -40,8 +41,7 @@ uint32 SecureRng::secure_uint32() {
 }
 
 uint32 SecureRng::bounded(uint32 n) {
-  CHECK(n != 0);
-  return Random::secure_uint32() % n;
+  return stealth_rng_internal::bounded_secure_uint32(*this, n);
 }
 
 class SystemClock final : public IClock {
@@ -457,6 +457,9 @@ StealthConfig StealthConfig::from_secret(const ProxySecret &secret, IRng &rng) {
 
 StealthConfig StealthConfig::from_secret(const ProxySecret &secret, IRng &rng, int32 unix_time,
                                          const RuntimePlatformHints &platform) {
+  if (!secret.emulate_tls()) {
+    return from_secret(secret, rng, unix_time, platform, BrowserProfile::Chrome133);
+  }
   return from_secret(secret, rng, unix_time, platform,
                      pick_runtime_profile(secret.get_domain(), unix_time, platform));
 }

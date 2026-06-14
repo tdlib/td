@@ -1010,7 +1010,7 @@
   ],
   "scenario_id": "imported_chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_4780,_Maxthon_7_5_2_5400_Chromium140_0.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_4780,_Maxthon_7_5_2_5400_Chromium140_0.pcap",
   "source_sha256": "95e46d7572d9ff750001342579c0fa8339cfd3cc04c5d22c42e691fef830536a",
   "tls_handshake_type": 1,
   "transport": "tcp"

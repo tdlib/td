@@ -21,11 +21,11 @@ using td::mtproto::stealth::build_proxy_tls_client_hello_for_profile;
 using td::mtproto::stealth::build_runtime_tls_client_hello;
 using td::mtproto::stealth::build_tls_client_hello_for_profile;
 using td::mtproto::stealth::default_runtime_platform_hints;
-using td::mtproto::stealth::get_runtime_ech_decision;
 using td::mtproto::stealth::NetworkRouteHints;
 using td::mtproto::stealth::pick_runtime_profile;
 using td::mtproto::stealth::reset_runtime_ech_counters_for_tests;
 using td::mtproto::stealth::reset_runtime_ech_failure_state_for_tests;
+using td::mtproto::stealth::select_runtime_profile_for_attempt;
 using td::mtproto::test::find_extension;
 using td::mtproto::test::MockRng;
 using td::mtproto::test::parse_tls_client_hello;
@@ -48,11 +48,10 @@ TEST(TlsRuntimeBuilderEquivalence, RuntimeBuilderMatchesExplicitProfileAndDecisi
     reset_runtime_ech_failure_state_for_tests();
     reset_runtime_ech_counters_for_tests();
 
-    auto profile = pick_runtime_profile(domain, unix_time, platform);
-    auto decision = get_runtime_ech_decision(domain, unix_time, route_hints);
+    auto selection = select_runtime_profile_for_attempt(domain, unix_time, platform, route_hints);
 
     // Reset again so the runtime build below sees the same fresh state
-    // as the manual `pick_runtime_profile` / `get_runtime_ech_decision`
+    // as the manual `select_runtime_profile_for_attempt`
     // pair did.
     reset_runtime_ech_failure_state_for_tests();
     reset_runtime_ech_counters_for_tests();
@@ -74,7 +73,10 @@ TEST(TlsRuntimeBuilderEquivalence, RuntimeBuilderMatchesExplicitProfileAndDecisi
     // would compare an http/1.1-only wire against an h2/http/1.1 wire and
     // fail at the ALPN extension body.
     auto explicit_wire = build_proxy_tls_client_hello_for_profile(
-        domain, "0123456789secret", unix_time, profile, decision.ech_mode, explicit_rng);
+        domain, "0123456789secret", unix_time, selection.profile,
+        selection.hello_uses_ech ? td::mtproto::stealth::EchMode::Rfc9180Outer
+                                 : td::mtproto::stealth::EchMode::Disabled,
+        explicit_rng);
 
     ASSERT_EQ(runtime_wire, explicit_wire);
   }

@@ -66,28 +66,36 @@ TEST(TlsRuntimeSelectionSourceContract, AllowedProfilesForPlatformRoutesDesktopM
 
 TEST(TlsRuntimeSelectionSourceContract, RuntimeProfileSelectionUsesPlatformAllowListAndStableHashRoll) {
   auto source = td::mtproto::test::read_repo_text_file("td/mtproto/stealth/TlsHelloProfileRegistry.cpp");
-  auto region = extract_source_region(source, "BrowserProfile pick_runtime_profile(", "EchMode ech_mode_for_route(");
+  auto region = extract_source_region(source, "RuntimeProfileResolution resolve_runtime_profile(",
+                                      "}  // namespace tls_hello_profile_registry_internal");
   auto normalized = normalize_for_contract(region);
 
-  ASSERT_TRUE(normalized.find("autoruntime_params=get_runtime_stealth_params_snapshot();") != td::string::npos);
   ASSERT_TRUE(normalized.find("autoallowed_profiles=allowed_profiles_for_platform(platform);") != td::string::npos);
-  ASSERT_TRUE(normalized.find("autokey=make_profile_selection_key(destination,unix_time);") != td::string::npos);
-  ASSERT_TRUE(normalized.find("autoweights=runtime_params.profile_weights;") != td::string::npos);
+  ASSERT_TRUE(normalized.find("resolution.key=make_profile_selection_key(destination,unix_time);") != td::string::npos);
+  ASSERT_TRUE(normalized.find("constauto&weights=runtime_params.profile_weights;") != td::string::npos);
   ASSERT_TRUE(normalized.find("std::vector<BrowserProfile>confidence_allowed_profiles;") != td::string::npos);
-  ASSERT_TRUE(normalized.find("if(!tls_hello_profile_registry_internal::transport_confidence_allows_profile(runtime_"
-                              "params,profile)){continue;}") != td::string::npos);
-  ASSERT_TRUE(normalized.find("CHECK(total_weight>0);") != td::string::npos);
-  ASSERT_TRUE(normalized.find(
-                  "autoroll=tls_hello_profile_registry_internal::stable_selection_hash(key,platform)%total_weight;") !=
+  ASSERT_TRUE(normalized.find("if(!transport_confidence_allows_profile(runtime_params,profile)){continue;}") !=
               td::string::npos);
-  ASSERT_TRUE(normalized.find("BrowserProfilebaseline_profile=confidence_allowed_profiles.back();") !=
+  ASSERT_TRUE(normalized.find("if(profile_weight(weights,profile)==0){continue;}") != td::string::npos);
+  ASSERT_TRUE(normalized.find("autobaseline=weighted_pick(confidence_allowed_profiles,weights,resolution.key,platform);") !=
               td::string::npos);
   ASSERT_TRUE(normalized.find("for(autoprofile:confidence_allowed_profiles)") != td::string::npos);
   ASSERT_TRUE(normalized.find("if(confidence_allowed_profiles.empty())") != td::string::npos);
-  ASSERT_TRUE(normalized.find("if(!runtime_params.release_mode_profile_gating){returnbaseline_profile;}") !=
+  ASSERT_TRUE(normalized.find("if(!runtime_params.release_mode_profile_gating){resolution.baseline=baseline;resolution.selectable=std::move(confidence_allowed_profiles);returnresolution;}") !=
               td::string::npos);
-  ASSERT_TRUE(normalized.find("tls_hello_profile_registry_internal::runtime_profile_selection_counters().advisory_"
-                              "blocked_total.fetch_add(1,std::memory_order_relaxed);") != td::string::npos);
+  ASSERT_TRUE(normalized.find("runtime_profile_selection_counters().advisory_blocked_total.fetch_add(1,std::memory_order_relaxed);") !=
+              td::string::npos);
+}
+
+TEST(TlsRuntimeSelectionSourceContract, PickRuntimeProfileDelegatesToSharedResolutionHelper) {
+  auto source = td::mtproto::test::read_repo_text_file("td/mtproto/stealth/TlsHelloProfileRegistry.cpp");
+  auto region = extract_source_region(source, "BrowserProfile pick_runtime_profile(",
+                                      "RuntimeProfileSelectionDecision pick_runtime_profile_adaptive(");
+  auto normalized = normalize_for_contract(region);
+
+  ASSERT_TRUE(normalized.find("autoruntime_params=get_runtime_stealth_params_snapshot();") != td::string::npos);
+  ASSERT_TRUE(normalized.find("returntls_hello_profile_registry_internal::resolve_runtime_profile(runtime_params,destination,unix_time,platform).baseline;") !=
+              td::string::npos);
 }
 
 }  // namespace tls_runtime_selection_source_contract_test

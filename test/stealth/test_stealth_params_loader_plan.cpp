@@ -98,13 +98,12 @@ TEST(StealthParamsLoaderPlan, StrictLoadAcceptsPlanStyleSchemaAndPublishesPlatfo
              "\"Chrome133\":0,\"Chrome131\":0,\"Chrome120\":0,\"Safari26_3\":0,\"Firefox148\":100},"
              "\"mobile\":{\"IOS14\":0,\"Android11_OkHttp_Advisory\":100}},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru_egress\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru_egress\":{\"ech_mode\":\"grease_draft17\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru_egress\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru_egress\":{\"ech_mode\":\"grease_draft17\"}},"
              "\"route_failure\":{"
              "\"ech_fail_open_threshold\":3,"
              "\"ech_disable_ttl_sec\":1800,"
-             "\"failure_kinds\":[\"tcp_reset_after_ch\",\"hello_timeout\"],"
              "\"persist_across_restart\":true},"
              "\"bulk_threshold_bytes\":16384}");
 
@@ -156,13 +155,12 @@ TEST(StealthParamsLoaderPlan, StrictLoadRejectsPlanStyleCrossClassRotationAndInv
              "\"Chrome133\":0,\"Chrome131\":0,\"Chrome120\":0,\"Safari26_3\":0,\"Firefox148\":100},"
              "\"mobile\":{\"IOS14\":0,\"Android11_OkHttp_Advisory\":100}},"
              "\"route_policy\":{"
-             "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"ru_egress\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
-             "\"non_ru_egress\":{\"ech_mode\":\"grease_draft17\",\"allow_quic\":false}},"
+             "\"unknown\":{\"ech_mode\":\"disabled\"},"
+             "\"ru_egress\":{\"ech_mode\":\"disabled\"},"
+             "\"non_ru_egress\":{\"ech_mode\":\"grease_draft17\"}},"
              "\"route_failure\":{"
              "\"ech_fail_open_threshold\":3,"
              "\"ech_disable_ttl_sec\":1800,"
-             "\"failure_kinds\":[\"tcp_reset_after_ch\"],"
              "\"persist_across_restart\":true},"
              "\"bulk_threshold_bytes\":16384}");
 

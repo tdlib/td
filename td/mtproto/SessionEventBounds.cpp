@@ -1,5 +1,6 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
@@ -36,8 +37,9 @@ SessionInitSequencer::Decision SessionInitSequencer::on_event(uint64 unique_id, 
   }
 
   if (is_known_unique_id(unique_id)) {
-    // Replay: session recognises this unique_id already — suppress salt update
-    return Decision::AcceptWithoutSaltUpdate;
+    // Replay: session recognises this unique_id already — suppress both salt
+    // mutation and resend recovery.
+    return Decision::ReplayWithoutSaltUpdate;
   }
 
   record_unique_id(unique_id);

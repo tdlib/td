@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-
 #pragma once
 
 #include "td/mtproto/BrowserProfile.h"
@@ -161,6 +161,8 @@ struct RuntimeProfileSelectionCounters final {
 // One quarantinable emitted wire variant: a destination's selected profile plus
 // whether that hello actually carried ECH on the wire. Two route classes that
 // converge to the same (profile, hello_uses_ech) pair share one quarantine unit.
+// Wire-identical aliases also collapse to one quarantine identity so rotation
+// cannot claim a no-op label swap as a real escape.
 struct RuntimeProfileWireVariant final {
   BrowserProfile profile{BrowserProfile::Chrome133};
   bool hello_uses_ech{false};
@@ -172,6 +174,10 @@ struct RuntimeProfileWireVariant final {
 struct RuntimeProfileSelectionDecision final {
   BrowserProfile profile{BrowserProfile::Chrome133};
   bool hello_uses_ech{false};
+  EchMode ech_mode{EchMode::Disabled};
+  bool ech_disabled_by_route{false};
+  bool ech_disabled_by_circuit_breaker{false};
+  bool ech_reenabled_after_ttl{false};
   bool avoided_quarantined_profile{false};
   uint32 quarantined_candidate_count{0};
 };
@@ -232,6 +238,9 @@ BrowserProfile pick_runtime_profile(Slice destination, int32 unix_time, const Ru
 // candidate is quarantined). ech_mode is the route's resolved ECH decision.
 RuntimeProfileSelectionDecision pick_runtime_profile_adaptive(Slice destination, int32 unix_time,
                                                               const RuntimePlatformHints &platform, EchMode ech_mode);
+RuntimeProfileSelectionDecision select_runtime_profile_for_attempt(Slice destination, int32 unix_time,
+                                                                   const RuntimePlatformHints &platform,
+                                                                   const NetworkRouteHints &route) noexcept;
 bool runtime_profile_failure_signal_is_quarantine_eligible(RuntimeProfileFailureSignal signal) noexcept;
 void note_runtime_profile_failure(Slice destination, const RuntimeProfileWireVariant &variant,
                                   RuntimeProfileFailureSignal signal);

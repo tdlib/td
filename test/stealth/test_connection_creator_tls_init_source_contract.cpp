@@ -69,4 +69,36 @@ TEST(ConnectionCreatorTlsInitSourceContract, StartUpInitializesStealthPersistenc
   ASSERT_TRUE(store_pos < init_pos);
 }
 
+TEST(ConnectionCreatorTlsInitSourceContract, RuntimeProfileSnapshotCarriesFinalWireVariantThroughTlsInit) {
+  auto connection_creator = td::mtproto::test::read_repo_text_file("td/telegram/net/ConnectionCreator.cpp");
+  auto transport_type = td::mtproto::test::read_repo_text_file("td/mtproto/TransportType.h");
+  auto tls_init = td::mtproto::test::read_repo_text_file("td/mtproto/TlsInit.cpp");
+
+  auto connection_creator_normalized = normalize_for_contract(connection_creator);
+  auto transport_type_normalized = normalize_for_contract(transport_type);
+  auto tls_init_normalized = normalize_for_contract(tls_init);
+
+  ASSERT_TRUE(transport_type_normalized.find(
+                  "td::optional<stealth::RuntimeProfileSelectionDecision>selected_runtime_profile;") !=
+              td::string::npos);
+  ASSERT_TRUE(connection_creator_normalized.find("autoselection=mtproto::stealth::select_runtime_profile_for_attempt(") !=
+              td::string::npos);
+  ASSERT_TRUE(connection_creator_normalized.find("transport_type.selected_runtime_profile=selection;") !=
+              td::string::npos);
+  ASSERT_TRUE(connection_creator_normalized.find("transport_type.selected_runtime_profile)") != td::string::npos);
+  ASSERT_TRUE(tls_init_normalized.find("if(preselected_runtime_profile_){selection=preselected_runtime_profile_.value();") !=
+              td::string::npos);
+  ASSERT_TRUE(tls_init_normalized.find("hello_uses_ech_=selection.hello_uses_ech;") != td::string::npos);
+}
+
+TEST(ConnectionCreatorTlsInitSourceContract, TransportTypeHeaderUsesRequiredDualSpdxHeader) {
+  auto transport_type = td::mtproto::test::read_repo_text_file("td/mtproto/TransportType.h");
+
+  ASSERT_TRUE(transport_type.find("SPDX-FileCopyrightText: Copyright Aliaksei Levin") != td::string::npos);
+  ASSERT_TRUE(transport_type.find("SPDX-FileCopyrightText: Copyright 2026 telemt community") != td::string::npos);
+  ASSERT_TRUE(transport_type.find("SPDX-License-Identifier: BSL-1.0 AND MIT") != td::string::npos);
+  ASSERT_TRUE(transport_type.find("telemt: https://github.com/telemt") != td::string::npos);
+  ASSERT_TRUE(transport_type.find("telemt: https://t.me/telemtrs") != td::string::npos);
+}
+
 }  // namespace

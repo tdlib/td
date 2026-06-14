@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -40,12 +40,9 @@ class ProxyChecker final : public NetQueryCallback {
   struct TestProxyRequest {
     Proxy proxy_;
     int16 dc_id_ = -1;
+    mtproto::TransportType transport_type_;
     ActorOwn<> child_;
     Promise<Unit> promise_;
-
-    mtproto::TransportType get_transport() const {
-      return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, dc_id_, proxy_.secret()};
-    }
   };
   uint64 test_proxy_request_id_ = 0;
   FlatHashMap<uint64, unique_ptr<TestProxyRequest>> test_proxy_requests_;

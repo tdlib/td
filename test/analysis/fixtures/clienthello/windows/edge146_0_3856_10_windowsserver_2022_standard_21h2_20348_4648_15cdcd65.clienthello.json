@@ -1695,7 +1695,7 @@
   ],
   "scenario_id": "imported_edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap",
   "source_sha256": "89762065ce1d52c62415a2b4b25139880c0020990e12541ccf0b08c83d505d3f",
   "tls_handshake_type": 1,
   "transport": "tcp"

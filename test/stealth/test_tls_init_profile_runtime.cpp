@@ -92,17 +92,8 @@ RuntimeProfileCandidate find_chromium_runtime_candidate() {
 void assert_profile_shape(const td::mtproto::test::ParsedClientHello &hello, BrowserProfile profile, bool expect_ech) {
   auto &spec = profile_spec(profile);
 
-  if (spec.alps_type != 0) {
-    ASSERT_TRUE(find_extension(hello, spec.alps_type) != nullptr);
-  }
-  if (spec.alps_type != td::mtproto::test::fixtures::kAlpsChrome131) {
-    ASSERT_TRUE(find_extension(hello, td::mtproto::test::fixtures::kAlpsChrome131) == nullptr ||
-                spec.alps_type == td::mtproto::test::fixtures::kAlpsChrome131);
-  }
-  if (spec.alps_type != td::mtproto::test::fixtures::kAlpsChrome133Plus) {
-    ASSERT_TRUE(find_extension(hello, td::mtproto::test::fixtures::kAlpsChrome133Plus) == nullptr ||
-                spec.alps_type == td::mtproto::test::fixtures::kAlpsChrome133Plus);
-  }
+  ASSERT_TRUE(find_extension(hello, td::mtproto::test::fixtures::kAlpsChrome131) == nullptr);
+  ASSERT_TRUE(find_extension(hello, td::mtproto::test::fixtures::kAlpsChrome133Plus) == nullptr);
 
   std::unordered_set<td::uint16> supported_groups(hello.supported_groups.begin(), hello.supported_groups.end());
   std::unordered_set<td::uint16> key_share_groups(hello.key_share_groups.begin(), hello.key_share_groups.end());

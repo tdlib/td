@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-
 #pragma once
 
 #include "td/mtproto/stealth/StealthConfig.h"
@@ -28,7 +28,6 @@ enum class TransportConfidence : uint8 {
 
 struct RuntimeRoutePolicyEntry final {
   EchMode ech_mode{EchMode::Disabled};
-  bool allow_quic{false};
 };
 
 struct RuntimeRoutePolicy final {
@@ -116,6 +115,7 @@ struct StealthRuntimeParams final {
   RuntimeProfileSelectionPolicy profile_selection;
   RuntimeProfileRotationPolicy profile_rotation;
   bool release_mode_profile_gating{false};
+  bool require_per_install_selection_salt{false};
   TransportConfidence transport_confidence{TransportConfidence::Unknown};
   RuntimeRoutePolicy route_policy;
   RuntimeRouteFailurePolicy route_failure;

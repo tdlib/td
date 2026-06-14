@@ -1,5 +1,6 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
@@ -24,9 +25,10 @@ class SessionInitSequencer final {
  public:
   // Decision for each new-session event.
   enum class Decision : uint8 {
-    AcceptWithSaltUpdate,     // first occurrence within window; update server salt
-    AcceptWithoutSaltUpdate,  // duplicate unique_id or rate gate suppresses salt update
-    Reject,                   // structurally invalid (e.g. unique_id = 0)
+    AcceptWithSaltUpdate,        // first occurrence outside the rate gate
+    AcceptWithoutSaltUpdate,     // fresh unique_id, but salt update is rate-gated
+    ReplayWithoutSaltUpdate,     // duplicate unique_id replay; suppress resend as well
+    Reject,                      // structurally invalid (e.g. unique_id = 0)
   };
 
   // Process a new-session event.

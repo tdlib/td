@@ -49,3 +49,8 @@ artifacts/pvs/
 *.PVS-Studio.log
 strace_out
 .vscode/mcp.json
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key

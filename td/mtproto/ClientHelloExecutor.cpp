@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-
 #include "td/mtproto/ClientHelloExecutor.h"
 
 #include "td/mtproto/ProxySecret.h"
@@ -433,9 +433,13 @@ class ByteWriter {
   }
 
   void store_mlkem_key_share(stealth::IRng &rng) {
+    constexpr uint32 kMlKemModulus = 3329;
     for (size_t i = 0; i < 384; i++) {
-      auto a = rng.secure_uint32() % 3329;
-      auto b = rng.secure_uint32() % 3329;
+      // Keep all bounded coefficient draws on the injected IRng seam so
+      // production uses unbiased rejection sampling and tests can pin the
+      // exact domain-limited randomness contract.
+      auto a = rng.bounded(kMlKemModulus);
+      auto b = rng.bounded(kMlKemModulus);
       remaining_[0] = static_cast<char>(a & 255);
       remaining_[1] = static_cast<char>((a >> 8) + ((b & 15) << 4));
       remaining_[2] = static_cast<char>(b >> 4);

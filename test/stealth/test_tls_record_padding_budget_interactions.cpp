@@ -274,7 +274,7 @@ TEST(TlsRecordPaddingBudgetInteractions, GreetingCamouflageRespectsBudgetAndThen
     flush_ready(fixture);
   }
 
-  std::vector<td::int32> expected_targets = {180, 400, 400, 400, 400, 400, 256};
+  std::vector<td::int32> expected_targets = {180, 220, 400, 400, 400, 400, 400};
   ASSERT_EQ(expected_targets, fixture.inner->emitted_targets);
   ASSERT_EQ(7, fixture.inner->write_calls);
 }

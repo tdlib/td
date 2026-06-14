@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-
 #include "td/mtproto/stealth/DrsEngine.h"
 
 #include <algorithm>
@@ -41,6 +41,11 @@ int64 phase_transition_upper_bound(int32 anchor) {
   return static_cast<int64>(anchor) * 3 - 1;
 }
 
+int32 sample_idle_reset_ms(const DrsPolicy &policy, IRng &rng) {
+  auto width = static_cast<uint32>(policy.idle_reset_ms_max - policy.idle_reset_ms_min + 1);
+  return policy.idle_reset_ms_min + static_cast<int32>(rng.bounded(width));
+}
+
 }  // namespace drs_engine_internal
 using drs_engine_internal::direction_of_delta;
 using drs_engine_internal::kCandidateSampleAttempts;
@@ -48,6 +53,7 @@ using drs_engine_internal::kMaxMonotonicDirectionRun;
 using drs_engine_internal::normalize_drs_hint;
 using drs_engine_internal::phase_transition_lower_bound;
 using drs_engine_internal::phase_transition_upper_bound;
+using drs_engine_internal::sample_idle_reset_ms;
 
 DrsEngine::DrsEngine(const DrsPolicy &policy, IRng &rng) : policy_(policy), rng_(rng) {
   CHECK(!policy_.slow_start.bins.empty());
@@ -55,8 +61,7 @@ DrsEngine::DrsEngine(const DrsPolicy &policy, IRng &rng) : policy_(policy), rng_
   CHECK(!policy_.steady_state.bins.empty());
   CHECK(policy_.idle_reset_ms_min <= policy_.idle_reset_ms_max);
 
-  auto width = static_cast<uint32>(policy_.idle_reset_ms_max - policy_.idle_reset_ms_min + 1);
-  sampled_idle_reset_ms_ = policy_.idle_reset_ms_min + static_cast<int32>(rng_.bounded(width));
+  sampled_idle_reset_ms_ = sample_idle_reset_ms(policy_, rng_);
 }
 
 int32 DrsEngine::next_payload_cap(TrafficHint hint) {
@@ -121,6 +126,7 @@ void DrsEngine::notify_idle() {
   phase_ = Phase::SlowStart;
   records_in_phase_ = 0;
   bytes_in_phase_ = 0;
+  sampled_idle_reset_ms_ = sample_idle_reset_ms(policy_, rng_);
   transition_anchor_cap_ = -1;
   reset_run_state();
   bulk_previous_cap_ = -1;

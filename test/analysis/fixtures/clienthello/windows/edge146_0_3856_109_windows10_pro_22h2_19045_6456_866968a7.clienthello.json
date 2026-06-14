@@ -1695,7 +1695,7 @@
   ],
   "scenario_id": "imported_edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap",
   "source_sha256": "31debfcccaebd7f827b9f2d8f427cb3254c3dac401a94d23a50d41d3dd6a17e4",
   "tls_handshake_type": 1,
   "transport": "tcp"

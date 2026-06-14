@@ -1,12 +1,13 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-
 #include "td/mtproto/stealth/StealthRuntimeParams.h"
 
 #include "td/mtproto/stealth/StealthConfig.h"
+#include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
 #include <cmath>
 #include <memory>
@@ -211,9 +212,6 @@ error_from_owned_message(std::string message) {
 }
 
 Status validate_route_entry(Slice name, const RuntimeRoutePolicyEntry &entry, bool must_disable_ech) {
-  if (entry.allow_quic) {
-    return error_from_owned_message(name.str() + " must keep QUIC disabled");
-  }
   if (must_disable_ech && entry.ech_mode != EchMode::Disabled) {
     return error_from_owned_message(name.str() + " must disable ECH");
   }
@@ -355,6 +353,16 @@ Status validate_release_mode_profile_gating(const StealthRuntimeParams &params) 
   return Status::OK();
 }
 
+Status validate_per_install_selection_salt_requirement(const StealthRuntimeParams &params) {
+  if (!params.require_per_install_selection_salt) {
+    return Status::OK();
+  }
+  if (get_per_install_selection_salt() != 0) {
+    return Status::OK();
+  }
+  return Status::Error("require_per_install_selection_salt requires a non-zero per-install selection salt");
+}
+
 }  // namespace stealth_runtime_params_internal
 
 StealthRuntimeParams::StealthRuntimeParams() noexcept {
@@ -383,6 +391,7 @@ Status validate_runtime_stealth_params(const StealthRuntimeParams &params) noexc
                                                                                             params.platform_hints));
   TRY_STATUS(stealth_runtime_params_internal::validate_transport_confidence_profile_coverage(params));
   TRY_STATUS(stealth_runtime_params_internal::validate_release_mode_profile_gating(params));
+  TRY_STATUS(stealth_runtime_params_internal::validate_per_install_selection_salt_requirement(params));
   TRY_STATUS(
       stealth_runtime_params_internal::validate_route_entry("route_policy.unknown", params.route_policy.unknown, true));
   TRY_STATUS(stealth_runtime_params_internal::validate_route_entry("route_policy.ru", params.route_policy.ru, true));

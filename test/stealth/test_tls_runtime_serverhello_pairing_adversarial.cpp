@@ -41,7 +41,7 @@ struct Scenario final {
   td::uint64 seed;
 };
 
-const std::array<Scenario, 11> kScenarios{{
+const std::array<Scenario, 12> kScenarios{{
     {BrowserProfile::Chrome133, "runtime-adversarial-linux-chrome133.example.com", 1712349001, 0x82000011u},
     {BrowserProfile::Chrome131, "runtime-adversarial-linux-chrome131.example.com", 1712349555, 0x82000012u},
     {BrowserProfile::Chrome120, "runtime-adversarial-linux-chrome120.example.com", 1712349777, 0x82000013u},
@@ -52,6 +52,7 @@ const std::array<Scenario, 11> kScenarios{{
     {BrowserProfile::Chrome147_IOSChromium, "runtime-adversarial-ios-chromium.example.com", 1712352223, 0x82000003u},
     {BrowserProfile::Safari26_3, "runtime-adversarial-safari.example.com", 1712353334, 0x82000004u},
     {BrowserProfile::IOS14, "runtime-adversarial-ios-native.example.com", 1712354445, 0x82000005u},
+    {BrowserProfile::AppleIosTls, "runtime-adversarial-apple-ios.example.com", 1712355001, 0x82000016u},
     {BrowserProfile::Android11_OkHttp_Advisory, "runtime-adversarial-android-okhttp.example.com", 1712355556,
      0x82000006u},
 }};

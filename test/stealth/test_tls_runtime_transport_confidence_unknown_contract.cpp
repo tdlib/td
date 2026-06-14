@@ -82,6 +82,7 @@ TEST(TlsRuntimeTransportConfidenceUnknownContract, RejectsIosConfigWithoutTlsOnl
   params.platform_hints = ios_platform();
   params.profile_weights.ios14 = 0;
   params.profile_weights.chrome147_ios_chromium = 100;
+  params.profile_weights.apple_ios_tls = 0;
 
   auto status = set_runtime_stealth_params_for_tests(params);
   ASSERT_TRUE(status.is_error());

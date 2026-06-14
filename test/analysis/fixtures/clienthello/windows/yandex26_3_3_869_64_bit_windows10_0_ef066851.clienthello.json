@@ -1704,7 +1704,7 @@
   ],
   "scenario_id": "imported_yandex26_3_3_869_64_bit_windows10_0_ef066851_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap",
   "source_sha256": "55ec71c5d3e878c995321bffe2033ba355d58770694d1832ca76ff1852684adf",
   "tls_handshake_type": 1,
   "transport": "tcp"

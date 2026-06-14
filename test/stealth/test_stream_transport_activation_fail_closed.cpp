@@ -6,6 +6,8 @@
 
 #include "td/mtproto/IStreamTransport.h"
 #include "td/mtproto/stealth/StealthConfig.h"
+#include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
+#include "td/mtproto/stealth/StealthRuntimeParams.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/ScopeGuard.h"
@@ -17,7 +19,11 @@ using td::mtproto::create_transport;
 using td::mtproto::IStreamTransport;
 using td::mtproto::ProxySecret;
 using td::mtproto::set_transport_factory_for_tests;
+using td::mtproto::stealth::default_runtime_stealth_params;
+using td::mtproto::stealth::reset_runtime_stealth_params_for_tests;
 using td::mtproto::stealth::IRng;
+using td::mtproto::stealth::RuntimeProfileSelectionDecision;
+using td::mtproto::stealth::set_runtime_stealth_params_for_tests;
 using td::mtproto::stealth::set_stealth_config_factory_for_tests;
 using td::mtproto::stealth::StealthConfig;
 using td::mtproto::TransportType;
@@ -157,6 +163,17 @@ td::unique_ptr<IStreamTransport> marker_transport_factory(TransportType type) {
   }
   return nullptr;
 }
+
+class RuntimeParamsGuard final {
+ public:
+  RuntimeParamsGuard() {
+    reset_runtime_stealth_params_for_tests();
+  }
+
+  ~RuntimeParamsGuard() {
+    reset_runtime_stealth_params_for_tests();
+  }
+};
 
 td::unique_ptr<IStreamTransport> nullptr_transport_factory(TransportType type) {
   (void)type;
@@ -390,6 +407,78 @@ TEST(StreamTransportActivationFailClosed, SuccessfulActivationLogsEnableDecision
   ASSERT_TRUE(capture.contains("[transport:obfuscated_tcp]"));
   ASSERT_TRUE(capture.contains("[dc_id:2]"));
   ASSERT_TRUE(capture.contains("[tls_emulation:true]"));
+}
+
+TEST(StreamTransportActivationFailClosed, RotationEnabledWithoutStampedSelectionFailsClosedBeforeConfigBuild) {
+#if !TDLIB_STEALTH_SHAPING
+  ASSERT_TRUE(true);
+  return;
+#endif
+
+  RuntimeParamsGuard runtime_guard;
+  auto runtime_params = default_runtime_stealth_params();
+  runtime_params.profile_rotation.enabled = true;
+  ASSERT_TRUE(set_runtime_stealth_params_for_tests(runtime_params).is_ok());
+
+  g_config_factory_calls = 0;
+  auto previous_config_factory = set_stealth_config_factory_for_tests(&counting_stealth_config_factory);
+  CapturingLog capture;
+  auto *old_sink = td::load_active_log_interface();
+  auto old_verbosity = GET_VERBOSITY_LEVEL();
+  td::store_active_log_interface(&capture);
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(INFO));
+  SCOPE_EXIT {
+    SET_VERBOSITY_LEVEL(old_verbosity);
+    td::store_active_log_interface(old_sink);
+    set_stealth_config_factory_for_tests(previous_config_factory);
+  };
+
+  auto transport =
+      create_transport(TransportType{TransportType::ObfuscatedTcp, 2, ProxySecret::from_raw(make_tls_secret())});
+
+  ASSERT_EQ(0, g_config_factory_calls);
+  ASSERT_EQ(TransportType::ObfuscatedTcp, transport->get_type().type);
+  ASSERT_FALSE(transport->can_write());
+  td::BufferSlice message;
+  td::uint32 quick_ack = 0;
+  ASSERT_TRUE(transport->read_next(&message, &quick_ack).is_error());
+  ASSERT_TRUE(capture.contains("Stealth shaping unavailable; refusing emulate_tls transport (fail-closed)"));
+  ASSERT_TRUE(capture.contains("[reason:missing_runtime_profile_selection]"));
+  ASSERT_TRUE(capture.contains("[profile_rotation_enabled:true]"));
+}
+
+TEST(StreamTransportActivationFailClosed, RotationEnabledWithStampedSelectionStillActivatesStealth) {
+#if !TDLIB_STEALTH_SHAPING
+  ASSERT_TRUE(true);
+  return;
+#endif
+
+  RuntimeParamsGuard runtime_guard;
+  auto runtime_params = default_runtime_stealth_params();
+  runtime_params.profile_rotation.enabled = true;
+  ASSERT_TRUE(set_runtime_stealth_params_for_tests(runtime_params).is_ok());
+
+  g_config_factory_calls = 0;
+  auto previous_config_factory = set_stealth_config_factory_for_tests(&counting_stealth_config_factory);
+  CapturingLog capture;
+  auto *old_sink = td::load_active_log_interface();
+  auto old_verbosity = GET_VERBOSITY_LEVEL();
+  td::store_active_log_interface(&capture);
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(INFO));
+  SCOPE_EXIT {
+    SET_VERBOSITY_LEVEL(old_verbosity);
+    td::store_active_log_interface(old_sink);
+    set_stealth_config_factory_for_tests(previous_config_factory);
+  };
+
+  TransportType type{TransportType::ObfuscatedTcp, 2, ProxySecret::from_raw(make_tls_secret())};
+  type.selected_runtime_profile = RuntimeProfileSelectionDecision{};
+  auto transport = create_transport(type);
+
+  ASSERT_EQ(1, g_config_factory_calls);
+  ASSERT_EQ(TransportType::ObfuscatedTcp, transport->get_type().type);
+  ASSERT_TRUE(transport->supports_tls_record_sizing());
+  ASSERT_TRUE(capture.contains("Stealth shaping enabled for emulate_tls transport"));
 }
 
 }  // namespace

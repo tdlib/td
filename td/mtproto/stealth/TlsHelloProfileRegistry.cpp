@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
 #include "td/mtproto/ProxySecret.h"
@@ -244,6 +244,19 @@ struct CasefoldStoreLookupCandidate final {
   string value;
   bool is_legacy{false};
   bool from_previous_bucket{false};
+};
+
+struct RouteFailureStoreMutationPlan final {
+  bool has_set_value{false};
+  string set_value;
+  td::vector<string> erase_keys;
+};
+
+struct RouteFailureStoreLoadResult final {
+  bool found{false};
+  RouteFailureCacheEntry entry;
+  bool saw_expired_blocked_entry{false};
+  RouteFailureStoreMutationPlan mutations;
 };
 
 struct RuntimeEchCounterStorage final {
@@ -595,13 +608,23 @@ bool parse_casefold_store_lookup_candidate_key(Slice store_key, string &destinat
   return true;
 }
 
+td::vector<CasefoldStoreLookupCandidate> collect_casefold_store_lookup_candidates_from_store(
+    const std::shared_ptr<KeyValueSyncInterface> &store, Slice destination, int32 unix_time);
+
+bool clamp_route_failure_disabled_until(RouteFailureCacheEntry &entry, Timestamp max_disabled_until);
+
 td::vector<CasefoldStoreLookupCandidate> collect_casefold_store_lookup_candidates_locked(Slice destination,
                                                                                          int32 unix_time) {
-  td::vector<CasefoldStoreLookupCandidate> candidates;
   auto store = route_failure_store();
   if (store == nullptr) {
-    return candidates;
+    return {};
   }
+  return collect_casefold_store_lookup_candidates_from_store(store, destination, unix_time);
+}
+
+td::vector<CasefoldStoreLookupCandidate> collect_casefold_store_lookup_candidates_from_store(
+    const std::shared_ptr<KeyValueSyncInterface> &store, Slice destination, int32 unix_time) {
+  td::vector<CasefoldStoreLookupCandidate> candidates;
 
   auto canonical_destination_key = normalized_runtime_destination_key(destination);
   auto direct_preserved_destination_key = runtime_destination_key_preserving_case(destination);
@@ -657,6 +680,159 @@ td::vector<CasefoldStoreLookupCandidate> collect_casefold_store_lookup_candidate
     return lhs.key < rhs.key;
   });
   return candidates;
+}
+
+bool has_route_failure_store_mutations(const RouteFailureStoreMutationPlan &plan) {
+  return plan.has_set_value || !plan.erase_keys.empty();
+}
+
+void append_route_failure_store_erase_key(RouteFailureStoreMutationPlan &plan, string key) {
+  if (std::find(plan.erase_keys.begin(), plan.erase_keys.end(), key) == plan.erase_keys.end()) {
+    plan.erase_keys.push_back(std::move(key));
+  }
+}
+
+void append_route_failure_store_erase_keys(RouteFailureStoreMutationPlan &plan, const td::vector<string> &keys) {
+  for (const auto &key : keys) {
+    append_route_failure_store_erase_key(plan, key);
+  }
+}
+
+void apply_route_failure_store_mutation_plan(const std::shared_ptr<KeyValueSyncInterface> &store,
+                                             const string &canonical_store_key,
+                                             RouteFailureStoreMutationPlan plan) {
+  if (store == nullptr || !has_route_failure_store_mutations(plan)) {
+    return;
+  }
+
+  if (plan.has_set_value) {
+    plan.erase_keys.erase(std::remove(plan.erase_keys.begin(), plan.erase_keys.end(), canonical_store_key),
+                          plan.erase_keys.end());
+    store->set(canonical_store_key, std::move(plan.set_value));
+  }
+
+  if (plan.erase_keys.empty()) {
+    return;
+  }
+  if (plan.erase_keys.size() == 1) {
+    store->erase(plan.erase_keys[0]);
+    return;
+  }
+  store->erase_batch(std::move(plan.erase_keys));
+}
+
+RouteFailureStoreLoadResult load_runtime_route_failure_state_from_store(
+    const std::shared_ptr<KeyValueSyncInterface> &store, Slice destination, int32 unix_time, Timestamp max_disabled_until) {
+  RouteFailureStoreLoadResult result;
+  if (store == nullptr) {
+    return result;
+  }
+
+  auto canonical_store_key = route_failure_store_key(destination, unix_time);
+  auto direct_keys = route_failure_store_keys_for_lookup(destination, unix_time);
+  for (const auto &store_key : direct_keys) {
+    auto serialized = store->get(store_key);
+    if (serialized.empty()) {
+      continue;
+    }
+
+    RouteFailureCacheEntry entry;
+    if (!parse_route_failure_cache_entry(serialized, entry)) {
+      result.found = true;
+      result.entry = make_fail_closed_route_failure_cache_entry();
+      clamp_route_failure_disabled_until(result.entry, max_disabled_until);
+      result.mutations.has_set_value = true;
+      result.mutations.set_value = serialize_route_failure_cache_entry(result.entry);
+      if (store_key != canonical_store_key) {
+        append_route_failure_store_erase_key(result.mutations, store_key);
+      }
+      return result;
+    }
+
+    clamp_route_failure_disabled_until(entry, max_disabled_until);
+    if (!entry.disabled_until || entry.disabled_until.is_in_past()) {
+      result.saw_expired_blocked_entry =
+          result.saw_expired_blocked_entry || entry.state.ech_block_suspected;
+      append_route_failure_store_erase_key(result.mutations, store_key);
+      continue;
+    }
+
+    result.found = true;
+    result.entry = std::move(entry);
+    result.mutations.has_set_value = true;
+    result.mutations.set_value = serialize_route_failure_cache_entry(result.entry);
+    if (store_key != canonical_store_key) {
+      append_route_failure_store_erase_key(result.mutations, store_key);
+    }
+    return result;
+  }
+
+  auto legacy_keys = legacy_route_failure_store_keys_for_lookup(destination, unix_time);
+  for (const auto &legacy_key : legacy_keys) {
+    auto serialized = store->get(legacy_key);
+    if (serialized.empty()) {
+      continue;
+    }
+
+    RouteFailureCacheEntry entry;
+    if (!parse_route_failure_cache_entry(serialized, entry)) {
+      result.found = true;
+      result.entry = make_fail_closed_route_failure_cache_entry();
+      clamp_route_failure_disabled_until(result.entry, max_disabled_until);
+      result.mutations.has_set_value = true;
+      result.mutations.set_value = serialize_route_failure_cache_entry(result.entry);
+      append_route_failure_store_erase_keys(result.mutations, legacy_keys);
+      return result;
+    }
+
+    clamp_route_failure_disabled_until(entry, max_disabled_until);
+    if (!entry.disabled_until || entry.disabled_until.is_in_past()) {
+      result.saw_expired_blocked_entry =
+          result.saw_expired_blocked_entry || entry.state.ech_block_suspected;
+      append_route_failure_store_erase_key(result.mutations, legacy_key);
+      continue;
+    }
+
+    result.found = true;
+    result.entry = std::move(entry);
+    result.mutations.has_set_value = true;
+    result.mutations.set_value = serialize_route_failure_cache_entry(result.entry);
+    append_route_failure_store_erase_keys(result.mutations, legacy_keys);
+    return result;
+  }
+
+  auto casefold_candidates = collect_casefold_store_lookup_candidates_from_store(store, destination, unix_time);
+  for (const auto &candidate : casefold_candidates) {
+    if (candidate.value.empty()) {
+      append_route_failure_store_erase_key(result.mutations, candidate.key);
+      continue;
+    }
+
+    RouteFailureCacheEntry entry;
+    if (!parse_route_failure_cache_entry(candidate.value, entry)) {
+      append_route_failure_store_erase_key(result.mutations, candidate.key);
+      continue;
+    }
+
+    clamp_route_failure_disabled_until(entry, max_disabled_until);
+    if (!entry.disabled_until || entry.disabled_until.is_in_past()) {
+      result.saw_expired_blocked_entry =
+          result.saw_expired_blocked_entry || entry.state.ech_block_suspected;
+      append_route_failure_store_erase_key(result.mutations, candidate.key);
+      continue;
+    }
+
+    result.found = true;
+    result.entry = std::move(entry);
+    result.mutations.has_set_value = true;
+    result.mutations.set_value = serialize_route_failure_cache_entry(result.entry);
+    for (const auto &stale_candidate : casefold_candidates) {
+      append_route_failure_store_erase_key(result.mutations, stale_candidate.key);
+    }
+    return result;
+  }
+
+  return result;
 }
 
 void erase_casefold_store_lookup_candidates_locked(const td::vector<CasefoldStoreLookupCandidate> &candidates) {
@@ -787,120 +963,92 @@ bool try_load_legacy_route_failure_cache_entry_locked(Slice destination, int32 u
 RouteFailureState get_runtime_route_failure_state_locked(Slice destination, int32 unix_time,
                                                          bool *saw_expired_blocked_entry,
                                                          Timestamp max_disabled_until) {
-  auto mark_expired_blocked_entry = [&](const RouteFailureCacheEntry &entry) {
-    if (saw_expired_blocked_entry != nullptr && entry.state.ech_block_suspected) {
-      *saw_expired_blocked_entry = true;
-    }
-  };
-
-  auto &cache = route_failure_cache();
   auto key = route_failure_cache_key(destination, unix_time);
-  auto it = cache.find(key);
-  if (it == cache.end()) {
-    auto store = route_failure_store();
-    if (store == nullptr) {
+  auto canonical_store_key = route_failure_store_key(destination, unix_time);
+
+  while (true) {
+    RouteFailureStoreMutationPlan pending_mutations;
+    std::shared_ptr<KeyValueSyncInterface> store_snapshot;
+    RouteFailureState cached_state;
+    bool resolved_from_cache = false;
+    {
+      auto lock = std::scoped_lock(route_failure_cache_mutex());
+      auto &cache = route_failure_cache();
+      auto it = cache.find(key);
+      if (it != cache.end()) {
+        if (clamp_route_failure_disabled_until(it->second, max_disabled_until)) {
+          pending_mutations.has_set_value = true;
+          pending_mutations.set_value = serialize_route_failure_cache_entry(it->second);
+          store_snapshot = route_failure_store();
+        }
+        if (!it->second.disabled_until || !it->second.disabled_until.is_in_past()) {
+          cached_state = it->second.state;
+          resolved_from_cache = true;
+        } else {
+          if (saw_expired_blocked_entry != nullptr && it->second.state.ech_block_suspected) {
+            *saw_expired_blocked_entry = true;
+          }
+          cache.erase(it);
+        }
+      }
+      if (!resolved_from_cache || has_route_failure_store_mutations(pending_mutations)) {
+        store_snapshot = route_failure_store();
+      }
+    }
+
+    if (resolved_from_cache) {
+      apply_route_failure_store_mutation_plan(store_snapshot, canonical_store_key, std::move(pending_mutations));
+      return cached_state;
+    }
+
+    if (store_snapshot == nullptr) {
       return RouteFailureState{};
     }
-    auto canonical_store_key = route_failure_store_key(destination, unix_time);
-    RouteFailureCacheEntry entry;
-    for (const auto &store_key : route_failure_store_keys_for_lookup(destination, unix_time)) {
-      auto serialized = store->get(store_key);
-      if (serialized.empty()) {
-        continue;
-      }
-      if (!parse_route_failure_cache_entry(serialized, entry)) {
-        entry = make_fail_closed_route_failure_cache_entry();
-        clamp_route_failure_disabled_until(entry, max_disabled_until);
-        auto inserted = cache.emplace(key, entry);
-        persist_route_failure_cache_entry_locked(destination, unix_time, inserted.first->second);
-        if (store_key != canonical_store_key) {
-          store->erase(store_key);
-        }
-        return inserted.first->second.state;
-      }
-      clamp_route_failure_disabled_until(entry, max_disabled_until);
-      if (!entry.disabled_until || entry.disabled_until.is_in_past()) {
-        mark_expired_blocked_entry(entry);
-        store->erase(store_key);
-        continue;
-      }
-      auto inserted = cache.emplace(key, entry);
-      persist_route_failure_cache_entry_locked(destination, unix_time, inserted.first->second);
-      if (store_key != canonical_store_key) {
-        store->erase(store_key);
-      }
-      return inserted.first->second.state;
-    }
-    if (try_load_legacy_route_failure_cache_entry_locked(destination, unix_time, entry, saw_expired_blocked_entry)) {
-      clamp_route_failure_disabled_until(entry, max_disabled_until);
-      auto inserted = cache.emplace(key, entry);
-      persist_route_failure_cache_entry_locked(destination, unix_time, inserted.first->second);
-      return inserted.first->second.state;
-    }
-    if (try_load_casefold_route_failure_cache_entry_locked(destination, unix_time, entry, saw_expired_blocked_entry)) {
-      clamp_route_failure_disabled_until(entry, max_disabled_until);
-      auto inserted = cache.emplace(key, entry);
-      persist_route_failure_cache_entry_locked(destination, unix_time, inserted.first->second);
-      return inserted.first->second.state;
-    }
-    return RouteFailureState{};
-  }
-  if (clamp_route_failure_disabled_until(it->second, max_disabled_until)) {
-    persist_route_failure_cache_entry_locked(destination, unix_time, it->second);
-  }
-  if (it->second.disabled_until && it->second.disabled_until.is_in_past()) {
-    mark_expired_blocked_entry(it->second);
-    cache.erase(it);
 
-    auto store = route_failure_store();
-    if (store != nullptr) {
-      auto canonical_store_key = route_failure_store_key(destination, unix_time);
-      for (const auto &store_key : route_failure_store_keys_for_lookup(destination, unix_time)) {
-        auto serialized = store->get(store_key);
-        if (serialized.empty()) {
+    auto store_result =
+        load_runtime_route_failure_state_from_store(store_snapshot, destination, unix_time, max_disabled_until);
+    if (saw_expired_blocked_entry != nullptr && store_result.saw_expired_blocked_entry) {
+      *saw_expired_blocked_entry = true;
+    }
+
+    RouteFailureStoreMutationPlan apply_plan = store_result.mutations;
+    RouteFailureState resolved_state;
+    {
+      auto lock = std::scoped_lock(route_failure_cache_mutex());
+      if (route_failure_store() != store_snapshot) {
+        continue;
+      }
+
+      auto &cache = route_failure_cache();
+      auto it = cache.find(key);
+      if (it != cache.end()) {
+        if (clamp_route_failure_disabled_until(it->second, max_disabled_until)) {
+          apply_plan.has_set_value = true;
+          apply_plan.set_value = serialize_route_failure_cache_entry(it->second);
+        } else {
+          apply_plan.has_set_value = false;
+          apply_plan.set_value.clear();
+        }
+        if (!it->second.disabled_until || !it->second.disabled_until.is_in_past()) {
+          resolved_state = it->second.state;
+        } else {
+          if (saw_expired_blocked_entry != nullptr && it->second.state.ech_block_suspected) {
+            *saw_expired_blocked_entry = true;
+          }
+          cache.erase(it);
           continue;
         }
-        RouteFailureCacheEntry entry;
-        if (!parse_route_failure_cache_entry(serialized, entry)) {
-          entry = make_fail_closed_route_failure_cache_entry();
-          clamp_route_failure_disabled_until(entry, max_disabled_until);
-          auto inserted = cache.emplace(key, entry);
-          persist_route_failure_cache_entry_locked(destination, unix_time, inserted.first->second);
-          if (store_key != canonical_store_key) {
-            store->erase(store_key);
-          }
-          return inserted.first->second.state;
-        }
-        clamp_route_failure_disabled_until(entry, max_disabled_until);
-        if (entry.disabled_until && !entry.disabled_until.is_in_past()) {
-          auto inserted = cache.emplace(key, entry);
-          persist_route_failure_cache_entry_locked(destination, unix_time, inserted.first->second);
-          if (store_key != canonical_store_key) {
-            store->erase(store_key);
-          }
-          return inserted.first->second.state;
-        }
-        mark_expired_blocked_entry(entry);
-        store->erase(store_key);
+      } else if (store_result.found) {
+        auto inserted = cache.emplace(key, store_result.entry);
+        resolved_state = inserted.first->second.state;
+      } else {
+        resolved_state = RouteFailureState{};
       }
     }
 
-    RouteFailureCacheEntry entry;
-    if (try_load_legacy_route_failure_cache_entry_locked(destination, unix_time, entry, saw_expired_blocked_entry)) {
-      clamp_route_failure_disabled_until(entry, max_disabled_until);
-      auto inserted = cache.emplace(key, entry);
-      persist_route_failure_cache_entry_locked(destination, unix_time, inserted.first->second);
-      return inserted.first->second.state;
-    }
-    if (try_load_casefold_route_failure_cache_entry_locked(destination, unix_time, entry, saw_expired_blocked_entry)) {
-      clamp_route_failure_disabled_until(entry, max_disabled_until);
-      auto inserted = cache.emplace(key, entry);
-      persist_route_failure_cache_entry_locked(destination, unix_time, inserted.first->second);
-      return inserted.first->second.state;
-    }
-    return RouteFailureState{};
+    apply_route_failure_store_mutation_plan(store_snapshot, canonical_store_key, std::move(apply_plan));
+    return resolved_state;
   }
-  return it->second.state;
 }
 
 uint8 profile_weight(const ProfileWeights &weights, BrowserProfile profile) {
@@ -1077,10 +1225,21 @@ RuntimeProfileRotationCounterStorage &runtime_profile_rotation_counters() {
 // Quarantine key derived ONLY from normalized destination + profile id + final
 // ECH-on-the-wire flag. The normalized destination collapses case-only and
 // trailing-dot aliases so `Example.COM` and `example.com.` share one entry.
+// Wire-identical profile aliases collapse too, so IOS14 / AppleIosTls do not
+// masquerade as different escape lanes while emitting the same fingerprint.
+BrowserProfile canonical_quarantine_profile(BrowserProfile profile) {
+  switch (profile) {
+    case BrowserProfile::AppleIosTls:
+      return BrowserProfile::IOS14;
+    default:
+      return profile;
+  }
+}
+
 string profile_quarantine_key(Slice destination, BrowserProfile profile, bool hello_uses_ech) {
   string key = normalized_runtime_destination_key(destination);
   key += '|';
-  key += to_string(static_cast<int>(profile));
+  key += to_string(static_cast<int>(canonical_quarantine_profile(profile)));
   key += '|';
   key += hello_uses_ech ? '1' : '0';
   return key;
@@ -1516,11 +1675,23 @@ RuntimeProfileSelectionDecision pick_runtime_profile_adaptive(Slice destination,
   return decision;
 }
 
+RuntimeProfileSelectionDecision select_runtime_profile_for_attempt(Slice destination, int32 unix_time,
+                                                                   const RuntimePlatformHints &platform,
+                                                                   const NetworkRouteHints &route) noexcept {
+  auto ech_decision = get_runtime_ech_decision(destination, unix_time, route);
+  auto selection = pick_runtime_profile_adaptive(destination, unix_time, platform, ech_decision.ech_mode);
+  selection.ech_mode = ech_decision.ech_mode;
+  selection.ech_disabled_by_route = ech_decision.disabled_by_route;
+  selection.ech_disabled_by_circuit_breaker = ech_decision.disabled_by_circuit_breaker;
+  selection.ech_reenabled_after_ttl = ech_decision.reenabled_after_ttl;
+  return selection;
+}
+
 bool runtime_profile_failure_signal_is_quarantine_eligible(RuntimeProfileFailureSignal signal) noexcept {
   switch (signal) {
     case RuntimeProfileFailureSignal::MalformedHelloResponse:
-    case RuntimeProfileFailureSignal::TransportRejectionAfterHello:
       return true;
+    case RuntimeProfileFailureSignal::TransportRejectionAfterHello:
     case RuntimeProfileFailureSignal::None:
     case RuntimeProfileFailureSignal::WrongRegime:
     case RuntimeProfileFailureSignal::ResponseHashMismatch:
@@ -1641,7 +1812,6 @@ RuntimeEchDecision get_runtime_ech_decision(Slice destination, int32 unix_time,
     return decision;
   }
 
-  auto lock = std::scoped_lock(tls_hello_profile_registry_internal::route_failure_cache_mutex());
   auto max_disabled_until = Timestamp::in(runtime_params.route_failure.ech_disable_ttl_seconds);
   bool saw_expired_blocked_entry = false;
   auto state = tls_hello_profile_registry_internal::get_runtime_route_failure_state_locked(

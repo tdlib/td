@@ -40,6 +40,7 @@ TEST(TlsRuntimeParamsPlatformFailClosed, IosPlatformRejectsZeroAllowedProfileWei
   params.platform_hints.desktop_os = DesktopOs::Unknown;
   params.profile_weights.ios14 = 0;
   params.profile_weights.chrome147_ios_chromium = 0;
+  params.profile_weights.apple_ios_tls = 0;
   params.profile_weights.android11_okhttp_advisory = 100;
 
   ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_error());

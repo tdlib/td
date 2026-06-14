@@ -20,6 +20,7 @@ using td::mtproto::stealth::DrsEngine;
 using td::mtproto::stealth::DrsPhaseModel;
 using td::mtproto::stealth::DrsPolicy;
 using td::mtproto::stealth::RecordSizeBin;
+using td::mtproto::stealth::IRng;
 using td::mtproto::stealth::TrafficHint;
 using td::mtproto::test::MockRng;
 
@@ -70,6 +71,32 @@ bool is_one_of(td::int32 value, std::initializer_list<td::int32> expected) {
   return std::find(expected.begin(), expected.end(), value) != expected.end();
 }
 
+class SequenceRng final : public IRng {
+ public:
+  explicit SequenceRng(std::initializer_list<td::uint32> bounded_values) : bounded_values_(bounded_values) {
+  }
+
+  void fill_secure_bytes(td::MutableSlice dest) final {
+    dest.fill('\0');
+  }
+
+  td::uint32 secure_uint32() final {
+    return 0;
+  }
+
+  td::uint32 bounded(td::uint32 n) final {
+    CHECK(n != 0);
+    CHECK(next_ < bounded_values_.size());
+    auto value = bounded_values_[next_++];
+    CHECK(value < n);
+    return value;
+  }
+
+ private:
+  td::vector<td::uint32> bounded_values_;
+  size_t next_{0};
+};
+
 TEST(DrsEngine, AdvancesPhaseByRealWrittenBytes) {
   MockRng rng(1);
   auto policy = make_test_policy();
@@ -113,6 +140,18 @@ TEST(DrsEngine, NotifyIdleRestartsSlowStartAfterProgress) {
   drs.notify_idle();
   ASSERT_EQ(phase_value(drs.current_phase()), phase_value(DrsEngine::Phase::SlowStart));
   ASSERT_TRUE(is_one_of(drs.next_payload_cap(TrafficHint::Interactive), {900, 1200}));
+}
+
+TEST(DrsEngine, NotifyIdleResamplesIdleResetThreshold) {
+  auto policy = make_test_policy();
+  policy.idle_reset_ms_min = 250;
+  policy.idle_reset_ms_max = 251;
+  SequenceRng rng({0, 1});
+  DrsEngine drs(policy, rng);
+
+  ASSERT_EQ(250, drs.debug_idle_reset_ms_for_tests());
+  drs.notify_idle();
+  ASSERT_EQ(251, drs.debug_idle_reset_ms_for_tests());
 }
 
 TEST(DrsEngine, DistributionUsesAntiRepeatGuard) {

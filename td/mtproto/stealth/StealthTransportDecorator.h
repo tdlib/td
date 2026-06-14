@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-
 #pragma once
 
 #include "td/mtproto/IStreamTransport.h"
@@ -85,6 +85,9 @@ class StealthTransportDecorator final : public IStreamTransport {
   void note_record_target(int32 target_bytes);
   void clear_stale_queued_response_jitter();
   size_t queued_write_count() const;
+  void fail_closed_on_ring_overflow();
+
+  bool overflow_failed_{false};
 };
 
 }  // namespace stealth

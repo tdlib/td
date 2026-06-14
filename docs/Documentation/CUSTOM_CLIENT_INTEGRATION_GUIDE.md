@@ -316,7 +316,7 @@ Do not write client code that assumes it can force rapid repeated reconnects to 
 
 ### 4. QUIC is disabled by policy
 
-The runtime route-policy validation requires `allow_quic=false`. This fork is TCP/TLS-oriented for stealth-proxy mode. Do not design a custom client integration that depends on QUIC/HTTP3 support here.
+The runtime route-policy validation keeps QUIC disabled. This fork is TCP/TLS-oriented for stealth-proxy mode. Do not design a custom client integration that depends on QUIC/HTTP3 support here.
 
 ### 5. Direct connections are unchanged
 
@@ -513,9 +513,9 @@ If you are embedding at the C++ level and intentionally wiring the loader, a min
     "android11_okhttp_advisory": 30
   },
   "route_policy": {
-    "unknown": {"ech_mode": "disabled", "allow_quic": false},
-    "ru": {"ech_mode": "disabled", "allow_quic": false},
-    "non_ru": {"ech_mode": "rfc9180_outer", "allow_quic": false}
+    "unknown": {"ech_mode": "disabled"},
+    "ru": {"ech_mode": "disabled"},
+    "non_ru": {"ech_mode": "rfc9180_outer"}
   },
   "route_failure": {
     "ech_failure_threshold": 4,
@@ -811,7 +811,7 @@ Do not write client code that assumes it can force rapid repeated reconnects to 
 
 ### 4. QUIC is disabled by policy
 
-The runtime route-policy validation requires `allow_quic=false`. This fork is TCP/TLS-oriented for stealth-proxy mode. Do not design a custom client integration that depends on QUIC/HTTP3 support here.
+The runtime route-policy validation keeps QUIC disabled. This fork is TCP/TLS-oriented for stealth-proxy mode. Do not design a custom client integration that depends on QUIC/HTTP3 support here.
 
 ### 5. Direct connections are unchanged
 
@@ -915,9 +915,9 @@ If you are embedding at the C++ level and intentionally wiring the loader, a min
     "android11_okhttp_advisory": 30
   },
   "route_policy": {
-    "unknown": {"ech_mode": "disabled", "allow_quic": false},
-    "ru": {"ech_mode": "disabled", "allow_quic": false},
-    "non_ru": {"ech_mode": "rfc9180_outer", "allow_quic": false}
+    "unknown": {"ech_mode": "disabled"},
+    "ru": {"ech_mode": "disabled"},
+    "non_ru": {"ech_mode": "rfc9180_outer"}
   },
   "route_failure": {
     "ech_failure_threshold": 4,

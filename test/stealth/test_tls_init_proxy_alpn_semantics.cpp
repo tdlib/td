@@ -77,6 +77,12 @@ td::Slice http11_only_alpn_body() {
   return value;
 }
 
+template <class Hello>
+void assert_no_alps_extension(const Hello &hello) {
+  ASSERT_TRUE(find_extension(hello, td::mtproto::test::fixtures::kAlpsChrome131) == nullptr);
+  ASSERT_TRUE(find_extension(hello, td::mtproto::test::fixtures::kAlpsChrome133Plus) == nullptr);
+}
+
 TEST(TlsInitProxyAlpnSemantics, ExplicitProfileBuilderKeepsBrowserCaptureAlpnBody) {
   MockRng rng(1);
   auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678,
@@ -112,6 +118,7 @@ TEST(TlsInitProxyAlpnSemantics, KnownNonRuProxyHelloAdvertisesHttp11Only) {
   ASSERT_TRUE(alpn != nullptr);
   ASSERT_EQ(http11_only_alpn_body(), alpn->value);
   ASSERT_TRUE(find_extension(parsed.ok(), td::mtproto::test::fixtures::kEchExtensionType) != nullptr);
+  assert_no_alps_extension(parsed.ok());
 }
 
 TEST(TlsInitProxyAlpnSemantics, UnknownRouteKeepsHttp11OnlyAndSuppressesEch) {
@@ -137,6 +144,33 @@ TEST(TlsInitProxyAlpnSemantics, UnknownRouteKeepsHttp11OnlyAndSuppressesEch) {
   ASSERT_TRUE(alpn != nullptr);
   ASSERT_EQ(http11_only_alpn_body(), alpn->value);
   ASSERT_TRUE(find_extension(parsed.ok(), td::mtproto::test::fixtures::kEchExtensionType) == nullptr);
+  assert_no_alps_extension(parsed.ok());
+}
+
+TEST(TlsInitProxyAlpnSemantics, ExplicitProxyChromiumProfileSuppressesAlpsWhenAlpnIsHttp11Only) {
+  MockRng rng(7);
+  auto wire = td::mtproto::stealth::build_proxy_tls_client_hello_for_profile(
+      "www.google.com", "0123456789secret", 1712345678, BrowserProfile::Chrome133, EchMode::Disabled, rng);
+  auto parsed = parse_tls_client_hello(wire);
+  ASSERT_TRUE(parsed.is_ok());
+
+  auto *alpn = find_extension(parsed.ok(), 0x0010);
+  ASSERT_TRUE(alpn != nullptr);
+  ASSERT_EQ(http11_only_alpn_body(), alpn->value);
+  assert_no_alps_extension(parsed.ok());
+}
+
+TEST(TlsInitProxyAlpnSemantics, ExplicitProxyLegacyChromiumProfileSuppressesLegacyAlpsToo) {
+  MockRng rng(9);
+  auto wire = td::mtproto::stealth::build_proxy_tls_client_hello_for_profile(
+      "www.google.com", "0123456789secret", 1712345678, BrowserProfile::Chrome131, EchMode::Disabled, rng);
+  auto parsed = parse_tls_client_hello(wire);
+  ASSERT_TRUE(parsed.is_ok());
+
+  auto *alpn = find_extension(parsed.ok(), 0x0010);
+  ASSERT_TRUE(alpn != nullptr);
+  ASSERT_EQ(http11_only_alpn_body(), alpn->value);
+  assert_no_alps_extension(parsed.ok());
 }
 
 }  // namespace

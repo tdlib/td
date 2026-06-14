@@ -1695,7 +1695,7 @@
   ],
   "scenario_id": "imported_chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_clienthello",
   "source_kind": "browser_capture",
-  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap",
   "source_sha256": "c8146166f834e3a01863f117a35f3480c2c461e876453f6b85c28eebe3f6d698",
   "tls_handshake_type": 1,
   "transport": "tcp"

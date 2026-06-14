@@ -69,8 +69,7 @@ TEST(SessionEventBoundsAdversarial, ReplayAfter60SecondsIsDetectedByUniqueIdCach
   auto d2 = seq.on_event(kUid, 180.0);  // same uid, 80s later
 
   ASSERT_TRUE(d1 == SessionInitSequencer::Decision::AcceptWithSaltUpdate);
-  // d2 should be AcceptWithoutSaltUpdate due to unique_id cache hit
-  ASSERT_TRUE(d2 == SessionInitSequencer::Decision::AcceptWithoutSaltUpdate);
+  ASSERT_TRUE(d2 == SessionInitSequencer::Decision::ReplayWithoutSaltUpdate);
 }
 
 // Attack: salt cycling via bad_server_salt with fabricated bad_msg_ids.

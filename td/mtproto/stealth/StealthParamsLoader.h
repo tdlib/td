@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSL-1.0 AND MIT
 // telemt: https://github.com/telemt
 // telemt: https://t.me/telemtrs
 //
-
 #pragma once
 
 #include "td/mtproto/stealth/StealthRuntimeParams.h"
@@ -19,9 +19,19 @@ namespace stealth {
 
 class StealthParamsLoader final {
  public:
+  enum class ConfigPresenceRequirement : uint8 {
+    Optional = 0,
+    Required = 1,
+  };
+
+  struct LoadPolicy final {
+    ConfigPresenceRequirement config_presence_requirement{ConfigPresenceRequirement::Optional};
+  };
+
   explicit StealthParamsLoader(string config_path);
 
   static Result<StealthRuntimeParams> try_load_strict(Slice config_path) noexcept;
+  static Result<StealthRuntimeParams> try_load_strict(Slice config_path, LoadPolicy policy) noexcept;
 
   bool try_reload() noexcept;
 

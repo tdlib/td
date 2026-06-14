@@ -381,6 +381,11 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::new_
     LOG(WARNING) << "Dropping new_session_created with invalid unique_id=" << new_session_created.unique_id_;
     return Status::OK();
   }
+  if (init_decision == SessionInitSequencer::Decision::ReplayWithoutSaltUpdate) {
+    net_health::note_session_init_replay();
+    LOG(WARNING) << "Dropping replayed new_session_created with unique_id=" << new_session_created.unique_id_;
+    return Status::OK();
+  }
   if (init_decision == SessionInitSequencer::Decision::AcceptWithoutSaltUpdate) {
     net_health::note_session_init_rate_gate();
   }
@@ -403,10 +408,10 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::new_
     LOG(INFO) << "Update first_message_id to container's " << first_message_id;
   }
 
-  // Only notify session of salt update when permitted by the sequencer.
-  if (init_decision == SessionInitSequencer::Decision::AcceptWithSaltUpdate) {
-    callback_->on_new_session_created(new_session_created.unique_id_, first_message_id);
-  }
+  // Re-send recovery is valid for a fresh session even when the salt update
+  // itself is rate-gated. Only structural rejects and unique_id replays return
+  // before this point.
+  callback_->on_new_session_created(new_session_created.unique_id_, first_message_id);
   return Status::OK();
 }
 
@@ -654,6 +659,7 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::msgs
   }
   auto query = std::move(it->second);
   service_queries_.erase(it);
+  erase_container_service_link(query.container_message_id_, message_id);
 
   if (query.type_ != ServiceQuery::GetStateInfo) {
     return Status::Error("Receive msgs_state_info in response not to GetStateInfo");
@@ -801,6 +807,7 @@ void SessionConnection::on_message_failed(MessageId message_id, Status status) {
   auto cit = container_to_service_message_id_.find(message_id);
   if (cit != container_to_service_message_id_.end()) {
     auto message_ids = cit->second;
+    container_to_service_message_id_.erase(cit);
     for (auto inner_message_id : message_ids) {
       on_message_failed_inner(inner_message_id);
     }
@@ -816,6 +823,7 @@ void SessionConnection::on_message_failed_inner(MessageId message_id) {
   }
   auto query = std::move(it->second);
   service_queries_.erase(it);
+  erase_container_service_link(query.container_message_id_, message_id);
 
   switch (query.type_) {
     case ServiceQuery::ResendAnswer:
@@ -830,6 +838,22 @@ void SessionConnection::on_message_failed_inner(MessageId message_id) {
       break;
     default:
       UNREACHABLE();
+  }
+}
+
+void SessionConnection::erase_container_service_link(MessageId container_message_id, MessageId service_message_id) {
+  if (container_message_id == MessageId()) {
+    return;
+  }
+  auto cit = container_to_service_message_id_.find(container_message_id);
+  if (cit == container_to_service_message_id_.end()) {
+    return;
+  }
+  auto &service_message_ids = cit->second;
+  service_message_ids.erase(
+      std::remove(service_message_ids.begin(), service_message_ids.end(), service_message_id), service_message_ids.end());
+  if (service_message_ids.empty()) {
+    container_to_service_message_id_.erase(cit);
   }
 }
 

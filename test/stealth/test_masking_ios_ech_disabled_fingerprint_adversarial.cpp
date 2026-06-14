@@ -35,10 +35,10 @@
 //   I4. IOS14 (Apple TLS) wire MUST remain structurally distinct from all
 //       Chrome-family wires: no ALPS, no ECH, no PSK, no ChaCha ciphers.
 //
-//   I5. Chrome147_IOSChromium ECH-disabled wire MUST contain ALPS extension.
-//       ios26_1/26_3 Chrome captures with ECH have ALPS; when ECH is stripped
-//       (ECH gate in ClientHelloOpMapper), ALPS must still be present because
-//       it is a *separate* extension with its own IANA codepoint.
+//   I5. Chrome147_IOSChromium ECH-disabled proxy wire MUST NOT contain ALPS.
+//       In proxy mode the ALPN list is rewritten to `http/1.1` only, and the
+//       reviewed ClientHelloOpMapper contract strips ALPS together with that
+//       HTTP/2-only lane to avoid an L7 inconsistency.
 //
 //   I6. Chrome147_IOSChromium ECH-disabled wire must differ from
 //       ECH-enabled wire in extension count (ECH ext absent = 1 fewer).
@@ -106,15 +106,15 @@ ParsedClientHello build_proxy_parsed(BrowserProfile profile, EchMode ech_mode, u
   return result.move_as_ok();
 }
 
-// I1: Chrome147_IOSChromium ECH-disabled MUST retain ALPS extension.
-// ios26_1/26_3 Chrome has ALPS (0x44CD). When ECH gate fires, only ECH is
-// dropped — not ALPS. If ALPS disappears, wire collapses to ios26_4 shape.
-TEST(MaskingIosEchDisabledFingerprint, ChromiumEchDisabledKeepsAlps) {
+// I1: Chrome147_IOSChromium ECH-disabled proxy wire MUST drop ALPS together
+// with the proxy-mode `h2` ALPN suppression.
+TEST(MaskingIosEchDisabledFingerprint, ChromiumEchDisabledDropsAlpsInProxyMode) {
   reset_runtime_ech_failure_state_for_tests();
   for (uint64 seed = 0; seed < 32; seed++) {
     auto hello = build_proxy_parsed(BrowserProfile::Chrome147_IOSChromium, EchMode::Disabled, seed);
     auto exts = extension_set_non_grease_no_padding(hello);
-    ASSERT_TRUE(exts.count(kAlpsChrome133Plus) != 0 || exts.count(kAlpsLegacy) != 0);
+    ASSERT_TRUE(exts.count(kAlpsChrome133Plus) == 0);
+    ASSERT_TRUE(exts.count(kAlpsLegacy) == 0);
     ASSERT_TRUE(find_extension(hello, kEchType) == nullptr);
   }
 }
