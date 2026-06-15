@@ -284,6 +284,9 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/message_content_null_guard_runtime.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_content_null_guard_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_content_null_guard_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_created_dependency_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/draft_local_reply_ignore_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/parse_dialog_repair_refetch_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/invalid_file_id_handling_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/invalid_file_id_handling_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/invalid_file_id_handling_integration.cpp

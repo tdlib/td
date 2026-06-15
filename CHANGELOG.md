@@ -1,3 +1,39 @@
+## Upstream Intake Cycle (15 June 2026)
+
+Selective intake cycle over the post-baseline upstream delta. Provenance:
+
+- Upstream remote: `https://github.com/tdlib/td.git`
+- Baseline (lower bound): `upstream-baseline-2026-05-24-e0943d068ce9` →
+  `e0943d068ce90b5010f1aea946e6901e25b43bf6` (tdlib 1.8.64)
+- New tip (upper bound): `upstream-baseline-2026-06-15-a17f87c4cff7` →
+  `a17f87c4cff7b90b278d12b91ba0614383aaee82`
+- Comparison range: `e0943d068ce9..a17f87c4cff7` — **247 commits** (2026-05-19 → 2026-06-13)
+
+Plan and evidence: [docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15.md](docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15.md)
+and its Wave A addendum
+[docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15_WAVE_A_ADDENDUM.md](docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15_WAVE_A_ADDENDUM.md).
+
+Wave A (provenance/inventory) is complete; gate tally over the 247 (all downstream-status `missing`):
+`defer_pending_context` 207 · `reject_not_relevant` 28 · `accept_with_repair` 8 ·
+`local_equivalent_adaptation` 4. **No stealth-transport (`td/mtproto`, `tdnet`, TlsInit) commit in
+the delta.** The W11-AI2 deferral is unchanged.
+
+Wave B (minimal correctness backports) is implemented in the tree — TDD-first contract tests then
+minimal fix; full build/`ctest`/sanitizer matrix runs on Linux CI. Landed:
+
+- `84f21a1d8` exact backport: `add_message_content_dependencies` now resolves the `bot_user_id`
+  dependency for `ManagedBotCreated` content (`td/telegram/MessageContent.cpp`).
+- `a74cc9af8` local-equivalent: persisted-draft parse clears same-chat replies that are yet-unsent
+  **or** local, preserving the fork's existing `is_valid_scheduled()` guard
+  (`td/telegram/DraftMessage.hpp`).
+- `dc73b3ca3` local-equivalent: repair of DB-loaded dialogs re-fetches unresolved messages and reloads
+  full dialog info on failed dependency resolution, keeping the fork's caller-`source` provenance
+  (`td/telegram/MessagesManager.cpp`).
+
+Contract tests: `test/managed_bot_created_dependency_contract.cpp`,
+`test/draft_local_reply_ignore_contract.cpp`, `test/parse_dialog_repair_refetch_contract.cpp`.
+Closeout: [docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15_WAVE_B_CLOSEOUT.md](docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15_WAVE_B_CLOSEOUT.md).
+
 ## Fork Backport Record (24 May 2026)
 
 This section is maintained by this fork and supplements the upstream changelog, which is not

@@ -33661,7 +33661,11 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     d->chat_theme->add_dependencies(dependencies);
   }
   if (!dependencies.resolve_force(td_, source)) {
+    d->messages.foreach([&](const MessageId &message_id, const unique_ptr<Message> &message) {
+      get_message_from_server({dialog_id, message_id}, Auto(), source);
+    });
     send_get_dialog_query(dialog_id, Auto(), 0, source);
+    td_->dialog_manager_->reload_dialog_info_full(dialog_id, source);
   }
 
   if (td_->auth_manager_->is_bot()) {
