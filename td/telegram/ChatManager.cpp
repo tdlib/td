@@ -687,11 +687,9 @@ class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     int32 flags = 0;
-    if (join_request && input_user != nullptr) {
+    if (input_user != nullptr) {
       flags |= telegram_api::channels_toggleJoinRequest::GUARD_BOT_MASK;
       guest_bot_user_id_ = guest_bot_user_id;
-    } else {
-      input_user = nullptr;
     }
     send_query(G()->net_query_creator().create(
         telegram_api::channels_toggleJoinRequest(flags, apply_to_invite_links, std::move(input_channel), join_request,
@@ -3464,7 +3462,10 @@ void ChatManager::toggle_channel_join_request(ChannelId channel_id, bool join_re
   if (!get_channel_status(c).can_restrict_members()) {
     return promise.set_error(400, "Not enough rights");
   }
-  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(guard_bot_user_id));
+  telegram_api::object_ptr<telegram_api::InputUser> input_user;
+  if (join_request && guard_bot_user_id != UserId()) {
+    TRY_RESULT_PROMISE_ASSIGN(promise, input_user, td_->user_manager_->get_input_user(guard_bot_user_id));
+  }
 
   td_->create_handler<ToggleChannelJoinRequestQuery>(std::move(promise))
       ->send(channel_id, join_request, guard_bot_user_id, apply_to_invite_links, std::move(input_user));
