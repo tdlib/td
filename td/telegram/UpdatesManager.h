@@ -760,7 +760,17 @@ class UpdatesManager final : public Actor {
 
   // unsupported updates
 
+  void on_update(tl_object_ptr<telegram_api::updateBotStarsSubscription> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateNewEphemeralMessage> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateDeleteEphemeralMessages> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateEditEphemeralMessage> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateEphemeralBotCallbackQuery> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

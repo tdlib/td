@@ -12447,6 +12447,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         LOG(ERROR) << "Receive unexpected " << to_string(folder);
         break;
       }
+      case telegram_api::dialogCommunity::ID:
+        break;
       default:
         UNREACHABLE();
     }
@@ -34840,6 +34842,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
           dialog = static_cast<telegram_api::dialog *>(difference->dialog_.get());
           break;
         case telegram_api::dialogFolder::ID:
+        case telegram_api::dialogCommunity::ID:
           return after_get_channel_difference(dialog_id, false);
         default:
           UNREACHABLE();

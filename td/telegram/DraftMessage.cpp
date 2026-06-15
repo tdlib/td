@@ -661,6 +661,8 @@ vector<InputDialogId> get_draft_message_reply_input_dialog_ids(
       auto reply_to = static_cast<const telegram_api::inputReplyToMonoForum *>(input_reply_to);
       return {InputDialogId(reply_to->monoforum_peer_id_)};
     }
+    case telegram_api::inputReplyToEphemeralMessage::ID:
+      return {};
     default:
       UNREACHABLE();
   }

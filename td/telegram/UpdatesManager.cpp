@@ -989,8 +989,9 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionNoForwardsToggle::ID:
         case telegram_api::messageActionNoForwardsRequest::ID:
         case telegram_api::messageActionPollAppendAnswer::ID:
-        case telegram_api::messageActionManagedBotCreated::ID:
         case telegram_api::messageActionPollDeleteAnswer::ID:
+        case telegram_api::messageActionManagedBotCreated::ID:
+        case telegram_api::messageActionChangeCommunity::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto action = static_cast<const telegram_api::messageActionChatCreate *>(action_ptr);
@@ -3323,6 +3324,9 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
                                                                       std::move(reference_messages)));
         break;
       }
+      case telegram_api::updateBotStarsSubscription::ID: {
+        break;
+      }
       default:
         UNREACHABLE();
         break;
@@ -3949,6 +3953,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings>
       }
       break;
     }
+    case telegram_api::notifyCommunity::ID:
+      break;
     default:
       UNREACHABLE();
   }
@@ -4157,6 +4163,7 @@ bool UpdatesManager::is_qts_update(const telegram_api::Update *update) {
     case telegram_api::updateBotDeleteBusinessMessage::ID:
     case telegram_api::updateBotPurchasedPaidMedia::ID:
     case telegram_api::updateBotGuestChatQuery::ID:
+    case telegram_api::updateBotStarsSubscription::ID:
       return true;
     default:
       return false;
@@ -4197,6 +4204,8 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updateBotPurchasedPaidMedia *>(update)->qts_;
     case telegram_api::updateBotGuestChatQuery::ID:
       return static_cast<const telegram_api::updateBotGuestChatQuery *>(update)->qts_;
+    case telegram_api::updateBotStarsSubscription::ID:
+      return static_cast<const telegram_api::updateBotStarsSubscription *>(update)->qts_;
     default:
       return 0;
   }
@@ -5013,7 +5022,32 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebBrowserExcep
 
 // unsupported updates
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotStarsSubscription> update,
+                               Promise<Unit> &&promise) {
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewEphemeralMessage> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteEphemeralMessages> update,
+                               Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditEphemeralMessage> update,
+                               Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEphemeralBotCallbackQuery> update,
+                               Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

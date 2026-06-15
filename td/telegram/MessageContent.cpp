@@ -10203,6 +10203,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionSuggestedPostRefund::ID:
       case telegram_api::messageActionNewCreatorPending::ID:
       case telegram_api::messageActionChangeCreator::ID:
+      case telegram_api::messageActionChangeCommunity::ID:
         LOG(ERROR) << "Receive business " << to_string(action_ptr);
         break;
       case telegram_api::messageActionHistoryClear::ID:
@@ -10997,15 +10998,6 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return td::make_unique<MessageNoForwardsRequest>(action->expired_, action->prev_value_, action->new_value_);
     }
-    case telegram_api::messageActionManagedBotCreated::ID: {
-      auto action = telegram_api::move_object_as<telegram_api::messageActionManagedBotCreated>(action_ptr);
-      auto bot_user_id = UserId(action->bot_id_);
-      if (!bot_user_id.is_valid()) {
-        LOG(ERROR) << "Receive " << bot_user_id;
-        break;
-      }
-      return td::make_unique<MessageManagedBotCreated>(bot_user_id);
-    }
     case telegram_api::messageActionPollAppendAnswer::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionPollAppendAnswer>(action_ptr);
       auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
@@ -11027,6 +11019,18 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       vector<std::pair<ChannelId, MinChannel>> min_channels;
       PollOption option(td, std::move(action->answer_), min_channels);
       return td::make_unique<MessagePollDeleteAnswer>(reply_to_message_id, std::move(option.text_), option.get_data());
+    }
+    case telegram_api::messageActionManagedBotCreated::ID: {
+      auto action = telegram_api::move_object_as<telegram_api::messageActionManagedBotCreated>(action_ptr);
+      auto bot_user_id = UserId(action->bot_id_);
+      if (!bot_user_id.is_valid()) {
+        LOG(ERROR) << "Receive " << bot_user_id;
+        break;
+      }
+      return td::make_unique<MessageManagedBotCreated>(bot_user_id);
+    }
+    case telegram_api::messageActionChangeCommunity::ID: {
+      break;
     }
     default:
       UNREACHABLE();

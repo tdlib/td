@@ -1440,8 +1440,9 @@ class GetCreatedPublicChannelsQuery final : public Td::ResultHandler {
 
   void send(PublicDialogType type, bool check_limit) {
     type_ = type;
-    send_query(G()->net_query_creator().create(telegram_api::channels_getAdminedPublicChannels(
-        0, type_ == PublicDialogType::IsLocationBased, check_limit, type_ == PublicDialogType::ForPersonalDialog)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_getAdminedPublicChannels(0, type_ == PublicDialogType::IsLocationBased, check_limit,
+                                                        type_ == PublicDialogType::ForPersonalDialog, false)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -5696,6 +5697,10 @@ void ChatManager::on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat, const ch
     case telegram_api::channelForbidden::ID:
       on_get_channel_forbidden(static_cast<telegram_api::channelForbidden &>(*chat), source);
       break;
+    case telegram_api::community::ID:
+      break;
+    case telegram_api::communityForbidden::ID:
+      break;
     default:
       UNREACHABLE();
   }
@@ -6167,6 +6172,9 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
             PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable { promise.set_value(Unit()); }),
             "on_get_channel_full 3");
       }
+      break;
+    }
+    case telegram_api::communityFull::ID: {
       break;
     }
     default:

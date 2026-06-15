@@ -120,7 +120,7 @@ td_api::object_ptr<td_api::botCommand> BotCommand::get_bot_command_object() cons
 }
 
 telegram_api::object_ptr<telegram_api::botCommand> BotCommand::get_input_bot_command() const {
-  return telegram_api::make_object<telegram_api::botCommand>(command_, description_);
+  return telegram_api::make_object<telegram_api::botCommand>(0, false, command_, description_);
 }
 
 bool operator==(const BotCommand &lhs, const BotCommand &rhs) {

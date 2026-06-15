@@ -34,6 +34,10 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
   CHECK(reply_header_ptr->get_id() == telegram_api::messageReplyHeader::ID);
   auto reply_header = telegram_api::move_object_as<telegram_api::messageReplyHeader>(reply_header_ptr);
 
+  if (reply_header->reply_to_ephemeral_) {
+    return;
+  }
+
   bool can_have_thread = td->dialog_manager_->can_dialog_have_threads(dialog_id);
   if (!message_id.is_scheduled() && can_have_thread) {
     is_topic_message_ = reply_header->forum_topic_;

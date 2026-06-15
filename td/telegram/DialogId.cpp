@@ -105,6 +105,10 @@ DialogId::DialogId(const tl_object_ptr<telegram_api::DialogPeer> &dialog_peer) {
       LOG(ERROR) << "Receive unsupported " << to_string(dialog_peer);
       id = 0;
       break;
+    case telegram_api::dialogPeerCommunity::ID:
+      LOG(ERROR) << "Receive unsupported " << to_string(dialog_peer);
+      id = 0;
+      break;
     default:
       id = 0;
       UNREACHABLE();

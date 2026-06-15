@@ -99,7 +99,7 @@ telegram_api::object_ptr<telegram_api::chatAdminRights> AdministratorRights::get
       0, can_change_info_and_settings(), can_post_messages(), can_edit_messages(), can_delete_messages(),
       can_restrict_members(), can_invite_users(), can_pin_messages(), can_promote_members(), is_anonymous(),
       can_manage_calls(), can_manage_dialog(), can_manage_topics(), can_post_stories(), can_edit_stories(),
-      can_delete_stories(), can_manage_direct_messages(), can_manage_ranks());
+      can_delete_stories(), can_manage_direct_messages(), can_manage_ranks(), false);
 }
 
 td_api::object_ptr<td_api::chatAdministratorRights> AdministratorRights::get_chat_administrator_rights_object() const {
@@ -262,7 +262,8 @@ telegram_api::object_ptr<telegram_api::chatBannedRights> RestrictedRights::get_c
       !can_send_animations(), !can_send_games(), !can_use_inline_bots(), !can_add_web_page_previews(),
       !can_send_polls(), !can_change_info_and_settings(), !can_invite_users(), !can_pin_messages(),
       !can_manage_topics(), !can_send_photos(), !can_send_videos(), !can_send_video_notes(), !can_send_audios(),
-      !can_send_voice_notes(), !can_send_documents(), !can_send_messages(), !can_edit_rank(), !can_send_reactions(), 0);
+      !can_send_voice_notes(), !can_send_documents(), !can_send_messages(), !can_edit_rank(), !can_send_reactions(),
+      false, 0);
 }
 
 bool operator==(const RestrictedRights &lhs, const RestrictedRights &rhs) {

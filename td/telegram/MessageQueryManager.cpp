@@ -483,9 +483,9 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
       }
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_searchGlobal(
-        flags, broadcasts_only, groups_only, users_only, folder_id.get(), query, get_input_messages_filter(filter),
-        min_date_, max_date_, offset_date_, std::move(input_peer), offset_message_id.get_server_message_id().get(),
-        limit)));
+        flags, broadcasts_only, groups_only, users_only, folder_id.get(), nullptr, query,
+        get_input_messages_filter(filter), min_date_, max_date_, offset_date_, std::move(input_peer),
+        offset_message_id.get_server_message_id().get(), limit)));
   }
 
   void on_result(BufferSlice packet) final {

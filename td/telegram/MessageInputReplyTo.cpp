@@ -72,6 +72,10 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
       // auto reply_to = telegram_api::move_object_as<telegram_api::inputReplyToMonoForum>(input_reply_to);
       break;
     }
+    case telegram_api::inputReplyToEphemeralMessage::ID: {
+      // auto reply_to = telegram_api::move_object_as<telegram_api::inputReplyToEphemeralMessage>(input_reply_to);
+      break;
+    }
     default:
       UNREACHABLE();
   }

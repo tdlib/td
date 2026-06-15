@@ -3825,6 +3825,8 @@ RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
       result.date = std::move(date);
       break;
     }
+    case telegram_api::textDiff::ID:
+      break;
     default:
       UNREACHABLE();
   }
