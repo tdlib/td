@@ -106,8 +106,38 @@ needles present (RED→GREEN confirmed); all region markers resolve uniquely.
 
 ---
 
-## 5. Status
+## 5. Wave B-2 — feasibility-sweep follow-on (2 more)
 
-Wave B implementation complete in the working tree (3 backports + 3 contract tests + CMake
-registration). Awaiting Linux CI green to mark the 2026-06-15 intake cycle's active queue closed.
-W11-AI2 remains open-deferred (unchanged).
+After a **dry-run cherry-pick feasibility sweep** of all 244 remaining commits in an **isolated
+worktree** (zero commits to the branch), the true mechanically-applicable set was measured:
+**55 apply cleanly, 189 conflict.** Of the 55 clean, 23 touch `td_api.tl` (public API), and most of
+the rest are coupled product-epic fragments or wide-signature refactors that *apply textually but do
+not compile standalone*. After per-commit prereq verification, exactly **2 more** are genuinely
+safe + fork-applicable standalone fixes:
+
+| Upstream SHA | Subject | Fork file | Adaptation |
+|---|---|---|---|
+| `c3759d5c5` | Use send_closure_later when adding call notification just in case | `td/telegram/CallActor.cpp` | **exact** — `send_closure` → `send_closure_later` for the pending-call notification (reentrancy/ordering hardening). |
+| `e95e1fd0d` | Fix DialogAction comparison | `td/telegram/DialogAction.h` | **local-equivalent** — `operator==` now also compares `random_id_` and `text_`. Upstream additionally compares a `RichMessage message_` field; the fork lacks the rich-message feature, so that field is intentionally dropped (a guard test asserts `message_` stays absent). |
+
+Tests: `test/call_notification_send_closure_later_contract.cpp`,
+`test/dialog_action_equality_fields_contract.cpp` (RED-on-revert verified; markers unique; registered).
+Both modified files were pristine upstream Boost headers → converted to the dual SPDX header per policy.
+
+### Why NOT "all remaining ~197": measured, not asserted
+- **0** of the 244 remaining commits touch stealth transport.
+- **189/244 conflict** outright against the diverged fork.
+- The **55 clean** are dominated by: public-API schema changes (`td_api.tl`, 23), and fragments of
+  deferred product epics (rich-message, instant-view/PageBlock, WebBrowser subsystem, PollMedia,
+  chat-join/guard-bot, live-location, search-filter, business) that reference epic types/schema the
+  fork lacks → **clean-apply ≠ compiles**.
+- Importing those epics wholesale = new `td_api.tl` types + new source files + the **layer-227** bump,
+  which **violates fork policy rule #1 "No bulk sync from upstream"** (gating §1) and the fork's
+  stealth mission. That is a deliberate, per-epic, owner-approved decision — not a mechanical sweep.
+
+## 6. Status
+
+2026-06-15 intake cycle: **5 backports landed** (Wave B: `84f21a1d8`, `a74cc9af8`, `dc73b3ca3`;
+Wave B-2: `c3759d5c5`, `e95e1fd0d`) + **5 contract tests**, all RED-on-revert verified. The remaining
+~239 commits stay `defer_pending_context` (product epics) / `reject_not_relevant` — not safely
+backportable standalone. Awaiting Linux CI (build + ctest + sanitizers). W11-AI2 unchanged.

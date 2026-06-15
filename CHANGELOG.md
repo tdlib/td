@@ -30,8 +30,22 @@ minimal fix; full build/`ctest`/sanitizer matrix runs on Linux CI. Landed:
   full dialog info on failed dependency resolution, keeping the fork's caller-`source` provenance
   (`td/telegram/MessagesManager.cpp`).
 
+Wave B-2 (after a dry-run cherry-pick feasibility sweep of all 244 remaining commits — 55 apply
+cleanly, 189 conflict — only 2 are safe standalone fixes):
+
+- `c3759d5c5` exact: pending-call notification posted via `send_closure_later` instead of
+  `send_closure` (reentrancy/ordering hardening) (`td/telegram/CallActor.cpp`).
+- `e95e1fd0d` local-equivalent: `DialogAction::operator==` now also compares `random_id_` and `text_`;
+  the upstream `RichMessage message_` field is intentionally dropped (feature absent in the fork)
+  (`td/telegram/DialogAction.h`).
+
+Remaining ~239 commits stay deferred/rejected — product epics (rich-message, instant-view, WebBrowser,
+PollMedia, chat-join, live-location, …) requiring `td_api.tl` + new files + layer-227, which would
+violate fork policy "No bulk sync"; not safely backportable standalone.
+
 Contract tests: `test/managed_bot_created_dependency_contract.cpp`,
-`test/draft_local_reply_ignore_contract.cpp`, `test/parse_dialog_repair_refetch_contract.cpp`.
+`test/draft_local_reply_ignore_contract.cpp`, `test/parse_dialog_repair_refetch_contract.cpp`,
+`test/call_notification_send_closure_later_contract.cpp`, `test/dialog_action_equality_fields_contract.cpp`.
 Closeout: [docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15_WAVE_B_CLOSEOUT.md](docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15_WAVE_B_CLOSEOUT.md).
 
 ## Fork Backport Record (24 May 2026)

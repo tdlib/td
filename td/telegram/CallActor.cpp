@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/CallActor.h"
 
@@ -851,8 +851,8 @@ void CallActor::flush_call_state() {
       if (call_state_.type == CallState::Type::Pending) {
         if (!has_notification_) {
           has_notification_ = true;
-          send_closure(G()->notification_manager(), &NotificationManager::add_call_notification,
-                       DialogId(call_admin_user_id_), local_call_id_);
+          send_closure_later(G()->notification_manager(), &NotificationManager::add_call_notification,
+                             DialogId(call_admin_user_id_), local_call_id_);
         }
       } else {
         if (has_notification_) {
