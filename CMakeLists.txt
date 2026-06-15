@@ -606,6 +606,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/Requests.cpp
   td/telegram/RestrictionReason.cpp
   td/telegram/RichMessage.cpp
+  td/telegram/RichMessageMedia.cpp
   td/telegram/SavedMessagesManager.cpp
   td/telegram/SavedMessagesTopicId.cpp
   td/telegram/ScopeNotificationSettings.cpp
@@ -1029,6 +1030,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/Requests.h
   td/telegram/RestrictionReason.h
   td/telegram/RichMessage.h
+  td/telegram/RichMessageMedia.h
   td/telegram/SavedMessagesManager.h
   td/telegram/SavedMessagesTopicId.h
   td/telegram/ScheduledServerMessageId.h
@@ -1229,6 +1231,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ReplyMarkup.hpp
   td/telegram/RequestedDialogType.hpp
   td/telegram/RichMessage.hpp
+  td/telegram/RichMessageMedia.hpp
   td/telegram/ScopeNotificationSettings.hpp
   td/telegram/SecureValue.hpp
   td/telegram/SendCodeHelper.hpp

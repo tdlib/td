@@ -122,6 +122,11 @@ formattedText text:string entities:vector<textEntity> = FormattedText;
 //@is_full True, if the object contains the full message. Otherwise, getFullRichMessage must be used to get the full message
 richMessage blocks:vector<PageBlock> is_rtl:Bool is_full:Bool = RichMessage;
 
+//@description Describes a media to be used in a sent rich message
+//@id Unique identifier of the media
+//@media The media to send. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessagePhoto, inputMessageVideo, or inputMessageVoiceNote
+inputRichMessageMedia id:string media:InputMessageContent = InputRichMessageMedia;
+
 //@class RichMessageSource @description Describes source of a rich message
 
 //@description A Markdown-formatted rich message; for bots only @text Markdown-formatted text of the message
