@@ -13,6 +13,16 @@ Plan and evidence: [docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15.md](docs/Plans/
 and its Wave A addendum
 [docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15_WAVE_A_ADDENDUM.md](docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15_WAVE_A_ADDENDUM.md).
 
+### Backported commits this cycle (5 of 247)
+
+| Upstream SHA | Mode | Fork file | Summary |
+|---|---|---|---|
+| `84f21a1d8` | exact | `td/telegram/MessageContent.cpp` | `add_message_content_dependencies` resolves `bot_user_id` for ManagedBotCreated |
+| `a74cc9af8` | local-equivalent | `td/telegram/DraftMessage.hpp` | clear persisted-draft reply to local/yet-unsent same-chat message |
+| `dc73b3ca3` | local-equivalent | `td/telegram/MessagesManager.cpp` | DB-dialog repair re-fetches messages + reloads full dialog info |
+| `c3759d5c5` | exact | `td/telegram/CallActor.cpp` | pending-call notification posted via `send_closure_later` |
+| `e95e1fd0d` | local-equivalent | `td/telegram/DialogAction.h` | `operator==` also compares `random_id_` and `text_` |
+
 Wave A (provenance/inventory) is complete; gate tally over the 247 (all downstream-status `missing`):
 `defer_pending_context` 207 · `reject_not_relevant` 28 · `accept_with_repair` 8 ·
 `local_equivalent_adaptation` 4. **No stealth-transport (`td/mtproto`, `tdnet`, TlsInit) commit in
