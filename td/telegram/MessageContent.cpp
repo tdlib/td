@@ -10927,7 +10927,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
         }
       }
       return make_tl_object<td_api::messageVideo>(
-          td->videos_manager_->get_video_object(m->file_id), std::move(alternative_videos), std::move(storyboards),
+          td->videos_manager_->get_video_object(m->file_id, m->alternative_file_ids), std::move(alternative_videos),
+          std::move(storyboards),
           get_photo_object(td->file_manager_.get(), m->cover), m->start_timestamp, get_text_object(m->caption),
           invert_media, m->has_spoiler, is_content_secret);
     }

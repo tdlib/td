@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -36,7 +36,8 @@ class VideosManager {
 
   const string &get_video_mime_type(FileId file_id) const;
 
-  td_api::object_ptr<td_api::video> get_video_object(FileId file_id) const;
+  td_api::object_ptr<td_api::video> get_video_object(FileId file_id,
+                                                     const vector<FileId> &alternative_file_ids = {}) const;
 
   td_api::object_ptr<td_api::storyVideo> get_story_video_object(FileId file_id) const;
 

@@ -13,7 +13,7 @@ Plan and evidence: [docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15.md](docs/Plans/
 and its Wave A addendum
 [docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15_WAVE_A_ADDENDUM.md](docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15_WAVE_A_ADDENDUM.md).
 
-### Backported commits this cycle (5 of 247)
+### Backported commits this cycle (6 of 247)
 
 | Upstream SHA | Mode | Fork file | Summary |
 |---|---|---|---|
@@ -22,6 +22,13 @@ and its Wave A addendum
 | `dc73b3ca3` | local-equivalent | `td/telegram/MessagesManager.cpp` | DB-dialog repair re-fetches messages + reloads full dialog info |
 | `c3759d5c5` | exact | `td/telegram/CallActor.cpp` | pending-call notification posted via `send_closure_later` |
 | `e95e1fd0d` | local-equivalent | `td/telegram/DialogAction.h` | `operator==` also compares `random_id_` and `text_` |
+| `1a8d24176` | exact (default-param) | `td/telegram/VideosManager.{cpp,h}`, `MessageContent.cpp` | repair video duration/thumbnail from alternative (HLS) videos |
+
+Of the 8 Wave-A `accept_with_repair` candidates: 5 landed above (`84f21a1d8`, `a74cc9af8`,
+`dc73b3ca3`, `e95e1fd0d`, `1a8d24176`); `39ea84dff` is already-present (the fork already uses the
+correct option name `pending_text_message_period`); `d78ceefc7` (niche ToDo constructor signature
+change) and `4e59e82d0` (include churn touching files absent in the fork) are deferred/dropped.
+`c3759d5c5` was an additional safe fix surfaced by the feasibility sweep.
 
 Wave A (provenance/inventory) is complete; gate tally over the 247 (all downstream-status `missing`):
 `defer_pending_context` 207 · `reject_not_relevant` 28 · `accept_with_repair` 8 ·
