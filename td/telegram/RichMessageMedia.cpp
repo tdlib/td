@@ -38,4 +38,13 @@ unique_ptr<MessageContent> RichMessageMedia::get_message_content(Td *td) const {
                              MessageCopyOptions(true, false));
 }
 
+RichMessageMedia RichMessageMedia::clone(Td *td, DialogId dialog_id, const MessageContentDupType &type) const {
+  RichMessageMedia result;
+  result.id_ = id_;
+  result.media_ = dup_message_content(
+      td, dialog_id, media_.get(), type,
+      MessageCopyOptions(type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy, false));
+  return result;
+}
+
 }  // namespace td

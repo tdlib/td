@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/MessageContent.h"
+#include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -36,6 +37,8 @@ class RichMessageMedia {
   const MessageContent *get_message_content_ref() const {
     return media_.get();
   }
+
+  RichMessageMedia clone(Td *td, DialogId dialog_id, const MessageContentDupType &type) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
