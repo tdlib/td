@@ -34,6 +34,16 @@ Result<RichMessageMedia> RichMessageMedia::get_rich_message_media(
   return std::move(result);
 }
 
+Result<vector<RichMessageMedia>> RichMessageMedia::get_rich_message_media(
+    Td *td, DialogId dialog_id, vector<td_api::object_ptr<td_api::inputRichMessageMedia>> &&media) {
+  vector<RichMessageMedia> result;
+  for (auto &m : media) {
+    TRY_RESULT(rich_message_media, get_rich_message_media(td, dialog_id, std::move(m)));
+    result.push_back(std::move(rich_message_media));
+  }
+  return std::move(result);
+}
+
 unique_ptr<MessageContent> RichMessageMedia::get_message_content(Td *td) const {
   CHECK(td != nullptr);
   return dup_message_content(td, DialogId(), media_.get(), MessageContentDupType::ServerCopy,

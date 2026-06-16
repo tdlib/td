@@ -29,6 +29,9 @@ class RichMessageMedia {
   static Result<RichMessageMedia> get_rich_message_media(Td *td, DialogId dialog_id,
                                                          td_api::object_ptr<td_api::inputRichMessageMedia> &&media);
 
+  static Result<vector<RichMessageMedia>> get_rich_message_media(
+      Td *td, DialogId dialog_id, vector<td_api::object_ptr<td_api::inputRichMessageMedia>> &&media);
+
   unique_ptr<MessageContent> get_message_content(Td *td) const;
 
   unique_ptr<MessageContent> &get_message_content_editable() {
