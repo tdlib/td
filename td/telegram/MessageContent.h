@@ -15,6 +15,7 @@
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/InputGroupCallId.h"
+#include "td/telegram/InputMedia.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/MessageContentType.h"
@@ -144,19 +145,17 @@ SecretInputMedia get_message_content_secret_input_media(
     const MessageContent *content, Td *td, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
     BufferSlice thumbnail, int32 layer);
 
-telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_multi_input_media(
+InputMedia get_message_content_multi_input_media(
     const MessageContent *content, Td *td, vector<telegram_api::object_ptr<telegram_api::InputMedia>> &&input_media);
 
-telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(
-    const MessageContent *content, int32 media_pos, Td *td,
-    telegram_api::object_ptr<telegram_api::InputFile> input_file,
-    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, FileUploadId file_upload_id,
-    FileUploadId thumbnail_file_upload_id, MessageSelfDestructType ttl, const string &emoji, bool force);
+InputMedia get_message_content_input_media(const MessageContent *content, int32 media_pos, Td *td,
+                                           telegram_api::object_ptr<telegram_api::InputFile> input_file,
+                                           telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail,
+                                           FileUploadId file_upload_id, FileUploadId thumbnail_file_upload_id,
+                                           MessageSelfDestructType ttl, const string &emoji, bool force);
 
-telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(const MessageContent *content,
-                                                                                   Td *td, MessageSelfDestructType ttl,
-                                                                                   const string &emoji, bool force,
-                                                                                   int32 media_pos);
+InputMedia get_message_content_input_media(const MessageContent *content, Td *td, MessageSelfDestructType ttl,
+                                           const string &emoji, bool force, int32 media_pos);
 
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page(
     const Td *td, const MessageContent *content);

@@ -1298,7 +1298,8 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
       fake_message->content_ = std::move(message_contents[media_pos]);
       fake_message->init_file_upload_ids(td_);
       auto input_media = get_message_content_input_media(fake_message->content_.get(), td_, MessageSelfDestructType(),
-                                                         string(), td_->auth_manager_->is_bot(), -1);
+                                                         string(), td_->auth_manager_->is_bot(), -1)
+                             .media_;
       auto file_id = fake_message->file_upload_id_.get_file_id();
       if (input_media != nullptr || !file_id.is_valid()) {
         if (!file_id.is_valid() || td_->file_manager_->get_file_view(file_id).has_full_remote_location()) {
@@ -1319,7 +1320,8 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
   }
 
   auto input_media = get_message_content_input_media(content, td_, message->ttl_, message->send_emoji_,
-                                                     td_->auth_manager_->is_bot(), -1);
+                                                     td_->auth_manager_->is_bot(), -1)
+                         .media_;
   if (input_media != nullptr) {
     td_->create_handler<SendBusinessMediaQuery>(std::move(promise))->send(std::move(message), std::move(input_media));
     return;
@@ -1479,8 +1481,9 @@ void BusinessConnectionManager::do_upload_media(BeingUploadedMedia &&being_uploa
 
   const auto *message = being_uploaded_media.message_.get();
   auto input_media = get_message_content_input_media(
-      message->content_.get(), -1, td_, std::move(input_file), std::move(input_thumbnail), file_upload_id,
-      thumbnail_file_upload_id, message->ttl_, message->send_emoji_, true);
+                         message->content_.get(), -1, td_, std::move(input_file), std::move(input_thumbnail),
+                         file_upload_id, thumbnail_file_upload_id, message->ttl_, message->send_emoji_, true)
+                         .media_;
   CHECK(input_media != nullptr);
   if (is_uploaded_input_media(input_media)) {
     UploadMediaResult result;
@@ -1514,7 +1517,8 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
   }
 
   auto input_media =
-      get_message_content_input_media(message->content_.get(), td_, message->ttl_, message->send_emoji_, true, -1);
+      get_message_content_input_media(message->content_.get(), td_, message->ttl_, message->send_emoji_, true, -1)
+          .media_;
   if (input_media == nullptr) {
     return promise.set_error(400, "Failed to upload file");
   }
@@ -1582,7 +1586,8 @@ void BusinessConnectionManager::do_send_message_album(int64 request_id, Business
         create_business_message_to_send(business_connection_id, dialog_id, input_reply_to.clone(), disable_notification,
                                         protect_content, effect_id, nullptr, std::move(message_content));
     auto input_media = get_message_content_input_media(message->content_.get(), td_, message->ttl_,
-                                                       message->send_emoji_, td_->auth_manager_->is_bot(), -1);
+                                                       message->send_emoji_, td_->auth_manager_->is_bot(), -1)
+                           .media_;
     if (input_media != nullptr) {
       auto file_id = message->file_upload_id_.get_file_id();
       CHECK(file_id.is_valid());
@@ -1719,7 +1724,8 @@ void BusinessConnectionManager::on_upload_message_internal_media(int64 request_i
     auto upload_result = r_upload_result.move_as_ok();
     input_media.push_back(std::move(upload_result.input_media_));
   }
-  auto full_input_media = get_message_content_multi_input_media(message->content_.get(), td_, std::move(input_media));
+  auto full_input_media =
+      get_message_content_multi_input_media(message->content_.get(), td_, std::move(input_media)).media_;
   td_->create_handler<SendBusinessMediaQuery>(std::move(promise))
       ->send(std::move(message), std::move(full_input_media));
 }

@@ -6657,7 +6657,8 @@ void MessagesManager::do_send_media(DialogId dialog_id, const Message *m, int32 
   auto thumbnail_file_upload_id = get_message_send_thumbnail_file_upload_id(dialog_id, m, media_pos);
   auto input_media =
       get_message_content_input_media(content, media_pos, td_, std::move(input_file), std::move(input_thumbnail),
-                                      file_upload_id, thumbnail_file_upload_id, m->ttl, m->send_emoji, true);
+                                      file_upload_id, thumbnail_file_upload_id, m->ttl, m->send_emoji, true)
+          .media_;
   LOG_CHECK(input_media != nullptr) << to_string(get_message_object(dialog_id, m, "do_send_media")) << ' ' << media_pos
                                     << ' ' << have_input_file << ' ' << have_input_thumbnail << ' ' << file_upload_id
                                     << ' ' << thumbnail_file_upload_id << ' ' << m->ttl;
@@ -21792,7 +21793,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
       CHECK(static_cast<size_t>(media_pos) < file_upload_ids.size());
     }
     auto input_media = get_message_content_input_media(content, td_, m->ttl, m->send_emoji,
-                                                       td_->auth_manager_->is_bot() && bad_parts.empty(), media_pos);
+                                                       td_->auth_manager_->is_bot() && bad_parts.empty(), media_pos)
+                           .media_;
     auto can_have_multiple_files = can_message_content_have_multiple_files(content_type);
     if (input_media == nullptr || media_pos >= 0 || !bad_parts.empty() || can_have_multiple_files) {
       if (content_type == MessageContentType::Game || content_type == MessageContentType::Story) {
@@ -22055,7 +22057,8 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   }
   cancel_upload_file(get_message_send_file_upload_id(dialog_id, m, media_pos), "on_upload_message_media_success");
 
-  auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, media_pos);
+  auto input_media =
+      get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, media_pos).media_;
   Status result;
   if (input_media == nullptr) {
     result = Status::Error(400, "Failed to upload file");
@@ -22279,7 +22282,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     }
 
     const FormattedText *caption = get_message_content_caption(m->content.get());
-    auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, -1);
+    auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, -1).media_;
     if (input_media == nullptr) {
       // TODO return CHECK
       auto file_upload_id = get_message_send_file_upload_id(dialog_id, m, -1);
@@ -22377,7 +22380,7 @@ void MessagesManager::do_send_internal_media_group(DialogId dialog_id, MessageId
     return;
   }
 
-  auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, -1);
+  auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, -1).media_;
   CHECK(input_media != nullptr);
   pending_internal_media_sends_.erase(it);
 

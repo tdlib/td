@@ -30,6 +30,10 @@ struct InputMedia {
   InputMedia(telegram_api::object_ptr<telegram_api::InputRichMessage> &&rich_message)
       : rich_message_(std::move(rich_message)) {
   }
+
+  bool is_empty() const {
+    return media_ == nullptr && rich_message_ == nullptr;
+  }
 };
 
 }  // namespace td

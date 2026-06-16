@@ -5565,13 +5565,13 @@ SecretInputMedia get_message_content_secret_input_media(
   return SecretInputMedia{};
 }
 
-static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media_impl(
+static InputMedia get_message_content_input_media_impl(
     const MessageContent *content, int32 media_pos, Td *td,
     telegram_api::object_ptr<telegram_api::InputFile> input_file,
     telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, MessageSelfDestructType ttl,
     const string &emoji) {
   if (!can_message_content_have_input_media(td, content, false)) {
-    return nullptr;
+    return {};
   }
   auto content_type = content->get_type();
   if (media_pos >= 0) {
@@ -5594,10 +5594,10 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::Dice: {
       const auto *m = static_cast<const MessageDice *>(content);
       if (m->is_stake) {
-        return make_tl_object<telegram_api::inputMediaStakeDice>(m->state_hash, m->stake_ton_count,
-                                                                 BufferSlice(m->seed));
+        return telegram_api::make_object<telegram_api::inputMediaStakeDice>(m->state_hash, m->stake_ton_count,
+                                                                            BufferSlice(m->seed));
       }
-      return make_tl_object<telegram_api::inputMediaDice>(m->emoji);
+      return telegram_api::make_object<telegram_api::inputMediaDice>(m->emoji);
     }
     case MessageContentType::Document: {
       const auto *m = static_cast<const MessageDocument *>(content);
@@ -5618,8 +5618,8 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
         flags |= telegram_api::inputMediaGeoLive::HEADING_MASK;
       }
       flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
-      return make_tl_object<telegram_api::inputMediaGeoLive>(flags, false, m->location.get_input_geo_point(),
-                                                             m->heading, m->period, m->proximity_alert_radius);
+      return telegram_api::make_object<telegram_api::inputMediaGeoLive>(
+          flags, false, m->location.get_input_geo_point(), m->heading, m->period, m->proximity_alert_radius);
     }
     case MessageContentType::Location: {
       const auto *m = static_cast<const MessageLocation *>(content);
@@ -5636,7 +5636,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
       for (auto &extended_media : m->media) {
         auto media = extended_media.get_input_media(td, std::move(input_file), std::move(input_thumbnail));
         if (media == nullptr) {
-          return nullptr;
+          return {};
         }
         input_media.push_back(std::move(media));
       }
@@ -5671,10 +5671,10 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
           continue;
         }
         auto media = get_message_content_input_media_impl(message_content, -1, td, nullptr, nullptr, ttl, emoji);
-        if (media == nullptr) {
-          return nullptr;
+        if (media.media_ == nullptr) {
+          return {};
         }
-        input_media.push_back(std::move(media));
+        input_media.push_back(std::move(media.media_));
       }
       return td->poll_manager_->get_input_media(m->poll_id, std::move(input_media));
     }
@@ -5788,10 +5788,10 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     default:
       UNREACHABLE();
   }
-  return nullptr;
+  return {};
 }
 
-telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_multi_input_media(
+InputMedia get_message_content_multi_input_media(
     const MessageContent *content, Td *td, vector<telegram_api::object_ptr<telegram_api::InputMedia>> &&input_media) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
@@ -5810,15 +5810,15 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_multi_inp
     }
     default:
       UNREACHABLE();
-      return nullptr;
+      return {};
   }
 }
 
-telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(
-    const MessageContent *content, int32 media_pos, Td *td,
-    telegram_api::object_ptr<telegram_api::InputFile> input_file,
-    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, FileUploadId file_upload_id,
-    FileUploadId thumbnail_file_upload_id, MessageSelfDestructType ttl, const string &emoji, bool force) {
+InputMedia get_message_content_input_media(const MessageContent *content, int32 media_pos, Td *td,
+                                           telegram_api::object_ptr<telegram_api::InputFile> input_file,
+                                           telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail,
+                                           FileUploadId file_upload_id, FileUploadId thumbnail_file_upload_id,
+                                           MessageSelfDestructType ttl, const string &emoji, bool force) {
   bool had_input_file = input_file != nullptr;
   bool had_input_thumbnail = input_thumbnail != nullptr;
   auto input_media = get_message_content_input_media_impl(content, media_pos, td, std::move(input_file),
@@ -5844,7 +5844,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
       if (file_reference == FileReferenceView::invalid_file_reference()) {
         if (!force) {
           LOG(INFO) << "Have invalid file reference for " << file_upload_id;
-          return nullptr;
+          return {};
         }
         LOG(ERROR) << "Have invalid file reference for " << file_upload_id << ", but we are forced to use it";
       }
@@ -5853,10 +5853,8 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
   return input_media;
 }
 
-telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(const MessageContent *content,
-                                                                                   Td *td, MessageSelfDestructType ttl,
-                                                                                   const string &emoji, bool force,
-                                                                                   int32 media_pos) {
+InputMedia get_message_content_input_media(const MessageContent *content, Td *td, MessageSelfDestructType ttl,
+                                           const string &emoji, bool force, int32 media_pos) {
   auto input_media = get_message_content_input_media_impl(content, media_pos, td, nullptr, nullptr, ttl, emoji);
   auto file_references = FileManager::extract_file_references(input_media);
   for (size_t i = 0; i < file_references.size(); i++) {
@@ -5869,7 +5867,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
       }
       if (!force) {
         LOG(INFO) << "File " << file_id << " has invalid file reference";
-        return nullptr;
+        return {};
       }
       LOG(ERROR) << "File " << file_id << " has invalid file reference, but we are forced to use it";
     }
