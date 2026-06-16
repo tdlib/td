@@ -4596,6 +4596,83 @@ string FileManager::extract_file_reference(
   return extract_file_reference(static_cast<const telegram_api::inputChatPhoto *>(input_chat_photo.get())->id_);
 }
 
+bool FileManager::extract_was_uploaded(
+    const telegram_api::object_ptr<telegram_api::InputRichMessage> &input_rich_message) {
+  return false;
+}
+
+bool FileManager::extract_was_thumbnail_uploaded(
+    const telegram_api::object_ptr<telegram_api::InputRichMessage> &input_rich_message) {
+  return false;
+}
+
+string FileManager::extract_file_reference(
+    const telegram_api::object_ptr<telegram_api::InputRichMessage> &input_rich_message) {
+  UNREACHABLE();
+}
+
+vector<string> FileManager::extract_file_references(
+    const vector<telegram_api::object_ptr<telegram_api::InputRichFile>> &input_rich_files) {
+  vector<string> result;
+  for (const auto &file : input_rich_files) {
+    CHECK(file != nullptr);
+    switch (file->get_id()) {
+      case telegram_api::inputRichFilePhoto::ID:
+        result.push_back(
+            extract_file_reference(static_cast<const telegram_api::inputRichFilePhoto *>(file.get())->photo_));
+        break;
+      case telegram_api::inputRichFileDocument::ID:
+        result.push_back(
+            extract_file_reference(static_cast<const telegram_api::inputRichFileDocument *>(file.get())->document_));
+        break;
+      default:
+        UNREACHABLE();
+    }
+  }
+  return result;
+}
+
+vector<string> FileManager::extract_file_references(
+    const telegram_api::object_ptr<telegram_api::InputRichMessage> &input_rich_message) {
+  if (input_rich_message == nullptr) {
+    return {};
+  }
+  switch (input_rich_message->get_id()) {
+    case telegram_api::inputRichMessage::ID: {
+      auto *message = static_cast<const telegram_api::inputRichMessage *>(input_rich_message.get());
+      vector<string> result;
+      for (const auto &photo : message->photos_) {
+        result.push_back(extract_file_reference(photo));
+      }
+      for (const auto &document : message->documents_) {
+        result.push_back(extract_file_reference(document));
+      }
+      return result;
+    }
+    case telegram_api::inputRichMessageHTML::ID: {
+      return extract_file_references(
+          static_cast<const telegram_api::inputRichMessageHTML *>(input_rich_message.get())->files_);
+    }
+    case telegram_api::inputRichMessageMarkdown::ID: {
+      return extract_file_references(
+          static_cast<const telegram_api::inputRichMessageMarkdown *>(input_rich_message.get())->files_);
+    }
+    default:
+      UNREACHABLE();
+      return {};
+  }
+}
+
+string FileManager::extract_cover_file_reference(
+    const telegram_api::object_ptr<telegram_api::InputRichMessage> &input_rich_message) {
+  UNREACHABLE();
+}
+
+vector<string> FileManager::extract_cover_file_references(
+    const telegram_api::object_ptr<telegram_api::InputRichMessage> &input_rich_message) {
+  return {};
+}
+
 FileId FileManager::next_file_id() {
   if (!empty_file_ids_.empty()) {
     auto res = empty_file_ids_.back();
