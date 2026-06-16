@@ -4382,6 +4382,54 @@ vector<tl_object_ptr<telegram_api::InputDocument>> FileManager::get_input_docume
   return result;
 }
 
+bool FileManager::extract_was_uploaded(const InputMedia &input_media) {
+  if (input_media.rich_message_ != nullptr) {
+    return extract_was_uploaded(input_media.rich_message_);
+  } else {
+    return extract_was_uploaded(input_media.media_);
+  }
+}
+
+bool FileManager::extract_was_thumbnail_uploaded(const InputMedia &input_media) {
+  if (input_media.rich_message_ != nullptr) {
+    return extract_was_thumbnail_uploaded(input_media.rich_message_);
+  } else {
+    return extract_was_thumbnail_uploaded(input_media.media_);
+  }
+}
+
+string FileManager::extract_file_reference(const InputMedia &input_media) {
+  if (input_media.rich_message_ != nullptr) {
+    return extract_file_reference(input_media.rich_message_);
+  } else {
+    return extract_file_reference(input_media.media_);
+  }
+}
+
+vector<string> FileManager::extract_file_references(const InputMedia &input_media) {
+  if (input_media.rich_message_ != nullptr) {
+    return extract_file_references(input_media.rich_message_);
+  } else {
+    return extract_file_references(input_media.media_);
+  }
+}
+
+string FileManager::extract_cover_file_reference(const InputMedia &input_media) {
+  if (input_media.rich_message_ != nullptr) {
+    return extract_cover_file_reference(input_media.rich_message_);
+  } else {
+    return extract_cover_file_reference(input_media.media_);
+  }
+}
+
+vector<string> FileManager::extract_cover_file_references(const InputMedia &input_media) {
+  if (input_media.rich_message_ != nullptr) {
+    return extract_cover_file_references(input_media.rich_message_);
+  } else {
+    return extract_cover_file_references(input_media.media_);
+  }
+}
+
 vector<const telegram_api::InputMedia *> FileManager::get_poll_media(const telegram_api::InputMedia *input_media) {
   CHECK(input_media->get_id() == telegram_api::inputMediaPoll::ID);
   const auto *poll = static_cast<const telegram_api::inputMediaPoll *>(input_media);

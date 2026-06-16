@@ -884,6 +884,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/InputGroupCall.h
   td/telegram/InputGroupCallId.h
   td/telegram/InputInvoice.h
+  td/telegram/InputMedia.h
   td/telegram/InputMessageText.h
   td/telegram/JoinChatBotResult.h
   td/telegram/JsonValue.h
