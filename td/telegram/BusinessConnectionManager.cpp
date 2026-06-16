@@ -1316,6 +1316,9 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
                                   media_pos, std::move(result));
                    }));
     }
+    if (message_contents.empty()) {
+      finish_upload_message_internal_media(request_id);
+    }
     return;
   }
 
@@ -1704,10 +1707,15 @@ void BusinessConnectionManager::on_upload_message_internal_media(int64 request_i
   request.finished_count_++;
 
   LOG(INFO) << "Receive uploaded paid media " << media_pos << " for request " << request_id;
-  if (request.finished_count_ != request.upload_results_.size()) {
-    return;
+  if (request.finished_count_ == request.upload_results_.size()) {
+    finish_upload_message_internal_media(request_id);
   }
+}
 
+void BusinessConnectionManager::finish_upload_message_internal_media(int64 request_id) {
+  auto it = media_group_send_requests_.find(request_id);
+  CHECK(it != media_group_send_requests_.end());
+  auto &request = it->second;
   auto upload_results = std::move(request.upload_results_);
   auto message = std::move(request.internal_media_message_);
   auto promise = std::move(request.internal_media_promise_);

@@ -237,6 +237,8 @@ class BusinessConnectionManager final : public Actor {
 
   void on_upload_message_internal_media(int64 request_id, size_t media_pos, Result<UploadMediaResult> &&result);
 
+  void finish_upload_message_internal_media(int64 request_id);
+
   void on_fail_send_message(unique_ptr<PendingMessage> &&message, const Status &error);
 
   void do_edit_message_media(unique_ptr<PendingMessage> &&message,
