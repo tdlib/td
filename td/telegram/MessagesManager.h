@@ -1901,6 +1901,8 @@ class MessagesManager final : public Actor {
 
   void on_text_message_ready_to_send(DialogId dialog_id, MessageId message_id);
 
+  void on_message_internal_media_ready_to_send(DialogId dialog_id, MessageId message_id);
+
   void on_media_message_ready_to_send(DialogId dialog_id, MessageId message_id, Promise<Message *> &&promise);
 
   void send_secret_message(DialogId dialog_id, const Message *m, SecretInputMedia media);

@@ -21800,11 +21800,11 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
       if (content_type == MessageContentType::Game || content_type == MessageContentType::Story) {
         return;
       }
-      CHECK(!file_upload_ids.empty());
+      CHECK(can_have_multiple_files || !file_upload_ids.empty());
       if (can_have_multiple_files && bad_parts.empty()) {
         CHECK(!is_secret && !is_edit);
         CHECK(media_pos == -1);
-        LOG(INFO) << "Add group media send for " << MessageFullId{dialog_id, m->message_id};
+        LOG(INFO) << "Add internal media send for " << MessageFullId{dialog_id, m->message_id};
         auto &request = pending_internal_media_sends_[{dialog_id, m->message_id}];
         CHECK(request.is_finished.empty());
         request.is_finished.resize(file_upload_ids.size());
@@ -21841,6 +21841,9 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
         // and to send is_uploading_active == true in the updates
         td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_media_callback_, 1,
                                           m->message_id.get());
+      }
+      if (can_have_multiple_files && file_upload_ids.empty()) {
+        on_message_internal_media_ready_to_send(dialog_id, m->message_id);
       }
     } else {
       on_message_media_uploaded(dialog_id, m, -1, std::move(input_media));
@@ -22144,16 +22147,7 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
     request.finished_count++;
 
     if (request.finished_count == request.results.size() || request.results[media_pos].is_error()) {
-      on_media_message_ready_to_send(dialog_id, message_id,
-                                     PromiseCreator::lambda([this, dialog_id](Result<Message *> result) mutable {
-                                       if (G()->close_flag() || result.is_error()) {
-                                         return;
-                                       }
-
-                                       auto m = result.move_as_ok();
-                                       CHECK(m != nullptr);
-                                       do_send_internal_media_group(dialog_id, m->message_id);
-                                     }));
+      on_message_internal_media_ready_to_send(dialog_id, message_id);
     }
     return;
   }
@@ -22439,6 +22433,19 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
           &m->send_query_ref);
     }
   }
+}
+
+void MessagesManager::on_message_internal_media_ready_to_send(DialogId dialog_id, MessageId message_id) {
+  on_media_message_ready_to_send(dialog_id, message_id,
+                                 PromiseCreator::lambda([this, dialog_id](Result<Message *> result) mutable {
+                                   if (G()->close_flag() || result.is_error()) {
+                                     return;
+                                   }
+
+                                   auto m = result.move_as_ok();
+                                   CHECK(m != nullptr);
+                                   do_send_internal_media_group(dialog_id, m->message_id);
+                                 }));
 }
 
 void MessagesManager::on_media_message_ready_to_send(DialogId dialog_id, MessageId message_id,
