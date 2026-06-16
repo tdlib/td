@@ -19,7 +19,7 @@ void RichMessageMedia::store(StorerT &storer) const {
   STORE_FLAG(has_id);
   END_STORE_FLAGS();
   if (has_id) {
-    td::store(title_, storer);
+    td::store(id_, storer);
   }
   store_message_content(media_.get(), storer);
 }

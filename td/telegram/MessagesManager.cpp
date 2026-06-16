@@ -17142,7 +17142,7 @@ unique_ptr<DraftMessage> MessagesManager::get_dialog_draft_message(DialogId dial
   if (d == nullptr) {
     return nullptr;
   }
-  return DraftMessage::clone(d->draft_message);
+  return DraftMessage::clone(td_, d->draft_message, dialog_id);
 }
 
 std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const {

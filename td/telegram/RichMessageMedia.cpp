@@ -7,6 +7,7 @@
 #include "td/telegram/RichMessageMedia.h"
 
 #include "td/telegram/MessageContentDupType.h"
+#include "td/telegram/MessageContentType.h"
 #include "td/telegram/OptionManager.h"
 
 namespace td {
@@ -34,6 +35,7 @@ Result<RichMessageMedia> RichMessageMedia::get_rich_message_media(
 }
 
 unique_ptr<MessageContent> RichMessageMedia::get_message_content(Td *td) const {
+  CHECK(td != nullptr);
   return dup_message_content(td, DialogId(), media_.get(), MessageContentDupType::ServerCopy,
                              MessageCopyOptions(true, false));
 }

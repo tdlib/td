@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/td_api.h"
@@ -29,6 +30,10 @@ class RichMessageMedia {
                                                          td_api::object_ptr<td_api::inputRichMessageMedia> &&media);
 
   unique_ptr<MessageContent> get_message_content(Td *td) const;
+
+  unique_ptr<MessageContent> &get_message_content_editable() {
+    return media_;
+  }
 
   MessageContent *get_message_content_ref() {
     return media_.get();

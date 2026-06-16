@@ -11,6 +11,7 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/MessageContent.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
@@ -234,18 +235,49 @@ td_api::object_ptr<td_api::richMessage> RichMessage::get_rich_message_object(Td 
       get_page_blocks_object(blocks_, td, string(), string(), skip_bot_commands), is_rtl_, is_full_);
 }
 
-RichMessage RichMessage::clone() const {
+RichMessage RichMessage::clone(Td *td, DialogId dialog_id, const MessageContentDupType &type) const {
   RichMessage result;
   result.blocks_ = clone_web_page_blocks(blocks_);
   result.is_rtl_ = is_rtl_;
   result.is_full_ = is_full_;
   result.noautolink_ = noautolink_;
   result.input_type_ = input_type_;
+  if (!media_.empty()) {
+    if (td != nullptr) {
+      result.media_ =
+          transform(media_, [&](const RichMessageMedia &media) { return media.clone(td, dialog_id, type); });
+    } else {
+      LOG(ERROR) << "Have no Td to clone RichMessage media";
+    }
+  }
+
   result.source_ = source_;
   return result;
 }
 
+vector<unique_ptr<MessageContent>> RichMessage::get_individual_message_contents(Td *td) const {
+  return transform(media_, [td](const RichMessageMedia &media) { return media.get_message_content(td); });
+}
+
+vector<MessageContent *> RichMessage::get_individual_message_content_refs() {
+  vector<MessageContent *> message_contents;
+  for (auto &media : media_) {
+    message_contents.push_back(media.get_message_content_ref());
+  }
+  return message_contents;
+}
+
+vector<const MessageContent *> RichMessage::get_individual_message_content_refs() const {
+  return transform(media_, [](const RichMessageMedia &media) { return media.get_message_content_ref(); });
+}
+
+unique_ptr<MessageContent> &RichMessage::get_individual_message_content(int32 media_pos) {
+  CHECK(static_cast<size_t>(media_pos) < media_.size());
+  return media_[media_pos].get_message_content_editable();
+}
+
 bool operator==(const RichMessage &lhs, const RichMessage &rhs) {
+  // compare only publicly-visible fields
   return lhs.blocks_ == rhs.blocks_ && lhs.is_rtl_ == rhs.is_rtl_ && lhs.is_full_ == rhs.is_full_;
 }
 

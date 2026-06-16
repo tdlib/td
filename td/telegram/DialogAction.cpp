@@ -6,6 +6,7 @@
 //
 #include "td/telegram/DialogAction.h"
 
+#include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
@@ -248,7 +249,7 @@ DialogAction DialogAction::clone() const {
   action.emoji_ = emoji_;
   action.random_id_ = random_id_;
   action.text_ = text_;
-  action.message_ = message_.clone();
+  action.message_ = message_.clone(nullptr, DialogId(), MessageContentDupType::ServerCopy);
   return action;
 }
 

@@ -10028,7 +10028,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::RichText: {
       CHECK(!to_secret);
       const auto *message_rich_text = static_cast<const MessageRichText *>(content);
-      return make_unique<MessageRichText>(message_rich_text->text.clone());
+      return make_unique<MessageRichText>(message_rich_text->text.clone(td, dialog_id, type));
     }
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));

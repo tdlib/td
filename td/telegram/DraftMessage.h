@@ -79,7 +79,7 @@ class DraftMessage {
 
   bool need_update_to(const DraftMessage &other, bool from_update) const;
 
-  static unique_ptr<DraftMessage> clone(const unique_ptr<DraftMessage> &draft_message);
+  static unique_ptr<DraftMessage> clone(Td *td, const unique_ptr<DraftMessage> &draft_message, DialogId dialog_id);
 
   void add_dependencies(Dependencies &dependencies) const;
 

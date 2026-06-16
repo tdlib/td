@@ -10,6 +10,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessagesManager.h"
@@ -411,7 +412,8 @@ bool DraftMessage::need_update_to(const DraftMessage &other, bool from_update) c
   }
 }
 
-unique_ptr<DraftMessage> DraftMessage::clone(const unique_ptr<DraftMessage> &draft_message) {
+unique_ptr<DraftMessage> DraftMessage::clone(Td *td, const unique_ptr<DraftMessage> &draft_message,
+                                             DialogId dialog_id) {
   if (draft_message == nullptr) {
     return nullptr;
   }
@@ -419,7 +421,7 @@ unique_ptr<DraftMessage> DraftMessage::clone(const unique_ptr<DraftMessage> &dra
   result->date_ = draft_message->date_;
   result->message_input_reply_to_ = draft_message->message_input_reply_to_.clone();
   result->input_message_text_ = draft_message->input_message_text_;
-  result->rich_message_ = draft_message->rich_message_.clone();
+  result->rich_message_ = draft_message->rich_message_.clone(td, dialog_id, MessageContentDupType::ServerCopy);
   if (draft_message->local_content_ != nullptr) {
     switch (draft_message->local_content_->get_type()) {
       case DraftMessageContentType::VideoNote: {

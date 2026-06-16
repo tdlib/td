@@ -10,6 +10,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/RichMessageMedia.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -24,7 +25,7 @@
 namespace td {
 
 class Dependencies;
-
+class MessageContent;
 class Td;
 
 class RichMessage {
@@ -36,6 +37,7 @@ class RichMessage {
 
   bool noautolink_ = false;
   InputType input_type_ = InputType::None;
+  vector<RichMessageMedia> media_;
   string source_;
 
   friend bool operator==(const RichMessage &lhs, const RichMessage &rhs);
@@ -82,7 +84,15 @@ class RichMessage {
 
   td_api::object_ptr<td_api::richMessage> get_rich_message_object(Td *td, bool skip_bot_commands) const;
 
-  RichMessage clone() const;
+  RichMessage clone(Td *td, DialogId dialog_id, const MessageContentDupType &type) const;
+
+  vector<unique_ptr<MessageContent>> get_individual_message_contents(Td *td) const;
+
+  vector<MessageContent *> get_individual_message_content_refs();
+
+  vector<const MessageContent *> get_individual_message_content_refs() const;
+
+  unique_ptr<MessageContent> &get_individual_message_content(int32 media_pos);
 
   template <class StorerT>
   void store(StorerT &storer) const;
