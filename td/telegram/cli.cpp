@@ -2203,7 +2203,7 @@ class CliClient final : public Actor {
 
   static td_api::object_ptr<td_api::inputRichMessage> as_input_rich_message(const string &message) {
     return td_api::make_object<td_api::inputRichMessage>(
-        td_api::make_object<td_api::richMessageSourceMarkdown>(message), rand_bool(), rand_bool());
+        td_api::make_object<td_api::richMessageSourceMarkdown>(message, Auto()), rand_bool(), rand_bool());
   }
 
   struct InputRichMessage {

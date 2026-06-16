@@ -99,12 +99,16 @@ Result<RichMessage> RichMessage::get_rich_message(Td *td, DialogId dialog_id,
       auto source = td_api::move_object_as<td_api::richMessageSourceMarkdown>(message->source_);
       rich_message.source_ = std::move(source->text_);
       rich_message.input_type_ = InputType::Markdown;
+      TRY_RESULT(media, RichMessageMedia::get_rich_message_media(td, dialog_id, std::move(source->media_)));
+      rich_message.media_ = std::move(media);
       break;
     }
     case td_api::richMessageSourceHtml::ID: {
       auto source = td_api::move_object_as<td_api::richMessageSourceHtml>(message->source_);
       rich_message.source_ = std::move(source->text_);
       rich_message.input_type_ = InputType::Html;
+      TRY_RESULT(media, RichMessageMedia::get_rich_message_media(td, dialog_id, std::move(source->media_)));
+      rich_message.media_ = std::move(media);
       break;
     }
     default:

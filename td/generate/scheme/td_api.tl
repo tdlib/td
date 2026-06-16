@@ -123,17 +123,17 @@ formattedText text:string entities:vector<textEntity> = FormattedText;
 richMessage blocks:vector<PageBlock> is_rtl:Bool is_full:Bool = RichMessage;
 
 //@description Describes a media to be used in a sent rich message
-//@id Unique identifier of the media
+//@id Unique identifier of the media; 1-64 base64url characters
 //@media The media to send. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessagePhoto, inputMessageVideo, or inputMessageVoiceNote
 inputRichMessageMedia id:string media:InputMessageContent = InputRichMessageMedia;
 
 //@class RichMessageSource @description Describes source of a rich message
 
-//@description A Markdown-formatted rich message; for bots only @text Markdown-formatted text of the message
-richMessageSourceMarkdown text:string = RichMessageSource;
+//@description A Markdown-formatted rich message; for bots only @text Markdown-formatted text of the message @media Media used in the message
+richMessageSourceMarkdown text:string media:vector<inputRichMessageMedia> = RichMessageSource;
 
-//@description An HTML-formatted rich message; for bots only @text HTML-formatted text of the message
-richMessageSourceHtml text:string = RichMessageSource;
+//@description An HTML-formatted rich message; for bots only @text HTML-formatted text of the message @media Media used in the message
+richMessageSourceHtml text:string media:vector<inputRichMessageMedia> = RichMessageSource;
 
 //@description A rich message to send
 //@source Source of the rich message
