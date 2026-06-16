@@ -9,6 +9,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageContent.h"
+#include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/OptionManager.h"

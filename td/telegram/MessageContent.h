@@ -16,6 +16,7 @@
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageCover.h"
@@ -290,14 +291,6 @@ unique_ptr<MessageContent> get_uploaded_message_content(
     Td *td, const MessageContent *old_content, int32 media_pos,
     telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr, DialogId owner_dialog_id, int32 message_date,
     const char *source);
-
-enum class MessageContentDupType : int32 {
-  Send,        // normal message sending
-  SendViaBot,  // message sending via bot
-  Forward,     // server-side message forward
-  Copy,        // local message copy
-  ServerCopy   // server-side message copy
-};
 
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
                                                MessageContentDupType type, MessageCopyOptions &&copy_options);

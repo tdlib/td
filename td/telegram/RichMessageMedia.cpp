@@ -6,6 +6,7 @@
 //
 #include "td/telegram/RichMessageMedia.h"
 
+#include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/OptionManager.h"
 
 namespace td {

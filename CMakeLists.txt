@@ -899,6 +899,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/MediaArea.h
   td/telegram/MediaAreaCoordinates.h
   td/telegram/MessageContent.h
+  td/telegram/MessageContentDupType.h
   td/telegram/MessageContentType.h
   td/telegram/MessageCopyOptions.h
   td/telegram/MessageCover.h
