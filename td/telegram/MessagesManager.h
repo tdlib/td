@@ -3157,6 +3157,8 @@ class MessagesManager final : public Actor {
 
   static DialogId get_message_sender(const Message *m);
 
+  static int32 get_message_shown_edit_date(const Message *m);
+
   ForumTopicId get_message_forum_topic_id(DialogId dialog_id, const Message *m) const;
 
   MessageTopic get_message_topic(DialogId dialog_id, const Message *m) const;

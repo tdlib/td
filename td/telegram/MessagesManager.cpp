@@ -20276,7 +20276,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
     }
     return nullptr;
   }();
-  auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
+  auto edit_date = get_message_shown_edit_date(m);
   auto reply_markup = get_reply_markup_object(td_->user_manager_.get(), m->reply_markup);
   auto content = get_message_content_object(m->content.get(), td_, dialog_id, m->message_id, DialogId(), false,
                                             m->is_outgoing, false, get_message_sender(m), 0, 0, false, true,
@@ -20452,7 +20452,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   }();
   auto topic = get_message_topic(dialog_id, m);
   auto date = is_scheduled ? 0 : m->date;
-  auto edit_date = m->hide_edit_date || is_scheduled ? 0 : m->edit_date;
+  auto edit_date = get_message_shown_edit_date(m);
   auto has_timestamped_media = reply_to == nullptr || m->max_own_media_timestamp >= 0;
   auto reply_markup = get_reply_markup_object(td_->user_manager_.get(), m->reply_markup);
   auto content = get_message_message_content_object(dialog_id, m);
@@ -23088,6 +23088,11 @@ DialogId MessagesManager::get_message_original_sender(const Message *m) {
 DialogId MessagesManager::get_message_sender(const Message *m) {
   CHECK(m != nullptr);
   return m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id);
+}
+
+int32 MessagesManager::get_message_shown_edit_date(const Message *m) {
+  CHECK(m != nullptr);
+  return m->hide_edit_date || m->message_id.is_scheduled() ? 0 : m->edit_date;
 }
 
 ForumTopicId MessagesManager::get_message_forum_topic_id(DialogId dialog_id, const Message *m) const {
@@ -26561,7 +26566,7 @@ void MessagesManager::send_update_message_content_impl(DialogId dialog_id, const
 void MessagesManager::send_update_message_edited(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
   cancel_dialog_action(dialog_id, m);
-  auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
+  auto edit_date = get_message_shown_edit_date(m);
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateMessageEdited>(
                    get_chat_id_object(dialog_id, "updateMessageEdited"), m->message_id.get(), edit_date,
@@ -31732,7 +31737,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     old_message->edited_schedule_repeat_period = 0;
   }
   bool is_edited = false;
-  int32 old_shown_edit_date = old_message->hide_edit_date ? 0 : old_message->edit_date;
+  int32 old_shown_edit_date = get_message_shown_edit_date(old_message);
   if (old_message->edit_date != new_message->edit_date) {
     if (new_message->edit_date > 0) {
       if (new_message->edit_date > old_message->edit_date) {
@@ -32081,7 +32086,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (old_message->hide_edit_date != new_message->hide_edit_date) {
     old_message->hide_edit_date = new_message->hide_edit_date;
   }
-  int32 new_shown_edit_date = old_message->hide_edit_date ? 0 : old_message->edit_date;
+  int32 new_shown_edit_date = get_message_shown_edit_date(old_message);
   if (new_shown_edit_date != old_shown_edit_date) {
     LOG(DEBUG) << "Message edit_date has changed";
     is_edited = true;
