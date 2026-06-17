@@ -26,6 +26,9 @@ class RichMessageMedia {
  public:
   RichMessageMedia() = default;
 
+  explicit RichMessageMedia(unique_ptr<MessageContent> media) : media_(std::move(media)) {
+  }
+
   static Result<RichMessageMedia> get_rich_message_media(Td *td, DialogId dialog_id,
                                                          td_api::object_ptr<td_api::inputRichMessageMedia> &&media);
 

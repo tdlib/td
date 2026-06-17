@@ -1665,6 +1665,12 @@ class WebPageBlockList final : public WebPageBlock {
       }
     }
 
+    void append_rich_message_media(vector<RichMessageMedia> &media) const {
+      for (const auto &page_block : page_blocks) {
+        page_block->append_rich_message_media(media);
+      }
+    }
+
     void add_dependencies(Dependencies &dependencies) const {
       for (const auto &page_block : page_blocks) {
         page_block->add_dependencies(dependencies);
@@ -1801,6 +1807,12 @@ class WebPageBlockList final : public WebPageBlock {
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     for (auto &item : items) {
       item.append_file_ids(td, file_ids);
+    }
+  }
+
+  void append_rich_message_media(vector<RichMessageMedia> &media) const final {
+    for (const auto &item : items) {
+      item.append_rich_message_media(media);
     }
   }
 
@@ -2089,6 +2101,12 @@ class WebPageBlockAnimation final : public WebPageBlock {
     Document(Document::Type::Animation, animation_file_id).append_file_ids(td, file_ids);
   }
 
+  void append_rich_message_media(vector<RichMessageMedia> &media) const final {
+    if (animation_file_id.is_valid()) {
+      media.emplace_back(create_animation_message_content(animation_file_id));
+    }
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
   }
@@ -2124,7 +2142,7 @@ class WebPageBlockAnimation final : public WebPageBlock {
                                                                      main_remote_location->get_id(),
                                                                      caption.get_input_page_caption(td, documents));
     }
-    LOG(ERROR) << "Can't create pageBlockVideo for " << animation_file_id;
+    LOG(INFO) << "Can't create pageBlockVideo for " << animation_file_id;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
   }
 
@@ -2207,6 +2225,12 @@ class WebPageBlockPhoto final : public WebPageBlock {
     caption.append_file_ids(td, file_ids);
   }
 
+  void append_rich_message_media(vector<RichMessageMedia> &media) const final {
+    if (!photo.is_empty()) {
+      media.emplace_back(create_photo_message_content(photo, FileId()));
+    }
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
     dependencies.add(web_page_id);
@@ -2243,7 +2267,7 @@ class WebPageBlockPhoto final : public WebPageBlock {
       return telegram_api::make_object<telegram_api::pageBlockPhoto>(
           0, has_spoiler, main_remote_location->get_id(), caption.get_input_page_caption(td, documents), string(), 0);
     }
-    LOG(ERROR) << "Can't create pageBlockPhoto for " << photo;
+    LOG(INFO) << "Can't create pageBlockPhoto for " << photo;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
   }
 
@@ -2317,6 +2341,12 @@ class WebPageBlockVideo final : public WebPageBlock {
     Document(Document::Type::Video, video_file_id).append_file_ids(td, file_ids);
   }
 
+  void append_rich_message_media(vector<RichMessageMedia> &media) const final {
+    if (video_file_id.is_valid()) {
+      media.emplace_back(create_video_message_content(video_file_id, Photo(), 0));
+    }
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
   }
@@ -2353,7 +2383,7 @@ class WebPageBlockVideo final : public WebPageBlock {
                                                                      main_remote_location->get_id(),
                                                                      caption.get_input_page_caption(td, documents));
     }
-    LOG(ERROR) << "Can't create pageBlockVideo for " << video_file_id;
+    LOG(INFO) << "Can't create pageBlockVideo for " << video_file_id;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
   }
 
@@ -2427,6 +2457,10 @@ class WebPageBlockCover final : public WebPageBlock {
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const final {
     cover->append_file_ids(td, file_ids);
+  }
+
+  void append_rich_message_media(vector<RichMessageMedia> &media) const final {
+    cover->append_rich_message_media(media);
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
@@ -2700,6 +2734,12 @@ class WebPageBlockCollage final : public WebPageBlock {
     caption.append_file_ids(td, file_ids);
   }
 
+  void append_rich_message_media(vector<RichMessageMedia> &media) const final {
+    for (const auto &page_block : page_blocks) {
+      page_block->append_rich_message_media(media);
+    }
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     for (auto &page_block : page_blocks) {
       page_block->add_dependencies(dependencies);
@@ -2781,6 +2821,12 @@ class WebPageBlockSlideshow final : public WebPageBlock {
       page_block->append_file_ids(td, file_ids);
     }
     caption.append_file_ids(td, file_ids);
+  }
+
+  void append_rich_message_media(vector<RichMessageMedia> &media) const final {
+    for (const auto &page_block : page_blocks) {
+      page_block->append_rich_message_media(media);
+    }
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
@@ -2995,6 +3041,12 @@ class WebPageBlockAudio final : public WebPageBlock {
     caption.append_file_ids(td, file_ids);
   }
 
+  void append_rich_message_media(vector<RichMessageMedia> &media) const final {
+    if (audio_file_id.is_valid()) {
+      media.emplace_back(create_audio_message_content(audio_file_id));
+    }
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
   }
@@ -3029,7 +3081,7 @@ class WebPageBlockAudio final : public WebPageBlock {
       return telegram_api::make_object<telegram_api::pageBlockAudio>(main_remote_location->get_id(),
                                                                      caption.get_input_page_caption(td, documents));
     }
-    LOG(ERROR) << "Can't create pageBlockAudio for " << audio_file_id;
+    LOG(INFO) << "Can't create pageBlockAudio for " << audio_file_id;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
   }
 
@@ -3216,6 +3268,12 @@ class WebPageBlockDetails final : public WebPageBlock {
     }
   }
 
+  void append_rich_message_media(vector<RichMessageMedia> &media) const final {
+    for (const auto &page_block : page_blocks) {
+      page_block->append_rich_message_media(media);
+    }
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     header.add_dependencies(dependencies);
     for (auto &page_block : page_blocks) {
@@ -3304,6 +3362,12 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
       page_block->append_file_ids(td, file_ids);
     }
     caption.append_file_ids(td, file_ids);
+  }
+
+  void append_rich_message_media(vector<RichMessageMedia> &media) const final {
+    for (const auto &page_block : page_blocks) {
+      page_block->append_rich_message_media(media);
+    }
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
@@ -3541,6 +3605,12 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
     caption.append_file_ids(td, file_ids);
   }
 
+  void append_rich_message_media(vector<RichMessageMedia> &media) const final {
+    if (voice_note_file_id.is_valid()) {
+      media.emplace_back(create_voice_note_message_content(voice_note_file_id));
+    }
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
   }
@@ -3576,7 +3646,7 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
       return telegram_api::make_object<telegram_api::pageBlockAudio>(main_remote_location->get_id(),
                                                                      caption.get_input_page_caption(td, documents));
     }
-    LOG(ERROR) << "Can't create pageBlockAudio for " << voice_note_file_id;
+    LOG(INFO) << "Can't create pageBlockAudio for " << voice_note_file_id;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
   }
 
@@ -4552,6 +4622,14 @@ vector<telegram_api::object_ptr<telegram_api::PageBlock>> get_input_page_blocks(
   return transform(page_blocks, [&](const unique_ptr<WebPageBlock> &page_block) {
     return page_block->get_input_page_block(td, photos, documents);
   });
+}
+
+vector<RichMessageMedia> get_page_blocks_rich_message_media(const vector<unique_ptr<WebPageBlock>> &page_blocks) {
+  vector<RichMessageMedia> result;
+  for (const auto &page_block : page_blocks) {
+    page_block->append_rich_message_media(result);
+  }
+  return result;
 }
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(

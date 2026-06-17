@@ -220,6 +220,9 @@ telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_
       for (const auto &block : blocks_) {
         blocks.push_back(block->get_input_page_block(td, photos, documents));
       }
+      if (photos.size() + documents.size() < media_.size()) {
+        return nullptr;
+      }
       if (!photos.empty()) {
         flags |= telegram_api::inputRichMessage::PHOTOS_MASK;
       }
@@ -283,6 +286,10 @@ RichMessage RichMessage::clone(Td *td, DialogId dialog_id, const MessageContentD
     } else {
       LOG(ERROR) << "Have no Td to clone RichMessage media";
     }
+  }
+  if (input_type_ == InputType::None && media_.empty() && type != MessageContentDupType::ServerCopy &&
+      type != MessageContentDupType::Forward) {
+    result.media_ = get_page_blocks_rich_message_media(blocks_);
   }
 
   result.source_ = source_;
