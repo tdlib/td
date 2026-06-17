@@ -6679,11 +6679,10 @@ void MessagesManager::do_send_media(DialogId dialog_id, const Message *m, int32 
   auto thumbnail_file_upload_id = get_message_send_thumbnail_file_upload_id(dialog_id, m, media_pos);
   auto input_media =
       get_message_content_input_media(content, media_pos, td_, std::move(input_file), std::move(input_thumbnail),
-                                      file_upload_id, thumbnail_file_upload_id, m->ttl, m->send_emoji, true)
-          .media_;
-  LOG_CHECK(input_media != nullptr) << to_string(get_message_object(dialog_id, m, "do_send_media")) << ' ' << media_pos
-                                    << ' ' << have_input_file << ' ' << have_input_thumbnail << ' ' << file_upload_id
-                                    << ' ' << thumbnail_file_upload_id << ' ' << m->ttl;
+                                      file_upload_id, thumbnail_file_upload_id, m->ttl, m->send_emoji, true);
+  LOG_CHECK(!input_media.is_empty()) << to_string(get_message_object(dialog_id, m, "do_send_media")) << ' ' << media_pos
+                                     << ' ' << have_input_file << ' ' << have_input_thumbnail << ' ' << file_upload_id
+                                     << ' ' << thumbnail_file_upload_id << ' ' << m->ttl;
 
   on_message_media_uploaded(dialog_id, m, media_pos, std::move(input_media));
 }
@@ -21815,10 +21814,9 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
       CHECK(static_cast<size_t>(media_pos) < file_upload_ids.size());
     }
     auto input_media = get_message_content_input_media(content, td_, m->ttl, m->send_emoji,
-                                                       td_->auth_manager_->is_bot() && bad_parts.empty(), media_pos)
-                           .media_;
+                                                       td_->auth_manager_->is_bot() && bad_parts.empty(), media_pos);
     auto can_have_multiple_files = can_message_content_have_multiple_files(content_type);
-    if (input_media == nullptr || media_pos >= 0 || !bad_parts.empty() || can_have_multiple_files) {
+    if (input_media.is_empty() || media_pos >= 0 || !bad_parts.empty() || can_have_multiple_files) {
       if (content_type == MessageContentType::Game || content_type == MessageContentType::Story) {
         return;
       }
@@ -21826,7 +21824,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
       if (can_have_multiple_files && bad_parts.empty()) {
         CHECK(!is_secret && !is_edit);
         CHECK(media_pos == -1);
-        LOG(INFO) << "Add internal media send for " << MessageFullId{dialog_id, m->message_id};
+        LOG(INFO) << "Add internal media send for " << MessageFullId{dialog_id, m->message_id} << " with "
+                  << file_upload_ids.size() << " files";
         auto &request = pending_internal_media_sends_[{dialog_id, m->message_id}];
         CHECK(request.is_finished.empty());
         request.is_finished.resize(file_upload_ids.size());
@@ -21874,13 +21873,13 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
 }
 
 void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Message *m, int32 media_pos,
-                                                telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) {
+                                                InputMedia &&input_media) {
   if (G()->close_flag()) {
     return;
   }
 
   CHECK(m != nullptr);
-  CHECK(input_media != nullptr);
+  CHECK(!input_media.is_empty());
   auto message_id = m->message_id;
   if (message_id.is_any_server()) {
     CHECK(media_pos == -1);
@@ -21923,7 +21922,6 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
 
                              auto m = result.move_as_ok();
                              CHECK(m != nullptr);
-                             CHECK(input_media != nullptr);
 
                              const FormattedText *caption = get_message_content_text(m->content.get());
                              LOG(INFO) << "Send media from " << m->message_id << " in " << dialog_id;
@@ -21938,7 +21936,8 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
                                  m->content->get_type(), m->is_copy, random_id, &m->send_query_ref);
                            }));
   } else {
-    if (!is_uploaded_input_media(input_media)) {
+    CHECK(input_media.rich_message_ == nullptr);
+    if (!is_uploaded_input_media(input_media.media_)) {
       auto file_upload_id = get_message_send_file_upload_id(dialog_id, m, media_pos);
       auto thumbnail_file_upload_id = get_message_send_thumbnail_file_upload_id(dialog_id, m, media_pos);
       auto cover_file_ids = get_message_content_cover_any_file_ids(td_, m->content.get());
@@ -21953,7 +21952,8 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
         }
       }
       td_->create_handler<UploadMediaQuery>()->send(dialog_id, message_id, media_pos, file_upload_id,
-                                                    thumbnail_file_upload_id, cover_file_id, std::move(input_media));
+                                                    thumbnail_file_upload_id, cover_file_id,
+                                                    std::move(input_media.media_));
     } else {
       send_closure_later(actor_id(this), &MessagesManager::on_upload_message_media_finished, m->media_album_id,
                          dialog_id, message_id, media_pos, Status::OK());
@@ -22082,10 +22082,9 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   }
   cancel_upload_file(get_message_send_file_upload_id(dialog_id, m, media_pos), "on_upload_message_media_success");
 
-  auto input_media =
-      get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, media_pos).media_;
+  auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, media_pos);
   Status result;
-  if (input_media == nullptr) {
+  if (input_media.is_empty()) {
     result = Status::Error(400, "Failed to upload file");
   }
 
