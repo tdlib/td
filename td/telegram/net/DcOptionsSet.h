@@ -46,7 +46,7 @@ class DcOptionsSet {
       if (ok_at > error_at && ok_at > check_at) {
         return State::Ok;
       }
-      if (check_at > ok_at && check_at > error_at) {
+      if (check_at > error_at) {
         return State::Checking;
       }
       return State::Error;

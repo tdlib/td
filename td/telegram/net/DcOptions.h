@@ -202,7 +202,7 @@ inline StringBuilder &operator<<(StringBuilder &sb, const DcOption::PrintFlags &
     sb << "(IPv6)";
   }
   if ((flags.flags & DcOption::Flags::Cdn) != 0) {
-    sb << "(Cdn)";
+    sb << "(CDN)";
   }
   if ((flags.flags & DcOption::Flags::Static) != 0) {
     sb << "(Static)";
