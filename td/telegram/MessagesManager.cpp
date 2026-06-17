@@ -1554,9 +1554,8 @@ class SendMediaQuery final : public Td::ResultHandler {
             tl_object_ptr<telegram_api::InputPeer> as_input_peer, const MessageInputReplyTo &input_reply_to,
             const MessageTopic &message_topic, int32 schedule_date, int32 schedule_repeat_period,
             MessageEffectId effect_id, int64 paid_message_star_count, const SuggestedPost *suggested_post,
-            const unique_ptr<ReplyMarkup> &reply_markup, const FormattedText *text,
-            tl_object_ptr<telegram_api::InputMedia> &&input_media, MessageContentType content_type, bool is_copy,
-            int64 random_id, NetQueryRef *send_query_ref) {
+            const unique_ptr<ReplyMarkup> &reply_markup, const FormattedText *text, InputMedia &&input_media,
+            MessageContentType content_type, bool is_copy, int64 random_id, NetQueryRef *send_query_ref) {
     random_id_ = random_id;
     file_upload_ids_ = std::move(file_upload_ids);
     thumbnail_file_upload_ids_ = std::move(thumbnail_file_upload_ids);
@@ -1573,6 +1572,33 @@ class SendMediaQuery final : public Td::ResultHandler {
     }
 
     auto reply_to = input_reply_to.get_input_reply_to(td_, message_topic, false, dialog_id, flags);
+    if (input_media.rich_message_ != nullptr) {
+      CHECK(text == nullptr);
+      if (reply_to != nullptr) {
+        flags |= telegram_api::messages_sendMessage::REPLY_TO_MASK;
+      }
+      if (as_input_peer != nullptr) {
+        flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SEND_AS;
+      }
+      telegram_api::object_ptr<telegram_api::suggestedPost> post;
+      if (suggested_post != nullptr) {
+        flags |= telegram_api::messages_sendMessage::SUGGESTED_POST_MASK;
+        post = suggested_post->get_input_suggested_post();
+      }
+      flags |= telegram_api::messages_sendMessage::RICH_MESSAGE_MASK;
+
+      auto query = G()->net_query_creator().create(
+          telegram_api::messages_sendMessage(
+              flags, false, false, false, false, false, false, false, false, std::move(input_peer), std::move(reply_to),
+              string(), random_id, get_input_reply_markup(td_->user_manager_.get(), reply_markup), Auto(),
+              schedule_date, schedule_repeat_period, std::move(as_input_peer), nullptr, effect_id.get(),
+              paid_message_star_count, std::move(post), std::move(input_media.rich_message_)),
+          {{dialog_id, MessageContentType::Text}});
+      *send_query_ref = query.get_weak();
+      send_query(std::move(query));
+      return;
+    }
+    CHECK(input_media.media_ != nullptr);
 
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMedia::REPLY_TO_MASK;
@@ -1591,12 +1617,12 @@ class SendMediaQuery final : public Td::ResultHandler {
     }
 
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendMedia(flags, false, false, false, false, false, false, false, std::move(input_peer),
-                                         std::move(reply_to), std::move(input_media), text == nullptr ? "" : text->text,
-                                         random_id, get_input_reply_markup(td_->user_manager_.get(), reply_markup),
-                                         std::move(entities), schedule_date, schedule_repeat_period,
-                                         std::move(as_input_peer), nullptr, effect_id.get(), paid_message_star_count,
-                                         std::move(post)),
+        telegram_api::messages_sendMedia(
+            flags, false, false, false, false, false, false, false, std::move(input_peer), std::move(reply_to),
+            std::move(input_media.media_), text == nullptr ? "" : text->text, random_id,
+            get_input_reply_markup(td_->user_manager_.get(), reply_markup), std::move(entities), schedule_date,
+            schedule_repeat_period, std::move(as_input_peer), nullptr, effect_id.get(), paid_message_star_count,
+            std::move(post)),
         {{dialog_id, content_type}, {dialog_id, is_copy ? MessageContentType::Text : content_type}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
@@ -22373,8 +22399,8 @@ void MessagesManager::do_send_internal_media_group(DialogId dialog_id, MessageId
     return;
   }
 
-  auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, -1).media_;
-  CHECK(input_media != nullptr);
+  auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, -1);
+  CHECK(!input_media.is_empty());
   pending_internal_media_sends_.erase(it);
 
   LOG(INFO) << "Begin to send internal media " << message_id << " to " << dialog_id;
