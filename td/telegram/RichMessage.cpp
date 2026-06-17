@@ -199,10 +199,11 @@ int32 RichMessage::get_index_mask() const {
   return get_web_page_blocks_index_mask(blocks_);
 }
 
-vector<telegram_api::object_ptr<telegram_api::InputRichFile>> RichMessage::get_input_rich_files(const Td *td) const {
+vector<telegram_api::object_ptr<telegram_api::InputRichFile>> RichMessage::get_input_rich_files(
+    const Td *td, bool with_input_media, vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_media) const {
   vector<telegram_api::object_ptr<telegram_api::InputRichFile>> input_rich_files;
-  for (const auto &media : media_) {
-    auto input_rich_file = media.get_input_rich_file(td);
+  for (size_t i = 0; i < media_.size(); i++) {
+    auto input_rich_file = media_[i].get_input_rich_file(td, with_input_media ? std::move(input_media[i]) : nullptr);
     if (input_rich_file != nullptr) {
       input_rich_files.push_back(std::move(input_rich_file));
     }
@@ -210,7 +211,11 @@ vector<telegram_api::object_ptr<telegram_api::InputRichFile>> RichMessage::get_i
   return input_rich_files;
 }
 
-telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_rich_message(const Td *td) const {
+telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_rich_message(
+    const Td *td, bool with_input_media, vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_media) const {
+  if (with_input_media) {
+    CHECK(media_.size() == input_media.size());
+  }
   switch (input_type_) {
     case InputType::None: {
       int32 flags = 0;
@@ -220,7 +225,28 @@ telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_
       for (const auto &block : blocks_) {
         blocks.push_back(block->get_input_page_block(td, photos, documents));
       }
+      if (with_input_media) {
+        photos.clear();
+        documents.clear();
+        for (auto &media : input_media) {
+          switch (media->get_id()) {
+            case telegram_api::inputMediaPhoto::ID: {
+              auto *photo = static_cast<telegram_api::inputMediaPhoto *>(media.get());
+              photos.push_back(std::move(photo->id_));
+              break;
+            }
+            case telegram_api::inputMediaDocument::ID: {
+              auto *document = static_cast<telegram_api::inputMediaDocument *>(media.get());
+              documents.push_back(std::move(document->id_));
+              break;
+            }
+            default:
+              UNREACHABLE();
+          }
+        }
+      }
       if (photos.size() + documents.size() < media_.size()) {
+        CHECK(!with_input_media);
         return nullptr;
       }
       if (!photos.empty()) {
@@ -239,8 +265,9 @@ telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_
     }
     case InputType::Markdown: {
       int32 flags = 0;
-      auto files = get_input_rich_files(td);
+      auto files = get_input_rich_files(td, with_input_media, std::move(input_media));
       if (files.size() != media_.size()) {
+        CHECK(!with_input_media);
         return nullptr;
       }
       if (!files.empty()) {
@@ -251,8 +278,9 @@ telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_
     }
     case InputType::Html: {
       int32 flags = 0;
-      auto files = get_input_rich_files(td);
+      auto files = get_input_rich_files(td, with_input_media, std::move(input_media));
       if (files.size() != media_.size()) {
+        CHECK(!with_input_media);
         return nullptr;
       }
       if (!files.empty()) {

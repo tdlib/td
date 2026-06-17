@@ -61,7 +61,22 @@ RichMessageMedia RichMessageMedia::clone(Td *td, DialogId dialog_id, const Messa
   return result;
 }
 
-telegram_api::object_ptr<telegram_api::InputRichFile> RichMessageMedia::get_input_rich_file(const Td *td) const {
+telegram_api::object_ptr<telegram_api::InputRichFile> RichMessageMedia::get_input_rich_file(
+    const Td *td, telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) const {
+  if (input_media != nullptr) {
+    switch (input_media->get_id()) {
+      case telegram_api::inputMediaPhoto::ID: {
+        auto *photo = static_cast<telegram_api::inputMediaPhoto *>(input_media.get());
+        return telegram_api::make_object<telegram_api::inputRichFilePhoto>(id_, std::move(photo->id_));
+      }
+      case telegram_api::inputMediaDocument::ID: {
+        auto *document = static_cast<telegram_api::inputMediaDocument *>(input_media.get());
+        return telegram_api::make_object<telegram_api::inputRichFileDocument>(id_, std::move(document->id_));
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
   auto file_id = get_message_content_any_file_id(media_.get());
   CHECK(file_id.is_valid());
   auto file_view = td->file_manager_->get_file_view(file_id);

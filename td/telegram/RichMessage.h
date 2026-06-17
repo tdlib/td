@@ -42,7 +42,9 @@ class RichMessage {
 
   friend bool operator==(const RichMessage &lhs, const RichMessage &rhs);
 
-  vector<telegram_api::object_ptr<telegram_api::InputRichFile>> get_input_rich_files(const Td *td) const;
+  vector<telegram_api::object_ptr<telegram_api::InputRichFile>> get_input_rich_files(
+      const Td *td, bool with_input_media,
+      vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_media) const;
 
  public:
   RichMessage() = default;
@@ -82,7 +84,9 @@ class RichMessage {
 
   int32 get_index_mask() const;
 
-  telegram_api::object_ptr<telegram_api::InputRichMessage> get_input_rich_message(const Td *td) const;
+  telegram_api::object_ptr<telegram_api::InputRichMessage> get_input_rich_message(
+      const Td *td, bool with_input_media = false,
+      vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_media = {}) const;
 
   td_api::object_ptr<td_api::richMessage> get_rich_message_object(Td *td, bool skip_bot_commands) const;
 
