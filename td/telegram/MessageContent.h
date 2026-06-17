@@ -115,9 +115,15 @@ unique_ptr<MessageContent> create_text_message_content(string text, vector<Messa
                                                        bool force_large_media, bool skip_confitmation,
                                                        string &&web_page_url);
 
+unique_ptr<MessageContent> create_animation_message_content(FileId animation_file_id);
+
+unique_ptr<MessageContent> create_audio_message_content(FileId audio_file_id);
+
 unique_ptr<MessageContent> create_photo_message_content(Photo photo, FileId video_file_id);
 
 unique_ptr<MessageContent> create_video_message_content(FileId file_id, Photo cover, int32 start_timestamp);
+
+unique_ptr<MessageContent> create_voice_note_message_content(FileId voice_note_file_id);
 
 unique_ptr<MessageContent> create_contact_registered_message_content();
 

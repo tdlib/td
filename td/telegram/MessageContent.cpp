@@ -4577,6 +4577,14 @@ unique_ptr<MessageContent> create_text_message_content(string text, vector<Messa
                                       force_small_media, force_large_media, skip_confirmation, std::move(web_page_url));
 }
 
+unique_ptr<MessageContent> create_animation_message_content(FileId animation_file_id) {
+  return make_unique<MessageAnimation>(animation_file_id, FormattedText(), false);
+}
+
+unique_ptr<MessageContent> create_audio_message_content(FileId audio_file_id) {
+  return make_unique<MessageAudio>(audio_file_id, FormattedText());
+}
+
 unique_ptr<MessageContent> create_photo_message_content(Photo photo, FileId video_file_id) {
   return make_unique<MessagePhoto>(std::move(photo), video_file_id, FormattedText(), false);
 }
@@ -4584,6 +4592,10 @@ unique_ptr<MessageContent> create_photo_message_content(Photo photo, FileId vide
 unique_ptr<MessageContent> create_video_message_content(FileId file_id, Photo cover, int32 start_timestamp) {
   return td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), vector<FileId>(), vector<FileId>(),
                                        std::move(cover), start_timestamp, FormattedText(), false);
+}
+
+unique_ptr<MessageContent> create_voice_note_message_content(FileId voice_note_file_id) {
+  return make_unique<MessageVoiceNote>(voice_note_file_id, FormattedText(), false);
 }
 
 unique_ptr<MessageContent> create_contact_registered_message_content() {
