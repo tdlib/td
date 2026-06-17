@@ -1784,10 +1784,10 @@ class MessagePollDeleteAnswer final : public MessageContent {
 
 class MessageRichText final : public MessageContent {
  public:
-  RichMessage text;
+  RichMessage rich_message;
 
   MessageRichText() = default;
-  explicit MessageRichText(RichMessage &&text) : text(std::move(text)) {
+  explicit MessageRichText(RichMessage &&rich_message) : rich_message(std::move(rich_message)) {
   }
 
   MessageContentType get_type() const final {
@@ -2953,7 +2953,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       const auto *m = static_cast<const MessageRichText *>(content);
       BEGIN_STORE_FLAGS();
       END_STORE_FLAGS();
-      store(m->text, storer);
+      store(m->rich_message, storer);
       break;
     }
     default:
@@ -4408,7 +4408,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       auto m = make_unique<MessageRichText>();
       BEGIN_PARSE_FLAGS();
       END_PARSE_FLAGS();
-      parse(m->text, parser);
+      parse(m->rich_message, parser);
       content = std::move(m);
       break;
     }
@@ -5908,8 +5908,8 @@ telegram_api::object_ptr<telegram_api::InputRichMessage> get_message_content_inp
   if (content->get_type() != MessageContentType::RichText) {
     return nullptr;
   }
-  auto *text = static_cast<const MessageRichText *>(content);
-  return text->text.get_input_rich_message(td);
+  auto *m = static_cast<const MessageRichText *>(content);
+  return m->rich_message.get_input_rich_message(td);
 }
 
 bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
@@ -6210,7 +6210,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::RichText:
-      if (!static_cast<const MessageRichText *>(content)->text.can_send(permissions)) {
+      if (!static_cast<const MessageRichText *>(content)->rich_message.can_send(permissions)) {
         return Status::Error(400, "Not enough rights to send the rich message to the chat");
       }
       break;
@@ -6464,7 +6464,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::Poll:
       return message_search_filter_index_mask(MessageSearchFilter::Poll);
     case MessageContentType::RichText:
-      return static_cast<const MessageRichText *>(content)->text.get_index_mask();
+      return static_cast<const MessageRichText *>(content)->rich_message.get_index_mask();
     case MessageContentType::Text:
     case MessageContentType::Contact:
     case MessageContentType::Game:
@@ -7008,7 +7008,7 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       break;
     case MessageContentType::RichText: {
       const auto *content = static_cast<const MessageRichText *>(message_content);
-      return content->text.get_user_ids();
+      return content->rich_message.get_user_ids();
     }
     default:
       UNREACHABLE();
@@ -7900,7 +7900,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::RichText: {
       const auto *lhs = static_cast<const MessageRichText *>(old_content);
       const auto *rhs = static_cast<const MessageRichText *>(new_content);
-      if (lhs->text != rhs->text) {
+      if (lhs->rich_message != rhs->rich_message) {
         need_update = true;
       }
       break;
@@ -10038,7 +10038,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::RichText: {
       CHECK(!to_secret);
       const auto *message_rich_text = static_cast<const MessageRichText *>(content);
-      return make_unique<MessageRichText>(message_rich_text->text.clone(td, dialog_id, type));
+      return make_unique<MessageRichText>(message_rich_text->rich_message.clone(td, dialog_id, type));
     }
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
@@ -11119,7 +11119,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::RichText: {
       const auto *m = static_cast<const MessageRichText *>(content);
-      return td_api::make_object<td_api::messageRichMessage>(m->text.get_rich_message_object(td, skip_bot_commands));
+      return td_api::make_object<td_api::messageRichMessage>(
+          m->rich_message.get_rich_message_object(td, skip_bot_commands));
     }
     case MessageContentType::Sticker: {
       const auto *m = static_cast<const MessageSticker *>(content);
@@ -12005,7 +12006,7 @@ const RichMessage *get_message_content_rich_message(const MessageContent *conten
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::RichText:
-      return &static_cast<const MessageRichText *>(content)->text;
+      return &static_cast<const MessageRichText *>(content)->rich_message;
     default:
       return nullptr;
   }
@@ -12525,7 +12526,7 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     case MessageContentType::RichText: {
       auto rich_text = static_cast<const MessageRichText *>(content);
       vector<FileId> file_ids;
-      rich_text->text.append_file_ids(td, file_ids);
+      rich_text->rich_message.append_file_ids(td, file_ids);
       return file_ids;
     }
     default:
@@ -12558,7 +12559,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::RichText: {
       const auto *text = static_cast<const MessageRichText *>(content);
       string result;
-      text->text.for_each_text([&result](Slice text) {
+      text->rich_message.for_each_text([&result](Slice text) {
         if (!result.empty()) {
           result += ' ';
         }
@@ -13271,7 +13272,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::RichText: {
       const auto *content = static_cast<const MessageRichText *>(message_content);
-      content->text.add_dependencies(dependencies);
+      content->rich_message.add_dependencies(dependencies);
       break;
     }
     default:
