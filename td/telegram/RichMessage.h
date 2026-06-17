@@ -42,6 +42,8 @@ class RichMessage {
 
   friend bool operator==(const RichMessage &lhs, const RichMessage &rhs);
 
+  vector<telegram_api::object_ptr<telegram_api::InputRichFile>> get_input_rich_files(const Td *td) const;
+
  public:
   RichMessage() = default;
   RichMessage(const RichMessage &) = delete;

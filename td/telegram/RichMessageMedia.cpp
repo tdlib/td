@@ -6,9 +6,11 @@
 //
 #include "td/telegram/RichMessageMedia.h"
 
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/Td.h"
 
 namespace td {
 
@@ -57,6 +59,23 @@ RichMessageMedia RichMessageMedia::clone(Td *td, DialogId dialog_id, const Messa
       td, dialog_id, media_.get(), type,
       MessageCopyOptions(type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy, false));
   return result;
+}
+
+telegram_api::object_ptr<telegram_api::InputRichFile> RichMessageMedia::get_input_rich_file(const Td *td) const {
+  auto file_id = get_message_content_any_file_id(media_.get());
+  CHECK(file_id.is_valid());
+  auto file_view = td->file_manager_->get_file_view(file_id);
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (file_view.is_encrypted() || main_remote_location == nullptr || main_remote_location->is_web()) {
+    return nullptr;
+  }
+  switch (media_->get_type()) {
+    case MessageContentType::Photo:
+      return telegram_api::make_object<telegram_api::inputRichFilePhoto>(id_, main_remote_location->as_input_photo());
+    default:
+      return telegram_api::make_object<telegram_api::inputRichFileDocument>(id_,
+                                                                            main_remote_location->as_input_document());
+  }
 }
 
 }  // namespace td

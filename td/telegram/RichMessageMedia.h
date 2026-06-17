@@ -48,6 +48,8 @@ class RichMessageMedia {
 
   RichMessageMedia clone(Td *td, DialogId dialog_id, const MessageContentDupType &type) const;
 
+  telegram_api::object_ptr<telegram_api::InputRichFile> get_input_rich_file(const Td *td) const;
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
