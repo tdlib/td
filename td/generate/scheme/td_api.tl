@@ -6415,7 +6415,7 @@ inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> dura
 //@description The list of stories, shown in the main chat list and folder chat lists
 storyListMain = StoryList;
 
-//@description The list of stories, shown in the Arvhive chat list
+//@description The list of stories, shown in the Archive chat list
 storyListArchive = StoryList;
 
 
