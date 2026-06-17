@@ -94,6 +94,8 @@ class RichMessage {
 
   vector<const MessageContent *> get_individual_message_content_refs() const;
 
+  const MessageContent *get_individual_message_content_ref(int32 media_pos) const;
+
   unique_ptr<MessageContent> &get_individual_message_content(int32 media_pos);
 
   template <class StorerT>

@@ -317,6 +317,11 @@ unique_ptr<MessageContent> &RichMessage::get_individual_message_content(int32 me
   return media_[media_pos].get_message_content_editable();
 }
 
+const MessageContent *RichMessage::get_individual_message_content_ref(int32 media_pos) const {
+  CHECK(static_cast<size_t>(media_pos) < media_.size());
+  return media_[media_pos].get_message_content_ref();
+}
+
 bool operator==(const RichMessage &lhs, const RichMessage &rhs) {
   // compare only publicly-visible fields
   return lhs.blocks_ == rhs.blocks_ && lhs.is_rtl_ == rhs.is_rtl_ && lhs.is_full_ == rhs.is_full_;
