@@ -390,11 +390,15 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageTopic me
     return;
   }
 
-  CHECK(input_peer != nullptr);
+  auto input_action = action.get_input_send_message_action(td_);
+  if (input_action == nullptr) {
+    return promise.set_error(400, "New files can't be uploaded using the method");
+  }
 
-  auto new_query_ref = td_->create_handler<SetTypingQuery>(std::move(promise))
-                           ->send(dialog_id, std::move(input_peer), message_topic, business_connection_id,
-                                  action.get_input_send_message_action(td_));
+  CHECK(input_peer != nullptr);
+  auto new_query_ref =
+      td_->create_handler<SetTypingQuery>(std::move(promise))
+          ->send(dialog_id, std::move(input_peer), message_topic, business_connection_id, std::move(input_action));
   if (td_->auth_manager_->is_bot()) {
     return;
   }

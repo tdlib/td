@@ -23193,12 +23193,16 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
                                              has_message_sender_user_id(dialog_id, m)));
   auto is_bot = td_->auth_manager_->is_bot();
   if (new_message_content_type == td_api::inputMessageRichMessage::ID) {
-    auto input_rich_message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
+    auto content = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
     TRY_RESULT_PROMISE(promise, rich_message,
-                       RichMessage::get_rich_message(td_, dialog_id, std::move(input_rich_message->message_), is_bot));
+                       RichMessage::get_rich_message(td_, dialog_id, std::move(content->message_), is_bot));
+    auto input_rich_message = rich_message.get_input_rich_message(td_);
+    if (input_rich_message == nullptr) {
+      return promise.set_error(500, "Unsupported");
+    }
     td_->create_handler<EditMessageQuery>(std::move(promise))
-        ->send(dialog_id, m->message_id, false, nullptr, false, rich_message.get_input_rich_message(td_), false,
-               new_reply_markup, get_message_schedule_date(m), get_message_schedule_repeat_period(m), true);
+        ->send(dialog_id, m->message_id, false, nullptr, false, std::move(input_rich_message), false, new_reply_markup,
+               get_message_schedule_date(m), get_message_schedule_repeat_period(m), true);
     return;
   }
 

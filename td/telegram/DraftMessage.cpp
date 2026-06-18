@@ -56,7 +56,9 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
       input_reply_to = draft_message->message_input_reply_to_.get_input_reply_to(td_, message_topic, true);
       if (draft_message->is_rich_) {
         input_rich_message = draft_message->rich_message_.get_input_rich_message(td_);
-        flags |= telegram_api::messages_saveDraft::RICH_MESSAGE_MASK;
+        if (input_rich_message != nullptr) {
+          flags |= telegram_api::messages_saveDraft::RICH_MESSAGE_MASK;
+        }
       } else {
         if (draft_message->input_message_text_.disable_web_page_preview) {
           disable_web_page_preview = true;

@@ -585,12 +585,16 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
         RichMessage::get_rich_message(
             td_, DialogId(),
             std::move(static_cast<td_api::inputMessageRichMessage *>(input_message_content.get())->message_), true));
+    auto input_rich_message = rich_message.get_input_rich_message(td_);
+    if (input_rich_message == nullptr) {
+      return Status::Error(400, "Invalid inline message content specified");
+    }
     int32 flags = 0;
     if (input_reply_markup != nullptr) {
       flags |= telegram_api::inputBotInlineMessageRichMessage::REPLY_MARKUP_MASK;
     }
     return telegram_api::make_object<telegram_api::inputBotInlineMessageRichMessage>(
-        flags, std::move(input_reply_markup), rich_message.get_input_rich_message(td_));
+        flags, std::move(input_reply_markup), std::move(input_rich_message));
   }
   if (constructor_id == td_api::inputMessageContact::ID) {
     TRY_RESULT(contact, process_input_message_contact(td_, std::move(input_message_content)));

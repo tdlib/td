@@ -237,6 +237,9 @@ void InlineMessageManager::edit_inline_message_text(
 
   if (new_message_content_type == td_api::inputMessageRichMessage::ID) {
     auto input_rich_message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
+    if (input_rich_message == nullptr) {
+      return promise.set_error(400, "Invalid message content specified");
+    }
     TRY_RESULT_PROMISE(promise, rich_message,
                        RichMessage::get_rich_message(td_, DialogId(), std::move(input_rich_message->message_), is_bot));
     td_->create_handler<EditInlineMessageQuery>(std::move(promise))

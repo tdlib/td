@@ -1780,12 +1780,16 @@ void BusinessConnectionManager::edit_business_message_text(
   TRY_RESULT_PROMISE(promise, new_reply_markup, get_inline_reply_markup(std::move(reply_markup), is_bot, true));
 
   if (new_message_content_type == td_api::inputMessageRichMessage::ID) {
-    auto input_rich_message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
+    auto content = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
     TRY_RESULT_PROMISE(promise, rich_message,
-                       RichMessage::get_rich_message(td_, DialogId(), std::move(input_rich_message->message_), is_bot));
+                       RichMessage::get_rich_message(td_, DialogId(), std::move(content->message_), is_bot));
+    auto input_rich_message = rich_message.get_input_rich_message(td_);
+    if (input_rich_message == nullptr) {
+      return promise.set_error(500, "Unsupported");
+    }
     td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
         ->send(business_connection_id, dialog_id, message_id, false, nullptr, false, nullptr, false, new_reply_markup,
-               rich_message.get_input_rich_message(td_));
+               std::move(input_rich_message));
     return;
   }
 
