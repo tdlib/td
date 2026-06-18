@@ -54,6 +54,9 @@ class RichMessageMedia {
   telegram_api::object_ptr<telegram_api::InputRichFile> get_input_rich_file(
       const Td *td, telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) const;
 
+  static void compare(Td *td, const RichMessageMedia &lhs, const RichMessageMedia &rhs, bool &is_changed,
+                      bool &need_update);
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

@@ -7495,7 +7495,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto old_contents = old_->rich_message.get_individual_message_content_refs();
       auto new_contents = new_->rich_message.get_individual_message_content_refs();
       if (old_contents.size() != new_contents.size()) {
-        if (!new_contents.empty() || !old_contents.empty()) {
+        if (!new_contents.empty() && !old_contents.empty()) {
           LOG(ERROR) << "Had " << old_contents.size() << " rich message media, but now have " << new_contents.size();
         }
       } else {
@@ -8637,9 +8637,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::RichText: {
       const auto *lhs = static_cast<const MessageRichText *>(old_content);
       const auto *rhs = static_cast<const MessageRichText *>(new_content);
-      if (lhs->rich_message != rhs->rich_message) {
-        need_update = true;
-      }
+      RichMessage::compare(td, lhs->rich_message, rhs->rich_message, is_content_changed, need_update);
       break;
     }
     default:

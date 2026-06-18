@@ -102,6 +102,8 @@ class RichMessage {
 
   unique_ptr<MessageContent> &get_individual_message_content(int32 media_pos);
 
+  static void compare(Td *td, const RichMessage &lhs, const RichMessage &rhs, bool &is_changed, bool &need_update);
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

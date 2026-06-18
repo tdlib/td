@@ -93,4 +93,13 @@ telegram_api::object_ptr<telegram_api::InputRichFile> RichMessageMedia::get_inpu
   }
 }
 
+void RichMessageMedia::compare(Td *td, const RichMessageMedia &lhs, const RichMessageMedia &rhs, bool &is_changed,
+                               bool &need_update) {
+  if (lhs.id_ != rhs.id_) {
+    need_update = true;
+  } else {
+    compare_message_contents(td, lhs.media_.get(), rhs.media_.get(), is_changed, need_update);
+  }
+}
+
 }  // namespace td

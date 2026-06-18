@@ -351,6 +351,19 @@ const MessageContent *RichMessage::get_individual_message_content_ref(int32 medi
   return media_[media_pos].get_message_content_ref();
 }
 
+void RichMessage::compare(Td *td, const RichMessage &lhs, const RichMessage &rhs, bool &is_changed, bool &need_update) {
+  if (lhs.blocks_ != rhs.blocks_ || lhs.is_rtl_ != rhs.is_rtl_ || lhs.is_full_ != rhs.is_full_) {
+    need_update = true;
+  } else if (lhs.noautolink_ != rhs.noautolink_ || lhs.input_type_ != rhs.input_type_ ||
+             lhs.media_.size() != rhs.media_.size() || lhs.source_ != rhs.source_) {
+    is_changed = true;
+  } else {
+    for (size_t i = 0; i < lhs.media_.size(); i++) {
+      RichMessageMedia::compare(td, lhs.media_[i], rhs.media_[i], is_changed, is_changed);
+    }
+  }
+}
+
 bool operator==(const RichMessage &lhs, const RichMessage &rhs) {
   // compare only publicly-visible fields
   return lhs.blocks_ == rhs.blocks_ && lhs.is_rtl_ == rhs.is_rtl_ && lhs.is_full_ == rhs.is_full_;
