@@ -2201,7 +2201,7 @@ class CliClient final : public Actor {
     return as_formatted_text(caption, std::move(entities));
   }
 
-  td_api::object_ptr<td_api::inputRichMessage> as_input_rich_message(const string &message) const {
+  td_api::object_ptr<td_api::inputRichMessage> as_input_rich_message(string message) const {
     vector<td_api::object_ptr<td_api::inputRichMessageMedia>> input_media;
     for (auto rich_message_media : full_split(rich_message_media_, ' ')) {
       string id;
@@ -2242,6 +2242,11 @@ class CliClient final : public Actor {
             nullptr, false, nullptr, false);
       }
       input_media.push_back(td_api::make_object<td_api::inputRichMessageMedia>(id, std::move(content)));
+    }
+    for (auto &c : message) {
+      if (c == ';') {
+        c = '\n';
+      }
     }
     return td_api::make_object<td_api::inputRichMessage>(
         td_api::make_object<td_api::richMessageSourceMarkdown>(message, std::move(input_media)), rand_bool(),
