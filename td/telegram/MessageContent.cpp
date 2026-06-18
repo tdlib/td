@@ -5690,6 +5690,15 @@ static InputMedia get_message_content_input_media_impl(
       }
       return td->poll_manager_->get_input_media(m->poll_id, std::move(input_media));
     }
+    case MessageContentType::RichText: {
+      const auto *m = static_cast<const MessageRichText *>(content);
+      if (media_pos >= 0) {
+        return get_message_content_input_media_impl(m->rich_message.get_individual_message_content_ref(media_pos), -1,
+                                                    td, std::move(input_file), std::move(input_thumbnail), ttl, emoji);
+      }
+      CHECK(input_file == nullptr && input_thumbnail == nullptr);
+      return m->rich_message.get_input_rich_message(td);
+    }
     case MessageContentType::Sticker: {
       const auto *m = static_cast<const MessageSticker *>(content);
       return td->stickers_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
@@ -5721,7 +5730,6 @@ static InputMedia get_message_content_input_media_impl(
       const auto *m = static_cast<const MessageVoiceNote *>(content);
       return td->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file), ttl.get_input_ttl());
     }
-    case MessageContentType::RichText:
     case MessageContentType::Text:
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
@@ -5819,6 +5827,12 @@ InputMedia get_message_content_multi_input_media(
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
       return td->poll_manager_->get_input_media(m->poll_id, std::move(input_media));
+    }
+    case MessageContentType::RichText: {
+      const auto *m = static_cast<const MessageRichText *>(content);
+      auto input_rich_message = m->rich_message.get_input_rich_message(td, true, std::move(input_media));
+      CHECK(input_rich_message != nullptr);
+      return std::move(input_rich_message);
     }
     default:
       UNREACHABLE();
@@ -5976,6 +5990,11 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
           td->poll_manager_->get_individual_message_content(m->poll_id, m->attached_media, media_pos).get(), td, -1);
       break;
     }
+    case MessageContentType::RichText: {
+      auto *m = static_cast<MessageRichText *>(content);
+      delete_message_content_thumbnail(m->rich_message.get_individual_message_content(media_pos).get(), td, -1);
+      break;
+    }
     case MessageContentType::Sticker: {
       auto *m = static_cast<MessageSticker *>(content);
       return td->stickers_manager_->delete_sticker_thumbnail(m->file_id);
@@ -6071,7 +6090,6 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
-    case MessageContentType::RichText:
       break;
     default:
       UNREACHABLE();
@@ -6559,7 +6577,7 @@ int32 get_message_content_index_mask(const MessageContent *content, const Td *td
   return get_message_content_text_index_mask(content) | get_message_content_media_index_mask(content, td, is_outgoing);
 }
 
-vector<unique_ptr<MessageContent>> get_individual_message_contents(const Td *td, const MessageContent *content) {
+vector<unique_ptr<MessageContent>> get_individual_message_contents(Td *td, const MessageContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::PaidMedia: {
@@ -6569,6 +6587,10 @@ vector<unique_ptr<MessageContent>> get_individual_message_contents(const Td *td,
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
       return td->poll_manager_->get_individual_message_contents(m->poll_id, m->attached_media.get());
+    }
+    case MessageContentType::RichText: {
+      const auto *m = static_cast<const MessageRichText *>(content);
+      return m->rich_message.get_individual_message_contents(td);
     }
     default:
       UNREACHABLE();
@@ -7468,9 +7490,25 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::RichText: {
-      // const auto *old_ = static_cast<const MessageRichText *>(old_content);
-      // const auto *new_ = static_cast<const MessageRichText *>(new_content);
-      // TODO
+      const auto *old_ = static_cast<const MessageRichText *>(old_content);
+      auto *new_ = static_cast<MessageRichText *>(new_content);
+      const auto old_contents = old_->rich_message.get_individual_message_content_refs();
+      auto new_contents = new_->rich_message.get_individual_message_content_refs();
+      if (old_contents.size() != new_contents.size()) {
+        if (!new_contents.empty() || !old_contents.empty()) {
+          LOG(ERROR) << "Had " << old_contents.size() << " rich message media, but now have " << new_contents.size();
+        }
+      } else {
+        for (size_t i = 0; i < old_contents.size(); i++) {
+          if (old_contents[i]->get_type() != new_contents[i]->get_type()) {
+            LOG(INFO) << "Have " << old_contents[i]->get_type() << " as old content, but "
+                      << new_contents[i]->get_type() << " as new content";
+            continue;
+          }
+          merge_message_contents(td, old_contents[i], new_contents[i], need_message_changed_warning, dialog_id,
+                                 need_merge_files, is_content_changed, need_update);
+        }
+      }
       break;
     }
     case MessageContentType::Sticker: {
@@ -7893,14 +7931,6 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *rhs = static_cast<const MessagePhoto *>(new_content);
       if (lhs->video_file_id != rhs->video_file_id || lhs->caption != rhs->caption ||
           lhs->has_spoiler != rhs->has_spoiler) {
-        need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::RichText: {
-      const auto *lhs = static_cast<const MessageRichText *>(old_content);
-      const auto *rhs = static_cast<const MessageRichText *>(new_content);
-      if (lhs->rich_message != rhs->rich_message) {
         need_update = true;
       }
       break;
@@ -8604,6 +8634,14 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       }
       break;
     }
+    case MessageContentType::RichText: {
+      const auto *lhs = static_cast<const MessageRichText *>(old_content);
+      const auto *rhs = static_cast<const MessageRichText *>(new_content);
+      if (lhs->rich_message != rhs->rich_message) {
+        need_update = true;
+      }
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -8633,6 +8671,7 @@ static void update_message_content_file_id_remote(MessageContent *content, FileI
         return &static_cast<MessageVoiceNote *>(content)->file_id;
       case MessageContentType::PaidMedia:
       case MessageContentType::Poll:
+      case MessageContentType::RichText:
         UNREACHABLE();
         return static_cast<FileId *>(nullptr);
       default:
@@ -8659,14 +8698,25 @@ static void update_message_content_file_id_remotes(Td *td, MessageContent *conte
   }
   if (content_type == MessageContentType::Poll) {
     auto *m = static_cast<MessagePoll *>(content);
-    auto poll_contents = td->poll_manager_->get_individual_message_content_refs(m->poll_id, m->attached_media.get());
-    if (file_ids.size() != poll_contents.size()) {
+    auto contents = td->poll_manager_->get_individual_message_content_refs(m->poll_id, m->attached_media.get());
+    if (file_ids.size() != contents.size()) {
       return;
     }
     for (size_t i = 0; i < file_ids.size(); i++) {
-      if (poll_contents[i] != nullptr) {
-        update_message_content_file_id_remote(poll_contents[i], file_ids[i]);
+      if (contents[i] != nullptr) {
+        update_message_content_file_id_remote(contents[i], file_ids[i]);
       }
+    }
+    return;
+  }
+  if (content_type == MessageContentType::RichText) {
+    auto *m = static_cast<MessageRichText *>(content);
+    auto contents = m->rich_message.get_individual_message_content_refs();
+    if (file_ids.size() != contents.size()) {
+      return;
+    }
+    for (size_t i = 0; i < file_ids.size(); i++) {
+      update_message_content_file_id_remote(contents[i], file_ids[i]);
     }
     return;
   }
@@ -12080,6 +12130,17 @@ unique_ptr<MessageContent> get_uploaded_message_content(
         content = std::move(new_content);
         return m;
       }
+      case MessageContentType::RichText: {
+        auto m = dup_message_content(td, DialogId(), old_content, MessageContentDupType::Copy, MessageCopyOptions());
+        CHECK(m->get_type() == MessageContentType::RichText);
+        auto *rich_text = static_cast<MessageRichText *>(m.get());
+        auto new_content = get_message_content(td, FormattedText(), nullptr, std::move(media_ptr), owner_dialog_id,
+                                               message_date, false, UserId(), nullptr, nullptr, source);
+        auto &content = rich_text->rich_message.get_individual_message_content(media_pos);
+        CHECK(content != nullptr);
+        content = std::move(new_content);
+        return m;
+      }
       default:
         UNREACHABLE();
     }
@@ -12130,6 +12191,14 @@ int32 get_message_content_duration(const MessageContent *content, const Td *td) 
         if (poll_content != nullptr) {
           result = max(result, get_message_content_duration(poll_content, td));
         }
+      }
+      return result;
+    }
+    case MessageContentType::RichText: {
+      const auto *m = static_cast<const MessageRichText *>(content);
+      int32 result = -1;
+      for (const auto *rich_text_content : m->rich_message.get_individual_message_content_refs()) {
+        result = max(result, get_message_content_duration(rich_text_content, td));
       }
       return result;
     }
@@ -12241,6 +12310,14 @@ vector<MessageCover> get_message_content_need_to_upload_covers(Td *td, const Mes
       }
       return result;
     }
+    case MessageContentType::RichText: {
+      const auto *m = static_cast<const MessageRichText *>(content);
+      vector<MessageCover> result;
+      for (const auto *rich_text_content : m->rich_message.get_individual_message_content_refs()) {
+        append(result, get_message_content_need_to_upload_covers(td, rich_text_content));
+      }
+      return result;
+    }
     default:
       break;
   }
@@ -12270,6 +12347,7 @@ FileId get_message_content_any_file_id(const MessageContent *content) {
       return static_cast<const MessageVoiceNote *>(content)->file_id;
     case MessageContentType::PaidMedia:
     case MessageContentType::Poll:
+    case MessageContentType::RichText:
       UNREACHABLE();
       break;
     default:
@@ -12294,6 +12372,14 @@ vector<FileId> get_message_content_any_file_ids(const Td *td, const MessageConte
     }
     return file_ids;
   }
+  if (content_type == MessageContentType::RichText) {
+    const auto *m = static_cast<const MessageRichText *>(content);
+    vector<FileId> file_ids;
+    for (const auto *rich_text_content : m->rich_message.get_individual_message_content_refs()) {
+      file_ids.push_back(get_message_content_any_file_id(rich_text_content));
+    }
+    return file_ids;
+  }
   auto file_id = get_message_content_any_file_id(content);
   if (file_id.is_valid()) {
     return {file_id};
@@ -12315,6 +12401,7 @@ FileId get_message_content_cover_any_file_id(const MessageContent *content) {
     }
     case MessageContentType::PaidMedia:
     case MessageContentType::Poll:
+    case MessageContentType::RichText:
       UNREACHABLE();
       break;
     default:
@@ -12352,6 +12439,14 @@ vector<FileId> get_message_content_cover_any_file_ids(const Td *td, const Messag
       }
       return file_ids;
     }
+    case MessageContentType::RichText: {
+      const auto *m = static_cast<const MessageRichText *>(content);
+      vector<FileId> file_ids;
+      for (const auto *rich_text_content : m->rich_message.get_individual_message_content_refs()) {
+        file_ids.push_back(get_message_content_cover_any_file_id(rich_text_content));
+      }
+      return file_ids;
+    }
     default:
       break;
   }
@@ -12385,6 +12480,7 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
       return FileId();
     case MessageContentType::PaidMedia:
     case MessageContentType::Poll:
+    case MessageContentType::RichText:
       UNREACHABLE();
       return FileId();
     default:
@@ -12406,6 +12502,14 @@ vector<FileId> get_message_content_thumbnail_file_ids(const MessageContent *cont
     for (const auto *poll_content :
          td->poll_manager_->get_individual_message_content_refs(m->poll_id, m->attached_media.get())) {
       file_ids.push_back(poll_content != nullptr ? get_message_content_thumbnail_file_id(poll_content, td) : FileId());
+    }
+    return file_ids;
+  }
+  if (content_type == MessageContentType::RichText) {
+    const auto *m = static_cast<const MessageRichText *>(content);
+    vector<FileId> file_ids;
+    for (const auto *rich_text_content : m->rich_message.get_individual_message_content_refs()) {
+      file_ids.push_back(get_message_content_thumbnail_file_id(rich_text_content, td));
     }
     return file_ids;
   }

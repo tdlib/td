@@ -83,6 +83,7 @@ RichMessage::RichMessage(Td *td, telegram_api::object_ptr<telegram_api::richMess
                                 voice_notes);
   is_rtl_ = rich_message->rtl_;
   is_full_ = !rich_message->part_;
+  // media_ = get_page_blocks_rich_message_media(blocks_);
 }
 
 Result<RichMessage> RichMessage::get_rich_message(Td *td, DialogId dialog_id,

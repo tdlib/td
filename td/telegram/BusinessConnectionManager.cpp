@@ -1261,7 +1261,7 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
   const auto *content = message->content_.get();
   CHECK(content != nullptr);
   auto content_type = content->get_type();
-  if (content_type == MessageContentType::Text || content_type == MessageContentType::RichText) {
+  if (content_type == MessageContentType::Text) {
     auto input_media = get_message_content_input_media_web_page(td_, content);
     if (input_media == nullptr) {
       td_->create_handler<SendBusinessMessageQuery>(std::move(promise))->send(std::move(message));

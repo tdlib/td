@@ -2255,7 +2255,7 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
     return;
   }
 
-  if (content_type == MessageContentType::Text || content_type == MessageContentType::RichText) {
+  if (content_type == MessageContentType::Text) {
     if (is_edit) {
       td_->create_handler<EditQuickReplyMessageQuery>()->send(m, nullptr);
       return;

@@ -182,7 +182,7 @@ bool update_opened_message_content(MessageContent *content);
 
 int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_outgoing);
 
-vector<unique_ptr<MessageContent>> get_individual_message_contents(const Td *td, const MessageContent *content);
+vector<unique_ptr<MessageContent>> get_individual_message_contents(Td *td, const MessageContent *content);
 
 StickerType get_message_content_sticker_type(const Td *td, const MessageContent *content);
 

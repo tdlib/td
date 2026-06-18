@@ -359,6 +359,7 @@ bool can_message_content_have_multiple_files(MessageContentType content_type) {
   switch (content_type) {
     case MessageContentType::PaidMedia:
     case MessageContentType::Poll:
+    case MessageContentType::RichText:
       return true;
     default:
       return false;
