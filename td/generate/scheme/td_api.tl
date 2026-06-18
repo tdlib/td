@@ -9861,7 +9861,7 @@ addedProxies proxies:vector<addedProxy> = AddedProxies;
 //@emojis String with 1-20 emoji corresponding to the sticker
 //@mask_position Position where the mask is placed; pass null if not specified
 //@keywords List of up to 20 keywords with total length up to 64 characters, which can be used to find the sticker
-inputSticker sticker:InputFile format:StickerFormat emojis:string mask_position:maskPosition keywords:vector<string> = InputSticker;
+newSticker sticker:InputFile format:StickerFormat emojis:string mask_position:maskPosition keywords:vector<string> = NewSticker;
 
 
 //@description Represents a date range @start_date Point in time (Unix timestamp) at which the date range begins @end_date Point in time (Unix timestamp) at which the date range ends
@@ -15483,20 +15483,20 @@ checkStickerSetName name:string = CheckStickerSetNameResult;
 //@needs_repainting Pass true if stickers in the sticker set must be repainted; for custom emoji sticker sets only
 //@stickers List of stickers to be added to the set; 1-200 stickers for custom emoji sticker sets, and 1-120 stickers otherwise. For TGS stickers, uploadStickerFile must be used before the sticker is shown
 //@source Source of the sticker set; may be empty if unknown
-createNewStickerSet user_id:int53 title:string name:string sticker_type:StickerType needs_repainting:Bool stickers:vector<inputSticker> source:string = StickerSet;
+createNewStickerSet user_id:int53 title:string name:string sticker_type:StickerType needs_repainting:Bool stickers:vector<newSticker> source:string = StickerSet;
 
 //@description Adds a new sticker to a set
 //@user_id Sticker set owner; ignored for regular users
 //@name Sticker set name. The sticker set must be owned by the current user, and contain less than 200 stickers for custom emoji sticker sets and less than 120 otherwise
 //@sticker Sticker to add to the set
-addStickerToSet user_id:int53 name:string sticker:inputSticker = Ok;
+addStickerToSet user_id:int53 name:string sticker:newSticker = Ok;
 
 //@description Replaces existing sticker in a set. The function is equivalent to removeStickerFromSet, then addStickerToSet, then setStickerPositionInSet
 //@user_id Sticker set owner; ignored for regular users
 //@name Sticker set name. The sticker set must be owned by the current user
 //@old_sticker Sticker to remove from the set
 //@new_sticker Sticker to add to the set
-replaceStickerInSet user_id:int53 name:string old_sticker:InputFile new_sticker:inputSticker = Ok;
+replaceStickerInSet user_id:int53 name:string old_sticker:InputFile new_sticker:newSticker = Ok;
 
 //@description Sets a sticker set thumbnail
 //@user_id Sticker set owner; ignored for regular users

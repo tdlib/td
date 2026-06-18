@@ -7908,7 +7908,7 @@ void StickersManager::move_sticker_set_to_top_by_custom_emoji_ids(const vector<C
   }
 }
 
-Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_sticker(td_api::inputSticker *sticker,
+Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_sticker(td_api::newSticker *sticker,
                                                                               StickerType sticker_type) {
   if (sticker == nullptr) {
     return Status::Error(400, "Input sticker must be non-empty");
@@ -8035,7 +8035,7 @@ void StickersManager::finish_upload_sticker_file(FileId file_id, Promise<td_api:
 }
 
 Result<telegram_api::object_ptr<telegram_api::inputStickerSetItem>> StickersManager::get_input_sticker(
-    const td_api::inputSticker *sticker, FileId file_id) const {
+    const td_api::newSticker *sticker, FileId file_id) const {
   CHECK(sticker != nullptr);
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   const auto *main_remote_location = file_view.get_main_remote_location();
@@ -8110,8 +8110,7 @@ td_api::object_ptr<td_api::CheckStickerSetNameResult> StickersManager::get_check
 
 void StickersManager::create_new_sticker_set(UserId user_id, string title, string short_name, StickerType sticker_type,
                                              bool has_text_color,
-                                             vector<td_api::object_ptr<td_api::inputSticker>> &&stickers,
-                                             string software,
+                                             vector<td_api::object_ptr<td_api::newSticker>> &&stickers, string software,
                                              Promise<td_api::object_ptr<td_api::stickerSet>> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
@@ -8390,7 +8389,7 @@ StickerFormat StickersManager::guess_sticker_set_format(const StickerSet *sticke
 }
 
 void StickersManager::add_sticker_to_set(UserId user_id, string short_name,
-                                         td_api::object_ptr<td_api::inputSticker> &&sticker,
+                                         td_api::object_ptr<td_api::newSticker> &&sticker,
                                          td_api::object_ptr<td_api::InputFile> &&old_sticker, Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
@@ -8425,7 +8424,7 @@ void StickersManager::add_sticker_to_set(UserId user_id, string short_name,
 }
 
 void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
-                                            td_api::object_ptr<td_api::inputSticker> &&sticker,
+                                            td_api::object_ptr<td_api::newSticker> &&sticker,
                                             td_api::object_ptr<td_api::InputFile> &&old_sticker,
                                             Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
