@@ -4916,8 +4916,9 @@ static Result<InputMessageContent> create_input_message_content(
       auto input_voice_note = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
       self_destruct_type = std::move(input_voice_note->self_destruct_type_);
 
-      td->voice_notes_manager_->create_voice_note(file_id, std::move(mime_type), input_voice_note->duration_,
-                                                  std::move(input_voice_note->waveform_), false);
+      td->voice_notes_manager_->create_voice_note(file_id, std::move(mime_type),
+                                                  input_voice_note->voice_note_->duration_,
+                                                  std::move(input_voice_note->voice_note_->waveform_), false);
 
       content = make_unique<MessageVoiceNote>(file_id, std::move(caption), false);
       break;
@@ -5168,9 +5169,13 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessageVoiceNote::ID: {
       auto input_message = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
+      auto *voice_note = input_message->voice_note_.get();
+      if (voice_note == nullptr) {
+        return Status::Error(400, "Voice note must be non-empty");
+      }
       file_type =
           input_message->self_destruct_type_ != nullptr ? FileType::SelfDestructingVoiceNote : FileType::VoiceNote;
-      input_file = std::move(input_message->voice_note_);
+      input_file = std::move(voice_note->voice_note_);
       break;
     }
     default:

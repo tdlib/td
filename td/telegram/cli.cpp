@@ -2219,8 +2219,9 @@ class CliClient final : public Actor {
             nullptr, false, false);
       }
       if (media[0] == 'n') {
-        content = td_api::make_object<td_api::inputMessageVoiceNote>(as_input_file(media.substr(1)), 0, "abacaba",
-                                                                     nullptr, nullptr);
+        content = td_api::make_object<td_api::inputMessageVoiceNote>(
+            td_api::make_object<td_api::inputVoiceNote>(as_input_file(media.substr(1)), 0, "abacaba"), nullptr,
+            nullptr);
       }
       if (media[0] == 'p') {
         content = td_api::make_object<td_api::inputMessagePhoto>(
@@ -6883,7 +6884,8 @@ class CliClient final : public Actor {
       string voice;
       get_args(args, chat_id, voice);
       send_message(chat_id, td_api::make_object<td_api::inputMessageVoiceNote>(
-                                as_input_file(voice), 0, "abacaba", get_caption(), get_message_self_destruct_type()));
+                                td_api::make_object<td_api::inputVoiceNote>(as_input_file(voice), 0, "abacaba"),
+                                get_caption(), get_message_self_destruct_type()));
     } else if (op == "scontact") {
       ChatId chat_id;
       string phone_number;

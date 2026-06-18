@@ -5697,6 +5697,12 @@ inputVideo video:InputFile thumbnail:inputThumbnail cover:InputFile start_timest
 //@length Video width and height; must be positive and not greater than 640
 inputVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int32 length:int32 = InputVideoNote;
 
+//@description A video note to be sent
+//@voice_note Voice note file to be sent. The voice note must be encoded with the Opus codec and stored inside an OGG container with a single audio channel, or be in MP3 or M4A format as regular audio
+//@duration Duration of the voice note, in seconds
+//@waveform Waveform representation of the voice note in 5-bit format
+inputVoiceNote voice_note:InputFile duration:int32 waveform:bytes = InputVoiceNote;
+
 
 //@class InputPaidMediaType @description Describes type of paid media to send
 
@@ -5872,12 +5878,10 @@ inputMessageVideo video:inputVideo caption:formattedText show_caption_above_medi
 inputMessageVideoNote video_note:inputVideoNote self_destruct_type:MessageSelfDestructType = InputMessageContent;
 
 //@description A voice note message
-//@voice_note Voice note to be sent. The voice note must be encoded with the Opus codec and stored inside an OGG container with a single audio channel, or be in MP3 or M4A format as regular audio
-//@duration Duration of the voice note, in seconds
-//@waveform Waveform representation of the voice note in 5-bit format
+//@voice_note Voice note to be sent
 //@caption Voice note caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@self_destruct_type Voice note self-destruct type; may be null if none; pass null if none; private chats only
-inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption:formattedText self_destruct_type:MessageSelfDestructType = InputMessageContent;
+inputMessageVoiceNote voice_note:inputVoiceNote caption:formattedText self_destruct_type:MessageSelfDestructType = InputMessageContent;
 
 //@description A message with a live location @location Initial state of the live location to be sent. Live period must be equal to 0x7FFFFFFF for permanent live locations, or between 60 and 86400
 inputMessageLiveLocation location:liveLocation = InputMessageContent;
