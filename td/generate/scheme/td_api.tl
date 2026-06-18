@@ -5690,6 +5690,13 @@ inputPhoto photo:InputFile thumbnail:inputThumbnail video:InputFile added_sticke
 //@supports_streaming True, if the video is expected to be streamed
 inputVideo video:InputFile thumbnail:inputThumbnail cover:InputFile start_timestamp:int32 added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 supports_streaming:Bool = InputVideo;
 
+//@description A video note to be sent
+//@video_note Video note file to be sent. The video is expected to be encoded to MPEG4 format with H.264 codec and have no data outside of the visible circle
+//@thumbnail Video thumbnail; may be null if empty; pass null to skip thumbnail uploading
+//@duration Duration of the video, in seconds; 0-60
+//@length Video width and height; must be positive and not greater than 640
+inputVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int32 length:int32 = InputVideoNote;
+
 
 //@class InputPaidMediaType @description Describes type of paid media to send
 
@@ -5860,12 +5867,9 @@ inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 heigh
 inputMessageVideo video:inputVideo caption:formattedText show_caption_above_media:Bool self_destruct_type:MessageSelfDestructType has_spoiler:Bool = InputMessageContent;
 
 //@description A video note message
-//@video_note Video note to be sent. The video is expected to be encoded to MPEG4 format with H.264 codec and have no data outside of the visible circle
-//@thumbnail Video thumbnail; may be null if empty; pass null to skip thumbnail uploading
-//@duration Duration of the video, in seconds; 0-60
-//@length Video width and height; must be positive and not greater than 640
+//@video_note Video note to be sent
 //@self_destruct_type Video note self-destruct type; may be null if none; pass null if none; private chats only
-inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int32 length:int32 self_destruct_type:MessageSelfDestructType = InputMessageContent;
+inputMessageVideoNote video_note:inputVideoNote self_destruct_type:MessageSelfDestructType = InputMessageContent;
 
 //@description A voice note message
 //@voice_note Voice note to be sent. The voice note must be encoded with the Opus codec and stored inside an OGG container with a single audio channel, or be in MP3 or M4A format as regular audio

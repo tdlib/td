@@ -4900,12 +4900,13 @@ static Result<InputMessageContent> create_input_message_content(
       auto input_video_note = static_cast<td_api::inputMessageVideoNote *>(input_message_content.get());
       self_destruct_type = std::move(input_video_note->self_destruct_type_);
 
-      auto length = input_video_note->length_;
+      auto length = input_video_note->video_note_->length_;
       if (length < 0 || length > 640) {
         return Status::Error(400, "Wrong video note length");
       }
 
-      td->video_notes_manager_->create_video_note(file_id, string(), std::move(thumbnail), input_video_note->duration_,
+      td->video_notes_manager_->create_video_note(file_id, string(), std::move(thumbnail),
+                                                  input_video_note->video_note_->duration_,
                                                   get_dimensions(length, length, nullptr), string(), false);
 
       content = make_unique<MessageVideoNote>(file_id, false);
@@ -5155,10 +5156,14 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessageVideoNote::ID: {
       auto input_message = static_cast<td_api::inputMessageVideoNote *>(input_message_content.get());
+      auto *video_note = input_message->video_note_.get();
+      if (video_note == nullptr) {
+        return Status::Error(400, "Video note must be non-empty");
+      }
       file_type =
           input_message->self_destruct_type_ != nullptr ? FileType::SelfDestructingVideoNote : FileType::VideoNote;
-      input_file = std::move(input_message->video_note_);
-      input_thumbnail = std::move(input_message->thumbnail_);
+      input_file = std::move(video_note->video_note_);
+      input_thumbnail = std::move(video_note->thumbnail_);
       break;
     }
     case td_api::inputMessageVoiceNote::ID: {
