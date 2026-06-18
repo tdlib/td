@@ -2496,9 +2496,11 @@ void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId sho
   CHECK(message_id.is_yet_unsent());
   CHECK(m->file_upload_id == file_upload_id);
 
-  auto content =
-      get_uploaded_message_content(td_, m->content.get(), -1, std::move(media),
-                                   td_->dialog_manager_->get_my_dialog_id(), 0, "on_upload_message_media_success");
+  bool is_content_changed = false;
+  bool need_update = false;
+  auto content = get_uploaded_message_content(td_, m->content.get(), -1, std::move(media),
+                                              td_->dialog_manager_->get_my_dialog_id(), 0, is_content_changed,
+                                              need_update, "on_upload_message_media_success");
   update_sent_message_content_from_temporary_message(m->content, file_upload_id, content, true);
 
   save_quick_reply_shortcuts();

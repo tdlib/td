@@ -12094,7 +12094,7 @@ static void set_message_content_has_spoiler(MessageContent *content, bool has_sp
 unique_ptr<MessageContent> get_uploaded_message_content(
     Td *td, const MessageContent *old_content, int32 media_pos,
     telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr, DialogId owner_dialog_id, int32 message_date,
-    const char *source) {
+    bool &is_content_changed, bool &need_update, const char *source) {
   CHECK(old_content != nullptr);
   if (media_pos >= 0) {
     auto old_content_type = old_content->get_type();
@@ -12110,8 +12110,6 @@ unique_ptr<MessageContent> get_uploaded_message_content(
             LOG(ERROR) << "Receive invalid uploaded paid media";
           }
         } else {
-          bool is_content_changed = false;
-          bool need_update = false;
           content->media[media_pos].merge_files(td, media, owner_dialog_id, true, is_content_changed, need_update);
         }
         return std::move(content);
@@ -12125,6 +12123,8 @@ unique_ptr<MessageContent> get_uploaded_message_content(
         auto &content =
             td->poll_manager_->get_individual_message_content(poll->poll_id, poll->attached_media, media_pos);
         CHECK(content != nullptr);
+        merge_message_contents(td, content.get(), new_content.get(), false, owner_dialog_id, true, is_content_changed,
+                               need_update);
         content = std::move(new_content);
         return m;
       }
@@ -12136,6 +12136,8 @@ unique_ptr<MessageContent> get_uploaded_message_content(
                                                message_date, false, UserId(), nullptr, nullptr, source);
         auto &content = rich_text->rich_message.get_individual_message_content(media_pos);
         CHECK(content != nullptr);
+        merge_message_contents(td, content.get(), new_content.get(), false, owner_dialog_id, true, is_content_changed,
+                               need_update);
         content = std::move(new_content);
         return m;
       }

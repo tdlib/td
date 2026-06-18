@@ -295,7 +295,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_tex
 unique_ptr<MessageContent> get_uploaded_message_content(
     Td *td, const MessageContent *old_content, int32 media_pos,
     telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr, DialogId owner_dialog_id, int32 message_date,
-    const char *source);
+    bool &is_content_changed, bool &need_update, const char *source);
 
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
                                                MessageContentDupType type, MessageCopyOptions &&copy_options);

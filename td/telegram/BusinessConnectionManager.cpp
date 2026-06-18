@@ -1506,13 +1506,12 @@ void BusinessConnectionManager::do_upload_media(BeingUploadedMedia &&being_uploa
 void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage> &&message,
                                                       telegram_api::object_ptr<telegram_api::MessageMedia> &&media,
                                                       Promise<UploadMediaResult> &&promise) {
-  auto new_content =
-      get_uploaded_message_content(td_, message->content_.get(), -1, std::move(media),
-                                   td_->dialog_manager_->get_my_dialog_id(), G()->unix_time(), "complete_upload_media");
+  auto &old_content = message->content_;
   bool is_content_changed = false;
   bool need_update = false;
-
-  unique_ptr<MessageContent> &old_content = message->content_;
+  auto new_content = get_uploaded_message_content(td_, old_content.get(), -1, std::move(media),
+                                                  td_->dialog_manager_->get_my_dialog_id(), G()->unix_time(),
+                                                  is_content_changed, need_update, "complete_upload_media");
   merge_and_compare_message_contents(td_, old_content.get(), new_content.get(), false, DialogId(), true,
                                      {message->file_upload_id_}, MessageSelfDestructType(), 0.0, nullptr,
                                      is_content_changed, need_update);

@@ -22069,11 +22069,13 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
     return;  // the message should be deleted soon
   }
 
-  auto content = get_uploaded_message_content(td_, m->content.get(), media_pos, std::move(media), dialog_id, m->date,
-                                              "on_upload_message_media_success");
   bool is_content_changed = false;
-  bool need_update =
-      update_message_content(dialog_id, m, std::move(content), media_pos == -1, true, is_content_changed);
+  bool need_update = false;
+  auto content = get_uploaded_message_content(td_, m->content.get(), media_pos, std::move(media), dialog_id, m->date,
+                                              is_content_changed, need_update, "on_upload_message_media_success");
+  if (update_message_content(dialog_id, m, std::move(content), media_pos == -1, true, is_content_changed)) {
+    need_update = true;
+  }
   if (need_update || media_pos >= 0) {
     send_update_message_content(d, m, true, "on_upload_message_media_success");
   }
