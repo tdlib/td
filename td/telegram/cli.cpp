@@ -7017,8 +7017,10 @@ class CliClient final : public Actor {
       string sticker;
       string emoji;
       get_args(args, chat_id, sticker, emoji);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageSticker>(as_input_file(sticker),
-                                                                             get_input_thumbnail(), 0, 0, emoji));
+      send_message(
+          chat_id,
+          td_api::make_object<td_api::inputMessageSticker>(
+              td_api::make_object<td_api::inputSticker>(as_input_file(sticker), get_input_thumbnail(), 0, 0), emoji));
     } else if (op == "sstory") {
       ChatId chat_id;
       ChatId story_poster_chat_id;

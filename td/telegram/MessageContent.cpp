@@ -4861,9 +4861,10 @@ static Result<InputMessageContent> create_input_message_content(
 
       emoji = std::move(input_sticker->emoji_);
 
-      td->stickers_manager_->create_sticker(file_id, FileId(), string(), std::move(thumbnail),
-                                            get_dimensions(input_sticker->width_, input_sticker->height_, nullptr),
-                                            nullptr, nullptr, StickerFormat::Unknown, nullptr);
+      td->stickers_manager_->create_sticker(
+          file_id, FileId(), string(), std::move(thumbnail),
+          get_dimensions(input_sticker->sticker_->width_, input_sticker->sticker_->height_, nullptr), nullptr, nullptr,
+          StickerFormat::Unknown, nullptr);
 
       content = make_unique<MessageSticker>(file_id, is_premium);
       break;
@@ -5136,9 +5137,13 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessageSticker::ID: {
       auto input_message = static_cast<td_api::inputMessageSticker *>(input_message_content.get());
+      auto *sticker = input_message->sticker_.get();
+      if (sticker == nullptr) {
+        return Status::Error(400, "Sticker must be non-empty");
+      }
       file_type = FileType::Sticker;
-      input_file = std::move(input_message->sticker_);
-      input_thumbnail = std::move(input_message->thumbnail_);
+      input_file = std::move(sticker->sticker_);
+      input_thumbnail = std::move(sticker->thumbnail_);
       break;
     }
     case td_api::inputMessageVideo::ID: {
@@ -5251,8 +5256,7 @@ Result<unique_ptr<MessageContent>> get_input_poll_media(DialogId dialog_id,
       }
       case td_api::inputPollMediaSticker::ID: {
         auto content = td_api::move_object_as<td_api::inputPollMediaSticker>(input_poll_media);
-        return td_api::make_object<td_api::inputMessageSticker>(
-            std::move(content->sticker_), std::move(content->thumbnail_), content->width_, content->height_, string());
+        return td_api::make_object<td_api::inputMessageSticker>(std::move(content->sticker_), string());
       }
       case td_api::inputPollMediaVenue::ID: {
         auto content = td_api::move_object_as<td_api::inputPollMediaVenue>(input_poll_media);

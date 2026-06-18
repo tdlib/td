@@ -5678,6 +5678,13 @@ inputDocument document:InputFile thumbnail:inputThumbnail disable_content_type_d
 //@height Photo height; may be replaced by the server
 inputPhoto photo:InputFile thumbnail:inputThumbnail video:InputFile added_sticker_file_ids:vector<int32> width:int32 height:int32 = InputPhoto;
 
+//@description A sticker to be sent
+//@sticker Sticker to be sent
+//@thumbnail Sticker thumbnail; pass null to skip thumbnail uploading
+//@width Sticker width
+//@height Sticker height
+inputSticker sticker:InputFile thumbnail:inputThumbnail width:int32 height:int32 = InputSticker;
+
 //@description A video to be sent
 //@video Video file to be sent. The video is expected to be re-encoded to MPEG4 format with H.264 codec by the sender
 //@thumbnail Video thumbnail; pass null to skip thumbnail uploading
@@ -5797,12 +5804,8 @@ inputPollMediaLocation location:location = InputPollMedia;
 //@description A photo @photo Photo to be sent
 inputPollMediaPhoto photo:inputPhoto = InputPollMedia;
 
-//@description A sticker
-//@sticker Sticker to be sent
-//@thumbnail Sticker thumbnail; pass null to skip thumbnail uploading
-//@width Sticker width
-//@height Sticker height
-inputPollMediaSticker sticker:InputFile thumbnail:inputThumbnail width:int32 height:int32 = InputPollMedia;
+//@description A sticker @sticker Sticker to be sent
+inputPollMediaSticker sticker:inputSticker = InputPollMedia;
 
 //@description A venue @venue Venue to send
 inputPollMediaVenue venue:venue = InputPollMedia;
@@ -5856,13 +5859,8 @@ inputMessagePaidMedia star_count:int53 paid_media:vector<inputPaidMedia> caption
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation; not supported in secret chats
 inputMessagePhoto photo:inputPhoto caption:formattedText show_caption_above_media:Bool self_destruct_type:MessageSelfDestructType has_spoiler:Bool = InputMessageContent;
 
-//@description A sticker message
-//@sticker Sticker to be sent
-//@thumbnail Sticker thumbnail; pass null to skip thumbnail uploading
-//@width Sticker width
-//@height Sticker height
-//@emoji Emoji used to choose the sticker
-inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 height:int32 emoji:string = InputMessageContent;
+//@description A sticker message @sticker Sticker to be sent @emoji Emoji used to choose the sticker
+inputMessageSticker sticker:inputSticker emoji:string = InputMessageContent;
 
 //@description A video message
 //@video Video to be sent
