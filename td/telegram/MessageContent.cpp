@@ -5886,6 +5886,10 @@ InputMedia get_message_content_input_media(const MessageContent *content, Td *td
   for (size_t i = 0; i < file_references.size(); i++) {
     if (file_references[i] == FileReferenceView::invalid_file_reference()) {
       auto file_ids = get_message_content_any_file_ids(td, content);
+      if (media_pos >= 0) {
+        CHECK(static_cast<size_t>(media_pos) < file_ids.size());
+        file_ids = vector<FileId>{file_ids[media_pos]};
+      }
       CHECK(file_ids.size() == file_references.size());
       auto file_id = file_ids[i];
       if (!file_id.is_valid()) {
