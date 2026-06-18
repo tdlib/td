@@ -2201,21 +2201,51 @@ class CliClient final : public Actor {
     return as_formatted_text(caption, std::move(entities));
   }
 
-  static td_api::object_ptr<td_api::inputRichMessage> as_input_rich_message(const string &message) {
-    return td_api::make_object<td_api::inputRichMessage>(
-        td_api::make_object<td_api::richMessageSourceMarkdown>(message, Auto()), rand_bool(), rand_bool());
-  }
-
-  struct InputRichMessage {
-    string message;
-
-    operator td_api::object_ptr<td_api::inputRichMessage>() const {
-      return as_input_rich_message(message);
+  td_api::object_ptr<td_api::inputRichMessage> as_input_rich_message(const string &message) const {
+    vector<td_api::object_ptr<td_api::inputRichMessageMedia>> input_media;
+    for (auto rich_message_media : full_split(rich_message_media_, ' ')) {
+      string id;
+      string media;
+      std::tie(id, media) = split(rich_message_media, ';');
+      if (media.size() <= 1u) {
+        LOG(ERROR) << "Ignore " << rich_message_media;
+        continue;
+      }
+      td_api::object_ptr<td_api::InputMessageContent> content;
+      if (media[0] == 'a') {
+        content = td_api::make_object<td_api::inputMessageAnimation>(
+            td_api::make_object<td_api::inputAnimation>(as_input_file(media.substr(1)), get_input_thumbnail(),
+                                                        get_added_sticker_file_ids(), 0, 0, 0),
+            nullptr, false, false);
+      }
+      if (media[0] == 'n') {
+        content = td_api::make_object<td_api::inputMessageVoiceNote>(as_input_file(media.substr(1)), 0, "abacaba",
+                                                                     nullptr, nullptr);
+      }
+      if (media[0] == 'p') {
+        content = td_api::make_object<td_api::inputMessagePhoto>(
+            td_api::make_object<td_api::inputPhoto>(as_input_file(media.substr(1)), get_input_thumbnail(),
+                                                    get_input_cover(), get_added_sticker_file_ids(), 0, 0),
+            nullptr, false, nullptr, false);
+      }
+      if (media[0] == 'u') {
+        content = td_api::make_object<td_api::inputMessageAudio>(
+            td_api::make_object<td_api::inputAudio>(as_input_file(media.substr(1)), get_input_thumbnail(), 0, "title",
+                                                    "performer"),
+            nullptr);
+      }
+      if (media[0] == 'v') {
+        content = td_api::make_object<td_api::inputMessageVideo>(
+            td_api::make_object<td_api::inputVideo>(as_input_file(media.substr(1)), get_input_thumbnail(),
+                                                    get_input_cover(), start_timestamp_, get_added_sticker_file_ids(),
+                                                    1, 2, 3, true),
+            nullptr, false, nullptr, false);
+      }
+      input_media.push_back(td_api::make_object<td_api::inputRichMessageMedia>(id, std::move(content)));
     }
-  };
-
-  void get_args(string &args, InputRichMessage &arg) const {
-    arg.message = std::move(args);
+    return td_api::make_object<td_api::inputRichMessage>(
+        td_api::make_object<td_api::richMessageSourceMarkdown>(message, std::move(input_media)), rand_bool(),
+        rand_bool());
   }
 
   td_api::object_ptr<td_api::InputMessageContent> as_input_message(const string &message, bool is_rich) const {
@@ -6356,6 +6386,8 @@ class CliClient final : public Actor {
       added_sticker_file_ids_ = as_file_ids(args);
     } else if (op == "smc") {
       caption_ = args;
+    } else if (op == "srmm") {
+      rich_message_media_ = args;
     } else if (op == "smco") {
       cover_ = args;
     } else if (op == "smth") {
@@ -8963,6 +8995,7 @@ class CliClient final : public Actor {
   string quick_reply_shortcut_name_;
   vector<int32> added_sticker_file_ids_;
   string caption_;
+  string rich_message_media_;
   string cover_;
   string thumbnail_;
   int32 start_timestamp_ = 0;
