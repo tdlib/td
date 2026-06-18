@@ -2511,6 +2511,10 @@ void DialogManager::upload_dialog_photo(DialogId dialog_id, FileUploadId file_up
 
 void DialogManager::on_upload_dialog_photo(FileUploadId file_upload_id,
                                            telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   LOG(INFO) << "Chat photo " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_dialog_photos_.find(file_upload_id);
@@ -2572,7 +2576,6 @@ void DialogManager::on_upload_dialog_photo(FileUploadId file_upload_id,
 
 void DialogManager::on_upload_dialog_photo_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
-    // do not fail upload if closing
     return;
   }
 

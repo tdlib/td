@@ -2335,6 +2335,9 @@ void QuickReplyManager::on_send_message_file_error(QuickReplyShortcutId shortcut
 
 void QuickReplyManager::on_upload_media(FileUploadId file_upload_id,
                                         telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
   LOG(INFO) << "Quick reply " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_files_.find(file_upload_id);
@@ -2393,7 +2396,6 @@ void QuickReplyManager::do_send_media(const QuickReplyMessage *m,
 
 void QuickReplyManager::on_upload_media_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
-    // do not fail upload if closing
     return;
   }
 
@@ -2418,7 +2420,6 @@ void QuickReplyManager::on_upload_media_error(FileUploadId file_upload_id, Statu
 void QuickReplyManager::on_upload_thumbnail(FileUploadId thumbnail_file_upload_id,
                                             telegram_api::object_ptr<telegram_api::InputFile> thumbnail_input_file) {
   if (G()->close_flag()) {
-    // do not fail upload if closing
     return;
   }
 

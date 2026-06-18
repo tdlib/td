@@ -6548,6 +6548,9 @@ void MessagesManager::load_secret_thumbnail(FileUploadId thumbnail_file_upload_i
 void MessagesManager::on_upload_media(FileUploadId file_upload_id,
                                       telegram_api::object_ptr<telegram_api::InputFile> input_file,
                                       telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file) {
+  if (G()->close_flag()) {
+    return;
+  }
   LOG(INFO) << "Message " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_files_.find(file_upload_id);
@@ -6680,7 +6683,6 @@ void MessagesManager::do_send_secret_media(
 
 void MessagesManager::on_upload_media_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
-    // do not fail upload if closing
     return;
   }
 
@@ -6760,7 +6762,6 @@ void MessagesManager::on_load_secret_thumbnail(FileUploadId thumbnail_file_uploa
 void MessagesManager::on_upload_thumbnail(FileUploadId thumbnail_file_upload_id,
                                           telegram_api::object_ptr<telegram_api::InputFile> thumbnail_input_file) {
   if (G()->close_flag()) {
-    // do not fail upload if closing
     return;
   }
 

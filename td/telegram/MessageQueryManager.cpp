@@ -2188,6 +2188,9 @@ void MessageQueryManager::upload_message_cover(BusinessConnectionId business_con
 
 void MessageQueryManager::on_upload_cover(FileUploadId file_upload_id,
                                           telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
   LOG(INFO) << "Cover " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_covers_.find(file_upload_id);
@@ -2200,6 +2203,9 @@ void MessageQueryManager::on_upload_cover(FileUploadId file_upload_id,
 }
 
 void MessageQueryManager::on_upload_cover_error(FileUploadId file_upload_id, Status status) {
+  if (G()->close_flag()) {
+    return;
+  }
   CHECK(status.is_error());
 
   auto it = being_uploaded_covers_.find(file_upload_id);

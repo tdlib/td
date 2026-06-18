@@ -357,6 +357,9 @@ void MessageImportManager::upload_imported_messages(DialogId dialog_id, FileUplo
 
 void MessageImportManager::on_upload_imported_messages(FileUploadId file_upload_id,
                                                        telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
   LOG(INFO) << "Imported messages " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_imported_messages_.find(file_upload_id);
@@ -401,7 +404,6 @@ void MessageImportManager::on_upload_imported_messages(FileUploadId file_upload_
 
 void MessageImportManager::on_upload_imported_messages_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
-    // do not fail upload if closing
     return;
   }
 
@@ -495,7 +497,6 @@ telegram_api::object_ptr<telegram_api::InputMedia> MessageImportManager::get_fak
 void MessageImportManager::on_upload_imported_message_attachment(
     FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
   if (G()->close_flag()) {
-    // do not fail upload if closing
     return;
   }
 
@@ -540,7 +541,6 @@ void MessageImportManager::on_upload_imported_message_attachment(
 
 void MessageImportManager::on_upload_imported_message_attachment_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
-    // do not fail upload if closing
     return;
   }
 

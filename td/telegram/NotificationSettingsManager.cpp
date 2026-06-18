@@ -1128,6 +1128,9 @@ void NotificationSettingsManager::upload_ringtone(FileUploadId file_upload_id, b
 
 void NotificationSettingsManager::on_upload_ringtone(FileUploadId file_upload_id,
                                                      telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
   LOG(INFO) << "Ringtone " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_ringtones_.find(file_upload_id);
@@ -1184,6 +1187,9 @@ void NotificationSettingsManager::on_upload_ringtone(FileUploadId file_upload_id
 }
 
 void NotificationSettingsManager::on_upload_ringtone_error(FileUploadId file_upload_id, Status status) {
+  if (G()->close_flag()) {
+    return;
+  }
   LOG(INFO) << "Ringtone " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 

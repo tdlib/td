@@ -6154,7 +6154,6 @@ void StoryManager::on_upload_story(FileUploadId file_upload_id,
 
 void StoryManager::on_upload_story_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
-    // do not fail upload if closing
     return;
   }
 

@@ -1402,6 +1402,10 @@ void BusinessConnectionManager::complete_send_media(unique_ptr<PendingMessage> &
 
 void BusinessConnectionManager::on_upload_media(FileUploadId file_upload_id,
                                                 telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   LOG(INFO) << "Business media " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_files_.find(file_upload_id);
@@ -1425,6 +1429,10 @@ void BusinessConnectionManager::on_upload_media(FileUploadId file_upload_id,
 }
 
 void BusinessConnectionManager::on_upload_media_error(FileUploadId file_upload_id, Status status) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   CHECK(status.is_error());
 
   auto it = being_uploaded_files_.find(file_upload_id);
@@ -1437,6 +1445,10 @@ void BusinessConnectionManager::on_upload_media_error(FileUploadId file_upload_i
 
 void BusinessConnectionManager::on_upload_thumbnail(
     FileUploadId thumbnail_file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> thumbnail_input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   LOG(INFO) << "Thumbnail " << thumbnail_file_upload_id << " has been uploaded as " << to_string(thumbnail_input_file);
 
   auto it = being_uploaded_thumbnails_.find(thumbnail_file_upload_id);

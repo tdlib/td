@@ -8208,6 +8208,9 @@ void StickersManager::upload_sticker_file(UserId user_id, FileId file_id, Promis
 
 void StickersManager::on_upload_sticker_file(FileUploadId file_upload_id,
                                              telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
   LOG(INFO) << "Sticker " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_files_.find(file_upload_id);
@@ -8221,7 +8224,6 @@ void StickersManager::on_upload_sticker_file(FileUploadId file_upload_id,
 
 void StickersManager::on_upload_sticker_file_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
-    // do not fail upload if closing
     return;
   }
 

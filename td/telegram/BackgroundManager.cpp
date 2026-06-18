@@ -995,6 +995,10 @@ void BackgroundManager::upload_background_file(FileId file_id, const BackgroundT
 
 void BackgroundManager::on_upload_background_file(FileUploadId file_upload_id,
                                                   telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   LOG(INFO) << "Background " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_files_.find(file_upload_id);
@@ -1012,7 +1016,6 @@ void BackgroundManager::on_upload_background_file(FileUploadId file_upload_id,
 
 void BackgroundManager::on_upload_background_file_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
-    // do not fail upload if closing
     return;
   }
 

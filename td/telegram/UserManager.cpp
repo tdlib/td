@@ -6067,6 +6067,10 @@ void UserManager::upload_profile_photo(UserId user_id, FileUploadId file_upload_
 
 void UserManager::on_upload_profile_photo(FileUploadId file_upload_id,
                                           telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto it = being_uploaded_profile_photos_.find(file_upload_id);
   CHECK(it != being_uploaded_profile_photos_.end());
   UserId user_id = it->second.user_id;
@@ -6113,6 +6117,10 @@ void UserManager::on_upload_profile_photo(FileUploadId file_upload_id,
 }
 
 void UserManager::on_upload_profile_photo_error(FileUploadId file_upload_id, Status status) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   LOG(INFO) << "Profile photo " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 
@@ -7160,6 +7168,9 @@ void UserManager::upload_saved_music(FileId file_id, Promise<Unit> &&promise) {
 
 void UserManager::on_upload_saved_music(FileUploadId file_upload_id,
                                         telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
   LOG(INFO) << "Profile audio " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_saved_music_files_.find(file_upload_id);
@@ -7172,7 +7183,6 @@ void UserManager::on_upload_saved_music(FileUploadId file_upload_id,
 
 void UserManager::on_upload_saved_music_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
-    // do not fail upload if closing
     return;
   }
 
