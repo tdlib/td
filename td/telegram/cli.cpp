@@ -2201,6 +2201,12 @@ class CliClient final : public Actor {
     return as_formatted_text(caption, std::move(entities));
   }
 
+  td_api::object_ptr<td_api::inputAnimation> as_input_animation(Slice animation, int32 duration = 0, int32 width = 0,
+                                                                int32 height = 0) const {
+    return td_api::make_object<td_api::inputAnimation>(as_input_file(animation), get_input_thumbnail(),
+                                                       get_added_sticker_file_ids(), duration, width, height);
+  }
+
   td_api::object_ptr<td_api::inputRichMessage> as_input_rich_message(string message) const {
     vector<td_api::object_ptr<td_api::inputRichMessageMedia>> input_media;
     for (auto rich_message_media : full_split(rich_message_media_, ' ')) {
@@ -2213,10 +2219,8 @@ class CliClient final : public Actor {
       }
       td_api::object_ptr<td_api::InputMessageContent> content;
       if (media[0] == 'a') {
-        content = td_api::make_object<td_api::inputMessageAnimation>(
-            td_api::make_object<td_api::inputAnimation>(as_input_file(media.substr(1)), get_input_thumbnail(),
-                                                        get_added_sticker_file_ids(), 0, 0, 0),
-            nullptr, false, false);
+        content = td_api::make_object<td_api::inputMessageAnimation>(as_input_animation(media.substr(1)), nullptr,
+                                                                     false, false);
       }
       if (media[0] == 'n') {
         content = td_api::make_object<td_api::inputMessageVoiceNote>(
@@ -6544,10 +6548,8 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, animation);
       send_request(td_api::make_object<td_api::editMessageMedia>(
           chat_id, message_id, nullptr,
-          td_api::make_object<td_api::inputMessageAnimation>(
-              td_api::make_object<td_api::inputAnimation>(as_input_file(animation), get_input_thumbnail(),
-                                                          get_added_sticker_file_ids(), 0, 0, 0),
-              get_caption(), show_caption_above_media_, has_spoiler_)));
+          td_api::make_object<td_api::inputMessageAnimation>(as_input_animation(animation), get_caption(),
+                                                             show_caption_above_media_, has_spoiler_)));
     } else if (op == "emc") {
       ChatId chat_id;
       MessageId message_id;
@@ -6854,20 +6856,9 @@ class CliClient final : public Actor {
       int32 width;
       int32 height;
       get_args(args, chat_id, animation, width, height);
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessageAnimation>(
-                       td_api::make_object<td_api::inputAnimation>(as_input_file(animation), get_input_thumbnail(),
-                                                                   get_added_sticker_file_ids(), 60, width, height),
-                       get_caption(), show_caption_above_media_, has_spoiler_));
-    } else if (op == "sanurl") {
-      ChatId chat_id;
-      string url;
-      get_args(args, chat_id, url);
       send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
-                                td_api::make_object<td_api::inputAnimation>(as_generated_file(url, "#url#"),
-                                                                            get_input_thumbnail(),
-                                                                            get_added_sticker_file_ids(), 0, 0, 0),
-                                get_caption(), show_caption_above_media_, has_spoiler_));
+                                as_input_animation(animation, 60, width, height), get_caption(),
+                                show_caption_above_media_, has_spoiler_));
     } else if (op == "sau") {
       ChatId chat_id;
       string audio;
