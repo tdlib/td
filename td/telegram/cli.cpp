@@ -2213,6 +2213,12 @@ class CliClient final : public Actor {
                                                    performer);
   }
 
+  td_api::object_ptr<td_api::inputDocument> as_input_document(Slice document,
+                                                              bool disable_content_type_detection = false) const {
+    return td_api::make_object<td_api::inputDocument>(as_input_file(document), get_input_thumbnail(),
+                                                      disable_content_type_detection);
+  }
+
   td_api::object_ptr<td_api::inputRichMessage> as_input_rich_message(string message) const {
     vector<td_api::object_ptr<td_api::inputRichMessageMedia>> input_media;
     for (auto rich_message_media : full_split(rich_message_media_, ' ')) {
@@ -6474,9 +6480,7 @@ class CliClient final : public Actor {
               get_caption(), show_caption_above_media_, rand_bool() ? get_message_self_destruct_type() : nullptr,
               has_spoiler_ && rand_bool());
         } else if (op == "smad") {
-          content = td_api::make_object<td_api::inputMessageDocument>(
-              td_api::make_object<td_api::inputDocument>(as_input_file(file), get_input_thumbnail(), true),
-              get_caption());
+          content = td_api::make_object<td_api::inputMessageDocument>(as_input_document(file, true), get_caption());
         } else if (op == "smav") {
           content = td_api::make_object<td_api::inputMessageVideo>(
               td_api::make_object<td_api::inputVideo>(as_input_file(file), get_input_thumbnail(), get_input_cover(),
@@ -6565,9 +6569,8 @@ class CliClient final : public Actor {
       MessageId message_id;
       string document;
       get_args(args, chat_id, message_id, document);
-      auto input_document = td_api::make_object<td_api::inputMessageDocument>(
-          td_api::make_object<td_api::inputDocument>(as_input_file(document), get_input_thumbnail(), false),
-          get_caption());
+      auto input_document =
+          td_api::make_object<td_api::inputMessageDocument>(as_input_document(document), get_caption());
       if (!business_connection_id_.empty()) {
         send_request(td_api::make_object<td_api::editBusinessMessageMedia>(business_connection_id_, chat_id, message_id,
                                                                            nullptr, std::move(input_document)));
@@ -6582,9 +6585,7 @@ class CliClient final : public Actor {
       get_args(args, shortcut_id, message_id, document);
       send_request(td_api::make_object<td_api::editQuickReplyMessage>(
           shortcut_id, message_id,
-          td_api::make_object<td_api::inputMessageDocument>(
-              td_api::make_object<td_api::inputDocument>(as_input_file(document), get_input_thumbnail(), false),
-              get_caption())));
+          td_api::make_object<td_api::inputMessageDocument>(as_input_document(document), get_caption())));
     } else if (op == "emp") {
       ChatId chat_id;
       MessageId message_id;
@@ -6917,21 +6918,8 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string document;
       get_args(args, chat_id, document);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageDocument>(
-                                td_api::make_object<td_api::inputDocument>(as_input_file(document),
-                                                                           get_input_thumbnail(), op == "sdf"),
-                                get_caption()));
-    } else if (op == "sdgu") {
-      ChatId chat_id;
-      string document_path;
-      string document_conversion;
-      get_args(args, chat_id, document_path, document_conversion);
-      send_request(td_api::make_object<td_api::preliminaryUploadFile>(
-          as_generated_file(document_path, document_conversion), nullptr, 1));
-      send_message(chat_id, td_api::make_object<td_api::inputMessageDocument>(
-                                td_api::make_object<td_api::inputDocument>(
-                                    as_generated_file(document_path, document_conversion), nullptr, false),
-                                get_caption()));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageDocument>(as_input_document(document, op == "sdf"),
+                                                                              get_caption()));
     } else if (op == "sg") {
       ChatId chat_id;
       UserId bot_user_id;
