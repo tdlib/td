@@ -837,6 +837,59 @@ class WebPageBlockTableCell {
   int32 colspan = 1;
   int32 rowspan = 1;
 
+  static Result<WebPageBlockTableCell> get_web_page_block_table_cell(
+      const Td *td, td_api::object_ptr<td_api::pageBlockTableCell> &&cell) {
+    WebPageBlockTableCell result;
+    if (cell == nullptr) {
+      return Status::Error(400, "Table cell must be non-empty");
+    }
+    if (cell->colspan_ <= 0) {
+      return Status::Error(400, "Invalid table cell colspan specified");
+    }
+    if (cell->rowspan_ <= 0) {
+      return Status::Error(400, "Invalid table cell rowspan specified");
+    }
+    TRY_RESULT_ASSIGN(result.text, RichText::get_rich_text(td, std::move(cell->text_)));
+    result.is_header = cell->is_header_;
+    result.colspan = cell->colspan_;
+    result.rowspan = cell->rowspan_;
+    if (cell->align_ == nullptr) {
+      result.align_left = true;
+    } else {
+      switch (cell->align_->get_id()) {
+        case td_api::pageBlockHorizontalAlignmentLeft::ID:
+          result.align_left = true;
+          break;
+        case td_api::pageBlockHorizontalAlignmentCenter::ID:
+          result.align_center = true;
+          break;
+        case td_api::pageBlockHorizontalAlignmentRight::ID:
+          result.align_right = true;
+          break;
+        default:
+          UNREACHABLE();
+      }
+    }
+    if (cell->valign_ == nullptr) {
+      result.valign_middle = true;
+    } else {
+      switch (cell->valign_->get_id()) {
+        case td_api::pageBlockVerticalAlignmentTop::ID:
+          result.valign_top = true;
+          break;
+        case td_api::pageBlockVerticalAlignmentMiddle::ID:
+          result.valign_middle = true;
+          break;
+        case td_api::pageBlockVerticalAlignmentBottom::ID:
+          result.valign_bottom = true;
+          break;
+        default:
+          UNREACHABLE();
+      }
+    }
+    return result;
+  }
+
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const {
     text.append_file_ids(td, file_ids);
   }
