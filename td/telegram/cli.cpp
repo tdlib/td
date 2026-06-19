@@ -2242,6 +2242,7 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::inputRichMessage> as_input_rich_message(string message) const {
+    vector<td_api::object_ptr<td_api::InputPageBlock>> input_blocks;
     vector<td_api::object_ptr<td_api::inputRichMessageMedia>> input_media;
     for (auto rich_message_media : full_split(rich_message_media_, ' ')) {
       string id;
@@ -2251,32 +2252,43 @@ class CliClient final : public Actor {
         LOG(ERROR) << "Ignore " << rich_message_media;
         continue;
       }
+      auto type = media[0];
+      media = media.substr(1);
+      td_api::object_ptr<td_api::InputPageBlock> block;
       td_api::object_ptr<td_api::InputMessageContent> content;
-      if (media[0] == 'a') {
-        content = td_api::make_object<td_api::inputMessageAnimation>(as_input_animation(media.substr(1)), nullptr,
-                                                                     false, false);
+      if (type == 'a') {
+        block = td_api::make_object<td_api::inputPageBlockAnimation>(as_input_animation(media), nullptr, rand_bool());
+        content = td_api::make_object<td_api::inputMessageAnimation>(as_input_animation(media), nullptr, false, false);
       }
-      if (media[0] == 'n') {
-        content =
-            td_api::make_object<td_api::inputMessageVoiceNote>(as_input_voice_note(media.substr(1)), nullptr, nullptr);
+      if (type == 'n') {
+        block = td_api::make_object<td_api::inputPageBlockVoiceNote>(as_input_voice_note(media), nullptr);
+        content = td_api::make_object<td_api::inputMessageVoiceNote>(as_input_voice_note(media), nullptr, nullptr);
       }
-      if (media[0] == 'p') {
-        content = td_api::make_object<td_api::inputMessagePhoto>(as_input_photo(media.substr(1)), nullptr, false,
-                                                                 nullptr, false);
+      if (type == 'p') {
+        block = td_api::make_object<td_api::inputPageBlockPhoto>(as_input_photo(media), nullptr, rand_bool());
+        content = td_api::make_object<td_api::inputMessagePhoto>(as_input_photo(media), nullptr, false, nullptr, false);
       }
-      if (media[0] == 'u') {
-        content = td_api::make_object<td_api::inputMessageAudio>(as_input_audio(media.substr(1)), nullptr);
+      if (type == 'u') {
+        block = td_api::make_object<td_api::inputPageBlockAudio>(as_input_audio(media), nullptr);
+        content = td_api::make_object<td_api::inputMessageAudio>(as_input_audio(media), nullptr);
       }
-      if (media[0] == 'v') {
-        content = td_api::make_object<td_api::inputMessageVideo>(as_input_video(media.substr(1)), nullptr, false,
-                                                                 nullptr, false);
+      if (type == 'v') {
+        block = td_api::make_object<td_api::inputPageBlockVideo>(as_input_video(media), nullptr, rand_bool());
+        content = td_api::make_object<td_api::inputMessageVideo>(as_input_video(media), nullptr, false, nullptr, false);
       }
+      input_blocks.push_back(std::move(block));
       input_media.push_back(td_api::make_object<td_api::inputRichMessageMedia>(id, std::move(content)));
     }
     for (auto &c : message) {
       if (c == ';') {
         c = '\n';
       }
+    }
+    input_blocks.push_back(td_api::make_object<td_api::inputPageBlockParagraph>(
+        td_api::make_object<td_api::richTextBold>(td_api::make_object<td_api::richTextPlain>(message))));
+    if (rand_bool()) {
+      return td_api::make_object<td_api::inputRichMessage>(
+          td_api::make_object<td_api::richMessageSourceBlocks>(std::move(input_blocks)), rand_bool(), rand_bool());
     }
     return td_api::make_object<td_api::inputRichMessage>(
         td_api::make_object<td_api::richMessageSourceMarkdown>(message, std::move(input_media)), rand_bool(),
