@@ -7249,6 +7249,16 @@ bool get_message_content_to_do_list_others_can_complete(const MessageContent *co
   }
 }
 
+const Photo *get_message_content_photo(const MessageContent *content) {
+  CHECK(content != nullptr);
+  switch (content->get_type()) {
+    case MessageContentType::Photo:
+      return &static_cast<const MessagePhoto *>(content)->photo;
+    default:
+      return nullptr;
+  }
+}
+
 const Venue *get_message_content_venue(const MessageContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {

@@ -235,6 +235,8 @@ bool get_message_content_to_do_list_can_append_items(const Td *td, const Message
 
 bool get_message_content_to_do_list_others_can_complete(const MessageContent *content);
 
+const Photo *get_message_content_photo(const MessageContent *content);
+
 const Venue *get_message_content_venue(const MessageContent *content);
 
 WebPageId get_message_content_web_page_id(const MessageContent *content);

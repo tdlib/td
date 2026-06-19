@@ -96,6 +96,13 @@ Result<RichMessage> RichMessage::get_rich_message(Td *td, DialogId dialog_id,
   rich_message.noautolink_ = !message->detect_automatic_blocks_;
   rich_message.is_full_ = true;
   switch (message->source_->get_id()) {
+    case td_api::richMessageSourceBlocks::ID: {
+      auto source = td_api::move_object_as<td_api::richMessageSourceBlocks>(message->source_);
+      TRY_RESULT(blocks, get_web_page_blocks(td, dialog_id, std::move(source->blocks_)));
+      rich_message.blocks_ = std::move(blocks);
+      rich_message.media_ = get_page_blocks_rich_message_media(rich_message.blocks_);
+      break;
+    }
     case td_api::richMessageSourceMarkdown::ID: {
       auto source = td_api::move_object_as<td_api::richMessageSourceMarkdown>(message->source_);
       if (!clean_input_string(source->text_)) {

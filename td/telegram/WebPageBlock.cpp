@@ -30,6 +30,7 @@
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/PeerColor.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
@@ -1982,6 +1983,84 @@ class WebPageBlockAnchor final : public WebPageBlock {
   }
 };
 
+static string get_ordered_list_type(const string &type) {
+  if (type.size() != 1u || Slice("aAiI1").find(type[0]) == Slice::npos) {
+    return "1";
+  }
+  return type;
+}
+
+static string get_ordered_list_label(int32 num, const string &type) {
+  if ((type == "a" || type == "A") && num > 0) {
+    string result;
+    while (num > 0) {
+      num--;
+      result = static_cast<char>('A' + num % 26) + result;
+      num /= 26;
+    };
+    if (type == "a") {
+      to_lower_inplace(result);
+    }
+    result += '.';
+    return result;
+  }
+  if ((type == "i" || type == "I") && num > 0 && num < 4000) {
+    string result;
+    while (num >= 1000) {
+      num -= 1000;
+      result += 'M';
+    }
+    if (num >= 900) {
+      result += "CM";
+      num -= 900;
+    } else if (num >= 500) {
+      result += 'D';
+      num -= 500;
+    } else if (num >= 400) {
+      result += "CD";
+      num -= 400;
+    }
+    while (num >= 100) {
+      result += 'C';
+      num -= 100;
+    }
+    if (num >= 90) {
+      result += "XC";
+      num -= 90;
+    } else if (num >= 50) {
+      result += 'L';
+      num -= 50;
+    } else if (num >= 40) {
+      result += "XL";
+      num -= 40;
+    }
+    while (num >= 10) {
+      result += 'X';
+      num -= 10;
+    }
+    if (num >= 9) {
+      result += "IX";
+      num -= 9;
+    } else if (num >= 5) {
+      result += 'V';
+      num -= 5;
+    } else if (num >= 4) {
+      result += "IV";
+      num -= 4;
+    }
+    while (num >= 1) {
+      result += 'I';
+      num -= 1;
+    }
+    if (type == "i") {
+      to_lower_inplace(result);
+    }
+    result += '.';
+    return result;
+  }
+  return PSTRING() << num << '.';
+}
+
 class WebPageBlockList final : public WebPageBlock {
  public:
   struct Item {
@@ -1991,6 +2070,26 @@ class WebPageBlockList final : public WebPageBlock {
     bool is_checked = false;
     int32 value = -1;
     string type;
+
+    static Result<Item> get_item(Td *td, DialogId dialog_id,
+                                 td_api::object_ptr<td_api::inputPageBlockListItem> &&item) {
+      Item result;
+      if (item == nullptr) {
+        return Status::Error(400, "List item must be non-empty");
+      }
+      TRY_RESULT_ASSIGN(result.page_blocks, get_web_page_blocks(td, dialog_id, std::move(item->blocks_)));
+      result.has_checkbox = item->has_checkbox_;
+      result.is_checked = item->is_checked_;
+      if (!item->type_.empty()) {
+        if (item->type_.size() != 1u || Slice("aAiI1").find(item->type_[0]) == Slice::npos) {
+          return Status::Error(400, "Invalid list item type specified");
+        }
+        result.value = item->value_;
+        result.type = std::move(item->type_);
+        result.label = get_ordered_list_label(result.value, result.type);
+      }
+      return result;
+    }
 
     void append_file_ids(const Td *td, vector<FileId> &file_ids) const {
       for (const auto &page_block : page_blocks) {
@@ -4252,84 +4351,6 @@ WebPageBlockCaption get_page_block_caption(tl_object_ptr<telegram_api::pageCapti
   return result;
 }
 
-static string get_ordered_list_type(const string &type) {
-  if (type.size() != 1u || Slice("aAiI1").find(type[0]) == Slice::npos) {
-    return "1";
-  }
-  return type;
-}
-
-static string get_ordered_list_label(int32 num, const string &type) {
-  if ((type == "a" || type == "A") && num > 0) {
-    string result;
-    while (num > 0) {
-      num--;
-      result = static_cast<char>('A' + num % 26) + result;
-      num /= 26;
-    };
-    if (type == "a") {
-      to_lower_inplace(result);
-    }
-    result += '.';
-    return result;
-  }
-  if ((type == "i" || type == "I") && num > 0 && num < 4000) {
-    string result;
-    while (num >= 1000) {
-      num -= 1000;
-      result += 'M';
-    }
-    if (num >= 900) {
-      result += "CM";
-      num -= 900;
-    } else if (num >= 500) {
-      result += 'D';
-      num -= 500;
-    } else if (num >= 400) {
-      result += "CD";
-      num -= 400;
-    }
-    while (num >= 100) {
-      result += 'C';
-      num -= 100;
-    }
-    if (num >= 90) {
-      result += "XC";
-      num -= 90;
-    } else if (num >= 50) {
-      result += 'L';
-      num -= 50;
-    } else if (num >= 40) {
-      result += "XL";
-      num -= 40;
-    }
-    while (num >= 10) {
-      result += 'X';
-      num -= 10;
-    }
-    if (num >= 9) {
-      result += "IX";
-      num -= 9;
-    } else if (num >= 5) {
-      result += 'V';
-      num -= 5;
-    } else if (num >= 4) {
-      result += "IV";
-      num -= 4;
-    }
-    while (num >= 1) {
-      result += 'I';
-      num -= 1;
-    }
-    if (type == "i") {
-      to_lower_inplace(result);
-    }
-    result += '.';
-    return result;
-  }
-  return PSTRING() << num << '.';
-}
-
 unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::PageBlock> page_block_ptr,
                                             const FlatHashMap<int64, FileId> &animations,
                                             const FlatHashMap<int64, FileId> &audios,
@@ -4934,6 +4955,230 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     }
   }
   return result;
+}
+
+Result<vector<unique_ptr<WebPageBlock>>> get_web_page_blocks(
+    Td *td, DialogId dialog_id, vector<td_api::object_ptr<td_api::InputPageBlock>> input_page_blocks) {
+  bool is_premium = td->option_manager_->get_option_boolean("is_premium");
+  vector<unique_ptr<WebPageBlock>> result;
+  for (auto &input_page_block : input_page_blocks) {
+    if (input_page_block == nullptr) {
+      return Status::Error(400, "Block must be non-empty");
+    }
+    switch (input_page_block->get_id()) {
+      case td_api::inputPageBlockSectionHeading::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockSectionHeading>(input_page_block);
+        TRY_RESULT(text, RichText::get_rich_text(td, std::move(block->text_)));
+        if (block->size_ < 1 || block->size_ > 6) {
+          return Status::Error(400, "Invalid section heading size specified");
+        }
+        result.push_back(td::make_unique<WebPageBlockHeading>(std::move(text), block->size_));
+        break;
+      }
+      case td_api::inputPageBlockParagraph::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockParagraph>(input_page_block);
+        TRY_RESULT(text, RichText::get_rich_text(td, std::move(block->text_)));
+        result.push_back(td::make_unique<WebPageBlockParagraph>(std::move(text)));
+        break;
+      }
+      case td_api::inputPageBlockPreformatted::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockPreformatted>(input_page_block);
+        TRY_RESULT(text, RichText::get_rich_text(td, std::move(block->text_)));
+        if (!clean_input_string(block->language_)) {
+          return Status::Error(400, "Language must be encoded in UTF-8");
+        }
+        result.push_back(td::make_unique<WebPageBlockPreformatted>(std::move(text), std::move(block->language_)));
+        break;
+      }
+      case td_api::inputPageBlockFooter::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockFooter>(input_page_block);
+        TRY_RESULT(text, RichText::get_rich_text(td, std::move(block->footer_)));
+        result.push_back(td::make_unique<WebPageBlockFooter>(std::move(text)));
+        break;
+      }
+      case td_api::inputPageBlockThinking::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockThinking>(input_page_block);
+        TRY_RESULT(text, RichText::get_rich_text(td, std::move(block->text_)));
+        result.push_back(td::make_unique<WebPageBlockThinking>(std::move(text)));
+        break;
+      }
+      case td_api::inputPageBlockDivider::ID:
+        result.push_back(td::make_unique<WebPageBlockDivider>());
+        break;
+      case td_api::inputPageBlockMathematicalExpression::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockMathematicalExpression>(input_page_block);
+        if (!clean_input_string(block->expression_)) {
+          return Status::Error(400, "Mathematical expression must be encoded in UTF-8");
+        }
+        result.push_back(td::make_unique<WebPageBlockMath>(std::move(block->expression_)));
+        break;
+      }
+      case td_api::inputPageBlockAnchor::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockAnchor>(input_page_block);
+        if (!clean_input_string(block->name_)) {
+          return Status::Error(400, "Anchor name must be encoded in UTF-8");
+        }
+        result.push_back(td::make_unique<WebPageBlockAnchor>(std::move(block->name_)));
+        break;
+      }
+      case td_api::inputPageBlockList::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockList>(input_page_block);
+        vector<WebPageBlockList::Item> items;
+        for (auto &input_item : block->items_) {
+          TRY_RESULT(item, WebPageBlockList::Item::get_item(td, dialog_id, std::move(input_item)));
+          items.push_back(std::move(item));
+        }
+        if (items.empty()) {
+          return Status::Error(400, "List must be non-empty");
+        }
+        auto is_unordered = items[0].label.empty();
+        for (const auto &item : items) {
+          if (item.label.empty() != is_unordered) {
+            return Status::Error(400, "List must be either ordered or unordered");
+          }
+        }
+        result.push_back(td::make_unique<WebPageBlockList>(std::move(items), 0, false, string()));
+        break;
+      }
+      case td_api::inputPageBlockBlockQuote::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockBlockQuote>(input_page_block);
+        TRY_RESULT(blocks, get_web_page_blocks(td, dialog_id, std::move(block->blocks_)));
+        TRY_RESULT(credit, RichText::get_rich_text(td, std::move(block->credit_)));
+        result.push_back(td::make_unique<WebPageBlockBlockQuoteBlocks>(std::move(blocks), std::move(credit)));
+        break;
+      }
+      case td_api::inputPageBlockPullQuote::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockPullQuote>(input_page_block);
+        TRY_RESULT(text, RichText::get_rich_text(td, std::move(block->text_)));
+        TRY_RESULT(credit, RichText::get_rich_text(td, std::move(block->credit_)));
+        result.push_back(td::make_unique<WebPageBlockPullQuote>(std::move(text), std::move(credit)));
+        break;
+      }
+      case td_api::inputPageBlockAnimation::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockAnimation>(input_page_block);
+        TRY_RESULT(input_message_content,
+                   get_input_message_content(dialog_id,
+                                             td_api::make_object<td_api::inputMessageAnimation>(
+                                                 std::move(block->animation_), nullptr, false, false),
+                                             td, is_premium));
+        CHECK(input_message_content.content->get_type() == MessageContentType::Animation);
+        auto animation_file_id = get_message_content_any_file_id(input_message_content.content.get());
+        TRY_RESULT(caption, WebPageBlockCaption::get_web_page_block_caption(td, std::move(block->caption_)));
+        result.push_back(
+            td::make_unique<WebPageBlockAnimation>(animation_file_id, std::move(caption), true, block->has_spoiler_));
+        break;
+      }
+      case td_api::inputPageBlockAudio::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockAudio>(input_page_block);
+        TRY_RESULT(input_message_content,
+                   get_input_message_content(
+                       dialog_id, td_api::make_object<td_api::inputMessageAudio>(std::move(block->audio_), nullptr), td,
+                       is_premium));
+        CHECK(input_message_content.content->get_type() == MessageContentType::Audio);
+        auto audio_file_id = get_message_content_any_file_id(input_message_content.content.get());
+        TRY_RESULT(caption, WebPageBlockCaption::get_web_page_block_caption(td, std::move(block->caption_)));
+        result.push_back(td::make_unique<WebPageBlockAudio>(audio_file_id, std::move(caption)));
+        break;
+      }
+      case td_api::inputPageBlockPhoto::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockPhoto>(input_page_block);
+        TRY_RESULT(input_message_content,
+                   get_input_message_content(dialog_id,
+                                             td_api::make_object<td_api::inputMessagePhoto>(
+                                                 std::move(block->photo_), nullptr, false, nullptr, false),
+                                             td, is_premium));
+        CHECK(input_message_content.content->get_type() == MessageContentType::Photo);
+        TRY_RESULT(caption, WebPageBlockCaption::get_web_page_block_caption(td, std::move(block->caption_)));
+        result.push_back(
+            td::make_unique<WebPageBlockPhoto>(Photo(*get_message_content_photo(input_message_content.content.get())),
+                                               std::move(caption), string(), WebPageId(), block->has_spoiler_));
+        break;
+      }
+      case td_api::inputPageBlockVideo::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockVideo>(input_page_block);
+        TRY_RESULT(input_message_content,
+                   get_input_message_content(dialog_id,
+                                             td_api::make_object<td_api::inputMessageVideo>(
+                                                 std::move(block->video_), nullptr, false, nullptr, false),
+                                             td, is_premium));
+        CHECK(input_message_content.content->get_type() == MessageContentType::Video);
+        auto video_file_id = get_message_content_any_file_id(input_message_content.content.get());
+        TRY_RESULT(caption, WebPageBlockCaption::get_web_page_block_caption(td, std::move(block->caption_)));
+        result.push_back(
+            td::make_unique<WebPageBlockVideo>(video_file_id, std::move(caption), false, false, block->has_spoiler_));
+        break;
+      }
+      case td_api::inputPageBlockVoiceNote::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockVoiceNote>(input_page_block);
+        TRY_RESULT(input_message_content,
+                   get_input_message_content(dialog_id,
+                                             td_api::make_object<td_api::inputMessageVoiceNote>(
+                                                 std::move(block->voice_note_), nullptr, nullptr),
+                                             td, is_premium));
+        CHECK(input_message_content.content->get_type() == MessageContentType::VoiceNote);
+        auto voice_note_file_id = get_message_content_any_file_id(input_message_content.content.get());
+        TRY_RESULT(caption, WebPageBlockCaption::get_web_page_block_caption(td, std::move(block->caption_)));
+        result.push_back(td::make_unique<WebPageBlockVoiceNote>(voice_note_file_id, std::move(caption)));
+        break;
+      }
+      case td_api::inputPageBlockCollage::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockCollage>(input_page_block);
+        TRY_RESULT(blocks, get_web_page_blocks(td, dialog_id, std::move(block->blocks_)));
+        TRY_RESULT(caption, WebPageBlockCaption::get_web_page_block_caption(td, std::move(block->caption_)));
+        result.push_back(td::make_unique<WebPageBlockCollage>(std::move(blocks), std::move(caption)));
+        break;
+      }
+      case td_api::inputPageBlockSlideshow::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockSlideshow>(input_page_block);
+        TRY_RESULT(blocks, get_web_page_blocks(td, dialog_id, std::move(block->blocks_)));
+        TRY_RESULT(caption, WebPageBlockCaption::get_web_page_block_caption(td, std::move(block->caption_)));
+        result.push_back(td::make_unique<WebPageBlockSlideshow>(std::move(blocks), std::move(caption)));
+        break;
+      }
+      case td_api::inputPageBlockTable::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockTable>(input_page_block);
+        TRY_RESULT(title, RichText::get_rich_text(td, std::move(block->caption_)));
+        vector<vector<WebPageBlockTableCell>> cells;
+        for (auto &input_row : block->cells_) {
+          vector<WebPageBlockTableCell> row;
+          for (auto &input_cell : input_row) {
+            TRY_RESULT(cell, WebPageBlockTableCell::get_web_page_block_table_cell(td, std::move(input_cell)));
+            row.push_back(std::move(cell));
+          }
+          cells.push_back(std::move(row));
+        }
+        result.push_back(td::make_unique<WebPageBlockTable>(std::move(title), std::move(cells), block->is_bordered_,
+                                                            block->is_striped_));
+        break;
+      }
+      case td_api::inputPageBlockDetails::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockDetails>(input_page_block);
+        TRY_RESULT(header, RichText::get_rich_text(td, std::move(block->header_)));
+        TRY_RESULT(blocks, get_web_page_blocks(td, dialog_id, std::move(block->blocks_)));
+        result.push_back(td::make_unique<WebPageBlockDetails>(std::move(header), std::move(blocks), block->is_open_));
+        break;
+      }
+      case td_api::inputPageBlockMap::ID: {
+        auto block = td_api::move_object_as<td_api::inputPageBlockMap>(input_page_block);
+        Location location(block->location_);
+        if (location.empty()) {
+          return Status::Error(400, "Invalid location specified");
+        }
+        if (block->zoom_ < 0 || block->zoom_ > 25 || block->width_ < 0 || block->width_ >= 65536 ||
+            block->height_ < 0 || block->height_ >= 65536) {
+          return Status::Error(400, "Invalid location parameters specified");
+        }
+        TRY_RESULT(caption, WebPageBlockCaption::get_web_page_block_caption(td, std::move(block->caption_)));
+        result.push_back(td::make_unique<WebPageBlockMap>(
+            std::move(location), block->zoom_, get_dimensions(block->width_, block->height_, "inputPageBlockMap"),
+            std::move(caption)));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+  return std::move(result);
 }
 
 int32 get_web_page_blocks_index_mask(const vector<unique_ptr<WebPageBlock>> &page_blocks) {

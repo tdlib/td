@@ -155,6 +155,9 @@ vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     const FlatHashMap<int64, FileId> &documents, const FlatHashMap<int64, unique_ptr<Photo>> &photos,
     const FlatHashMap<int64, FileId> &videos, const FlatHashMap<int64, FileId> &voice_notes);
 
+Result<vector<unique_ptr<WebPageBlock>>> get_web_page_blocks(
+    Td *td, DialogId dialog_id, vector<td_api::object_ptr<td_api::InputPageBlock>> input_page_blocks);
+
 int32 get_web_page_blocks_index_mask(const vector<unique_ptr<WebPageBlock>> &page_blocks);
 
 vector<unique_ptr<WebPageBlock>> clone_web_page_blocks(const vector<unique_ptr<WebPageBlock>> &page_blocks);

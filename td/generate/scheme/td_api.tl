@@ -129,6 +129,9 @@ inputRichMessageMedia id:string media:InputMessageContent = InputRichMessageMedi
 
 //@class RichMessageSource @description Describes source of a rich message
 
+//@description A rich message defined by blocks @blocks Content of the message
+richMessageSourceBlocks blocks:vector<InputPageBlock> = RichMessageSource;
+
 //@description A Markdown-formatted rich message; for bots only @text Markdown-formatted text of the message @media Media used in the message
 richMessageSourceMarkdown text:string media:vector<inputRichMessageMedia> = RichMessageSource;
 
@@ -4026,6 +4029,15 @@ pageBlockCaption text:RichText credit:RichText = PageBlockCaption;
 //-"1" for decimal numbers, or empty for unordered lists
 pageBlockListItem label:string blocks:vector<PageBlock> has_checkbox:Bool is_checked:Bool value:int32 type:string = PageBlockListItem;
 
+//@description Describes an item of a list page block to be sent
+//@blocks Item blocks
+//@has_checkbox True, if the item has a checkbox
+//@is_checked True, if the item is checked
+//@value Value of the item; pass 0 for unordered lists
+//@type Type of the item numbering type; must be one of "a" for a lowercase letter, "A" for an uppercase letter, "i" for lowercase Roman numerals, "I" for uppercase Roman numerals,
+//-"1" for decimal numbers, or empty for unordered lists
+inputPageBlockListItem blocks:vector<InputPageBlock> has_checkbox:Bool is_checked:Bool value:int32 type:string = InputPageBlockListItem;
+
 //@class PageBlockHorizontalAlignment @description Describes a horizontal alignment of a table cell content
 
 //@description The content must be left-aligned
@@ -4067,7 +4079,7 @@ pageBlockTableCell text:RichText is_header:Bool colspan:int32 rowspan:int32 alig
 pageBlockRelatedArticle url:string title:string description:string photo:photo author:string publish_date:int32 = PageBlockRelatedArticle;
 
 
-//@class PageBlock @description Describes a block of an instant view for a web page
+//@class PageBlock @description Describes a block of an instant view for a web page or a block of a rich message
 
 //@description The title of a page; instant view only @title Title
 pageBlockTitle title:RichText = PageBlock;
@@ -5812,6 +5824,93 @@ inputPollMediaVenue venue:venue = InputPollMedia;
 
 //@description A video @video The video to be sent
 inputPollMediaVideo video:inputVideo = InputPollMedia;
+
+
+//@class InputPageBlock @description Describes a block of a rich message to send
+
+//@description A section heading @text Text of the section heading @size Realtive size of the text font; 1-6, 1 is the largest, 6 is the smallest
+inputPageBlockSectionHeading text:RichText size:int32 = InputPageBlock;
+
+//@description A text paragraph @text Paragraph text
+inputPageBlockParagraph text:RichText = InputPageBlock;
+
+//@description A preformatted text paragraph @text Paragraph text @language Programming language for which the text needs to be formatted
+inputPageBlockPreformatted text:RichText language:string = InputPageBlock;
+
+//@description The footer of the page @footer Footer
+inputPageBlockFooter footer:RichText = InputPageBlock;
+
+//@description A "Thinking..." placeholder; for pending rich messages only; for bots only @text Text of the placeholder
+inputPageBlockThinking text:RichText = InputPageBlock;
+
+//@description An empty block separating the page
+inputPageBlockDivider = InputPageBlock;
+
+//@description A mathematical expression @expression The expression in LaTeX format
+inputPageBlockMathematicalExpression expression:string = InputPageBlock;
+
+//@description An invisible anchor @name Name of the anchor
+inputPageBlockAnchor name:string = InputPageBlock;
+
+//@description A list of data blocks @items The items of the list
+inputPageBlockList items:vector<inputPageBlockListItem> = InputPageBlock;
+
+//@description A block quote @blocks Quote blocks @credit Quote credit
+inputPageBlockBlockQuote blocks:vector<InputPageBlock> credit:RichText = InputPageBlock;
+
+//@description A pull quote @text Quote text @credit Quote credit
+inputPageBlockPullQuote text:RichText credit:RichText = InputPageBlock;
+
+//@description An animation
+//@animation The animation to be sent
+//@caption Animation caption
+//@has_spoiler True, if the animation preview must be covered by a spoiler animation
+inputPageBlockAnimation animation:inputAnimation caption:pageBlockCaption has_spoiler:Bool = InputPageBlock;
+
+//@description An audio file @audio The audio to be sent @caption Audio file caption
+inputPageBlockAudio audio:inputAudio caption:pageBlockCaption = InputPageBlock;
+
+//@description A photo
+//@photo The photo to be sent
+//@caption Photo caption
+//@has_spoiler True, if the photo preview must be covered by a spoiler animation
+inputPageBlockPhoto photo:inputPhoto caption:pageBlockCaption has_spoiler:Bool = InputPageBlock;
+
+//@description A video
+//@video The video to be sent
+//@caption Video caption
+//@has_spoiler True, if the video preview must be covered by a spoiler animation
+inputPageBlockVideo video:inputVideo caption:pageBlockCaption has_spoiler:Bool = InputPageBlock;
+
+//@description A voice note @voice_note The voice note to be sent @caption Voice note caption
+inputPageBlockVoiceNote voice_note:inputVoiceNote caption:pageBlockCaption = InputPageBlock;
+
+//@description A collage @blocks Collage item contents @caption Block caption
+inputPageBlockCollage blocks:vector<InputPageBlock> caption:pageBlockCaption = InputPageBlock;
+
+//@description A slideshow @blocks Slideshow item contents @caption Block caption
+inputPageBlockSlideshow blocks:vector<InputPageBlock> caption:pageBlockCaption = InputPageBlock;
+
+//@description A table
+//@caption Table caption
+//@cells Table cells
+//@is_bordered True, if the table is bordered
+//@is_striped True, if the table is striped
+inputPageBlockTable caption:RichText cells:vector<vector<pageBlockTableCell>> is_bordered:Bool is_striped:Bool = InputPageBlock;
+
+//@description A collapsible block
+//@header Always visible heading for the block
+//@blocks Block contents
+//@is_open True, if the block is open by default
+inputPageBlockDetails header:RichText blocks:vector<InputPageBlock> is_open:Bool = InputPageBlock;
+
+//@description A map
+//@location Location of the map center
+//@zoom Map zoom level
+//@width Map width
+//@height Map height
+//@caption Block caption
+inputPageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageBlockCaption = InputPageBlock;
 
 
 //@class InputMessageContent @description The content of a message to send
