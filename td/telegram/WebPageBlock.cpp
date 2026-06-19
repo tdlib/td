@@ -750,6 +750,16 @@ class WebPageBlockCaption {
   RichText text;
   RichText credit;
 
+  static Result<WebPageBlockCaption> get_web_page_block_caption(
+      const Td *td, td_api::object_ptr<td_api::pageBlockCaption> &&caption) {
+    WebPageBlockCaption result;
+    if (caption != nullptr) {
+      TRY_RESULT_ASSIGN(result.text, RichText::get_rich_text(td, std::move(caption->text_)));
+      TRY_RESULT_ASSIGN(result.credit, RichText::get_rich_text(td, std::move(caption->credit_)));
+    }
+    return result;
+  }
+
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const {
     text.append_file_ids(td, file_ids);
     credit.append_file_ids(td, file_ids);
