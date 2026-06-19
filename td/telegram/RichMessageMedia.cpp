@@ -12,12 +12,17 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/base64.h"
+
 namespace td {
 
 Result<RichMessageMedia> RichMessageMedia::get_rich_message_media(
     Td *td, DialogId dialog_id, td_api::object_ptr<td_api::inputRichMessageMedia> &&media) {
   if (media == nullptr) {
     return Status::Error(400, "Media must be non-empty");
+  }
+  if (!is_base64url_characters(media->id_) || media->id_.empty() || media->id_.size() > 64u) {
+    return Status::Error(400, "Invalid rich message file identifier specified");
   }
   TRY_RESULT(input_message_content, get_input_message_content(dialog_id, std::move(media->media_), td, false));
   switch (input_message_content.content->get_type()) {

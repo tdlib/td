@@ -98,6 +98,9 @@ Result<RichMessage> RichMessage::get_rich_message(Td *td, DialogId dialog_id,
   switch (message->source_->get_id()) {
     case td_api::richMessageSourceMarkdown::ID: {
       auto source = td_api::move_object_as<td_api::richMessageSourceMarkdown>(message->source_);
+      if (!clean_input_string(source->text_)) {
+        return Status::Error(400, "Strings must be encoded in UTF-8");
+      }
       rich_message.source_ = std::move(source->text_);
       rich_message.input_type_ = InputType::Markdown;
       TRY_RESULT(media, RichMessageMedia::get_rich_message_media(td, dialog_id, std::move(source->media_)));
@@ -107,6 +110,9 @@ Result<RichMessage> RichMessage::get_rich_message(Td *td, DialogId dialog_id,
     case td_api::richMessageSourceHtml::ID: {
       auto source = td_api::move_object_as<td_api::richMessageSourceHtml>(message->source_);
       rich_message.source_ = std::move(source->text_);
+      if (!clean_input_string(source->text_)) {
+        return Status::Error(400, "Strings must be encoded in UTF-8");
+      }
       rich_message.input_type_ = InputType::Html;
       TRY_RESULT(media, RichMessageMedia::get_rich_message_media(td, dialog_id, std::move(source->media_)));
       rich_message.media_ = std::move(media);
