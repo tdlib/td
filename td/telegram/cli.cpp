@@ -2207,6 +2207,12 @@ class CliClient final : public Actor {
                                                        get_added_sticker_file_ids(), duration, width, height);
   }
 
+  td_api::object_ptr<td_api::inputAudio> as_input_audio(Slice audio, int32 duration = 0, string title = "title",
+                                                        string performer = "performer") const {
+    return td_api::make_object<td_api::inputAudio>(as_input_file(audio), get_input_thumbnail(), duration, title,
+                                                   performer);
+  }
+
   td_api::object_ptr<td_api::inputRichMessage> as_input_rich_message(string message) const {
     vector<td_api::object_ptr<td_api::inputRichMessageMedia>> input_media;
     for (auto rich_message_media : full_split(rich_message_media_, ' ')) {
@@ -2234,10 +2240,7 @@ class CliClient final : public Actor {
             nullptr, false, nullptr, false);
       }
       if (media[0] == 'u') {
-        content = td_api::make_object<td_api::inputMessageAudio>(
-            td_api::make_object<td_api::inputAudio>(as_input_file(media.substr(1)), get_input_thumbnail(), 0, "title",
-                                                    "performer"),
-            nullptr);
+        content = td_api::make_object<td_api::inputMessageAudio>(as_input_audio(media.substr(1)), nullptr);
       }
       if (media[0] == 'v') {
         content = td_api::make_object<td_api::inputMessageVideo>(
@@ -6866,10 +6869,7 @@ class CliClient final : public Actor {
       string title;
       string performer;
       get_args(args, chat_id, audio, duration, title, performer);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageAudio>(
-                                td_api::make_object<td_api::inputAudio>(as_input_file(audio), get_input_thumbnail(),
-                                                                        duration, title, performer),
-                                get_caption()));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageAudio>(as_input_audio(audio), get_caption()));
     } else if (op == "svoice") {
       ChatId chat_id;
       string voice;
