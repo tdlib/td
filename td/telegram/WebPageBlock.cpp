@@ -29,6 +29,7 @@
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageSearchFilter.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/PeerColor.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
@@ -139,6 +140,275 @@ class RichText {
   WebPageId web_page_id;
   FormattedDate date;
   UserId user_id;
+
+  static Result<RichText> get_rich_text(const Td *td, td_api::object_ptr<td_api::RichText> &&rich_text) {
+    RichText result;
+    if (rich_text == nullptr) {
+      return std::move(result);
+    }
+    switch (rich_text->get_id()) {
+      case td_api::richTextPlain::ID: {
+        auto text = td_api::move_object_as<td_api::richTextPlain>(rich_text);
+        if (!clean_input_string(text->text_)) {
+          return Status::Error(400, "Rich text must be encoded in UTF-8");
+        }
+        result.type = Type::Plain;
+        result.content = std::move(text->text_);
+        break;
+      }
+      case td_api::richTextBold::ID: {
+        auto text = td_api::move_object_as<td_api::richTextBold>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Bold;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextItalic::ID: {
+        auto text = td_api::move_object_as<td_api::richTextItalic>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Italic;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextUnderline::ID: {
+        auto text = td_api::move_object_as<td_api::richTextUnderline>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Underline;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextStrikethrough::ID: {
+        auto text = td_api::move_object_as<td_api::richTextStrikethrough>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Strikethrough;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextSpoiler::ID: {
+        auto text = td_api::move_object_as<td_api::richTextSpoiler>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Spoiler;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextSubscript::ID: {
+        auto text = td_api::move_object_as<td_api::richTextSubscript>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Subscript;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextSuperscript::ID: {
+        auto text = td_api::move_object_as<td_api::richTextSuperscript>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Superscript;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextMarked::ID: {
+        auto text = td_api::move_object_as<td_api::richTextMarked>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Marked;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextDateTime::ID: {
+        auto text = td_api::move_object_as<td_api::richTextDateTime>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        TRY_RESULT(formatted_date, FormattedDate::get_formatted_date(text->unix_time_, text->formatting_type_));
+        result.type = Type::FormattedDate;
+        result.texts.push_back(std::move(t));
+        result.date = std::move(formatted_date);
+        break;
+      }
+      case td_api::richTextMention::ID: {
+        auto text = td_api::move_object_as<td_api::richTextMention>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Mention;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextHashtag::ID: {
+        auto text = td_api::move_object_as<td_api::richTextHashtag>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Hashtag;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextCashtag::ID: {
+        auto text = td_api::move_object_as<td_api::richTextCashtag>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Cashtag;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextBankCardNumber::ID: {
+        auto text = td_api::move_object_as<td_api::richTextBankCardNumber>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::BankCardNumber;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextBotCommand::ID: {
+        auto text = td_api::move_object_as<td_api::richTextBotCommand>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::BotCommand;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextFixed::ID: {
+        auto text = td_api::move_object_as<td_api::richTextFixed>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Fixed;
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextMentionName::ID: {
+        auto text = td_api::move_object_as<td_api::richTextMentionName>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        auto user_id = UserId(text->user_id_);
+        TRY_STATUS(td->user_manager_->get_input_user(user_id));
+        result.type = Type::MentionName;
+        result.texts.push_back(std::move(t));
+        result.user_id = user_id;
+        break;
+      }
+      case td_api::richTextUrl::ID: {
+        auto text = td_api::move_object_as<td_api::richTextUrl>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        auto url = t.get_full_text();
+        if (!clean_input_string(text->url_)) {
+          return Status::Error(400, "Rich text URL must be encoded in UTF-8");
+        }
+        if (url == text->url_) {
+          result.type = Type::AutoUrl;
+        } else {
+          result.type = Type::Url;
+          result.content = std::move(text->url_);
+        }
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextEmailAddress::ID: {
+        auto text = td_api::move_object_as<td_api::richTextEmailAddress>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        auto email_address = t.get_full_text();
+        if (!clean_input_string(text->email_address_)) {
+          return Status::Error(400, "Rich text email address must be encoded in UTF-8");
+        }
+        if (email_address == text->email_address_) {
+          result.type = Type::AutoEmailAddress;
+        } else {
+          result.type = Type::EmailAddress;
+          result.content = std::move(text->email_address_);
+        }
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextPhoneNumber::ID: {
+        auto text = td_api::move_object_as<td_api::richTextPhoneNumber>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        auto phone_number = t.get_full_text();
+        if (!clean_input_string(text->phone_number_)) {
+          return Status::Error(400, "Rich text phone number must be encoded in UTF-8");
+        }
+        if (phone_number == text->phone_number_) {
+          result.type = Type::AutoPhoneNumber;
+        } else {
+          result.type = Type::PhoneNumber;
+          result.content = std::move(text->phone_number_);
+        }
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextCustomEmoji::ID: {
+        auto text = td_api::move_object_as<td_api::richTextCustomEmoji>(rich_text);
+        if (!clean_input_string(text->alternative_text_)) {
+          return Status::Error(400, "Custom emoji alternative text must be encoded in UTF-8");
+        }
+        auto custom_emoji_id = CustomEmojiId(text->custom_emoji_id_);
+        if (!custom_emoji_id.is_valid()) {
+          return Status::Error(400, "Invalid custom emoji identifier specified");
+        }
+        result.type = Type::CustomEmoji;
+        result.content = std::move(text->alternative_text_);
+        result.custom_emoji_id = custom_emoji_id;
+        break;
+      }
+      case td_api::richTextIcon::ID:
+        return Status::Error(400, "Block is not allowed");
+      case td_api::richTextMathematicalExpression::ID: {
+        auto text = td_api::move_object_as<td_api::richTextMathematicalExpression>(rich_text);
+        if (!clean_input_string(text->expression_)) {
+          return Status::Error(400, "Mathematical expression must be encoded in UTF-8");
+        }
+        result.type = Type::Math;
+        result.content = std::move(text->expression_);
+        break;
+      }
+      case td_api::richTextReference::ID: {
+        auto text = td_api::move_object_as<td_api::richTextReference>(rich_text);
+        if (!clean_input_string(text->name_)) {
+          return Status::Error(400, "Reference name must be encoded in UTF-8");
+        }
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Anchor;
+        result.content = std::move(text->name_);
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextReferenceLink::ID: {
+        auto text = td_api::move_object_as<td_api::richTextReferenceLink>(rich_text);
+        if (!clean_input_string(text->reference_name_)) {
+          return Status::Error(400, "Reference name must be encoded in UTF-8");
+        }
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Url;
+        result.content = PSTRING() << '#' << url_encode(text->reference_name_);
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTextAnchor::ID: {
+        auto text = td_api::move_object_as<td_api::richTextAnchor>(rich_text);
+        if (!clean_input_string(text->name_)) {
+          return Status::Error(400, "Anchor name must be encoded in UTF-8");
+        }
+        result.type = Type::Anchor;
+        result.content = std::move(text->name_);
+        result.texts.push_back(RichText());
+        break;
+      }
+      case td_api::richTextAnchorLink::ID: {
+        auto text = td_api::move_object_as<td_api::richTextAnchorLink>(rich_text);
+        if (!clean_input_string(text->anchor_name_)) {
+          return Status::Error(400, "Anchor name must be encoded in UTF-8");
+        }
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Url;
+        result.content = PSTRING() << '#' << url_encode(text->anchor_name_);
+        result.texts.push_back(std::move(t));
+        break;
+      }
+      case td_api::richTexts::ID: {
+        auto text = td_api::move_object_as<td_api::richTexts>(rich_text);
+        if (text->texts_.empty()) {
+          break;
+        }
+        vector<RichText> texts;
+        for (auto &subtext : text->texts_) {
+          TRY_RESULT(t, get_rich_text(td, std::move(subtext)));
+          texts.push_back(std::move(t));
+        }
+        result.type = Type::Concatenation;
+        result.texts = std::move(texts);
+        break;
+      }
+      default:
+        UNREACHABLE();
+        break;
+    }
+    return std::move(result);
+  }
 
   bool empty() const {
     return type == Type::Plain && content.empty();

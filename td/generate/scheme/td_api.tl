@@ -3940,6 +3940,15 @@ richTextStrikethrough text:RichText = RichText;
 //@description A spoilered rich text @text Text
 richTextSpoiler text:RichText = RichText;
 
+//@description A subscript rich text @text Text
+richTextSubscript text:RichText = RichText;
+
+//@description A superscript rich text @text Text
+richTextSuperscript text:RichText = RichText;
+
+//@description A marked rich text @text Text
+richTextMarked text:RichText = RichText;
+
 //@description A date and time
 //@text Original text
 //@unix_time Point in time (Unix timestamp) representing the date and time
@@ -3955,6 +3964,9 @@ richTextHashtag text:RichText hashtag:string = RichText;
 //@description A cashtag @text Text @cashtag The cashtag
 richTextCashtag text:RichText cashtag:string = RichText;
 
+//@description A bank card number @text Text @bank_card_number The number of the bank card
+richTextBankCardNumber text:RichText bank_card_number:string = RichText;
+
 //@description A bot command @text Text @bot_command The bot command
 richTextBotCommand text:RichText bot_command:string = RichText;
 
@@ -3969,18 +3981,6 @@ richTextUrl text:RichText url:string is_cached:Bool = RichText;
 
 //@description A rich text email address @text Text @email_address Email address
 richTextEmailAddress text:RichText email_address:string = RichText;
-
-//@description A bank card number @text Text @bank_card_number The number of the bank card
-richTextBankCardNumber text:RichText bank_card_number:string = RichText;
-
-//@description A subscript rich text @text Text
-richTextSubscript text:RichText = RichText;
-
-//@description A superscript rich text @text Text
-richTextSuperscript text:RichText = RichText;
-
-//@description A marked rich text @text Text
-richTextMarked text:RichText = RichText;
 
 //@description A rich text phone number @text Text @phone_number Phone number
 richTextPhoneNumber text:RichText phone_number:string = RichText;
