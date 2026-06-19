@@ -2237,6 +2237,10 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::inputVideoNote>(as_input_file(video_note), get_input_thumbnail(), 10, 5);
   }
 
+  td_api::object_ptr<td_api::inputVoiceNote> as_input_voice_note(Slice voice_note) const {
+    return td_api::make_object<td_api::inputVoiceNote>(as_input_file(voice_note), 5, "abacaba");
+  }
+
   td_api::object_ptr<td_api::inputRichMessage> as_input_rich_message(string message) const {
     vector<td_api::object_ptr<td_api::inputRichMessageMedia>> input_media;
     for (auto rich_message_media : full_split(rich_message_media_, ' ')) {
@@ -2253,9 +2257,8 @@ class CliClient final : public Actor {
                                                                      false, false);
       }
       if (media[0] == 'n') {
-        content = td_api::make_object<td_api::inputMessageVoiceNote>(
-            td_api::make_object<td_api::inputVoiceNote>(as_input_file(media.substr(1)), 0, "abacaba"), nullptr,
-            nullptr);
+        content =
+            td_api::make_object<td_api::inputMessageVoiceNote>(as_input_voice_note(media.substr(1)), nullptr, nullptr);
       }
       if (media[0] == 'p') {
         content = td_api::make_object<td_api::inputMessagePhoto>(as_input_photo(media.substr(1)), nullptr, false,
@@ -6875,11 +6878,10 @@ class CliClient final : public Actor {
       send_message(chat_id, td_api::make_object<td_api::inputMessageAudio>(as_input_audio(audio), get_caption()));
     } else if (op == "svoice") {
       ChatId chat_id;
-      string voice;
-      get_args(args, chat_id, voice);
+      string voice_note;
+      get_args(args, chat_id, voice_note);
       send_message(chat_id, td_api::make_object<td_api::inputMessageVoiceNote>(
-                                td_api::make_object<td_api::inputVoiceNote>(as_input_file(voice), 0, "abacaba"),
-                                get_caption(), get_message_self_destruct_type()));
+                                as_input_voice_note(voice_note), get_caption(), get_message_self_destruct_type()));
     } else if (op == "scontact") {
       ChatId chat_id;
       string phone_number;
