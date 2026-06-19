@@ -163,7 +163,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
   }
 
   void send(unique_ptr<PendingMessage> message,
-            telegram_api::object_ptr<telegram_api::InputRichMessage> input_rich_message = nullptr) {
+            telegram_api::object_ptr<telegram_api::InputRichMessage> input_rich_message) {
     message_ = std::move(message);
 
     int32 flags = 0;
@@ -180,10 +180,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
     }
 
     const FormattedText *message_text = get_message_content_text(message_->content_.get());
-    if (message_text == nullptr && input_rich_message == nullptr) {
-      input_rich_message = get_message_content_input_rich_message(td_, message_->content_.get());
-      CHECK(input_rich_message != nullptr);
-    }
+    CHECK(message_text != nullptr || input_rich_message != nullptr);
     auto entities = get_input_message_entities(td_->user_manager_.get(), message_text, "SendBusinessMessageQuery");
     if (!entities.empty()) {
       flags |= telegram_api::messages_sendMessage::ENTITIES_MASK;
@@ -1264,7 +1261,7 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
   if (content_type == MessageContentType::Text) {
     auto input_media = get_message_content_input_media_web_page(td_, content);
     if (input_media == nullptr) {
-      td_->create_handler<SendBusinessMessageQuery>(std::move(promise))->send(std::move(message));
+      td_->create_handler<SendBusinessMessageQuery>(std::move(promise))->send(std::move(message), nullptr);
     } else {
       td_->create_handler<SendBusinessMediaQuery>(std::move(promise))->send(std::move(message), std::move(input_media));
     }
