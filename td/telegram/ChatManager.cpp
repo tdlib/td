@@ -675,13 +675,13 @@ class ToggleChannelJoinToSendQuery final : public Td::ResultHandler {
 class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
-  UserId guest_bot_user_id_;
+  UserId guard_bot_user_id_;
 
  public:
   explicit ToggleChannelJoinRequestQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, bool join_request, UserId guest_bot_user_id, bool apply_to_invite_links,
+  void send(ChannelId channel_id, bool join_request, UserId guard_bot_user_id, bool apply_to_invite_links,
             telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
     channel_id_ = channel_id;
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
@@ -689,7 +689,7 @@ class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
     int32 flags = 0;
     if (input_user != nullptr) {
       flags |= telegram_api::channels_toggleJoinRequest::GUARD_BOT_MASK;
-      guest_bot_user_id_ = guest_bot_user_id;
+      guard_bot_user_id_ = guard_bot_user_id;
     }
     send_query(G()->net_query_creator().create(
         telegram_api::channels_toggleJoinRequest(flags, apply_to_invite_links, std::move(input_channel), join_request,
@@ -705,7 +705,7 @@ class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ToggleChannelJoinRequestQuery: " << to_string(ptr);
-    td_->chat_manager_->on_update_channel_guard_bot_user_id(channel_id_, guest_bot_user_id_);
+    td_->chat_manager_->on_update_channel_guard_bot_user_id(channel_id_, guard_bot_user_id_);
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
