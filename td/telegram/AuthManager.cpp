@@ -502,11 +502,8 @@ void AuthManager::request_qr_code_authentication(uint64 query_id, vector<UserId>
     }
   }
 
+  clear_auth_state();
   other_user_ids_ = std::move(other_user_ids);
-  send_code_helper_ = SendCodeHelper();
-  terms_of_service_ = TermsOfService();
-  passkey_parameters_ = {};
-  web_token_ = {};
   was_qr_code_request_ = true;
 
   on_new_query(query_id);
@@ -571,11 +568,8 @@ void AuthManager::finish_passkey_login(uint64 query_id, const string &passkey_id
                       "Cannot request passkey authentication after bot token was entered. You must log out first"));
   }
 
-  other_user_ids_ = {};
-  send_code_helper_ = SendCodeHelper();
-  terms_of_service_ = TermsOfService();
+  clear_auth_state();
   passkey_parameters_ = PasskeyParameters(passkey_id, client_data, authenticator_data, signature, user_handle);
-  web_token_ = {};
   was_passkey_login_request_ = true;
 
   on_new_query(query_id);
@@ -613,13 +607,10 @@ void AuthManager::import_web_token_authorization(uint64 query_id, const string &
                       "Cannot request web token authentication after bot token was entered. You must log out first"));
   }
 
-  other_user_ids_ = {};
-  send_code_helper_ = SendCodeHelper();
-  terms_of_service_ = TermsOfService();
-  passkey_parameters_ = {};
+  clear_auth_state();
   web_token_ = token;
   web_token_dc_id_ = dc_id;
-  was_web_token_login_request_ = false;
+  was_web_token_login_request_ = true;
 
   on_new_query(query_id);
 
@@ -663,11 +654,6 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
     return on_query_error(query_id, Status::Error(400, "Phone number must be non-empty"));
   }
 
-  other_user_ids_.clear();
-  was_qr_code_request_ = false;
-  was_passkey_login_request_ = false;
-  was_web_token_login_request_ = false;
-
   store_product_id_.clear();
   support_email_address_.clear();
   support_email_subject_.clear();
@@ -682,10 +668,12 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
   email_code_ = {};
 
   if (send_code_helper_.get_phone_number() != phone_number) {
-    send_code_helper_ = SendCodeHelper();
-    terms_of_service_ = TermsOfService();
-    passkey_parameters_ = {};
-    web_token_ = {};
+    clear_auth_state();
+  } else {
+    other_user_ids_.clear();
+    was_qr_code_request_ = false;
+    was_passkey_login_request_ = false;
+    was_web_token_login_request_ = false;
   }
 
   on_new_query(query_id);
@@ -1010,6 +998,20 @@ void AuthManager::on_closing(bool destroy_flag) {
   if (new_state != state_) {
     update_state(new_state);
   }
+}
+
+void AuthManager::clear_auth_state() {
+  other_user_ids_ = {};
+  send_code_helper_ = {};
+  terms_of_service_ = TermsOfService();
+  passkey_parameters_ = {};
+  web_token_ = {};
+  web_token_dc_id_ = {};
+
+  was_qr_code_request_ = false;
+  was_passkey_login_request_ = false;
+  was_web_token_login_request_ = false;
+  was_check_bot_token_ = false;
 }
 
 void AuthManager::on_new_query(uint64 query_id) {
@@ -1589,15 +1591,7 @@ void AuthManager::on_result(NetQueryPtr net_query) {
       if (type != NetQueryType::LogOut && type != NetQueryType::DeleteAccount) {
         if (query_id_ != 0) {
           if (state_ == State::WaitPhoneNumber) {
-            other_user_ids_.clear();
-            send_code_helper_ = SendCodeHelper();
-            terms_of_service_ = TermsOfService();
-            passkey_parameters_ = {};
-            web_token_ = {};
-            was_qr_code_request_ = false;
-            was_passkey_login_request_ = false;
-            was_web_token_login_request_ = false;
-            was_check_bot_token_ = false;
+            clear_auth_state();
           }
           on_current_query_error(net_query->move_as_error());
           return;
