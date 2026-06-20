@@ -14253,12 +14253,8 @@ getUserProfileAudios user_id:int53 offset:int32 limit:int32 = Audios;
 //@description Checks whether a file is in the profile audio files of the current user. Returns a 404 error if it isn't @file_id Identifier of the audio file to check
 isProfileAudio file_id:int32 = Ok;
 
-//@description Adds an audio file to the beginning of the profile audio files of the current user
-//@audio The audio file to be added
-//@duration Duration of the audio, in seconds; may be replaced by the server; ignored for already uploaded files
-//@title Title of the audio; 0-64 characters; may be replaced by the server; ignored for already uploaded files
-//@performer Performer of the audio; 0-64 characters, may be replaced by the server; ignored for already uploaded files
-addProfileAudio audio:InputFile duration:int32 title:string performer:string = Ok;
+//@description Adds an audio file to the beginning of the profile audio files of the current user @audio The audio to add
+addProfileAudio audio:inputAudio = Ok;
 
 //@description Changes position of an audio file in the profile audio files of the current user
 //@file_id Identifier of the file from profile audio files, which position will be changed

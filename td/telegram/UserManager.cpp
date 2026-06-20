@@ -7120,8 +7120,14 @@ void UserManager::check_is_saved_music(FileId file_id, Promise<Unit> &&promise) 
   return promise.set_value(Unit());
 }
 
-void UserManager::add_new_saved_music(const td_api::object_ptr<td_api::InputFile> &audio, int32 duration,
-                                      const string &title, const string &performer, Promise<Unit> &&promise) {
+void UserManager::add_new_saved_music(td_api::object_ptr<td_api::inputAudio> &&input_audio, Promise<Unit> &&promise) {
+  if (input_audio == nullptr) {
+    return promise.set_error(400, "Audio must be non-empty");
+  }
+  if (!clean_input_string(input_audio->title_) || !clean_input_string(input_audio->performer_)) {
+    return promise.set_error(400, "Strings must be encoded in UTF-8");
+  }
+  auto audio = std::move(input_audio->audio_);
   TRY_RESULT_PROMISE(promise, file_id,
                      td_->file_manager_->get_input_file_id(FileType::Audio, audio, DialogId(), false, false));
   CHECK(file_id.is_valid());
@@ -7140,8 +7146,8 @@ void UserManager::add_new_saved_music(const td_api::object_ptr<td_api::InputFile
     return add_saved_music(file_id, FileId(), std::move(promise));
   }
 
-  td_->audios_manager_->create_audio(file_id, string(), PhotoSize(), string(), string(), duration, title, performer, 0,
-                                     false);
+  td_->audios_manager_->create_audio(file_id, string(), PhotoSize(), string(), string(), input_audio->duration_,
+                                     input_audio->title_, input_audio->performer_, 0, false);
   auto upload_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), file_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
         if (result.is_error()) {

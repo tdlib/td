@@ -4810,13 +4810,15 @@ void Requests::on_request(uint64 id, td_api::sendRichMessageDraft &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
-  TRY_RESULT_PROMISE(promise, rich_message, RichMessage::get_rich_message(td_, dialog_id, std::move(request.message_), true));
+  TRY_RESULT_PROMISE(promise, rich_message,
+                     RichMessage::get_rich_message(td_, dialog_id, std::move(request.message_), true));
   MessageTopic message_topic;
   if (request.forum_topic_id_ != 0) {
     message_topic = MessageTopic::forum(dialog_id, ForumTopicId(request.forum_topic_id_));
   }
   td_->dialog_action_manager_->send_dialog_action(dialog_id, message_topic, BusinessConnectionId(),
-                                                  DialogAction(request.draft_id_, std::move(rich_message)), std::move(promise));
+                                                  DialogAction(request.draft_id_, std::move(rich_message)),
+                                                  std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::forwardMessages &request) {
@@ -6968,11 +6970,8 @@ void Requests::on_request(uint64 id, const td_api::isProfileAudio &request) {
 
 void Requests::on_request(uint64 id, td_api::addProfileAudio &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.title_);
-  CLEAN_INPUT_STRING(request.performer_);
   CREATE_OK_REQUEST_PROMISE();
-  td_->user_manager_->add_new_saved_music(request.audio_, request.duration_, request.title_, request.performer_,
-                                          std::move(promise));
+  td_->user_manager_->add_new_saved_music(std::move(request.audio_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::setProfileAudioPosition &request) {

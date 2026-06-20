@@ -457,8 +457,7 @@ class UserManager final : public Actor {
 
   void is_saved_music(FileId file_id, Promise<Unit> &&promise);
 
-  void add_new_saved_music(const td_api::object_ptr<td_api::InputFile> &audio, int32 duration, const string &title,
-                           const string &performer, Promise<Unit> &&promise);
+  void add_new_saved_music(td_api::object_ptr<td_api::inputAudio> &&input_audio, Promise<Unit> &&promise);
 
   void on_uploaded_saved_music_file(FileUploadId file_upload_id, bool is_url,
                                     telegram_api::object_ptr<telegram_api::MessageMedia> media,
