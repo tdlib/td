@@ -427,9 +427,11 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
       return type_ == Type::ChoosingLocation;
     case MessageContentType::Sticker:
       return type_ == Type::ChoosingSticker;
+    case MessageContentType::PaidMedia:
+      return type_ == Type::RecordingVideo || type_ == Type::UploadingVideo || type_ == Type::UploadingPhoto ||
+             type_ == Type::UploadingDocument;
     case MessageContentType::Game:
     case MessageContentType::Invoice:
-    case MessageContentType::PaidMedia:
     case MessageContentType::Text:
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
