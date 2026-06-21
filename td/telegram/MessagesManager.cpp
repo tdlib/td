@@ -21321,18 +21321,6 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
   td_->dialog_manager_->set_dialog_default_send_as_on_server(dialog_id, message_sender_dialog_id, std::move(promise));
 }
 
-FileUploadId MessagesManager::get_media_file_upload_id(const vector<FileUploadId> &file_upload_ids, int32 media_pos) {
-  if (file_upload_ids.empty()) {
-    return FileUploadId();
-  }
-  if (media_pos == -1) {
-    CHECK(file_upload_ids.size() == 1u);
-    return file_upload_ids[0];
-  }
-  CHECK(static_cast<size_t>(media_pos) < file_upload_ids.size());
-  return file_upload_ids[media_pos];
-}
-
 FileUploadId MessagesManager::get_message_send_file_upload_id(DialogId dialog_id, const Message *m,
                                                               int32 media_pos) const {
   if (m->message_id.is_any_server()) {
@@ -21340,9 +21328,9 @@ FileUploadId MessagesManager::get_message_send_file_upload_id(DialogId dialog_id
     if (edited_message == nullptr) {
       return {};
     }
-    return get_media_file_upload_id(edited_message->file_upload_ids_, media_pos);
+    return FileUploadId::get_file_upload_id(&edited_message->file_upload_ids_, media_pos);
   }
-  return get_media_file_upload_id(m->file_upload_ids, media_pos);
+  return FileUploadId::get_file_upload_id(&m->file_upload_ids, media_pos);
 }
 
 FileUploadId MessagesManager::get_message_send_thumbnail_file_upload_id(DialogId dialog_id, const Message *m,
@@ -21352,9 +21340,9 @@ FileUploadId MessagesManager::get_message_send_thumbnail_file_upload_id(DialogId
     if (edited_message == nullptr) {
       return {};
     }
-    return get_media_file_upload_id(edited_message->thumbnail_file_upload_ids_, media_pos);
+    return FileUploadId::get_file_upload_id(&edited_message->thumbnail_file_upload_ids_, media_pos);
   }
-  return get_media_file_upload_id(m->thumbnail_file_upload_ids, media_pos);
+  return FileUploadId::get_file_upload_id(&m->thumbnail_file_upload_ids, media_pos);
 }
 
 void MessagesManager::delete_message_send_thumbnail_file_upload_id(DialogId dialog_id, Message *m, int32 media_pos) {
