@@ -21344,16 +21344,7 @@ FileUploadId MessagesManager::get_message_send_thumbnail_file_upload_id(DialogId
 }
 
 void MessagesManager::delete_message_send_thumbnail_file_upload_id(DialogId dialog_id, Message *m, int32 media_pos) {
-  auto *file_upload_ids = get_message_file_upload_ids(dialog_id, m, true);
-  if (file_upload_ids == nullptr) {
-    return;
-  }
-  if (file_upload_ids->size() <= 1u) {
-    file_upload_ids->clear();
-    return;
-  }
-  CHECK(static_cast<size_t>(media_pos) < file_upload_ids->size());
-  (*file_upload_ids)[media_pos] = FileUploadId();
+  FileUploadId::delete_file_upload_id(get_message_file_upload_ids(dialog_id, m, true), media_pos);
 }
 
 class MessagesManager::SendMessageLogEvent {

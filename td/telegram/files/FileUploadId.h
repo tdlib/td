@@ -40,6 +40,8 @@ class FileUploadId {
 
   static FileUploadId get_file_upload_id(const vector<FileUploadId> *file_upload_ids, int32 media_pos);
 
+  static void delete_file_upload_id(vector<FileUploadId> *file_upload_ids, int32 media_pos);
+
   bool operator==(const FileUploadId &other) const {
     return file_id_ == other.file_id_ && internal_upload_id_ == other.internal_upload_id_;
   }
