@@ -2444,10 +2444,10 @@ void QuickReplyManager::on_upload_thumbnail(FileUploadId thumbnail_file_upload_i
 
   if (thumbnail_input_file == nullptr) {
     if (m->message_id.is_server()) {
-      delete_message_content_thumbnail(m->edited_content.get(), td_);
+      delete_message_content_thumbnail(td_, m->edited_content.get(), -1);
       m->edited_thumbnail_file_upload_id = {};
     } else {
-      delete_message_content_thumbnail(m->content.get(), td_);
+      delete_message_content_thumbnail(td_, m->content.get(), -1);
       m->thumbnail_file_upload_id = {};
     }
   }

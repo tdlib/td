@@ -171,7 +171,7 @@ telegram_api::object_ptr<telegram_api::InputRichMessage> get_message_content_inp
 
 bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> &input_media);
 
-void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 media_pos = -1);
+void delete_message_content_thumbnail(Td *td, MessageContent *content, int32 media_pos);
 
 Status can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward,
                                 bool check_permissions, const Td *td);

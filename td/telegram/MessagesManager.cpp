@@ -6766,7 +6766,7 @@ void MessagesManager::on_load_secret_thumbnail(FileUploadId thumbnail_file_uploa
 
   auto dialog_id = message_full_id.get_dialog_id();
   if (thumbnail.empty()) {
-    delete_message_content_thumbnail(m->content.get(), td_);
+    delete_message_content_thumbnail(td_, m->content.get(), -1);
     FileUploadId::delete_file_upload_id(get_message_file_upload_ids(dialog_id, m, true), -1);
   }
 
@@ -6816,7 +6816,7 @@ void MessagesManager::on_upload_thumbnail(FileUploadId thumbnail_file_upload_id,
 
   auto dialog_id = message_full_id.get_dialog_id();
   if (thumbnail_input_file == nullptr) {
-    delete_message_content_thumbnail(is_edit ? get_edited_message_content(message_full_id) : m->content.get(), td_,
+    delete_message_content_thumbnail(td_, is_edit ? get_edited_message_content(message_full_id) : m->content.get(),
                                      media_pos);
     FileUploadId::delete_file_upload_id(get_message_file_upload_ids(dialog_id, m, true), media_pos);
   }

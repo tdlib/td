@@ -5965,7 +5965,7 @@ bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> 
   }
 }
 
-void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 media_pos) {
+void delete_message_content_thumbnail(Td *td, MessageContent *content, int32 media_pos) {
   CHECK(content != nullptr);
   if (media_pos != -1) {
     CHECK(can_message_content_have_multiple_files(content->get_type()));
@@ -6005,12 +6005,12 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
     case MessageContentType::Poll: {
       auto *m = static_cast<MessagePoll *>(content);
       delete_message_content_thumbnail(
-          td->poll_manager_->get_individual_message_content(m->poll_id, m->attached_media, media_pos).get(), td, -1);
+          td, td->poll_manager_->get_individual_message_content(m->poll_id, m->attached_media, media_pos).get(), -1);
       break;
     }
     case MessageContentType::RichText: {
       auto *m = static_cast<MessageRichText *>(content);
-      delete_message_content_thumbnail(m->rich_message.get_individual_message_content(media_pos).get(), td, -1);
+      delete_message_content_thumbnail(td, m->rich_message.get_individual_message_content(media_pos).get(), -1);
       break;
     }
     case MessageContentType::Sticker: {

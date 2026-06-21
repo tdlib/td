@@ -1465,7 +1465,7 @@ void BusinessConnectionManager::on_upload_thumbnail(
   CHECK(thumbnail_file_upload_id == being_uploaded_media.message_->thumbnail_file_upload_id_);
 
   if (thumbnail_input_file == nullptr) {
-    delete_message_content_thumbnail(being_uploaded_media.message_->content_.get(), td_);
+    delete_message_content_thumbnail(td_, being_uploaded_media.message_->content_.get(), -1);
     being_uploaded_media.message_->thumbnail_file_upload_id_ = FileUploadId();
   }
 
