@@ -1788,6 +1788,8 @@ class MessagesManager final : public Actor {
 
   bool update_message_is_pinned(Dialog *d, Message *m, bool is_pin, const char *source);
 
+  vector<FileUploadId> *get_message_file_upload_ids(DialogId dialog_id, const Message *m, bool is_thumbnail) const;
+
   FileUploadId get_message_send_file_upload_id(DialogId dialog_id, const Message *m, int32 media_pos) const;
 
   FileUploadId get_message_send_thumbnail_file_upload_id(DialogId dialog_id, const Message *m, int32 media_pos) const;

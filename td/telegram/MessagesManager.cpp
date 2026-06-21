@@ -21321,40 +21321,32 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
   td_->dialog_manager_->set_dialog_default_send_as_on_server(dialog_id, message_sender_dialog_id, std::move(promise));
 }
 
-FileUploadId MessagesManager::get_message_send_file_upload_id(DialogId dialog_id, const Message *m,
-                                                              int32 media_pos) const {
+vector<FileUploadId> *MessagesManager::get_message_file_upload_ids(DialogId dialog_id, const Message *m,
+                                                                   bool is_thumbnail) const {
   if (m->message_id.is_any_server()) {
     auto edited_message = get_edited_message(dialog_id, m->message_id);
     if (edited_message == nullptr) {
-      return {};
+      return nullptr;
     }
-    return FileUploadId::get_file_upload_id(&edited_message->file_upload_ids_, media_pos);
+    return is_thumbnail ? &edited_message->thumbnail_file_upload_ids_ : &edited_message->file_upload_ids_;
   }
-  return FileUploadId::get_file_upload_id(&m->file_upload_ids, media_pos);
+  return is_thumbnail ? &m->thumbnail_file_upload_ids : &m->file_upload_ids;
+}
+
+FileUploadId MessagesManager::get_message_send_file_upload_id(DialogId dialog_id, const Message *m,
+                                                              int32 media_pos) const {
+  return FileUploadId::get_file_upload_id(get_message_file_upload_ids(dialog_id, m, false), media_pos);
 }
 
 FileUploadId MessagesManager::get_message_send_thumbnail_file_upload_id(DialogId dialog_id, const Message *m,
                                                                         int32 media_pos) const {
-  if (m->message_id.is_any_server()) {
-    auto edited_message = get_edited_message(dialog_id, m->message_id);
-    if (edited_message == nullptr) {
-      return {};
-    }
-    return FileUploadId::get_file_upload_id(&edited_message->thumbnail_file_upload_ids_, media_pos);
-  }
-  return FileUploadId::get_file_upload_id(&m->thumbnail_file_upload_ids, media_pos);
+  return FileUploadId::get_file_upload_id(get_message_file_upload_ids(dialog_id, m, true), media_pos);
 }
 
 void MessagesManager::delete_message_send_thumbnail_file_upload_id(DialogId dialog_id, Message *m, int32 media_pos) {
-  vector<FileUploadId> *file_upload_ids;
-  if (m->message_id.is_any_server()) {
-    auto edited_message = get_edited_message(dialog_id, m->message_id);
-    if (edited_message == nullptr) {
-      return;
-    }
-    file_upload_ids = &edited_message->thumbnail_file_upload_ids_;
-  } else {
-    file_upload_ids = &m->thumbnail_file_upload_ids;
+  auto *file_upload_ids = get_message_file_upload_ids(dialog_id, m, true);
+  if (file_upload_ids == nullptr) {
+    return;
   }
   if (file_upload_ids->size() <= 1u) {
     file_upload_ids->clear();
