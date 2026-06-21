@@ -457,7 +457,11 @@ class QuickReplyManager final : public Actor {
 
   FlatHashMap<QuickReplyMessageFullId, FileSourceId, QuickReplyMessageFullIdHash> message_full_id_to_file_source_id_;
 
-  FlatHashMap<FileUploadId, std::pair<QuickReplyMessageFullId, int64>, FileUploadIdHash> being_uploaded_files_;
+  struct UploadedFileInfo {
+    QuickReplyMessageFullId message_full_id;
+    int64 edit_generation;
+  };
+  FlatHashMap<FileUploadId, UploadedFileInfo, FileUploadIdHash> being_uploaded_files_;
 
   struct UploadedThumbnailInfo {
     QuickReplyMessageFullId quick_reply_message_full_id;

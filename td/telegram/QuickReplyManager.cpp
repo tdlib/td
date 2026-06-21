@@ -2312,7 +2312,7 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
 
     LOG(INFO) << "Ask to upload " << file_upload_id << " with bad parts " << bad_parts;
     bool is_inserted =
-        being_uploaded_files_.emplace(file_upload_id, std::make_pair(message_full_id, m->edit_generation)).second;
+        being_uploaded_files_.emplace(file_upload_id, UploadedFileInfo{message_full_id, m->edit_generation}).second;
     CHECK(is_inserted);
     td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_media_callback_, 1,
                                       m->message_id.get());
@@ -2343,8 +2343,8 @@ void QuickReplyManager::on_upload_media(FileUploadId file_upload_id,
 
   auto it = being_uploaded_files_.find(file_upload_id);
   CHECK(it != being_uploaded_files_.end());
-  auto message_full_id = it->second.first;
-  auto edit_generation = it->second.second;
+  auto message_full_id = it->second.message_full_id;
+  auto edit_generation = it->second.edit_generation;
   being_uploaded_files_.erase(it);
 
   const auto *m = get_message(message_full_id);
@@ -2407,7 +2407,7 @@ void QuickReplyManager::on_upload_media_error(FileUploadId file_upload_id, Statu
   auto it = being_uploaded_files_.find(file_upload_id);
   CHECK(it != being_uploaded_files_.end());
 
-  auto message_full_id = it->second.first;
+  auto message_full_id = it->second.message_full_id;
 
   being_uploaded_files_.erase(it);
 
