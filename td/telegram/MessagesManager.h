@@ -1794,8 +1794,6 @@ class MessagesManager final : public Actor {
 
   FileUploadId get_message_send_thumbnail_file_upload_id(DialogId dialog_id, const Message *m, int32 media_pos) const;
 
-  void delete_message_send_thumbnail_file_upload_id(DialogId dialog_id, Message *m, int32 media_pos);
-
   void do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id, const vector<Message *> &messages,
                            const vector<MessageId> &message_ids, bool drop_author, bool drop_media_captions,
                            uint64 log_event_id);
