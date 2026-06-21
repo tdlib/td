@@ -46,10 +46,15 @@ TEST(ParseDialogRepairRefetchContract, UnresolvedDependenciesTriggerMessageRefet
                                "if (td_->auth_manager_->is_bot()) {");
   auto normalized = normalize_for_contract(region);
 
-  ASSERT_TRUE(normalized.find("d->messages.foreach([&](constMessageId&message_id,constunique_ptr<Message>&message){"
-                              "get_message_from_server({dialog_id,message_id},Auto(),source);});") != td::string::npos);
-  ASSERT_TRUE(normalized.find("send_get_dialog_query(dialog_id,Auto(),0,source);") != td::string::npos);
-  ASSERT_TRUE(normalized.find("td_->dialog_manager_->reload_dialog_info_full(dialog_id,source);") != td::string::npos);
+  ASSERT_TRUE(normalized.find("vector<MessageId>unresolved_message_ids;") != td::string::npos);
+  ASSERT_TRUE(normalized.find("make_dialog_dependency_repair_operations(dialog_id,unresolved_message_ids)") !=
+              td::string::npos);
+  ASSERT_TRUE(normalized.find("caseDialogDependencyRepairOperation::Type::RefetchMessage:get_message_from_server("
+                              "operation.message_full_id,Auto(),source);break;") != td::string::npos);
+  ASSERT_TRUE(normalized.find("caseDialogDependencyRepairOperation::Type::RequeryDialog:send_get_dialog_query("
+                              "dialog_id,Auto(),0,source);break;") != td::string::npos);
+  ASSERT_TRUE(normalized.find("caseDialogDependencyRepairOperation::Type::ReloadFullDialogInfo:td_->dialog_manager_->"
+                              "reload_dialog_info_full(dialog_id,source);break;") != td::string::npos);
 }
 
 }  // namespace

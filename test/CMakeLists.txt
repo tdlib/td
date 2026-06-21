@@ -285,11 +285,26 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/message_content_null_guard_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_content_null_guard_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_created_dependency_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_created_dependency_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_created_dependency_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/managed_bot_created_dependency_runtime.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/draft_local_reply_ignore_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/parse_dialog_repair_refetch_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/parse_dialog_repair_refetch_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/parse_dialog_repair_refetch_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/parse_dialog_repair_refetch_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/parse_dialog_repair_refetch_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/call_notification_send_closure_later_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/call_notification_send_closure_later_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/call_notification_send_closure_later_runtime.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/dialog_action_equality_fields_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_action_equality_fields_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_action_equality_fields_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/video_alternative_properties_repair_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/video_alternative_properties_repair_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/video_alternative_properties_repair_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/video_alternative_properties_repair_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/video_alternative_properties_repair_light_fuzz.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/invalid_file_id_handling_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/invalid_file_id_handling_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/invalid_file_id_handling_integration.cpp

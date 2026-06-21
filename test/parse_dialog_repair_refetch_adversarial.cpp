@@ -33,18 +33,19 @@ td::string normalize_for_contract(td::Slice source) {
   return normalized;
 }
 
-// Upstream tdlib c3759d5c5 ("Use send_closure_later when adding call notification just in case").
-// Contract: the pending-incoming-call notification must be posted via send_closure_later, not
-// send_closure, so it is never delivered re-entrantly inside the current actor turn (ordering /
-// reentrancy hardening on the call lifecycle).
-TEST(CallNotificationSendClosureLaterContract, PendingCallNotificationIsPostedDeferred) {
-  auto source = td::mtproto::test::read_repo_text_file("td/telegram/CallActor.cpp");
-  auto region = extract_region(source, "void CallActor::flush_call_state() {", "void CallActor::start_up() {");
+TEST(ParseDialogRepairRefetchAdversarial, RepairMustNotRegressToDialogOnlyReload) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/MessagesManager.cpp");
+  auto region = extract_region(source, "if (!dependencies.resolve_force(td_, source)) {",
+                               "if (td_->auth_manager_->is_bot()) {");
   auto normalized = normalize_for_contract(region);
 
-  ASSERT_TRUE(normalized.find("autonotification_action=get_pending_call_notification_action(") != td::string::npos);
-  ASSERT_TRUE(normalized.find("send_closure_later(G()->notification_manager(),&NotificationManager::add_call_notification") !=
-              td::string::npos);
+  ASSERT_NE(td::string::npos,
+            normalized.find("caseDialogDependencyRepairOperation::Type::RefetchMessage:get_message_from_server("
+                            "operation.message_full_id,Auto(),source);break;"));
+  ASSERT_EQ(td::string::npos,
+            normalized.find("for(constauto&operation:make_dialog_dependency_repair_operations(dialog_id,"
+                            "unresolved_message_ids)){caseDialogDependencyRepairOperation::Type::RequeryDialog:"
+                            "send_get_dialog_query(dialog_id,Auto(),0,source);break;}"));
 }
 
 }  // namespace

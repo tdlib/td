@@ -12,6 +12,14 @@ TDLib fork with MTProto-proxy-only stealth traffic-masking for DPI evasion.
 - Run stealth/TLS slice: `./build/test/run_all_tests --filter TlsHello`
 - Run sanitizer lanes from repo root with `python3 tools/ci/run_sanitizer_matrix.py`; prefer this runner over ad hoc sanitizer configure/build/test chains.
 
+## End-to-end harnesses
+
+- The repository already has a real client/database end-to-end harness in `test/tdclient.cpp` and `test/online.cpp`.
+- These tests bootstrap real `td::ClientActor` flows and real TDLib parameters such as `database_directory_`, `use_message_database_`, and `use_secret_chats_`.
+- Use this harness when you need true actor + database + authorization/client lifecycle coverage.
+- Do not treat it as a lightweight default fixture for narrow backport audits: it is heavier than seam/runtime tests and usually pulls in auth/network-oriented setup.
+- For local-equivalent backport fixes in parser/repair/helper logic, prefer focused runtime/serialization tests first; escalate to `tdclient.cpp`/`online.cpp` only when the risk genuinely requires full-stack behavior.
+
 ## Common test filters
 
 - `TlsHello` — stealth transport tests

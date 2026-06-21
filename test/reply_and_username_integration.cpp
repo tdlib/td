@@ -39,7 +39,8 @@ TEST(ReplyAndUsernameIntegration, RequiredReplyAndUsernameGuardPatternsExistAcro
       {"td/telegram/DraftMessage.hpp", "autoclear_same_chat_yet_unsent_reply=[this](){"},
       {"td/telegram/DraftMessage.hpp", "automessage_id=message_input_reply_to_.get_same_chat_reply_to_message_id();"},
       {"td/telegram/DraftMessage.hpp",
-       "if((message_id.is_valid()||message_id.is_valid_scheduled())&&message_id.is_yet_unsent())"
+       "if((message_id.is_valid()||message_id.is_valid_scheduled())&&"
+       "(message_id.is_yet_unsent()||message_id.is_local()))"
        "{message_input_reply_to_={};}"},
       {"td/telegram/DraftMessage.hpp",
        "message_input_reply_to_=MessageInputReplyTo::regular(legacy_reply_to_message_id);"
@@ -90,6 +91,9 @@ TEST(ReplyAndUsernameIntegration, LegacyReplyAndUsernameUnsafePatternsRemainAbse
        "if(has_message_input_reply_to){td::parse(message_input_reply_to_,parser);}if(has_local_content){"},
       {"td/telegram/DraftMessage.hpp",
        "if(message_id.is_valid()&&message_id.is_yet_unsent()){message_input_reply_to_={};}"},
+      {"td/telegram/DraftMessage.hpp",
+       "if((message_id.is_valid()||message_id.is_valid_scheduled())&&message_id.is_yet_unsent())"
+       "{message_input_reply_to_={};}"},
       {"td/telegram/MessagesManager.cpp", "if(!can_reply_to_message(d,message_id,m)){message_id={};}"},
       {"td/telegram/MessagesManager.cpp", "if(!can_reply_to_message(d,message_id,m)){m=nullptr;}"},
       {"td/telegram/MessagesManager.cpp",

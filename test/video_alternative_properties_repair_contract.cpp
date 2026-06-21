@@ -50,6 +50,8 @@ TEST(VideoAlternativePropertiesRepairContract, MissingDurationOrThumbnailIsRepai
       extract_region(source, "VideosManager::get_video_object(FileId file_id,", "get_story_video_object");
   auto body = normalize_for_contract(region);
   ASSERT_TRUE(body.find("if((duration==0||thumbnail==nullptr)&&!alternative_file_ids.empty())") != td::string::npos);
+  ASSERT_TRUE(body.find("duration=get_alternative_video_repair_plan(duration,has_primary_thumbnail,alternatives)."
+                        "repaired_duration;") != td::string::npos);
   ASSERT_TRUE(body.find("make_object<td_api::video>(duration,") != td::string::npos);
 }
 

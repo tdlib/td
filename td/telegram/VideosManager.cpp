@@ -6,6 +6,7 @@
 //
 #include "td/telegram/VideosManager.h"
 
+#include "td/telegram/BackportTestSeams.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
@@ -60,18 +61,16 @@ td_api::object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id
                        ? get_thumbnail_object(td_->file_manager_.get(), video->animated_thumbnail, PhotoFormat::Mpeg4)
                        : get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, PhotoFormat::Jpeg);
   auto duration = video->duration;
+  auto has_primary_thumbnail = thumbnail != nullptr;
   if ((duration == 0 || thumbnail == nullptr) && !alternative_file_ids.empty()) {
-    int32 common_duration = 0;
+    vector<AlternativeVideoRepairCandidate> alternatives;
+    alternatives.reserve(alternative_file_ids.size());
     for (auto alternative_file_id : alternative_file_ids) {
       auto alternative_video = get_video(alternative_file_id);
       CHECK(alternative_video != nullptr);
-      if (alternative_video->duration > 0) {
-        if (common_duration == 0) {
-          common_duration = alternative_video->duration;
-        } else if (common_duration != alternative_video->duration) {
-          common_duration = -1;
-        }
-      }
+      alternatives.push_back(
+          {alternative_video->duration, alternative_video->animated_thumbnail.file_id.is_valid() ||
+                                          alternative_video->thumbnail.file_id.is_valid()});
       if (thumbnail == nullptr) {
         thumbnail =
             alternative_video->animated_thumbnail.file_id.is_valid()
@@ -80,9 +79,7 @@ td_api::object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id
                 : get_thumbnail_object(td_->file_manager_.get(), alternative_video->thumbnail, PhotoFormat::Jpeg);
       }
     }
-    if (duration == 0 && common_duration > 0) {
-      duration = common_duration;
-    }
+    duration = get_alternative_video_repair_plan(duration, has_primary_thumbnail, alternatives).repaired_duration;
   }
   return td_api::make_object<td_api::video>(duration, video->dimensions.width, video->dimensions.height,
                                             video->file_name, video->mime_type, video->has_stickers,

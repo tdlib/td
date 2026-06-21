@@ -41,6 +41,11 @@ TEST(ReplyAndUsernameAdversarial, DraftMessageParseMustNotKeepLegacyYetUnsentRep
                               "if(has_local_content){") == td::string::npos);
   ASSERT_TRUE(normalized.find("if(message_id.is_valid()&&message_id.is_yet_unsent()){message_input_reply_to_={};}") ==
               td::string::npos);
+  ASSERT_TRUE(normalized.find("if((message_id.is_valid()||message_id.is_valid_scheduled())&&"
+                              "message_id.is_yet_unsent()){message_input_reply_to_={};}") == td::string::npos);
+  ASSERT_TRUE(normalized.find("if((message_id.is_valid()||message_id.is_valid_scheduled())&&"
+                              "(message_id.is_yet_unsent()||message_id.is_local()))"
+                              "{message_input_reply_to_={};}") != td::string::npos);
 }
 
 TEST(ReplyAndUsernameAdversarial, InvalidReplyRejectionMustNotRetainStaleMessagePointer) {

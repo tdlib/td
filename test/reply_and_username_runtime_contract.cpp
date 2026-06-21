@@ -175,6 +175,11 @@ td::MessageId make_regular_message_id(bool yet_unsent, td::int32 seed) {
   return td::MessageId(unsent_raw_id);
 }
 
+td::MessageId make_regular_local_message_id(td::int32 seed) {
+  auto server_message_id = td::ServerMessageId(td::max<td::int32>(1, seed));
+  return td::MessageId(server_message_id).get_next_message_id(td::MessageType::Local);
+}
+
 td::MessageId make_scheduled_message_id(bool yet_unsent, td::int32 seed) {
   auto scheduled_server_message_id = td::ScheduledServerMessageId(td::max<td::int32>(1, seed % ((1 << 18) - 1)));
   auto server_message_id = td::MessageId(scheduled_server_message_id, (1 << 30) + 1024 + seed);
@@ -182,6 +187,12 @@ td::MessageId make_scheduled_message_id(bool yet_unsent, td::int32 seed) {
     return server_message_id;
   }
   return server_message_id.get_next_message_id(td::MessageType::YetUnsent);
+}
+
+td::MessageId make_scheduled_local_message_id(td::int32 seed) {
+  auto scheduled_server_message_id = td::ScheduledServerMessageId(td::max<td::int32>(1, seed % ((1 << 18) - 1)));
+  auto server_message_id = td::MessageId(scheduled_server_message_id, (1 << 30) + 1024 + seed);
+  return server_message_id.get_next_message_id(td::MessageType::Local);
 }
 
 TEST(ReplyAndUsernameRuntimeContract, LegacyDraftParsePathInvokesSharedYetUnsentSanitizer) {
@@ -283,6 +294,34 @@ TEST(ReplyAndUsernameRuntimeContract, ModernDraftParseClearsSameChatScheduledYet
   ASSERT_EQ(0, view.ok().flags & kHasMessageInputReplyToFlag);
 }
 
+TEST(ReplyAndUsernameRuntimeContract, LegacyDraftParseClearsLocalReplyAtRuntime) {
+  auto legacy_reply_to_message_id = make_regular_local_message_id(321);
+  ASSERT_TRUE(legacy_reply_to_message_id.is_valid());
+  ASSERT_TRUE(legacy_reply_to_message_id.is_local());
+
+  auto payload = serialize_legacy_draft_with_reply(legacy_reply_to_message_id);
+  auto normalized = parse_and_reserialize_draft(payload.as_slice());
+  ASSERT_TRUE(normalized.is_ok());
+
+  auto view = parse_current_stored_draft(normalized.ok().as_slice());
+  ASSERT_TRUE(view.is_ok());
+  ASSERT_EQ(0, view.ok().flags & kHasMessageInputReplyToFlag);
+}
+
+TEST(ReplyAndUsernameRuntimeContract, ModernDraftParseClearsSameChatLocalReplyAtRuntime) {
+  auto reply_to_message_id = make_scheduled_local_message_id(654);
+  ASSERT_TRUE(reply_to_message_id.is_valid_scheduled());
+  ASSERT_TRUE(reply_to_message_id.is_local());
+
+  auto payload = serialize_modern_draft_with_reply(td::MessageInputReplyTo::regular(reply_to_message_id));
+  auto normalized = parse_and_reserialize_draft(payload.as_slice());
+  ASSERT_TRUE(normalized.is_ok());
+
+  auto view = parse_current_stored_draft(normalized.ok().as_slice());
+  ASSERT_TRUE(view.is_ok());
+  ASSERT_EQ(0, view.ok().flags & kHasMessageInputReplyToFlag);
+}
+
 TEST(ReplyAndUsernameRuntimeContract, ModernDraftParseKeepsExternalYetUnsentReplyAtRuntime) {
   auto reply_to_message_id = make_regular_message_id(true, 999);
   ASSERT_TRUE(reply_to_message_id.is_valid());
@@ -328,15 +367,74 @@ TEST(ReplyAndUsernameRuntimeContract, ModernDraftParseKeepsExternalServerReplyAt
   ASSERT_EQ(external_dialog_id, reply_message_full_id.get_dialog_id());
 }
 
+TEST(ReplyAndUsernameRuntimeContract, ModernDraftParseKeepsExternalLocalReplyAtRuntime) {
+  auto reply_to_message_id = make_regular_local_message_id(4321);
+  ASSERT_TRUE(reply_to_message_id.is_valid());
+  ASSERT_TRUE(reply_to_message_id.is_local());
+
+  td::DialogId external_dialog_id(td::UserId(static_cast<td::int64>(626262)));
+  ASSERT_TRUE(external_dialog_id.is_valid());
+  td::MessageInputReplyTo external_reply_to(reply_to_message_id, external_dialog_id, td::MessageQuote(), 0,
+                                            td::string(), "runtime_external_local");
+
+  auto payload = serialize_modern_draft_with_reply(external_reply_to);
+  auto normalized = parse_and_reserialize_draft(payload.as_slice());
+  ASSERT_TRUE(normalized.is_ok());
+
+  auto view = parse_current_stored_draft(normalized.ok().as_slice());
+  ASSERT_TRUE(view.is_ok());
+  ASSERT_NE(0, view.ok().flags & kHasMessageInputReplyToFlag);
+
+  auto reply_message_full_id = view.ok().reply_to.get_reply_message_full_id(td::DialogId());
+  ASSERT_EQ(reply_to_message_id, reply_message_full_id.get_message_id());
+  ASSERT_EQ(external_dialog_id, reply_message_full_id.get_dialog_id());
+}
+
 TEST(ReplyAndUsernameRuntimeContract, ModernDraftParseLightFuzzDropsYetUnsentRepliesFailClosed) {
   constexpr int kIterations = 6000;
   for (int i = 1; i <= kIterations; ++i) {
     bool use_scheduled_message_id = (i % 2) == 0;
-    bool use_yet_unsent_message_id = (i % 3) != 0;
+    td::MessageType message_type = td::MessageType::Server;
+    switch (i % 3) {
+      case 1:
+        message_type = td::MessageType::YetUnsent;
+        break;
+      case 2:
+        message_type = td::MessageType::Local;
+        break;
+      default:
+        break;
+    }
     bool use_external_dialog = (i % 5) == 0;
 
-    auto reply_to_message_id = use_scheduled_message_id ? make_scheduled_message_id(use_yet_unsent_message_id, i)
-                                                        : make_regular_message_id(use_yet_unsent_message_id, i);
+    td::MessageId reply_to_message_id;
+    if (use_scheduled_message_id) {
+      switch (message_type) {
+        case td::MessageType::YetUnsent:
+          reply_to_message_id = make_scheduled_message_id(true, i);
+          break;
+        case td::MessageType::Local:
+          reply_to_message_id = make_scheduled_local_message_id(i);
+          break;
+        case td::MessageType::Server:
+        default:
+          reply_to_message_id = make_scheduled_message_id(false, i);
+          break;
+      }
+    } else {
+      switch (message_type) {
+        case td::MessageType::YetUnsent:
+          reply_to_message_id = make_regular_message_id(true, i);
+          break;
+        case td::MessageType::Local:
+          reply_to_message_id = make_regular_local_message_id(i);
+          break;
+        case td::MessageType::Server:
+        default:
+          reply_to_message_id = make_regular_message_id(false, i);
+          break;
+      }
+    }
     auto reply_to_dialog_id =
         use_external_dialog ? td::DialogId(td::UserId(static_cast<td::int64>(700000 + i))) : td::DialogId();
     if (use_external_dialog) {
@@ -353,8 +451,9 @@ TEST(ReplyAndUsernameRuntimeContract, ModernDraftParseLightFuzzDropsYetUnsentRep
     ASSERT_TRUE(view.is_ok());
 
     bool has_reply_to_message_id = (view.ok().flags & kHasMessageInputReplyToFlag) != 0;
-    bool should_keep_reply_to_message_id =
-        reply_to_message_id.is_valid() && (!reply_to_message_id.is_yet_unsent() || reply_to_dialog_id.is_valid());
+    bool is_same_chat_ephemeral = reply_to_message_id.is_valid() && !reply_to_dialog_id.is_valid() &&
+                                  (reply_to_message_id.is_yet_unsent() || reply_to_message_id.is_local());
+    bool should_keep_reply_to_message_id = reply_to_message_id.is_valid() && !is_same_chat_ephemeral;
     ASSERT_EQ(should_keep_reply_to_message_id, has_reply_to_message_id);
   }
 }

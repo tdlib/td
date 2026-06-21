@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccountManager.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/BackportTestSeams.h"
 #include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/BusinessBotManageBar.h"
@@ -33661,11 +33662,23 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     d->chat_theme->add_dependencies(dependencies);
   }
   if (!dependencies.resolve_force(td_, source)) {
+    vector<MessageId> unresolved_message_ids;
     d->messages.foreach([&](const MessageId &message_id, const unique_ptr<Message> &message) {
-      get_message_from_server({dialog_id, message_id}, Auto(), source);
+      unresolved_message_ids.push_back(message_id);
     });
-    send_get_dialog_query(dialog_id, Auto(), 0, source);
-    td_->dialog_manager_->reload_dialog_info_full(dialog_id, source);
+    for (const auto &operation : make_dialog_dependency_repair_operations(dialog_id, unresolved_message_ids)) {
+      switch (operation.type) {
+        case DialogDependencyRepairOperation::Type::RefetchMessage:
+          get_message_from_server(operation.message_full_id, Auto(), source);
+          break;
+        case DialogDependencyRepairOperation::Type::RequeryDialog:
+          send_get_dialog_query(dialog_id, Auto(), 0, source);
+          break;
+        case DialogDependencyRepairOperation::Type::ReloadFullDialogInfo:
+          td_->dialog_manager_->reload_dialog_info_full(dialog_id, source);
+          break;
+      }
+    }
   }
 
   if (td_->auth_manager_->is_bot()) {

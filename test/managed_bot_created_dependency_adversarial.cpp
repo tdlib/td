@@ -33,21 +33,21 @@ td::string normalize_for_contract(td::Slice source) {
   return normalized;
 }
 
-// Upstream tdlib 84f21a1d8 ("Fix add_message_content_dependencies for ManagedBotCreated").
-// Contract: when a ManagedBotCreated service message is parsed, its bot_user_id MUST be registered as a
-// resolvable dependency. Otherwise the referenced bot user is never fetched, which is a silent
-// fail-open (dangling user reference) for a content type this fork carries (W6-M managed-bot surface).
-TEST(ManagedBotCreatedDependencyContract, ManagedBotCreatedResolvesBotUserIdDependency) {
+TEST(ManagedBotCreatedDependencyAdversarial, DependencyCaseMustNotSilentlyDropBotUserId) {
   auto source = td::mtproto::test::read_repo_text_file("td/telegram/MessageContent.cpp");
   auto region = extract_region(
       source, "void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content,",
       "void apply_updates_from_service_message_content(");
   auto normalized = normalize_for_contract(region);
 
-  ASSERT_TRUE(normalized.find("MessageContentType::ManagedBotCreated:{constauto*content=static_cast<const"
-                              "MessageManagedBotCreated*>(message_content);"
-                              "add_managed_bot_created_dependencies(dependencies,content->bot_user_id);break;}") !=
-              td::string::npos);
+  ASSERT_EQ(td::string::npos, normalized.find("MessageContentType::ManagedBotCreated:break;"));
+  ASSERT_EQ(td::string::npos,
+            normalized.find("MessageContentType::ManagedBotCreated:{constauto*content=static_cast<const"
+                            "MessageManagedBotCreated*>(message_content);break;}"));
+  ASSERT_NE(td::string::npos,
+            normalized.find("MessageContentType::ManagedBotCreated:{constauto*content=static_cast<const"
+                            "MessageManagedBotCreated*>(message_content);add_managed_bot_created_dependencies("
+                            "dependencies,content->bot_user_id);break;}"));
 }
 
 }  // namespace

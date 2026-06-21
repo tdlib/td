@@ -47,7 +47,8 @@ TEST(ReplyAndUsernameStability, RepeatedSourceReadsKeepRequiredGuardsStable) {
               draft_source.find("automessage_id=message_input_reply_to_.get_same_chat_reply_to_message_id();"));
     ASSERT_NE(
         td::string::npos,
-        draft_source.find("if((message_id.is_valid()||message_id.is_valid_scheduled())&&message_id.is_yet_unsent())"
+        draft_source.find("if((message_id.is_valid()||message_id.is_valid_scheduled())&&"
+                          "(message_id.is_yet_unsent()||message_id.is_local()))"
                           "{message_input_reply_to_={};}"));
     ASSERT_NE(td::string::npos,
               draft_source.find("message_input_reply_to_=MessageInputReplyTo::regular(legacy_reply_to_message_id);"
@@ -91,6 +92,9 @@ TEST(ReplyAndUsernameStability, RepeatedSourceReadsKeepRequiredGuardsStable) {
                   "if(has_message_input_reply_to){td::parse(message_input_reply_to_,parser);}if(has_local_content){"));
     ASSERT_EQ(td::string::npos,
               draft_source.find("if(message_id.is_valid()&&message_id.is_yet_unsent()){message_input_reply_to_={};}"));
+    ASSERT_EQ(td::string::npos,
+              draft_source.find("if((message_id.is_valid()||message_id.is_valid_scheduled())&&"
+                                "message_id.is_yet_unsent()){message_input_reply_to_={};}"));
     ASSERT_EQ(td::string::npos, messages_source.find("if(!can_reply_to_message(d,message_id,m)){message_id={};}"));
     ASSERT_EQ(td::string::npos, messages_source.find("if(!can_reply_to_message(d,message_id,m)){m=nullptr;}"));
     ASSERT_EQ(td::string::npos, messages_source.find("if(!can_reply_to_message(d,message_id,m)){message_id={};}"
@@ -136,7 +140,8 @@ TEST(ReplyAndUsernameStability, RepeatedSourceReadsKeepOrderingInvariantsStable)
     auto helper_pos = draft_source.find("autoclear_same_chat_yet_unsent_reply=[this](){");
     auto inspect_pos = draft_source.find("automessage_id=message_input_reply_to_.get_same_chat_reply_to_message_id();");
     auto clear_pos = draft_source.find(
-        "if((message_id.is_valid()||message_id.is_valid_scheduled())&&message_id.is_yet_unsent())"
+        "if((message_id.is_valid()||message_id.is_valid_scheduled())&&"
+        "(message_id.is_yet_unsent()||message_id.is_local()))"
         "{message_input_reply_to_={};}");
     auto legacy_clear_pos = draft_source.find(
         "message_input_reply_to_=MessageInputReplyTo::regular(legacy_reply_to_message_id);"

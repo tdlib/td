@@ -60,7 +60,8 @@ TEST(ReplyAndUsernameLightFuzz, RandomizedProbeOrderKeepsRequiredGuardPatternsPi
       Probe{0, "autoclear_same_chat_yet_unsent_reply=[this](){"},
       Probe{0, "automessage_id=message_input_reply_to_.get_same_chat_reply_to_message_id();"},
       Probe{0,
-            "if((message_id.is_valid()||message_id.is_valid_scheduled())&&message_id.is_yet_unsent())"
+            "if((message_id.is_valid()||message_id.is_valid_scheduled())&&"
+            "(message_id.is_yet_unsent()||message_id.is_local()))"
             "{message_input_reply_to_={};}"},
       Probe{0,
             "message_input_reply_to_=MessageInputReplyTo::regular(legacy_reply_to_message_id);"
@@ -102,9 +103,12 @@ TEST(ReplyAndUsernameLightFuzz, RandomizedProbeOrderKeepsRequiredGuardPatternsPi
 TEST(ReplyAndUsernameLightFuzz, RandomizedProbeOrderKeepsLegacyUnsafePatternsAbsent) {
   auto normalized_sources = load_normalized_sources();
 
-  const std::array<Probe, 13> forbidden = {
+  const std::array<Probe, 14> forbidden = {
       Probe{0, "if(has_message_input_reply_to){td::parse(message_input_reply_to_,parser);}if(has_local_content){"},
       Probe{0, "if(message_id.is_valid()&&message_id.is_yet_unsent()){message_input_reply_to_={};}"},
+      Probe{0,
+            "if((message_id.is_valid()||message_id.is_valid_scheduled())&&message_id.is_yet_unsent())"
+            "{message_input_reply_to_={};}"},
       Probe{1, "if(!can_reply_to_message(d,message_id,m)){message_id={};}"},
       Probe{1, "if(!can_reply_to_message(d,message_id,m)){m=nullptr;}"},
       Probe{1, "if(!can_reply_to_message(d,message_id,m)){message_id={};}if(m==nullptr){if(message_id.is_server()"},

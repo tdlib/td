@@ -36,7 +36,8 @@ TEST(ReplyAndUsernameContract, DraftMessageParseClearsSameChatYetUnsentReplyRefe
   auto helper_pos = normalized.find("autoclear_same_chat_yet_unsent_reply=[this](){");
   auto inspect_pos = normalized.find("automessage_id=message_input_reply_to_.get_same_chat_reply_to_message_id();");
   auto clear_pos = normalized.find(
-      "if((message_id.is_valid()||message_id.is_valid_scheduled())&&message_id.is_yet_unsent())"
+      "if((message_id.is_valid()||message_id.is_valid_scheduled())&&"
+      "(message_id.is_yet_unsent()||message_id.is_local()))"
       "{message_input_reply_to_={};}");
   auto legacy_clear_pos = normalized.find(
       "message_input_reply_to_=MessageInputReplyTo::regular(legacy_reply_to_message_id);"
@@ -106,6 +107,18 @@ TEST(ReplyAndUsernameContract, RestoreReplyToMessageKeepsYetUnsentTargetsOnlyFor
   ASSERT_TRUE(resolve_pos < guard_pos);
   ASSERT_TRUE(guard_pos < fallback_compute_pos);
   ASSERT_TRUE(fallback_compute_pos < fallback_set_pos);
+}
+
+TEST(ReplyAndUsernameContract, DraftMessageParseAlsoClearsSameChatLocalReplyReference) {
+  auto source = td::mtproto::test::read_repo_text_file("td/telegram/DraftMessage.hpp");
+  auto normalized = normalize_for_contract(source);
+
+  ASSERT_TRUE(normalized.find("if((message_id.is_valid()||message_id.is_valid_scheduled())&&"
+                              "(message_id.is_yet_unsent()||message_id.is_local()))"
+                              "{message_input_reply_to_={};}") != td::string::npos);
+  ASSERT_TRUE(normalized.find("if((message_id.is_valid()||message_id.is_valid_scheduled())&&"
+                              "message_id.is_yet_unsent())"
+                              "{message_input_reply_to_={};}") == td::string::npos);
 }
 
 TEST(ReplyAndUsernameContract, RestoreReplyToMessageUpdatesFromResolvedRandomIdOnAllowedPath) {

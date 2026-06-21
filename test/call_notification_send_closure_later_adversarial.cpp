@@ -33,18 +33,29 @@ td::string normalize_for_contract(td::Slice source) {
   return normalized;
 }
 
-// Upstream tdlib c3759d5c5 ("Use send_closure_later when adding call notification just in case").
-// Contract: the pending-incoming-call notification must be posted via send_closure_later, not
-// send_closure, so it is never delivered re-entrantly inside the current actor turn (ordering /
-// reentrancy hardening on the call lifecycle).
-TEST(CallNotificationSendClosureLaterContract, PendingCallNotificationIsPostedDeferred) {
+TEST(CallNotificationSendClosureLaterAdversarial, AddPathMustStayDeferredWhileRemovePathStaysImmediate) {
   auto source = td::mtproto::test::read_repo_text_file("td/telegram/CallActor.cpp");
   auto region = extract_region(source, "void CallActor::flush_call_state() {", "void CallActor::start_up() {");
   auto normalized = normalize_for_contract(region);
 
-  ASSERT_TRUE(normalized.find("autonotification_action=get_pending_call_notification_action(") != td::string::npos);
-  ASSERT_TRUE(normalized.find("send_closure_later(G()->notification_manager(),&NotificationManager::add_call_notification") !=
-              td::string::npos);
+  auto set_flag_pos = normalized.find("has_notification_=true;");
+  auto helper_pos = normalized.find("autonotification_action=get_pending_call_notification_action(");
+  auto add_later_pos = normalized.find(
+      "send_closure_later(G()->notification_manager(),&NotificationManager::add_call_notification,");
+  auto remove_now_pos =
+      normalized.find("send_closure(G()->notification_manager(),&NotificationManager::remove_call_notification,");
+
+  ASSERT_EQ(td::string::npos,
+            normalized.find("send_closure(G()->notification_manager(),&NotificationManager::add_call_notification,"));
+  ASSERT_EQ(td::string::npos,
+            normalized.find("send_closure_later(G()->notification_manager(),&NotificationManager::remove_call_"
+                            "notification,"));
+  ASSERT_NE(td::string::npos, helper_pos);
+  ASSERT_NE(td::string::npos, set_flag_pos);
+  ASSERT_NE(td::string::npos, add_later_pos);
+  ASSERT_NE(td::string::npos, remove_now_pos);
+  ASSERT_TRUE(helper_pos < set_flag_pos);
+  ASSERT_TRUE(set_flag_pos < add_later_pos);
 }
 
 }  // namespace

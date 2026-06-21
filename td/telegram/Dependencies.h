@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -49,6 +49,10 @@ class Dependencies {
   void add_message_sender_dependencies(DialogId dialog_id);
 
   bool resolve_force(Td *td, const char *source, bool ignore_errors = false) const;
+
+  const FlatHashSet<UserId, UserIdHash> &get_user_ids() const {
+    return user_ids;
+  }
 
   const FlatHashSet<DialogId, DialogIdHash> &get_dialog_ids() const {
     return dialog_ids;
