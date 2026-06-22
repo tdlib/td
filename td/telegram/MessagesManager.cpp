@@ -23426,14 +23426,19 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
                      get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(),
                                              has_message_sender_user_id(dialog_id, m)));
 
-  cancel_edit_message_media(dialog_id, m, "Canceled by new editMessageMedia request");
+  do_edit_message_media(dialog_id, m, std::move(content), std::move(new_reply_markup), std::move(promise));
+}
+
+void MessagesManager::do_edit_message_media(DialogId dialog_id, Message *m, InputMessageContent &&content,
+                                            unique_ptr<ReplyMarkup> &&reply_markup, Promise<Unit> &&promise) {
+  cancel_edit_message_media(dialog_id, m, "Canceled by new edit message request");
 
   auto edited_message = make_unique<EditedMessage>();
   edited_message->content_ =
       dup_message_content(td_, dialog_id, content.content.get(), MessageContentDupType::Send, MessageCopyOptions());
   CHECK(edited_message->content_ != nullptr);
   edited_message->invert_media_ = content.invert_media;
-  edited_message->reply_markup_ = std::move(new_reply_markup);
+  edited_message->reply_markup_ = std::move(reply_markup);
   edited_message->promise_ = std::move(promise);
   add_edited_message(dialog_id, m->message_id, std::move(edited_message));
   m->edit_generation = ++current_message_edit_generation_;

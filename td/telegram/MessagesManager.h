@@ -2182,6 +2182,9 @@ class MessagesManager final : public Actor {
 
   void fail_edit_message_media(MessageFullId message_full_id, Status &&error);
 
+  void do_edit_message_media(DialogId dialog_id, Message *m, InputMessageContent &&content,
+                             unique_ptr<ReplyMarkup> &&reply_markup, Promise<Unit> &&promise);
+
   void on_dialog_updated(DialogId dialog_id, const char *source);
 
   static BufferSlice get_dialog_database_value(const Dialog *d);
