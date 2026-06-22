@@ -3771,7 +3771,7 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent
 MessagesManager::~MessagesManager() {
   Scheduler::instance()->destroy_on_scheduler(
       G()->get_gc_scheduler_id(), ttl_nodes_, ttl_heap_, being_sent_messages_, update_message_ids_,
-      update_scheduled_message_ids_, message_id_to_dialog_id_, last_clear_history_message_id_to_dialog_id_, dialogs_,
+      message_id_to_dialog_id_, last_clear_history_message_id_to_dialog_id_, dialogs_,
       postponed_chat_read_inbox_updates_, message_embedding_codes_[0], message_embedding_codes_[1],
       message_to_replied_media_timestamp_messages_, story_to_replied_media_timestamp_messages_,
       notification_group_id_to_dialog_id_, pending_get_channel_differences_, active_get_channel_differences_,
@@ -4175,12 +4175,14 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
   if (update->get_id() == telegram_api::updateNewMessage::ID) {
     auto update_new_message = static_cast<telegram_api::updateNewMessage *>(update.get());
     auto message_full_id = MessageFullId::get_message_full_id(update_new_message->message_, false);
-    if (update_message_ids_.count(message_full_id) > 0) {
+    auto dialog_id = message_full_id.get_dialog_id();
+    auto message_id = message_full_id.get_message_id();
+    if (update_message_ids_.count(dialog_id, message_id) > 0) {
       // apply the sent message anyway even if it could have been deleted or edited already
 
-      CHECK(message_full_id.get_dialog_id().get_type() == DialogType::User ||
-            message_full_id.get_dialog_id().get_type() == DialogType::Chat);  // checked in check_pts_update
-      delete_messages_from_updates({message_full_id.get_message_id()}, false);
+      CHECK(dialog_id.get_type() == DialogType::User ||
+            dialog_id.get_type() == DialogType::Chat);  // checked in check_pts_update
+      delete_messages_from_updates({message_id}, false);
 
       auto added_message_full_id = on_get_message(DialogId(), std::move(update_new_message->message_), true, false,
                                                   "updateNewMessage with an awaited message");
@@ -5504,13 +5506,12 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
       if (update->get_id() == telegram_api::updateNewChannelMessage::ID) {
         auto update_new_channel_message = static_cast<telegram_api::updateNewChannelMessage *>(update.get());
         auto message_id = MessageId::get_message_id(update_new_channel_message->message_, false);
-        MessageFullId message_full_id(dialog_id, message_id);
-        if (update_message_ids_.count(message_full_id) > 0) {
+        if (update_message_ids_.count(dialog_id, message_id) > 0) {
           // apply sent channel message
           auto added_message_full_id = on_get_message(dialog_id, std::move(update_new_channel_message->message_), true,
                                                       false, "updateNewChannelMessage with an awaited message");
           if (added_message_full_id.get_message_id() == MessageId()) {
-            LOG(ERROR) << "Failed to add an awaited " << message_full_id << " from " << source;
+            LOG(ERROR) << "Failed to add an awaited " << message_id << " in " << dialog_id << " from " << source;
           }
           promise.set_value(Unit());
           return;
@@ -6880,14 +6881,13 @@ void MessagesManager::after_get_difference() {
   }
 
   vector<MessageFullId> update_message_full_ids_to_delete;
-  for (auto &it : update_message_ids_) {
+  update_message_ids_.foreach([&](DialogId dialog_id, MessageId message_id, const MessageId &old_message_id) {
     // there can be unhandled updateMessageID updates after getDifference even for ordinary chats,
     // because despite updates coming during getDifference have already been applied,
     // some of them could be postponed because of PTS gap
-    auto message_full_id = it.first;
-    auto dialog_id = message_full_id.get_dialog_id();
-    auto message_id = message_full_id.get_message_id();
-    auto old_message_id = it.second;
+    if (message_id.is_scheduled()) {
+      return;
+    }
     CHECK(message_id.is_server());
     switch (dialog_id.get_type()) {
       case DialogType::Channel:
@@ -6909,7 +6909,7 @@ void MessagesManager::after_get_difference() {
           if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) ||
               (d != nullptr &&
                message_id <= td::max(d->last_clear_history_message_id, d->max_unavailable_message_id))) {
-            update_message_full_ids_to_delete.push_back(message_full_id);
+            update_message_full_ids_to_delete.emplace_back(dialog_id, message_id);
           }
           break;
         }
@@ -6917,7 +6917,7 @@ void MessagesManager::after_get_difference() {
         const Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
         if (message_id <= d->last_new_message_id || td_->auth_manager_->is_bot()) {
-          messages_to_restore_.emplace(message_full_id, old_message_id);
+          messages_to_restore_.emplace({dialog_id, message_id}, old_message_id);
         } else if (dialog_id.get_type() == DialogType::Channel) {
           schedule_get_channel_difference(dialog_id, 0, message_id, 0.001, "after_get_difference");
         }
@@ -6930,7 +6930,7 @@ void MessagesManager::after_get_difference() {
         UNREACHABLE();
         break;
     }
-  }
+  });
   for (const auto &message_full_id : update_message_full_ids_to_delete) {
     update_message_ids_.erase(message_full_id);
   }
@@ -10253,23 +10253,14 @@ void MessagesManager::hangup() {
     while (!being_sent_messages_.empty()) {
       on_send_message_fail(being_sent_messages_.begin()->first, Global::request_aborted_error());
     }
-    while (!update_message_ids_.empty()) {
-      auto it = update_message_ids_.begin();
-      auto message_full_id = MessageFullId(it->first.get_dialog_id(), it->second);
-      update_message_ids_.erase(it);
 
+    vector<MessageFullId> to_fail_message_full_ids;
+    update_message_ids_.foreach([&](DialogId dialog_id, MessageId message_id, const MessageId &old_message_id) {
+      to_fail_message_full_ids.emplace_back(dialog_id, old_message_id);
+    });
+    for (auto &message_full_id : to_fail_message_full_ids) {
       // the message was sent successfully, but can't be added yet
       fail_send_message(message_full_id, Global::request_aborted_error());
-    }
-    while (!update_scheduled_message_ids_.empty()) {
-      auto it = update_scheduled_message_ids_.begin();
-      auto dialog_id = it->first;
-      auto message_ids = std::move(it->second);
-      update_scheduled_message_ids_.erase(it);
-      for (auto &message_id_it : message_ids) {
-        // the message was sent successfully, but can't be added yet
-        fail_send_message({dialog_id, message_id_it.second}, Global::request_aborted_error());
-      }
     }
   }
 
@@ -11587,43 +11578,6 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   return {dialog_id, std::move(message)};
 }
 
-MessageId MessagesManager::find_old_message_id(DialogId dialog_id, MessageId message_id) const {
-  if (message_id.is_scheduled()) {
-    CHECK(message_id.is_scheduled_server());
-    auto dialog_it = update_scheduled_message_ids_.find(dialog_id);
-    if (dialog_it != update_scheduled_message_ids_.end()) {
-      auto it = dialog_it->second.find(message_id.get_scheduled_server_message_id());
-      if (it != dialog_it->second.end()) {
-        return it->second;
-      }
-    }
-  } else {
-    CHECK(message_id.is_server());
-    auto it = update_message_ids_.find(MessageFullId(dialog_id, message_id));
-    if (it != update_message_ids_.end()) {
-      return it->second;
-    }
-  }
-  return MessageId();
-}
-
-void MessagesManager::delete_update_message_id(DialogId dialog_id, MessageId message_id) {
-  if (message_id.is_scheduled()) {
-    CHECK(message_id.is_scheduled_server());
-    auto dialog_it = update_scheduled_message_ids_.find(dialog_id);
-    CHECK(dialog_it != update_scheduled_message_ids_.end());
-    auto erased_count = dialog_it->second.erase(message_id.get_scheduled_server_message_id());
-    CHECK(erased_count > 0);
-    if (dialog_it->second.empty()) {
-      update_scheduled_message_ids_.erase(dialog_it);
-    }
-  } else {
-    CHECK(message_id.is_server());
-    auto erased_count = update_message_ids_.erase(MessageFullId(dialog_id, message_id));
-    CHECK(erased_count > 0);
-  }
-}
-
 MessageFullId MessagesManager::on_get_message(DialogId dialog_id,
                                               telegram_api::object_ptr<telegram_api::Message> message_ptr,
                                               bool from_update, bool is_scheduled, const char *source) {
@@ -11657,7 +11611,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
 
   Dialog *d = get_dialog_force(dialog_id, source);
 
-  MessageId old_message_id = find_old_message_id(dialog_id, message_id);
+  MessageId old_message_id = update_message_ids_.get(dialog_id, message_id);
   bool is_sent_message = false;
   if (old_message_id.is_valid() || old_message_id.is_valid_scheduled()) {
     CHECK(d != nullptr);
@@ -11685,7 +11639,8 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
       }
     }
 
-    delete_update_message_id(dialog_id, message_id);
+    auto erased_count = update_message_ids_.erase(dialog_id, message_id);
+    CHECK(erased_count > 0);
 
     if (!new_message->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
       // sent message is not from me
@@ -25168,11 +25123,7 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
 
   LOG(INFO) << "Save correspondence from " << new_message_id << " in " << dialog_id << " to " << old_message_id;
   CHECK(old_message_id.is_yet_unsent());
-  if (new_message_id.is_scheduled()) {
-    update_scheduled_message_ids_[dialog_id][new_message_id.get_scheduled_server_message_id()] = old_message_id;
-  } else {
-    update_message_ids_[MessageFullId(dialog_id, new_message_id)] = old_message_id;
-  }
+  update_message_ids_.set(dialog_id, new_message_id, old_message_id);
   return true;
 }
 
@@ -31529,14 +31480,15 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
     }
 
     if (message_id.is_any_server()) {
-      auto old_message_id = find_old_message_id(d->dialog_id, message_id);
-      if (old_message_id.is_valid()) {
+      auto old_message_id = update_message_ids_.get(d->dialog_id, message_id);
+      if (old_message_id != MessageId()) {
         bool have_old_message = get_message(d, old_message_id) != nullptr;
         LOG(WARNING) << "Sent " << MessageFullId{d->dialog_id, message_id}
                      << " was deleted before it was received. Have old " << old_message_id << " = " << have_old_message;
         send_closure_later(actor_id(this), &MessagesManager::delete_messages, d->dialog_id,
                            vector<MessageId>{old_message_id}, false, Promise<Unit>());
-        delete_update_message_id(d->dialog_id, message_id);
+        auto erased_count = update_message_ids_.erase(d->dialog_id, message_id);
+        CHECK(erased_count > 0);
       }
     }
   }
@@ -34445,8 +34397,7 @@ void MessagesManager::process_get_channel_difference_updates(
       if (update->get_id() == telegram_api::updateNewChannelMessage::ID) {
         auto update_new_channel_message = static_cast<telegram_api::updateNewChannelMessage *>(update.get());
         auto message_id = MessageId::get_message_id(update_new_channel_message->message_, false);
-        MessageFullId message_full_id(dialog_id, message_id);
-        if (update_message_ids_.count(message_full_id) > 0 && changed_message_ids.count(message_id) > 0) {
+        if (update_message_ids_.count(dialog_id, message_id) > 0 && changed_message_ids.count(message_id) > 0) {
           changed_message_ids.erase(message_id);
           AwaitedMessage awaited_message;
           awaited_message.message = std::move(update_new_channel_message->message_);

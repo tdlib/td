@@ -36,25 +36,27 @@ class MessageHashMap {
   ValueT get(DialogId dialog_id, MessageId message_id) const {
     if (message_id.is_scheduled() && message_id.is_scheduled_server()) {
       auto it = scheduled_messages_.find(dialog_id);
-      if (it == scheduled_messages_.end()) {
-        return {};
+      if (it != scheduled_messages_.end()) {
+        auto message_it = it->second.find(message_id.get_scheduled_server_message_id());
+        if (message_it != it->second.end()) {
+          return message_it->second;
+        }
       }
-      auto message_it = it->second.find(message_id.get_scheduled_server_message_id());
-      if (message_it == it->second.end()) {
-        return {};
-      }
-      return message_it->second;
     } else {
       auto message_it = messages_.find({dialog_id, message_id});
-      if (message_it == messages_.end()) {
-        return {};
+      if (message_it != messages_.end()) {
+        return message_it->second;
       }
-      return message_it->second;
     }
+    return {};
   }
 
   ValueT get(MessageFullId message_full_id) const {
     return get(message_full_id.get_dialog_id(), message_full_id.get_message_id());
+  }
+
+  bool empty() const {
+    return messages_.empty() && scheduled_messages_.empty();
   }
 
   size_t count(DialogId dialog_id, MessageId message_id) const {
@@ -111,19 +113,32 @@ class MessageHashMap {
     return get_pointer(message_full_id.get_dialog_id(), message_full_id.get_message_id());
   }
 
+  ValueT &operator[](MessageFullId message_full_id) {
+    auto message_id = message_full_id.get_message_id();
+    if (message_id.is_scheduled() && message_id.is_scheduled_server()) {
+      return scheduled_messages_[message_full_id.get_dialog_id()][message_id.get_scheduled_server_message_id()];
+    } else {
+      return messages_[message_full_id];
+    }
+  }
+
   size_t erase(DialogId dialog_id, MessageId message_id) {
     if (message_id.is_scheduled() && message_id.is_scheduled_server()) {
       auto it = scheduled_messages_.find(dialog_id);
       if (it == scheduled_messages_.end()) {
         return 0;
       }
-      return it->second.erase(message_id.get_scheduled_server_message_id());
+      auto erased_count = it->second.erase(message_id.get_scheduled_server_message_id());
+      if (it->second.empty()) {
+        scheduled_messages_.erase(it);
+      }
+      return erased_count;
     } else {
       return messages_.erase({dialog_id, message_id});
     }
   }
 
-  size_t erase(MessageFullId message_full_id) const {
+  size_t erase(MessageFullId message_full_id) {
     return erase(message_full_id.get_dialog_id(), message_full_id.get_message_id());
   }
 
@@ -134,7 +149,7 @@ class MessageHashMap {
     }
     for (auto &it : scheduled_messages_) {
       for (auto &message_it : it.second) {
-        callback(it.first, message_it.first, message_it.second);
+        callback(it.first, MessageId(message_it.first, 2100000000), message_it.second);
       }
     }
   }

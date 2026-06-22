@@ -1691,10 +1691,6 @@ class MessagesManager final : public Actor {
   static std::pair<DialogId, unique_ptr<Message>> create_message(Td *td, MessageInfo &&message_info,
                                                                  bool is_guest_message, const char *source);
 
-  MessageId find_old_message_id(DialogId dialog_id, MessageId message_id) const;
-
-  void delete_update_message_id(DialogId dialog_id, MessageId message_id);
-
   void get_dialog_message_count_from_server(DialogId dialog_id, MessageTopic message_topic, MessageSearchFilter filter,
                                             Promise<int32> &&promise);
 
@@ -3226,10 +3222,8 @@ class MessagesManager final : public Actor {
 
   FlatHashMap<int64, MessageFullId> being_sent_messages_;  // message_random_id -> message
 
-  FlatHashMap<MessageFullId, MessageId, MessageFullIdHash> update_message_ids_;  // new_message_id -> temporary_id
-  FlatHashMap<DialogId, FlatHashMap<ScheduledServerMessageId, MessageId, ScheduledServerMessageIdHash>,
-              DialogIdHash>
-      update_scheduled_message_ids_;                                              // new_message_id -> temporary_id
+  MessageHashMap<MessageId> update_message_ids_;  // new_message_id -> temporary_id
+
   FlatHashMap<MessageFullId, MessageId, MessageFullIdHash> messages_to_restore_;  // new_message_id -> temporary_id
 
   FlatHashMap<MessageFullId, vector<Promise<Unit>>, MessageFullIdHash> awaited_message_full_ids_;
