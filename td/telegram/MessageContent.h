@@ -166,9 +166,6 @@ InputMedia get_message_content_input_media(const MessageContent *content, Td *td
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page(
     const Td *td, const MessageContent *content);
 
-telegram_api::object_ptr<telegram_api::InputRichMessage> get_message_content_input_rich_message(
-    const Td *td, const MessageContent *content);
-
 bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> &input_media);
 
 void delete_message_content_thumbnail(Td *td, MessageContent *content, int32 media_pos);

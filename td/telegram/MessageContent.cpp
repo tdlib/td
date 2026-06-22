@@ -5934,16 +5934,6 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
                                                                     is_optional, text->web_page_url);
 }
 
-telegram_api::object_ptr<telegram_api::InputRichMessage> get_message_content_input_rich_message(
-    const Td *td, const MessageContent *content) {
-  CHECK(content != nullptr);
-  if (content->get_type() != MessageContentType::RichText) {
-    return nullptr;
-  }
-  auto *m = static_cast<const MessageRichText *>(content);
-  return m->rich_message.get_input_rich_message(td);
-}
-
 bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
   CHECK(input_media != nullptr);
   LOG(DEBUG) << "Have " << to_string(input_media);
