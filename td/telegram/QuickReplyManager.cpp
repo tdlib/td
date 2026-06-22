@@ -2371,7 +2371,11 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, int32 media_
       CHECK(media_pos == -1);
       LOG(INFO) << "Add internal media send for " << message_full_id << " with " << file_upload_ids.size() << " files";
       auto &request = pending_internal_media_sends_[message_full_id];
-      CHECK(request.is_finished.empty());
+      if (is_edit) {
+        request = PendingInternalMediaSend();
+      } else {
+        CHECK(request.is_finished.empty());
+      }
       request.is_finished.resize(file_upload_ids.size());
       request.results.resize(file_upload_ids.size());
     }
