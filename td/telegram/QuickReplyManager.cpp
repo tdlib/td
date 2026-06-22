@@ -253,8 +253,7 @@ class QuickReplyManager::SendQuickReplyMessageQuery final : public Td::ResultHan
     }
     CHECK(m->edited_content == nullptr);
     const FormattedText *message_text = get_message_content_text(m->content.get());
-    auto input_rich_message = get_message_content_input_rich_message(td_, m->content.get());
-    CHECK(message_text != nullptr || input_rich_message != nullptr);
+    CHECK(message_text != nullptr);
     auto entities = get_input_message_entities(td_->user_manager_.get(), message_text, "SendQuickReplyMessageQuery");
     if (!entities.empty()) {
       flags |= telegram_api::messages_sendMessage::ENTITIES_MASK;
@@ -265,8 +264,7 @@ class QuickReplyManager::SendQuickReplyMessageQuery final : public Td::ResultHan
             flags, m->disable_web_page_preview, false, false, false, false, false, m->invert_media, false,
             telegram_api::make_object<telegram_api::inputPeerSelf>(), std::move(reply_to),
             message_text == nullptr ? string() : message_text->text, m->random_id, nullptr, std::move(entities), 0, 0,
-            nullptr, td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0, 0, nullptr,
-            std::move(input_rich_message)),
+            nullptr, td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0, 0, nullptr, nullptr),
         {{"me"}}));
   }
 
@@ -349,7 +347,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
   bool was_thumbnail_uploaded_ = false;
 
  public:
-  void send(const QuickReplyMessage *m, telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) {
+  void send(const QuickReplyMessage *m, InputMedia &&input_media) {
     random_id_ = m->random_id;
     shortcut_id_ = m->shortcut_id;
     file_upload_ids_ = m->file_upload_ids;
@@ -360,12 +358,30 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     was_thumbnail_uploaded_ = FileManager::extract_was_thumbnail_uploaded(input_media);
 
-    int32 flags = telegram_api::messages_sendMedia::QUICK_REPLY_SHORTCUT_MASK;
     auto reply_to = MessageInputReplyTo::regular(m->reply_to_message_id).get_input_reply_to(td_, MessageTopic());
+    CHECK(m->edited_content == nullptr);
+
+    if (input_media.rich_message_ != nullptr) {
+      int32 flags = telegram_api::messages_sendMessage::QUICK_REPLY_SHORTCUT_MASK |
+                    telegram_api::messages_sendMessage::RICH_MESSAGE_MASK;
+      if (reply_to != nullptr) {
+        flags |= telegram_api::messages_sendMessage::REPLY_TO_MASK;
+      }
+
+      send_query(G()->net_query_creator().create(
+          telegram_api::messages_sendMessage(
+              flags, m->disable_web_page_preview, false, false, false, false, false, m->invert_media, false,
+              telegram_api::make_object<telegram_api::inputPeerSelf>(), std::move(reply_to), string(), m->random_id,
+              nullptr, Auto(), 0, 0, nullptr, td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id),
+              0, 0, nullptr, std::move(input_media.rich_message_)),
+          {{"me"}}));
+      return;
+    }
+
+    int32 flags = telegram_api::messages_sendMedia::QUICK_REPLY_SHORTCUT_MASK;
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMedia::REPLY_TO_MASK;
     }
-    CHECK(m->edited_content == nullptr);
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
     const FormattedText *message_text = get_message_content_text(m->content.get());
     if (message_text != nullptr) {
@@ -378,13 +394,16 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendMedia(
             flags, false, false, false, false, false, m->invert_media, false,
-            telegram_api::make_object<telegram_api::inputPeerSelf>(), std::move(reply_to), std::move(input_media),
-            message_text == nullptr ? string() : message_text->text, m->random_id, nullptr, std::move(entities), 0, 0,
-            nullptr, td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0, 0, nullptr),
+            telegram_api::make_object<telegram_api::inputPeerSelf>(), std::move(reply_to),
+            std::move(input_media.media_), message_text == nullptr ? string() : message_text->text, m->random_id,
+            nullptr, std::move(entities), 0, 0, nullptr,
+            td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0, 0, nullptr),
         {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::messages_sendMessage::ReturnType,
+                               telegram_api::messages_sendMedia::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::messages_sendMedia>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -659,7 +678,7 @@ class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHan
   bool was_thumbnail_uploaded_ = false;
 
  public:
-  void send(const QuickReplyMessage *m, telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) {
+  void send(const QuickReplyMessage *m, InputMedia &&input_media) {
     CHECK(m != nullptr);
     CHECK(m->edited_content != nullptr);
     CHECK(m->edit_generation > 0);
@@ -685,11 +704,10 @@ class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHan
       }
       flags |= telegram_api::messages_editMessage::MESSAGE_MASK;
     }
-    if (input_media != nullptr) {
+    if (input_media.media_ != nullptr) {
       flags |= telegram_api::messages_editMessage::MEDIA_MASK;
     }
-    auto input_rich_message = get_message_content_input_rich_message(td_, content);
-    if (input_rich_message != nullptr) {
+    if (input_media.rich_message_ != nullptr) {
       flags |= telegram_api::messages_editMessage::RICH_MESSAGE_MASK;
     }
 
@@ -698,8 +716,8 @@ class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHan
         telegram_api::messages_editMessage(
             flags, m->edited_disable_web_page_preview, m->edited_invert_media,
             telegram_api::make_object<telegram_api::inputPeerSelf>(), m->message_id.get_server_message_id().get(),
-            text != nullptr ? text->text : string(), std::move(input_media), nullptr, std::move(entities), 0, 0,
-            m->shortcut_id.get(), std::move(input_rich_message)),
+            text != nullptr ? text->text : string(), std::move(input_media.media_), nullptr, std::move(entities), 0, 0,
+            m->shortcut_id.get(), std::move(input_media.rich_message_)),
         {{"me"}}));
   }
 
@@ -2278,7 +2296,7 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, int32 media_
 
   if (content_type == MessageContentType::Text) {
     if (is_edit) {
-      td_->create_handler<EditQuickReplyMessageQuery>()->send(m, nullptr);
+      td_->create_handler<EditQuickReplyMessageQuery>()->send(m, InputMedia());
       return;
     }
     auto input_media = get_message_content_input_media_web_page(td_, content);
@@ -2335,9 +2353,9 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, int32 media_
     CHECK(!bad_parts.empty());
     CHECK(static_cast<size_t>(media_pos) < file_upload_ids.size());
   }
-  auto input_media = get_message_content_input_media(content, td_, {}, m->send_emoji, false, media_pos).media_;
+  auto input_media = get_message_content_input_media(content, td_, {}, m->send_emoji, false, media_pos);
   auto can_have_multiple_files = can_message_content_have_multiple_files(content_type);
-  if (input_media == nullptr || media_pos >= 0 || !bad_parts.empty() || can_have_multiple_files) {
+  if (input_media.is_empty() || media_pos >= 0 || !bad_parts.empty() || can_have_multiple_files) {
     if (content_type == MessageContentType::Game || content_type == MessageContentType::Story) {
       return;
     }
@@ -2474,9 +2492,8 @@ void QuickReplyManager::do_send_media(const QuickReplyMessage *m, int32 media_po
   auto thumbnail_file_upload_id = get_message_send_thumbnail_file_upload_id(m, media_pos);
   auto input_media =
       get_message_content_input_media(content, media_pos, td_, std::move(input_file), std::move(input_thumbnail),
-                                      file_upload_id, thumbnail_file_upload_id, {}, m->send_emoji, true)
-          .media_;
-  CHECK(input_media != nullptr);
+                                      file_upload_id, thumbnail_file_upload_id, {}, m->send_emoji, true);
+  CHECK(!input_media.is_empty());
 
   on_message_media_uploaded(m, media_pos, std::move(input_media));
 }
@@ -2538,13 +2555,13 @@ void QuickReplyManager::on_upload_thumbnail(FileUploadId thumbnail_file_upload_i
 }
 
 void QuickReplyManager::on_message_media_uploaded(const QuickReplyMessage *m, int32 media_pos,
-                                                  telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) {
+                                                  InputMedia &&input_media) {
   if (G()->close_flag()) {
     return;
   }
 
   CHECK(m != nullptr);
-  CHECK(input_media != nullptr);
+  CHECK(!input_media.is_empty());
   auto message_id = m->message_id;
   if (message_id.is_any_server()) {
     CHECK(m->edited_content != nullptr);
@@ -2554,8 +2571,9 @@ void QuickReplyManager::on_message_media_uploaded(const QuickReplyMessage *m, in
   }
 
   if (m->media_album_id != 0 || media_pos != -1) {
-    if (!is_uploaded_input_media(input_media)) {
-      td_->create_handler<UploadQuickReplyMediaQuery>()->send(m, media_pos, std::move(input_media));
+    CHECK(input_media.media_ != nullptr);
+    if (!is_uploaded_input_media(input_media.media_)) {
+      td_->create_handler<UploadQuickReplyMediaQuery>()->send(m, media_pos, std::move(input_media.media_));
     } else {
       send_closure_later(actor_id(this), &QuickReplyManager::on_upload_message_media_finished, m->media_album_id,
                          m->shortcut_id, m->message_id, media_pos, Status::OK());
@@ -2586,9 +2604,9 @@ void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId sho
 
   save_quick_reply_shortcuts();
 
-  auto input_media = get_message_content_input_media(content.get(), td_, {}, m->send_emoji, true, media_pos).media_;
+  auto input_media = get_message_content_input_media(content.get(), td_, {}, m->send_emoji, true, media_pos);
   Status result;
-  if (input_media == nullptr) {
+  if (input_media.is_empty()) {
     result = Status::Error(400, "Failed to upload file");
   }
 
@@ -2803,8 +2821,8 @@ void QuickReplyManager::do_send_internal_media_group(QuickReplyShortcutId shortc
     return;
   }
 
-  auto input_media = get_message_content_input_media(m->content.get(), td_, {}, m->send_emoji, true, -1).media_;
-  CHECK(input_media != nullptr);
+  auto input_media = get_message_content_input_media(m->content.get(), td_, {}, m->send_emoji, true, -1);
+  CHECK(!input_media.is_empty());
 
   LOG(INFO) << "Begin to send internal media " << message_id << " to " << shortcut_id;
 

@@ -1633,6 +1633,8 @@ class SendMediaQuery final : public Td::ResultHandler {
   }
 
   void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::messages_sendMessage::ReturnType,
+                               telegram_api::messages_sendMedia::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::messages_sendMedia>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());

@@ -10,6 +10,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileUploadId.h"
+#include "td/telegram/InputMedia.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/QuickReplyMessageFullId.h"
 #include "td/telegram/QuickReplyShortcutId.h"
@@ -420,8 +421,7 @@ class QuickReplyManager final : public Actor {
 
   void do_send_internal_media_group(QuickReplyShortcutId shortcut_id, MessageId message_id);
 
-  void on_message_media_uploaded(const QuickReplyMessage *m, int32 media_pos,
-                                 telegram_api::object_ptr<telegram_api::InputMedia> &&input_media);
+  void on_message_media_uploaded(const QuickReplyMessage *m, int32 media_pos, InputMedia &&input_media);
 
   void on_send_media_group_file_reference_error(QuickReplyShortcutId shortcut_id, vector<int64> random_ids);
 
