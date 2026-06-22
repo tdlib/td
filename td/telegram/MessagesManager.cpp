@@ -10326,7 +10326,7 @@ void MessagesManager::hangup() {
       query.first.set_error(Global::request_aborted_error());
     }
   }
-  // no need to clean edited_messages_ and edited_scheduled_messages_
+  // no need to clean edited_messages_
   // no need to clean pending_secret_messages_
   // no need to clean yet_unsent_media_queues_
 
@@ -14269,46 +14269,8 @@ bool MessagesManager::is_dialog_blocked(DialogId dialog_id) const {
   return d != nullptr && d->is_blocked;
 }
 
-void MessagesManager::add_edited_message(DialogId dialog_id, MessageId message_id,
-                                         unique_ptr<EditedMessage> edited_message) {
-  if (message_id.is_scheduled()) {
-    edited_scheduled_messages_[dialog_id][message_id.get_scheduled_server_message_id()] = std::move(edited_message);
-  } else {
-    edited_messages_[{dialog_id, message_id}] = std::move(edited_message);
-  }
-}
-
-MessagesManager::EditedMessage *MessagesManager::get_edited_message(DialogId dialog_id, MessageId message_id) {
-  return const_cast<EditedMessage *>(
-      static_cast<const MessagesManager *>(this)->get_edited_message(dialog_id, message_id));
-}
-
-const MessagesManager::EditedMessage *MessagesManager::get_edited_message(DialogId dialog_id,
-                                                                          MessageId message_id) const {
-  if (message_id.is_scheduled()) {
-    if (!message_id.is_scheduled_server()) {
-      return nullptr;
-    }
-    auto it = edited_scheduled_messages_.find(dialog_id);
-    if (it == edited_scheduled_messages_.end()) {
-      return nullptr;
-    }
-    auto message_it = it->second.find(message_id.get_scheduled_server_message_id());
-    if (message_it == it->second.end()) {
-      return nullptr;
-    }
-    return message_it->second.get();
-  } else {
-    auto message_it = edited_messages_.find({dialog_id, message_id});
-    if (message_it == edited_messages_.end()) {
-      return nullptr;
-    }
-    return message_it->second.get();
-  }
-}
-
 MessageContent *MessagesManager::get_edited_message_content(MessageFullId message_full_id) {
-  auto edited_message = get_edited_message(message_full_id.get_dialog_id(), message_full_id.get_message_id());
+  auto edited_message = edited_messages_.get_pointer(message_full_id.get_dialog_id(), message_full_id.get_message_id());
   if (edited_message == nullptr) {
     return nullptr;
   }
@@ -14316,21 +14278,11 @@ MessageContent *MessagesManager::get_edited_message_content(MessageFullId messag
 }
 
 const MessageContent *MessagesManager::get_edited_message_content(MessageFullId message_full_id) const {
-  auto edited_message = get_edited_message(message_full_id.get_dialog_id(), message_full_id.get_message_id());
+  auto edited_message = edited_messages_.get_pointer(message_full_id.get_dialog_id(), message_full_id.get_message_id());
   if (edited_message == nullptr) {
     return nullptr;
   }
   return edited_message->content_.get();
-}
-
-void MessagesManager::delete_edited_message(DialogId dialog_id, MessageId message_id) {
-  if (message_id.is_scheduled()) {
-    auto it = edited_scheduled_messages_.find(dialog_id);
-    CHECK(it != edited_scheduled_messages_.end());
-    it->second.erase(message_id.get_scheduled_server_message_id());
-  } else {
-    edited_messages_.erase({dialog_id, message_id});
-  }
 }
 
 DialogId MessagesManager::get_dialog_message_sender(MessageFullId message_full_id) {
@@ -21326,7 +21278,7 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
 vector<FileUploadId> *MessagesManager::get_message_file_upload_ids(DialogId dialog_id, const Message *m,
                                                                    bool is_thumbnail) const {
   if (m->message_id.is_any_server()) {
-    auto edited_message = get_edited_message(dialog_id, m->message_id);
+    auto edited_message = edited_messages_.get_pointer(dialog_id, m->message_id);
     if (edited_message == nullptr) {
       return nullptr;
     }
@@ -21694,7 +21646,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
 
   const EditedMessage *edited_message = nullptr;
   if (is_edit) {
-    edited_message = get_edited_message(dialog_id, m->message_id);
+    edited_message = edited_messages_.get_pointer(dialog_id, m->message_id);
     CHECK(edited_message != nullptr);
   }
 
@@ -21852,7 +21804,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
   auto message_id = m->message_id;
   if (message_id.is_any_server()) {
     CHECK(media_pos == -1);
-    const auto *edited_message = get_edited_message(dialog_id, m->message_id);
+    const auto *edited_message = edited_messages_.get_pointer(dialog_id, m->message_id);
     CHECK(edited_message != nullptr);
     CHECK(edited_message->file_upload_ids_.size() == 1u);
     auto file_upload_id = get_message_send_file_upload_id(dialog_id, m, media_pos);
@@ -23251,14 +23203,15 @@ void MessagesManager::edit_message_to_do_list(MessageFullId message_full_id,
 }
 
 void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message) {
-  auto *edited_message = get_edited_message(dialog_id, m->message_id);
+  auto *edited_message = edited_messages_.get_pointer(dialog_id, m->message_id);
   if (edited_message == nullptr) {
     return;
   }
 
   cancel_upload_message_content_files(edited_message->file_upload_ids_, edited_message->thumbnail_file_upload_ids_);
   auto promise = std::move(edited_message->promise_);
-  delete_edited_message(dialog_id, m->message_id);
+  bool is_erased = edited_messages_.erase(dialog_id, m->message_id) > 0;
+  CHECK(is_erased);
   m->edit_generation = 0;
   promise.set_error(400, error_message);
 }
@@ -23287,7 +23240,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     return;
   }
 
-  auto edited_message = get_edited_message(dialog_id, message_id);
+  auto edited_message = edited_messages_.get_pointer(dialog_id, message_id);
   CHECK(edited_message->content_ != nullptr);
   if (result.is_ok()) {
     // message content has already been replaced from updateEdit{Channel,}Message
@@ -23366,7 +23319,8 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     m->edited_schedule_repeat_period = 0;
   }
   auto promise = std::move(edited_message->promise_);
-  delete_edited_message(dialog_id, message_id);
+  bool is_erased = edited_messages_.erase(dialog_id, message_id) > 0;
+  CHECK(is_erased);
   m->edit_generation = 0;
   if (result.is_ok()) {
     promise.set_value(Unit());
@@ -23440,7 +23394,7 @@ void MessagesManager::do_edit_message_media(DialogId dialog_id, Message *m, Inpu
   edited_message->invert_media_ = content.invert_media;
   edited_message->reply_markup_ = std::move(reply_markup);
   edited_message->promise_ = std::move(promise);
-  add_edited_message(dialog_id, m->message_id, std::move(edited_message));
+  edited_messages_.set(dialog_id, m->message_id, std::move(edited_message));
   m->edit_generation = ++current_message_edit_generation_;
 
   do_send_message(dialog_id, m);
@@ -27923,7 +27877,7 @@ void MessagesManager::fail_edit_message_media(MessageFullId message_full_id, Sta
     // message has already been deleted by the user or sent to inaccessible channel
     return;
   }
-  auto edited_message = get_edited_message(dialog_id, message_id);
+  auto edited_message = edited_messages_.get_pointer(dialog_id, message_id);
   if (edited_message == nullptr) {
     return;
   }
@@ -32294,7 +32248,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
 
   vector<FileUploadId> old_file_upload_ids;
   if (old_message->message_id.is_any_server()) {
-    const auto *edited_message = get_edited_message(dialog_id, old_message->message_id);
+    const auto *edited_message = edited_messages_.get_pointer(dialog_id, old_message->message_id);
     if (edited_message != nullptr) {
       old_file_upload_ids = edited_message->file_upload_ids_;
     }

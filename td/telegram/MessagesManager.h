@@ -33,6 +33,7 @@
 #include "td/telegram/MessageDb.h"
 #include "td/telegram/MessageEffectId.h"
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/MessageHashMap.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageLinkInfo.h"
@@ -2744,17 +2745,9 @@ class MessagesManager final : public Actor {
   DialogFolder *get_dialog_folder(FolderId folder_id);
   const DialogFolder *get_dialog_folder(FolderId folder_id) const;
 
-  void add_edited_message(DialogId dialog_id, MessageId message_id, unique_ptr<EditedMessage> edited_message);
-
-  EditedMessage *get_edited_message(DialogId dialog_id, MessageId message_id);
-
-  const EditedMessage *get_edited_message(DialogId dialog_id, MessageId message_id) const;
-
   MessageContent *get_edited_message_content(MessageFullId message_full_id);
 
   const MessageContent *get_edited_message_content(MessageFullId message_full_id) const;
-
-  void delete_edited_message(DialogId dialog_id, MessageId message_id);
 
   static Message *get_message(Dialog *d, MessageId message_id);
   static const Message *get_message(const Dialog *d, MessageId message_id);
@@ -3460,10 +3453,7 @@ class MessagesManager final : public Actor {
 
   FlatHashMap<string, int32> auth_notification_id_date_;
 
-  FlatHashMap<MessageFullId, unique_ptr<EditedMessage>, MessageFullIdHash> edited_messages_;
-  FlatHashMap<DialogId, FlatHashMap<ScheduledServerMessageId, unique_ptr<EditedMessage>, ScheduledServerMessageIdHash>,
-              DialogIdHash>
-      edited_scheduled_messages_;
+  MessageHashMap<unique_ptr<EditedMessage>> edited_messages_;
 
   FlatHashMap<DialogId, MessageId, DialogIdHash> previous_repaired_read_inbox_max_message_id_;
 
