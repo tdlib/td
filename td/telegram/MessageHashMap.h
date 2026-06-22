@@ -53,11 +53,36 @@ class MessageHashMap {
     }
   }
 
+  ValueT get(MessageFullId message_full_id) const {
+    return get(message_full_id.get_dialog_id(), message_full_id.get_message_id());
+  }
+
+  size_t count(DialogId dialog_id, MessageId message_id) const {
+    if (message_id.is_scheduled() && message_id.is_scheduled_server()) {
+      auto it = scheduled_messages_.find(dialog_id);
+      if (it == scheduled_messages_.end()) {
+        return 0;
+      }
+      return it->second.count(message_id.get_scheduled_server_message_id());
+    } else {
+      return messages_.count({dialog_id, message_id});
+    }
+  }
+
+  size_t count(MessageFullId message_full_id) const {
+    return count(message_full_id.get_dialog_id(), message_full_id.get_message_id());
+  }
+
   // specialization for MessageHashMap<unique_ptr<T>>
   template <class T = ValueT>
   typename T::element_type *get_pointer(DialogId dialog_id, MessageId message_id) {
     return const_cast<typename T::element_type *>(
         static_cast<const MessageHashMap *>(this)->get_pointer(dialog_id, message_id));
+  }
+
+  template <class T = ValueT>
+  typename T::element_type *get_pointer(MessageFullId message_full_id) {
+    return get_pointer(message_full_id.get_dialog_id(), message_full_id.get_message_id());
   }
 
   template <class T = ValueT>
@@ -81,6 +106,11 @@ class MessageHashMap {
     }
   }
 
+  template <class T = ValueT>
+  const typename T::element_type *get_pointer(MessageFullId message_full_id) const {
+    return get_pointer(message_full_id.get_dialog_id(), message_full_id.get_message_id());
+  }
+
   size_t erase(DialogId dialog_id, MessageId message_id) {
     if (message_id.is_scheduled() && message_id.is_scheduled_server()) {
       auto it = scheduled_messages_.find(dialog_id);
@@ -91,6 +121,10 @@ class MessageHashMap {
     } else {
       return messages_.erase({dialog_id, message_id});
     }
+  }
+
+  size_t erase(MessageFullId message_full_id) const {
+    return erase(message_full_id.get_dialog_id(), message_full_id.get_message_id());
   }
 
   void foreach(

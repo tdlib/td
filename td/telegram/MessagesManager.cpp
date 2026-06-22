@@ -14270,7 +14270,7 @@ bool MessagesManager::is_dialog_blocked(DialogId dialog_id) const {
 }
 
 MessageContent *MessagesManager::get_edited_message_content(MessageFullId message_full_id) {
-  auto edited_message = edited_messages_.get_pointer(message_full_id.get_dialog_id(), message_full_id.get_message_id());
+  auto edited_message = edited_messages_.get_pointer(message_full_id);
   if (edited_message == nullptr) {
     return nullptr;
   }
@@ -14278,7 +14278,7 @@ MessageContent *MessagesManager::get_edited_message_content(MessageFullId messag
 }
 
 const MessageContent *MessagesManager::get_edited_message_content(MessageFullId message_full_id) const {
-  auto edited_message = edited_messages_.get_pointer(message_full_id.get_dialog_id(), message_full_id.get_message_id());
+  auto edited_message = edited_messages_.get_pointer(message_full_id);
   if (edited_message == nullptr) {
     return nullptr;
   }
