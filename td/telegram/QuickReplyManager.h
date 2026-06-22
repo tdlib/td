@@ -387,8 +387,8 @@ class QuickReplyManager final : public Actor {
 
   void do_send_message(const QuickReplyMessage *m, int32 media_pos = -1, vector<int> bad_parts = {});
 
-  void on_send_message_file_error(QuickReplyShortcutId shortcut_id, int64 random_id, size_t pos,
-                                  vector<int> &&bad_parts);
+  void on_send_message_file_error(QuickReplyShortcutId shortcut_id, MessageId message_id, int64 random_id, size_t pos,
+                                  int64 edit_generation, vector<int> &&bad_parts);
 
   void on_upload_media(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
@@ -402,14 +402,14 @@ class QuickReplyManager final : public Actor {
                            telegram_api::object_ptr<telegram_api::InputFile> thumbnail_input_file);
 
   void on_upload_message_media_success(QuickReplyShortcutId shortcut_id, MessageId message_id, int32 media_pos,
-                                       FileUploadId file_upload_id,
+                                       int64 edit_generation, FileUploadId file_upload_id,
                                        telegram_api::object_ptr<telegram_api::MessageMedia> &&media);
 
   void on_upload_message_media_fail(QuickReplyShortcutId shortcut_id, MessageId message_id, int32 media_pos,
-                                    Status error);
+                                    int64 edit_generation, Status error);
 
   void on_upload_message_media_finished(int64 media_album_id, QuickReplyShortcutId shortcut_id, MessageId message_id,
-                                        int32 media_pos, Status result);
+                                        int32 media_pos, int64 edit_generation, Status result);
 
   vector<FileUploadId> *get_message_file_upload_ids(const QuickReplyMessage *m, bool is_thumbnail) const;
 
