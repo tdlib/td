@@ -487,7 +487,7 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
   QuickReplyShortcutId shortcut_id_;
   MessageId message_id_;
   int32 media_pos_ = -1;
-  int64 edit_generation_ = 0;
+  uint64 edit_generation_ = 0;
   FileUploadId file_upload_id_;
   FileUploadId thumbnail_file_upload_id_;
   FileId cover_file_id_;
@@ -497,7 +497,7 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
   bool was_thumbnail_uploaded_ = false;
 
  public:
-  void send(const QuickReplyMessage *m, int32 media_pos, int64 edit_generation,
+  void send(const QuickReplyMessage *m, int32 media_pos, uint64 edit_generation,
             telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) {
     random_id_ = m->random_id;
     shortcut_id_ = m->shortcut_id;
@@ -675,7 +675,7 @@ class QuickReplyManager::SendQuickReplyMultiMediaQuery final : public Td::Result
 class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHandler {
   QuickReplyShortcutId shortcut_id_;
   MessageId message_id_;
-  int64 edit_generation_ = 0;
+  uint64 edit_generation_ = 0;
   vector<FileUploadId> file_upload_ids_;
   vector<FileUploadId> thumbnail_file_upload_ids_;
   vector<FileId> cover_file_ids_;
@@ -2241,8 +2241,8 @@ Result<td_api::object_ptr<td_api::quickReplyMessages>> QuickReplyManager::send_m
   return td_api::make_object<td_api::quickReplyMessages>(std::move(messages));
 }
 
-void QuickReplyManager::on_cover_upload(QuickReplyMessageFullId message_full_id, int64 edit_generation, int32 media_pos,
-                                        vector<int> bad_parts, Result<Unit> result) {
+void QuickReplyManager::on_cover_upload(QuickReplyMessageFullId message_full_id, uint64 edit_generation,
+                                        int32 media_pos, vector<int> bad_parts, Result<Unit> result) {
   if (G()->close_flag()) {
     return;
   }
@@ -2416,7 +2416,7 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, int32 media_
 }
 
 void QuickReplyManager::on_send_message_file_error(QuickReplyShortcutId shortcut_id, MessageId message_id,
-                                                   int64 random_id, size_t pos, int64 edit_generation,
+                                                   int64 random_id, size_t pos, uint64 edit_generation,
                                                    vector<int> &&bad_parts) {
   auto *s = get_shortcut(shortcut_id);
   if (s != nullptr) {
@@ -2607,7 +2607,7 @@ void QuickReplyManager::on_message_media_uploaded(const QuickReplyMessage *m, in
 }
 
 void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId shortcut_id, MessageId message_id,
-                                                        int32 media_pos, int64 edit_generation,
+                                                        int32 media_pos, uint64 edit_generation,
                                                         FileUploadId file_upload_id,
                                                         telegram_api::object_ptr<telegram_api::MessageMedia> &&media) {
   auto *m = get_message_editable({shortcut_id, message_id});
@@ -2640,7 +2640,7 @@ void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId sho
 }
 
 void QuickReplyManager::on_upload_message_media_fail(QuickReplyShortcutId shortcut_id, MessageId message_id,
-                                                     int32 media_pos, int64 edit_generation, Status error) {
+                                                     int32 media_pos, uint64 edit_generation, Status error) {
   const auto *m = get_message({shortcut_id, message_id});
   if (m == nullptr || (m->message_id.is_server() && m->edit_generation != edit_generation)) {
     return;
@@ -2651,7 +2651,7 @@ void QuickReplyManager::on_upload_message_media_fail(QuickReplyShortcutId shortc
 }
 
 void QuickReplyManager::on_upload_message_media_finished(int64 media_album_id, QuickReplyShortcutId shortcut_id,
-                                                         MessageId message_id, int32 media_pos, int64 edit_generation,
+                                                         MessageId message_id, int32 media_pos, uint64 edit_generation,
                                                          Status result) {
   if (media_pos >= 0) {
     CHECK(media_album_id == 0);
@@ -3107,7 +3107,7 @@ void QuickReplyManager::edit_quick_reply_message(
 }
 
 void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id,
-                                                    int64 edit_generation, vector<FileUploadId> file_upload_ids,
+                                                    uint64 edit_generation, vector<FileUploadId> file_upload_ids,
                                                     bool was_uploaded,
                                                     telegram_api::object_ptr<telegram_api::Updates> updates_ptr) {
   auto *s = get_shortcut(shortcut_id);
@@ -3201,7 +3201,7 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
 }
 
 void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id,
-                                                      int64 edit_generation, vector<FileUploadId> file_upload_ids,
+                                                      uint64 edit_generation, vector<FileUploadId> file_upload_ids,
                                                       vector<FileUploadId> thumbnail_file_upload_ids,
                                                       vector<FileId> cover_file_ids, vector<string> file_references,
                                                       vector<string> cover_file_references, bool was_uploaded,
