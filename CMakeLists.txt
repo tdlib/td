@@ -910,6 +910,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/MessageExtendedMedia.h
   td/telegram/MessageForwardInfo.h
   td/telegram/MessageFullId.h
+  td/telegram/MessageHashMap.h
   td/telegram/MessageId.h
   td/telegram/MessageImportManager.h
   td/telegram/MessageInputReplyTo.h
