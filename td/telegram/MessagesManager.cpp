@@ -33,6 +33,7 @@
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/DraftMessage.h"
 #include "td/telegram/DraftMessage.hpp"
+#include "td/telegram/DraftMessageManager.h"
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/FactCheck.h"
 #include "td/telegram/FactCheck.hpp"
@@ -13848,7 +13849,7 @@ void MessagesManager::load_folder_dialog_list(FolderId folder_id, int32 limit, b
     }
     if (folder_id == FolderId::main() && folder.last_server_dialog_date_ == MIN_DIALOG_DATE) {
       // do not pass promise to not wait for drafts before showing the chat list
-      load_all_draft_messages(td_);
+      td_->draft_message_manager_->load_all_draft_messages();
     }
     lock.set_value(Unit());
   }
@@ -15775,7 +15776,7 @@ void MessagesManager::save_dialog_draft_message_on_server(DialogId dialog_id) {
     });
   }
 
-  save_draft_message(td_, dialog_id, MessageTopic(), d->draft_message, std::move(promise));
+  td_->draft_message_manager_->save_draft_message(dialog_id, MessageTopic(), d->draft_message, std::move(promise));
 }
 
 void MessagesManager::on_saved_dialog_draft_message(DialogId dialog_id, uint64 generation) {
@@ -15793,7 +15794,7 @@ void MessagesManager::clear_all_draft_messages(bool exclude_secret_chats, Promis
       }
     });
   }
-  ::td::clear_all_draft_messages(td_, std::move(promise));
+  td_->draft_message_manager_->clear_all_draft_messages(std::move(promise));
 }
 
 int32 MessagesManager::get_pinned_dialogs_limit(DialogListId dialog_list_id) const {
