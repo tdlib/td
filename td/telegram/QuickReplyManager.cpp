@@ -507,7 +507,7 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
     file_upload_id_ = td_->quick_reply_manager_->get_message_send_file_upload_id(m, media_pos);
     thumbnail_file_upload_id_ = td_->quick_reply_manager_->get_message_send_thumbnail_file_upload_id(m, media_pos);
     auto cover_file_ids = get_message_content_cover_any_file_ids(
-        td_, m->message_id.is_server() ? m->edited_content.get() : m->content.get());
+        td_, m->message_id.is_any_server() ? m->edited_content.get() : m->content.get());
     if (!cover_file_ids.empty()) {
       if (media_pos == -1) {
         CHECK(cover_file_ids.size() == 1u);
@@ -2271,7 +2271,7 @@ void QuickReplyManager::on_cover_upload(QuickReplyMessageFullId message_full_id,
 
 void QuickReplyManager::do_send_message(const QuickReplyMessage *m, int32 media_pos, vector<int> bad_parts) {
   CHECK(m != nullptr);
-  bool is_edit = m->message_id.is_server();
+  bool is_edit = m->message_id.is_any_server();
   auto message_full_id = QuickReplyMessageFullId(m->shortcut_id, m->message_id);
   LOG(INFO) << "Do " << (is_edit ? "edit" : "send") << ' ' << message_full_id << " with media pos " << media_pos;
 
@@ -2471,7 +2471,7 @@ void QuickReplyManager::on_upload_media(FileUploadId file_upload_id,
   being_uploaded_files_.erase(it);
 
   const auto *m = get_message(message_full_id);
-  if (m == nullptr || (m->message_id.is_server() && m->edit_generation != edit_generation)) {
+  if (m == nullptr || (m->message_id.is_any_server() && m->edit_generation != edit_generation)) {
     send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
     return;
   }
@@ -2499,7 +2499,7 @@ void QuickReplyManager::do_send_media(const QuickReplyMessage *m, int32 media_po
 
   bool have_input_file = input_file != nullptr;
   bool have_input_thumbnail = input_thumbnail != nullptr;
-  bool is_edit = m->message_id.is_server();
+  bool is_edit = m->message_id.is_any_server();
   auto content = is_edit ? m->edited_content.get() : m->content.get();
   LOG(INFO) << "Do send media " << QuickReplyMessageFullId{m->shortcut_id, m->message_id}
             << ", have_input_file = " << have_input_file << ", have_input_thumbnail = " << have_input_thumbnail
@@ -2532,11 +2532,11 @@ void QuickReplyManager::on_upload_media_error(FileUploadId file_upload_id, Statu
   being_uploaded_files_.erase(it);
 
   const auto *m = get_message(message_full_id);
-  if (m == nullptr || (m->message_id.is_server() && m->edit_generation != edit_generation)) {
+  if (m == nullptr || (m->message_id.is_any_server() && m->edit_generation != edit_generation)) {
     return;
   }
 
-  if (m->message_id.is_server()) {
+  if (m->message_id.is_any_server()) {
     fail_edit_quick_reply_message(m->shortcut_id, m->message_id, edit_generation, {}, {}, {}, {}, {}, false, false,
                                   std::move(status));
   } else {
@@ -2563,14 +2563,14 @@ void QuickReplyManager::on_upload_thumbnail(FileUploadId thumbnail_file_upload_i
   being_uploaded_thumbnails_.erase(it);
 
   auto *m = get_message_editable(message_full_id);
-  if (m == nullptr || (m->message_id.is_server() && m->edit_generation != edit_generation)) {
+  if (m == nullptr || (m->message_id.is_any_server() && m->edit_generation != edit_generation)) {
     send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
     send_closure_later(G()->file_manager(), &FileManager::cancel_upload, thumbnail_file_upload_id);
     return;
   }
 
   if (thumbnail_input_file == nullptr) {
-    delete_message_content_thumbnail(td_, m->message_id.is_server() ? m->edited_content.get() : m->content.get(),
+    delete_message_content_thumbnail(td_, m->message_id.is_any_server() ? m->edited_content.get() : m->content.get(),
                                      media_pos);
     FileUploadId::delete_file_upload_id(get_message_file_upload_ids(m, true), media_pos);
   }
@@ -2619,7 +2619,7 @@ void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId sho
                                                         FileUploadId file_upload_id,
                                                         telegram_api::object_ptr<telegram_api::MessageMedia> &&media) {
   auto *m = get_message_editable({shortcut_id, message_id});
-  if (m == nullptr || (m->message_id.is_server() && m->edit_generation != edit_generation)) {
+  if (m == nullptr || (m->message_id.is_any_server() && m->edit_generation != edit_generation)) {
     send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
     return;
   }
@@ -2650,7 +2650,7 @@ void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId sho
 void QuickReplyManager::on_upload_message_media_fail(QuickReplyShortcutId shortcut_id, MessageId message_id,
                                                      int32 media_pos, uint64 edit_generation, Status error) {
   const auto *m = get_message({shortcut_id, message_id});
-  if (m == nullptr || (m->message_id.is_server() && m->edit_generation != edit_generation)) {
+  if (m == nullptr || (m->message_id.is_any_server() && m->edit_generation != edit_generation)) {
     return;
   }
 
@@ -2671,7 +2671,7 @@ void QuickReplyManager::on_upload_message_media_finished(int64 media_album_id, Q
       return;
     }
     const auto *m = get_message({shortcut_id, message_id});
-    if (m == nullptr || (m->message_id.is_server() && m->edit_generation != edit_generation)) {
+    if (m == nullptr || (m->message_id.is_any_server() && m->edit_generation != edit_generation)) {
       LOG(INFO) << "The message edit generation doesn't match";
       return;
     }
@@ -2832,6 +2832,7 @@ void QuickReplyManager::do_send_internal_media_group(QuickReplyShortcutId shortc
   CHECK(m != nullptr);
   auto is_edit = m->message_id.is_any_server();
   const auto *content = is_edit ? m->edited_content.get() : m->content.get();
+  CHECK(content != nullptr);
   CHECK(can_message_content_have_multiple_files(content->get_type()));
 
   auto status = Status::OK();

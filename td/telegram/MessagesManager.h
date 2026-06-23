@@ -911,12 +911,14 @@ class MessagesManager final : public Actor {
   void on_send_message_fail(int64 random_id, Status error);
 
   void on_upload_message_media_success(DialogId dialog_id, MessageId message_id, int32 media_pos,
+                                       uint64 edit_generation,
                                        telegram_api::object_ptr<telegram_api::MessageMedia> &&media);
 
   void on_upload_message_media_file_parts_missing(DialogId dialog_id, MessageId message_id, int32 media_pos,
-                                                  vector<int> &&bad_parts);
+                                                  uint64 edit_generation, vector<int> &&bad_parts);
 
-  void on_upload_message_media_fail(DialogId dialog_id, MessageId message_id, int32 media_pos, Status error);
+  void on_upload_message_media_fail(DialogId dialog_id, MessageId message_id, int32 media_pos, uint64 edit_generation,
+                                    Status error);
 
   void on_create_new_dialog(telegram_api::object_ptr<telegram_api::Updates> &&updates,
                             MissingInvitees &&missing_invitees,
@@ -1892,7 +1894,7 @@ class MessagesManager final : public Actor {
   void on_secret_message_media_uploaded(DialogId dialog_id, const Message *m, SecretInputMedia &&secret_input_media);
 
   void on_upload_message_media_finished(int64 media_album_id, DialogId dialog_id, MessageId message_id, int32 media_pos,
-                                        Status result);
+                                        uint64 edit_generation, Status result);
 
   void do_send_message_group(int64 media_album_id);
 
