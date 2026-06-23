@@ -14,6 +14,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/InputMedia.h"
 #include "td/telegram/InputMessageText.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageContent.h"
@@ -1401,19 +1402,22 @@ void BusinessConnectionManager::upload_media(unique_ptr<PendingMessage> &&messag
   td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_media_callback_, 1, 0);
 }
 
-void BusinessConnectionManager::complete_send_media(unique_ptr<PendingMessage> &&message,
-                                                    telegram_api::object_ptr<telegram_api::InputMedia> &&input_media,
+void BusinessConnectionManager::complete_send_media(unique_ptr<PendingMessage> &&message, InputMedia &&input_media,
                                                     Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(message != nullptr);
-  CHECK(input_media != nullptr);
+  CHECK(!input_media.is_empty());
   if (message->message_id_ != MessageId()) {
     td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
         ->send(message->business_connection_id_, message->dialog_id_, message->message_id_, true,
                get_message_content_caption(message->content_.get()), false, std::move(input_media),
                message->invert_media_, message->reply_markup_);
+  } else if (input_media.rich_message_ != nullptr) {
+    td_->create_handler<SendBusinessMessageQuery>(std::move(promise))
+        ->send(std::move(message), std::move(input_media.rich_message_));
   } else {
-    td_->create_handler<SendBusinessMediaQuery>(std::move(promise))->send(std::move(message), std::move(input_media));
+    td_->create_handler<SendBusinessMediaQuery>(std::move(promise))
+        ->send(std::move(message), std::move(input_media.media_));
   }
 }
 
@@ -1742,20 +1746,9 @@ void BusinessConnectionManager::finish_upload_message_internal_media(int64 reque
     auto upload_result = r_upload_result.move_as_ok();
     input_media.push_back(std::move(upload_result.input_media_));
   }
-  auto full_input_media = get_message_content_multi_input_media(message->content_.get(), td_, std::move(input_media));
-  if (message->message_id_ != MessageId()) {
-    td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
-        ->send(message->business_connection_id_, message->dialog_id_, message->message_id_, true,
-               get_message_content_caption(message->content_.get()), false, std::move(full_input_media),
-               message->invert_media_, message->reply_markup_);
-  } else if (full_input_media.rich_message_ != nullptr) {
-    td_->create_handler<SendBusinessMessageQuery>(std::move(promise))
-        ->send(std::move(message), std::move(full_input_media.rich_message_));
-  } else {
-    CHECK(full_input_media.media_ != nullptr);
-    td_->create_handler<SendBusinessMediaQuery>(std::move(promise))
-        ->send(std::move(message), std::move(full_input_media.media_));
-  }
+  complete_send_media(std::move(message),
+                      get_message_content_multi_input_media(message->content_.get(), td_, std::move(input_media)),
+                      std::move(promise));
 }
 
 void BusinessConnectionManager::on_fail_send_message(unique_ptr<PendingMessage> &&message, const Status &error) {

@@ -31,6 +31,7 @@
 
 namespace td {
 
+struct InputMedia;
 struct InputMessageContent;
 struct ReplyMarkup;
 class Td;
@@ -204,8 +205,7 @@ class BusinessConnectionManager final : public Actor {
   void upload_media(unique_ptr<PendingMessage> &&message, Promise<UploadMediaResult> &&promise,
                     vector<int> bad_parts = {});
 
-  void complete_send_media(unique_ptr<PendingMessage> &&message,
-                           telegram_api::object_ptr<telegram_api::InputMedia> &&input_media,
+  void complete_send_media(unique_ptr<PendingMessage> &&message, InputMedia &&input_media,
                            Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
   void on_upload_media(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
