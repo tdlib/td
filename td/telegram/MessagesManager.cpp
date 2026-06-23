@@ -21949,7 +21949,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   bool need_update = false;
   auto content = get_uploaded_message_content(td_, m->content.get(), media_pos, std::move(media), dialog_id, m->date,
                                               is_content_changed, need_update, "on_upload_message_media_success");
-  if (update_message_content(dialog_id, m, std::move(content), media_pos == -1, true, is_content_changed)) {
+  if (update_message_content(dialog_id, m, std::move(content), media_pos == -1, true, false, is_content_changed)) {
     need_update = true;
   }
   if (need_update || media_pos >= 0) {
@@ -23203,13 +23203,13 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     auto pts = result.ok();
     LOG(INFO) << "Successfully edited " << message_id << " in " << dialog_id << " with PTS = " << pts
               << " and last edit PTS = " << m->last_edit_pts;
-    std::swap(m->content, edited_message->content_);
     bool need_send_update_message_content = edited_message->content_->get_type() == MessageContentType::Photo &&
                                             m->content->get_type() == MessageContentType::Photo;
     bool need_merge_files = pts != 0 && pts == m->last_edit_pts;
     bool is_content_changed = false;
-    bool need_update = update_message_content(dialog_id, m, std::move(edited_message->content_), need_merge_files, true,
-                                              is_content_changed);
+    bool need_update =
+        update_message_content(dialog_id, m, std::move(m->content), need_merge_files, true, true, is_content_changed);
+    m->content = std::move(edited_message->content_);
     if (need_send_update_message_content) {
       if (need_update) {
         send_update_message_content(d, m, true, "on_message_media_edited");
@@ -32145,7 +32145,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
   bool is_content_changed = false;
   if (update_message_content(dialog_id, old_message, std::move(new_message->content),
-                             message_id.is_yet_unsent() && new_message->edit_date == 0, is_message_in_dialog,
+                             message_id.is_yet_unsent() && new_message->edit_date == 0, is_message_in_dialog, false,
                              is_content_changed) ||
       is_preview_changed) {
     send_update_message_content(d, old_message, is_message_in_dialog, "update_message");
@@ -32169,6 +32169,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 }
 
 bool MessagesManager::need_message_changed_warning(const Message *old_message) {
+  // old_message->content can be nullptr
   if (old_message->edit_date > 0) {
     // message was edited
     return false;
@@ -32190,21 +32191,17 @@ bool MessagesManager::need_message_changed_warning(const Message *old_message) {
 
 bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_message,
                                              unique_ptr<MessageContent> new_content, bool need_merge_files,
-                                             bool is_message_in_dialog, bool &is_content_changed) {
-  is_content_changed = false;
-  bool need_update = false;
-
-  unique_ptr<MessageContent> &old_content = old_message->content;
-
-  vector<FileUploadId> old_file_upload_ids;
-  if (old_message->message_id.is_any_server()) {
-    const auto *edited_message = edited_messages_.get_pointer(dialog_id, old_message->message_id);
-    if (edited_message != nullptr) {
-      old_file_upload_ids = edited_message->file_upload_ids_;
-    }
-  } else {
-    old_file_upload_ids = old_message->file_upload_ids;
+                                             bool is_message_in_dialog, bool update_edited_content,
+                                             bool &is_content_changed) {
+  EditedMessage *edited_message = nullptr;
+  if (update_edited_content) {
+    edited_message = edited_messages_.get_pointer(dialog_id, old_message->message_id);
+    CHECK(edited_message != nullptr);
   }
+  unique_ptr<MessageContent> &old_content = update_edited_content ? edited_message->content_ : old_message->content;
+  const vector<FileUploadId> &old_file_upload_ids =
+      update_edited_content ? edited_message->file_upload_ids_ : old_message->file_upload_ids;
+  bool need_update = false;
   merge_and_compare_message_contents(td_, old_content.get(), new_content.get(),
                                      need_message_changed_warning(old_message), dialog_id, need_merge_files,
                                      old_file_upload_ids, old_message->ttl, old_message->ttl_expires_at,
@@ -32214,18 +32211,18 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   // upload of being edited messages is canceled in on_message_media_edited
 
   if (is_content_changed || need_update) {
-    if (is_message_in_dialog) {
+    if (is_message_in_dialog && !update_edited_content) {
       reregister_message_content(td_, old_content.get(), new_content.get(), {dialog_id, old_message->message_id},
                                  old_message->date, "update_message_content");
     }
     old_content = std::move(new_content);
     old_message->last_edit_pts = 0;
-    if (!need_update) {
+    if (!need_update && !update_edited_content) {
       LOG(INFO) << "Content of " << old_message->message_id << " in " << dialog_id << " has changed";
     }
   }
 
-  if (need_update) {
+  if (need_update && !update_edited_content) {
     auto file_ids = get_message_content_file_ids(old_content.get(), td_);
     if (!file_ids.empty()) {
       auto file_source_id = get_message_file_source_id(MessageFullId(dialog_id, old_message->message_id));
