@@ -1255,10 +1255,12 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
                                                 Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
   LOG(INFO) << "Send business message to " << message->dialog_id_;
 
+  auto is_edit = message->message_id_ != MessageId();
   const auto *content = message->content_.get();
   CHECK(content != nullptr);
   auto content_type = content->get_type();
   if (content_type == MessageContentType::Text) {
+    CHECK(!is_edit);
     auto input_media = get_message_content_input_media_web_page(td_, content);
     if (input_media == nullptr) {
       td_->create_handler<SendBusinessMessageQuery>(std::move(promise))->send(std::move(message), nullptr);
@@ -1323,14 +1325,17 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
     return;
   }
 
-  auto input_media = std::move(get_message_content_input_media(content, td_, message->ttl_, message->send_emoji_,
-                                                               td_->auth_manager_->is_bot(), -1)
-                                   .media_);
-  if (input_media != nullptr) {
-    td_->create_handler<SendBusinessMediaQuery>(std::move(promise))->send(std::move(message), std::move(input_media));
-    return;
+  if (!is_edit) {
+    auto input_media = std::move(get_message_content_input_media(content, td_, message->ttl_, message->send_emoji_,
+                                                                 td_->auth_manager_->is_bot(), -1)
+                                     .media_);
+    if (input_media != nullptr) {
+      td_->create_handler<SendBusinessMediaQuery>(std::move(promise))->send(std::move(message), std::move(input_media));
+      return;
+    }
   }
   if (content_type == MessageContentType::Game || content_type == MessageContentType::Story) {
+    CHECK(!is_edit);
     return promise.set_error(400, "Message has no file");
   }
   upload_media(std::move(message), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
@@ -1404,7 +1409,14 @@ void BusinessConnectionManager::complete_send_media(unique_ptr<PendingMessage> &
   TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(message != nullptr);
   CHECK(input_media != nullptr);
-  td_->create_handler<SendBusinessMediaQuery>(std::move(promise))->send(std::move(message), std::move(input_media));
+  if (message->message_id_ != MessageId()) {
+    td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
+        ->send(message->business_connection_id_, message->dialog_id_, message->message_id_, true,
+               get_message_content_caption(message->content_.get()), false, std::move(input_media),
+               message->invert_media_, message->reply_markup_, nullptr);
+  } else {
+    td_->create_handler<SendBusinessMediaQuery>(std::move(promise))->send(std::move(message), std::move(input_media));
+  }
 }
 
 void BusinessConnectionManager::on_upload_media(FileUploadId file_upload_id,
@@ -1862,46 +1874,7 @@ void BusinessConnectionManager::edit_business_message_media(
                                                  MessageEffectId(), std::move(new_reply_markup), std::move(content));
   message->message_id_ = message_id;
 
-  do_edit_message_media(std::move(message), std::move(promise));
-}
-
-void BusinessConnectionManager::do_edit_message_media(unique_ptr<PendingMessage> &&message,
-                                                      Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
-  auto covers = get_message_content_need_to_upload_covers(td_, message->content_.get());
-  if (!covers.empty()) {
-    auto business_connection_id = message->business_connection_id_;
-    auto dialog_id = message->dialog_id_;
-    return td_->message_query_manager_->upload_message_covers(
-        business_connection_id, dialog_id, std::move(covers),
-        PromiseCreator::lambda([actor_id = actor_id(this), message = std::move(message),
-                                promise = std::move(promise)](Result<Unit> result) mutable {
-          if (result.is_error()) {
-            return promise.set_error(result.move_as_error());
-          }
-          send_closure(actor_id, &BusinessConnectionManager::do_edit_message_media, std::move(message),
-                       std::move(promise));
-        }));
-  }
-
-  upload_media(std::move(message), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
-                                                              Result<UploadMediaResult> &&result) mutable {
-                 send_closure(actor_id, &BusinessConnectionManager::do_edit_business_message_media, std::move(result),
-                              std::move(promise));
-               }));
-}
-
-void BusinessConnectionManager::do_edit_business_message_media(
-    Result<UploadMediaResult> &&result, Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-  TRY_RESULT_PROMISE(promise, upload_result, std::move(result));
-  CHECK(upload_result.input_media_ != nullptr);
-
-  auto message = std::move(upload_result.message_);
-  CHECK(message != nullptr);
-  td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
-      ->send(message->business_connection_id_, message->dialog_id_, message->message_id_, true,
-             get_message_content_caption(message->content_.get()), false, std::move(upload_result.input_media_),
-             message->invert_media_, message->reply_markup_, nullptr);
+  do_send_message(std::move(message), std::move(promise));
 }
 
 void BusinessConnectionManager::edit_business_message_caption(
