@@ -123,6 +123,12 @@ class MessageTopic {
     CHECK(saved_input_peer != nullptr);
     return saved_input_peer;
   }
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageTopic &message_topic);

@@ -1211,6 +1211,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/MessageReaction.hpp
   td/telegram/MessageReactor.hpp
   td/telegram/MessageReplyInfo.hpp
+  td/telegram/MessageTopic.hpp
   td/telegram/MinChannel.hpp
   td/telegram/NotificationGroupInfo.hpp
   td/telegram/OrderInfo.hpp
