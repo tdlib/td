@@ -2273,7 +2273,7 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, int32 media_
   CHECK(m != nullptr);
   bool is_edit = m->message_id.is_server();
   auto message_full_id = QuickReplyMessageFullId(m->shortcut_id, m->message_id);
-  LOG(INFO) << "Do " << (is_edit ? "edit" : "send") << ' ' << message_full_id;
+  LOG(INFO) << "Do " << (is_edit ? "edit" : "send") << ' ' << message_full_id << " with media pos " << media_pos;
 
   if (m->media_album_id != 0 && bad_parts.empty() && !is_edit) {
     auto &request = pending_message_group_sends_[m->media_album_id];
@@ -2909,7 +2909,7 @@ void QuickReplyManager::on_send_media_group_file_reference_error(QuickReplyShort
   }
 
   for (auto message_id : request.message_ids) {
-    do_send_message(get_message(s, message_id), {-1});
+    do_send_message(get_message(s, message_id), -1, {-1});
   }
 }
 
@@ -3234,7 +3234,7 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId short
       if (pos < cover_file_ids.size() && pos < cover_file_references.size()) {
         VLOG(file_references) << "Receive " << status << " for cover " << cover_file_ids[pos];
         td_->file_manager_->delete_file_reference(cover_file_ids[pos], cover_file_references[pos]);
-        do_send_message(m, {-1});
+        on_send_message_file_error(shortcut_id, message_id, 0, pos, edit_generation, {-1});
         return;
       } else {
         LOG(ERROR) << "Receive file reference error " << pos << ", but cover_file_ids = " << cover_file_ids
@@ -3245,7 +3245,7 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId short
           file_upload_ids[pos].is_valid()) {
         VLOG(file_references) << "Receive " << status << " for " << file_upload_ids[pos];
         td_->file_manager_->delete_file_reference(file_upload_ids[pos].get_file_id(), file_references[pos]);
-        do_send_message(m, {-1});
+        on_send_message_file_error(shortcut_id, message_id, 0, pos, edit_generation, {-1});
         return;
       } else {
         LOG(ERROR) << "Receive file reference error " << pos << ", but file_upload_ids = " << file_upload_ids
