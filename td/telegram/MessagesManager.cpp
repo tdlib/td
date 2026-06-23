@@ -20997,7 +20997,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
                        m->message_id, -1, Status::OK());
   } else if (can_message_content_have_multiple_files(m->content->get_type())) {
     LOG(INFO) << "Remove group send from " << MessageFullId{dialog_id, m->message_id};
-    pending_internal_media_sends_.erase({dialog_id, m->message_id});
+    pending_internal_media_sends_.erase(dialog_id, m->message_id);
   }
 
   if (!m->message_id.is_scheduled() && G()->keep_media_order() && !m->is_copy) {
@@ -22024,13 +22024,12 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
   if (media_pos >= 0) {
     CHECK(media_album_id == 0);
     LOG(INFO) << "Finished to upload media " << media_pos << " from " << message_id << " in " << dialog_id;
-    auto it = pending_internal_media_sends_.find({dialog_id, message_id});
-    if (it == pending_internal_media_sends_.end()) {
+    if (pending_internal_media_sends_.count(dialog_id, message_id) == 0) {
       LOG(INFO) << "The message doesn't need to be sent";
       // the message may be already sent or failed to be sent
       return;
     }
-    auto &request = it->second;
+    auto &request = pending_internal_media_sends_[{dialog_id, message_id}];
     CHECK(static_cast<size_t>(media_pos) < request.is_finished.size());
     if (request.is_finished[media_pos]) {
       LOG(INFO) << "Upload media of " << message_id << " in " << dialog_id << " at pos " << media_pos
@@ -22234,13 +22233,12 @@ void MessagesManager::do_send_internal_media_group(DialogId dialog_id, MessageId
     return;
   }
 
-  auto it = pending_internal_media_sends_.find({dialog_id, message_id});
-  if (it == pending_internal_media_sends_.end()) {
+  if (pending_internal_media_sends_.count(dialog_id, message_id) == 0) {
     // the internal media may be already sent or failed to be sent
     return;
   }
 
-  auto &request = it->second;
+  auto &request = pending_internal_media_sends_[{dialog_id, message_id}];
 
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
@@ -22269,13 +22267,13 @@ void MessagesManager::do_send_internal_media_group(DialogId dialog_id, MessageId
       status = Status::Error(400, "Message send failed");
     }
     on_send_message_fail(random_id, std::move(status));
-    CHECK(pending_internal_media_sends_.count({dialog_id, message_id}) == 0);
+    CHECK(pending_internal_media_sends_.count(dialog_id, message_id) == 0);
     return;
   }
 
   auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, -1);
   CHECK(!input_media.is_empty());
-  pending_internal_media_sends_.erase(it);
+  pending_internal_media_sends_.erase(dialog_id, message_id);
 
   LOG(INFO) << "Begin to send internal media " << message_id << " to " << dialog_id;
 

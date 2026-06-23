@@ -3244,7 +3244,7 @@ class MessagesManager final : public Actor {
     vector<bool> is_finished;
     vector<Status> results;
   };
-  FlatHashMap<MessageFullId, PendingInternalMediaSend, MessageFullIdHash> pending_internal_media_sends_;
+  MessageHashMap<PendingInternalMediaSend> pending_internal_media_sends_;
 
   WaitFreeHashMap<MessageId, DialogId, MessageIdHash> message_id_to_dialog_id_;
   FlatHashMap<MessageId, DialogId, MessageIdHash> last_clear_history_message_id_to_dialog_id_;
