@@ -60,6 +60,7 @@ class DialogManager;
 class DialogParticipantManager;
 class DocumentsManager;
 class DownloadManager;
+class DraftMessageManager;
 class FileManager;
 class FileReferenceManager;
 class ForumTopicManager;
@@ -206,6 +207,8 @@ class Td final : public Actor {
   ActorOwn<DialogManager> dialog_manager_actor_;
   unique_ptr<DialogParticipantManager> dialog_participant_manager_;
   ActorOwn<DialogParticipantManager> dialog_participant_manager_actor_;
+  unique_ptr<DraftMessageManager> draft_message_manager_;
+  ActorOwn<DraftMessageManager> draft_message_manager_actor_;
   unique_ptr<DownloadManager> download_manager_;
   ActorOwn<DownloadManager> download_manager_actor_;
   unique_ptr<FileManager> file_manager_;

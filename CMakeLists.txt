@@ -433,6 +433,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/DownloadManager.cpp
   td/telegram/DownloadManagerCallback.cpp
   td/telegram/DraftMessage.cpp
+  td/telegram/DraftMessageManager.cpp
   td/telegram/EmailVerification.cpp
   td/telegram/EmojiGameInfo.cpp
   td/telegram/EmojiGroup.cpp
@@ -816,6 +817,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/DownloadManager.h
   td/telegram/DownloadManagerCallback.h
   td/telegram/DraftMessage.h
+  td/telegram/DraftMessageManager.h
   td/telegram/EmailVerification.h
   td/telegram/EmojiGameInfo.h
   td/telegram/EmojiGroup.h

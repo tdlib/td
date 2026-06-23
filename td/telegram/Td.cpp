@@ -37,6 +37,7 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/DownloadManagerCallback.h"
+#include "td/telegram/DraftMessageManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
@@ -532,6 +533,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(dialog_participant_manager_, "DialogParticipantManager");
       reset_manager(documents_manager_, "DocumentsManager");
       reset_manager(download_manager_, "DownloadManager");
+      reset_manager(draft_message_manager_, "DraftMessageManager");
       reset_manager(file_manager_, "FileManager");
       reset_manager(file_reference_manager_, "FileReferenceManager");
       reset_manager(forum_topic_manager_, "ForumTopicManager");
@@ -710,6 +712,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(dialog_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(dialog_participant_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(download_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(draft_message_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(file_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(file_reference_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(forum_topic_manager_actor_)));
@@ -1201,6 +1204,9 @@ void Td::init_managers() {
   download_manager_ = DownloadManager::create(td::make_unique<DownloadManagerCallback>(this, create_reference()));
   download_manager_actor_ = register_actor("DownloadManager", download_manager_.get());
   G()->set_download_manager(download_manager_actor_.get());
+  draft_message_manager_ = make_unique<DraftMessageManager>(this, create_reference());
+  draft_message_manager_actor_ = register_actor("DraftMessageManager", draft_message_manager_.get());
+  G()->set_draft_message_manager(draft_message_manager_actor_.get());
   forum_topic_manager_ = make_unique<ForumTopicManager>(this, create_reference());
   forum_topic_manager_actor_ = register_actor("ForumTopicManager", forum_topic_manager_.get());
   G()->set_forum_topic_manager(forum_topic_manager_actor_.get());

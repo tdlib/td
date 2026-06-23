@@ -352,6 +352,7 @@ function split_file($file, $chunks, $undo) {
             'documents_manager[_(-](?![.]get[(][)])|DocumentsManager' => 'DocumentsManager',
             'download_manager[_(-](?![.]get[(][)])|DownloadManager[^C]' => 'DownloadManager',
             'DownloadManagerCallback' => 'DownloadManagerCallback',
+            'draft_message_manager[_(-](?![.]get[(][)])|DraftMessageManager' => 'DraftMessageManager',
             'EmailVerification' => 'EmailVerification',
             'EmojiGroup' => 'EmojiGroup',
             'FactCheck' => 'FactCheck',

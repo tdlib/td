@@ -50,6 +50,7 @@ class DialogInviteLinkManager;
 class DialogManager;
 class DialogParticipantManager;
 class DownloadManager;
+class DraftMessageManager;
 class FileManager;
 class FileReferenceManager;
 class ForumTopicManager;
@@ -332,6 +333,13 @@ class Global final : public ActorContext {
   }
   void set_download_manager(ActorId<DownloadManager> download_manager) {
     download_manager_ = std::move(download_manager);
+  }
+
+  ActorId<DraftMessageManager> draft_message_manager() const {
+    return draft_message_manager_;
+  }
+  void set_draft_message_manager(ActorId<DraftMessageManager> draft_message_manager) {
+    draft_message_manager_ = std::move(draft_message_manager);
   }
 
   ActorId<FileManager> file_manager() const {
@@ -753,6 +761,7 @@ class Global final : public ActorContext {
   ActorId<DialogManager> dialog_manager_;
   ActorId<DialogParticipantManager> dialog_participant_manager_;
   ActorId<DownloadManager> download_manager_;
+  ActorId<DraftMessageManager> draft_message_manager_;
   ActorId<FileManager> file_manager_;
   ActorId<FileReferenceManager> file_reference_manager_;
   ActorId<ForumTopicManager> forum_topic_manager_;
