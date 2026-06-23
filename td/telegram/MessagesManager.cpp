@@ -21740,7 +21740,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
                                           m->message_id.get());
       }
       if (can_have_multiple_files && file_upload_ids.empty()) {
-        on_message_internal_media_ready_to_send(dialog_id, m->message_id);
+        do_send_internal_media_group(dialog_id, m->message_id);
       }
     } else {
       on_message_media_uploaded(dialog_id, m, -1, std::move(input_media));
@@ -22044,7 +22044,7 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
     request.finished_count++;
 
     if (request.finished_count == request.results.size() || request.results[media_pos].is_error()) {
-      on_message_internal_media_ready_to_send(dialog_id, message_id);
+      do_send_internal_media_group(dialog_id, message_id);
     }
     return;
   }
@@ -22246,8 +22246,6 @@ void MessagesManager::do_send_internal_media_group(DialogId dialog_id, MessageId
   CHECK(m != nullptr);
   CHECK(can_message_content_have_multiple_files(m->content->get_type()));
 
-  auto random_id = begin_send_message(dialog_id, m);
-
   auto status = can_send_message(dialog_id);
   bool success = status.is_ok();
   for (auto &result : request.results) {
@@ -22265,7 +22263,7 @@ void MessagesManager::do_send_internal_media_group(DialogId dialog_id, MessageId
     if (status.is_ok()) {
       status = Status::Error(400, "Message send failed");
     }
-    on_send_message_fail(random_id, std::move(status));
+    fail_send_message({dialog_id, message_id}, std::move(status));
     CHECK(pending_internal_media_sends_.count(dialog_id, message_id) == 0);
     return;
   }
@@ -22274,15 +22272,26 @@ void MessagesManager::do_send_internal_media_group(DialogId dialog_id, MessageId
   CHECK(!input_media.is_empty());
   pending_internal_media_sends_.erase(dialog_id, message_id);
 
-  LOG(INFO) << "Begin to send internal media " << message_id << " to " << dialog_id;
+  send_closure_later(
+      actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, message_id,
+      PromiseCreator::lambda([this, dialog_id, input_media = std::move(input_media)](Result<Message *> result) mutable {
+        if (G()->close_flag() || result.is_error()) {
+          return;
+        }
 
-  const FormattedText *caption = get_message_content_text(m->content.get());
-  td_->create_handler<SendMediaQuery>()->send(
-      m->file_upload_ids, m->thumbnail_file_upload_ids, get_message_content_cover_any_file_ids(td_, m->content.get()),
-      get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-      get_send_message_topic(dialog_id, m), get_message_schedule_date(m), get_message_schedule_repeat_period(m),
-      m->effect_id, m->paid_message_star_count, m->suggested_post.get(), m->reply_markup, caption,
-      std::move(input_media), m->content->get_type(), m->is_copy, random_id, &m->send_query_ref);
+        auto m = result.move_as_ok();
+        CHECK(m != nullptr);
+
+        const FormattedText *caption = get_message_content_text(m->content.get());
+        auto random_id = begin_send_message(dialog_id, m);
+        td_->create_handler<SendMediaQuery>()->send(
+            m->file_upload_ids, m->thumbnail_file_upload_ids,
+            get_message_content_cover_any_file_ids(td_, m->content.get()), get_message_flags(m), dialog_id,
+            get_send_message_as_input_peer(m), *get_message_input_reply_to(m), get_send_message_topic(dialog_id, m),
+            get_message_schedule_date(m), get_message_schedule_repeat_period(m), m->effect_id,
+            m->paid_message_star_count, m->suggested_post.get(), m->reply_markup, caption, std::move(input_media),
+            m->content->get_type(), m->is_copy, random_id, &m->send_query_ref);
+      }));
 }
 
 void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageId message_id) {
@@ -22327,19 +22336,6 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
           &m->send_query_ref);
     }
   }
-}
-
-void MessagesManager::on_message_internal_media_ready_to_send(DialogId dialog_id, MessageId message_id) {
-  on_media_message_ready_to_send(dialog_id, message_id,
-                                 PromiseCreator::lambda([this, dialog_id](Result<Message *> result) mutable {
-                                   if (G()->close_flag() || result.is_error()) {
-                                     return;
-                                   }
-
-                                   auto m = result.move_as_ok();
-                                   CHECK(m != nullptr);
-                                   do_send_internal_media_group(dialog_id, m->message_id);
-                                 }));
 }
 
 void MessagesManager::on_media_message_ready_to_send(DialogId dialog_id, MessageId message_id,
