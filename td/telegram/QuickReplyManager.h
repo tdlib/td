@@ -423,6 +423,8 @@ class QuickReplyManager final : public Actor {
 
   void on_message_media_uploaded(const QuickReplyMessage *m, int32 media_pos, InputMedia &&input_media);
 
+  void do_send_message_media(const QuickReplyMessage *m, InputMedia &&input_media);
+
   void on_send_media_group_file_reference_error(QuickReplyShortcutId shortcut_id, vector<int64> random_ids);
 
   int64 generate_new_media_album_id() const;

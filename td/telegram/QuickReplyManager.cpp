@@ -2585,7 +2585,6 @@ void QuickReplyManager::on_message_media_uploaded(const QuickReplyMessage *m, in
   }
 
   CHECK(m != nullptr);
-  CHECK(!input_media.is_empty());
   auto message_id = m->message_id;
   auto is_edit = message_id.is_any_server();
   if ((!is_edit && m->media_album_id != 0) || media_pos != -1) {
@@ -2600,7 +2599,12 @@ void QuickReplyManager::on_message_media_uploaded(const QuickReplyMessage *m, in
     return;
   }
 
-  if (is_edit) {
+  do_send_message_media(m, std::move(input_media));
+}
+
+void QuickReplyManager::do_send_message_media(const QuickReplyMessage *m, InputMedia &&input_media) {
+  CHECK(!input_media.is_empty());
+  if (m->message_id.is_any_server()) {
     CHECK(m->edited_content != nullptr);
     CHECK(m->edited_content->get_type() != MessageContentType::Text);
     td_->create_handler<EditQuickReplyMessageQuery>()->send(m, std::move(input_media));
@@ -2857,19 +2861,7 @@ void QuickReplyManager::do_send_internal_media_group(QuickReplyShortcutId shortc
     return;
   }
 
-  auto input_media = get_message_content_input_media(content, td_, {}, m->send_emoji, true, -1);
-  CHECK(!input_media.is_empty());
-
-  if (is_edit) {
-    CHECK(m->edited_content != nullptr);
-    CHECK(m->edited_content->get_type() != MessageContentType::Text);
-    td_->create_handler<EditQuickReplyMessageQuery>()->send(m, std::move(input_media));
-    return;
-  }
-
-  LOG(INFO) << "Begin to send internal media " << message_id << " to " << shortcut_id;
-
-  td_->create_handler<SendQuickReplyMediaQuery>()->send(m, std::move(input_media));
+  do_send_message_media(m, get_message_content_input_media(content, td_, {}, m->send_emoji, true, -1));
 }
 
 void QuickReplyManager::on_send_media_group_file_reference_error(QuickReplyShortcutId shortcut_id,
