@@ -236,15 +236,20 @@ void InlineMessageManager::edit_inline_message_text(
   TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   if (new_message_content_type == td_api::inputMessageRichMessage::ID) {
-    auto input_rich_message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
+    auto input_message_rich_message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
+    if (input_message_rich_message == nullptr) {
+      return promise.set_error(400, "Invalid message content specified");
+    }
+    TRY_RESULT_PROMISE(
+        promise, rich_message,
+        RichMessage::get_rich_message(td_, DialogId(), std::move(input_message_rich_message->message_), is_bot));
+    auto input_rich_message = rich_message.get_input_rich_message(td_);
     if (input_rich_message == nullptr) {
       return promise.set_error(400, "Invalid message content specified");
     }
-    TRY_RESULT_PROMISE(promise, rich_message,
-                       RichMessage::get_rich_message(td_, DialogId(), std::move(input_rich_message->message_), is_bot));
     td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-        ->send(std::move(input_bot_inline_message_id), false, nullptr, false, rich_message.get_input_rich_message(td_),
-               false, new_reply_markup);
+        ->send(std::move(input_bot_inline_message_id), false, nullptr, false, std::move(input_rich_message), false,
+               new_reply_markup);
     return;
   }
 

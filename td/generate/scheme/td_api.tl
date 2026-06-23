@@ -5922,7 +5922,7 @@ inputPageBlockMap location:location zoom:int32 width:int32 height:int32 caption:
 //@clear_draft Pass true to delete message draft in the chat
 inputMessageText text:formattedText link_preview_options:linkPreviewOptions clear_draft:Bool = InputMessageContent;
 
-//@description A rich message @message The rich message to send @clear_draft Pass true to delete message draft in the chat
+//@description A rich message @message The rich message to send; file upload isn't supported @clear_draft Pass true to delete message draft in the chat
 inputMessageRichMessage message:inputRichMessage clear_draft:Bool = InputMessageContent;
 
 //@description An animation message (GIF-style).
@@ -12072,7 +12072,7 @@ editMessageReplyMarkup chat_id:int53 message_id:int53 reply_markup:ReplyMarkup =
 //@description Edits the text of an inline text or game message sent via a bot; for bots only
 //@inline_message_id Inline message identifier
 //@reply_markup The new message reply markup; pass null if none
-//@input_message_content New text content of the message. Must be of type inputMessageText or inputMessageRichMessage
+//@input_message_content New text content of the message. Must be of type inputMessageText or inputMessageRichMessage; file upload isn't supported
 editInlineMessageText inline_message_id:string reply_markup:ReplyMarkup input_message_content:InputMessageContent = Ok;
 
 //@description Edits the content of a live location in an inline message sent via a bot; for bots only
