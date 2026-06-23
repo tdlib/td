@@ -21757,61 +21757,8 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
   CHECK(m != nullptr);
   CHECK(!input_media.is_empty());
   auto message_id = m->message_id;
-  if (message_id.is_any_server()) {
-    CHECK(media_pos == -1);
-    const auto *edited_message = edited_messages_.get_pointer(dialog_id, m->message_id);
-    CHECK(edited_message != nullptr);
-    CHECK(edited_message->file_upload_ids_.size() == 1u);
-    auto file_upload_id = get_message_send_file_upload_id(dialog_id, m, media_pos);
-    auto thumbnail_file_upload_id = get_message_send_thumbnail_file_upload_id(dialog_id, m, media_pos);
-    auto cover_file_id = get_message_content_cover_any_file_id(edited_message->content_.get());
-    const FormattedText *caption = get_message_content_caption(edited_message->content_.get());
-    bool was_uploaded = FileManager::extract_was_uploaded(input_media);
-    bool was_thumbnail_uploaded = FileManager::extract_was_thumbnail_uploaded(input_media);
-
-    LOG(INFO) << "Edit media from " << message_id << " in " << dialog_id;
-    auto schedule_date = get_message_schedule_date(m);
-    auto schedule_repeat_period = get_message_schedule_repeat_period(m);
-    auto promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), dialog_id, message_id, file_upload_id, thumbnail_file_upload_id, cover_file_id,
-         schedule_date, schedule_repeat_period, generation = m->edit_generation, was_uploaded, was_thumbnail_uploaded,
-         file_reference = FileManager::extract_file_reference(input_media),
-         cover_file_reference = FileManager::extract_cover_file_reference(input_media)](Result<int32> result) mutable {
-          send_closure(actor_id, &MessagesManager::on_message_media_edited, dialog_id, message_id, file_upload_id,
-                       thumbnail_file_upload_id, cover_file_id, was_uploaded, was_thumbnail_uploaded,
-                       std::move(file_reference), std::move(cover_file_reference), schedule_date,
-                       schedule_repeat_period, generation, std::move(result));
-        });
-    td_->create_handler<EditMessageQuery>(std::move(promise))
-        ->send(dialog_id, message_id, true, caption, false, std::move(input_media), edited_message->invert_media_,
-               edited_message->reply_markup_, schedule_date, schedule_repeat_period, true);
-    return;
-  }
-
-  if (m->media_album_id == 0 && media_pos == -1) {
-    send_closure_later(actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, message_id,
-                       PromiseCreator::lambda(
-                           [this, dialog_id, input_media = std::move(input_media)](Result<Message *> result) mutable {
-                             if (G()->close_flag() || result.is_error()) {
-                               return;
-                             }
-
-                             auto m = result.move_as_ok();
-                             CHECK(m != nullptr);
-
-                             const FormattedText *caption = get_message_content_text(m->content.get());
-                             LOG(INFO) << "Send media from " << m->message_id << " in " << dialog_id;
-                             int64 random_id = begin_send_message(dialog_id, m);
-                             td_->create_handler<SendMediaQuery>()->send(
-                                 m->file_upload_ids, m->thumbnail_file_upload_ids,
-                                 get_message_content_cover_any_file_ids(td_, m->content.get()), get_message_flags(m),
-                                 dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-                                 get_send_message_topic(dialog_id, m), get_message_schedule_date(m),
-                                 get_message_schedule_repeat_period(m), m->effect_id, m->paid_message_star_count,
-                                 m->suggested_post.get(), m->reply_markup, caption, std::move(input_media),
-                                 m->content->get_type(), m->is_copy, random_id, &m->send_query_ref);
-                           }));
-  } else {
+  auto is_edit = message_id.is_any_server();
+  if ((!is_edit && m->media_album_id != 0) || media_pos != -1) {
     CHECK(input_media.rich_message_ == nullptr);
     if (!is_uploaded_input_media(input_media.media_)) {
       auto file_upload_id = get_message_send_file_upload_id(dialog_id, m, media_pos);
@@ -21834,7 +21781,59 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
       send_closure_later(actor_id(this), &MessagesManager::on_upload_message_media_finished, m->media_album_id,
                          dialog_id, message_id, media_pos, Status::OK());
     }
+    return;
   }
+  if (is_edit) {
+    const auto *edited_message = edited_messages_.get_pointer(dialog_id, m->message_id);
+    CHECK(edited_message != nullptr);
+    const FormattedText *caption = get_message_content_caption(edited_message->content_.get());
+    bool was_uploaded = FileManager::extract_was_uploaded(input_media);
+    bool was_thumbnail_uploaded = FileManager::extract_was_thumbnail_uploaded(input_media);
+
+    LOG(INFO) << "Edit media from " << message_id << " in " << dialog_id;
+    auto schedule_date = get_message_schedule_date(m);
+    auto schedule_repeat_period = get_message_schedule_repeat_period(m);
+    auto promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), dialog_id, message_id, file_upload_ids = edited_message->file_upload_ids_,
+         thumbnail_file_upload_ids = edited_message->thumbnail_file_upload_ids_,
+         cover_file_ids = get_message_content_cover_any_file_ids(td_, edited_message->content_.get()), schedule_date,
+         schedule_repeat_period, edit_generation = m->edit_generation, was_uploaded, was_thumbnail_uploaded,
+         file_references = FileManager::extract_file_references(input_media),
+         cover_file_references =
+             FileManager::extract_cover_file_references(input_media)](Result<int32> result) mutable {
+          send_closure(actor_id, &MessagesManager::on_message_media_edited, dialog_id, message_id,
+                       std::move(file_upload_ids), std::move(thumbnail_file_upload_ids), std::move(cover_file_ids),
+                       was_uploaded, was_thumbnail_uploaded, std::move(file_references),
+                       std::move(cover_file_references), schedule_date, schedule_repeat_period, edit_generation,
+                       std::move(result));
+        });
+    td_->create_handler<EditMessageQuery>(std::move(promise))
+        ->send(dialog_id, message_id, true, caption, false, std::move(input_media), edited_message->invert_media_,
+               edited_message->reply_markup_, schedule_date, schedule_repeat_period, true);
+    return;
+  }
+
+  send_closure_later(
+      actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, message_id,
+      PromiseCreator::lambda([this, dialog_id, input_media = std::move(input_media)](Result<Message *> result) mutable {
+        if (G()->close_flag() || result.is_error()) {
+          return;
+        }
+
+        auto m = result.move_as_ok();
+        CHECK(m != nullptr);
+
+        const FormattedText *caption = get_message_content_text(m->content.get());
+        LOG(INFO) << "Send media from " << m->message_id << " in " << dialog_id;
+        int64 random_id = begin_send_message(dialog_id, m);
+        td_->create_handler<SendMediaQuery>()->send(
+            m->file_upload_ids, m->thumbnail_file_upload_ids,
+            get_message_content_cover_any_file_ids(td_, m->content.get()), get_message_flags(m), dialog_id,
+            get_send_message_as_input_peer(m), *get_message_input_reply_to(m), get_send_message_topic(dialog_id, m),
+            get_message_schedule_date(m), get_message_schedule_repeat_period(m), m->effect_id,
+            m->paid_message_star_count, m->suggested_post.get(), m->reply_markup, caption, std::move(input_media),
+            m->content->get_type(), m->is_copy, random_id, &m->send_query_ref);
+      }));
 }
 
 void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const Message *m,
@@ -23169,32 +23168,37 @@ void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, 
   promise.set_error(400, error_message);
 }
 
-void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId message_id, FileUploadId file_upload_id,
-                                              FileUploadId thumbnail_file_upload_id, FileId cover_file_id,
-                                              bool was_uploaded, bool was_thumbnail_uploaded, string file_reference,
-                                              string cover_file_reference, int32 schedule_date,
-                                              int32 schedule_repeat_period, uint64 generation, Result<int32> &&result) {
+void MessagesManager::on_message_media_edited(
+    DialogId dialog_id, MessageId message_id, vector<FileUploadId> &&file_upload_ids,
+    vector<FileUploadId> &&thumbnail_file_upload_ids, vector<FileId> &&cover_file_ids, bool was_uploaded,
+    bool was_thumbnail_uploaded, vector<string> &&file_references, vector<string> &&cover_file_references,
+    int32 schedule_date, int32 schedule_repeat_period, uint64 edit_generation, Result<int32> &&result) {
   // must not run getDifference
 
   if (was_thumbnail_uploaded) {
-    CHECK(thumbnail_file_upload_id.is_valid());
-    td_->file_manager_->delete_partial_remote_location(thumbnail_file_upload_id);
+    CHECK(thumbnail_file_upload_ids.size() == 1u);
+    CHECK(thumbnail_file_upload_ids[0].is_valid());
+    td_->file_manager_->delete_partial_remote_location(thumbnail_file_upload_ids[0]);
   }
 
   CHECK(message_id.is_any_server());
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   auto m = get_message(d, message_id);
-  if (m == nullptr || m->edit_generation != generation) {
+  if (m == nullptr || m->edit_generation != edit_generation) {
     // message is already deleted or was edited again
     if (was_uploaded) {
-      cancel_upload_file(file_upload_id, "on_message_media_edited");
+      for (const auto &file_upload_id : file_upload_ids) {
+        cancel_upload_file(file_upload_id, "on_message_media_edited");
+      }
     }
     return;
   }
 
   auto edited_message = edited_messages_.get_pointer(dialog_id, message_id);
   CHECK(edited_message->content_ != nullptr);
+  CHECK(edited_message->file_upload_ids_ == file_upload_ids);
+  CHECK(edited_message->thumbnail_file_upload_ids_ == thumbnail_file_upload_ids);
   if (result.is_ok()) {
     // message content has already been replaced from updateEdit{Channel,}Message
     // need only merge files from edited_content with their uploaded counterparts
@@ -23223,48 +23227,53 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     LOG(INFO) << "Failed to edit " << message_id << " in " << dialog_id << ": " << error;
     if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(error)) {
       auto source = FileReferenceManager::get_file_reference_error_source(error);
+      auto pos = source.pos_;
+      if (pos > 0) {
+        pos--;
+      }
       if (source.is_cover_) {
-        if (cover_file_id.is_valid()) {
-          VLOG(file_references) << "Receive " << error << " for cover " << cover_file_id;
-          td_->file_manager_->delete_file_reference(cover_file_id, cover_file_reference);
-          do_send_message(dialog_id, m, -1, {-1});
-          return;
+        if (pos < cover_file_ids.size() && pos < cover_file_references.size()) {
+          VLOG(file_references) << "Receive " << error << " for cover " << cover_file_ids[pos];
+          td_->file_manager_->delete_file_reference(cover_file_ids[pos], cover_file_references[pos]);
+          return on_send_message_file_error(dialog_id, m, edited_message->content_.get(), file_upload_ids, pos, {-1});
         } else {
           LOG(ERROR) << "Receive file reference error, but have no cover_file_id";
         }
       } else {
-        if (file_upload_id.is_valid()) {
-          VLOG(file_references) << "Receive " << error << " for " << file_upload_id;
-          td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), file_reference);
-          do_send_message(dialog_id, m, -1, {-1});
-          return;
+        if (pos < file_upload_ids.size() && pos < file_references.size() && !was_uploaded &&
+            file_upload_ids[pos].is_valid()) {
+          VLOG(file_references) << "Receive " << error << " for " << file_upload_ids[pos];
+          td_->file_manager_->delete_file_reference(file_upload_ids[pos].get_file_id(), file_references[pos]);
+          return on_send_message_file_error(dialog_id, m, edited_message->content_.get(), file_upload_ids, pos, {-1});
         } else {
           LOG(ERROR) << "Receive file reference error, but have no file_id";
         }
       }
     }
     if (was_uploaded) {
-      CHECK(file_upload_id.is_valid());
+      CHECK(file_upload_ids.size() == 1u);
+      CHECK(file_upload_ids[0].is_valid());
       auto bad_parts = FileManager::get_missing_file_parts(error);
       if (!bad_parts.empty()) {
-        do_send_message(dialog_id, m, -1, std::move(bad_parts));
-        return;
+        return do_send_message(dialog_id, m, -1, std::move(bad_parts));
       }
 
-      td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id, error);
+      td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_ids[0], error);
     }
 
     if (error.code() != 403 && !(error.code() == 500 && G()->close_flag())) {
       LOG(WARNING) << "Failed to edit " << MessageFullId{dialog_id, m->message_id} << " with the error " << error;
     }
-    cancel_upload_message_content_files(edited_message->file_upload_ids_, edited_message->thumbnail_file_upload_ids_);
+    cancel_upload_message_content_files(file_upload_ids, thumbnail_file_upload_ids);
 
     if (dialog_id.get_type() != DialogType::SecretChat) {
       get_message_from_server({dialog_id, m->message_id}, Auto(), "on_message_media_edited");
     }
   }
   if (was_uploaded) {
-    cancel_upload_file(file_upload_id, "on_message_media_edited");
+    for (const auto &file_upload_id : file_upload_ids) {
+      cancel_upload_file(file_upload_id, "on_message_media_edited");
+    }
   }
 
   if (m->edited_schedule_date == schedule_date && m->edited_schedule_repeat_period == m->schedule_repeat_period) {
@@ -27418,19 +27427,26 @@ void MessagesManager::on_send_message_file_error(int64 random_id, size_t pos, ve
                    get_log_event_storer(log_event));
   }
 
+  on_send_message_file_error(dialog_id, m, m->content.get(), m->file_upload_ids, pos, std::move(bad_parts));
+}
+
+void MessagesManager::on_send_message_file_error(DialogId dialog_id, const Message *m, const MessageContent *content,
+                                                 const vector<FileUploadId> &file_upload_ids, size_t pos,
+                                                 vector<int> &&bad_parts) {
   int32 media_pos = -1;
-  if (can_message_content_have_multiple_files(m->content->get_type())) {
+  if (can_message_content_have_multiple_files(content->get_type())) {
     media_pos = static_cast<int32>(pos);
 
-    LOG(INFO) << "Add internal media send for " << message_full_id;
+    auto message_full_id = MessageFullId{dialog_id, m->message_id};
+    LOG(INFO) << "Add internal media send for " << message_full_id << " with media_pos = " << media_pos;
     auto &request = pending_internal_media_sends_[message_full_id];
     CHECK(request.is_finished.empty());
-    CHECK(static_cast<size_t>(media_pos) < m->file_upload_ids.size());
-    request.is_finished.resize(m->file_upload_ids.size(), true);
+    CHECK(static_cast<size_t>(media_pos) < file_upload_ids.size());
+    request.is_finished.resize(file_upload_ids.size(), true);
     request.is_finished[media_pos] = false;
-    request.finished_count = m->file_upload_ids.size() - 1;
-    request.results.resize(m->file_upload_ids.size());
-    CHECK(m->file_upload_ids[media_pos].is_valid());
+    request.finished_count = file_upload_ids.size() - 1;
+    request.results.resize(file_upload_ids.size());
+    CHECK(file_upload_ids[media_pos].is_valid());
   } else {
     CHECK(pos == 0);
   }

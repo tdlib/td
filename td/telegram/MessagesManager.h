@@ -1750,11 +1750,11 @@ class MessagesManager final : public Actor {
 
   void cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message);
 
-  void on_message_media_edited(DialogId dialog_id, MessageId message_id, FileUploadId file_upload_id,
-                               FileUploadId thumbnail_file_upload_id, FileId cover_file_id, bool was_uploaded,
-                               bool was_thumbnail_uploaded, string file_reference, string cover_file_reference,
-                               int32 schedule_date, int32 schedule_repeat_period, uint64 generation,
-                               Result<int32> &&result);
+  void on_message_media_edited(DialogId dialog_id, MessageId message_id, vector<FileUploadId> &&file_upload_ids,
+                               vector<FileUploadId> &&thumbnail_file_upload_ids, vector<FileId> &&cover_file_ids,
+                               bool was_uploaded, bool was_thumbnail_uploaded, vector<string> &&file_references,
+                               vector<string> &&cover_file_references, int32 schedule_date,
+                               int32 schedule_repeat_period, uint64 edit_generation, Result<int32> &&result);
 
   MessageId get_persistent_message_id(const Dialog *d, MessageId message_id) const;
 
@@ -1878,6 +1878,9 @@ class MessagesManager final : public Actor {
                             BufferSlice thumbnail);
 
   void do_send_message(DialogId dialog_id, const Message *m, int32 media_pos = -1, vector<int> bad_parts = {});
+
+  void on_send_message_file_error(DialogId dialog_id, const Message *m, const MessageContent *content,
+                                  const vector<FileUploadId> &file_upload_ids, size_t pos, vector<int> &&bad_parts);
 
   void on_cover_upload(DialogId dialog_id, MessageId message_id, uint64 edit_generation, int32 media_pos,
                        vector<int> bad_parts, Result<Unit> result);

@@ -3234,8 +3234,7 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId short
       if (pos < cover_file_ids.size() && pos < cover_file_references.size()) {
         VLOG(file_references) << "Receive " << status << " for cover " << cover_file_ids[pos];
         td_->file_manager_->delete_file_reference(cover_file_ids[pos], cover_file_references[pos]);
-        on_send_message_file_error(shortcut_id, message_id, 0, pos, edit_generation, {-1});
-        return;
+        return on_send_message_file_error(shortcut_id, message_id, 0, pos, edit_generation, {-1});
       } else {
         LOG(ERROR) << "Receive file reference error " << pos << ", but cover_file_ids = " << cover_file_ids
                    << ", file_references = " << cover_file_references;
@@ -3245,8 +3244,7 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId short
           file_upload_ids[pos].is_valid()) {
         VLOG(file_references) << "Receive " << status << " for " << file_upload_ids[pos];
         td_->file_manager_->delete_file_reference(file_upload_ids[pos].get_file_id(), file_references[pos]);
-        on_send_message_file_error(shortcut_id, message_id, 0, pos, edit_generation, {-1});
-        return;
+        return on_send_message_file_error(shortcut_id, message_id, 0, pos, edit_generation, {-1});
       } else {
         LOG(ERROR) << "Receive file reference error " << pos << ", but file_upload_ids = " << file_upload_ids
                    << ", was_uploaded = " << was_uploaded << ", file_references = " << file_references;
@@ -3266,9 +3264,9 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId short
     auto bad_parts = FileManager::get_missing_file_parts(status);
     if (!bad_parts.empty()) {
       return do_send_message(m, -1, std::move(bad_parts));
-    } else {
-      td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_ids[0], status);
     }
+
+    td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_ids[0], status);
   }
 
   auto old_file_ids = get_message_file_ids(m);
