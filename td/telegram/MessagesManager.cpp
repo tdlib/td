@@ -21755,7 +21755,6 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
   }
 
   CHECK(m != nullptr);
-  CHECK(!input_media.is_empty());
   auto message_id = m->message_id;
   auto is_edit = message_id.is_any_server();
   if ((!is_edit && m->media_album_id != 0) || media_pos != -1) {
@@ -21783,8 +21782,15 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
     }
     return;
   }
-  if (is_edit) {
-    const auto *edited_message = edited_messages_.get_pointer(dialog_id, m->message_id);
+
+  do_send_message_media(dialog_id, m, std::move(input_media));
+}
+
+void MessagesManager::do_send_message_media(DialogId dialog_id, const Message *m, InputMedia &&input_media) {
+  CHECK(!input_media.is_empty());
+  auto message_id = m->message_id;
+  if (message_id.is_any_server()) {
+    const auto *edited_message = edited_messages_.get_pointer(dialog_id, message_id);
     CHECK(edited_message != nullptr);
     const FormattedText *caption = get_message_content_caption(edited_message->content_.get());
     bool was_uploaded = FileManager::extract_was_uploaded(input_media);
@@ -22269,29 +22275,9 @@ void MessagesManager::do_send_internal_media_group(DialogId dialog_id, MessageId
   }
 
   auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, -1);
-  CHECK(!input_media.is_empty());
   pending_internal_media_sends_.erase(dialog_id, message_id);
 
-  send_closure_later(
-      actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, message_id,
-      PromiseCreator::lambda([this, dialog_id, input_media = std::move(input_media)](Result<Message *> result) mutable {
-        if (G()->close_flag() || result.is_error()) {
-          return;
-        }
-
-        auto m = result.move_as_ok();
-        CHECK(m != nullptr);
-
-        const FormattedText *caption = get_message_content_text(m->content.get());
-        auto random_id = begin_send_message(dialog_id, m);
-        td_->create_handler<SendMediaQuery>()->send(
-            m->file_upload_ids, m->thumbnail_file_upload_ids,
-            get_message_content_cover_any_file_ids(td_, m->content.get()), get_message_flags(m), dialog_id,
-            get_send_message_as_input_peer(m), *get_message_input_reply_to(m), get_send_message_topic(dialog_id, m),
-            get_message_schedule_date(m), get_message_schedule_repeat_period(m), m->effect_id,
-            m->paid_message_star_count, m->suggested_post.get(), m->reply_markup, caption, std::move(input_media),
-            m->content->get_type(), m->is_copy, random_id, &m->send_query_ref);
-      }));
+  do_send_message_media(dialog_id, m, std::move(input_media));
 }
 
 void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageId message_id) {

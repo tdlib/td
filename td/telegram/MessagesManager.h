@@ -1887,6 +1887,8 @@ class MessagesManager final : public Actor {
 
   void on_message_media_uploaded(DialogId dialog_id, const Message *m, int32 media_pos, InputMedia &&input_media);
 
+  void do_send_message_media(DialogId dialog_id, const Message *m, InputMedia &&input_media);
+
   void on_secret_message_media_uploaded(DialogId dialog_id, const Message *m, SecretInputMedia &&secret_input_media);
 
   void on_upload_message_media_finished(int64 media_album_id, DialogId dialog_id, MessageId message_id, int32 media_pos,
