@@ -21565,15 +21565,9 @@ void MessagesManager::on_cover_upload(DialogId dialog_id, MessageId message_id, 
   }
 
   bool is_edit = m->message_id.is_any_server();
-  auto can_send_status = can_send_message(dialog_id);
-  if (!is_edit && can_send_status.is_error()) {
-    // user has left the chat during upload of the file or lost their privileges
-    LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status;
-
-    fail_send_message(message_full_id, std::move(can_send_status));
-    return;
+  if (!is_edit && result.is_ok()) {
+    result = can_send_message(dialog_id);
   }
-
   if (result.is_error()) {
     if (is_edit) {
       if (m->edit_generation == edit_generation) {
