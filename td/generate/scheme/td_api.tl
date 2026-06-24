@@ -138,7 +138,11 @@ richMessageSourceMarkdown text:string media:vector<inputRichMessageMedia> = Rich
 //@description An HTML-formatted rich message; for bots only @text HTML-formatted text of the message @media Media used in the message
 richMessageSourceHtml text:string media:vector<inputRichMessageMedia> = RichMessageSource;
 
-//@description A rich message to send
+//@description A rich message to send. Total length of all texts, including custom emoji alternative text and formula source, must not exceed getOption("rich_message_text_length_max").
+//-The total number of all blocks, list items and table rows must not exceed getOption("rich_message_block_count_max").
+//-The maximum allowed depth of nested blocks and rich texts is getOption("rich_message_depth_max").
+//-The total number of media in all blocks must not exceed getOption("rich_message_media_count_max").
+//-The maximum allowed number of table columns is getOption("rich_message_table_column_count_max")
 //@source Source of the rich message
 //@is_rtl Pass true if the message must be shown from right to left
 //@detect_automatic_blocks Pass true to enable detection of URLs, email addresses and other automatic blocks
