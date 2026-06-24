@@ -12865,7 +12865,7 @@ sendTextMessageDraft chat_id:int53 forum_topic_id:int32 draft_id:int64 text:form
 //@chat_id Chat identifier
 //@forum_topic_id The forum topic identifier in which the message will be sent; pass 0 if none
 //@draft_id Unique identifier of the draft
-//@message Draft of the message
+//@message Draft of the message; file upload isn't supported
 sendRichMessageDraft chat_id:int53 forum_topic_id:int32 draft_id:int64 message:inputRichMessage = Ok;
 
 
