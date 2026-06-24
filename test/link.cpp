@@ -224,12 +224,12 @@ static auto language_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionLanguage>(subsection));
 }
 
-static auto my_stars(td::string subsection = td::string()) {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionMyStars>(subsection));
+static auto my_grams() {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionMyGrams>());
 }
 
-static auto my_toncoins() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionMyToncoins>());
+static auto my_stars(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionMyStars>(subsection));
 }
 
 static auto notification_settings(td::string subsection = td::string()) {
@@ -1983,15 +1983,15 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/stars/123123", my_stars());
   parse_internal_link("tg://settings/stars/earn#test", my_stars("earn"));
 
-  parse_internal_link("tg://ton", my_toncoins());
-  parse_internal_link("tg://ton?asdsa?D?SADasD?asD", my_toncoins());
-  parse_internal_link("tg://ton#test", my_toncoins());
-  parse_internal_link("tg://ton/#test", my_toncoins());
-  parse_internal_link("tg://ton/aadsa#test", my_toncoins());
-  parse_internal_link("tg://ton/theme#test", my_toncoins());
-  parse_internal_link("tg:ton/theme#test", my_toncoins());
-  parse_internal_link("tg://settings/ton", my_toncoins());
-  parse_internal_link("tg://settings/ton/12312", my_toncoins());
+  parse_internal_link("tg://ton", my_grams());
+  parse_internal_link("tg://ton?asdsa?D?SADasD?asD", my_grams());
+  parse_internal_link("tg://ton#test", my_grams());
+  parse_internal_link("tg://ton/#test", my_grams());
+  parse_internal_link("tg://ton/aadsa#test", my_grams());
+  parse_internal_link("tg://ton/theme#test", my_grams());
+  parse_internal_link("tg:ton/theme#test", my_grams());
+  parse_internal_link("tg://settings/ton", my_grams());
+  parse_internal_link("tg://settings/ton/12312", my_grams());
 
   parse_internal_link("tg://premium", unknown_deep_link("tg://premium"));
   parse_internal_link("tg://settings/premium", premium());

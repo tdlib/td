@@ -1660,9 +1660,9 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getStarAdAccountUrl &request);
 
-  void on_request(uint64 id, const td_api::getTonRevenueStatistics &request);
+  void on_request(uint64 id, const td_api::getGramRevenueStatistics &request);
 
-  void on_request(uint64 id, const td_api::getTonWithdrawalUrl &request);
+  void on_request(uint64 id, const td_api::getGramWithdrawalUrl &request);
 
   void on_request(uint64 id, const td_api::getMessageStatistics &request);
 

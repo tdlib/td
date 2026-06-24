@@ -1306,7 +1306,7 @@ class GetStarsRevenueAdsAccountUrlQuery final : public Td::ResultHandler {
   }
 };
 
-static td_api::object_ptr<td_api::tonRevenueStatus> convert_ton_revenue_status(
+static td_api::object_ptr<td_api::gramRevenueStatus> convert_gram_revenue_status(
     telegram_api::object_ptr<telegram_api::starsRevenueStatus> obj) {
   CHECK(obj != nullptr);
   if (obj->next_withdrawal_at_ != 0) {
@@ -1327,16 +1327,16 @@ static td_api::object_ptr<td_api::tonRevenueStatus> convert_ton_revenue_status(
     available_balance =
         TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(obj->available_balance_), true);
   }
-  return td_api::make_object<td_api::tonRevenueStatus>(overall_revenue.get_ton_amount(),
-                                                       current_balance.get_ton_amount(),
-                                                       available_balance.get_ton_amount(), obj->withdrawal_enabled_);
+  return td_api::make_object<td_api::gramRevenueStatus>(overall_revenue.get_ton_amount(),
+                                                        current_balance.get_ton_amount(),
+                                                        available_balance.get_ton_amount(), obj->withdrawal_enabled_);
 }
 
-class GetTonRevenueStatsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::tonRevenueStatistics>> promise_;
+class GetGramRevenueStatsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::gramRevenueStatistics>> promise_;
 
  public:
-  explicit GetTonRevenueStatsQuery(Promise<td_api::object_ptr<td_api::tonRevenueStatistics>> &&promise)
+  explicit GetGramRevenueStatsQuery(Promise<td_api::object_ptr<td_api::gramRevenueStatistics>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -1355,10 +1355,10 @@ class GetTonRevenueStatsQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for GetTonRevenueStatsQuery: " << to_string(ptr);
-    promise_.set_value(td_api::make_object<td_api::tonRevenueStatistics>(
+    LOG(DEBUG) << "Receive result for GetGramRevenueStatsQuery: " << to_string(ptr);
+    promise_.set_value(td_api::make_object<td_api::gramRevenueStatistics>(
         StatisticsManager::convert_stats_graph(std::move(ptr->revenue_graph_)),
-        convert_ton_revenue_status(std::move(ptr->status_)),
+        convert_gram_revenue_status(std::move(ptr->status_)),
         ptr->usd_rate_ > 0 ? clamp(ptr->usd_rate_ * 1e-7, 1e-18, 1e18) : 3e-7));
   }
 
@@ -1418,7 +1418,7 @@ void StarManager::start_up() {
     is_owned_ton_count_inited_ = true;
     owned_ton_count_ = to_integer<int64>(owned_ton_count);
     sent_ton_count_ = owned_ton_count_;
-    send_closure(G()->td(), &Td::send_update, get_update_owned_ton_count_object());
+    send_closure(G()->td(), &Td::send_update, get_update_owned_gram_count_object());
   }
 }
 
@@ -1433,10 +1433,10 @@ td_api::object_ptr<td_api::updateOwnedStarCount> StarManager::get_update_owned_s
       td_api::make_object<td_api::starAmount>(sent_star_count_, sent_nanostar_count_));
 }
 
-td_api::object_ptr<td_api::updateOwnedTonCount> StarManager::get_update_owned_ton_count_object() const {
+td_api::object_ptr<td_api::updateOwnedGramCount> StarManager::get_update_owned_gram_count_object() const {
   CHECK(is_owned_ton_count_inited_);
   // sent_ton_count_ can be negative as well as owned_ton_count_
-  return td_api::make_object<td_api::updateOwnedTonCount>(sent_ton_count_);
+  return td_api::make_object<td_api::updateOwnedGramCount>(sent_ton_count_);
 }
 
 void StarManager::on_update_owned_star_amount(StarAmount star_amount) {
@@ -1473,7 +1473,7 @@ void StarManager::on_update_owned_ton_amount(TonAmount ton_amount) {
   owned_ton_count_ = ton_count;
   if (owned_ton_count_ + pending_owned_ton_count_ != sent_ton_count_) {
     sent_ton_count_ = owned_ton_count_ + pending_owned_ton_count_;
-    send_closure(G()->td(), &Td::send_update, get_update_owned_ton_count_object());
+    send_closure(G()->td(), &Td::send_update, get_update_owned_gram_count_object());
   }
   G()->td_db()->get_binlog_pmc()->set("owned_ton_count", to_string(owned_ton_count_));
 }
@@ -1506,7 +1506,7 @@ void StarManager::add_pending_owned_ton_count(int64 ton_count, bool move_to_owne
       G()->td_db()->get_binlog_pmc()->set("owned_ton_count", to_string(owned_ton_count_));
     } else {
       sent_ton_count_ += ton_count;
-      send_closure(G()->td(), &Td::send_update, get_update_owned_ton_count_object());
+      send_closure(G()->td(), &Td::send_update, get_update_owned_gram_count_object());
     }
   }
 }
@@ -1716,8 +1716,8 @@ void StarManager::get_star_withdrawal_url(const td_api::object_ptr<td_api::Messa
 }
 
 void StarManager::get_ton_revenue_statistics(bool is_dark,
-                                             Promise<td_api::object_ptr<td_api::tonRevenueStatistics>> &&promise) {
-  td_->create_handler<GetTonRevenueStatsQuery>(std::move(promise))->send(is_dark);
+                                             Promise<td_api::object_ptr<td_api::gramRevenueStatistics>> &&promise) {
+  td_->create_handler<GetGramRevenueStatsQuery>(std::move(promise))->send(is_dark);
 }
 
 void StarManager::get_ton_withdrawal_url(const string &password, Promise<string> &&promise) {
@@ -1769,9 +1769,9 @@ void StarManager::on_update_stars_revenue_status(
     if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
       LOG(ERROR) << "Receive " << to_string(update);
     } else {
-      send_closure(
-          G()->td(), &Td::send_update,
-          td_api::make_object<td_api::updateTonRevenueStatus>(convert_ton_revenue_status(std::move(update->status_))));
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateGramRevenueStatus>(
+                       convert_gram_revenue_status(std::move(update->status_))));
     }
     return;
   }
@@ -1950,7 +1950,7 @@ void StarManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &
     updates.push_back(get_update_owned_star_count_object());
   }
   if (is_owned_ton_count_inited_) {
-    updates.push_back(get_update_owned_ton_count_object());
+    updates.push_back(get_update_owned_gram_count_object());
   }
 }
 

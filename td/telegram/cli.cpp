@@ -1516,8 +1516,8 @@ class CliClient final : public Actor {
     string price;
 
     operator td_api::object_ptr<td_api::SuggestedPostPrice>() const {
-      if (price[0] == 't') {
-        return td_api::make_object<td_api::suggestedPostPriceTon>(to_integer<int64>(price.substr(1)));
+      if (price[0] == 'g') {
+        return td_api::make_object<td_api::suggestedPostPriceGram>(to_integer<int64>(price.substr(1)));
       }
       if (price[0] == 's') {
         return td_api::make_object<td_api::suggestedPostPriceStar>(to_integer<int64>(price.substr(1)));
@@ -1534,8 +1534,8 @@ class CliClient final : public Actor {
     string price;
 
     operator td_api::object_ptr<td_api::GiftResalePrice>() const {
-      if (price[0] == 't') {
-        return td_api::make_object<td_api::giftResalePriceTon>(to_integer<int64>(price.substr(1)));
+      if (price[0] == 'g') {
+        return td_api::make_object<td_api::giftResalePriceGram>(to_integer<int64>(price.substr(1)));
       }
       if (price[0] == 's') {
         return td_api::make_object<td_api::giftResalePriceStar>(to_integer<int64>(price.substr(1)));
@@ -6925,11 +6925,11 @@ class CliClient final : public Actor {
     } else if (op == "stake") {
       ChatId chat_id;
       string state_hash;
-      int64 stake_toncoin_amount;
+      int64 stake_gram_amount;
       bool clear_draft;
-      get_args(args, chat_id, state_hash, stake_toncoin_amount, clear_draft);
+      get_args(args, chat_id, state_hash, stake_gram_amount, clear_draft);
       send_message(chat_id,
-                   td_api::make_object<td_api::inputMessageStakeDice>(state_hash, stake_toncoin_amount, clear_draft));
+                   td_api::make_object<td_api::inputMessageStakeDice>(state_hash, stake_gram_amount, clear_draft));
     } else if (op == "sd" || op == "sdf") {
       ChatId chat_id;
       string document;
@@ -8607,14 +8607,14 @@ class CliClient final : public Actor {
       string owner_id;
       get_args(args, owner_id);
       send_request(td_api::make_object<td_api::getStarAdAccountUrl>(as_message_sender(owner_id)));
-    } else if (op == "gtrs") {
+    } else if (op == "ggrs") {
       bool is_dark;
       get_args(args, is_dark);
-      send_request(td_api::make_object<td_api::getTonRevenueStatistics>(is_dark));
-    } else if (op == "gtwu") {
+      send_request(td_api::make_object<td_api::getGramRevenueStatistics>(is_dark));
+    } else if (op == "ggwu") {
       string password;
       get_args(args, password);
-      send_request(td_api::make_object<td_api::getTonWithdrawalUrl>(password));
+      send_request(td_api::make_object<td_api::getGramWithdrawalUrl>(password));
     } else {
       op_not_found_count++;
     }

@@ -670,12 +670,12 @@ game id:int64 short_name:string title:string text:formattedText description:stri
 
 //@description Describes state of the stake dice
 //@state_hash Hash of the state to use for sending the next dice; may be empty if the stake dice can't be sent by the current user
-//@stake_toncoin_amount The Toncoin amount that was staked in the previous roll; in the smallest units of the currency
-//@suggested_stake_toncoin_amounts The amounts of Toncoins that are suggested to be staked; in the smallest units of the currency
+//@stake_gram_amount The amount of TON Grams that was staked in the previous roll; in the smallest units of the currency
+//@suggested_stake_gram_amounts The amounts of Grams that are suggested to be staked; in the smallest units of the currency
 //@current_streak The number of rolled sixes towards the streak; 0-2
-//@prize_per_mille The number of Toncoins received by the user for each 1000 Toncoins staked if the dice outcome is 1-6 correspondingly; may be empty if the stake dice can't be sent by the current user
-//@streak_prize_per_mille The number of Toncoins received by the user for each 1000 Toncoins staked if the dice outcome is 6 three times in a row with the same stake
-stakeDiceState state_hash:string stake_toncoin_amount:int53 suggested_stake_toncoin_amounts:vector<int53> current_streak:int32 prize_per_mille:vector<int32> streak_prize_per_mille:int32 = StakeDiceState;
+//@prize_per_mille The number of Grams received by the user for each 1000 Grams staked if the dice outcome is 1-6 correspondingly; may be empty if the stake dice can't be sent by the current user
+//@streak_prize_per_mille The number of Grams received by the user for each 1000 Grams staked if the dice outcome is 6 three times in a row with the same stake
+stakeDiceState state_hash:string stake_gram_amount:int53 suggested_stake_gram_amounts:vector<int53> current_streak:int32 prize_per_mille:vector<int32> streak_prize_per_mille:int32 = StakeDiceState;
 
 //@description Describes a Web App. Use getInternalLink with internalLinkTypeWebApp to share the Web App
 //@short_name Web App short name
@@ -1150,10 +1150,10 @@ webAppOpenParameters theme:themeParameters application_name:string mode:WebAppOp
 //-getOption("gift_resale_star_count_min")-getOption("gift_resale_star_count_max") for gifts put for resale
 giftResalePriceStar star_count:int53 = GiftResalePrice;
 
-//@description Describes price of a resold gift in Toncoins
-//@toncoin_cent_count The amount of 1/100 of Toncoin expected to be paid for the gift. Must be in the range
+//@description Describes price of a resold gift in TON Grams
+//@gram_cent_count The amount of 1/100 of Gram expected to be paid for the gift. Must be in the range
 //-getOption("gift_resale_toncoin_cent_count_min")-getOption("gift_resale_toncoin_cent_count_max")
-giftResalePriceTon toncoin_cent_count:int53 = GiftResalePrice;
+giftResalePriceGram gram_cent_count:int53 = GiftResalePrice;
 
 
 //@class GiftPurchaseOfferState @description Describes state of a gift purchase offer
@@ -1174,9 +1174,9 @@ giftPurchaseOfferStateRejected = GiftPurchaseOfferState;
 //@star_count The Telegram Star amount expected to be paid for the post; getOption("suggested_post_star_count_min")-getOption("suggested_post_star_count_max")
 suggestedPostPriceStar star_count:int53 = SuggestedPostPrice;
 
-//@description Describes price of a suggested post in Toncoins
-//@toncoin_cent_count The amount of 1/100 of Toncoin expected to be paid for the post; getOption("suggested_post_toncoin_cent_count_min")-getOption("suggested_post_toncoin_cent_count_max")
-suggestedPostPriceTon toncoin_cent_count:int53 = SuggestedPostPrice;
+//@description Describes price of a suggested post in TON Grams
+//@gram_cent_count The amount of 1/100 of Gram expected to be paid for the post; getOption("suggested_post_toncoin_cent_count_min")-getOption("suggested_post_toncoin_cent_count_max")
+suggestedPostPriceGram gram_cent_count:int53 = SuggestedPostPrice;
 
 
 //@class SuggestedPostState @description Describes state of a suggested post
@@ -1456,9 +1456,9 @@ giftPurchaseLimits total_count:int32 remaining_count:int32 = GiftPurchaseLimits;
 
 //@description Describes parameters of a unique gift available for resale
 //@star_count Resale price of the gift in Telegram Stars
-//@toncoin_cent_count Resale price of the gift in 1/100 of Toncoin
-//@toncoin_only True, if the gift can be bought only using Toncoins
-giftResaleParameters star_count:int53 toncoin_cent_count:int53 toncoin_only:Bool = GiftResaleParameters;
+//@gram_cent_count Resale price of the gift in 1/100 of TON Gram
+//@gram_only True, if the gift can be bought only using Grams
+giftResaleParameters star_count:int53 gram_cent_count:int53 gram_only:Bool = GiftResaleParameters;
 
 //@description Describes collection of gifts
 //@id Unique identifier of the collection
@@ -2108,14 +2108,14 @@ starTransaction id:string star_amount:starAmount is_refund:Bool date:int32 type:
 starTransactions star_amount:starAmount transactions:vector<starTransaction> next_offset:string = StarTransactions;
 
 
-//@class TonTransactionType @description Describes type of transaction with Toncoins
+//@class TonTransactionType @description Describes type of transaction with TON Grams
 
-//@description The transaction is a deposit of Toncoins from Fragment
+//@description The transaction is a deposit of Grams from Fragment
 //@is_gift True, if the transaction is a gift from another user
 //@sticker The sticker to be shown in the transaction information; may be null if unknown
 tonTransactionTypeFragmentDeposit is_gift:Bool sticker:sticker = TonTransactionType;
 
-//@description The transaction is a withdrawal of earned Toncoins to Fragment @withdrawal_state State of the withdrawal; may be null for refunds from Fragment
+//@description The transaction is a withdrawal of earned Grams to Fragment @withdrawal_state State of the withdrawal; may be null for refunds from Fragment
 tonTransactionTypeFragmentWithdrawal withdrawal_state:RevenueWithdrawalState = TonTransactionType;
 
 //@description The transaction is a payment for a suggested post @chat_id Identifier of the channel chat that posted the post
@@ -2130,10 +2130,10 @@ tonTransactionTypeUpgradedGiftPurchase user_id:int53 gift:upgradedGift = TonTran
 //@description The transaction is a sale of an upgraded gift
 //@user_id Identifier of the user who bought the gift
 //@gift The gift
-//@commission_per_mille The number of Toncoins received by the Telegram for each 1000 Toncoins received by the seller of the gift
-//@commission_toncoin_amount The Toncoin amount that was received by the Telegram; in the smallest units of the currency
+//@commission_per_mille The number of Grams received by the Telegram for each 1000 Grams received by the seller of the gift
+//@commission_gram_amount The Gram amount that was received by the Telegram; in the smallest units of the currency
 //@via_offer True, if the gift was sold through a purchase offer
-tonTransactionTypeUpgradedGiftSale user_id:int53 gift:upgradedGift commission_per_mille:int32 commission_toncoin_amount:int53 via_offer:Bool = TonTransactionType;
+tonTransactionTypeUpgradedGiftSale user_id:int53 gift:upgradedGift commission_per_mille:int32 commission_gram_amount:int53 via_offer:Bool = TonTransactionType;
 
 //@description The transaction is a payment for stake dice throw
 tonTransactionTypeStakeDiceStake = TonTransactionType;
@@ -2145,17 +2145,17 @@ tonTransactionTypeStakeDicePayout = TonTransactionType;
 tonTransactionTypeUnsupported = TonTransactionType;
 
 
-//@description Represents a transaction changing the amount of owned Toncoins
+//@description Represents a transaction changing the amount of owned TON Grams
 //@id Unique identifier of the transaction
-//@ton_amount The amount of added owned Toncoins; negative for outgoing transactions
+//@ton_amount The amount of added owned Grams; negative for outgoing transactions
 //@is_refund True, if the transaction is a refund of a previous transaction
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@type Type of the transaction
 tonTransaction id:string ton_amount:int53 is_refund:Bool date:int32 type:TonTransactionType = TonTransaction;
 
-//@description Represents a list of Toncoin transactions
-//@ton_amount The total amount of owned Toncoins
-//@transactions List of Toncoin transactions
+//@description Represents a list of TON Gram transactions
+//@ton_amount The total amount of owned Grams
+//@transactions List of Gram transactions
 //@next_offset The offset for the next request. If empty, then there are no more results
 tonTransactions ton_amount:int53 transactions:vector<tonTransaction> next_offset:string = TonTransactions;
 
@@ -3051,7 +3051,7 @@ factCheck text:formattedText country_code:string = FactCheck;
 //@has_timestamped_media True, if media timestamp entities refers to a media in this message as opposed to a media in the replied message
 //@is_channel_post True, if the message is a channel post. All messages to channels are channel posts, all other messages are not channel posts
 //@is_paid_star_suggested_post True, if the message is a suggested channel post which was paid in Telegram Stars; a warning must be shown if the message is deleted in less than getOption("suggested_post_lifetime_min") seconds after sending
-//@is_paid_ton_suggested_post True, if the message is a suggested channel post which was paid in Toncoins; a warning must be shown if the message is deleted in less than getOption("suggested_post_lifetime_min") seconds after sending
+//@is_paid_gram_suggested_post True, if the message is a suggested channel post which was paid in TON Grams; a warning must be shown if the message is deleted in less than getOption("suggested_post_lifetime_min") seconds after sending
 //@contains_unread_mention True, if the message contains an unread mention for the current user
 //@contains_unread_poll_votes True, if the message is a poll message with unread votes
 //@date Point in time (Unix timestamp) when the message was sent; 0 for scheduled messages
@@ -3080,7 +3080,7 @@ factCheck text:formattedText country_code:string = FactCheck;
 //@summary_language_code IETF language tag of the message language on which it can be summarized; empty if summary isn't available for the message
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null if none
-message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool is_from_offline:Bool can_be_saved:Bool has_timestamped_media:Bool is_channel_post:Bool is_paid_star_suggested_post:Bool is_paid_ton_suggested_post:Bool contains_unread_mention:Bool contains_unread_poll_votes:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo import_info:messageImportInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> fact_check:factCheck suggested_post_info:suggestedPostInfo reply_to:MessageReplyTo topic_id:MessageTopic self_destruct_type:MessageSelfDestructType self_destruct_in:double auto_delete_in:double via_bot_user_id:int53 guest_bot_caller_id:MessageSender sender_business_bot_user_id:int53 sender_boost_count:int32 sender_tag:string paid_message_star_count:int53 author_signature:string media_album_id:int64 effect_id:int64 restriction_info:restrictionInfo summary_language_code:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool is_from_offline:Bool can_be_saved:Bool has_timestamped_media:Bool is_channel_post:Bool is_paid_star_suggested_post:Bool is_paid_gram_suggested_post:Bool contains_unread_mention:Bool contains_unread_poll_votes:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo import_info:messageImportInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> fact_check:factCheck suggested_post_info:suggestedPostInfo reply_to:MessageReplyTo topic_id:MessageTopic self_destruct_type:MessageSelfDestructType self_destruct_in:double auto_delete_in:double via_bot_user_id:int53 guest_bot_caller_id:MessageSender sender_business_bot_user_id:int53 sender_boost_count:int32 sender_tag:string paid_message_star_count:int53 author_signature:string media_album_id:int64 effect_id:int64 restriction_info:restrictionInfo summary_language_code:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
 
 //@description Contains a list of messages @total_count Approximate total number of messages found @messages List of messages; messages may be null
@@ -5112,9 +5112,9 @@ messagePoll poll:poll description:formattedText media:PollMedia can_add_option:B
 //@initial_state The animated stickers with the initial dice animation; may be null if unknown. The update updateMessageContent will be sent when the sticker became known
 //@final_state The animated stickers with the final dice animation; may be null if unknown. The update updateMessageContent will be sent when the sticker became known
 //@value The dice value. If the value is 0, then the dice don't have final state yet
-//@stake_toncoin_amount The Toncoin amount that was staked; in the smallest units of the currency
-//@prize_toncoin_amount The Toncoin amount that was gained from the roll; in the smallest units of the currency; -1 if the dice don't have final state yet
-messageStakeDice initial_state:DiceStickers final_state:DiceStickers value:int32 stake_toncoin_amount:int53 prize_toncoin_amount:int53 = MessageContent;
+//@stake_gram_amount The TON Gram amount that was staked; in the smallest units of the currency
+//@prize_gram_amount The TON Gram amount that was gained from the roll; in the smallest units of the currency; -1 if the dice don't have final state yet
+messageStakeDice initial_state:DiceStickers final_state:DiceStickers value:int32 stake_gram_amount:int53 prize_gram_amount:int53 = MessageContent;
 
 //@description A message with a forwarded story
 //@story_poster_chat_id Identifier of the chat that posted the story
@@ -5386,11 +5386,11 @@ messageGiveawayWinners boosted_chat_id:int53 giveaway_message_id:int53 additiona
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 star_count:int53 transaction_id:string sticker:sticker = MessageContent;
 
-//@description Toncoins were gifted to a user
-//@gifter_user_id The identifier of a user who gifted Toncoins; 0 if the gift was anonymous or is outgoing
-//@receiver_user_id The identifier of a user who received Toncoins; 0 if the gift is incoming
-//@ton_amount The received Toncoin amount, in the smallest units of the cryptocurrency
-//@transaction_id Identifier of the transaction for Toncoin credit; for receiver only
+//@description TON Grams were gifted to a user
+//@gifter_user_id The identifier of a user who gifted Grams; 0 if the gift was anonymous or is outgoing
+//@receiver_user_id The identifier of a user who received Grams; 0 if the gift is incoming
+//@ton_amount The received Gram amount, in the smallest units of the cryptocurrency
+//@transaction_id Identifier of the transaction for Gram credit; for receiver only
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiftedTon gifter_user_id:int53 receiver_user_id:int53 ton_amount:int53 transaction_id:string sticker:sticker = MessageContent;
 
@@ -5505,7 +5505,7 @@ messageSuggestedPostDeclined suggested_post_message_id:int53 comment:string = Me
 //@description A suggested post was published for getOption("suggested_post_lifetime_min") seconds and payment for the post was received
 //@suggested_post_message_id Identifier of the message with the suggested post; may be 0 or an identifier of a deleted message
 //@star_amount The amount of received Telegram Stars
-//@ton_amount The amount of received Toncoins; in the smallest units of the cryptocurrency
+//@ton_amount The amount of received TON Grams; in the smallest units of the cryptocurrency
 messageSuggestedPostPaid suggested_post_message_id:int53 star_amount:starAmount ton_amount:int53 = MessageContent;
 
 //@description A suggested post was refunded
@@ -6037,10 +6037,10 @@ inputMessagePoll question:formattedText options:vector<inputPollOption> descript
 
 //@description A stake dice message
 //@state_hash Hash of the stake dice state. The state hash can be used only if it was received recently enough. Otherwise, a new state must be requested using getStakeDiceState
-//@stake_toncoin_amount The Toncoin amount that will be staked; in the smallest units of the currency. Must be in the range
+//@stake_gram_amount The TON Gram amount that will be staked; in the smallest units of the currency. Must be in the range
 //-getOption("stake_dice_stake_amount_min")-getOption("stake_dice_stake_amount_max")
 //@clear_draft Pass true to delete message draft in the chat
-inputMessageStakeDice state_hash:string stake_toncoin_amount:int53 clear_draft:Bool = InputMessageContent;
+inputMessageStakeDice state_hash:string stake_gram_amount:int53 clear_draft:Bool = InputMessageContent;
 
 //@description A message with a forwarded story. Stories can't be forwarded to secret chats. A story can be forwarded only if story.can_be_forwarded
 //@story_poster_chat_id Identifier of the chat that posted the story
@@ -9136,8 +9136,8 @@ settingsSectionLanguage subsection:string = SettingsSection;
 //-"", "top-up", "stats", "gift", "earn"
 settingsSectionMyStars subsection:string = SettingsSection;
 
-//@description The Toncoin balance and transaction section
-settingsSectionMyToncoins = SettingsSection;
+//@description The TON Gram balance and transaction section
+settingsSectionMyGrams = SettingsSection;
 
 //@description The notification settings section @subsection Subsection of the section; may be one of
 //-"", "accounts", "private-chats", "private-chats/edit", "private-chats/show", "private-chats/preview",
@@ -10138,7 +10138,7 @@ chatRevenueTransactionTypeFragmentRefund refund_date:int32 = ChatRevenueTransact
 chatRevenueTransaction cryptocurrency:string cryptocurrency_amount:int64 type:ChatRevenueTransactionType = ChatRevenueTransaction;
 
 //@description Contains a list of chat revenue transactions
-//@ton_amount The amount of owned Toncoins; in the smallest units of the cryptocurrency
+//@ton_amount The amount of owned TON Grams; in the smallest units of the cryptocurrency
 //@transactions List of transactions
 //@next_offset The offset for the next request. If empty, then there are no more results
 chatRevenueTransactions ton_amount:int53 transactions:vector<chatRevenueTransaction> next_offset:string = ChatRevenueTransactions;
@@ -10158,18 +10158,18 @@ starRevenueStatus total_amount:starAmount current_amount:starAmount available_am
 //@usd_rate Current conversion rate of a Telegram Star to USD
 starRevenueStatistics revenue_by_day_graph:StatisticalGraph status:starRevenueStatus usd_rate:double = StarRevenueStatistics;
 
-//@description Contains information about Toncoins earned by the current user
-//@total_amount Total Toncoin amount earned; in the smallest units of the cryptocurrency
-//@balance_amount The Toncoin amount that isn't withdrawn yet; in the smallest units of the cryptocurrency
-//@available_amount The Toncoin amount that is available for withdrawal; in the smallest units of the cryptocurrency
-//@withdrawal_enabled True, if Toncoins can be withdrawn
-tonRevenueStatus total_amount:int64 balance_amount:int64 available_amount:int64 withdrawal_enabled:Bool = TonRevenueStatus;
+//@description Contains information about TON Grams earned by the current user
+//@total_amount Total Gram amount earned; in the smallest units of the cryptocurrency
+//@balance_amount The Gram amount that isn't withdrawn yet; in the smallest units of the cryptocurrency
+//@available_amount The Gram amount that is available for withdrawal; in the smallest units of the cryptocurrency
+//@withdrawal_enabled True, if Grams can be withdrawn
+gramRevenueStatus total_amount:int64 balance_amount:int64 available_amount:int64 withdrawal_enabled:Bool = GramRevenueStatus;
 
-//@description A detailed statistics about Toncoins earned by the current user
+//@description A detailed statistics about TON Grams earned by the current user
 //@revenue_by_day_graph A graph containing amount of revenue in a given day
 //@status Amount of earned revenue
-//@usd_rate Current conversion rate of nanotoncoin to USD cents
-tonRevenueStatistics revenue_by_day_graph:StatisticalGraph status:tonRevenueStatus usd_rate:double = TonRevenueStatistics;
+//@usd_rate Current conversion rate of nanogram to USD cents
+gramRevenueStatistics revenue_by_day_graph:StatisticalGraph status:gramRevenueStatus usd_rate:double = GramRevenueStatistics;
 
 
 //@description A point on a Cartesian plane @x The point's first coordinate @y The point's second coordinate
@@ -10827,8 +10827,8 @@ updateActiveLiveLocationMessages messages:vector<message> = Update;
 //@description The number of Telegram Stars owned by the current user has changed @star_amount The new amount of owned Telegram Stars
 updateOwnedStarCount star_amount:starAmount = Update;
 
-//@description The number of Toncoins owned by the current user has changed @ton_amount The new amount of owned Toncoins; in the smallest units of the cryptocurrency
-updateOwnedTonCount ton_amount:int53 = Update;
+//@description The number of TON Grams owned by the current user has changed @ton_amount The new amount of owned Grams; in the smallest units of the cryptocurrency
+updateOwnedGramCount ton_amount:int53 = Update;
 
 //@description The revenue earned from sponsored messages in a chat has changed. If chat revenue screen is opened, then getChatRevenueTransactions may be called to fetch new transactions
 //@chat_id Identifier of the chat
@@ -10840,9 +10840,9 @@ updateChatRevenueAmount chat_id:int53 revenue_amount:chatRevenueAmount = Update;
 //@status New Telegram Star revenue status
 updateStarRevenueStatus owner_id:MessageSender status:starRevenueStatus = Update;
 
-//@description The Toncoin revenue earned by the current user has changed. If Toncoin transaction screen of the chat is opened, then getTonTransactions may be called to fetch new transactions
-//@status New Toncoin revenue status
-updateTonRevenueStatus status:tonRevenueStatus = Update;
+//@description The TON Gram revenue earned by the current user has changed. If Gram transaction screen of the chat is opened, then getTonTransactions may be called to fetch new transactions
+//@status New Gram revenue status
+updateGramRevenueStatus status:gramRevenueStatus = Update;
 
 //@description The parameters of speech recognition without Telegram Premium subscription have changed
 //@max_media_duration The maximum allowed duration of media for speech recognition without Telegram Premium subscription, in seconds
@@ -15111,7 +15111,7 @@ getUpgradedGiftsPromotionalAnimation = Animation;
 //@received_gift_id Identifier of the unique gift
 //@price The new price for the unique gift; pass null to disallow gift resale. The current user will receive
 //-getOption("gift_resale_star_earnings_per_mille") Telegram Stars for each 1000 Telegram Stars paid for the gift if the gift price is in Telegram Stars or
-//-getOption("gift_resale_ton_earnings_per_mille") Toncoins for each 1000 Toncoins paid for the gift if the gift price is in Toncoins
+//-getOption("gift_resale_ton_earnings_per_mille") TON Grams for each 1000 Grams paid for the gift if the gift price is in Grams
 setGiftResalePrice received_gift_id:string price:GiftResalePrice = Ok;
 
 //@description Returns upgraded gifts that can be bought from other owners using sendResoldGift
@@ -15376,7 +15376,7 @@ getChatRevenueWithdrawalUrl chat_id:int53 password:string = HttpUrl;
 //@limit The maximum number of transactions to be returned; up to 100
 getChatRevenueTransactions chat_id:int53 offset:string limit:int32 = ChatRevenueTransactions;
 
-//@description Returns the list of Toncoin transactions of the current user
+//@description Returns the list of TON transactions of the current user
 //@direction Direction of the transactions to receive; pass null to get all transactions
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of transactions to return
@@ -15398,13 +15398,13 @@ getStarWithdrawalUrl owner_id:MessageSender star_count:int53 password:string = H
 //@owner_id Identifier of the owner of the Telegram Stars; can be identifier of an owned bot, or identifier of an owned channel chat
 getStarAdAccountUrl owner_id:MessageSender = HttpUrl;
 
-//@description Returns detailed Toncoin revenue statistics of the current user @is_dark Pass true if a dark theme is used by the application
-getTonRevenueStatistics is_dark:Bool = TonRevenueStatistics;
+//@description Returns detailed TON Gram revenue statistics of the current user @is_dark Pass true if a dark theme is used by the application
+getGramRevenueStatistics is_dark:Bool = GramRevenueStatistics;
 
-//@description Returns a URL for Toncoin withdrawal from the current user's account. The user must have at least 10 toncoins to withdraw
-//-and can withdraw up to 100000 Toncoins in one transaction
+//@description Returns a URL for TON Gram withdrawal from the current user's account. The user must have at least 10 Grams to withdraw
+//-and can withdraw up to 100000 Grams in one transaction
 //@password The 2-step verification password of the current user
-getTonWithdrawalUrl password:string = HttpUrl;
+getGramWithdrawalUrl password:string = HttpUrl;
 
 
 //@description Returns detailed statistics about a chat. Currently, this method can be used only for supergroups and channels. Can be used only if supergroupFullInfo.can_get_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application

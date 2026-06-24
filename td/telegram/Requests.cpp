@@ -7746,13 +7746,13 @@ void Requests::on_request(uint64 id, const td_api::getStarAdAccountUrl &request)
   td_->star_manager_->get_star_ad_account_url(request.owner_id_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getTonRevenueStatistics &request) {
+void Requests::on_request(uint64 id, const td_api::getGramRevenueStatistics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->star_manager_->get_ton_revenue_statistics(request.is_dark_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getTonWithdrawalUrl &request) {
+void Requests::on_request(uint64 id, const td_api::getGramWithdrawalUrl &request) {
   CHECK_IS_USER();
   CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->star_manager_->get_ton_withdrawal_url(request.password_, std::move(promise));

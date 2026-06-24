@@ -4852,7 +4852,7 @@ static Result<InputMessageContent> create_input_message_content(
       string client_seed(32, '\0');
       Random::secure_bytes(client_seed);
       content = td::make_unique<MessageDice>(MessageDice::DEFAULT_EMOJI, 0, true, std::move(client_seed),
-                                             std::move(input_dice->state_hash_), input_dice->stake_toncoin_amount_, -1);
+                                             std::move(input_dice->state_hash_), input_dice->stake_gram_amount_, -1);
       clear_draft = input_dice->clear_draft_;
       break;
     }

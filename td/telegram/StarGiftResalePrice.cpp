@@ -36,7 +36,7 @@ StarGiftResalePrice::StarGiftResalePrice(telegram_api::object_ptr<telegram_api::
       auto ton_amount =
           TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(amount_ptr), false).get_ton_amount();
       if (ton_amount % TON_MULTIPLIER != 0) {
-        LOG(ERROR) << "Receive price of " << ton_amount << " Toncoins";
+        LOG(ERROR) << "Receive price of " << ton_amount << " Grams";
       }
       ton_amount /= TON_MULTIPLIER;
       if (ton_amount == 0) {
@@ -77,15 +77,15 @@ Result<StarGiftResalePrice> StarGiftResalePrice::get_star_gift_resale_price(
       result.amount_ = amount;
       return result;
     }
-    case td_api::giftResalePriceTon::ID: {
-      auto amount = static_cast<const td_api::giftResalePriceTon *>(price.get())->toncoin_cent_count_;
+    case td_api::giftResalePriceGram::ID: {
+      auto amount = static_cast<const td_api::giftResalePriceGram *>(price.get())->gram_cent_count_;
       if (amount <= 0) {
-        return Status::Error(400, "Invalid amount of Toncoins specified");
+        return Status::Error(400, "Invalid amount of Grams specified");
       }
       if (!is_purchase) {
         if (amount < td->option_manager_->get_option_integer("gift_resale_toncoin_cent_count_min") ||
             amount > td->option_manager_->get_option_integer("gift_resale_toncoin_cent_count_max")) {
-          return Status::Error(400, "Invalid amount of Toncoin cents specified");
+          return Status::Error(400, "Invalid amount of Gram cents specified");
         }
       }
       StarGiftResalePrice result;
@@ -126,7 +126,7 @@ td_api::object_ptr<td_api::GiftResalePrice> StarGiftResalePrice::get_gift_resale
     case Type::Star:
       return td_api::make_object<td_api::giftResalePriceStar>(amount_);
     case Type::Ton:
-      return td_api::make_object<td_api::giftResalePriceTon>(amount_);
+      return td_api::make_object<td_api::giftResalePriceGram>(amount_);
     default:
       UNREACHABLE();
       return nullptr;
@@ -148,7 +148,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const StarGiftResalePri
     case StarGiftResalePrice::Type::Star:
       return string_builder << '[' << amount.amount_ << " Stars]";
     case StarGiftResalePrice::Type::Ton:
-      return string_builder << '[' << amount.amount_ << " Toncoin cents]";
+      return string_builder << '[' << amount.amount_ << " Gram cents]";
     default:
       UNREACHABLE();
       return string_builder;

@@ -1316,7 +1316,7 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionAppearance>();
       }
       if (path_[0] == "ton") {
-        return td_api::make_object<td_api::settingsSectionMyToncoins>();
+        return td_api::make_object<td_api::settingsSectionMyGrams>();
       }
       return nullptr;
     }();
@@ -3723,7 +3723,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           }
           return "tg://stars";
         }
-        case td_api::settingsSectionMyToncoins::ID:
+        case td_api::settingsSectionMyGrams::ID:
           return "tg://ton";
         case td_api::settingsSectionNotifications::ID: {
           const auto &subsection = static_cast<const td_api::settingsSectionNotifications *>(section_ptr)->subsection_;

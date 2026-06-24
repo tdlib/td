@@ -81,7 +81,7 @@ class StarManager final : public Actor {
 
   void get_star_ad_account_url(const td_api::object_ptr<td_api::MessageSender> &owner_id, Promise<string> &&promise);
 
-  void get_ton_revenue_statistics(bool is_dark, Promise<td_api::object_ptr<td_api::tonRevenueStatistics>> &&promise);
+  void get_ton_revenue_statistics(bool is_dark, Promise<td_api::object_ptr<td_api::gramRevenueStatistics>> &&promise);
 
   void get_ton_withdrawal_url(const string &password, Promise<string> &&promise);
 
@@ -134,7 +134,7 @@ class StarManager final : public Actor {
 
   td_api::object_ptr<td_api::updateOwnedStarCount> get_update_owned_star_count_object() const;
 
-  td_api::object_ptr<td_api::updateOwnedTonCount> get_update_owned_ton_count_object() const;
+  td_api::object_ptr<td_api::updateOwnedGramCount> get_update_owned_gram_count_object() const;
 
   Td *td_;
   ActorShared<> parent_;

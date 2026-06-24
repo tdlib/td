@@ -36,7 +36,7 @@ SuggestedPostPrice::SuggestedPostPrice(telegram_api::object_ptr<telegram_api::St
       auto ton_amount =
           TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(amount_ptr), false).get_ton_amount();
       if (ton_amount % TON_MULTIPLIER != 0) {
-        LOG(ERROR) << "Receive price of " << ton_amount << " Toncoins";
+        LOG(ERROR) << "Receive price of " << ton_amount << " Grams";
       }
       ton_amount /= TON_MULTIPLIER;
       if (ton_amount == 0) {
@@ -71,14 +71,14 @@ Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
       result.amount_ = amount;
       return result;
     }
-    case td_api::suggestedPostPriceTon::ID: {
-      auto amount = static_cast<const td_api::suggestedPostPriceTon *>(price.get())->toncoin_cent_count_;
+    case td_api::suggestedPostPriceGram::ID: {
+      auto amount = static_cast<const td_api::suggestedPostPriceGram *>(price.get())->gram_cent_count_;
       if (amount == 0) {
         return SuggestedPostPrice();
       }
       if (amount < td->option_manager_->get_option_integer("suggested_post_toncoin_cent_count_min") ||
           amount > td->option_manager_->get_option_integer("suggested_post_toncoin_cent_count_max")) {
-        return Status::Error(400, "Invalid amount of Toncoin cents specified");
+        return Status::Error(400, "Invalid amount of Gram cents specified");
       }
       SuggestedPostPrice result;
       result.type_ = Type::Ton;
@@ -111,7 +111,7 @@ td_api::object_ptr<td_api::SuggestedPostPrice> SuggestedPostPrice::get_suggested
     case Type::Star:
       return td_api::make_object<td_api::suggestedPostPriceStar>(amount_);
     case Type::Ton:
-      return td_api::make_object<td_api::suggestedPostPriceTon>(amount_);
+      return td_api::make_object<td_api::suggestedPostPriceGram>(amount_);
     default:
       UNREACHABLE();
       return nullptr;
@@ -133,7 +133,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const SuggestedPostPric
     case SuggestedPostPrice::Type::Star:
       return string_builder << '[' << amount.amount_ << " Stars]";
     case SuggestedPostPrice::Type::Ton:
-      return string_builder << '[' << amount.amount_ << " Toncoin cents]";
+      return string_builder << '[' << amount.amount_ << " Gram cents]";
     default:
       UNREACHABLE();
       return string_builder;

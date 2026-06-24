@@ -53,7 +53,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const CurrencyAmount &a
     case CurrencyAmount::Type::Star:
       return string_builder << '[' << amount.star_amount_ << " Stars]";
     case CurrencyAmount::Type::Ton:
-      return string_builder << '[' << amount.ton_amount_ << " nanotoncoins]";
+      return string_builder << '[' << amount.ton_amount_ << " nanograms]";
     default:
       UNREACHABLE();
       return string_builder;
