@@ -62,6 +62,8 @@ class ForumTopicManager final : public Actor {
   void get_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id,
                        Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);
 
+  void reload_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
+
   void on_get_forum_topic(DialogId dialog_id, ForumTopicId expected_forum_topic_id, MessagesInfo &&info,
                           telegram_api::object_ptr<telegram_api::ForumTopic> &&topic,
                           Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);

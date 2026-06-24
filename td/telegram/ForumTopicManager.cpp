@@ -841,6 +841,21 @@ void ForumTopicManager::get_forum_topic(DialogId dialog_id, ForumTopicId forum_t
   td_->create_handler<GetForumTopicQuery>(std::move(promise))->send(dialog_id, forum_topic_id);
 }
 
+void ForumTopicManager::reload_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
+  TRY_STATUS_PROMISE(promise, can_be_forum_topic_id(forum_topic_id));
+
+  auto query_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<td_api::object_ptr<td_api::forumTopic>> r_forum_topic) mutable {
+        if (r_forum_topic.is_error()) {
+          promise.set_error(r_forum_topic.move_as_error());
+        } else {
+          promise.set_value(Unit());
+        }
+      });
+  td_->create_handler<GetForumTopicQuery>(std::move(query_promise))->send(dialog_id, forum_topic_id);
+}
+
 void ForumTopicManager::on_get_forum_topic(DialogId dialog_id, ForumTopicId expected_forum_topic_id,
                                            MessagesInfo &&info,
                                            telegram_api::object_ptr<telegram_api::ForumTopic> &&topic,
