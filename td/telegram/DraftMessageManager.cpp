@@ -8,8 +8,11 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageInputReplyTo.h"
+#include "td/telegram/MessagesManager.h"
+#include "td/telegram/SavedMessagesManager.h"
 #include "td/telegram/SuggestedPost.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -189,6 +192,31 @@ void DraftMessageManager::save_draft_message(DialogId dialog_id, const MessageTo
     return promise.set_value(Unit());
   }
   td_->create_handler<SaveDraftMessageQuery>(std::move(promise))->send(dialog_id, message_topic, draft_message);
+}
+
+void DraftMessageManager::reload_draft_message(DialogId dialog_id, const MessageTopic &message_topic,
+                                               Promise<Unit> &&promise) {
+  if (message_topic.is_forum()) {
+    return td_->forum_topic_manager_->reload_forum_topic(dialog_id, message_topic.get_forum_topic_id(),
+                                                         std::move(promise));
+  }
+  if (message_topic.is_monoforum()) {
+    auto query_promise = PromiseCreator::lambda(
+        [promise = std::move(promise)](Result<td_api::object_ptr<td_api::directMessagesChatTopic>> r_topic) mutable {
+          if (r_topic.is_error()) {
+            promise.set_error(r_topic.move_as_error());
+          } else {
+            promise.set_value(Unit());
+          }
+        });
+    return td_->saved_messages_manager_->reload_monoforum_topic(
+        dialog_id, message_topic.get_monoforum_saved_messages_topic_id(), std::move(query_promise));
+  }
+  if (message_topic.is_empty()) {
+    return td_->messages_manager_->reload_dialog(dialog_id, std::move(promise));
+  }
+  LOG(ERROR) << "Tried to reload draft in " << message_topic << " of " << dialog_id;
+  return promise.set_error(400, "Topic has no drafts");
 }
 
 void DraftMessageManager::load_all_draft_messages() {

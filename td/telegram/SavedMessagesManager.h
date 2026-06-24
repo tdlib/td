@@ -101,6 +101,9 @@ class SavedMessagesManager final : public Actor {
   void get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                            Promise<td_api::object_ptr<td_api::directMessagesChatTopic>> &&promise);
 
+  void reload_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                              Promise<td_api::object_ptr<td_api::directMessagesChatTopic>> &&promise);
+
   void get_monoforum_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                    MessageId from_message_id, int32 offset, int32 limit,
                                    Promise<td_api::object_ptr<td_api::messages>> &&promise);
@@ -298,9 +301,6 @@ class SavedMessagesManager final : public Actor {
   void on_get_topic_history(DialogId dialog_id, uint32 generation, SavedMessagesTopicId saved_messages_topic_id,
                             MessageId from_message_id, int32 offset, int32 limit, int32 left_tries,
                             Result<MessagesInfo> &&r_info, Promise<td_api::object_ptr<td_api::messages>> &&promise);
-
-  void reload_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                              Promise<td_api::object_ptr<td_api::directMessagesChatTopic>> &&promise);
 
   void repair_topic_unread_count(const SavedMessagesTopic *topic);
 

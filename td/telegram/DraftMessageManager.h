@@ -26,6 +26,8 @@ class DraftMessageManager final : public Actor {
   void save_draft_message(DialogId dialog_id, const MessageTopic &message_topic,
                           const unique_ptr<DraftMessage> &draft_message, Promise<Unit> &&promise);
 
+  void reload_draft_message(DialogId dialog_id, const MessageTopic &message_topic, Promise<Unit> &&promise);
+
   void load_all_draft_messages();
 
   void clear_all_draft_messages(Promise<Unit> &&promise);

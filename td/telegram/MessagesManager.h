@@ -553,6 +553,8 @@ class MessagesManager final : public Actor {
 
   bool load_dialog(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
 
+  void reload_dialog(DialogId dialog_id, Promise<Unit> &&promise);
+
   void load_dialogs(vector<DialogId> dialog_ids, Promise<vector<DialogId>> &&promise);
 
   Result<DialogDate> get_dialog_list_last_date(DialogListId dialog_list_id);

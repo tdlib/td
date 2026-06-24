@@ -13589,6 +13589,10 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
   return true;
 }
 
+void MessagesManager::reload_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
+  send_get_dialog_query(dialog_id, std::move(promise), 0, "reload_dialog");
+}
+
 Result<DialogDate> MessagesManager::get_dialog_list_last_date(DialogListId dialog_list_id) {
   CHECK(!td_->auth_manager_->is_bot());
 
