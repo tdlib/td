@@ -1993,6 +1993,16 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/ton", my_grams());
   parse_internal_link("tg://settings/ton/12312", my_grams());
 
+  parse_internal_link("tg://grams", my_grams());
+  parse_internal_link("tg://grams?asdsa?D?SADasD?asD", my_grams());
+  parse_internal_link("tg://grams#test", my_grams());
+  parse_internal_link("tg://grams/#test", my_grams());
+  parse_internal_link("tg://grams/aadsa#test", my_grams());
+  parse_internal_link("tg://grams/theme#test", my_grams());
+  parse_internal_link("tg:grams/theme#test", my_grams());
+  parse_internal_link("tg://settings/grams", my_grams());
+  parse_internal_link("tg://settings/grams/12312", my_grams());
+
   parse_internal_link("tg://premium", unknown_deep_link("tg://premium"));
   parse_internal_link("tg://settings/premium", premium());
 

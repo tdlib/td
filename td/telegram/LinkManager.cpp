@@ -1315,7 +1315,7 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
       if (path_[0] == "themes") {
         return td_api::make_object<td_api::settingsSectionAppearance>();
       }
-      if (path_[0] == "ton") {
+      if (path_[0] == "grams" || path_[0] == "ton") {
         return td_api::make_object<td_api::settingsSectionMyGrams>();
       }
       return nullptr;
@@ -2406,9 +2406,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (!path.empty() && path[0] == "stars") {
     // stars
     return td::make_unique<InternalLinkSettings>(vector<string>{"stars"});
-  } else if (!path.empty() && path[0] == "ton") {
-    // ton
-    return td::make_unique<InternalLinkSettings>(vector<string>{"ton"});
+  } else if (!path.empty() && (path[0] == "ton" || path[0] == "grams")) {
+    // grams
+    return td::make_unique<InternalLinkSettings>(vector<string>{"grams"});
   } else if (path.size() == 1 && path[0] == "addlist") {
     auto slug = get_url_query_slug(true, url_query, "addlist");
     if (!slug.empty() && is_base64url_characters(slug)) {
@@ -3724,7 +3724,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           return "tg://stars";
         }
         case td_api::settingsSectionMyGrams::ID:
-          return "tg://ton";
+          return "tg://grams";
         case td_api::settingsSectionNotifications::ID: {
           const auto &subsection = static_cast<const td_api::settingsSectionNotifications *>(section_ptr)->subsection_;
           if (td::contains(get_notification_settings_subsections(), subsection)) {
