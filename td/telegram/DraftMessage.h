@@ -80,6 +80,8 @@ class DraftMessage {
 
   static unique_ptr<DraftMessage> clone(Td *td, const unique_ptr<DraftMessage> &draft_message, DialogId dialog_id);
 
+  vector<FileId> get_file_ids(const Td *td) const;
+
   void add_dependencies(Dependencies &dependencies) const;
 
   td_api::object_ptr<td_api::draftMessage> get_draft_message_object(Td *td) const;
@@ -105,6 +107,8 @@ bool is_local_draft_message(const unique_ptr<DraftMessage> &draft_message);
 
 bool need_update_draft_message(const unique_ptr<DraftMessage> &old_draft_message,
                                const unique_ptr<DraftMessage> &new_draft_message, bool from_update);
+
+vector<FileId> get_draft_message_file_ids(const Td *td, const unique_ptr<DraftMessage> &draft_message);
 
 void add_draft_message_dependencies(Dependencies &dependencies, const unique_ptr<DraftMessage> &draft_message);
 

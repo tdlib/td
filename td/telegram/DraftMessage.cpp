@@ -288,6 +288,12 @@ unique_ptr<DraftMessage> DraftMessage::clone(Td *td, const unique_ptr<DraftMessa
   return result;
 }
 
+vector<FileId> DraftMessage::get_file_ids(const Td *td) const {
+  vector<FileId> file_ids;
+  rich_message_.append_file_ids(td, file_ids);
+  return file_ids;
+}
+
 void DraftMessage::add_dependencies(Dependencies &dependencies) const {
   message_input_reply_to_.add_dependencies(dependencies);
   input_message_text_.add_dependencies(dependencies);
@@ -427,6 +433,13 @@ bool need_update_draft_message(const unique_ptr<DraftMessage> &old_draft_message
     return true;
   }
   return old_draft_message->need_update_to(*new_draft_message, from_update);
+}
+
+vector<FileId> get_draft_message_file_ids(const Td *td, const unique_ptr<DraftMessage> &draft_message) {
+  if (draft_message == nullptr) {
+    return {};
+  }
+  return draft_message->get_file_ids(td);
 }
 
 void add_draft_message_dependencies(Dependencies &dependencies, const unique_ptr<DraftMessage> &draft_message) {
