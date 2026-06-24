@@ -8,11 +8,15 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DraftMessage.h"
+#include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/ForumTopicId.h"
 #include "td/telegram/MessageTopic.h"
+#include "td/telegram/SavedMessagesTopicId.h"
 
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
 
 namespace td {
@@ -32,11 +36,21 @@ class DraftMessageManager final : public Actor {
 
   void clear_all_draft_messages(Promise<Unit> &&promise);
 
+  FileSourceId get_draft_message_file_source_id(DialogId dialog_id, const MessageTopic &message_topic);
+
  private:
   void tear_down() final;
 
   Td *td_;
   ActorShared<> parent_;
+
+  FileSourceId *get_file_source_id(DialogId dialog_id, const MessageTopic &message_topic);
+
+  FlatHashMap<DialogId, FileSourceId, DialogIdHash> dialog_draft_message_file_source_ids_;
+  FlatHashMap<DialogId, FlatHashMap<ForumTopicId, FileSourceId, ForumTopicIdHash>, DialogIdHash>
+      forum_topic_draft_message_file_source_ids_;
+  FlatHashMap<DialogId, FlatHashMap<SavedMessagesTopicId, FileSourceId, SavedMessagesTopicIdHash>, DialogIdHash>
+      monoforum_topic_draft_message_file_source_ids_;
 };
 
 }  // namespace td

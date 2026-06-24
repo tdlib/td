@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageInputReplyTo.h"
@@ -196,6 +197,9 @@ void DraftMessageManager::save_draft_message(DialogId dialog_id, const MessageTo
 
 void DraftMessageManager::reload_draft_message(DialogId dialog_id, const MessageTopic &message_topic,
                                                Promise<Unit> &&promise) {
+  if (message_topic.is_empty()) {
+    return td_->messages_manager_->reload_dialog(dialog_id, std::move(promise));
+  }
   if (message_topic.is_forum()) {
     return td_->forum_topic_manager_->reload_forum_topic(dialog_id, message_topic.get_forum_topic_id(),
                                                          std::move(promise));
@@ -212,9 +216,6 @@ void DraftMessageManager::reload_draft_message(DialogId dialog_id, const Message
     return td_->saved_messages_manager_->reload_monoforum_topic(
         dialog_id, message_topic.get_monoforum_saved_messages_topic_id(), std::move(query_promise));
   }
-  if (message_topic.is_empty()) {
-    return td_->messages_manager_->reload_dialog(dialog_id, std::move(promise));
-  }
   LOG(ERROR) << "Tried to reload draft in " << message_topic << " of " << dialog_id;
   return promise.set_error(400, "Topic has no drafts");
 }
@@ -225,6 +226,44 @@ void DraftMessageManager::load_all_draft_messages() {
 
 void DraftMessageManager::clear_all_draft_messages(Promise<Unit> &&promise) {
   td_->create_handler<ClearAllDraftsQuery>(std::move(promise))->send();
+}
+
+FileSourceId *DraftMessageManager::get_file_source_id(DialogId dialog_id, const MessageTopic &message_topic) {
+  if (message_topic.is_empty()) {
+    return &dialog_draft_message_file_source_ids_[dialog_id];
+  }
+  if (message_topic.is_forum()) {
+    auto forum_topic_id = message_topic.get_forum_topic_id();
+    if (!forum_topic_id.is_valid()) {
+      return nullptr;
+    }
+    return &forum_topic_draft_message_file_source_ids_[dialog_id][forum_topic_id];
+  }
+  if (message_topic.is_monoforum()) {
+    auto saved_messages_topic_id = message_topic.get_monoforum_saved_messages_topic_id();
+    if (!saved_messages_topic_id.is_valid()) {
+      return nullptr;
+    }
+    return &monoforum_topic_draft_message_file_source_ids_[dialog_id][saved_messages_topic_id];
+  }
+  return nullptr;
+}
+
+FileSourceId DraftMessageManager::get_draft_message_file_source_id(DialogId dialog_id,
+                                                                   const MessageTopic &message_topic) {
+  if (!dialog_id.is_valid()) {
+    return FileSourceId();
+  }
+
+  FileSourceId *source_id = get_file_source_id(dialog_id, message_topic);
+  if (source_id == nullptr) {
+    return FileSourceId();
+  }
+  if (!source_id->is_valid()) {
+    *source_id = td_->file_reference_manager_->create_draft_message_file_source(dialog_id, message_topic);
+  }
+  VLOG(file_references) << "Return " << *source_id << " for draft in " << message_topic << " of " << dialog_id;
+  return *source_id;
 }
 
 }  // namespace td

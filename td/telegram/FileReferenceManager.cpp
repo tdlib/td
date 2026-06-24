@@ -13,6 +13,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/DraftMessageManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
@@ -124,6 +125,7 @@ fileSourceBotMediaPreview bot_user_id:int53 = FileSource;                       
 fileSourceBotMediaPreviewInfo bot_user_id:int53 language_code:string = FileSource;         // bots.getPreviewMediaInfo
 fileSourceStoryAlbum chat_id:int53 story_album_id:int32 = FileSource;                      // stories.getAlbums, not reliable
 fileSourceSavedMusic user_id:int53 file_id:int32 = FileSource;                             // users.getSavedMusicByID
+fileSourceDraftMessage chat_id:int53 topic:MessageTopic = FileSource;                      // messages.getPeerDialogs/messages.getForumTopicsByID/messages.getSavedDialogsByID
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -244,6 +246,11 @@ FileSourceId FileReferenceManager::create_user_saved_music_file_source(UserId us
                                                                        int64 access_hash) {
   FileSourceUserSavedMusic source{document_id, access_hash, user_id};
   return add_file_source_id(source, PSLICE() << "saved music " << document_id << " of " << user_id);
+}
+
+FileSourceId FileReferenceManager::create_draft_message_file_source(DialogId dialog_id, MessageTopic topic) {
+  FileSourceDraftMessage source{dialog_id, topic};
+  return add_file_source_id(source, PSLICE() << "draft message in " << topic << " of " << dialog_id);
 }
 
 FileReferenceManager::Node &FileReferenceManager::add_node(NodeId node_id) {
@@ -487,6 +494,10 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       [&](const FileSourceUserSavedMusic &source) {
         send_closure_later(G()->user_manager(), &UserManager::reload_user_saved_music, source.user_id,
                            source.document_id, source.access_hash, std::move(promise));
+      },
+      [&](const FileSourceDraftMessage &source) {
+        send_closure_later(G()->draft_message_manager(), &DraftMessageManager::reload_draft_message, source.dialog_id,
+                           source.topic, std::move(promise));
       }));
 }
 

@@ -13,6 +13,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/MessageTopic.h"
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/QuickReplyMessageFullId.h"
 #include "td/telegram/SetWithPosition.h"
@@ -80,6 +81,7 @@ class FileReferenceManager final : public Actor {
   FileSourceId create_bot_media_preview_info_file_source(UserId bot_user_id, const string &language_code);
   FileSourceId create_story_album_file_source(StoryAlbumFullId story_album_full_id);
   FileSourceId create_user_saved_music_file_source(UserId user_id, int64 document_id, int64 access_hash);
+  FileSourceId create_draft_message_file_source(DialogId dialog_id, MessageTopic topic);
 
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
@@ -211,6 +213,10 @@ class FileReferenceManager final : public Actor {
     int64 access_hash;
     UserId user_id;
   };
+  struct FileSourceDraftMessage {
+    DialogId dialog_id;
+    MessageTopic topic;
+  };
 
   // append only
   using FileSource =
@@ -219,7 +225,7 @@ class FileReferenceManager final : public Actor {
               FileSourceBackground, FileSourceChatFull, FileSourceChannelFull, FileSourceAppConfig,
               FileSourceSavedRingtones, FileSourceUserFull, FileSourceAttachMenuBot, FileSourceWebApp, FileSourceStory,
               FileSourceQuickReplyMessage, FileSourceStarTransaction, FileSourceBotMediaPreview,
-              FileSourceBotMediaPreviewInfo, FileSourceStoryAlbum, FileSourceUserSavedMusic>;
+              FileSourceBotMediaPreviewInfo, FileSourceStoryAlbum, FileSourceUserSavedMusic, FileSourceDraftMessage>;
   WaitFreeVector<FileSource> file_sources_;
 
   int64 query_generation_{0};
