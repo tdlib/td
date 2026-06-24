@@ -277,8 +277,6 @@ void OptionManager::update_premium_options() {
     set_option_integer("monthly_sent_story_count_max", get_option_integer("stories_sent_monthly_limit_premium", 3000));
     set_option_integer("story_suggested_reaction_area_count_max",
                        get_option_integer("stories_suggested_reactions_limit_premium", 5));
-    set_option_integer("story_suggested_reaction_area_count_max",
-                       get_option_integer("stories_suggested_reactions_limit_premium", 5));
     set_option_integer("owned_bot_count_max", get_option_integer("bots_create_limit_premium", 40));
     set_option_integer("added_text_composition_style_max",
                        get_option_integer("aicompose_tone_saved_limit_premium", 20));
