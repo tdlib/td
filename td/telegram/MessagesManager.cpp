@@ -27925,10 +27925,15 @@ void MessagesManager::on_update_dialog_draft_message(
 }
 
 bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
-                                                  bool need_update_dialog_pos, bool from_database) {
+                                                  bool need_update_dialog_pos, bool need_delete_files,
+                                                  bool from_database) {
   CHECK(d != nullptr);
   if (!td_->auth_manager_->is_bot() && need_update_draft_message(d->draft_message, draft_message, from_update)) {
+    auto old_file_ids = get_draft_message_file_ids(td_, d->draft_message);
     d->draft_message = std::move(draft_message);
+    td_->draft_message_manager_->change_draft_message_files(d->dialog_id, MessageTopic(), old_file_ids,
+                                                            get_draft_message_file_ids(td_, d->draft_message),
+                                                            need_delete_files);
     if (need_update_dialog_pos) {
       update_dialog_pos(d, "update_dialog_draft_message", false);
     }
@@ -27979,7 +27984,7 @@ void MessagesManager::clear_dialog_draft_by_sent_message(Dialog *d, const Messag
     // forum topics were handled earlier
     set_dialog_draft_message(d, get_send_message_topic(d->dialog_id, m), nullptr).ignore();
   } else {
-    update_dialog_draft_message(d, nullptr, false, need_update_dialog_pos);
+    update_dialog_draft_message(d, nullptr, false, need_update_dialog_pos, false);
   }
 }
 
@@ -33109,7 +33114,7 @@ bool MessagesManager::add_pending_dialog_data(Dialog *d, unique_ptr<Message> &&l
       }
     }
   }
-  if (update_dialog_draft_message(d, std::move(draft_message), false, false, true)) {
+  if (update_dialog_draft_message(d, std::move(draft_message), false, false, true, true)) {
     need_update_dialog_pos = true;
   }
   if (d->pending_order != DEFAULT_ORDER) {
