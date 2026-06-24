@@ -76,8 +76,8 @@ Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
       if (amount == 0) {
         return SuggestedPostPrice();
       }
-      if (amount < td->option_manager_->get_option_integer("suggested_post_toncoin_cent_count_min") ||
-          amount > td->option_manager_->get_option_integer("suggested_post_toncoin_cent_count_max")) {
+      if (amount < td->option_manager_->get_option_integer("suggested_post_gram_cent_count_min") ||
+          amount > td->option_manager_->get_option_integer("suggested_post_gram_cent_count_max")) {
         return Status::Error(400, "Invalid amount of Gram cents specified");
       }
       SuggestedPostPrice result;

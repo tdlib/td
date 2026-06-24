@@ -184,20 +184,20 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("checklist_task_count_max", is_test_dc ? 10 : 30);
   set_default_integer_option("suggested_post_star_count_min", 5);
   set_default_integer_option("suggested_post_star_count_max", 100000);
-  set_default_integer_option("suggested_post_toncoin_cent_count_min", 1);
-  set_default_integer_option("suggested_post_toncoin_cent_count_max", 1000000);
+  set_default_integer_option("suggested_post_gram_cent_count_min", 1);
+  set_default_integer_option("suggested_post_gram_cent_count_max", 1000000);
   set_default_integer_option("suggested_post_star_earnings_per_mille", 850);
-  set_default_integer_option("suggested_post_toncoin_earnings_per_mille", 850);
-  set_default_integer_option("million_toncoin_to_usd_rate", 3000000);
+  set_default_integer_option("suggested_post_gram_earnings_per_mille", 850);
+  set_default_integer_option("million_gram_to_usd_rate", 3000000);
   set_default_integer_option("suggested_post_lifetime_min", is_test_dc ? 120 : 86400);
   set_default_integer_option("suggested_post_send_delay_min", 300);
   set_default_integer_option("suggested_post_send_delay_max", 2678400);
   set_default_integer_option("star_withdrawal_count_max", is_test_dc ? 100 : 25000000);
   set_default_integer_option("gift_collection_count_max", 10);
   set_default_integer_option("gift_collection_size_max", 500);
-  set_default_integer_option("gift_resale_toncoin_cent_count_min", is_test_dc ? 5000 : 700);
-  set_default_integer_option("gift_resale_toncoin_cent_count_max", 10000000);
-  set_default_integer_option("gift_resale_toncoin_earnings_per_mille", 900);
+  set_default_integer_option("gift_resale_gram_cent_count_min", is_test_dc ? 5000 : 700);
+  set_default_integer_option("gift_resale_gram_cent_count_max", 10000000);
+  set_default_integer_option("gift_resale_gram_earnings_per_mille", 900);
   set_default_integer_option("story_album_count_max", is_test_dc ? 20 : 100);
   set_default_integer_option("story_album_size_max", is_test_dc ? 200 : 1000);
   set_default_integer_option("pending_text_message_period", 30);
@@ -242,6 +242,14 @@ OptionManager::OptionManager(Td *td)
   set_option_empty("user_rating_learn_more_url");
   set_option_empty("gift_collection_gift_count_max");
   set_option_empty("story_album_story_count_max");
+  set_option_empty("suggested_post_toncoin_cent_count_min");
+  set_option_empty("suggested_post_toncoin_cent_count_max");
+  set_option_empty("suggested_post_toncoin_earnings_per_mille");
+  set_option_empty("million_toncoin_to_usd_rate");
+  set_option_empty("gift_resale_toncoin_cent_count_min");
+  set_option_empty("gift_resale_toncoin_cent_count_max");
+  set_option_empty("gift_resale_toncoin_earnings_per_mille");
+  set_option_empty("toncoin_top_up_url");
 }
 
 OptionManager::~OptionManager() = default;

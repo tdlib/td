@@ -83,8 +83,8 @@ Result<StarGiftResalePrice> StarGiftResalePrice::get_star_gift_resale_price(
         return Status::Error(400, "Invalid amount of Grams specified");
       }
       if (!is_purchase) {
-        if (amount < td->option_manager_->get_option_integer("gift_resale_toncoin_cent_count_min") ||
-            amount > td->option_manager_->get_option_integer("gift_resale_toncoin_cent_count_max")) {
+        if (amount < td->option_manager_->get_option_integer("gift_resale_gram_cent_count_min") ||
+            amount > td->option_manager_->get_option_integer("gift_resale_gram_cent_count_max")) {
           return Status::Error(400, "Invalid amount of Gram cents specified");
         }
       }

@@ -1476,8 +1476,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"todo_item_length_max", "checklist_task_text_length_max"},
       {"todo_items_max", "checklist_task_count_max"},
       {"todo_title_length_max", "checklist_title_length_max"},
-      {"ton_stargift_resale_commission_permille", "gift_resale_toncoin_earnings_per_mille"},
-      {"ton_suggested_post_commission_permille", "suggested_post_toncoin_earnings_per_mille"},
+      {"ton_stargift_resale_commission_permille", "gift_resale_gram_earnings_per_mille"},
+      {"ton_suggested_post_commission_permille", "suggested_post_gram_earnings_per_mille"},
       {"topics_pinned_limit", "pinned_forum_topic_count_max"},
       {"upload_premium_speedup_download", "premium_download_speedup"},
       {"upload_premium_speedup_notify_period", ""},
@@ -1495,7 +1495,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"stories_venue_search_username", "venue_search_bot_username"},
       {"ton_blockchain_explorer_url", ""},
       {"ton_proxy_address", ""},
-      {"ton_topup_url", "toncoin_top_up_url"},
+      {"ton_topup_url", "gram_top_up_url"},
       {"weather_search_username", "weather_bot_username"}};
   static const FlatHashSet<Slice, SliceHash> ignored_options(
       {"channel_color_level_min", "default_emoji_statuses_stickerset_id", "dialog_filters_enabled",
@@ -1911,27 +1911,27 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         continue;
       }
       if (key == "ton_suggested_post_amount_min") {
-        G()->set_option_integer("suggested_post_toncoin_cent_count_min",
+        G()->set_option_integer("suggested_post_gram_cent_count_min",
                                 get_json_value_long(std::move(key_value->value_), key) / 10000000);
         continue;
       }
       if (key == "ton_suggested_post_amount_max") {
-        G()->set_option_integer("suggested_post_toncoin_cent_count_max",
+        G()->set_option_integer("suggested_post_gram_cent_count_max",
                                 get_json_value_long(std::move(key_value->value_), key) / 10000000);
         continue;
       }
       if (key == "ton_stargift_resale_amount_min") {
-        G()->set_option_integer("gift_resale_toncoin_cent_count_min",
+        G()->set_option_integer("gift_resale_gram_cent_count_min",
                                 get_json_value_long(std::move(key_value->value_), key) / 10000000);
         continue;
       }
       if (key == "ton_stargift_resale_amount_max") {
-        G()->set_option_integer("gift_resale_toncoin_cent_count_max",
+        G()->set_option_integer("gift_resale_gram_cent_count_max",
                                 get_json_value_long(std::move(key_value->value_), key) / 10000000);
         continue;
       }
       if (key == "ton_usd_rate") {
-        G()->set_option_integer("million_toncoin_to_usd_rate",
+        G()->set_option_integer("million_gram_to_usd_rate",
                                 static_cast<int64>(get_json_value_double(std::move(key_value->value_), key) * 1000000));
         continue;
       }

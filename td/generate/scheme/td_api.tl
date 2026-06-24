@@ -1152,7 +1152,7 @@ giftResalePriceStar star_count:int53 = GiftResalePrice;
 
 //@description Describes price of a resold gift in TON Grams
 //@gram_cent_count The amount of 1/100 of Gram expected to be paid for the gift. Must be in the range
-//-getOption("gift_resale_toncoin_cent_count_min")-getOption("gift_resale_toncoin_cent_count_max")
+//-getOption("gift_resale_gram_cent_count_min")-getOption("gift_resale_gram_cent_count_max")
 giftResalePriceGram gram_cent_count:int53 = GiftResalePrice;
 
 
@@ -1175,7 +1175,7 @@ giftPurchaseOfferStateRejected = GiftPurchaseOfferState;
 suggestedPostPriceStar star_count:int53 = SuggestedPostPrice;
 
 //@description Describes price of a suggested post in TON Grams
-//@gram_cent_count The amount of 1/100 of Gram expected to be paid for the post; getOption("suggested_post_toncoin_cent_count_min")-getOption("suggested_post_toncoin_cent_count_max")
+//@gram_cent_count The amount of 1/100 of Gram expected to be paid for the post; getOption("suggested_post_gram_cent_count_min")-getOption("suggested_post_gram_cent_count_max")
 suggestedPostPriceGram gram_cent_count:int53 = SuggestedPostPrice;
 
 
