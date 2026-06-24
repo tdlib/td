@@ -688,8 +688,11 @@ void ForumTopicManager::on_update_forum_topic_draft_message(DialogId dialog_id, 
     LOG(DEBUG) << "Ignore update about unknown " << forum_topic_id << " in " << dialog_id;
     return;
   }
+  auto old_file_ids = get_topic_file_ids(topic);
   if (topic->topic_->set_draft_message(std::move(draft_message), true)) {
     on_forum_topic_changed(dialog_id, topic);
+    td_->draft_message_manager_->change_draft_message_files(dialog_id, MessageTopic::forum(dialog_id, forum_topic_id),
+                                                            old_file_ids, get_topic_file_ids(topic), true);
   }
 }
 
@@ -711,8 +714,11 @@ void ForumTopicManager::clear_forum_topic_draft_by_sent_message(DialogId dialog_
       return;
     }
   }
+  auto old_file_ids = get_topic_file_ids(topic);
   if (topic->topic_->set_draft_message(nullptr, false)) {
     on_forum_topic_changed(dialog_id, topic);
+    td_->draft_message_manager_->change_draft_message_files(dialog_id, MessageTopic::forum(dialog_id, forum_topic_id),
+                                                            old_file_ids, get_topic_file_ids(topic), false);
   }
 }
 
@@ -1171,8 +1177,11 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
         return ForumTopicId();
       }
       if (topic->topic_ == nullptr || true) {
+        auto old_file_ids = get_topic_file_ids(topic);
         topic->topic_ = std::move(forum_topic_full);
         topic->need_save_to_database_ = true;  // TODO temporary
+        td_->draft_message_manager_->change_draft_message_files(
+            dialog_id, MessageTopic::forum(dialog_id, forum_topic_id), old_file_ids, get_topic_file_ids(topic), true);
       }
       topic->receive_date_ = G()->unix_time();
       set_topic_info(dialog_id, topic, std::move(forum_topic_info));
@@ -1184,6 +1193,13 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       UNREACHABLE();
       return ForumTopicId();
   }
+}
+
+vector<FileId> ForumTopicManager::get_topic_file_ids(const Topic *topic) const {
+  if (topic == nullptr || topic->topic_ == nullptr) {
+    return {};
+  }
+  return get_draft_message_file_ids(td_, topic->topic_->get_draft_message());
 }
 
 int32 ForumTopicManager::get_forum_topic_id_object(DialogId dialog_id, ForumTopicId forum_topic_id) {

@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageInputReplyTo.h"
@@ -264,6 +265,28 @@ FileSourceId DraftMessageManager::get_draft_message_file_source_id(DialogId dial
   }
   VLOG(file_references) << "Return " << *source_id << " for draft in " << message_topic << " of " << dialog_id;
   return *source_id;
+}
+
+void DraftMessageManager::change_draft_message_files(DialogId dialog_id, const MessageTopic &message_topic,
+                                                     const vector<FileId> &old_file_ids,
+                                                     const vector<FileId> &new_file_ids, bool need_delete_files) {
+  if (new_file_ids == old_file_ids) {
+    return;
+  }
+
+  if (need_delete_files) {
+    for (auto file_id : old_file_ids) {
+      if (!td::contains(new_file_ids, file_id)) {
+        send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<Unit>(),
+                     "change_draft_message_files");
+      }
+    }
+  }
+
+  auto file_source_id = get_draft_message_file_source_id(dialog_id, message_topic);
+  if (file_source_id.is_valid()) {
+    td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids, "change_draft_message_files");
+  }
 }
 
 }  // namespace td

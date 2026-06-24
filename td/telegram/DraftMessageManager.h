@@ -38,6 +38,10 @@ class DraftMessageManager final : public Actor {
 
   FileSourceId get_draft_message_file_source_id(DialogId dialog_id, const MessageTopic &message_topic);
 
+  void change_draft_message_files(DialogId dialog_id, const MessageTopic &message_topic,
+                                  const vector<FileId> &old_file_ids, const vector<FileId> &new_file_ids,
+                                  bool need_delete_files);
+
  private:
   void tear_down() final;
 

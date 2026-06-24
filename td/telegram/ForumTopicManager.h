@@ -9,6 +9,7 @@
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogNotificationSettings.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/ForumTopic.h"
 #include "td/telegram/ForumTopicEditedData.h"
 #include "td/telegram/ForumTopicId.h"
@@ -204,6 +205,8 @@ class ForumTopicManager final : public Actor {
                                                 DialogNotificationSettings &&new_settings);
 
   void on_delete_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
+
+  vector<FileId> get_topic_file_ids(const Topic *topic) const;
 
   td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(DialogId dialog_id, ForumTopicId forum_topic_id) const;
 
