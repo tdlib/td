@@ -319,8 +319,8 @@ class SavedMessagesManager final : public Actor {
 
   void do_set_topic_unread_reaction_count(SavedMessagesTopic *topic, int32 unread_reaction_count);
 
-  void do_set_topic_draft_message(SavedMessagesTopic *topic, unique_ptr<DraftMessage> &&draft_message,
-                                  bool from_update);
+  void do_set_topic_draft_message(SavedMessagesTopic *topic, unique_ptr<DraftMessage> &&draft_message, bool from_update,
+                                  bool need_delete_files);
 
   void load_topics(TopicList *topic_list, int32 limit, Promise<Unit> &&promise);
 
