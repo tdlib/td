@@ -2147,14 +2147,14 @@ tonTransactionTypeUnsupported = TonTransactionType;
 
 //@description Represents a transaction changing the amount of owned TON Grams
 //@id Unique identifier of the transaction
-//@gram_amount The amount of added owned Grams; negative for outgoing transactions
+//@gram_amount The amount of added owned Grams, in the smallest units of the cryptocurrency; negative for outgoing transactions
 //@is_refund True, if the transaction is a refund of a previous transaction
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@type Type of the transaction
 tonTransaction id:string gram_amount:int53 is_refund:Bool date:int32 type:TonTransactionType = TonTransaction;
 
 //@description Represents a list of TON Gram transactions
-//@gram_amount The total amount of owned Grams
+//@gram_amount The total amount of owned Grams, in the smallest units of the cryptocurrency
 //@transactions List of Gram transactions
 //@next_offset The offset for the next request. If empty, then there are no more results
 tonTransactions gram_amount:int53 transactions:vector<tonTransaction> next_offset:string = TonTransactions;
