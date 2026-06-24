@@ -2147,17 +2147,17 @@ tonTransactionTypeUnsupported = TonTransactionType;
 
 //@description Represents a transaction changing the amount of owned TON Grams
 //@id Unique identifier of the transaction
-//@ton_amount The amount of added owned Grams; negative for outgoing transactions
+//@gram_amount The amount of added owned Grams; negative for outgoing transactions
 //@is_refund True, if the transaction is a refund of a previous transaction
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@type Type of the transaction
-tonTransaction id:string ton_amount:int53 is_refund:Bool date:int32 type:TonTransactionType = TonTransaction;
+tonTransaction id:string gram_amount:int53 is_refund:Bool date:int32 type:TonTransactionType = TonTransaction;
 
 //@description Represents a list of TON Gram transactions
-//@ton_amount The total amount of owned Grams
+//@gram_amount The total amount of owned Grams
 //@transactions List of Gram transactions
 //@next_offset The offset for the next request. If empty, then there are no more results
-tonTransactions ton_amount:int53 transactions:vector<tonTransaction> next_offset:string = TonTransactions;
+tonTransactions gram_amount:int53 transactions:vector<tonTransaction> next_offset:string = TonTransactions;
 
 
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
@@ -5389,10 +5389,10 @@ messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string a
 //@description TON Grams were gifted to a user
 //@gifter_user_id The identifier of a user who gifted Grams; 0 if the gift was anonymous or is outgoing
 //@receiver_user_id The identifier of a user who received Grams; 0 if the gift is incoming
-//@ton_amount The received Gram amount, in the smallest units of the cryptocurrency
+//@gram_amount The received Gram amount, in the smallest units of the cryptocurrency
 //@transaction_id Identifier of the transaction for Gram credit; for receiver only
 //@sticker A sticker to be shown in the message; may be null if unknown
-messageGiftedTon gifter_user_id:int53 receiver_user_id:int53 ton_amount:int53 transaction_id:string sticker:sticker = MessageContent;
+messageGiftedTon gifter_user_id:int53 receiver_user_id:int53 gram_amount:int53 transaction_id:string sticker:sticker = MessageContent;
 
 //@description Telegram Stars were received by the current user from a giveaway
 //@star_count Number of Telegram Stars that were received
@@ -5505,8 +5505,8 @@ messageSuggestedPostDeclined suggested_post_message_id:int53 comment:string = Me
 //@description A suggested post was published for getOption("suggested_post_lifetime_min") seconds and payment for the post was received
 //@suggested_post_message_id Identifier of the message with the suggested post; may be 0 or an identifier of a deleted message
 //@star_amount The amount of received Telegram Stars
-//@ton_amount The amount of received TON Grams; in the smallest units of the cryptocurrency
-messageSuggestedPostPaid suggested_post_message_id:int53 star_amount:starAmount ton_amount:int53 = MessageContent;
+//@gram_amount The amount of received TON Grams; in the smallest units of the cryptocurrency
+messageSuggestedPostPaid suggested_post_message_id:int53 star_amount:starAmount gram_amount:int53 = MessageContent;
 
 //@description A suggested post was refunded
 //@suggested_post_message_id Identifier of the message with the suggested post; may be 0 or an identifier of a deleted message
@@ -10138,10 +10138,10 @@ chatRevenueTransactionTypeFragmentRefund refund_date:int32 = ChatRevenueTransact
 chatRevenueTransaction cryptocurrency:string cryptocurrency_amount:int64 type:ChatRevenueTransactionType = ChatRevenueTransaction;
 
 //@description Contains a list of chat revenue transactions
-//@ton_amount The amount of owned TON Grams; in the smallest units of the cryptocurrency
+//@gram_amount The amount of owned TON Grams; in the smallest units of the cryptocurrency
 //@transactions List of transactions
 //@next_offset The offset for the next request. If empty, then there are no more results
-chatRevenueTransactions ton_amount:int53 transactions:vector<chatRevenueTransaction> next_offset:string = ChatRevenueTransactions;
+chatRevenueTransactions gram_amount:int53 transactions:vector<chatRevenueTransaction> next_offset:string = ChatRevenueTransactions;
 
 
 //@description Contains information about Telegram Stars earned by a user or a chat
@@ -10827,8 +10827,8 @@ updateActiveLiveLocationMessages messages:vector<message> = Update;
 //@description The number of Telegram Stars owned by the current user has changed @star_amount The new amount of owned Telegram Stars
 updateOwnedStarCount star_amount:starAmount = Update;
 
-//@description The number of TON Grams owned by the current user has changed @ton_amount The new amount of owned Grams; in the smallest units of the cryptocurrency
-updateOwnedGramCount ton_amount:int53 = Update;
+//@description The number of TON Grams owned by the current user has changed @gram_amount The new amount of owned Grams; in the smallest units of the cryptocurrency
+updateOwnedGramCount gram_amount:int53 = Update;
 
 //@description The revenue earned from sponsored messages in a chat has changed. If chat revenue screen is opened, then getChatRevenueTransactions may be called to fetch new transactions
 //@chat_id Identifier of the chat
@@ -15376,7 +15376,7 @@ getChatRevenueWithdrawalUrl chat_id:int53 password:string = HttpUrl;
 //@limit The maximum number of transactions to be returned; up to 100
 getChatRevenueTransactions chat_id:int53 offset:string limit:int32 = ChatRevenueTransactions;
 
-//@description Returns the list of TON transactions of the current user
+//@description Returns the list of TON blockchain transactions of the current user
 //@direction Direction of the transactions to receive; pass null to get all transactions
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of transactions to return
