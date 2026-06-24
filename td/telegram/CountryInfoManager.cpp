@@ -634,7 +634,7 @@ string CountryInfoManager::get_country_flag_emoji(const string &country_code) {
   char first = to_upper(country_code[0]);
   char second = to_upper(country_code[1]);
   if (first == 'Y' && second == 'L') {
-    return string();
+    return "\xF0\x9F\x94\xAE";  // crystal ball
   }
   if (first == 'F' && second == 'T') {
     return "\xF0\x9F\x8F\xB4\xE2\x80\x8D\xE2\x98\xA0\xEF\xB8\x8F";  // pirate flag
