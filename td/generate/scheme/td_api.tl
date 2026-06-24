@@ -11882,7 +11882,8 @@ searchTextCompositionStyle name:string = TextCompositionStyle;
 //@example_number 0-based unique number of the requested example; must be non-negative and less than getOption("text_composition_style_example_count")
 getTextCompositionStyleExample name:string example_number:int32 = TextCompositionStyleExample;
 
-//@description Adds a custom text composition style to the list of used by the user styles. May return an error with a message "TONES_SAVED_TOO_MANY" if the maximum number of added custom styles has been reached
+//@description Adds a custom text composition style to the list of used by the user styles. May return an error with a message "TONES_SAVED_TOO_MANY"
+//-if the maximum number of added custom styles getOption("added_text_composition_style_count_max") has been reached
 //@name Name of the style
 addTextCompositionStyle name:string = Ok;
 
