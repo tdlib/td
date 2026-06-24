@@ -101,7 +101,7 @@ struct CountryInfoManager::CountryInfo {
 
   td_api::object_ptr<td_api::countryInfo> get_country_info_object() const {
     return td_api::make_object<td_api::countryInfo>(
-        country_code, name.empty() ? default_name : name, default_name, is_hidden,
+        country_code, name.empty() ? default_name : name, default_name, get_country_flag_emoji(country_code), is_hidden,
         transform(calling_codes, [](const CallingCodeInfo &info) { return info.calling_code; }));
   }
 };

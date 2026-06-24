@@ -4442,9 +4442,10 @@ linkPreview url:string display_url:string site_name:string title:string descript
 //@country_code A two-letter ISO 3166-1 alpha-2 country code
 //@name Native name of the country
 //@english_name English name of the country
+//@flag_emoji An emoji for the flag of the country; may be empty if unknown
 //@is_hidden True, if the country must be hidden from the list of all countries
 //@calling_codes List of country calling codes
-countryInfo country_code:string name:string english_name:string is_hidden:Bool calling_codes:vector<string> = CountryInfo;
+countryInfo country_code:string name:string english_name:string flag_emoji:string is_hidden:Bool calling_codes:vector<string> = CountryInfo;
 
 //@description Contains information about countries @countries The list of countries
 countries countries:vector<countryInfo> = Countries;
@@ -12552,7 +12553,7 @@ parseMarkdown text:formattedText = FormattedText;
 //@description Replaces text entities with Markdown formatting in a human-friendly format. Entities that can't be represented in Markdown unambiguously are kept as is. Can be called synchronously @text The text
 getMarkdownText text:formattedText = FormattedText;
 
-//@description Returns an emoji for the given country. Returns an empty string on failure. Can be called synchronously @country_code A two-letter ISO 3166-1 alpha-2 country code as received from getCountries
+//@description Returns an emoji for the flag of the given country. Returns an empty string on failure. Can be called synchronously @country_code A two-letter ISO 3166-1 alpha-2 country code as received from getCountries
 getCountryFlagEmoji country_code:string = Text;
 
 //@description Returns the MIME type of a file, guessed by its extension. Returns an empty string on failure. Can be called synchronously @file_name The name of the file or path to the file
