@@ -227,6 +227,7 @@ bool Usernames::can_reorder_to(const vector<string> &new_username_order) const {
   }
   FlatHashSet<string> active_usernames;
   for (auto &username : active_usernames_) {
+    CHECK(!username.empty());
     active_usernames.insert(username);
   }
   for (auto &username : new_username_order) {

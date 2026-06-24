@@ -1044,6 +1044,7 @@ void ForumTopicManager::on_delete_forum_topic(DialogId dialog_id, ForumTopicId f
   TRY_STATUS_PROMISE(promise, G()->close_status());
   auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
   if (dialog_topics != nullptr) {
+    CHECK(forum_topic_id.is_valid());
     dialog_topics->topics_.erase(forum_topic_id);
     dialog_topics->deleted_topic_ids_.insert(forum_topic_id);
   }
@@ -1308,6 +1309,7 @@ ForumTopicManager::Topic *ForumTopicManager::add_topic(DialogTopics *dialog_topi
     }
     auto new_topic = make_unique<Topic>();
     topic = new_topic.get();
+    CHECK(forum_topic_id.is_valid());
     dialog_topics->topics_.set(forum_topic_id, std::move(new_topic));
   }
   return topic;

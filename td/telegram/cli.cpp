@@ -298,6 +298,7 @@ class CliClient final : public Actor {
       }
     }
     if (supergroup.is_channel_) {
+      CHECK(supergroup.id_ != 0);
       channel_ids_.insert(supergroup.id_);
     }
   }

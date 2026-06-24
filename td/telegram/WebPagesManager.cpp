@@ -574,7 +574,7 @@ string WebPagesManager::get_web_page_url(const tl_object_ptr<telegram_api::WebPa
 }
 
 void WebPagesManager::on_load_web_page_url_from_database(WebPageId web_page_id, const string &url) {
-  if (url.empty() || have_web_page(web_page_id)) {
+  if (url.empty() || have_web_page(web_page_id) || !web_page_id.is_valid()) {
     return;
   }
   pending_web_page_urls_.emplace(web_page_id, url);
@@ -1083,7 +1083,7 @@ void WebPagesManager::unregister_quick_reply_web_page(WebPageId web_page_id, Qui
 }
 
 void WebPagesManager::register_poll_web_pages(PollId poll_id, vector<WebPageId> &&web_page_ids) {
-  if (PollManager::is_local_poll_id(poll_id)) {
+  if (PollManager::is_local_poll_id(poll_id) || !poll_id.is_valid()) {
     return;
   }
   if (web_page_ids.empty()) {
@@ -1094,6 +1094,7 @@ void WebPagesManager::register_poll_web_pages(PollId poll_id, vector<WebPageId> 
     }
     LOG(INFO) << "Unregister " << web_page_ids << " from " << poll_id;
     for (auto web_page_id : it->second) {
+      CHECK(web_page_id.is_valid());
       auto &poll_ids = web_page_polls_[web_page_id];
       auto is_deleted = poll_ids.erase(poll_id) > 0;
       LOG_CHECK(is_deleted) << web_page_id << ' ' << poll_id;
@@ -1112,6 +1113,7 @@ void WebPagesManager::register_poll_web_pages(PollId poll_id, vector<WebPageId> 
 
   for (auto web_page_id : web_page_ids) {
     if (!td::contains(old_web_page_ids, web_page_id)) {
+      CHECK(web_page_id.is_valid());
       bool is_inserted = web_page_polls_[web_page_id].insert(poll_id).second;
       LOG_CHECK(is_inserted) << web_page_id << ' ' << poll_id;
 
@@ -1123,6 +1125,7 @@ void WebPagesManager::register_poll_web_pages(PollId poll_id, vector<WebPageId> 
   }
   for (auto web_page_id : old_web_page_ids) {
     if (!td::contains(web_page_ids, web_page_id)) {
+      CHECK(web_page_id.is_valid());
       auto &poll_ids = web_page_polls_[web_page_id];
       auto is_deleted = poll_ids.erase(poll_id) > 0;
       LOG_CHECK(is_deleted) << web_page_id << ' ' << poll_id;
@@ -2254,6 +2257,7 @@ void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_p
 
       // don't check that notify_on_poll_update doesn't load new polls
       if (!have_web_page && web_page_polls_.count(web_page_id) != 0) {
+        CHECK(web_page_id.is_valid());
         vector<PollId> new_poll_ids;
         for (auto poll_id : web_page_polls_[web_page_id]) {
           new_poll_ids.push_back(poll_id);

@@ -2747,6 +2747,7 @@ void MessageQueryManager::send_message_view_metrics_timeout(DialogId dialog_id) 
   }
   FlatHashMap<MessageId, MessageViewMetrics, MessageIdHash> metrics;
   for (const auto &input_metric : it->second) {
+    CHECK(input_metric.message_id_.is_server());
     auto &metric = metrics[input_metric.message_id_];
     metric.message_id_ = input_metric.message_id_;
     metric.time_in_view_ms_ += input_metric.time_in_view_ms_;
@@ -3964,6 +3965,7 @@ bool MessageQueryManager::has_message_pending_read_poll_votes(MessageFullId mess
 }
 
 void MessageQueryManager::read_message_poll_votes_on_server(DialogId dialog_id, vector<MessageId> message_ids) {
+  CHECK(dialog_id.is_valid());
   for (auto message_id : message_ids) {
     pending_read_poll_votes_[{dialog_id, message_id}]++;
   }

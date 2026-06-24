@@ -9383,6 +9383,7 @@ void UserManager::register_noforwards_request(MessageFullId message_full_id, int
   auto duration = td_->option_manager_->get_option_integer("has_protected_content_disable_request_duration");
   auto left_time = message_date + duration - G()->unix_time();
   if (left_time > 0 && !message_id.is_scheduled()) {
+    CHECK(message_id != MessageId());
     auto &request_id = noforwards_request_ids_[message_full_id];
     CHECK(request_id == 0);
     request_id = ++current_noforwards_request_id_;

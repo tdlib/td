@@ -6326,6 +6326,7 @@ void GroupCallManager::get_group_call_stars(GroupCallId group_call_id,
 
 void GroupCallManager::get_group_call_stars_from_server(
     InputGroupCallId input_group_call_id, Promise<td_api::object_ptr<td_api::liveStoryDonors>> &&promise) {
+  CHECK(input_group_call_id != InputGroupCallId());
   auto &queries = get_stars_queries_[input_group_call_id];
   queries.push_back(std::move(promise));
   if (queries.size() != 1u) {
