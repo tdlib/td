@@ -46,6 +46,7 @@ namespace td {
 struct BinlogEvent;
 struct FormattedText;
 struct MessageSearchOffset;
+class RichMessage;
 class Td;
 
 class MessageQueryManager final : public Actor {
@@ -288,6 +289,8 @@ class MessageQueryManager final : public Actor {
   void on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query, bool get_affected_messages,
                                AffectedHistory affected_history, Promise<Unit> &&promise);
 
+  void on_get_full_rich_message(MessageFullId message_full_id, Result<RichMessage> &&r_rich_message);
+
   void on_upload_cover(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
   void on_upload_cover_error(FileUploadId file_upload_id, Status status);
@@ -395,6 +398,9 @@ class MessageQueryManager final : public Actor {
   bool is_emoji_game_info_inited_ = false;
   double emoji_game_info_receive_time_ = 0.0;
   EmojiGameInfo emoji_game_info_;
+
+  FlatHashMap<MessageFullId, vector<Promise<td_api::object_ptr<td_api::richMessage>>>, MessageFullIdHash>
+      get_full_rich_message_queries_;
 
   WaitFreeHashMap<MessageFullId, FileSourceId, MessageFullIdHash> rich_message_full_id_to_file_source_id_;
 

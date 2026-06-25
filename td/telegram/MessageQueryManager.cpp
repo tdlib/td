@@ -71,13 +71,12 @@
 namespace td {
 
 class GetRichMessageQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::richMessage>> promise_;
+  Promise<RichMessage> promise_;
   DialogId dialog_id_;
   MessageId message_id_;
 
  public:
-  explicit GetRichMessageQuery(Promise<td_api::object_ptr<td_api::richMessage>> &&promise)
-      : promise_(std::move(promise)) {
+  explicit GetRichMessageQuery(Promise<RichMessage> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(MessageFullId message_full_id) {
@@ -101,14 +100,13 @@ class GetRichMessageQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetRichMessageQuery: " << to_string(ptr);
     auto info = get_messages_info(td_, dialog_id_, std::move(ptr), "GetRichMessageQuery");
     if (info.messages.size() != 1u || info.messages[0]->get_id() != telegram_api::message::ID) {
-      return promise_.set_value(nullptr);
+      return promise_.set_error(500, "Receive invalid response");
     }
-    auto api_rich_message = std::move(static_cast<telegram_api::message *>(info.messages[0].get())->rich_message_);
-    if (api_rich_message == nullptr) {
-      return promise_.set_value(nullptr);
+    auto rich_message = std::move(static_cast<telegram_api::message *>(info.messages[0].get())->rich_message_);
+    if (rich_message == nullptr) {
+      return promise_.set_error(500, "Receive invalid response");
     }
-    auto rich_message = RichMessage(td_, std::move(api_rich_message), dialog_id_);
-    promise_.set_value(rich_message.get_rich_message_object(td_, true));
+    promise_.set_value(RichMessage(td_, std::move(rich_message), dialog_id_));
   }
 
   void on_error(Status status) final {
@@ -2151,7 +2149,32 @@ void MessageQueryManager::get_full_rich_message(MessageFullId message_full_id,
   if (!message_full_id.get_message_id().is_server()) {
     return promise.set_error(400, "Invalid message specified");
   }
-  td_->create_handler<GetRichMessageQuery>(std::move(promise))->send(message_full_id);
+  auto &queries = get_full_rich_message_queries_[message_full_id];
+  queries.push_back(std::move(promise));
+  if (queries.size() != 1u) {
+    return;
+  }
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this),
+                                               message_full_id](Result<RichMessage> r_rich_message) {
+    send_closure(actor_id, &MessageQueryManager::on_get_full_rich_message, message_full_id, std::move(r_rich_message));
+  });
+  td_->create_handler<GetRichMessageQuery>(std::move(query_promise))->send(message_full_id);
+}
+
+void MessageQueryManager::on_get_full_rich_message(MessageFullId message_full_id,
+                                                   Result<RichMessage> &&r_rich_message) {
+  auto it = get_full_rich_message_queries_.find(message_full_id);
+  CHECK(it != get_full_rich_message_queries_.end());
+  auto promises = std::move(it->second);
+  get_full_rich_message_queries_.erase(it);
+
+  if (r_rich_message.is_error()) {
+    return fail_promises(promises, r_rich_message.move_as_error());
+  }
+  auto rich_message = r_rich_message.move_as_ok();
+  for (auto &promise : promises) {
+    promise.set_value(rich_message.get_rich_message_object(td_, true));
+  }
 }
 
 void MessageQueryManager::reload_full_rich_message(MessageFullId message_full_id, Promise<Unit> &&promise) {
