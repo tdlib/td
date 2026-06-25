@@ -2172,6 +2172,18 @@ void MessageQueryManager::on_get_full_rich_message(MessageFullId message_full_id
     return fail_promises(promises, r_rich_message.move_as_error());
   }
   auto rich_message = r_rich_message.move_as_ok();
+  auto file_source_id = get_rich_message_file_source_id(message_full_id);
+  if (file_source_id.is_valid()) {
+    vector<FileId> file_ids;
+    rich_message.append_file_ids(td_, file_ids);
+    auto &old_file_ids = rich_message_file_ids_[message_full_id];
+    td_->file_manager_->change_files_source(file_source_id, old_file_ids, file_ids, "on_get_full_rich_message");
+    if (file_ids.empty()) {
+      rich_message_file_ids_.erase(message_full_id);
+    } else {
+      old_file_ids = std::move(file_ids);
+    }
+  }
   for (auto &promise : promises) {
     promise.set_value(rich_message.get_rich_message_object(td_, true));
   }

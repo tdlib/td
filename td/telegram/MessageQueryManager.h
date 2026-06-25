@@ -401,6 +401,7 @@ class MessageQueryManager final : public Actor {
 
   FlatHashMap<MessageFullId, vector<Promise<td_api::object_ptr<td_api::richMessage>>>, MessageFullIdHash>
       get_full_rich_message_queries_;
+  FlatHashMap<MessageFullId, vector<FileId>, MessageFullIdHash> rich_message_file_ids_;
 
   WaitFreeHashMap<MessageFullId, FileSourceId, MessageFullIdHash> rich_message_full_id_to_file_source_id_;
 
