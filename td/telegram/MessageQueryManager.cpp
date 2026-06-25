@@ -103,8 +103,11 @@ class GetRichMessageQuery final : public Td::ResultHandler {
     if (info.messages.size() != 1u || info.messages[0]->get_id() != telegram_api::message::ID) {
       return promise_.set_value(nullptr);
     }
-    auto rich_message = RichMessage(
-        td_, std::move(static_cast<telegram_api::message *>(info.messages[0].get())->rich_message_), dialog_id_);
+    auto api_rich_message = std::move(static_cast<telegram_api::message *>(info.messages[0].get())->rich_message_);
+    if (api_rich_message == nullptr) {
+      return promise_.set_value(nullptr);
+    }
+    auto rich_message = RichMessage(td_, std::move(api_rich_message), dialog_id_);
     promise_.set_value(rich_message.get_rich_message_object(td_, true));
   }
 
