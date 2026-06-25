@@ -4004,6 +4004,9 @@ richTextIcon document:document width:int32 height:int32 = RichText;
 //@description A mathematical expression @expression The expression in LaTeX format
 richTextMathematicalExpression expression:string = RichText;
 
+//@description A rich text replacing another rich text; not supported in inputRichMessage @text Text @old_text The old text
+richTextDiff text:RichText old_text:RichText = RichText;
+
 //@description A reference @name Reference name @text Text of the reference
 richTextReference name:string text:RichText = RichText;
 

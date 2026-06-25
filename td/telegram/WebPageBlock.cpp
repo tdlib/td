@@ -131,7 +131,8 @@ class RichText {
     AutoPhoneNumber,
     FormattedDate,
     BankCardNumber,
-    MentionName
+    MentionName,
+    Diff
   };
   Type type = Type::Plain;
   string content;
@@ -404,6 +405,15 @@ class RichText {
         result.texts = std::move(texts);
         break;
       }
+      case td_api::richTextDiff::ID: {
+        auto text = td_api::move_object_as<td_api::richTextDiff>(rich_text);
+        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
+        TRY_RESULT(old_t, get_rich_text(td, std::move(text->text_)));
+        result.type = Type::Diff;
+        result.texts.push_back(std::move(t));
+        result.texts.push_back(std::move(old_t));
+        break;
+      }
       default:
         UNREACHABLE();
         break;
@@ -552,6 +562,10 @@ class RichText {
         // input users will be added separately
         return telegram_api::make_object<telegram_api::textMentionName>(texts[0].get_input_rich_text(td, documents),
                                                                         user_id.get());
+      case Type::Diff:
+        CHECK(texts.size() == 2u);
+        return telegram_api::make_object<telegram_api::textDiff>(texts[0].get_input_rich_text(td, documents),
+                                                                 texts[1].get_input_rich_text(td, documents));
       default:
         UNREACHABLE();
         return nullptr;
@@ -681,6 +695,10 @@ class RichText {
         return td_api::make_object<td_api::richTextMentionName>(
             texts[0].get_rich_text_object(context),
             context->td_->user_manager_->get_user_id_object(user_id, "richTextMentionName"));
+      case RichText::Type::Diff:
+        CHECK(texts.size() == 2u);
+        return td_api::make_object<td_api::richTextDiff>(texts[0].get_rich_text_object(context),
+                                                         texts[1].get_rich_text_object(context));
       default:
         UNREACHABLE();
         return nullptr;
@@ -4327,8 +4345,13 @@ RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
       result.date = std::move(date);
       break;
     }
-    case telegram_api::textDiff::ID:
+    case telegram_api::textDiff::ID: {
+      auto rich_text = telegram_api::move_object_as<telegram_api::textDiff>(rich_text_ptr);
+      result.type = RichText::Type::Diff;
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
+      result.texts.push_back(get_rich_text(std::move(rich_text->old_text_), documents));
       break;
+    }
     default:
       UNREACHABLE();
   }
