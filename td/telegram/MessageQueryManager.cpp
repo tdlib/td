@@ -16,6 +16,7 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/FactCheck.h"
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/ForumTopicManager.h"
@@ -86,7 +87,6 @@ class GetRichMessageQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Chat not found"));
     }
     message_id_ = message_full_id.get_message_id();
-    CHECK(message_id_.is_server());
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getRichMessage(std::move(input_peer), message_id_.get_server_message_id().get())));
   }
@@ -2145,7 +2145,40 @@ void MessageQueryManager::on_get_affected_history(DialogId dialog_id, AffectedHi
 
 void MessageQueryManager::get_full_rich_message(MessageFullId message_full_id,
                                                 Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
+  if (!message_full_id.get_message_id().is_server()) {
+    return promise.set_error(400, "Invalid message specified");
+  }
   td_->create_handler<GetRichMessageQuery>(std::move(promise))->send(message_full_id);
+}
+
+void MessageQueryManager::reload_full_rich_message(MessageFullId message_full_id, Promise<Unit> &&promise) {
+  return get_full_rich_message(
+      message_full_id, PromiseCreator::lambda([promise = std::move(promise)](
+                                                  Result<td_api::object_ptr<td_api::richMessage>> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          promise.set_value(Unit());
+        }
+      }));
+}
+
+FileSourceId MessageQueryManager::get_rich_message_file_source_id(MessageFullId message_full_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return FileSourceId();
+  }
+
+  auto dialog_id = message_full_id.get_dialog_id();
+  auto message_id = message_full_id.get_message_id();
+  if (!dialog_id.is_valid() || dialog_id.get_type() == DialogType::SecretChat || !message_id.is_server()) {
+    return FileSourceId();
+  }
+
+  auto &file_source_id = rich_message_full_id_to_file_source_id_[message_full_id];
+  if (!file_source_id.is_valid()) {
+    file_source_id = td_->file_reference_manager_->create_rich_message_file_source(message_full_id);
+  }
+  return file_source_id;
 }
 
 void MessageQueryManager::upload_message_covers(BusinessConnectionId business_connection_id, DialogId dialog_id,

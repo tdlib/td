@@ -17,6 +17,7 @@
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/MessageQueryManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTopic.hpp"
 #include "td/telegram/NotificationSettingsManager.h"
@@ -90,7 +91,8 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
                           [&](const FileSourceDraftMessage &source) {
                             td::store(source.dialog_id, storer);
                             td::store(source.topic, storer);
-                          }));
+                          },
+                          [&](const FileSourceRichMessage &source) { td::store(source.message_full_id, storer); }));
 }
 
 template <class ParserT>
@@ -224,6 +226,11 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
       td::parse(dialog_id, parser);
       td::parse(topic, parser);
       return td->draft_message_manager_->get_draft_message_file_source_id(dialog_id, topic);
+    }
+    case 25: {
+      MessageFullId message_full_id;
+      td::parse(message_full_id, parser);
+      return td->message_query_manager_->get_rich_message_file_source_id(message_full_id);
     }
     default:
       parser.set_error("Invalid type in FileSource");

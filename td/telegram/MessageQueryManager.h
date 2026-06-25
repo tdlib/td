@@ -13,6 +13,7 @@
 #include "td/telegram/DialogListId.h"
 #include "td/telegram/EmojiGameInfo.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/MessageCover.h"
@@ -35,6 +36,7 @@
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
+#include "td/utils/WaitFreeHashMap.h"
 
 #include <functional>
 #include <memory>
@@ -56,6 +58,10 @@ class MessageQueryManager final : public Actor {
                                                  bool get_affected_messages, Promise<Unit> &&promise);
 
   void get_full_rich_message(MessageFullId message_full_id, Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
+
+  void reload_full_rich_message(MessageFullId message_full_id, Promise<Unit> &&promise);
+
+  FileSourceId get_rich_message_file_source_id(MessageFullId message_full_id);
 
   void upload_message_covers(BusinessConnectionId business_connection_id, DialogId dialog_id,
                              vector<MessageCover> covers, Promise<Unit> &&promise);
@@ -389,6 +395,8 @@ class MessageQueryManager final : public Actor {
   bool is_emoji_game_info_inited_ = false;
   double emoji_game_info_receive_time_ = 0.0;
   EmojiGameInfo emoji_game_info_;
+
+  WaitFreeHashMap<MessageFullId, FileSourceId, MessageFullIdHash> rich_message_full_id_to_file_source_id_;
 
   MultiTimeout send_message_view_metrics_timeout_{"SendMessageViewMetricsTimeout"};
 

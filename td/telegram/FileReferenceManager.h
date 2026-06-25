@@ -82,6 +82,7 @@ class FileReferenceManager final : public Actor {
   FileSourceId create_story_album_file_source(StoryAlbumFullId story_album_full_id);
   FileSourceId create_user_saved_music_file_source(UserId user_id, int64 document_id, int64 access_hash);
   FileSourceId create_draft_message_file_source(DialogId dialog_id, MessageTopic topic);
+  FileSourceId create_rich_message_file_source(MessageFullId message_full_id);
 
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
@@ -217,6 +218,9 @@ class FileReferenceManager final : public Actor {
     DialogId dialog_id;
     MessageTopic topic;
   };
+  struct FileSourceRichMessage {
+    MessageFullId message_full_id;
+  };
 
   // append only
   using FileSource =
@@ -225,7 +229,8 @@ class FileReferenceManager final : public Actor {
               FileSourceBackground, FileSourceChatFull, FileSourceChannelFull, FileSourceAppConfig,
               FileSourceSavedRingtones, FileSourceUserFull, FileSourceAttachMenuBot, FileSourceWebApp, FileSourceStory,
               FileSourceQuickReplyMessage, FileSourceStarTransaction, FileSourceBotMediaPreview,
-              FileSourceBotMediaPreviewInfo, FileSourceStoryAlbum, FileSourceUserSavedMusic, FileSourceDraftMessage>;
+              FileSourceBotMediaPreviewInfo, FileSourceStoryAlbum, FileSourceUserSavedMusic, FileSourceDraftMessage,
+              FileSourceRichMessage>;
   WaitFreeVector<FileSource> file_sources_;
 
   int64 query_generation_{0};

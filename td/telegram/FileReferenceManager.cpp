@@ -16,6 +16,7 @@
 #include "td/telegram/DraftMessageManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageQueryManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/QuickReplyManager.h"
@@ -126,6 +127,7 @@ fileSourceBotMediaPreviewInfo bot_user_id:int53 language_code:string = FileSourc
 fileSourceStoryAlbum chat_id:int53 story_album_id:int32 = FileSource;                      // stories.getAlbums, not reliable
 fileSourceSavedMusic user_id:int53 file_id:int32 = FileSource;                             // users.getSavedMusicByID
 fileSourceDraftMessage chat_id:int53 topic:MessageTopic = FileSource;                      // messages.getPeerDialogs/messages.getForumTopicsByID/messages.getSavedDialogsByID
+fileSourceRichMessage chat_id:int53 message_id:int53 = FileSource;                         // messages.getRichMessage
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -251,6 +253,11 @@ FileSourceId FileReferenceManager::create_user_saved_music_file_source(UserId us
 FileSourceId FileReferenceManager::create_draft_message_file_source(DialogId dialog_id, MessageTopic topic) {
   FileSourceDraftMessage source{dialog_id, topic};
   return add_file_source_id(source, PSLICE() << "draft message in " << topic << " of " << dialog_id);
+}
+
+FileSourceId FileReferenceManager::create_rich_message_file_source(MessageFullId message_full_id) {
+  FileSourceRichMessage source{message_full_id};
+  return add_file_source_id(source, PSLICE() << "rich " << message_full_id);
 }
 
 FileReferenceManager::Node &FileReferenceManager::add_node(NodeId node_id) {
@@ -498,6 +505,10 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       [&](const FileSourceDraftMessage &source) {
         send_closure_later(G()->draft_message_manager(), &DraftMessageManager::reload_draft_message, source.dialog_id,
                            source.topic, std::move(promise));
+      },
+      [&](const FileSourceRichMessage &source) {
+        send_closure_later(G()->message_query_manager(), &MessageQueryManager::reload_full_rich_message,
+                           source.message_full_id, std::move(promise));
       }));
 }
 
