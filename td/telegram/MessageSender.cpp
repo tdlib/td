@@ -85,6 +85,19 @@ td_api::object_ptr<td_api::MessageSender> get_min_message_sender_object(Td *td, 
   return nullptr;
 }
 
+vector<td_api::object_ptr<td_api::MessageSender>> get_min_message_senders_object(Td *td,
+                                                                                 const vector<DialogId> &dialog_ids,
+                                                                                 const char *source) {
+  vector<td_api::object_ptr<td_api::MessageSender>> message_senders;
+  for (auto dialog_id : dialog_ids) {
+    auto message_sender = get_min_message_sender_object(td, dialog_id, source);
+    if (message_sender != nullptr) {
+      message_senders.push_back(std::move(message_sender));
+    }
+  }
+  return message_senders;
+}
+
 bool check_min_message_sender(Td *td, DialogId dialog_id, vector<std::pair<ChannelId, MinChannel>> &min_channels) {
   if (td->dialog_manager_->have_dialog_info(dialog_id)) {
     return true;

@@ -20,7 +20,7 @@ TEST(TextCompositionReloadLightFuzz, DeterministicLiteralMatrixPreservesReloadIn
   const td::vector<td::string> header_needles = {td::w5_text_composition_reload_test::reload_declaration()};
   const td::vector<td::string> translation_needles = {td::w5_text_composition_reload_test::reload_signature(),
                                                       td::w5_text_composition_reload_test::reload_dispatch_call(),
-                                                      "&ConfigManager::reget_app_config", "std::move(promise)"};
+                                                      "&ConfigManager::reload_app_config", "std::move(promise)"};
   const td::vector<td::string> updates_needles = {
       td::w5_text_composition_reload_test::ai_compose_tones_update_signature(),
       td::w5_text_composition_reload_test::ai_compose_tones_update_reload_call(),

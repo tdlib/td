@@ -14,6 +14,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/JoinChatBotResult.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -156,6 +157,37 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetChatJoinRequestsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SetJoinChatResultsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetJoinChatResultsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int64 query_id, JoinChatBotResult result, const string &url) {
+    auto input_result = result.get_input_join_chat_bot_result();
+    if (!url.empty()) {
+      input_result = telegram_api::make_object<telegram_api::joinChatBotResultWebView>(url);
+    }
+
+    send_query(
+        G()->net_query_creator().create(telegram_api::bots_setJoinChatResults(query_id, std::move(input_result))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_setJoinChatResults>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -410,6 +442,45 @@ class GetChannelParticipantsQuery final : public Td::ResultHandler {
   }
 };
 
+class JoinChatQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::ChatJoinResult>> promise_;
+  ChatId chat_id_;
+
+ public:
+  explicit JoinChatQuery(Promise<td_api::object_ptr<td_api::ChatJoinResult>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChatId chat_id) {
+    chat_id_ = chat_id;
+    send_query(G()->net_query_creator().create(telegram_api::messages_addChatUser(
+        chat_id.get(), telegram_api::make_object<telegram_api::inputUserSelf>(), 0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_addChatUser>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for JoinChatQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(
+        std::move(ptr->updates_),
+        PromiseCreator::lambda([actor_id = G()->dialog_participant_manager(), dialog_id = DialogId(chat_id_),
+                                promise = std::move(promise_)](Result<Unit>) mutable {
+          send_closure(actor_id, &DialogParticipantManager::on_join_dialog, dialog_id, std::move(promise));
+        }));
+  }
+
+  void on_error(Status status) final {
+    auto chat_join_result = DialogParticipantManager::get_chat_join_result_object(status);
+    if (chat_join_result != nullptr) {
+      return promise_.set_value(std::move(chat_join_result));
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class AddChatUserQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::failedToAddMembers>> promise_;
   ChatId chat_id_;
@@ -515,11 +586,12 @@ class DeleteChatUserQuery final : public Td::ResultHandler {
 };
 
 class JoinChannelQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<telegram_api::object_ptr<telegram_api::messages_ChatInviteJoinResult>> promise_;
   ChannelId channel_id_;
 
  public:
-  explicit JoinChannelQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit JoinChannelQuery(Promise<telegram_api::object_ptr<telegram_api::messages_ChatInviteJoinResult>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(ChannelId channel_id) {
@@ -536,9 +608,24 @@ class JoinChannelQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for JoinChannelQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    auto join_result_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for JoinChannelQuery: " << to_string(join_result_ptr);
+    switch (join_result_ptr->get_id()) {
+      case telegram_api::messages_chatInviteJoinResultOk::ID: {
+        auto join_result = telegram_api::move_object_as<telegram_api::messages_chatInviteJoinResultOk>(join_result_ptr);
+        auto updates = std::move(join_result->updates_);
+        td_->updates_manager_->on_get_updates(
+            std::move(updates), [join_result = std::move(join_result), promise = std::move(promise_)](Unit) mutable {
+              promise.set_value(std::move(join_result));
+            });
+        break;
+      }
+      case telegram_api::messages_chatInviteJoinResultWebView::ID:
+        promise_.set_value(std::move(join_result_ptr));
+        break;
+      default:
+        UNREACHABLE();
+    }
   }
 
   void on_error(Status status) final {
@@ -849,8 +936,7 @@ class GetFutureChatCreatorAfterLeaveQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetFutureChatCreatorAfterLeaveQuery: " << to_string(ptr);
-    auto user_id = UserManager::get_user_id(ptr);
-    td_->user_manager_->on_get_user(std::move(ptr), "GetFutureChatCreatorAfterLeaveQuery");
+    auto user_id = td_->user_manager_->on_get_user(std::move(ptr), "GetFutureChatCreatorAfterLeaveQuery");
     promise_.set_value(td_->user_manager_->get_user_object(user_id));
   }
 
@@ -920,6 +1006,14 @@ void DialogParticipantManager::on_update_dialog_online_member_count_timeout(Dial
     td_->chat_manager_->repair_chat_participants(dialog_id.get_chat_id());
     return;
   }
+}
+
+void DialogParticipantManager::on_join_dialog(DialogId dialog_id,
+                                              Promise<td_api::object_ptr<td_api::ChatJoinResult>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  td_->dialog_manager_->force_create_dialog(dialog_id, "on_join_dialog");
+  promise.set_value(td_api::make_object<td_api::chatJoinResultSuccess>(
+      td_->dialog_manager_->get_chat_id_object(dialog_id, "on_join_dialog")));
 }
 
 void DialogParticipantManager::on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count,
@@ -1219,6 +1313,12 @@ void DialogParticipantManager::get_dialog_join_requests(
 
   td_->create_handler<GetChatJoinRequestsQuery>(std::move(promise))
       ->send(dialog_id, invite_link, query, offset_date, offset_user_id, limit);
+}
+
+void DialogParticipantManager::set_join_chat_result(int64 query_id,
+                                                    const td_api::object_ptr<td_api::ChatJoinRequestResult> &result,
+                                                    const string &url, Promise<Unit> &&promise) {
+  td_->create_handler<SetJoinChatResultsQuery>(std::move(promise))->send(query_id, JoinChatBotResult(result), url);
 }
 
 void DialogParticipantManager::process_dialog_join_request(DialogId dialog_id, UserId user_id, bool approve,
@@ -1644,7 +1744,8 @@ void DialogParticipantManager::on_update_channel_participant(
 }
 
 void DialogParticipantManager::on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about,
-                                                               int32 date, DialogInviteLink invite_link) {
+                                                               int32 date, DialogInviteLink invite_link,
+                                                               int64 query_id) {
   CHECK(td_->auth_manager_->is_bot());
   if (date <= 0 || !td_->user_manager_->have_user_force(user_id, "on_update_chat_invite_requester") ||
       !td_->dialog_manager_->have_dialog_info_force(dialog_id, "on_update_chat_invite_requester")) {
@@ -1662,7 +1763,7 @@ void DialogParticipantManager::on_update_chat_invite_requester(DialogId dialog_i
                    td_api::make_object<td_api::chatJoinRequest>(
                        td_->user_manager_->get_user_id_object(user_id, "updateNewChatJoinRequest"), date, about),
                    td_->dialog_manager_->get_chat_id_object(user_dialog_id, "updateNewChatJoinRequest 2"),
-                   invite_link.get_chat_invite_link_object(td_->user_manager_.get())));
+                   invite_link.get_chat_invite_link_object(td_->user_manager_.get()), query_id));
 }
 
 void DialogParticipantManager::get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
@@ -2119,6 +2220,27 @@ void DialogParticipantManager::search_dialog_participants(DialogId dialog_id, co
   }
 }
 
+void DialogParticipantManager::join_dialog(DialogId dialog_id,
+                                           Promise<td_api::object_ptr<td_api::ChatJoinResult>> &&promise) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "join_dialog")) {
+    return promise.set_error(400, "Chat not found");
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(400, "Can't join private chats");
+    case DialogType::Chat:
+      return join_chat(dialog_id.get_chat_id(), std::move(promise));
+    case DialogType::Channel:
+      return join_channel(dialog_id.get_channel_id(), std::move(promise));
+    case DialogType::SecretChat:
+      return promise.set_error(400, "Can't join secret chats");
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
 void DialogParticipantManager::add_dialog_participant(
     DialogId dialog_id, UserId user_id, int32 forward_limit,
     Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
@@ -2143,8 +2265,7 @@ void DialogParticipantManager::add_dialog_participant(
 }
 
 void DialogParticipantManager::add_dialog_participants(
-    DialogId dialog_id, const vector<UserId> &user_ids,
-    Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
+    DialogId dialog_id, vector<UserId> user_ids, Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_participants")) {
     return promise.set_error(400, "Chat not found");
   }
@@ -2158,7 +2279,7 @@ void DialogParticipantManager::add_dialog_participants(
       }
       return promise.set_error(400, "Can't add many members at once to a basic group chat");
     case DialogType::Channel:
-      return add_channel_participants(dialog_id.get_channel_id(), user_ids, std::move(promise));
+      return add_channel_participants(dialog_id.get_channel_id(), std::move(user_ids), std::move(promise));
     case DialogType::SecretChat:
       return promise.set_error(400, "Can't add members to a secret chat");
     case DialogType::None:
@@ -2293,6 +2414,19 @@ Promise<td_api::object_ptr<td_api::failedToAddMembers>> DialogParticipantManager
       });
 }
 
+void DialogParticipantManager::join_chat(ChatId chat_id,
+                                         Promise<td_api::object_ptr<td_api::ChatJoinResult>> &&promise) {
+  if (!td_->chat_manager_->get_chat_is_active(chat_id)) {
+    return promise.set_error(400, "Chat is deactivated");
+  }
+  if (td_->chat_manager_->get_chat_permissions(chat_id).is_banned()) {
+    return promise.set_error(400, "User is banned from the chat");
+  }
+
+  // TODO invoke after
+  td_->create_handler<JoinChatQuery>(std::move(promise))->send(chat_id);
+}
+
 void DialogParticipantManager::add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit,
                                                     Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   if (!td_->chat_manager_->get_chat_is_active(chat_id)) {
@@ -2310,7 +2444,7 @@ void DialogParticipantManager::add_chat_participant(ChatId chat_id, UserId user_
       return promise.set_error(400, "Not enough rights to invite members to the group chat");
     }
   } else if (permissions.is_banned()) {
-    return promise.set_error(400, "User was kicked from the chat");
+    return promise.set_error(400, "User is banned from the chat");
   }
   // TODO upper bound on forward_limit
 
@@ -2455,6 +2589,44 @@ void DialogParticipantManager::delete_chat_participant(ChatId chat_id, UserId us
   td_->create_handler<DeleteChatUserQuery>(std::move(promise))->send(chat_id, std::move(input_user), revoke_messages);
 }
 
+void DialogParticipantManager::join_channel(ChannelId channel_id,
+                                            Promise<td_api::object_ptr<td_api::ChatJoinResult>> &&promise) {
+  if (!td_->chat_manager_->have_channel(channel_id)) {
+    return promise.set_error(400, "Chat info not found");
+  }
+  if (td_->chat_manager_->is_monoforum_channel(channel_id) &&
+      !td_->chat_manager_->is_admined_monoforum_channel(channel_id)) {
+    return promise.set_error(400, "The chat can't be joined explicitly; send a message instead");
+  }
+  auto my_status = td_->chat_manager_->get_channel_status(channel_id);
+  if (my_status.is_banned()) {
+    return promise.set_error(400, "Can't return to kicked from chat");
+  }
+  if (my_status.is_member()) {
+    return on_join_dialog(DialogId(channel_id), std::move(promise));
+  }
+
+  auto &queries = join_channel_queries_[channel_id];
+  queries.push_back(std::move(promise));
+  if (queries.size() == 1u) {
+    auto new_status = my_status;
+    bool was_speculatively_updated = false;
+    if (!td_->chat_manager_->get_channel_join_request(channel_id)) {
+      new_status.set_is_member(true);
+      was_speculatively_updated = true;
+      speculative_add_channel_user(channel_id, td_->user_manager_->get_my_id(), new_status, my_status);
+    }
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), channel_id, was_speculatively_updated, old_status = std::move(my_status),
+         new_status = std::move(new_status)](
+            Result<telegram_api::object_ptr<telegram_api::messages_ChatInviteJoinResult>> result) mutable {
+          send_closure(actor_id, &DialogParticipantManager::on_join_channel, channel_id, was_speculatively_updated,
+                       std::move(old_status), std::move(new_status), std::move(result));
+        });
+    td_->create_handler<JoinChannelQuery>(std::move(query_promise))->send(channel_id);
+  }
+}
+
 void DialogParticipantManager::add_channel_participant(
     ChannelId channel_id, UserId user_id, const DialogParticipantStatus &old_status,
     Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
@@ -2469,37 +2641,16 @@ void DialogParticipantManager::add_channel_participant(
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   if (user_id == td_->user_manager_->get_my_id()) {
-    // join the channel
-    if (td_->chat_manager_->is_monoforum_channel(channel_id) &&
-        !td_->chat_manager_->is_admined_monoforum_channel(channel_id)) {
-      return promise.set_error(400, "The chat can't be joined explicitly; send a message instead");
-    }
-    auto my_status = td_->chat_manager_->get_channel_status(channel_id);
-    if (my_status.is_banned()) {
-      return promise.set_error(400, "Can't return to kicked from chat");
-    }
-    if (my_status.is_member()) {
-      return promise.set_value(MissingInvitees().get_failed_to_add_members_object(td_->user_manager_.get()));
-    }
-
-    auto &queries = join_channel_queries_[channel_id];
-    queries.push_back(std::move(promise));
-    if (queries.size() == 1u) {
-      auto new_status = my_status;
-      bool was_speculatively_updated = false;
-      if (!td_->chat_manager_->get_channel_join_request(channel_id)) {
-        new_status.set_is_member(true);
-        was_speculatively_updated = true;
-        speculative_add_channel_user(channel_id, user_id, new_status, my_status);
-      }
-      auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id, was_speculatively_updated,
-                                                   old_status = std::move(my_status),
-                                                   new_status = std::move(new_status)](Result<Unit> result) mutable {
-        send_closure(actor_id, &DialogParticipantManager::on_join_channel, channel_id, was_speculatively_updated,
-                     std::move(old_status), std::move(new_status), std::move(result));
-      });
-      td_->create_handler<JoinChannelQuery>(std::move(query_promise))->send(channel_id);
-    }
+    join_channel(channel_id,
+                 [promise = std::move(promise)](Result<td_api::object_ptr<td_api::ChatJoinResult>> result) mutable {
+                   if (result.is_error()) {
+                     promise.set_error(result.move_as_error());
+                   } else if (result.ok()->get_id() != td_api::chatJoinResultSuccess::ID) {
+                     promise.set_error(400, "INVITE_REQUEST_SENT");
+                   } else {
+                     promise.set_value(MissingInvitees().get_failed_to_add_members_object(nullptr));
+                   }
+                 });
     return;
   }
   if (td_->chat_manager_->is_monoforum_channel(channel_id)) {
@@ -2516,9 +2667,20 @@ void DialogParticipantManager::add_channel_participant(
   td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, {user_id}, std::move(input_users));
 }
 
-void DialogParticipantManager::on_join_channel(ChannelId channel_id, bool was_speculatively_updated,
-                                               DialogParticipantStatus &&old_status,
-                                               DialogParticipantStatus &&new_status, Result<Unit> &&result) {
+td_api::object_ptr<td_api::ChatJoinResult> DialogParticipantManager::get_chat_join_result_object(const Status &error) {
+  if (error.message() == "INVITE_REQUEST_SENT" || error.message() == "JOIN_GUARD_TIMEOUT") {
+    return td_api::make_object<td_api::chatJoinResultRequestSent>();
+  }
+  if (error.message() == "INVITE_REQUEST_DECLINED") {
+    return td_api::make_object<td_api::chatJoinResultDeclined>();
+  }
+  return nullptr;
+}
+
+void DialogParticipantManager::on_join_channel(
+    ChannelId channel_id, bool was_speculatively_updated, DialogParticipantStatus &&old_status,
+    DialogParticipantStatus &&new_status,
+    Result<telegram_api::object_ptr<telegram_api::messages_ChatInviteJoinResult>> &&result) {
   G()->ignore_result_if_closing(result);
 
   auto it = join_channel_queries_.find(channel_id);
@@ -2528,20 +2690,46 @@ void DialogParticipantManager::on_join_channel(ChannelId channel_id, bool was_sp
   join_channel_queries_.erase(it);
 
   if (result.is_ok()) {
-    for (auto &promise : promises) {
-      promise.set_value(MissingInvitees().get_failed_to_add_members_object(td_->user_manager_.get()));
+    auto join_result_ptr = result.move_as_ok();
+    switch (join_result_ptr->get_id()) {
+      case telegram_api::messages_chatInviteJoinResultOk::ID:
+        for (auto &promise : promises) {
+          on_join_dialog(DialogId(channel_id), std::move(promise));
+        }
+        break;
+      case telegram_api::messages_chatInviteJoinResultWebView::ID: {
+        auto ptr = telegram_api::move_object_as<telegram_api::messages_chatInviteJoinResultWebView>(join_result_ptr);
+        td_->user_manager_->on_get_users(std::move(ptr->users_), "on_join_channel");
+        auto user_id_object =
+            td_->user_manager_->get_user_id_object(UserId(ptr->bot_id_), "chatJoinResultGuardBotApprovalRequired");
+        for (auto &promise : promises) {
+          promise.set_value(td_api::make_object<td_api::chatJoinResultGuardBotApprovalRequired>(
+              user_id_object, td_api::make_object<td_api::webAppUrl>(ptr->webview_->url_, ptr->webview_->same_origin_),
+              ptr->webview_->query_id_));
+        }
+        break;
+      }
+      default:
+        UNREACHABLE();
     }
   } else {
     if (was_speculatively_updated) {
       speculative_add_channel_user(channel_id, td_->user_manager_->get_my_id(), old_status, new_status);
     }
-    fail_promises(promises, result.move_as_error());
+    auto status = result.move_as_error();
+    auto chat_join_result = DialogParticipantManager::get_chat_join_result_object(status);
+    if (chat_join_result != nullptr) {
+      for (auto &promise : promises) {
+        promise.set_value(DialogParticipantManager::get_chat_join_result_object(status));
+      }
+    } else {
+      fail_promises(promises, std::move(status));
+    }
   }
 }
 
 void DialogParticipantManager::add_channel_participants(
-    ChannelId channel_id, const vector<UserId> &user_ids,
-    Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
+    ChannelId channel_id, vector<UserId> user_ids, Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     return promise.set_error(400, "Bots can't add new chat members");
   }
@@ -2555,16 +2743,12 @@ void DialogParticipantManager::add_channel_participants(
     return promise.set_error(400, "Not enough rights to invite members to the supergroup chat");
   }
 
-  vector<tl_object_ptr<telegram_api::InputUser>> input_users;
+  // can't invite self
+  td::remove(user_ids, td_->user_manager_->get_my_id());
+
+  TRY_RESULT_PROMISE(promise, input_users, td_->user_manager_->get_input_users(user_ids));
+
   for (auto user_id : user_ids) {
-    TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
-
-    if (user_id == td_->user_manager_->get_my_id()) {
-      // can't invite self
-      continue;
-    }
-    input_users.push_back(std::move(input_user));
-
     speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(0, string()),
                                  DialogParticipantStatus::Left());
   }

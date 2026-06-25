@@ -125,7 +125,7 @@ TEST(GuestQueryLightFuzz, RandomizedProbeOrderKeepsRequiredGuestPatternsPinned) 
       td::Slice("query.category==TopDialogCategory::BotInline||query.category==TopDialogCategory::BotGuest||query."
                 "category==TopDialogCategory::BotPM"),
       td::Slice("if(query.category==TopDialogCategory::BotGuest&&(r_bot_info.ok().username.empty()||!r_bot_info.ok()"
-                ".is_guestchat_bot)){LOG(INFO)<<\"Skipnon-guestbot\"<<user_id;continue;}"),
+                ".is_guestchat)){LOG(INFO)<<\"Skipnon-guestbot\"<<user_id;continue;}"),
       td::Slice("casetd_api::topChatCategoryGuestBots::ID:returnTopDialogCategory::BotGuest;"),
   };
 
@@ -174,7 +174,7 @@ TEST(GuestQueryLightFuzz, RandomizedProbeOrderKeepsLegacyUnsafePatternsAbsent) {
       td::Slice("caseTopDialogCategory::BotGuest:returnmake_tl_object<telegram_api::topPeerCategoryBotsInline>();"),
       td::Slice("if(query.category==TopDialogCategory::BotGuest&&(r_bot_info.ok().username.empty()||!r_bot_info.ok()"
                 ".is_inline)){"),
-      td::Slice("query.category==TopDialogCategory::BotGuest&&!r_bot_info.ok().is_guestchat_bot"),
+      td::Slice("query.category==TopDialogCategory::BotGuest&&!r_bot_info.ok().is_guestchat"),
       td::Slice("classSetBotGuestChatResultQueryfinal:publicTd::ResultHandler{Promise<Unit>promise_;"),
       td::Slice("create_handler<SetInlineBotResultsQuery>(std::move(promise))->send(guest_query_id,"),
       td::Slice(

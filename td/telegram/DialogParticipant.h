@@ -211,13 +211,14 @@ class RestrictedRights {
 
   RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights, ChannelType channel_type);
 
-  // increase Chat cache version when a new right is added
   RestrictedRights(bool can_send_messages, bool can_send_audios, bool can_send_documents, bool can_send_photos,
                    bool can_send_videos, bool can_send_video_notes, bool can_send_voice_notes, bool can_send_stickers,
                    bool can_send_animations, bool can_send_games, bool can_use_inline_bots,
                    bool can_add_web_page_previews, bool can_send_polls, bool can_change_info_and_settings,
                    bool can_invite_users, bool can_pin_messages, bool can_manage_topics, bool can_edit_rank,
                    ChannelType channel_type);
+
+  static RestrictedRights restrict_all();
 
   td_api::object_ptr<td_api::chatPermissions> get_chat_permissions_object() const;
 

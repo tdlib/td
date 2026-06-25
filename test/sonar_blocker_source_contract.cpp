@@ -141,8 +141,10 @@ TEST(SonarBlockerSourceContract, message_content_todo_completion_lambda_uses_for
 
 TEST(SonarBlockerSourceContract, message_content_todo_append_tasks_lambda_uses_forward_not_move) {
   const auto src = normalize_no_space(td::mtproto::test::read_repo_text_file("td/telegram/MessageContent.cpp"));
-  ASSERT_TRUE(src.find("ToDoItem(user_manager,std::forward<decltype(item)>(item))") != td::string::npos);
-  ASSERT_EQ(td::string::npos, src.find("ToDoItem(user_manager,std::move(item))"));
+  // upstream d78ceefc7 added a message_date argument to the ToDoItem ctor; the fork's forward-not-move
+  // invariant for the forwarding-reference lambda parameter is unchanged (still std::forward, never std::move).
+  ASSERT_TRUE(src.find("ToDoItem(user_manager,std::forward<decltype(item)>(item),message_date)") != td::string::npos);
+  ASSERT_EQ(td::string::npos, src.find("ToDoItem(user_manager,std::move(item),message_date)"));
 }
 
 // ---------------------------------------------------------------------------

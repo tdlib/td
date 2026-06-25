@@ -9,6 +9,7 @@
 #include "test/invalid_file_id_handling_test_utils.h"
 
 using td::invalid_file_id_handling_test::normalized_file_manager_cpp;
+using td::invalid_file_id_handling_test::normalized_file_upload_id_cpp;
 using td::invalid_file_id_handling_test::normalized_message_content_cpp;
 using td::invalid_file_id_handling_test::normalized_messages_manager_cpp;
 
@@ -19,11 +20,14 @@ TEST(InvalidFileIdHandlingContract, message_content_skips_invalid_file_ids_befor
 }
 
 TEST(InvalidFileIdHandlingContract, messages_manager_uses_empty_upload_id_for_invalid_file_ids) {
-  const auto normalized = normalized_messages_manager_cpp();
+  const auto normalized_messages_manager = normalized_messages_manager_cpp();
+  const auto normalized_file_upload_id = normalized_file_upload_id_cpp();
 
   ASSERT_NE(td::string::npos,
-            normalized.find("autofile_upload_ids=transform(file_ids,[](FileIdfile_id){returnfile_id.is_valid()"
-                            "?FileUploadId(file_id,FileManager::get_internal_upload_id()):FileUploadId();});"));
+            normalized_messages_manager.find("autofile_upload_ids=FileUploadId::get_file_upload_ids(file_ids);"));
+  ASSERT_NE(td::string::npos,
+            normalized_file_upload_id.find("returnfile_id.is_valid()?FileUploadId(file_id,"
+                                           "FileManager::get_internal_upload_id()):FileUploadId();"));
 }
 
 TEST(InvalidFileIdHandlingContract, send_media_file_reference_error_requires_valid_upload_id) {

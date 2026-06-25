@@ -67,4 +67,7 @@ int32 get_premium_duration_day_count(int32 month_count);
 // checks that the integer represents a valid RGB color
 bool is_valid_color(int32 color);
 
+// finds all probable authentication code in the given string and appends them to the resulting array
+void find_authentication_codes(Slice text, vector<string> &authentication_codes);
+
 }  // namespace td

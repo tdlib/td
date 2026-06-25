@@ -67,7 +67,8 @@ TEST(MessageContentNullGuardRuntime, ToDoListHelperRecognizesExistingTaskIdentif
                         0, false, false,
                         td::telegram_api::make_object<td::telegram_api::textWithEntities>(
                             "checklist", td::vector<td::telegram_api::object_ptr<td::telegram_api::MessageEntity>>{}),
-                        std::move(items)));
+                        std::move(items)),
+                    /*message_date=*/0);
 
   td::MessageToDoList content(std::move(list), td::vector<td::ToDoCompletion>{});
 

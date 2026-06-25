@@ -1730,11 +1730,10 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
     switch (result->get_id()) {
       case telegram_api::urlAuthResultRequest::ID: {
         auto request = telegram_api::move_object_as<telegram_api::urlAuthResultRequest>(result);
-        UserId bot_user_id = UserManager::get_user_id(request->bot_);
+        auto bot_user_id = td_->user_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
         if (!bot_user_id.is_valid()) {
           return on_error(Status::Error(500, "Receive invalid bot_user_id"));
         }
-        td_->user_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
         if (request->request_phone_number_ || !request->browser_.empty() || !request->platform_.empty() ||
             !request->ip_.empty() || !request->region_.empty() || !request->match_codes_.empty()) {
           LOG(ERROR) << "Receive invalid login URL details: " << to_string(request);
@@ -1799,11 +1798,10 @@ class RequestUrlOauthQuery final : public Td::ResultHandler {
     switch (result->get_id()) {
       case telegram_api::urlAuthResultRequest::ID: {
         auto request = telegram_api::move_object_as<telegram_api::urlAuthResultRequest>(result);
-        UserId bot_user_id = UserManager::get_user_id(request->bot_);
+        auto bot_user_id = td_->user_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
         if (!bot_user_id.is_valid()) {
           return on_error(Status::Error(500, "Receive invalid bot_user_id"));
         }
-        td_->user_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
         auto user_id = UserId(request->user_id_hint_);
         if (user_id != UserId() && !user_id.is_valid()) {
           LOG(ERROR) << "Receive " << to_string(request);
@@ -4181,7 +4179,7 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
       }
       send_closure(G()->link_manager(), &LinkManager::get_external_link_info, std::move(link), std::move(promise));
     });
-    return send_closure(G()->config_manager(), &ConfigManager::reget_config, std::move(query_promise));
+    return send_closure(G()->config_manager(), &ConfigManager::reload_config, std::move(query_promise));
   }
 
   if (autologin_token_.empty()) {
@@ -4565,9 +4563,10 @@ Result<CustomEmojiId> LinkManager::get_link_custom_emoji_id(Slice url) {
   return Status::Error(400, "Custom emoji URL must have an emoji identifier");
 }
 
-Result<LinkManager::DateFormat> LinkManager::get_link_date_format(Slice url) {
+Result<FormattedDate> LinkManager::get_link_formatted_date(Slice url) {
   TRY_RESULT(query, check_tg_url_host(url, "time"));
-  DateFormat result;
+  int32 date = 0;
+  string format;
   for (auto parameter : full_split(query, '&')) {
     Slice key;
     Slice value;
@@ -4577,16 +4576,16 @@ Result<LinkManager::DateFormat> LinkManager::get_link_date_format(Slice url) {
       if (r_date.is_error() || r_date.ok() <= 0) {
         return Status::Error(400, "Invalid Unix time specified");
       }
-      result.date_ = r_date.ok();
+      date = r_date.ok();
     }
     if (key == Slice("format")) {
-      result.format_ = value.str();
+      format = value.str();
     }
   }
-  if (result.date_ == 0) {
+  if (date == 0) {
     return Status::Error(400, "URL must have the corresponding Unix time");
   }
-  return std::move(result);
+  return FormattedDate::get_formatted_date(date, format);
 }
 
 Result<DialogBoostLinkInfo> LinkManager::get_dialog_boost_link_info(Slice url) {

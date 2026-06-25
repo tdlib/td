@@ -419,7 +419,7 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
                            std::move(promise), "FileSourceChannelFull");
       },
       [&](const FileSourceAppConfig &source) {
-        send_closure_later(G()->config_manager(), &ConfigManager::reget_app_config, std::move(promise));
+        send_closure_later(G()->config_manager(), &ConfigManager::reload_app_config, std::move(promise));
       },
       [&](const FileSourceSavedRingtones &source) {
         send_closure_later(G()->notification_settings_manager(), &NotificationSettingsManager::repair_saved_ringtones,

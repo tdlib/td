@@ -52,7 +52,7 @@ inline td::string reload_signature() {
 }
 
 inline td::string reload_dispatch_call() {
-  return "send_closure(G()->config_manager(),&ConfigManager::reget_app_config,std::move(promise));";
+  return "send_closure(G()->config_manager(),&ConfigManager::reload_app_config,std::move(promise));";
 }
 
 inline td::string reload_noop_call() {

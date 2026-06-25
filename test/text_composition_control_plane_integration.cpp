@@ -37,7 +37,7 @@ TEST(TextCompositionControlPlaneIntegration, MappingDefaultsAndVersionTravelToge
   ASSERT_TRUE(
       normalized_option.find(R"(set_default_integer_option("text_composition_style_prompt_length_max",1024);)") !=
       td::string::npos);
-  ASSERT_TRUE(normalized_header.find("staticconstexprint32CURRENT_VERSION=125;") != td::string::npos);
+  ASSERT_TRUE(normalized_header.find("staticconstexprint32CURRENT_VERSION=132;") != td::string::npos);
 }
 
 TEST(TextCompositionControlPlaneIntegration, PremiumLimitTypeAndSchemaTravelTogether) {

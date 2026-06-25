@@ -28,9 +28,11 @@ class BusinessManager final : public Actor {
  public:
   BusinessManager(Td *td, ActorShared<> parent);
 
-  void get_business_connected_bot(Promise<td_api::object_ptr<td_api::businessConnectedBot>> &&promise);
+  void get_business_connected_bot(Promise<td_api::object_ptr<td_api::businessConnectedBotInfo>> &&promise);
 
   void set_business_connected_bot(td_api::object_ptr<td_api::businessConnectedBot> &&bot, Promise<Unit> &&promise);
+
+  void confirm_business_connected_bot(UserId bot_user_id, Promise<Unit> &&promise);
 
   void delete_business_connected_bot(UserId bot_user_id, Promise<Unit> &&promise);
 

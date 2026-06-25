@@ -153,7 +153,7 @@ TEST(GuestQueryStress, RepeatedSourceReadsKeepGuestBundleInvariantsStable) {
         td::string::npos,
         messages_manager.find("if(note_guest_bot_top_dialog_use(guest_bot_candidate,last_guest_bot_message_date)){"));
     ASSERT_NE(td::string::npos, guest_bot_top_dialog.find("last_message_date>=candidate.message_date"));
-    ASSERT_NE(td::string::npos, user_manager.find("bot_data.is_guestchat_bot=u->is_guestchat_bot;"));
+    ASSERT_NE(td::string::npos, user_manager.find("bot_data.is_guestchat=u->is_guestchat_bot;"));
     ASSERT_NE(td::string::npos,
               top_dialog_category.find("caseTopDialogCategory::BotGuest:returnCSlice(\"bot_guest\");"));
     ASSERT_NE(td::string::npos,
@@ -170,7 +170,7 @@ TEST(GuestQueryStress, RepeatedSourceReadsKeepGuestBundleInvariantsStable) {
     ASSERT_NE(td::string::npos,
               top_dialog_manager.find(
                   "if(query.category==TopDialogCategory::BotGuest&&(r_bot_info.ok().username.empty()||!r_bot_info.ok()"
-                  ".is_guestchat_bot)){LOG(INFO)<<\"Skipnon-guestbot\"<<user_id;continue;}"));
+                  ".is_guestchat)){LOG(INFO)<<\"Skipnon-guestbot\"<<user_id;continue;}"));
     ASSERT_NE(td::string::npos, top_dialog_manager.find("query.category==TopDialogCategory::BotGuest"));
 
     ASSERT_EQ(td::string::npos, td_api_tl.find("supports_username_queries:Bool"));
@@ -187,7 +187,7 @@ TEST(GuestQueryStress, RepeatedSourceReadsKeepGuestBundleInvariantsStable) {
                   "if(query.category==TopDialogCategory::BotGuest&&(r_bot_info.ok().username.empty()||!r_bot_info.ok()"
                   ".is_inline)){"));
     ASSERT_EQ(td::string::npos, top_dialog_manager.find(
-                                    "query.category==TopDialogCategory::BotGuest&&!r_bot_info.ok().is_guestchat_bot"));
+                                    "query.category==TopDialogCategory::BotGuest&&!r_bot_info.ok().is_guestchat"));
     ASSERT_EQ(td::string::npos,
               updates_manager.find("if(update->query_id_==0){LOG(ERROR)<<\"Receiveinvalidguestqueryidentifier\";"
                                    "break;}"));

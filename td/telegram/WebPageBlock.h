@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/CustomEmojiId.h"
+#include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Photo.h"
@@ -16,9 +18,15 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/Slice.h"
 
+#include <functional>
+
 namespace td {
 
+class Dependencies;
+
 struct GetWebPageBlockObjectContext;
+
+class RichText;
 
 class Td;
 
@@ -54,6 +62,10 @@ class WebPageBlock {
     RelatedArticles,
     Map,
     VoiceNote,
+    Heading,
+    Math,
+    Thinking,
+    BlockQuoteBlocks,
     Size
   };
 
@@ -74,6 +86,8 @@ class WebPageBlock {
   template <class ParserT>
   friend void parse_web_page_block(unique_ptr<WebPageBlock> &block, ParserT &parser);
 
+  friend bool operator==(const WebPageBlock &lhs, const WebPageBlock &rhs);
+
   using Context = GetWebPageBlockObjectContext;
 
  public:
@@ -86,6 +100,33 @@ class WebPageBlock {
 
   virtual void append_file_ids(const Td *td, vector<FileId> &file_ids) const = 0;
 
+  virtual void add_dependencies(Dependencies &dependencies) const = 0;
+
+  virtual void for_each_rich_text(bool recurse_text,
+                                  const std::function<void(const RichText *text)> &callback) const = 0;
+
+  void for_each_text(const std::function<void(Slice text)> &callback) const;
+
+  void append_user_ids(vector<UserId> &user_ids) const;
+
+  bool has_bot_commands() const;
+
+  vector<string> get_hashtags() const;
+
+  vector<CustomEmojiId> get_custom_emoji_ids() const;
+
+  virtual bool can_send(const RestrictedRights &rights) const {
+    return true;
+  }
+
+  virtual int32 get_index_mask() const = 0;
+
+  virtual unique_ptr<WebPageBlock> clone() const = 0;
+
+  virtual telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(
+      const Td *td, vector<telegram_api::object_ptr<telegram_api::InputPhoto>> &photos,
+      vector<telegram_api::object_ptr<telegram_api::InputDocument>> &documents) const = 0;
+
   virtual td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const = 0;
 
   static bool are_allowed_album_block_types(const vector<unique_ptr<WebPageBlock>> &page_blocks);
@@ -97,13 +138,29 @@ void store(const unique_ptr<WebPageBlock> &block, LogEventStorerUnsafe &storer);
 
 void parse(unique_ptr<WebPageBlock> &block, LogEventParser &parser);
 
+bool operator==(const WebPageBlock &lhs, const WebPageBlock &rhs);
+
+inline bool operator!=(const WebPageBlock &lhs, const WebPageBlock &rhs) {
+  return !(lhs == rhs);
+}
+
 vector<unique_ptr<WebPageBlock>> get_web_page_blocks(
     Td *td, vector<tl_object_ptr<telegram_api::PageBlock>> page_block_ptrs,
     const FlatHashMap<int64, FileId> &animations, const FlatHashMap<int64, FileId> &audios,
     const FlatHashMap<int64, FileId> &documents, const FlatHashMap<int64, unique_ptr<Photo>> &photos,
     const FlatHashMap<int64, FileId> &videos, const FlatHashMap<int64, FileId> &voice_notes);
 
+int32 get_web_page_blocks_index_mask(const vector<unique_ptr<WebPageBlock>> &page_blocks);
+
+vector<unique_ptr<WebPageBlock>> clone_web_page_blocks(const vector<unique_ptr<WebPageBlock>> &page_blocks);
+
+vector<telegram_api::object_ptr<telegram_api::PageBlock>> get_input_page_blocks(
+    const vector<unique_ptr<WebPageBlock>> &page_blocks, const Td *td,
+    vector<telegram_api::object_ptr<telegram_api::InputPhoto>> &photos,
+    vector<telegram_api::object_ptr<telegram_api::InputDocument>> &documents);
+
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
-    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url, Slice real_url);
+    const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url, Slice real_url,
+    bool skip_bot_commands);
 
 }  // namespace td

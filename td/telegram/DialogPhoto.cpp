@@ -312,4 +312,22 @@ telegram_api::object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profil
                                                                    photo->dc_id_);
 }
 
+bool operator==(const DialogPhoto &lhs, const DialogPhoto &rhs) {
+  return lhs.small_file_id == rhs.small_file_id && lhs.big_file_id == rhs.big_file_id &&
+         lhs.minithumbnail == rhs.minithumbnail && lhs.has_animation == rhs.has_animation &&
+         lhs.is_personal == rhs.is_personal;
+}
+
+bool operator!=(const DialogPhoto &lhs, const DialogPhoto &rhs) {
+  return !(lhs == rhs);
+}
+
+bool operator==(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
+  return static_cast<const DialogPhoto &>(lhs) == static_cast<const DialogPhoto &>(rhs) && lhs.id == rhs.id;
+}
+
+bool operator!=(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
+  return !(lhs == rhs);
+}
+
 }  // namespace td

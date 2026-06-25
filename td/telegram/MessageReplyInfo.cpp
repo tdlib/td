@@ -180,13 +180,8 @@ td_api::object_ptr<td_api::messageReplyInfo> MessageReplyInfo::get_message_reply
     return nullptr;
   }
 
-  vector<td_api::object_ptr<td_api::MessageSender>> recent_repliers;
-  for (auto dialog_id : recent_replier_dialog_ids_) {
-    auto recent_replier = get_min_message_sender_object(td, dialog_id, "get_message_reply_info_object");
-    if (recent_replier != nullptr) {
-      recent_repliers.push_back(std::move(recent_replier));
-    }
-  }
+  auto recent_repliers =
+      get_min_message_senders_object(td, recent_replier_dialog_ids_, "get_message_reply_info_object");
   auto last_read_inbox_message_id = last_read_inbox_message_id_;
   if (last_read_inbox_message_id.is_valid() && last_read_inbox_message_id < dialog_last_read_inbox_message_id) {
     last_read_inbox_message_id = min(dialog_last_read_inbox_message_id, max_message_id_);

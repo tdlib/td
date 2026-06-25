@@ -65,6 +65,28 @@ Contract tests: `test/managed_bot_created_dependency_contract.cpp`,
 `test/call_notification_send_closure_later_contract.cpp`, `test/dialog_action_equality_fields_contract.cpp`.
 Closeout: [docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15_WAVE_B_CLOSEOUT.md](docs/Plans/UPSTREAM_BACKPORT_PLAN_2026-06-15_WAVE_B_CLOSEOUT.md).
 
+### Phase 1 + Phase 2 bulk integration (update)
+
+The product epics flagged "deferred" above were subsequently integrated, epic-by-epic, on
+`feat/upstream-backport-bulk` (not a bulk sync — semantic per-commit detection, dependency-ordered
+cherry-picks, fork hardening preserved, contract tests, Linux build GREEN per epic).
+
+- **Phase 1** — clean/tractable commits (layer-227 schema, instant-view/PageBlock type additions,
+  managed-bot, etc.): ~101 cherry-picks + 4 local build-fixes.
+  Closeout: [docs/Plans/UPSTREAM_BACKPORT_PHASE1_CLOSEOUT_2026-06-16.md](docs/Plans/UPSTREAM_BACKPORT_PHASE1_CLOSEOUT_2026-06-16.md).
+- **Phase 2** — feature epics: chat-join/guard-bot, search-type-filter, in-app web browser,
+  instant-view RichText/PageBlock (render), poll-media (render), and misc (incl.
+  `checkAuthenticationWebToken`, tonsite→in-app-browser). 46 cherry-picks + 8 contract-test/fix commits.
+  Two tightly-coupled, non-mission SEND/content clusters (`messageRichMessage` content type and
+  poll-media links/web-pages-in-polls) are **deferred** for fork-safety — they would require
+  hand-reconstructing a new content subsystem with wire-serialization risk.
+  Full SHA manifest + verification:
+  [docs/Plans/UPSTREAM_BACKPORT_PHASE2_CLOSEOUT_2026-06-18.md](docs/Plans/UPSTREAM_BACKPORT_PHASE2_CLOSEOUT_2026-06-18.md).
+
+Verification at Phase-2 tip (`799657fd1`): stealth/DPI suite 239/239, SonarBlocker 51/51, Phase-1 3/3,
+Phase-2 16/16, W3-P poll voter-visibility 9/9, RestrictedRights 12/12 — all GREEN. No `td/mtproto`
+stealth-transport file was modified by the intake.
+
 ## Fork Backport Record (24 May 2026)
 
 This section is maintained by this fork and supplements the upstream changelog, which is not

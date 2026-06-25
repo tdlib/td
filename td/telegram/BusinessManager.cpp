@@ -7,6 +7,7 @@
 #include "td/telegram/BusinessManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AccountManager.h"
 #include "td/telegram/BusinessAwayMessage.h"
 #include "td/telegram/BusinessChatLink.h"
 #include "td/telegram/BusinessConnectedBot.h"
@@ -33,10 +34,10 @@
 namespace td {
 
 class GetConnectedBotsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::businessConnectedBot>> promise_;
+  Promise<td_api::object_ptr<td_api::businessConnectedBotInfo>> promise_;
 
  public:
-  explicit GetConnectedBotsQuery(Promise<td_api::object_ptr<td_api::businessConnectedBot>> &&promise)
+  explicit GetConnectedBotsQuery(Promise<td_api::object_ptr<td_api::businessConnectedBotInfo>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -64,7 +65,33 @@ class GetConnectedBotsQuery final : public Td::ResultHandler {
     if (!bot.is_valid()) {
       return on_error(Status::Error(500, "Receive invalid bot"));
     }
-    promise_.set_value(bot.get_business_connected_bot_object(td_));
+    promise_.set_value(bot.get_business_connected_bot_info_object(td_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ConfirmBotConnectionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ConfirmBotConnectionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::account_confirmBotConnection(std::move(input_user)), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_confirmBotConnection>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
@@ -534,7 +561,8 @@ void BusinessManager::tear_down() {
   parent_.reset();
 }
 
-void BusinessManager::get_business_connected_bot(Promise<td_api::object_ptr<td_api::businessConnectedBot>> &&promise) {
+void BusinessManager::get_business_connected_bot(
+    Promise<td_api::object_ptr<td_api::businessConnectedBotInfo>> &&promise) {
   td_->create_handler<GetConnectedBotsQuery>(std::move(promise))->send();
 }
 
@@ -548,8 +576,15 @@ void BusinessManager::set_business_connected_bot(td_api::object_ptr<td_api::busi
   td_->create_handler<UpdateConnectedBotQuery>(std::move(promise))->send(connected_bot, std::move(input_user));
 }
 
+void BusinessManager::confirm_business_connected_bot(UserId bot_user_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+  td_->account_manager_->on_confirm_authorization(true, 0, bot_user_id);
+  td_->create_handler<ConfirmBotConnectionQuery>(std::move(promise))->send(std::move(input_user));
+}
+
 void BusinessManager::delete_business_connected_bot(UserId bot_user_id, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+  td_->account_manager_->on_confirm_authorization(true, 0, bot_user_id);
   td_->create_handler<UpdateConnectedBotQuery>(std::move(promise))->send(std::move(input_user));
 }
 

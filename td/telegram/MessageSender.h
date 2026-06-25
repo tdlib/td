@@ -35,6 +35,10 @@ td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, Dial
 
 td_api::object_ptr<td_api::MessageSender> get_min_message_sender_object(Td *td, DialogId dialog_id, const char *source);
 
+vector<td_api::object_ptr<td_api::MessageSender>> get_min_message_senders_object(Td *td,
+                                                                                 const vector<DialogId> &dialog_ids,
+                                                                                 const char *source);
+
 bool check_min_message_sender(Td *td, DialogId dialog_id, vector<std::pair<ChannelId, MinChannel>> &min_channels);
 
 vector<DialogId> get_message_sender_dialog_ids(Td *td,

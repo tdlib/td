@@ -34,6 +34,7 @@
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/ReplyMarkup.h"
+#include "td/telegram/RichMessage.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/TargetDialogTypes.h"
 #include "td/telegram/Td.h"
@@ -352,10 +353,11 @@ class GetRequestedWebViewButtonQuery final : public Td::ResultHandler {
 };
 
 class RequestSimpleWebViewQuery final : public Td::ResultHandler {
-  Promise<string> promise_;
+  Promise<td_api::object_ptr<td_api::webAppUrl>> promise_;
 
  public:
-  explicit RequestSimpleWebViewQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  explicit RequestSimpleWebViewQuery(Promise<td_api::object_ptr<td_api::webAppUrl>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(tl_object_ptr<telegram_api::InputUser> &&input_user, string url, const WebAppOpenParameters &parameters) {
@@ -401,7 +403,7 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for RequestSimpleWebViewQuery: " << to_string(ptr);
     LOG_IF(ERROR, ptr->query_id_ != 0) << "Receive " << to_string(ptr);
-    promise_.set_value(std::move(ptr->url_));
+    promise_.set_value(td_api::make_object<td_api::webAppUrl>(ptr->url_, ptr->same_origin_));
   }
 
   void on_error(Status status) final {
@@ -602,6 +604,19 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
         flags, input_message_text.disable_web_page_preview, input_message_text.show_above_text,
         std::move(input_message_text.text.text), std::move(entities), std::move(input_reply_markup));
   }
+  if (constructor_id == td_api::inputMessageRichMessage::ID) {
+    TRY_RESULT(
+        rich_message,
+        RichMessage::get_rich_message(
+            td_, DialogId(),
+            std::move(static_cast<td_api::inputMessageRichMessage *>(input_message_content.get())->message_), true));
+    int32 flags = 0;
+    if (input_reply_markup != nullptr) {
+      flags |= telegram_api::inputBotInlineMessageRichMessage::REPLY_MARKUP_MASK;
+    }
+    return telegram_api::make_object<telegram_api::inputBotInlineMessageRichMessage>(
+        flags, std::move(input_reply_markup), rich_message.get_input_rich_message(td_));
+  }
   if (constructor_id == td_api::inputMessageContact::ID) {
     TRY_RESULT(contact, process_input_message_contact(td_, std::move(input_message_content)));
     return contact.get_input_bot_inline_message_media_contact(std::move(input_reply_markup));
@@ -611,7 +626,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
                InputInvoice::process_input_message_invoice(std::move(input_message_content), td_, DialogId()));
     return input_invoice.get_input_bot_inline_message_media_invoice(std::move(input_reply_markup), td_);
   }
-  if (constructor_id == td_api::inputMessageLocation::ID) {
+  if (constructor_id == td_api::inputMessageLocation::ID || constructor_id == td_api::inputMessageLiveLocation::ID) {
     TRY_RESULT(location, process_input_message_location(std::move(input_message_content)));
     int32 flags = 0;
     if (input_reply_markup != nullptr) {
@@ -847,7 +862,8 @@ const RequestedDialogType *InlineQueriesManager::get_requested_dialog_type(UserI
 }
 
 void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&url,
-                                                   const WebAppOpenParameters &parameters, Promise<string> &&promise) {
+                                                   const WebAppOpenParameters &parameters,
+                                                   Promise<td_api::object_ptr<td_api::webAppUrl>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
   TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
   on_dialog_used(TopDialogCategory::BotApp, DialogId(bot_user_id), G()->unix_time());

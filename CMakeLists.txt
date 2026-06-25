@@ -677,11 +677,13 @@ set(TDLIB_SOURCE_PART1
     td/telegram/files/FileStats.cpp
     td/telegram/files/FileStatsWorker.cpp
     td/telegram/files/FileType.cpp
+    td/telegram/files/FileUploadId.cpp
     td/telegram/files/FileUploader.cpp
     td/telegram/files/FileUploadManager.cpp
     td/telegram/files/PartsManager.cpp
     td/telegram/files/ResourceManager.cpp
     td/telegram/files/ResourceState.cpp
+    td/telegram/FormattedDate.cpp
     td/telegram/ForumTopic.cpp
     td/telegram/ForumTopicEditedData.cpp
     td/telegram/ForumTopicIcon.cpp
@@ -709,6 +711,7 @@ set(TDLIB_SOURCE_PART1
     td/telegram/InputGroupCallId.cpp
     td/telegram/InputInvoice.cpp
     td/telegram/InputMessageText.cpp
+    td/telegram/JoinChatBotResult.cpp
     td/telegram/JsonValue.cpp
     td/telegram/KeyboardButtonStyle.cpp
     td/telegram/LanguagePackManager.cpp
@@ -832,6 +835,7 @@ set(TDLIB_SOURCE_PART2
     td/telegram/RequestedDialogType.cpp
     td/telegram/Requests.cpp
     td/telegram/RestrictionReason.cpp
+    td/telegram/RichMessage.cpp
     td/telegram/SavedMessagesManager.cpp
     td/telegram/SavedMessagesTopicId.cpp
     td/telegram/ScopeNotificationSettings.cpp
@@ -913,6 +917,7 @@ set(TDLIB_SOURCE_PART2
     td/telegram/TranscriptionManager.cpp
     td/telegram/TranslationManager.cpp
     td/telegram/UpdatesManager.cpp
+    td/telegram/UserId.cpp
     td/telegram/UserManager.cpp
     td/telegram/Usernames.cpp
     td/telegram/UserPrivacySetting.cpp
@@ -926,6 +931,9 @@ set(TDLIB_SOURCE_PART2
     td/telegram/WebApp.cpp
     td/telegram/WebAppManager.cpp
     td/telegram/WebAppOpenParameters.cpp
+    td/telegram/WebBrowserManager.cpp
+    td/telegram/WebBrowserSettings.cpp
+    td/telegram/WebDomainException.cpp
     td/telegram/WebPageBlock.cpp
     td/telegram/WebPagesManager.cpp
     td/telegram/AccentColorId.h
@@ -1249,6 +1257,7 @@ set(TDLIB_SOURCE_PART2
     td/telegram/RequestedDialogType.h
     td/telegram/Requests.h
     td/telegram/RestrictionReason.h
+    td/telegram/RichMessage.h
     td/telegram/SavedMessagesManager.h
     td/telegram/SavedMessagesTopicId.h
     td/telegram/ScheduledServerMessageId.h
@@ -1441,6 +1450,7 @@ set(TDLIB_SOURCE_PART2
     td/telegram/RepliedMessageInfo.hpp
     td/telegram/ReplyMarkup.hpp
     td/telegram/RequestedDialogType.hpp
+    td/telegram/RichMessage.hpp
     td/telegram/ScopeNotificationSettings.hpp
     td/telegram/SecureValue.hpp
     td/telegram/SendCodeHelper.hpp

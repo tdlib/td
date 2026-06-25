@@ -109,7 +109,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
     }
     if (!origin_.is_empty() && reply_header->reply_media_ != nullptr &&
         reply_header->reply_media_->get_id() != telegram_api::messageMediaEmpty::ID) {
-      content_ = get_message_content(td, FormattedText(), std::move(reply_header->reply_media_), dialog_id,
+      content_ = get_message_content(td, FormattedText(), nullptr, std::move(reply_header->reply_media_), dialog_id,
                                      origin_date_, true, UserId(), nullptr, nullptr, "messageReplyHeader");
       CHECK(content_ != nullptr);
       if (!is_supported_reply_message_content(content_->get_type())) {
@@ -163,6 +163,8 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
           }
         }
       }
+    } else if (content_->get_type() == MessageContentType::RichText) {
+      content_ = nullptr;
     }
     auto origin_message_full_id = origin_.get_message_full_id();
     if (origin_message_full_id.get_message_id().is_valid()) {

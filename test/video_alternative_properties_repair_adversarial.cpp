@@ -54,13 +54,14 @@ TEST(VideoAlternativePropertiesRepairAdversarial, ThumbnailRepairMustStayGuarded
       extract_region(source, "VideosManager::get_video_object(FileId file_id,", "get_story_video_object");
   auto normalized = normalize_for_contract(region);
 
-  auto guarded_assign_pos =
-      normalized.find("if(thumbnail==nullptr){thumbnail=alternative_video->animated_thumbnail.file_id.is_valid()");
-  auto first_assign_pos = normalized.find("thumbnail=alternative_video->animated_thumbnail.file_id.is_valid()");
+  auto thumbnail_assign_pos =
+      normalized.find("thumbnail=get_thumbnail_object(td_->file_manager_.get(),alternative_video->thumbnail,"
+                      "alternative_video->animated_thumbnail);");
 
-  ASSERT_NE(td::string::npos, guarded_assign_pos);
-  ASSERT_NE(td::string::npos, first_assign_pos);
-  ASSERT_TRUE(guarded_assign_pos < first_assign_pos);
+  ASSERT_NE(td::string::npos, thumbnail_assign_pos);
+  auto guard_pos = normalized.rfind("if(thumbnail==nullptr){", thumbnail_assign_pos);
+  ASSERT_NE(td::string::npos, guard_pos);
+  ASSERT_TRUE(guard_pos < thumbnail_assign_pos);
 }
 
 }  // namespace

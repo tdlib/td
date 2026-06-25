@@ -49,7 +49,7 @@ TEST(TextCompositionControlPlaneLightFuzz, DeterministicLiteralMatrixPreservesCo
     ASSERT_TRUE(normalized_config.contains(config_needle));
     ASSERT_TRUE(normalized_option.contains(option_needle));
     ASSERT_TRUE(normalized_premium.contains(premium_needle));
-    ASSERT_TRUE(normalized_header.contains("staticconstexprint32CURRENT_VERSION=125;"));
+    ASSERT_TRUE(normalized_header.contains("staticconstexprint32CURRENT_VERSION=132;"));
     ASSERT_TRUE(normalized_tl.contains("premiumLimitTypeCustomTextCompositionStyleCount=PremiumLimitType;"));
   }
 }

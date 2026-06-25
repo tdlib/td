@@ -426,7 +426,7 @@ void TranslationManager::on_update_ai_compose_styles(vector<string> &&ai_compose
 }
 
 void TranslationManager::reload_ai_compose_tones(Promise<Unit> &&promise) {
-  send_closure(G()->config_manager(), &ConfigManager::reget_app_config, std::move(promise));
+  send_closure(G()->config_manager(), &ConfigManager::reload_app_config, std::move(promise));
 }
 
 td_api::object_ptr<td_api::updateTextCompositionStyles> TranslationManager::get_update_text_composition_styles() const {

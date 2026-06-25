@@ -1,0 +1,145 @@
+1ab169454 | Simplify string option handling in app config | SKIP: pure refactor incompatible with fork's stealth-divergent ConfigManager (local-var approach + fork-specific options); no functionality lost
+3f66d431a | Fix merge_message_contents for polls | SKIP: prereq PollManager::get_individual_message_content_refs absent in fork (partial PollMedia epic); poll-media merge case deferred, no functionality regressed (fork had no poll-merge case)
+b07e4b77e | Add separate inputMessageLiveLocation | SKIP: td_api.tl conflict tangles fork W3-P PollVoteRestrictionReason + upstream PollMedia (duplicate inputPollOption, differing pollVoteRestrictionReason signatures); too risky to merge schema of fork-hardened poll area; live-location deferred
+0d1e95e89 | Add Poll.can_see_results | SKIP: deep W3-P poll-schema tangle (fork vote_restriction_reason/members_only/country_codes + upstream can_see_results); high risk to fork-hardened poll area
+d549c79d7 | Add td_api::PollMedia | SKIP: PollMedia epic core; deeply clashes with fork W3-P poll schema/code (4-file conflict); epic deferred as block to protect W3-P hardening
+984e1f2b4 | Add td_api::pollMediaLink | SKIP: PollMedia epic (W3-P clash)
+3b0d5e432bb619c57b089e19415d12c0f1fac97c | Add td_api::InputPollMedia. | SKIP: PollMedia epic (W3-P clash)
+a2b0e37ad9f8a7dd10cd1e34d638478bab1f56a8 | Add td_api::inputPollMediaLink. | SKIP: PollMedia epic (W3-P clash)
+d02fe8bbe2f3ef4f48eb343a06448b6ceed48ccd | Add PollManager::get_poll_web_page_ids. | SKIP: PollMedia epic (W3-P)
+7b7f7cf21e12ad0fe5954e420d11d4cf0afefa99 | Register poll web pages. | SKIP: PollMedia epic (W3-P)
+0ae2fd646c54718fdc9e6021925c6bc2be0987b8 | tg_cli: support inputPollMediaLink. | SKIP: PollMedia epic (W3-P)
+d4a15d682 | Use reload_web_page_by_url to reload pending web pages | SKIP: references web_page_polls_ (deferred PollMedia/poll-web-page epic)
+bdf910f19 | Add type_filter in searchPublicChats | SKIP: search-type-filter epic changes search data structures (found_public_dialogs_ -> 2D type_num map); low-value client feature, moderate integration risk
+d549c79d7aaf1a1ea5651827ac10486ffa2922fb | Add td_api::PollMedia. | PRE-SKIP: PollMedia/poll-web-page epic (deferred)
+984e1f2b4f78ce4e621c9828c1a3cde9dd56c131 | Add td_api::pollMediaLink. | PRE-SKIP: PollMedia/poll-web-page epic (deferred)
+ef5759d203a915bf26240c863fe599d04952e09a | Compare type of poll option media. | PRE-SKIP: PollMedia/poll-web-page epic (deferred)
+3b0d5e432bb619c57b089e19415d12c0f1fac97c | Add td_api::InputPollMedia. | PRE-SKIP: PollMedia/poll-web-page epic (deferred)
+a2b0e37ad9f8a7dd10cd1e34d638478bab1f56a8 | Add td_api::inputPollMediaLink. | PRE-SKIP: PollMedia/poll-web-page epic (deferred)
+d02fe8bbe2f3ef4f48eb343a06448b6ceed48ccd | Add PollManager::get_poll_web_page_ids. | PRE-SKIP: deferred epic (poll-media/search-filter)
+7b7f7cf21e12ad0fe5954e420d11d4cf0afefa99 | Register poll web pages. | PRE-SKIP: deferred epic (poll-media/search-filter)
+002d49193c0ebb2ed7ccb9f0fbb64a8348b10eb1 | Remove empty web pages from polls. | PRE-SKIP: deferred epic (poll-media/search-filter)
+0ae2fd646c54718fdc9e6021925c6bc2be0987b8 | tg_cli: support inputPollMediaLink. | PRE-SKIP: deferred epic (poll-media/search-filter)
+d4a15d682875afe0abbe89a0c156a7757693833f | Use reload_web_page_by_url to reload pending web pages. | PRE-SKIP: deferred epic (poll-media/search-filter)
+31c1a0222519c72987c5ace597f1e4be595d7c22 | Register web pages of loaded from database polls. | PRE-SKIP: deferred epic (poll-media/search-filter)
+0c39589cdc2ddc849ae993816996faceeeb1b0ec | Register web page URLs loaded from database. | PRE-SKIP: deferred epic (poll-media/search-filter)
+316e934433f9697e687a2f292a3353d52f6a91a9 | Add enum DialogTypeFilter. | PRE-SKIP: deferred epic (poll-media/search-filter)
+bdf910f191e1b730e8923c99e09050cc107a6ac2 | Add type_filter in searchPublicChats. | PRE-SKIP: deferred epic (poll-media/search-filter)
+e587790173003bbf83d0f9919b4165c4dd1443fc | Add searchChatsOnServer.type_filter. | PRE-SKIP: deferred epic (poll-media/search-filter)
+9ec11ab28d416294d108fa0419d43176613a1ea8 | Add searchRecentlyFoundChats.type_filter. | PRE-SKIP: deferred epic (poll-media/search-filter)
+21cbc0d17 | Move search_dialogs to DialogManager | SKIP: 3-file refactor move in deferred search area
+26d8c6a811a1e688e002ff55def8110875014000 | Add searchChats,type_filter. | PRE-SKIP: deferred epic
+f46b58926 | Add td_api::checkAuthenticationWebToken | SKIP: auth web-token/passkey epic; fork refactored auth error handling (handle_expected_query_error); security-sensitive structural divergence
+63196bac4 | Add td_api::updateWebBrowserSettings | SKIP: WebBrowserManager absent (webbrowser epic manager not landed); git rename-detection also mis-matched content to stealth files (ConfigWindowTable/SessionBlendTable). Webbrowser epic deferred.
+03e80a1201dc88aeb28ed70722839ce7516f356e | Support updateWebBrowserSettings in getCurrentState. | PRE-SKIP: deferred epic
+0ecf6802c3e07b7cd6cd7549751758415dbf27bd | Save web browser settings between restarts. | PRE-SKIP: deferred epic
+8c0c85326de5086fd04fc4f434895cb570f12928 | Support updateWebBrowserSettings. | PRE-SKIP: deferred epic
+a1b5ec5248a4a88a0ca4f71281ad85571d19b61e | Support updateWebBrowserException. | PRE-SKIP: deferred epic
+9deb0b7d52fd20ba4b3a556c1800b6468aa5d45a | Add td_api::changeWebBrowserSettings. | PRE-SKIP: deferred epic
+2bce3ecbec55e6c51d8b7e77fd1938421ef880e7 | Add td_api::addWebBrowserSettingsException. | PRE-SKIP: deferred epic
+e3ef7dc746d99759787862f63cc8c7c438caca4a | Add td_api::removeWebBrowserSettingsException. | PRE-SKIP: deferred epic
+533ca510b68d12f5e1586fdf2ce0872b664d6980 | Add td_api::removeAllWebBrowserSettingsExceptions. | PRE-SKIP: deferred epic
+37fa274f22ee86ef5e43aac08e32d5e152048c8c | Add td_api::getLinkWebBrowserType. | PRE-SKIP: deferred epic
+a3349d3c8194f4b12d3cc4837266c05684d035d8 | Open tonsite:// links only in the internal browser. | PRE-SKIP
+24ede94a8 | Improve documentation | SKIP: doc-only td_api.tl conflict with fork DOXYGEN docs; no functionality
+b449204c5 | Add td_api::updateChatJoinResult | SKIP: chat-join epic; tangled UpdatesManager dispatch conflict
+3e17b90422f9ba37664673528a20f73647f0b4bc | Improve guard_bot_user_id documentation. | PRE-SKIP epic
+8d72b2051 | Simplify inputMessageLiveLocation | SKIP: live-location epic (foundation b07e4b77e deferred)
+fa95018d49ae241383f974f14cefdc8a45b47f67 | Add process_live_location. | PRE-SKIP epic
+df1e8ff1b536339fce0e711dc9baf1095c12a6c3 | Add InputMessageLocation::get_input_media_geo_live. | PRE-SKIP epic
+fb985db6a8f0e3de3ee8960b9f408d95d6e8b4d0 | Use liveLocation in editMessageLiveLocation. | PRE-SKIP epic
+e59e4806fa97a1f032abb75d83a3a646e1faf412 | Use liveLocation in editInlineMessageLiveLocation. | PRE-SKIP epic
+c99307d9be3f4a786478f68ffd8a7ba3f222c487 | Use liveLocation in editBusinessMessageLiveLocation. | PRE-SKIP epic
+22c82065f765354e7c587442134e7ff39e8291ec | Treat empty location in live location as empty live location. | PRE-SKIP epic
+f63e43e0f96c82347c486b3c2fa654796e82b1a1 | Improve live location documentation. | PRE-SKIP epic
+e0f07c5d8442361371855293f62c5d0b1a130d31 | Add td_api::richMessage. | PRE-SKIP rich-message epic (entangled with deferred PollMedia)
+1a3dcfe4174cef028544b2040f74dd53e6bf3061 | Add td_api::messageRichMessage. | PRE-SKIP rich-message epic (entangled with deferred PollMedia)
+48f727bb14a92e5aba58f87d572f9e433f0930a1 | Implement RichMessage::clone(). | PRE-SKIP rich-message epic (entangled with deferred PollMedia)
+033d7b14a375a70890b0c67cfca15d358a8c1f11 | Support RichMessage in get_message_content_min_user_ids(). | PRE-SKIP rich-message
+111c58199 | Support RichText in get_message_content_has_bot_commands | PRE-SKIP: touches deferred RichMessage.cpp/.h (rich-message epic)
+e3e63092fe6a202f26875fc6cf24fe6360fda6ca | Use skip_bot_commands in get_rich_message_object. | PRE-SKIP rich-message
+f18e7df84b1ef5191505199033c8661c86565e25 | Support messageRichText in update_used_hashtags. | PRE-SKIP rich-message
+f79ba0d8d20b0cc3c8f01f38822f55fe9073cdbc | Support telegram_api::botInlineMessageRichMessage. | PRE-SKIP rich-message
+f9ed7a80bdd957e000eca10c477b12ffbe6b6b8d | Support RichText in can_send_message_content, | PRE-SKIP file-based (deferred epic file)
+a31a0348a | Allow copying of rich messages only for bots | PRE-SKIP: rich-message epic
+2cf217f42b307d8de4ace7ad18d1c45bc463cd04 | Improve pageBlockListItem.type documentation. | PRE-SKIP doc
+d44b6cab47944302a9f0f27ecdeb3aaaf82b20cd | Add td_api::getFullRichMessage. | PRE-SKIP rich
+7a154de350ce3d3698527666115af842fa2a618d | Return webAppUrl in chatJoinResultGuardBotApprovalRequired. | PRE-SKIP epic
+1eaeaf657bb4fce7528acb5bea740137d9251075 | Support replies to rich messages in other chats. | PRE-SKIP rich
+2ded57e38bb6ab7f02b6399ef4e8f8a75fd3df7a | Add td_api::inputMessageRichMessage. | PRE-SKIP rich
+02e17a09d | Add parameter recurse_text to for_each_rich_text | DEFER (Phase 2): WebPageBlock for_each_rich_text refactor entangled with fork member-name divergence (blocks vs page_blocks per class) + missing .h decls; part of rich-text/rich-message complex
+02e17a09dcc54d5dd721d07dc934d1bf9b7a94e3 | Add parameter recurse_text to for_each_rich_text. | PRE-SKIP webpageblock-rich-text-refactor (Phase2)
+4d10e3ae4fc936b9281af01744f2d36596d6bdd8 | Add and use RichText::get_full_text(). | PRE-SKIP webpageblock-rich-text-refactor (Phase2)
+ca67bf7388ae669e3f1842e242e31bc8f254414c | Improve WebPageBlock::for_each_text. | PRE-SKIP webpageblock-rich-text-refactor (Phase2)
+b5bc4248c4610bced549ac1a7855e3ffbd4e0950 | Add option "rich_message_text_length_max". | PRE-SKIP rich
+0fd58b421001760f01aa46dac9368fbe401b1b6e | Add option "rich_message_block_count_max". | PRE-SKIP rich
+a5a345f20e1b644f11368485e6c1ffc09a575d73 | Add option "rich_message_depth_max". | PRE-SKIP rich
+27d21d4b81d27ddf9247ade4c8d6f58965db8402 | Add option "rich_message_media_count_max". | PRE-SKIP rich
+0e0c37df2fa86df833ac2e7f2d41709cdefe0b76 | Add option "rich_message_table_column_count_max". | PRE-SKIP rich
+2d88e82644f78f95b2508f878d22b4d1bda1be49 | Add td_api::inputRichMessage. | PRE-SKIP rich
+8d54e2af9ba18fb43d9138bc8dbfed60a41ef8e2 | Add sendRichMessageDraft. | PRE-SKIP rich
+79eaa8a30419b5d3061b017873a0d363ef16b1c2 | Support messageRichMessage in updatePendingMessage. | PRE-SKIP rich
+c710b047f5ebadcf84e1573e733de47d12bf787b | Support inputMessageRichMessage in inline query results. | PRE-SKIP rich
+ac0c191f3 | Add RichText.get_input_rich_text() | PRE-SKIP webpageblock-rich-text-refactor (Phase2)
+23a99972b | Improve method order | PRE-SKIP cosmetic-refactor (WebPageBlock, Phase2)
+726b15907 | Add WebPageBlock.get_input_page_block | PRE-SKIP WebPageBlock-refactor (Phase2)
+ca9098cf28b5ef13475ca37e81e463dc5e5e8f07 | Support inputRichMessage. | PRE-SKIP rich
+e65c04fd1191c5da1376fda945fb0712e491fed4 | Document blocks specific to instant view. | PRE-SKIP doc/cosmetic
+aa2d3178b90da0254f319889b217263e383bdfc2 | Add pageBlockAnimation.has_spoiler. | PRE-SKIP file(Ph2)
+8139027276b444956bfcf4478c5500b678953a93 | Add get_web_page_blocks_index_mask. | PRE-SKIP file(Ph2)
+c1ca7625ea31fde12c79f00f6f257fff854cad74 | Support rich messages in profile tabs. | PRE-SKIP rich
+9dfaec306aaf5878a83f9413081836a5addb7717 | Ignore anchors for shared media. | PRE-SKIP file(Ph2)
+d7302206b192e7f5ffa87765049c7b5fe305134a | Add td_api::draftMessageContentRichMessage. | PRE-SKIP rich
+9f0f70ff2d5d681e453dd0399c39e7f9e0bf459d | Check can_send_messages in RichMessage::can_send. | PRE-SKIP rich
+a74c276fd6489dcb0ab84afb33915c806ebfeccb | tg_cli: add InputRichMessage. | PRE-SKIP rich
+d68320c85 | tg_cli: add and use as_input_message | PRE-SKIP tg_cli demo + rich-message
+691dc32b46cda2ce5ed5d8ebbcc7d98dbd056cdd | tg_cli: allow to pass rich messages instead of text messages. | PRE-SKIP rich
+1eff7c49acc5e4a533ab6b5579ac1f071e03e26f | Support rich messages in editMessageText. | PRE-SKIP rich
+bd9a93fae0260bc61896a0f90e532a3d0fe98d36 | Support rich messages in editInlineMessageText. | PRE-SKIP rich
+45b40989d3836138f48f18b7e2a4b0ef1c98669d | Support rich messages in editBusinessMessageText. | PRE-SKIP rich
+39d6b8026379570b9f08e65931723549b1c1b4ad | Support rich messages in editQuickReplyMessage. | PRE-SKIP rich
+e27fde4158dae4448b573e0002d88f0733305506 | Improve updateChatJoinResult documentation. | PRE-SKIP epic
+bf746e47f1a5288a68e7d6e6c73a8d2c0716a0c6 | Improve documentation. | PRE-SKIP doc/cosmetic
+fbe572ddce698717abaf8f8bbebe5a005f868d50 | Extract authentication codes from rich messages. | PRE-SKIP rich
+bf8b07963 | Add td_api::inputAnimation | PRE-SKIP rich-message input* types
+3271d2733205d01fb41007a40e5047a609554c85 | Add td_api::inputAudio. | PRE-SKIP rich
+e6245bdf2a9b651d336eb1385999175ffd235b6e | Add td_api::inputDocument. | PRE-SKIP rich
+499c22792c8d8c9f6c2d955301652fce8fec5024 | Add td_api::inputPhoto. | PRE-SKIP rich
+ad25dc7a288d79effae2e0fc99ae630617a91af6 | Add td_api::inputVideo. | PRE-SKIP rich
+99e233f6c4ae607fb1059237917f656c67517266 | Remove richTextAutoUrl. | PRE-SKIP file(Ph2)
+0bca63e05f97f4f6904fbe133abab0879eebec38 | Remove richTextAutoEmailAddress. | PRE-SKIP file(Ph2)
+5161b5958e871bf41a666abb29fdecc4f4bf3f7a | Remove richTextAutoPhoneNumber. | PRE-SKIP file(Ph2)
+e21eab837744a34353d7733f0b3ceee860440eb4 | Add payload to automatic entities. | PRE-SKIP file(Ph2)
+65cd30a81680d55571255f78462072392032abe1 | Add richTextBankCardNumber.bank_card_number. | PRE-SKIP file(Ph2)
+01b0cecbaea1c7b4d2fa0ae2ac3f9a254ce5c3fa | Update pageBlockChatLink documentation. | PRE-SKIP doc/cosmetic
+4f3676d76ccc082354b5b0a5645cecad947dfa04 | Simplify PageBlock field names. | PRE-SKIP doc/cosmetic
+4e59e82d079476817c5780da2bcf523e9d23d231 | Fix includes. | PRE-SKIP file(Ph2)
+104536cf70d8439b92615f82477b9bc9a5463071 | Minor improvements. | PRE-SKIP doc/cosmetic
+b629bd3b3f68af4b4481d9e4e9b84f8f533d959e | Use get_message_content_rich_message if possible. | PRE-SKIP rich
+1f55d809620c00230ae5da287d350d9e725bc2b0 | Fix richTextMention documentation. | PRE-SKIP doc/cosmetic
+82607eeb1918b41d04e3c277055952d282f66cb6 | Improve documentation. | PRE-SKIP doc/cosmetic
+5d11c72e3fdbb63a20b27e72b7220de9209f0351 | Fix misprint. | PRE-SKIP doc/cosmetic
+8df09c1bac6e81a4168abe3c1b609f5f3dabb50e | Make pageBlockCaption nullable. | PRE-SKIP file(Ph2)
+39d1662960f105e4632dc452267b16dc9c53dac5 | Make pageBlockCaption.credit nullable. | PRE-SKIP file(Ph2)
+6817f61b956eff166c6c20875241bcff2cdff866 | Make credit and table caption nullable. | PRE-SKIP file(Ph2)
+3f9f03c40c54845efc8946711e8f93e99b2b3e2b | Improve documentation. | PRE-SKIP doc/cosmetic
+fe5ab8d49b7e9314fd73d30abbc6c1e9283fb3c0 | Return no media for invalid poll media. | PRE-SKIP epic
+3a2c08346dae84bcd0203af87f670ea71b4ef128 | Simplify get_poll_media_object usage. | PRE-SKIP epic
+09b9c249154e84b684b07e8da462b9d84a56a529 | Fix logging. | PRE-SKIP file(Ph2)
+5e21b56e93e951760e35a54ab26e2e4691956ec5 | Support rich messages in move_message_content_sticker_set_to_top. | PRE-SKIP rich
+434ef4b47bf9de35889ebf0878fbfd8960e36abe | Add td_api::chatJoinResultRequestDeclined. | PRE-SKIP epic
+d78ceefc7 | Don't warn about invalid entities in old checklist tasks | PRE-SKIP ToDo signature change (niche, Phase2)
+7445746de9dd553de53c041bafdfa00cd6d17286 | Improve anchor handling. | PRE-SKIP file(Ph2)
+44db71825fa1fc90797a55b14f66775cbee421be | Fix trim_first. | PRE-SKIP file(Ph2)
+d17125721bbaf95fe4dd5801f1837f3acf9e83d0 | Add td_api::richTextReferenceLink. | PRE-SKIP file(Ph2)
+108b33f157d5b26654968834248fa154e5611b1a | Make pageBlockTable.caption nullable. | PRE-SKIP file(Ph2)
+6d0824e372236caa51bc5c6858c51e65c4b4e029 | Check for bots in WebBrowserManager::on_authorization_success. | PRE-SKIP epic
+2fe415631a0b28b95edcdffc95656e7a575ca87b | Don't send automatic rich text to the server. | PRE-SKIP file(Ph2)
+e80270f4c6c68ef4bfbca232ed04af46b0f50009 | Fix get_input_page_table_cell. | PRE-SKIP file(Ph2)
+a8f21f523 | Update version to 1.8.65 | PRE-SKIP: fork manages its own version scheme (1.5.2-tdlib-...)
+d6debbb2aae29a39e280f86e25ec0e54960dc838 | Fix typos in documentation | PRE-SKIP doc/cosmetic
+062f26052623dbecedb42075cab78a759e9f9987 | Fix typo in animation.has_stickers documentation | PRE-SKIP doc/cosmetic
+912b29b8a | Add source to get_message_content_object | PRE-SKIP: 6-file source-param refactor, fork divergence (Phase2)
+0917763471cab8ccf8a4847c06ab32b386e7e65a | Fix spelling. | PRE-SKIP doc/cosmetic
+c0757dd09 | Revert Set CMAKE_MAKE_PROGRAM for iOS build | PRE-SKIP: fork manages own iOS build (W7-D)
+a17f87c4cff7b90b278d12b91ba0614383aaee82 | Fix typos in API scheme docs | PRE-SKIP doc/build

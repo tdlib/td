@@ -25,5 +25,5 @@ TEST(TextCompositionStyleExampleCountOptionContract, OptionManagerDefaultsExampl
 TEST(TextCompositionStyleExampleCountOptionContract, AppConfigVersionBumpsForExampleCountOption) {
   auto normalized = td::text_composition_style_example_count_option_test::normalized_config_manager_h();
 
-  ASSERT_TRUE(normalized.find("staticconstexprint32CURRENT_VERSION=125;") != td::string::npos);
+  ASSERT_TRUE(normalized.find("staticconstexprint32CURRENT_VERSION=132;") != td::string::npos);
 }

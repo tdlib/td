@@ -1,0 +1,23 @@
+PHASE 2 RESUME STATE (functional backport COMPLETE except 2 deferred SEND clusters)
+Branch: feat/upstream-backport-bulk  HEAD: 783f524f0 (+ pending auth test commit)
+Build: docker 'tdlib-build'; clean-regen auto/ on .tl change; -Xno-renames; tdcore then run_all_tests; SUBSTRING filter.
+
+EPICS DONE (Phase2): live-location(11); chat-join(5/15 present); search-filter(6); webbrowser(12/5 present);
+  instant-view RichText(8) + PageBlock render(5); poll-media render(2, W3-P preserved);
+  misc-functional(8: app-config, checkAuthenticationWebToken[auth], tonsite[stealth+], payload-entities,
+  nullable-captions, checklist-message_date, anchor-handling, no-auto-rich-text-to-server).
+  Contracts GREEN: chatjoin 5/5, search 4/4, webbrowser 3/3, instant-view 2/2, poll-failsafe 1/1, W3-P 1/1,
+  web-token-auth 1/1, sonar-todo 2/2.
+
+*** DEFERRED (HIGH-RISK / non-mission / fork structurally behind — fork-safety, user delegated "по правилам") ***
+1. rich-message SEND/content (~30): get_input_page_block (726b15907) + WebPageBlock::clone() (impls from
+   48f727bb1 "Implement RichMessage::clone()" = messageRichMessage content-type epic fork lacks ENTIRELY,
+   no RichMessage.cpp). Forcing makes ~33 WebPageBlock subtypes abstract. Tangled: input types
+   (inputAnimation/Audio/Document/Photo/Video), get_input_page_table_cell, automatic rich text, aa2d3178b.
+2. poll-media SEND/links (~11): pollMediaLink(984e1f2b4), InputPollMedia(3b0d5e432), inputPollMediaLink,
+   web-pages-in-polls (d02fe8bbe get_poll_web_page_ids, 7b7f7cf21, 002d49193, 31c1a0222), can_see_results
+   (0d1e95e89 — if ever backported, keep fork recent_voters.clear() W3-P guard BYTE-EXACT), 3f66d431a.
+   misc-entangled also deferred: 9dfaec306 (get_index_mask), 44db71825 (trim_first/get_input), e80270f4c.
+
+NONFUNC (~19): doc/typo/version/iOS — skip-forever (fork manages its own).
+RULES: prompt (2).md — fork-safety > upstream-purity; semantic status; tests before pick; preserve fail-closed.

@@ -19,11 +19,12 @@
 
 namespace td {
 
-ToDoItem::ToDoItem(const UserManager *user_manager, telegram_api::object_ptr<telegram_api::todoItem> &&item) {
+ToDoItem::ToDoItem(const UserManager *user_manager, telegram_api::object_ptr<telegram_api::todoItem> &&item,
+                   int32 message_date) {
   CHECK(item != nullptr);
   id_ = item->id_;
   title_ = get_formatted_text(user_manager, std::move(item->title_), true, true, "ToDoItem");
-  validate("telegram_api::todoItem");
+  validate(message_date, "telegram_api::todoItem");
 }
 
 Result<ToDoItem> ToDoItem::get_to_do_item(const Td *td, DialogId dialog_id,
@@ -57,8 +58,8 @@ bool ToDoItem::remove_unsupported_entities(FormattedText &text) {
   return remove_unallowed_quote_user_entities(text, true, true);
 }
 
-void ToDoItem::validate(const char *source) {
-  if (remove_unsupported_entities(title_)) {
+void ToDoItem::validate(int32 message_date, const char *source) {
+  if (remove_unsupported_entities(title_) && message_date > 1782000000) {  // approximate fix time
     LOG(ERROR) << "Receive unexpected checklist task entities from " << source;
   }
   if (!check_utf8(title_.text)) {

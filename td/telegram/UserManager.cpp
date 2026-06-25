@@ -1719,9 +1719,7 @@ class GetSupportUserQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetSupportUserQuery: " << to_string(ptr);
 
-    auto user_id = UserManager::get_user_id(ptr->user_);
-    td_->user_manager_->on_get_user(std::move(ptr->user_), "GetSupportUserQuery");
-
+    auto user_id = td_->user_manager_->on_get_user(std::move(ptr->user_), "GetSupportUserQuery");
     promise_.set_value(std::move(user_id));
   }
 
@@ -1841,6 +1839,7 @@ void UserManager::User::store(StorerT &storer) const {
     STORE_FLAG(can_bot_create_topics);
     STORE_FLAG(can_manage_bots);  // 20
     STORE_FLAG(is_guestchat_bot);
+    STORE_FLAG(is_guard_bot);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -1994,6 +1993,7 @@ void UserManager::User::parse(ParserT &parser) {
     PARSE_FLAG(can_bot_create_topics);
     PARSE_FLAG(can_manage_bots);
     PARSE_FLAG(is_guestchat_bot);
+    PARSE_FLAG(is_guard_bot);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -2885,13 +2885,8 @@ vector<UserId> UserManager::get_user_ids(vector<telegram_api::object_ptr<telegra
                                          const char *source) {
   vector<UserId> user_ids;
   for (auto &user : users) {
-    auto user_id = get_user_id(user);
-    if (!user_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid " << user_id << " from " << source << " in " << to_string(user);
-      continue;
-    }
-    on_get_user(std::move(user), source);
-    if (have_min_user(user_id)) {
+    auto user_id = on_get_user(std::move(user), source);
+    if (user_id.is_valid()) {
       user_ids.push_back(user_id);
     }
   }
@@ -3050,7 +3045,7 @@ void UserManager::set_my_online_status(bool is_online, bool send_update, bool is
   }
 }
 
-void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&user_ptr, const char *source) {
+UserId UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&user_ptr, const char *source) {
   LOG(DEBUG) << "Receive from " << source << ' ' << to_string(user_ptr);
   CHECK(user_ptr != nullptr);
   int32 constructor_id = user_ptr->get_id();
@@ -3059,7 +3054,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     UserId user_id(user->id_);
     if (!user_id.is_valid()) {
       LOG(ERROR) << "Receive invalid " << user_id << " from " << source;
-      return;
+      return UserId();
     }
     LOG(INFO) << "Receive empty " << user_id << " from " << source;
 
@@ -3068,7 +3063,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       // userEmpty should be received only through getUsers for nonexistent users
       LOG(ERROR) << "Have no information about " << user_id << ", but received userEmpty from " << source;
     }
-    return;
+    return user_id;
   }
 
   CHECK(constructor_id == telegram_api::user::ID);
@@ -3076,7 +3071,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   UserId user_id(user->id_);
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;
-    return;
+    return UserId();
   }
 
   LOG(INFO) << "Receive " << user_id << " from " << source;
@@ -3122,7 +3117,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     }
   } else if (is_deleted && !is_received && user_id == get_my_id()) {
     LOG(INFO) << "Ignore self as frozen min-user";
-    return;
+    return user_id;
   }
 
   if (have_access_hash) {  // access_hash must be updated before photo
@@ -3153,6 +3148,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   bool is_inline_bot = (flags & telegram_api::user::BOT_INLINE_PLACEHOLDER_MASK) != 0;
   bool is_guestchat_bot = user->bot_guestchat_;
   bool is_business_bot = user->bot_business_;
+  bool is_guard_bot = user->bot_guard_;
   string inline_query_placeholder = std::move(user->bot_inline_placeholder_);
   int32 bot_active_users = user->bot_active_users_;
   bool need_location_bot = user->bot_inline_geo_;
@@ -3166,7 +3162,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
 
   if (!is_bot && (!can_join_groups || can_read_all_group_messages || can_be_added_to_attach_menu || can_be_edited_bot ||
                   has_main_app || has_bot_forum_view || can_bot_create_topics || can_manage_bots || is_inline_bot ||
-                  is_business_bot || is_guestchat_bot)) {
+                  is_business_bot || is_guestchat_bot || is_guard_bot)) {
     LOG(ERROR) << "Receive not bot " << user_id << " with bot properties from " << source;
     can_join_groups = true;
     can_read_all_group_messages = false;
@@ -3179,6 +3175,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     is_inline_bot = false;
     is_business_bot = false;
     is_guestchat_bot = false;
+    is_guard_bot = false;
   }
   if (need_location_bot && !is_inline_bot) {
     LOG(ERROR) << "Receive not inline bot " << user_id << " which needs user location from " << source;
@@ -3202,6 +3199,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     is_inline_bot = false;
     is_guestchat_bot = false;
     is_business_bot = false;
+    is_guard_bot = false;
     inline_query_placeholder = string();
     bot_active_users = 0;
     need_location_bot = false;
@@ -3216,7 +3214,8 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       is_business_bot != u->is_business_bot || inline_query_placeholder != u->inline_query_placeholder ||
       need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
       has_main_app != u->has_main_app || can_bot_create_topics != u->can_bot_create_topics ||
-      can_manage_bots != u->can_manage_bots || is_guestchat_bot != u->is_guestchat_bot) {
+      can_manage_bots != u->can_manage_bots || is_guestchat_bot != u->is_guestchat_bot ||
+      is_guard_bot != u->is_guard_bot) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -3239,6 +3238,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     u->can_bot_create_topics = can_bot_create_topics;
     u->can_manage_bots = can_manage_bots;
     u->is_guestchat_bot = is_guestchat_bot;
+    u->is_guard_bot = is_guard_bot;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
@@ -3368,6 +3368,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   }
   u->is_received_from_server = true;
   update_user(u, user_id);
+  return user_id;
 }
 
 void UserManager::on_get_users(vector<telegram_api::object_ptr<telegram_api::User>> &&users, const char *source) {
@@ -4992,7 +4993,7 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false, false, false, false, is_bot, false, is_private_bot, is_verified, false, false, false, is_support,
         false, need_apply_min_photo, false, false, false, false, 0, false, false, false, false, false, false, false,
-        false, false, false, false, user_id.get(), 1, first_name, string(), username, phone_number,
+        false, false, false, false, false, user_id.get(), 1, first_name, string(), username, phone_number,
         std::move(profile_photo), nullptr, bot_info_version, Auto(), string(), string(), nullptr,
         vector<telegram_api::object_ptr<telegram_api::username>>(), nullptr, nullptr, nullptr, 0, 0, 0);
     on_get_user(std::move(user), "get_user_force");
@@ -5118,6 +5119,17 @@ Result<telegram_api::object_ptr<telegram_api::InputUser>> UserManager::get_input
   return telegram_api::make_object<telegram_api::inputUser>(user_id.get(), u->access_hash);
 }
 
+Result<vector<telegram_api::object_ptr<telegram_api::InputUser>>> UserManager::get_input_users(
+    const vector<UserId> &user_ids) const {
+  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+  input_users.reserve(user_ids.size());
+  for (auto user_id : user_ids) {
+    TRY_RESULT(input_user, get_input_user(user_id));
+    input_users.push_back(std::move(input_user));
+  }
+  return std::move(input_users);
+}
+
 telegram_api::object_ptr<telegram_api::InputUser> UserManager::get_input_user_force(UserId user_id) const {
   auto r_input_user = get_input_user(user_id);
   if (r_input_user.is_error()) {
@@ -5125,6 +5137,19 @@ telegram_api::object_ptr<telegram_api::InputUser> UserManager::get_input_user_fo
     return telegram_api::make_object<telegram_api::inputUser>(user_id.get(), 0);
   }
   return r_input_user.move_as_ok();
+}
+
+vector<telegram_api::object_ptr<telegram_api::InputUser>> UserManager::get_input_users_force(
+    const vector<UserId> &user_ids) const {
+  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+  input_users.reserve(user_ids.size());
+  for (auto user_id : user_ids) {
+    auto r_input_user = get_input_user(user_id);
+    if (r_input_user.is_ok()) {
+      input_users.push_back(r_input_user.move_as_ok());
+    }
+  }
+  return input_users;
 }
 
 bool UserManager::have_input_peer_user(UserId user_id, AccessRights access_rights) const {
@@ -5288,8 +5313,9 @@ Result<UserManager::BotData> UserManager::get_bot_data(UserId user_id) const {
   bot_data.can_bot_create_topics = u->can_bot_create_topics;
   bot_data.can_manage_bots = u->can_manage_bots;
   bot_data.is_inline = u->is_inline_bot;
-  bot_data.is_guestchat_bot = u->is_guestchat_bot;
+  bot_data.is_guestchat = u->is_guestchat_bot;
   bot_data.is_business = u->is_business_bot;
+  bot_data.is_guard = u->is_guard_bot;
   bot_data.need_location = u->need_location_bot;
   bot_data.can_be_added_to_attach_menu = u->can_be_added_to_attach_menu;
   return bot_data;
@@ -5473,8 +5499,7 @@ RestrictedRights UserManager::get_user_default_permissions(UserId user_id) const
   auto u = get_user(user_id);
   if ((u == nullptr && user_id != get_my_id()) || user_id == get_replies_bot_user_id() ||
       user_id == get_verification_codes_bot_user_id()) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, u != nullptr, false, false, ChannelType::Unknown);
+    return RestrictedRights::restrict_all();
   }
   return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, false, false,
                           true, false, false, ChannelType::Unknown);
@@ -5483,8 +5508,7 @@ RestrictedRights UserManager::get_user_default_permissions(UserId user_id) const
 RestrictedRights UserManager::get_secret_chat_default_permissions(SecretChatId secret_chat_id) const {
   auto c = get_secret_chat(secret_chat_id);
   if (c == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, false, false, false, ChannelType::Unknown);
+    return RestrictedRights::restrict_all();
   }
   return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, false, false,
                           false, false, false, ChannelType::Unknown);
@@ -8050,14 +8074,12 @@ void UserManager::remove_contacts(const vector<UserId> &user_ids, Promise<Unit> 
     return;
   }
 
-  vector<UserId> to_delete_user_ids;
   vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
   for (auto &user_id : user_ids) {
     const User *u = get_user(user_id);
     if (u != nullptr && u->is_contact) {
       auto r_input_user = get_input_user(user_id);
       if (r_input_user.is_ok()) {
-        to_delete_user_ids.push_back(user_id);
         input_users.push_back(r_input_user.move_as_ok());
       }
     }
@@ -10029,7 +10051,7 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
     type = td_api::make_object<td_api::userTypeBot>(
         u->can_be_edited_bot, u->can_join_groups, u->can_read_all_group_messages, u->has_main_app,
         u->has_bot_forum_view, u->has_bot_forum_view && !u->can_bot_create_topics, u->can_manage_bots, u->is_inline_bot,
-        u->inline_query_placeholder, u->is_guestchat_bot, u->need_location_bot, u->is_business_bot,
+        u->inline_query_placeholder, u->is_guestchat_bot, u->is_guard_bot, u->need_location_bot, u->is_business_bot,
         u->can_be_added_to_attach_menu, u->bot_active_users);
   } else {
     type = td_api::make_object<td_api::userTypeRegular>();

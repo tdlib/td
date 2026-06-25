@@ -497,16 +497,19 @@ class TestFileGenerated final : public TestClinetTask {
     send_query(td::make_tl_object<td::td_api::sendMessage>(
                    chat_id_, nullptr, nullptr, nullptr, nullptr,
                    td::make_tl_object<td::td_api::inputMessageDocument>(
-                       td::make_tl_object<td::td_api::inputFileGenerated>(file_path, "square", 0),
-                       td::make_tl_object<td::td_api::inputThumbnail>(
-                           td::make_tl_object<td::td_api::inputFileGenerated>(file_path, "thumbnail", 0), 0, 0),
-                       true, td::make_tl_object<td::td_api::formattedText>(tag_, td::Auto()))),
+                       td::td_api::make_object<td::td_api::inputDocument>(
+                           td::make_tl_object<td::td_api::inputFileGenerated>(file_path, "square", 0),
+                           td::make_tl_object<td::td_api::inputThumbnail>(
+                               td::make_tl_object<td::td_api::inputFileGenerated>(file_path, "thumbnail", 0), 0, 0),
+                           true),
+                       td::make_tl_object<td::td_api::formattedText>(tag_, td::Auto()))),
                [](auto res) { check_td_error(res); });
 
     send_query(td::make_tl_object<td::td_api::sendMessage>(
                    chat_id_, nullptr, nullptr, nullptr, nullptr,
                    td::make_tl_object<td::td_api::inputMessageDocument>(
-                       td::make_tl_object<td::td_api::inputFileGenerated>(file_path, "square", 0), nullptr, true,
+                       td::td_api::make_object<td::td_api::inputDocument>(
+                           td::make_tl_object<td::td_api::inputFileGenerated>(file_path, "square", 0), nullptr, true),
                        td::make_tl_object<td::td_api::formattedText>(tag_, td::Auto()))),
                [](auto res) { check_td_error(res); });
   }

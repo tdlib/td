@@ -87,11 +87,11 @@ class ConfigManager final : public NetQueryCallback {
 
   void lazy_request_config();
 
-  void reget_config(Promise<Unit> &&promise);
+  void reload_config(Promise<Unit> &&promise);
 
   void get_app_config(Promise<td_api::object_ptr<td_api::JsonValue>> &&promise);
 
-  void reget_app_config(Promise<Unit> &&promise);
+  void reload_app_config(Promise<Unit> &&promise);
 
   void get_content_settings(Promise<Unit> &&promise);
 
@@ -101,7 +101,7 @@ class ConfigManager final : public NetQueryCallback {
 
  private:
   struct AppConfig {
-    static constexpr int32 CURRENT_VERSION = 125;
+    static constexpr int32 CURRENT_VERSION = 132;
     int32 version_ = 0;
     int32 hash_ = 0;
     telegram_api::object_ptr<telegram_api::JSONValue> config_;
@@ -126,10 +126,10 @@ class ConfigManager final : public NetQueryCallback {
   double next_lang_pack_refresh_at_{0.0};
   bool has_applied_token_update_{false};
 
-  vector<Promise<Unit>> reget_config_queries_;
+  vector<Promise<Unit>> reload_config_queries_;
 
   vector<Promise<td_api::object_ptr<td_api::JsonValue>>> get_app_config_queries_;
-  vector<Promise<Unit>> reget_app_config_queries_;
+  vector<Promise<Unit>> reload_app_config_queries_;
 
   vector<Promise<Unit>> get_content_settings_queries_;
   vector<Promise<Unit>> set_content_settings_queries_[2];

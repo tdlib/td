@@ -54,3 +54,6 @@ strace_out
 .dolt/
 *.db
 .beads-credential-key
+
+# clangd index cache (machine-specific)
+.cache/

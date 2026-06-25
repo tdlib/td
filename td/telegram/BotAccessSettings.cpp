@@ -14,6 +14,23 @@
 
 namespace td {
 
+namespace {
+
+UserId get_server_user_id(const telegram_api::object_ptr<telegram_api::User> &user) {
+  CHECK(user != nullptr);
+  switch (user->get_id()) {
+    case telegram_api::userEmpty::ID:
+      return UserId(static_cast<const telegram_api::userEmpty *>(user.get())->id_);
+    case telegram_api::user::ID:
+      return UserId(static_cast<const telegram_api::user *>(user.get())->id_);
+    default:
+      UNREACHABLE();
+      return UserId();
+  }
+}
+
+}  // namespace
+
 BotAccessSettings::BotAccessSettings(Td *td, telegram_api::object_ptr<telegram_api::bots_accessSettings> &&settings) {
   CHECK(settings != nullptr);
   is_restricted_ = settings->restricted_;
@@ -25,13 +42,14 @@ BotAccessSettings::BotAccessSettings(Td *td, telegram_api::object_ptr<telegram_a
 
   if (is_restricted_) {
     for (auto &user : settings->add_users_) {
-      auto user_id = UserManager::get_user_id(user);
+      auto user_id = get_server_user_id(user);
       if (!user_id.is_valid()) {
         validation_status_ = Status::Error(500, "Receive invalid added user in bot access settings");
         LOG(ERROR) << validation_status_;
         added_user_ids_.clear();
         return;
       }
+      CHECK(td != nullptr);
       td->user_manager_->on_get_user(std::move(user), "BotAccessSettings");
       added_user_ids_.push_back(user_id);
     }

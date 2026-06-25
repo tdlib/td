@@ -495,6 +495,14 @@ td_api::object_ptr<td_api::thumbnail> get_thumbnail_object(FileManager *file_man
                                                 file_manager->get_file_object(photo_size.file_id));
 }
 
+td_api::object_ptr<td_api::thumbnail> get_thumbnail_object(FileManager *file_manager, const PhotoSize &photo_size,
+                                                           const PhotoSize &animated_photo_size) {
+  if (animated_photo_size.file_id.is_valid()) {
+    return get_thumbnail_object(file_manager, animated_photo_size, PhotoFormat::Mpeg4);
+  }
+  return get_thumbnail_object(file_manager, photo_size, PhotoFormat::Jpeg);
+}
+
 td_api::object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager, const PhotoSize *photo_size) {
   CHECK(photo_size != nullptr);
   LOG_CHECK(photo_size->file_id.is_valid()) << *photo_size;

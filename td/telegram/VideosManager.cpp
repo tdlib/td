@@ -57,9 +57,7 @@ td_api::object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id
 
   auto video = get_video(file_id);
   CHECK(video != nullptr);
-  auto thumbnail = video->animated_thumbnail.file_id.is_valid()
-                       ? get_thumbnail_object(td_->file_manager_.get(), video->animated_thumbnail, PhotoFormat::Mpeg4)
-                       : get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, PhotoFormat::Jpeg);
+  auto thumbnail = get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, video->animated_thumbnail);
   auto duration = video->duration;
   auto has_primary_thumbnail = thumbnail != nullptr;
   if ((duration == 0 || thumbnail == nullptr) && !alternative_file_ids.empty()) {
@@ -72,11 +70,8 @@ td_api::object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id
           {alternative_video->duration, alternative_video->animated_thumbnail.file_id.is_valid() ||
                                           alternative_video->thumbnail.file_id.is_valid()});
       if (thumbnail == nullptr) {
-        thumbnail =
-            alternative_video->animated_thumbnail.file_id.is_valid()
-                ? get_thumbnail_object(td_->file_manager_.get(), alternative_video->animated_thumbnail,
-                                       PhotoFormat::Mpeg4)
-                : get_thumbnail_object(td_->file_manager_.get(), alternative_video->thumbnail, PhotoFormat::Jpeg);
+        thumbnail = get_thumbnail_object(td_->file_manager_.get(), alternative_video->thumbnail,
+                                         alternative_video->animated_thumbnail);
       }
     }
     duration = get_alternative_video_repair_plan(duration, has_primary_thumbnail, alternatives).repaired_duration;
@@ -94,9 +89,7 @@ td_api::object_ptr<td_api::storyVideo> VideosManager::get_story_video_object(Fil
 
   auto video = get_video(file_id);
   CHECK(video != nullptr);
-  auto thumbnail = video->animated_thumbnail.file_id.is_valid()
-                       ? get_thumbnail_object(td_->file_manager_.get(), video->animated_thumbnail, PhotoFormat::Mpeg4)
-                       : get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, PhotoFormat::Jpeg);
+  auto thumbnail = get_thumbnail_object(td_->file_manager_.get(), video->thumbnail, video->animated_thumbnail);
   return td_api::make_object<td_api::storyVideo>(
       video->precise_duration, video->dimensions.width, video->dimensions.height, video->has_stickers,
       video->is_animation, get_minithumbnail_object(video->minithumbnail), std::move(thumbnail),
@@ -451,13 +444,13 @@ FileId VideosManager::get_live_photo_video_file_id(telegram_api::object_ptr<tele
   }
   CHECK(video_id == telegram_api::document::ID);
   auto video = telegram_api::move_object_as<telegram_api::document>(document);
-  auto parsed_file = td_->documents_manager_->on_get_document(std::move(video), owner_dialog_id, is_self_destructing,
-                                                              true, nullptr, Document::Type::Video);
-  if (parsed_file.empty() || parsed_file.type != Document::Type::Video) {
-    LOG(ERROR) << "Receive invalid live photo video " << parsed_file;
+  auto parsed_document = td_->documents_manager_->on_get_document(
+      std::move(video), owner_dialog_id, is_self_destructing, true, nullptr, Document::Type::Video);
+  if (parsed_document.is_empty() || parsed_document.type != Document::Type::Video) {
+    LOG(ERROR) << "Receive invalid live photo video " << parsed_document;
     return FileId();
   }
-  return parsed_file.file_id;
+  return parsed_document.file_id;
 }
 
 string VideosManager::get_video_search_text(FileId file_id) const {

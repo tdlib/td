@@ -25,6 +25,7 @@ TEST(TextCompositionStyleExampleCountOptionLightFuzz, DeterministicLiteralMatrix
   const auto normalized_config = td::text_composition_style_example_count_option_test::normalized_config_manager_cpp();
   const auto normalized_option = td::text_composition_style_example_count_option_test::normalized_option_manager_cpp();
   const auto normalized_header = td::text_composition_style_example_count_option_test::normalized_config_manager_h();
+  ASSERT_TRUE(normalized_header.find("staticconstexprint32CURRENT_VERSION=132;") != td::string::npos);
 
   const std::array<SnippetCase, 7> cases = {{
       {0, R"({"aicompose_tone_examples_num","text_composition_style_example_count"})", true},
@@ -32,7 +33,7 @@ TEST(TextCompositionStyleExampleCountOptionLightFuzz, DeterministicLiteralMatrix
       {1, R"(set_default_integer_option("text_composition_style_example_count",7);)", true},
       {1, R"(set_default_integer_option("text_composition_style_example_count",8);)", false},
       {1, R"(set_default_integer_option("owned_bot_count_max",20);)", true},
-      {2, "staticconstexprint32CURRENT_VERSION=125;", true},
+      {2, "staticconstexprint32CURRENT_VERSION=132;", true},
       {2, "staticconstexprint32CURRENT_VERSION=121;", false},
   }};
 

@@ -5996,7 +5996,7 @@ void StickersManager::register_dice(const string &emoji, int32 value, MessageFul
     if (quick_reply_message_full_id.is_valid() ||
         (message_full_id.get_message_id().is_any_server() &&
          message_full_id.get_dialog_id().get_type() != DialogType::SecretChat)) {
-      send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
+      send_closure(G()->config_manager(), &ConfigManager::reload_app_config, Promise<Unit>());
     }
     return;
   }

@@ -175,6 +175,12 @@ class WebPagesManager::WebPageInstantView {
   bool is_loaded_ = false;
   bool was_loaded_from_database_ = false;
 
+  void add_dependencies(Dependencies &dependencies) const {
+    for (const auto &page_block : page_blocks_) {
+      page_block->add_dependencies(dependencies);
+    }
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     using ::td::store;
@@ -282,7 +288,7 @@ class WebPagesManager::WebPage {
     bool has_embed_dimensions = has_embed && embed_dimensions_ != Dimensions();
     bool has_duration = duration_ > 0;
     bool has_author = !author_.empty();
-    bool has_document = !document_.empty();
+    bool has_document = !document_.is_empty();
     bool has_instant_view = !instant_view_.is_empty_;
     bool is_instant_view_v2 = instant_view_.is_v2_;
     bool has_no_hash = true;
@@ -657,7 +663,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
               if (document_id == telegram_api::document::ID) {
                 auto parsed_document = td_->documents_manager_->on_get_document(
                     move_tl_object_as<telegram_api::document>(document), owner_dialog_id, false, false);
-                if (!parsed_document.empty()) {
+                if (!parsed_document.is_empty()) {
                   page->documents_.push_back(std::move(parsed_document));
                 }
               }
@@ -1239,6 +1245,13 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
 
       LOG(ERROR) << "Erase instant view in " << web_page_id << " from database because of " << status.message();
       G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
+    } else {
+      Dependencies dependencies;
+      instant_view.add_dependencies(dependencies);
+      if (!dependencies.resolve_force(td_, "on_load_web_page_instant_view_from_database")) {
+        instant_view = WebPageInstantView();
+        G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
+      }
     }
   }
   instant_view.was_loaded_from_database_ = true;
@@ -1496,26 +1509,28 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
           break;
       }
     }
-    if (caption != nullptr && caption->text_ != nullptr && caption->text_->get_id() == td_api::richTextPlain::ID) {
-      caption_text = std::move(static_cast<td_api::richTextPlain *>(caption->text_.get())->text_);
-    } else {
-      LOG(ERROR) << "Receive instead of caption text: " << to_string(caption);
+    if (caption != nullptr) {
+      if (caption->text_ != nullptr && caption->text_->get_id() == td_api::richTextPlain::ID) {
+        caption_text = std::move(static_cast<td_api::richTextPlain *>(caption->text_.get())->text_);
+      } else {
+        LOG(ERROR) << "Receive instead of caption text: " << to_string(caption);
+      }
     }
   };
 
-  for (auto &block_object : get_page_blocks_object(instant_view.page_blocks_, td_, Slice(), Slice())) {
+  for (auto &block_object : get_page_blocks_object(instant_view.page_blocks_, td_, Slice(), Slice(), true)) {
     switch (block_object->get_id()) {
       case td_api::pageBlockTitle::ID:
       case td_api::pageBlockAuthorDate::ID:
         break;
       case td_api::pageBlockCollage::ID: {
         auto *collage = static_cast<td_api::pageBlockCollage *>(block_object.get());
-        process_album(std::move(collage->page_blocks_), std::move(collage->caption_));
+        process_album(std::move(collage->blocks_), std::move(collage->caption_));
         break;
       }
       case td_api::pageBlockSlideshow::ID: {
         auto *collage = static_cast<td_api::pageBlockSlideshow *>(block_object.get());
-        process_album(std::move(collage->page_blocks_), std::move(collage->caption_));
+        process_album(std::move(collage->blocks_), std::move(collage->caption_));
         break;
       }
       default:
@@ -2085,7 +2100,7 @@ td_api::object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_ins
   auto feedback_link = td_api::make_object<td_api::internalLinkTypeBotStart>(
       "previews", PSTRING() << "webpage" << web_page_id.get(), true);
   return td_api::make_object<td_api::webPageInstantView>(
-      get_page_blocks_object(web_page_instant_view->page_blocks_, td_, web_page_instant_view->url_, web_page_url),
+      get_page_blocks_object(web_page_instant_view->page_blocks_, td_, web_page_instant_view->url_, web_page_url, true),
       web_page_instant_view->view_count_, web_page_instant_view->is_v2_ ? 2 : 1, web_page_instant_view->is_rtl_,
       web_page_instant_view->is_full_, std::move(feedback_link));
 }
@@ -2290,7 +2305,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
       auto document_id = document->id_;
       auto parsed_document =
           td_->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false, false);
-      if (!parsed_document.empty() && document_id != 0) {
+      if (!parsed_document.is_empty() && document_id != 0) {
         get_map(parsed_document.type)->emplace(document_id, parsed_document.file_id);
       }
     }
@@ -2314,7 +2329,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
       LOG(ERROR) << document.type << " has no remote location";
     }
   };
-  if (!web_page->document_.empty()) {
+  if (!web_page->document_.is_empty()) {
     add_document(web_page->document_);
   }
   for (const auto &document : web_page->documents_) {
@@ -2645,7 +2660,7 @@ vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) c
   }
 
   vector<FileId> result = photo_get_file_ids(web_page->photo_);
-  if (!web_page->document_.empty()) {
+  if (!web_page->document_.is_empty()) {
     web_page->document_.append_file_ids(td_, result);
   }
   for (auto &document : web_page->documents_) {

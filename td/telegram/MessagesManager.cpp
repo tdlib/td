@@ -84,6 +84,7 @@
 #include "td/telegram/RepliedMessageInfo.hpp"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
+#include "td/telegram/RichMessage.h"
 #include "td/telegram/SavedMessagesManager.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SponsoredMessageManager.h"
@@ -1200,7 +1201,8 @@ class SendMessageQuery final : public Td::ResultHandler {
             const MessageInputReplyTo &input_reply_to, const MessageTopic &message_topic, int32 schedule_date,
             int32 schedule_repeat_period, MessageEffectId effect_id, int64 paid_message_star_count,
             const SuggestedPost *suggested_post, const unique_ptr<ReplyMarkup> &reply_markup, const FormattedText &text,
-            bool is_copy, int64 random_id, NetQueryRef *send_query_ref) {
+            telegram_api::object_ptr<telegram_api::InputRichMessage> input_rich_message, bool is_copy, int64 random_id,
+            NetQueryRef *send_query_ref) {
     random_id_ = random_id;
     dialog_id_ = dialog_id;
 
@@ -1226,6 +1228,9 @@ class SendMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_sendMessage::SUGGESTED_POST_MASK;
       post = suggested_post->get_input_suggested_post();
     }
+    if (input_rich_message != nullptr) {
+      flags |= telegram_api::messages_sendMessage::RICH_MESSAGE_MASK;
+    }
     if (false) {
       flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE;
       schedule_date = G()->unix_time() + 35;
@@ -1236,7 +1241,7 @@ class SendMessageQuery final : public Td::ResultHandler {
             flags, false, false, false, false, false, false, false, false, std::move(input_peer), std::move(reply_to),
             text.text, random_id, get_input_reply_markup(td_->user_manager_.get(), reply_markup), std::move(entities),
             schedule_date, schedule_repeat_period, std::move(as_input_peer), nullptr, effect_id.get(),
-            paid_message_star_count, std::move(post)),
+            paid_message_star_count, std::move(post), std::move(input_rich_message)),
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
@@ -1843,7 +1848,8 @@ class EditMessageQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, MessageId message_id, bool edit_text, const FormattedText *text,
             bool disable_web_page_preview, telegram_api::object_ptr<telegram_api::InputMedia> &&input_media,
             bool invert_media, const unique_ptr<ReplyMarkup> &reply_markup, int32 schedule_date,
-            int32 schedule_repeat_period, bool is_media = false) {
+            int32 schedule_repeat_period, telegram_api::object_ptr<telegram_api::InputRichMessage> rich_message,
+            bool is_media = false) {
     dialog_id_ = dialog_id;
     message_id_ = message_id;
     is_media_ = is_media;
@@ -1871,6 +1877,9 @@ class EditMessageQuery final : public Td::ResultHandler {
         flags |= telegram_api::messages_editMessage::ENTITIES_MASK;
       }
     }
+    if (rich_message != nullptr) {
+      flags |= telegram_api::messages_editMessage::RICH_MESSAGE_MASK;
+    }
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editMessage::MEDIA_MASK;
     }
@@ -1887,7 +1896,7 @@ class EditMessageQuery final : public Td::ResultHandler {
         telegram_api::messages_editMessage(flags, disable_web_page_preview, invert_media, std::move(input_peer),
                                            server_message_id, text == nullptr ? string() : text->text,
                                            std::move(input_media), std::move(input_reply_markup), std::move(entities),
-                                           schedule_date, schedule_repeat_period, 0),
+                                           schedule_date, schedule_repeat_period, 0, std::move(rich_message)),
         {{dialog_id}}));
   }
 
@@ -3886,30 +3895,20 @@ void MessagesManager::extract_authentication_codes(DialogId dialog_id, const Mes
                                                    vector<string> &authentication_codes) {
   CHECK(m != nullptr);
   if (dialog_id != DialogId(UserManager::get_service_notifications_user_id()) || !m->message_id.is_server() ||
-      m->content->get_type() != MessageContentType::Text || m->is_outgoing) {
+      m->is_outgoing) {
     return;
   }
-  auto *formatted_text = get_message_content_text(m->content.get());
-  CHECK(formatted_text != nullptr);
-  const string &text = formatted_text->text;
-  for (size_t i = 0; i < text.size(); i++) {
-    if (is_digit(text[i])) {
-      string code;
-      do {
-        if (is_digit(text[i])) {
-          code += text[i++];
-          continue;
-        }
-        if (text[i] == '-') {
-          i++;
-          continue;
-        }
-        break;
-      } while (true);
-      if (5 <= code.size() && code.size() <= 7) {
-        authentication_codes.push_back(code);
-      }
-    }
+  switch (m->content->get_type()) {
+    case MessageContentType::Text:
+      find_authentication_codes(get_message_content_text(m->content.get())->text, authentication_codes);
+      break;
+    case MessageContentType::RichText:
+      get_message_content_rich_message(m->content.get())->for_each_text([&](Slice text) {
+        find_authentication_codes(text, authentication_codes);
+      });
+      break;
+    default:
+      break;
   }
 }
 
@@ -3976,8 +3975,9 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   DialogId owner_dialog_id = is_user ? get_service_notifications_dialog()->dialog_id : DialogId();
   MessageSelfDestructType ttl;
   bool disable_web_page_preview = false;
-  auto content = get_message_content(td_, std::move(message_text), std::move(update->media_), owner_dialog_id, date,
-                                     false, UserId(), &ttl, &disable_web_page_preview, "updateServiceNotification");
+  auto content =
+      get_message_content(td_, std::move(message_text), nullptr, std::move(update->media_), owner_dialog_id, date,
+                          false, UserId(), &ttl, &disable_web_page_preview, "updateServiceNotification");
   bool is_content_secret = ttl.is_secret_message_content(content->get_type());
 
   if (update->popup_) {
@@ -10946,8 +10946,9 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
           get_message_text(td->user_manager_.get(), std::move(message->message_), std::move(message->entities_), true,
                            is_bot, message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
                            message_info.media_album_id != 0, new_source.c_str()),
-          std::move(message->media_), message_info.dialog_id, message_info.date, is_content_read,
-          message_info.via_bot_user_id, &message_info.ttl, &message_info.disable_web_page_preview, new_source.c_str());
+          std::move(message->rich_message_), std::move(message->media_), message_info.dialog_id, message_info.date,
+          is_content_read, message_info.via_bot_user_id, &message_info.ttl, &message_info.disable_web_page_preview,
+          new_source.c_str());
       message_info.reply_markup = std::move(message->reply_markup_);
       message_info.restriction_reasons = get_restriction_reasons(std::move(message->restriction_reason_));
       message_info.author_signature = std::move(message->post_author_);
@@ -12128,9 +12129,9 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   FormattedText new_message_text = get_message_text(
       td_->user_manager_.get(), old_message_text->text, std::move(entities), true, td_->auth_manager_->is_bot(),
       get_message_original_date(m), m->media_album_id != 0, "on_update_sent_text_message");
-  auto new_content = get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id, m->date,
-                                         true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/,
-                                         nullptr, "on_update_sent_text_message");
+  auto new_content = get_message_content(td_, std::move(new_message_text), nullptr, std::move(message_media), dialog_id,
+                                         m->date, true /*likely ignored*/, UserId() /*likely ignored*/,
+                                         nullptr /*ignored*/, nullptr, "on_update_sent_text_message");
   if (new_content->get_type() != MessageContentType::Text) {
     LOG(ERROR) << "Text message content has changed to " << new_content->get_type();
     return;
@@ -13953,30 +13954,6 @@ void MessagesManager::reload_pinned_dialogs(DialogListId dialog_list_id, Promise
   }
 }
 
-std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string &query, int32 limit,
-                                                                   Promise<Unit> &&promise) {
-  LOG(INFO) << "Search chats with query \"" << query << "\" and limit " << limit;
-  CHECK(!td_->auth_manager_->is_bot());
-
-  if (limit < 0) {
-    promise.set_error(400, "Limit must be non-negative");
-    return {};
-  }
-  if (query.empty()) {
-    return td_->dialog_manager_->search_recently_found_dialogs(string(), limit, std::move(promise));
-  }
-
-  auto result = dialogs_hints_.search(query, limit);
-  vector<DialogId> dialog_ids;
-  dialog_ids.reserve(result.second.size());
-  for (auto key : result.second) {
-    dialog_ids.push_back(DialogId(-key));
-  }
-
-  promise.set_value(Unit());
-  return {narrow_cast<int32>(result.first), std::move(dialog_ids)};
-}
-
 vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const {
   CHECK(!td_->auth_manager_->is_bot());
   auto fake_order = static_cast<int64>(dialog_ids.size()) + 1;
@@ -14864,6 +14841,18 @@ void MessagesManager::get_messages_from_server(vector<MessageFullId> &&message_f
   lock.set_value(Unit());
 }
 
+void MessagesManager::get_full_rich_message(MessageFullId message_full_id,
+                                            Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
+  const auto *m = get_message_force(message_full_id, "get_full_rich_message");
+  if (m == nullptr) {
+    return promise.set_error(400, "Message not found");
+  }
+  if (!m->message_id.is_server() || m->content->get_type() != MessageContentType::RichText) {
+    return promise.set_error(400, "Invalid message specified");
+  }
+  td_->message_query_manager_->get_full_rich_message(message_full_id, std::move(promise));
+}
+
 void MessagesManager::get_message_properties(DialogId dialog_id, MessageId message_id,
                                              Promise<td_api::object_ptr<td_api::messageProperties>> &&promise) {
   TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "get_message_properties"));
@@ -15125,6 +15114,7 @@ bool MessagesManager::can_set_message_fact_check(DialogId dialog_id, const Messa
     case MessageContentType::Audio:
     case MessageContentType::Document:
     case MessageContentType::Photo:
+    case MessageContentType::RichText:
     case MessageContentType::Text:
     case MessageContentType::Video:
       // ok
@@ -18295,7 +18285,7 @@ void MessagesManager::on_message_live_location_viewed_on_server(int64 task_id) {
 void MessagesManager::try_add_bot_command_message_id(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot() || !td_->dialog_manager_->is_group_dialog(dialog_id) ||
-      m->message_id.is_scheduled() || !has_bot_commands(get_message_content_text(m->content.get()))) {
+      m->message_id.is_scheduled() || !get_message_content_has_bot_commands(m->content.get())) {
     return;
   }
 
@@ -21504,7 +21494,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
   auto content = is_edit ? edited_message->content_.get() : m->content.get();
   CHECK(content != nullptr);
   auto content_type = content->get_type();
-  if (content_type == MessageContentType::Text) {
+  if (content_type == MessageContentType::Text || content_type == MessageContentType::RichText) {
     CHECK(!is_edit);
     send_closure_later(actor_id(this), &MessagesManager::on_text_message_ready_to_send, dialog_id, m->message_id);
     return;
@@ -21541,12 +21531,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
         }
       }
     }
-    auto file_upload_ids = transform(file_ids, [](FileId file_id) {
-      return file_id.is_valid() ? FileUploadId(file_id, FileManager::get_internal_upload_id()) : FileUploadId();
-    });
-    auto thumbnail_file_upload_ids = transform(thumbnail_file_ids, [](FileId file_id) {
-      return file_id.is_valid() ? FileUploadId(file_id, FileManager::get_internal_upload_id()) : FileUploadId();
-    });
+    auto file_upload_ids = FileUploadId::get_file_upload_ids(file_ids);
+    auto thumbnail_file_upload_ids = FileUploadId::get_file_upload_ids(thumbnail_file_ids);
     if (is_edit) {
       edited_message->file_upload_ids_ = std::move(file_upload_ids);
       edited_message->thumbnail_file_upload_ids_ = std::move(thumbnail_file_upload_ids);
@@ -21681,7 +21667,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
         });
     td_->create_handler<EditMessageQuery>(std::move(promise))
         ->send(dialog_id, message_id, true, caption, false, std::move(input_media), edited_message->invert_media_,
-               edited_message->reply_markup_, schedule_date, schedule_repeat_period, true);
+               edited_message->reply_markup_, schedule_date, schedule_repeat_period, nullptr, true);
     return;
   }
 
@@ -22219,14 +22205,16 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
                         get_message_content_secret_input_media(content, td_, nullptr, BufferSlice(), layer));
   } else {
     const FormattedText *message_text = get_message_content_text(content);
-    CHECK(message_text != nullptr);
+    auto input_rich_message = get_message_content_input_rich_message(td_, content);
+    CHECK(message_text != nullptr || input_rich_message != nullptr);
     int64 random_id = begin_send_message(dialog_id, m);
     auto input_media = get_message_content_input_media_web_page(td_, content);
     if (input_media == nullptr) {
       td_->create_handler<SendMessageQuery>()->send(
           get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
           get_send_message_topic(dialog_id, m), get_message_schedule_date(m), get_message_schedule_repeat_period(m),
-          m->effect_id, m->paid_message_star_count, m->suggested_post.get(), m->reply_markup, *message_text, m->is_copy,
+          m->effect_id, m->paid_message_star_count, m->suggested_post.get(), m->reply_markup,
+          message_text == nullptr ? FormattedText() : *message_text, std::move(input_rich_message), m->is_copy,
           random_id, &m->send_query_ref);
     } else {
       td_->create_handler<SendMediaQuery>()->send(
@@ -22742,6 +22730,7 @@ bool MessagesManager::can_edit_message_media(DialogId dialog_id, const Message *
   }
   switch (m->content->get_type()) {
     case MessageContentType::Text:
+    case MessageContentType::RichText:
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
@@ -22929,8 +22918,9 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
     return promise.set_error(400, "Can't edit message without new content");
   }
   int32 new_message_content_type = input_message_content->get_id();
-  if (new_message_content_type != td_api::inputMessageText::ID) {
-    return promise.set_error(400, "Input message content type must be InputMessageText");
+  if (new_message_content_type != td_api::inputMessageText::ID &&
+      new_message_content_type != td_api::inputMessageRichMessage::ID) {
+    return promise.set_error(400, "Input message content type must be inputMessageText or inputMessageRichMessage");
   }
 
   auto dialog_id = message_full_id.get_dialog_id();
@@ -22945,26 +22935,39 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
   }
 
   MessageContentType old_message_content_type = m->content->get_type();
-  if (old_message_content_type != MessageContentType::Text && old_message_content_type != MessageContentType::Game) {
+  if (old_message_content_type != MessageContentType::Text &&
+      old_message_content_type != MessageContentType::RichText &&
+      old_message_content_type != MessageContentType::Game) {
     return promise.set_error(400, "There is no text in the message to edit");
   }
 
-  TRY_RESULT_PROMISE(
-      promise, input_message_text,
-      process_input_message_text(td_, dialog_id, std::move(input_message_content), td_->auth_manager_->is_bot()));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(),
                                              has_message_sender_user_id(dialog_id, m)));
+  auto is_bot = td_->auth_manager_->is_bot();
+  if (new_message_content_type == td_api::inputMessageRichMessage::ID) {
+    auto input_rich_message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
+    TRY_RESULT_PROMISE(promise, rich_message,
+                       RichMessage::get_rich_message(td_, dialog_id, std::move(input_rich_message->message_), is_bot));
+    td_->create_handler<EditMessageQuery>(std::move(promise))
+        ->send(dialog_id, m->message_id, false, nullptr, false, nullptr, false, new_reply_markup,
+               get_message_schedule_date(m), get_message_schedule_repeat_period(m),
+               rich_message.get_input_rich_message(td_));
+    return;
+  }
+
+  TRY_RESULT_PROMISE(promise, input_message_text,
+                     process_input_message_text(td_, dialog_id, std::move(input_message_content), is_bot));
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(dialog_id, m->message_id, true, &input_message_text.text, input_message_text.disable_web_page_preview,
              input_message_text.get_input_media_web_page(), input_message_text.show_above_text, new_reply_markup,
-             get_message_schedule_date(m), get_message_schedule_repeat_period(m));
+             get_message_schedule_date(m), get_message_schedule_repeat_period(m), nullptr);
 }
 
 void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
-                                                 tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                                 tl_object_ptr<td_api::location> &&input_location, int32 live_period,
-                                                 int32 heading, int32 proximity_alert_radius, Promise<Unit> &&promise) {
+                                                 td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                                 td_api::object_ptr<td_api::liveLocation> &&input_location,
+                                                 Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
   TRY_RESULT_PROMISE(promise, d,
                      check_dialog_access(dialog_id, true, AccessRights::Edit, "edit_message_live_location"));
@@ -22986,28 +22989,15 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
     return promise.set_error(400, "Can't edit live location in scheduled message");
   }
 
-  Location location(input_location);
-  if (location.empty() && input_location != nullptr) {
-    return promise.set_error(400, "Invalid location specified");
-  }
+  TRY_RESULT_PROMISE(promise, location, process_live_location(std::move(input_location), true));
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(),
                                              has_message_sender_user_id(dialog_id, m)));
 
-  int32 flags = 0;
-  if (live_period != 0) {
-    flags |= telegram_api::inputMediaGeoLive::PERIOD_MASK;
-  }
-  if (heading != 0) {
-    flags |= telegram_api::inputMediaGeoLive::HEADING_MASK;
-  }
-  flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
-  auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
-      flags, location.empty(), location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
   td_->create_handler<EditMessageQuery>(std::move(promise))
-      ->send(dialog_id, m->message_id, false, nullptr, false, std::move(input_media), false, new_reply_markup,
-             get_message_schedule_date(m), get_message_schedule_repeat_period(m));
+      ->send(dialog_id, m->message_id, false, nullptr, false, location.get_input_media_geo_live(), false,
+             new_reply_markup, get_message_schedule_date(m), get_message_schedule_repeat_period(m), nullptr);
 }
 
 void MessagesManager::edit_message_to_do_list(MessageFullId message_full_id,
@@ -23038,7 +23028,7 @@ void MessagesManager::edit_message_to_do_list(MessageFullId message_full_id,
   auto input_media = to_do_list.get_input_media_todo(td_->user_manager_.get());
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(dialog_id, m->message_id, false, nullptr, false, std::move(input_media), false, new_reply_markup,
-             get_message_schedule_date(m), get_message_schedule_repeat_period(m));
+             get_message_schedule_date(m), get_message_schedule_repeat_period(m), nullptr);
 }
 
 void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message) {
@@ -23263,7 +23253,7 @@ void MessagesManager::edit_message_caption(MessageFullId message_full_id,
 
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(dialog_id, m->message_id, true, &caption, false, nullptr, invert_media, new_reply_markup,
-             get_message_schedule_date(m), get_message_schedule_repeat_period(m));
+             get_message_schedule_date(m), get_message_schedule_repeat_period(m), nullptr);
 }
 
 void MessagesManager::edit_message_reply_markup(MessageFullId message_full_id,
@@ -23288,7 +23278,7 @@ void MessagesManager::edit_message_reply_markup(MessageFullId message_full_id,
 
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(dialog_id, m->message_id, false, nullptr, m->disable_web_page_preview, nullptr, m->invert_media,
-             new_reply_markup, get_message_schedule_date(m), get_message_schedule_repeat_period(m));
+             new_reply_markup, get_message_schedule_date(m), get_message_schedule_repeat_period(m), nullptr);
 }
 
 void MessagesManager::edit_message_scheduling_state(
@@ -23319,7 +23309,7 @@ void MessagesManager::edit_message_scheduling_state(
   if (schedule_date.first > 0) {
     td_->create_handler<EditMessageQuery>(std::move(promise))
         ->send(dialog_id, m->message_id, false, nullptr, m->disable_web_page_preview, nullptr, m->invert_media, nullptr,
-               m->edited_schedule_date, m->edited_schedule_repeat_period);
+               m->edited_schedule_date, m->edited_schedule_repeat_period, nullptr);
   } else {
     td_->create_handler<SendScheduledMessageQuery>(std::move(promise))->send(dialog_id, m->message_id);
   }
@@ -24019,7 +24009,7 @@ void MessagesManager::fix_forwarded_message(Message *m, DialogId to_dialog_id, c
     m->interaction_info_update_date = G()->unix_time();
   }
 
-  if (m->content->get_type() == MessageContentType::Game) {
+  if (is_game) {
     // via_bot_user_id in games is present unless the message is sent by the bot
     if (m->via_bot_user_id == UserId()) {
       // if there is no via_bot_user_id, then the original message was sent by the game owner
@@ -28872,7 +28862,7 @@ void MessagesManager::on_dialog_accent_colors_updated(DialogId dialog_id) {
 void MessagesManager::on_dialog_title_updated(DialogId dialog_id) {
   auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
   if (d != nullptr) {
-    update_dialogs_hints(d);
+    update_dialog_hints(d);
     if (d->is_update_new_chat_sent) {
       send_closure(G()->td(), &Td::send_update,
                    td_api::make_object<td_api::updateChatTitle>(dialog_id.get(),
@@ -29119,7 +29109,7 @@ void MessagesManager::on_dialog_usernames_updated(DialogId dialog_id, const User
 
   const auto *d = get_dialog(dialog_id);
   if (d != nullptr) {
-    update_dialogs_hints(d);
+    update_dialog_hints(d);
   }
 }
 
@@ -33023,22 +33013,16 @@ bool MessagesManager::add_pending_dialog_data(Dialog *d, unique_ptr<Message> &&l
   return was_added_last_message;
 }
 
-void MessagesManager::update_dialogs_hints(const Dialog *d) {
+void MessagesManager::update_dialog_hints(const Dialog *d) {
   if (!td_->auth_manager_->is_bot() && d->order != DEFAULT_ORDER) {
-    dialogs_hints_.add(-d->dialog_id.get(), td_->dialog_manager_->get_dialog_search_text(d->dialog_id));
+    td_->dialog_manager_->add_dialog_to_hints(d->dialog_id);
   }
 }
 
-void MessagesManager::update_dialogs_hints_rating(const Dialog *d) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-  if (d->order == DEFAULT_ORDER) {
-    LOG(INFO) << "Remove " << d->dialog_id << " from chats search";
-    dialogs_hints_.remove(-d->dialog_id.get());
-  } else {
-    LOG(INFO) << "Change position of " << d->dialog_id << " in chats search";
-    dialogs_hints_.set_rating(-d->dialog_id.get(), -get_dialog_base_order(d));
+void MessagesManager::update_dialog_hints_rating(const Dialog *d) {
+  if (!td_->auth_manager_->is_bot()) {
+    td_->dialog_manager_->update_dialog_hints_rating(d->dialog_id,
+                                                     d->order == DEFAULT_ORDER ? 0 : get_dialog_base_order(d));
   }
 }
 
@@ -33280,9 +33264,9 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   d->order = new_order;
 
   if (is_added) {
-    update_dialogs_hints(d);
+    update_dialog_hints(d);
   }
-  update_dialogs_hints_rating(d);
+  update_dialog_hints_rating(d);
 
   update_dialog_lists(d, std::move(dialog_positions), need_send_update, is_loaded_from_database, source);
 

@@ -18,14 +18,14 @@ TEST(AiComposeStylesConfigRemovalIntegration, ConfigManagerRemovalAndVersionBump
       normalized_cpp.find(
           R"(send_closure(G()->translation_manager(),&TranslationManager::on_update_ai_compose_styles,std::move(ai_compose_styles));)") ==
       td::string::npos);
-  ASSERT_TRUE(normalized_h.find("staticconstexprint32CURRENT_VERSION=") != td::string::npos);
+  ASSERT_TRUE(normalized_h.find("staticconstexprint32CURRENT_VERSION=132;") != td::string::npos);
   ASSERT_TRUE(normalized_h.find("staticconstexprint32CURRENT_VERSION=120;") == td::string::npos);
-  ASSERT_TRUE(td::ai_compose_styles_config_removal_test::extract_current_version(normalized_h) >= 121);
 }
 
 TEST(AiComposeStylesConfigRemovalIntegration, ConfigManagerStillKeepsNeighborMusicSearchAndPhoneCountryKeys) {
   auto source = td::ai_compose_styles_config_removal_test::read_config_manager_cpp();
+  auto normalized = td::ai_compose_styles_config_removal_test::normalized_config_manager_cpp();
 
-  ASSERT_TRUE(source.find("if (key == \"music_search_username\")") != td::string::npos);
+  ASSERT_TRUE(normalized.find(R"({"music_search_username","audio_search_bot_username"})") != td::string::npos);
   ASSERT_TRUE(source.find("if (key == \"phone_country_iso2\")") != td::string::npos);
 }

@@ -8,6 +8,7 @@
 
 #include "td/telegram/AgeVerificationParameters.h"
 #include "td/telegram/td_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 
@@ -69,9 +70,10 @@ class AccountManager final : public Actor {
 
   void update_unconfirmed_authorization_timeout(bool is_external);
 
-  void on_new_unconfirmed_authorization(int64 hash, int32 date, string &&device, string &&location);
+  void on_new_unconfirmed_authorization(bool is_bot, int64 hash, UserId bot_user_id, int32 date, string &&device,
+                                        string &&location);
 
-  bool on_confirm_authorization(int64 hash);
+  bool on_confirm_authorization(bool is_bot, int64 hash, UserId bot_user_id);
 
   void on_binlog_events(vector<BinlogEvent> &&events);
 

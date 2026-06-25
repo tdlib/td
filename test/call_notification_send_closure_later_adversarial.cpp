@@ -38,7 +38,11 @@ TEST(CallNotificationSendClosureLaterAdversarial, AddPathMustStayDeferredWhileRe
   auto region = extract_region(source, "void CallActor::flush_call_state() {", "void CallActor::start_up() {");
   auto normalized = normalize_for_contract(region);
 
+  auto helper_call_pos = normalized.find(
+      "autonotification_action=get_pending_call_notification_action(is_outgoing_,call_state_.type=="
+      "CallState::Type::Pending,has_notification_);");
   auto set_flag_pos = normalized.find("has_notification_=true;");
+  auto clear_flag_pos = normalized.find("has_notification_=false;");
   auto helper_pos = normalized.find("autonotification_action=get_pending_call_notification_action(");
   auto add_later_pos = normalized.find(
       "send_closure_later(G()->notification_manager(),&NotificationManager::add_call_notification,");
@@ -50,12 +54,15 @@ TEST(CallNotificationSendClosureLaterAdversarial, AddPathMustStayDeferredWhileRe
   ASSERT_EQ(td::string::npos,
             normalized.find("send_closure_later(G()->notification_manager(),&NotificationManager::remove_call_"
                             "notification,"));
+  ASSERT_NE(td::string::npos, helper_call_pos);
   ASSERT_NE(td::string::npos, helper_pos);
   ASSERT_NE(td::string::npos, set_flag_pos);
+  ASSERT_NE(td::string::npos, clear_flag_pos);
   ASSERT_NE(td::string::npos, add_later_pos);
   ASSERT_NE(td::string::npos, remove_now_pos);
   ASSERT_TRUE(helper_pos < set_flag_pos);
   ASSERT_TRUE(set_flag_pos < add_later_pos);
+  ASSERT_TRUE(clear_flag_pos < remove_now_pos);
 }
 
 }  // namespace

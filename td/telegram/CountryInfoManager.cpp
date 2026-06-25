@@ -115,6 +115,15 @@ struct CountryInfoManager::CountryList {
     return td_api::make_object<td_api::countries>(
         transform(countries, [](const CountryInfo &info) { return info.get_country_info_object(); }));
   }
+
+  td_api::object_ptr<td_api::countryInfo> get_country_info_object(const string &country_code) const {
+    for (const auto &country_info : countries) {
+      if (country_info.country_code == country_code) {
+        return country_info.get_country_info_object();
+      }
+    }
+    return nullptr;
+  }
 };
 
 CountryInfoManager::CountryInfoManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -216,6 +225,46 @@ void CountryInfoManager::do_get_countries(string language_code, bool is_recursiv
                       }
                       send_closure(actor_id, &CountryInfoManager::do_get_countries, std::move(language_code), true,
                                    std::move(promise));
+                    }));
+}
+
+void CountryInfoManager::get_country(const string &country_code,
+                                     Promise<td_api::object_ptr<td_api::countryInfo>> &&promise) {
+  do_get_country(country_code, get_main_language_code(), false, std::move(promise));
+}
+
+void CountryInfoManager::do_get_country(const string &country_code, string language_code, bool is_recursive,
+                                        Promise<td_api::object_ptr<td_api::countryInfo>> &&promise) {
+  if (is_recursive) {
+    auto main_language_code = get_main_language_code();
+    if (language_code != main_language_code) {
+      language_code = std::move(main_language_code);
+      is_recursive = false;
+    }
+  }
+
+  {
+    std::lock_guard<std::mutex> country_lock(country_mutex_);
+    auto list = get_country_list(this, language_code);
+    if (list != nullptr) {
+      return promise.set_value(list->get_country_info_object(country_code));
+    }
+  }
+
+  if (is_recursive) {
+    return promise.set_error(500, "Requested data is inaccessible");
+  }
+  if (language_code.empty()) {
+    return promise.set_error(400, "Invalid language code specified");
+  }
+  load_country_list(language_code, 0,
+                    PromiseCreator::lambda([actor_id = actor_id(this), country_code, language_code,
+                                            promise = std::move(promise)](Result<Unit> &&result) mutable {
+                      if (result.is_error()) {
+                        return promise.set_error(result.move_as_error());
+                      }
+                      send_closure(actor_id, &CountryInfoManager::do_get_country, country_code,
+                                   std::move(language_code), true, std::move(promise));
                     }));
 }
 

@@ -39,5 +39,5 @@ TEST(TextCompositionReloadIntegration, UpdateHandlerStillResolvesPromiseAfterSch
 TEST(TextCompositionReloadIntegration, ReloadContractRequiresRegetAppConfigInConcreteBody) {
   auto reload_body = td::w5_text_composition_reload_test::reload_body();
 
-  ASSERT_TRUE(reload_body.contains("&ConfigManager::reget_app_config"));
+  ASSERT_TRUE(reload_body.contains("&ConfigManager::reload_app_config"));
 }

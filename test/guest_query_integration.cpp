@@ -165,7 +165,7 @@ TEST(GuestQueryIntegration, RequiredGuestQueryPipelinePatternsExist) {
       messages_manager.find("last_outgoing_guest_bot_message_date_[guest_bot_dialog_id]=last_guest_bot_message_date;"));
   ASSERT_NE(td::string::npos, guest_bot_top_dialog.find("last_message_date>=candidate.message_date"));
   ASSERT_NE(td::string::npos, guest_bot_top_dialog.find("candidate.guest_bot_dialog_id.get_type()!=DialogType::User"));
-  ASSERT_NE(td::string::npos, user_manager.find("bot_data.is_guestchat_bot=u->is_guestchat_bot;"));
+  ASSERT_NE(td::string::npos, user_manager.find("bot_data.is_guestchat=u->is_guestchat_bot;"));
   ASSERT_NE(td::string::npos, top_dialog_category.find("caseTopDialogCategory::BotGuest:returnCSlice(\"bot_guest\");"));
   ASSERT_NE(td::string::npos,
             top_dialog_category.find("casetd_api::topChatCategoryGuestBots::ID:returnTopDialogCategory::BotGuest;"));
@@ -182,7 +182,7 @@ TEST(GuestQueryIntegration, RequiredGuestQueryPipelinePatternsExist) {
   ASSERT_NE(td::string::npos,
             top_dialog_manager.find(
                 "if(query.category==TopDialogCategory::BotGuest&&(r_bot_info.ok().username.empty()||!r_bot_info.ok()"
-                ".is_guestchat_bot)){LOG(INFO)<<\"Skipnon-guestbot\"<<user_id;continue;}"));
+                ".is_guestchat)){LOG(INFO)<<\"Skipnon-guestbot\"<<user_id;continue;}"));
   ASSERT_NE(td::string::npos, top_dialog_manager.find("telegram_api::contacts_getTopPeers(0,true,true,true,true,true,"
                                                       "true,true,true,true,true,0/*offset*/,100/*limit*/,hash)"));
   ASSERT_NE(td::string::npos, top_dialog_manager.find("query.category==TopDialogCategory::BotGuest"));
@@ -215,7 +215,7 @@ TEST(GuestQueryIntegration, LegacyGuestQueryUnsafePatternsAreAbsent) {
       td::Slice(
           "if(query.category==TopDialogCategory::BotGuest&&(r_bot_info.ok().username.empty()||!r_bot_info.ok().is_"
           "inline)){"),
-      td::Slice("query.category==TopDialogCategory::BotGuest&&!r_bot_info.ok().is_guestchat_bot"),
+      td::Slice("query.category==TopDialogCategory::BotGuest&&!r_bot_info.ok().is_guestchat"),
       td::Slice("classSetBotGuestChatResultQueryfinal:publicTd::ResultHandler{Promise<Unit>promise_;"),
       td::Slice("create_handler<SetInlineBotResultsQuery>(std::move(promise))->send(guest_query_id,"),
       td::Slice(

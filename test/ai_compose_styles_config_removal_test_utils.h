@@ -55,26 +55,4 @@ inline size_t count_occurrences(std::string_view haystack, std::string_view need
   return count;
 }
 
-inline int32 extract_current_version(const td::string &normalized_header) {
-  static constexpr Slice kNeedle = "staticconstexprint32CURRENT_VERSION=";
-  auto pos = normalized_header.find(kNeedle.str());
-  if (pos == td::string::npos) {
-    return -1;
-  }
-  pos += kNeedle.size();
-
-  int32 version = 0;
-  bool has_digit = false;
-  while (pos < normalized_header.size() && normalized_header[pos] >= '0' && normalized_header[pos] <= '9') {
-    has_digit = true;
-    version = version * 10 + static_cast<int32>(normalized_header[pos] - '0');
-    pos++;
-  }
-
-  if (!has_digit || pos >= normalized_header.size() || normalized_header[pos] != ';') {
-    return -1;
-  }
-  return version;
-}
-
 }  // namespace td::ai_compose_styles_config_removal_test

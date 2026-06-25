@@ -19,13 +19,14 @@
 
 namespace td {
 
-ToDoList::ToDoList(const UserManager *user_manager, telegram_api::object_ptr<telegram_api::todoList> &&list) {
+ToDoList::ToDoList(const UserManager *user_manager, telegram_api::object_ptr<telegram_api::todoList> &&list,
+                   int32 message_date) {
   CHECK(list != nullptr);
   others_can_append_ = list->others_can_append_;
   others_can_complete_ = list->others_can_complete_;
   title_ = get_formatted_text(user_manager, std::move(list->title_), true, true, "ToDoList");
   for (auto &item : list->list_) {
-    items_.push_back(ToDoItem(user_manager, std::move(item)));
+    items_.push_back(ToDoItem(user_manager, std::move(item), message_date));
   }
   validate("telegram_api::todoList");
 }
@@ -105,7 +106,7 @@ void ToDoList::validate(const char *source) {
     LOG(ERROR) << "Receive unexpected checklist title entities from " << source;
   }
   for (auto &item : items_) {
-    item.validate(source);
+    item.validate(0, source);
   }
 }
 

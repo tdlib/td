@@ -30,7 +30,7 @@ TEST(TextCompositionControlPlaneStress, RepeatedSourceReadsKeepControlPlaneContr
         normalized_option.contains(
             R"(set_option_integer("added_text_composition_style_max",get_option_integer("aicompose_tone_saved_limit_default",5));)") &&
         normalized_premium.contains("premiumLimitTypeCustomTextCompositionStyleCount") &&
-        normalized_header.contains("staticconstexprint32CURRENT_VERSION=125;") &&
+        normalized_header.contains("staticconstexprint32CURRENT_VERSION=132;") &&
         normalized_tl.contains("premiumLimitTypeCustomTextCompositionStyleCount=PremiumLimitType;")) {
       contract_hits++;
     }

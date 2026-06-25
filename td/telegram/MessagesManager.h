@@ -88,7 +88,6 @@
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/Heap.h"
-#include "td/utils/Hints.h"
 #include "td/utils/List.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
@@ -490,9 +489,8 @@ class MessagesManager final : public Actor {
   void edit_message_text(MessageFullId message_full_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                          tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Promise<Unit> &&promise);
 
-  void edit_message_live_location(MessageFullId message_full_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                  tl_object_ptr<td_api::location> &&input_location, int32 live_period, int32 heading,
-                                  int32 proximity_alert_radius, Promise<Unit> &&promise);
+  void edit_message_live_location(MessageFullId message_full_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                  td_api::object_ptr<td_api::liveLocation> &&input_location, Promise<Unit> &&promise);
 
   void edit_message_to_do_list(MessageFullId message_full_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                td_api::object_ptr<td_api::inputChecklist> &&input_to_do_list, Promise<Unit> &&promise);
@@ -564,8 +562,6 @@ class MessagesManager final : public Actor {
 
   void read_all_dialogs_from_list(DialogListId dialog_list_id, Promise<Unit> &&promise, bool is_recursive = false);
 
-  std::pair<int32, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
-
   vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
 
   int64 get_message_order(DialogId dialog_id, MessageId message_id) const;
@@ -611,6 +607,8 @@ class MessagesManager final : public Actor {
 
   void get_messages_from_server(vector<MessageFullId> &&message_full_ids, Promise<Unit> &&promise, const char *source,
                                 telegram_api::object_ptr<telegram_api::InputMessage> input_message = nullptr);
+
+  void get_full_rich_message(MessageFullId message_full_id, Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
 
   void get_message_properties(DialogId dialog_id, MessageId message_id,
                               Promise<td_api::object_ptr<td_api::messageProperties>> &&promise);
@@ -2711,8 +2709,9 @@ class MessagesManager final : public Actor {
 
   void reload_pinned_dialogs(DialogListId dialog_list_id, Promise<Unit> &&promise);
 
-  void update_dialogs_hints(const Dialog *d);
-  void update_dialogs_hints_rating(const Dialog *d);
+  void update_dialog_hints(const Dialog *d);
+
+  void update_dialog_hints_rating(const Dialog *d);
 
   vector<FolderId> get_dialog_list_folder_ids(const DialogList &list) const;
 
@@ -3366,8 +3365,6 @@ class MessagesManager final : public Actor {
 
   Timeout live_location_expire_timeout_;
   Timeout restore_missing_messages_timeout_;
-
-  Hints dialogs_hints_;  // search dialogs by title and usernames
 
   FlatHashSet<MessageFullId, MessageFullIdHash> active_live_location_message_full_ids_;
   bool are_active_live_location_messages_loaded_ = false;

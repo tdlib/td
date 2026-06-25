@@ -118,7 +118,7 @@ TEST(QuickReplyPollMediaAdversarial, PollFileIdExtractionChecksStateBeforePollLo
   const auto guarded_lookup_pos = normalized.find(
       "auto*poll_manager=get_poll_manager_for_content_access(td,poll->poll_id,"
       "\"get_message_content_file_ids\");");
-  const auto lookup_pos = normalized.find("result=poll_manager->get_poll_file_ids(poll->poll_id);");
+  const auto lookup_pos = normalized.find("poll_manager->get_poll_file_ids(poll->poll_id);");
   const auto old_direct_lookup_pos = normalized.find("autoresult=td->poll_manager_->get_poll_file_ids(poll->poll_id);");
 
   ASSERT_TRUE(guarded_lookup_pos != td::string::npos);

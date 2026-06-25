@@ -32,6 +32,7 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
+#include "td/utils/Hints.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
@@ -134,8 +135,9 @@ class DialogManager final : public Actor {
 
   void clear_recently_found_dialogs();
 
-  std::pair<int32, vector<DialogId>> search_recently_found_dialogs(const string &query, int32 limit,
-                                                                   Promise<Unit> &&promise);
+  std::pair<int32, vector<DialogId>> search_recently_found_dialogs(
+      const string &query, const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter, int32 limit,
+      Promise<Unit> &&promise);
 
   std::pair<int32, vector<DialogId>> get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise);
 
@@ -265,15 +267,29 @@ class DialogManager final : public Actor {
 
   DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
 
-  void on_get_public_dialogs_search_result(const string &query,
+  enum class DialogTypeFilter : int32 { None, Bot, Broadcast };
+
+  void add_dialog_to_hints(DialogId dialog_id);
+
+  void update_dialog_hints_rating(DialogId dialog_id, int64 rating);
+
+  std::pair<int32, vector<DialogId>> search_dialogs(
+      const string &query, const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter, int32 limit,
+      Promise<Unit> &&promise);
+
+  void on_get_public_dialogs_search_result(const string &query, DialogTypeFilter type_filter,
                                            vector<telegram_api::object_ptr<telegram_api::Peer>> &&my_peers,
                                            vector<telegram_api::object_ptr<telegram_api::Peer>> &&peers);
 
-  void on_failed_public_dialogs_search(const string &query, Status &&error);
+  void on_failed_public_dialogs_search(const string &query, DialogTypeFilter type_filter, Status &&error);
 
-  vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
+  vector<DialogId> search_public_dialogs(const string &query,
+                                         const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter,
+                                         Promise<Unit> &&promise);
 
-  vector<DialogId> search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise);
+  vector<DialogId> search_dialogs_on_server(const string &query,
+                                            const td_api::object_ptr<td_api::SearchChatTypeFilter> &chat_type_filter,
+                                            int32 limit, Promise<Unit> &&promise);
 
   void reload_video_chat_on_search(const string &username);
 
@@ -347,7 +363,11 @@ class DialogManager final : public Actor {
 
   void on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise);
 
-  void send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise);
+  static DialogTypeFilter get_dialog_type_filter(const td_api::object_ptr<td_api::SearchChatTypeFilter> &type_filter);
+
+  void send_search_public_dialogs_query(const string &query, DialogTypeFilter type_filter, Promise<Unit> &&promise);
+
+  bool is_dialog_suitable_for_type_filter(DialogId dialog_id, DialogTypeFilter type_filter) const;
 
   static uint64 save_reorder_pinned_dialogs_on_server_log_event(FolderId folder_id, const vector<DialogId> &dialog_ids);
 
@@ -407,9 +427,11 @@ class DialogManager final : public Actor {
 
   FlatHashMap<string, vector<Promise<Unit>>> resolve_dialog_username_queries_;
 
-  FlatHashMap<string, vector<Promise<Unit>>> search_public_dialogs_queries_;
-  FlatHashMap<string, vector<DialogId>> found_public_dialogs_;     // TODO time bound cache
-  FlatHashMap<string, vector<DialogId>> found_on_server_dialogs_;  // TODO time bound cache
+  FlatHashMap<string, vector<Promise<Unit>>> search_public_dialogs_queries_[3];
+  FlatHashMap<string, vector<DialogId>> found_public_dialogs_[3];     // TODO time bound cache
+  FlatHashMap<string, vector<DialogId>> found_on_server_dialogs_[3];  // TODO time bound cache
+
+  Hints dialog_hints_;  // search dialogs by title and usernames
 
   RecentDialogList recently_found_dialogs_;
   RecentDialogList recently_opened_dialogs_;

@@ -674,17 +674,28 @@ class ToggleChannelJoinToSendQuery final : public Td::ResultHandler {
 class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
+  UserId guest_bot_user_id_;
 
  public:
   explicit ToggleChannelJoinRequestQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, bool join_request) {
+  void send(ChannelId channel_id, bool join_request, UserId guest_bot_user_id, bool apply_to_invite_links,
+            telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
     channel_id_ = channel_id;
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
+    int32 flags = 0;
+    if (join_request && input_user != nullptr) {
+      flags |= telegram_api::channels_toggleJoinRequest::GUARD_BOT_MASK;
+      guest_bot_user_id_ = guest_bot_user_id;
+    } else {
+      input_user = nullptr;
+    }
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_toggleJoinRequest(std::move(input_channel), join_request), {{channel_id}}));
+        telegram_api::channels_toggleJoinRequest(flags, apply_to_invite_links, std::move(input_channel), join_request,
+                                                 std::move(input_user)),
+        {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -695,6 +706,7 @@ class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ToggleChannelJoinRequestQuery: " << to_string(ptr);
+    td_->chat_manager_->on_update_channel_guard_bot_user_id(channel_id_, guest_bot_user_id_);
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
@@ -2405,6 +2417,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   bool has_monoforum_channel_id = monoforum_channel_id.is_valid();
   bool has_send_paid_message_stars = send_paid_message_stars != 0;
   bool has_main_profile_tab = main_profile_tab != ProfileTab::Default;
+  bool has_guard_bot_user_id = guard_bot_user_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -2455,6 +2468,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
     STORE_FLAG(has_monoforum_channel_id);
     STORE_FLAG(has_send_paid_message_stars);
     STORE_FLAG(has_main_profile_tab);
+    STORE_FLAG(has_guard_bot_user_id);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -2531,6 +2545,9 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   if (has_main_profile_tab) {
     store(main_profile_tab, storer);
   }
+  if (has_guard_bot_user_id) {
+    store(guard_bot_user_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -2565,6 +2582,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   bool has_monoforum_channel_id = false;
   bool has_send_paid_message_stars = false;
   bool has_main_profile_tab = false;
+  bool has_guard_bot_user_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -2615,6 +2633,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
     PARSE_FLAG(has_monoforum_channel_id);
     PARSE_FLAG(has_send_paid_message_stars);
     PARSE_FLAG(has_main_profile_tab);
+    PARSE_FLAG(has_guard_bot_user_id);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -2698,6 +2717,9 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_main_profile_tab) {
     parse(main_profile_tab, parser);
+  }
+  if (has_guard_bot_user_id) {
+    parse(guard_bot_user_id, parser);
   }
 
   if (legacy_can_view_statistics) {
@@ -3012,8 +3034,7 @@ string ChatManager::get_channel_title(ChannelId channel_id, bool is_recursive) c
 RestrictedRights ChatManager::get_chat_default_permissions(ChatId chat_id) const {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, false, false, false, ChannelType::Unknown);
+    return RestrictedRights::restrict_all();
   }
   return c->default_permissions;
 }
@@ -3021,8 +3042,7 @@ RestrictedRights ChatManager::get_chat_default_permissions(ChatId chat_id) const
 RestrictedRights ChatManager::get_channel_default_permissions(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false, false, false,
-                            false, false, false, false, false, ChannelType::Unknown);
+    return RestrictedRights::restrict_all();
   }
   return c->default_permissions;
 }
@@ -3446,7 +3466,8 @@ void ChatManager::toggle_channel_join_to_send(ChannelId channel_id, bool join_to
   td_->create_handler<ToggleChannelJoinToSendQuery>(std::move(promise))->send(channel_id, join_to_send);
 }
 
-void ChatManager::toggle_channel_join_request(ChannelId channel_id, bool join_request, Promise<Unit> &&promise) {
+void ChatManager::toggle_channel_join_request(ChannelId channel_id, bool join_request, UserId guard_bot_user_id,
+                                              bool apply_to_invite_links, Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(400, "Supergroup not found");
@@ -3457,8 +3478,10 @@ void ChatManager::toggle_channel_join_request(ChannelId channel_id, bool join_re
   if (!get_channel_status(c).can_restrict_members()) {
     return promise.set_error(400, "Not enough rights");
   }
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(guard_bot_user_id));
 
-  td_->create_handler<ToggleChannelJoinRequestQuery>(std::move(promise))->send(channel_id, join_request);
+  td_->create_handler<ToggleChannelJoinRequestQuery>(std::move(promise))
+      ->send(channel_id, join_request, guard_bot_user_id, apply_to_invite_links, std::move(input_user));
 }
 
 void ChatManager::toggle_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available,
@@ -3892,10 +3915,7 @@ bool ChatManager::can_get_channel_story_statistics(ChannelId channel_id) const {
 bool ChatManager::can_convert_channel_to_gigagroup(ChannelId channel_id) const {
   const Channel *c = get_channel(channel_id);
   return c == nullptr || get_channel_type(c) != ChannelType::Megagroup || !get_channel_status(c).is_creator() ||
-         c->is_gigagroup ||
-         c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false, false,
-                                                    false, false, false, false, false, false, false, false, false,
-                                                    ChannelType::Unknown);
+         c->is_gigagroup || c->default_permissions != RestrictedRights::restrict_all();
 }
 
 void ChatManager::report_channel_spam(ChannelId channel_id, const vector<MessageId> &message_ids,
@@ -4034,16 +4054,11 @@ vector<ChannelId> ChatManager::get_channel_ids(vector<tl_object_ptr<telegram_api
 vector<DialogId> ChatManager::get_dialog_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source) {
   vector<DialogId> dialog_ids;
   for (auto &chat : chats) {
-    auto channel_id = get_channel_id(chat);
-    if (!channel_id.is_valid()) {
-      auto chat_id = get_chat_id(chat);
-      if (!chat_id.is_valid()) {
-        LOG(ERROR) << "Receive invalid chat from " << source << " in " << to_string(chat);
-      } else {
-        dialog_ids.push_back(DialogId(chat_id));
-      }
+    auto dialog_id = get_dialog_id(chat);
+    if (!dialog_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid chat from " << source << " in " << to_string(chat);
     } else {
-      dialog_ids.push_back(DialogId(channel_id));
+      dialog_ids.push_back(dialog_id);
     }
     on_get_chat(std::move(chat), source);
   }
@@ -5106,6 +5121,7 @@ void ChatManager::on_load_channel_full_from_database(ChannelId channel_id, strin
   dependencies.add_dialog_dependencies(DialogId(channel_full->linked_channel_id));
   dependencies.add_dialog_dependencies(DialogId(channel_full->monoforum_channel_id));
   dependencies.add(channel_full->migrated_from_chat_id);
+  dependencies.add(channel_full->guard_bot_user_id);
   for (auto bot_user_id : channel_full->bot_user_ids) {
     dependencies.add(bot_user_id);
   }
@@ -5417,9 +5433,7 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
   }
   if (c->is_default_permissions_changed) {
     td_->messages_manager_->on_dialog_default_permissions_updated(DialogId(channel_id));
-    if (c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false, false, false,
-                                                   false, false, false, false, false, false, false, false,
-                                                   ChannelType::Unknown)) {
+    if (c->default_permissions != RestrictedRights::restrict_all()) {
       td_->suggested_action_manager_->remove_dialog_suggested_action(
           SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
     }
@@ -6073,6 +6087,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
       channel_full->bot_commands = std::move(bot_commands);
       channel_full->is_changed = true;
     }
+    on_update_channel_full_guard_bot_user_id(channel_full, UserId(channel->guard_bot_id_));
 
     auto monoforum_channel_id = c->monoforum_channel_id;
     if (monoforum_channel_id != ChannelId()) {
@@ -6452,12 +6467,17 @@ void ChatManager::speculative_delete_channel_participant(ChannelId channel_id, U
 
   if (td_->user_manager_->is_user_bot(deleted_user_id)) {
     auto channel_full = get_channel_full_force(channel_id, true, "speculative_delete_channel_participant");
-    if (channel_full != nullptr && td::remove(channel_full->bot_user_ids, deleted_user_id)) {
-      channel_full->need_save_to_database = true;
-      update_channel_full(channel_full, channel_id, "speculative_delete_channel_participant");
+    if (channel_full != nullptr) {
+      if (td::remove(channel_full->bot_user_ids, deleted_user_id)) {
+        channel_full->need_save_to_database = true;
 
-      send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
-                         channel_full->bot_user_ids, false);
+        send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
+                           channel_full->bot_user_ids, false);
+      }
+      if (channel_full->guard_bot_user_id == deleted_user_id) {
+        channel_full->guard_bot_user_id = UserId();
+      }
+      update_channel_full(channel_full, channel_id, "speculative_delete_channel_participant");
     }
   }
 
@@ -6553,6 +6573,10 @@ void ChatManager::speculative_add_channel_user(ChannelId channel_id, UserId user
                            channel_full->bot_user_ids, false);
       }
     }
+  }
+  if (user_id == channel_full->guard_bot_user_id && !new_status.can_manage_invite_links()) {
+    channel_full->guard_bot_user_id = {};
+    channel_full->is_changed = true;
   }
 
   update_channel_full(channel_full, channel_id, "speculative_add_channel_user");
@@ -8237,12 +8261,7 @@ void ChatManager::create_new_chat(const vector<UserId> &user_ids, const string &
     return promise.set_error(400, "Title must be non-empty");
   }
 
-  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
-  for (auto user_id : user_ids) {
-    TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
-    input_users.push_back(std::move(input_user));
-  }
-
+  TRY_RESULT_PROMISE(promise, input_users, td_->user_manager_->get_input_users(user_ids));
   td_->create_handler<CreateChatQuery>(std::move(promise))->send(std::move(input_users), new_title, message_ttl);
 }
 
@@ -8688,8 +8707,7 @@ bool ChatManager::get_channel_join_request(ChannelId channel_id) const {
 }
 
 bool ChatManager::get_channel_join_request(const Channel *c) {
-  return c->join_request && c->is_megagroup && !c->is_monoforum && (is_channel_public(c) || c->has_linked_channel) &&
-         !c->is_gigagroup;
+  return c->join_request && c->is_megagroup && !c->is_monoforum && !c->is_gigagroup;
 }
 
 ChannelId ChatManager::get_channel_linked_channel_id(ChannelId channel_id, const char *source) {
@@ -9002,6 +9020,29 @@ void ChatManager::on_update_channel_bot_commands(ChannelId channel_id, BotComman
       BotCommands::update_all_bot_commands(channel_full->bot_commands, std::move(bot_commands))) {
     channel_full->is_changed = true;
     update_channel_full(channel_full, channel_id, "on_update_channel_bot_commands");
+  }
+}
+
+void ChatManager::on_update_channel_guard_bot_user_id(ChannelId channel_id, UserId guard_bot_user_id) {
+  auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_guard_bot_user_id");
+  if (channel_full != nullptr) {
+    on_update_channel_full_guard_bot_user_id(channel_full, guard_bot_user_id);
+    update_channel_full(channel_full, channel_id, "on_update_channel_guard_bot_user_id");
+  }
+}
+
+void ChatManager::on_update_channel_full_guard_bot_user_id(ChannelFull *channel_full, UserId guard_bot_user_id) const {
+  CHECK(channel_full != nullptr);
+  if (guard_bot_user_id != UserId() && !guard_bot_user_id.is_valid()) {
+    LOG(ERROR) << "Receive " << guard_bot_user_id;
+    guard_bot_user_id = UserId();
+  }
+  if (!td_->user_manager_->is_user_bot(guard_bot_user_id)) {
+    guard_bot_user_id = UserId();
+  }
+  if (channel_full->guard_bot_user_id != guard_bot_user_id) {
+    channel_full->guard_bot_user_id = guard_bot_user_id;
+    channel_full->is_changed = true;
   }
 }
 
@@ -9802,8 +9843,9 @@ td_api::object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_
       channel_full->boost_count, channel_full->unrestrict_boost_count, channel_full->send_paid_message_stars,
       channel_full->sticker_set_id.get(), channel_full->emoji_sticker_set_id.get(),
       channel_full->location.get_chat_location_object(),
-      channel_full->invite_link.get_chat_invite_link_object(td_->user_manager_.get()), std::move(bot_commands),
-      std::move(bot_verification), get_profile_tab_object(channel_full->main_profile_tab),
+      channel_full->invite_link.get_chat_invite_link_object(td_->user_manager_.get()),
+      td_->user_manager_->get_user_id_object(channel_full->guard_bot_user_id, "supergroupFullInfo guard bot"),
+      std::move(bot_commands), std::move(bot_verification), get_profile_tab_object(channel_full->main_profile_tab),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

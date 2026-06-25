@@ -1383,21 +1383,29 @@ TEST(MessageEntities, parse_html) {
                    {{td::MessageEntity::Type::Bold, 5, 3},
                     {td::MessageEntity::Type::CustomEmoji, 5, 2, td::CustomEmojiId(static_cast<td::int64>(1))}});
   check_parse_html("➡️ ➡️<tg-time unix = \"12345\", format = \"r\">➡️ ➡️</tg-time><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::FormattedDate, 5, 5, 12345, 1}, {td::MessageEntity::Type::Bold, 10, 5}});
+                   {{td::MessageEntity::Type::FormattedDate, 5, 5, td::FormattedDate{12345, 1}},
+                    {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("➡️ ➡️<tg-time unix = \"12345\", format = \"t\">➡️ ➡️</tg-time><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::FormattedDate, 5, 5, 12345, 2}, {td::MessageEntity::Type::Bold, 10, 5}});
+                   {{td::MessageEntity::Type::FormattedDate, 5, 5, td::FormattedDate{12345, 2}},
+                    {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("➡️ ➡️<tg-time unix = \"12345\", format = \"T\">➡️ ➡️</tg-time><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::FormattedDate, 5, 5, 12345, 4}, {td::MessageEntity::Type::Bold, 10, 5}});
+                   {{td::MessageEntity::Type::FormattedDate, 5, 5, td::FormattedDate{12345, 4}},
+                    {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("➡️ ➡️<tg-time unix = \"12345\", format = \"d\">➡️ ➡️</tg-time><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::FormattedDate, 5, 5, 12345, 8}, {td::MessageEntity::Type::Bold, 10, 5}});
+                   {{td::MessageEntity::Type::FormattedDate, 5, 5, td::FormattedDate{12345, 8}},
+                    {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("➡️ ➡️<tg-time unix = \"12345\", format = \"D\">➡️ ➡️</tg-time><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::FormattedDate, 5, 5, 12345, 16}, {td::MessageEntity::Type::Bold, 10, 5}});
+                   {{td::MessageEntity::Type::FormattedDate, 5, 5, td::FormattedDate{12345, 16}},
+                    {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("➡️ ➡️<tg-time unix = \"12345\", format = \"w\">➡️ ➡️</tg-time><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::FormattedDate, 5, 5, 12345, 32}, {td::MessageEntity::Type::Bold, 10, 5}});
+                   {{td::MessageEntity::Type::FormattedDate, 5, 5, td::FormattedDate{12345, 32}},
+                    {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("➡️ ➡️<tg-time unix = \"12345\", format = \"W\">➡️ ➡️</tg-time><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::FormattedDate, 5, 5, 12345, 32}, {td::MessageEntity::Type::Bold, 10, 5}});
+                   {{td::MessageEntity::Type::FormattedDate, 5, 5, td::FormattedDate{12345, 32}},
+                    {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("➡️ ➡️<tg-time unix = \"12345\", format = \"tttTTdDwW\">➡️ ➡️</tg-time><b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️➡️ ➡️",
-                   {{td::MessageEntity::Type::FormattedDate, 5, 5, 12345, 62}, {td::MessageEntity::Type::Bold, 10, 5}});
+                   {{td::MessageEntity::Type::FormattedDate, 5, 5, td::FormattedDate{12345, 62}},
+                    {td::MessageEntity::Type::Bold, 10, 5}});
   check_parse_html("➡️ ➡️<tg-time unix = \"12345\", format = \"rt\">➡️ ➡️</tg-time><b>➡️ ➡️</b>", "Invalid date format used");
   check_parse_html("➡️ ➡️<tg-time unix = \"12345\", format = \"ts\">➡️ ➡️</tg-time><b>➡️ ➡️</b>", "Invalid date format used");
   check_parse_html("<blockquote   cite=\"\" askdlbas nasjdbaj nj12b3>a&lt;<pre  >b;</></>", "a<b;",
@@ -1578,17 +1586,17 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("🏟 🏟![👍](TG://EMoJI/?test=1231&id=25#id=32)a", "🏟 🏟👍a",
                        {{td::MessageEntity::Type::CustomEmoji, 5, 2, td::CustomEmojiId(static_cast<td::int64>(25))}});
   check_parse_markdown("🏟 🏟![👍](TG://TiME/?test=1231&unix=25#unix=32)a", "🏟 🏟👍a",
-                       {{td::MessageEntity::Type::FormattedDate, 5, 2, 25, 0}});
+                       {{td::MessageEntity::Type::FormattedDate, 5, 2, td::FormattedDate{25, 0}}});
   check_parse_markdown("🏟 🏟![👍](TG://TiME/?test=1231&format=R&unix=25#unix=32)a", "🏟 🏟👍a",
-                       {{td::MessageEntity::Type::FormattedDate, 5, 2, 25, 1}});
+                       {{td::MessageEntity::Type::FormattedDate, 5, 2, td::FormattedDate{25, 1}}});
   check_parse_markdown("🏟 🏟![👍](TG://TiME/?test=1231&format=dt&unix=25#unix=32)a", "🏟 🏟👍a",
-                       {{td::MessageEntity::Type::FormattedDate, 5, 2, 25, 10}});
+                       {{td::MessageEntity::Type::FormattedDate, 5, 2, td::FormattedDate{25, 10}}});
   check_parse_markdown("🏟 🏟![👍](TG://TiME/?test=1231&format=DT&unix=25#unix=32)a", "🏟 🏟👍a",
-                       {{td::MessageEntity::Type::FormattedDate, 5, 2, 25, 20}});
+                       {{td::MessageEntity::Type::FormattedDate, 5, 2, td::FormattedDate{25, 20}}});
   check_parse_markdown("🏟 🏟![👍](TG://TiME/?test=1231&format=w&unix=25#unix=32)a", "🏟 🏟👍a",
-                       {{td::MessageEntity::Type::FormattedDate, 5, 2, 25, 32}});
+                       {{td::MessageEntity::Type::FormattedDate, 5, 2, td::FormattedDate{25, 32}}});
   check_parse_markdown("🏟 🏟![👍](TG://TiME/?test=1231&format=Wt&unix=25#unix=32)a", "🏟 🏟👍a",
-                       {{td::MessageEntity::Type::FormattedDate, 5, 2, 25, 34}});
+                       {{td::MessageEntity::Type::FormattedDate, 5, 2, td::FormattedDate{25, 34}}});
   check_parse_markdown("> \n> \n>", " \n \n", {{td::MessageEntity::Type::BlockQuote, 0, 4}});
   check_parse_markdown("> \\>\n \\> \n>", " >\n > \n", {{td::MessageEntity::Type::BlockQuote, 0, 3}});
   check_parse_markdown("abc\n> \n> \n>\ndef", "abc\n \n \n\ndef", {{td::MessageEntity::Type::BlockQuote, 4, 5}});

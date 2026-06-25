@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/FormattedDate.hpp"
 #include "td/telegram/MessageEntity.h"
 
 #include "td/utils/tl_helpers.h"
@@ -32,7 +33,6 @@ void MessageEntity::store(StorerT &storer) const {
   }
   if (type == Type::FormattedDate) {
     store(date, storer);
-    store(date_flags, storer);
   }
 }
 
@@ -56,7 +56,6 @@ void MessageEntity::parse(ParserT &parser) {
   }
   if (type == Type::FormattedDate) {
     parse(date, parser);
-    parse(date_flags, parser);
   }
 }
 

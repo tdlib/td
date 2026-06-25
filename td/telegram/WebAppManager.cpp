@@ -52,8 +52,7 @@ class GetPopularAppBotsQuery final : public Td::ResultHandler {
 
     vector<int64> user_ids;
     for (auto &user : ptr->users_) {
-      auto user_id = td_->user_manager_->get_user_id(user);
-      td_->user_manager_->on_get_user(std::move(user), "GetPopularAppBotsQuery");
+      auto user_id = td_->user_manager_->on_get_user(std::move(user), "GetPopularAppBotsQuery");
       if (td_->user_manager_->is_user_bot(user_id)) {
         user_ids.push_back(td_->user_manager_->get_user_id_object(user_id, "GetPopularAppBotsQuery"));
       }
@@ -97,10 +96,11 @@ class GetBotAppQuery final : public Td::ResultHandler {
 };
 
 class RequestAppWebViewQuery final : public Td::ResultHandler {
-  Promise<string> promise_;
+  Promise<td_api::object_ptr<td_api::webAppUrl>> promise_;
 
  public:
-  explicit RequestAppWebViewQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  explicit RequestAppWebViewQuery(Promise<td_api::object_ptr<td_api::webAppUrl>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
@@ -132,7 +132,7 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for RequestAppWebViewQuery: " << to_string(ptr);
     LOG_IF(ERROR, ptr->query_id_ != 0) << "Receive " << to_string(ptr);
-    promise_.set_value(std::move(ptr->url_));
+    promise_.set_value(td_api::make_object<td_api::webAppUrl>(ptr->url_, ptr->same_origin_));
   }
 
   void on_error(Status status) final {
@@ -185,7 +185,8 @@ class RequestMainWebViewQuery final : public Td::ResultHandler {
     } else {
       mode = td_api::make_object<td_api::webAppOpenModeCompact>();
     }
-    promise_.set_value(td_api::make_object<td_api::mainWebApp>(ptr->url_, std::move(mode)));
+    promise_.set_value(td_api::make_object<td_api::mainWebApp>(
+        td_api::make_object<td_api::webAppUrl>(ptr->url_, ptr->same_origin_), std::move(mode)));
   }
 
   void on_error(Status status) final {
@@ -273,7 +274,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     LOG_IF(ERROR, ptr->query_id_ == 0) << "Receive " << to_string(ptr);
     td_->web_app_manager_->open_web_view(ptr->query_id_, dialog_id_, bot_user_id_, std::move(message_topic_),
                                          std::move(input_reply_to_), as_dialog_id_);
-    promise_.set_value(td_api::make_object<td_api::webAppInfo>(ptr->query_id_, ptr->url_));
+    promise_.set_value(td_api::make_object<td_api::webAppInfo>(
+        ptr->query_id_, td_api::make_object<td_api::webAppUrl>(ptr->url_, ptr->same_origin_)));
   }
 
   void on_error(Status status) final {
@@ -525,7 +527,8 @@ void WebAppManager::reload_web_app(UserId bot_user_id, const string &web_app_sho
 
 void WebAppManager::request_app_web_view(DialogId dialog_id, UserId bot_user_id, string &&web_app_short_name,
                                          string &&start_parameter, const WebAppOpenParameters &parameters,
-                                         bool allow_write_access, Promise<string> &&promise) {
+                                         bool allow_write_access,
+                                         Promise<td_api::object_ptr<td_api::webAppUrl>> &&promise) {
   if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) ||
       td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
     dialog_id = DialogId(bot_user_id);

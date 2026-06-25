@@ -213,7 +213,7 @@ void SuggestedActionManager::on_dismiss_suggested_action(SuggestedAction suggest
     if (remove_suggested_action(td_->user_manager_.get(), suggested_actions_, suggested_action)) {
       save_suggested_actions();
     }
-    send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
+    send_closure(G()->config_manager(), &ConfigManager::reload_app_config, Promise<Unit>());
   }
 
   set_promises(promises);

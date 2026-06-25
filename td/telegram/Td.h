@@ -115,6 +115,7 @@ class VideoNotesManager;
 class VideosManager;
 class VoiceNotesManager;
 class WebAppManager;
+class WebBrowserManager;
 class WebPagesManager;
 
 extern std::atomic<int> VERBOSITY_NAME(td_init);
@@ -291,6 +292,8 @@ class Td final : public Actor {
   ActorOwn<VoiceNotesManager> voice_notes_manager_actor_;
   unique_ptr<WebAppManager> web_app_manager_;
   ActorOwn<WebAppManager> web_app_manager_actor_;
+  unique_ptr<WebBrowserManager> web_browser_manager_;
+  ActorOwn<WebBrowserManager> web_browser_manager_actor_;
   unique_ptr<WebPagesManager> web_pages_manager_;
   ActorOwn<WebPagesManager> web_pages_manager_actor_;
 

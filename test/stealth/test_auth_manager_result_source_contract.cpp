@@ -34,7 +34,8 @@ TEST(AuthManagerResultSourceContract, SessionPasswordFallbackUsesReviewedAllowli
   ASSERT_TRUE(source.find("if(error.code()!=401||error.message()!=CSlice(\"SESSION_PASSWORD_NEEDED\"))"
                           "{returnfalse;}") != td::string::npos);
   ASSERT_TRUE(source.find("switch(type){caseSendCode:caseSendEmailCode:caseVerifyEmailAddress:caseSignIn:"
-                          "caseRequestQrCode:caseImportQrCode:caseFinishPasskeyLogin:returntrue;"
+                          "caseRequestQrCode:caseImportQrCode:caseFinishPasskeyLogin:"
+                          "caseImportWebTokenAuthorization:returntrue;"
                           "default:returnfalse;}") != td::string::npos);
 }
 
@@ -54,8 +55,9 @@ TEST(AuthManagerResultSourceContract, WaitPhoneNumberErrorResetClearsTransientSt
 
   ASSERT_TRUE(source.find("voidAuthManager::reset_wait_phone_number_query_state(){other_user_ids_.clear();"
                           "send_code_helper_=SendCodeHelper();terms_of_service_=TermsOfService();"
-                          "passkey_parameters_={};was_qr_code_request_=false;"
-                          "was_passkey_login_request_=false;was_check_bot_token_=false;}") != td::string::npos);
+                          "passkey_parameters_={};web_token_={};was_qr_code_request_=false;"
+                          "was_passkey_login_request_=false;was_web_token_login_request_=false;"
+                          "was_check_bot_token_=false;web_token_dc_id_=0;}") != td::string::npos);
   ASSERT_TRUE(source.find("if(query_id_!=0){if(state_==State::WaitPhoneNumber){"
                           "reset_wait_phone_number_query_state();}"
                           "on_current_query_error(net_query->move_as_error());returntrue;}") != td::string::npos);
@@ -66,7 +68,8 @@ TEST(AuthManagerResultSourceContract, BackgroundErrorIgnoreAllowlistStaysFailClo
 
   ASSERT_TRUE(source.find("boolAuthManager::should_ignore_background_error(NetQueryTypetype){") != td::string::npos);
   ASSERT_TRUE(source.find("switch(type){caseRequestQrCode:caseImportQrCode:caseGetPassword:"
-                          "caseFinishPasskeyLogin:returnfalse;default:returntrue;}") != td::string::npos);
+                          "caseFinishPasskeyLogin:caseImportWebTokenAuthorization:returnfalse;default:returntrue;}") !=
+              td::string::npos);
   ASSERT_TRUE(source.find("LOG(INFO)<<\"Ignoreerrorfornetqueryoftype\"<<") != td::string::npos);
   ASSERT_TRUE(source.find("type=None;") != td::string::npos);
 }

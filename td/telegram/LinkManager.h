@@ -8,6 +8,7 @@
 
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogBoostLinkInfo.h"
+#include "td/telegram/FormattedDate.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageLinkInfo.h"
 #include "td/telegram/td_api.h"
@@ -125,11 +126,7 @@ class LinkManager final : public Actor {
 
   static Result<CustomEmojiId> get_link_custom_emoji_id(Slice url);
 
-  struct DateFormat {
-    int32 date_ = 0;
-    string format_;
-  };
-  static Result<DateFormat> get_link_date_format(Slice url);
+  static Result<FormattedDate> get_link_formatted_date(Slice url);
 
   static Result<DialogBoostLinkInfo> get_dialog_boost_link_info(Slice url);
 

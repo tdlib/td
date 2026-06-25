@@ -80,7 +80,7 @@ TEST(VideoAlternativePropertiesRepairLightFuzz, RepairPlanIsPermutationInvariant
   std::uniform_int_distribution<td::int32> alternative_duration_dist(0, 20);
   std::bernoulli_distribution bool_dist(0.5);
 
-  for (std::size_t iteration = 0; iteration < 5000; iteration++) {
+  for (std::size_t iteration = 0; iteration < 10000; iteration++) {
     auto primary_duration = primary_duration_dist(rng);
     auto has_primary_thumbnail = bool_dist(rng);
 

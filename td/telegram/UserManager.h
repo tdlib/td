@@ -85,8 +85,6 @@ class UserManager final : public Actor {
   UserManager &operator=(UserManager &&) = delete;
   ~UserManager() final;
 
-  static UserId get_user_id(const telegram_api::object_ptr<telegram_api::User> &user);
-
   vector<UserId> get_user_ids(vector<telegram_api::object_ptr<telegram_api::User>> &&users, const char *source);
 
   static UserId load_my_id();
@@ -121,7 +119,7 @@ class UserManager final : public Actor {
 
   void set_my_online_status(bool is_online, bool send_update, bool is_local);
 
-  void on_get_user(telegram_api::object_ptr<telegram_api::User> &&user, const char *source);
+  UserId on_get_user(telegram_api::object_ptr<telegram_api::User> &&user, const char *source);
 
   void on_get_users(vector<telegram_api::object_ptr<telegram_api::User>> &&users, const char *source);
 
@@ -228,7 +226,12 @@ class UserManager final : public Actor {
 
   Result<telegram_api::object_ptr<telegram_api::InputUser>> get_input_user(UserId user_id) const;
 
+  Result<vector<telegram_api::object_ptr<telegram_api::InputUser>>> get_input_users(
+      const vector<UserId> &user_ids) const;
+
   telegram_api::object_ptr<telegram_api::InputUser> get_input_user_force(UserId user_id) const;
+
+  vector<telegram_api::object_ptr<telegram_api::InputUser>> get_input_users_force(const vector<UserId> &user_ids) const;
 
   bool have_input_peer_user(UserId user_id, AccessRights access_rights) const;
 
@@ -262,8 +265,9 @@ class UserManager final : public Actor {
     bool can_bot_create_topics = false;
     bool can_manage_bots = false;
     bool is_inline = false;
-    bool is_guestchat_bot = false;
+    bool is_guestchat = false;
     bool is_business = false;
+    bool is_guard = false;
     bool need_location = false;
     bool can_be_added_to_attach_menu = false;
   };
@@ -636,6 +640,7 @@ class UserManager final : public Actor {
     bool is_inline_bot = false;
     bool is_guestchat_bot = false;
     bool is_business_bot = false;
+    bool is_guard_bot = false;
     bool need_location_bot = false;
     bool is_scam = false;
     bool is_fake = false;
@@ -882,6 +887,8 @@ class UserManager final : public Actor {
   static void on_noforwards_request_timeout_callback(void *user_manager_ptr, int64 request_id_long);
 
   void on_noforwards_request_timeout(int32 request_id);
+
+  static UserId get_user_id(const telegram_api::object_ptr<telegram_api::User> &user);
 
   void set_my_id(UserId my_id);
 

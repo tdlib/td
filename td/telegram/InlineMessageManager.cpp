@@ -20,6 +20,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ReplyMarkup.h"
+#include "td/telegram/RichMessage.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserManager.h"
@@ -86,7 +87,8 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
   void send(telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> input_bot_inline_message_id,
             bool force_edit_text, const FormattedText *text, bool disable_web_page_preview,
             telegram_api::object_ptr<telegram_api::InputMedia> &&input_media, bool invert_media,
-            const unique_ptr<ReplyMarkup> &reply_markup) {
+            const unique_ptr<ReplyMarkup> &reply_markup,
+            telegram_api::object_ptr<telegram_api::InputRichMessage> rich_message) {
     CHECK(input_bot_inline_message_id != nullptr);
 
     // file in an inline message can't be uploaded to another datacenter,
@@ -110,13 +112,16 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editInlineBotMessage::MEDIA_MASK;
     }
+    if (rich_message != nullptr) {
+      flags |= telegram_api::messages_editInlineBotMessage::RICH_MESSAGE_MASK;
+    }
 
     auto dc_id = DcId::internal(get_inline_message_dc_id(input_bot_inline_message_id));
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_editInlineBotMessage(flags, disable_web_page_preview, invert_media,
-                                                    std::move(input_bot_inline_message_id),
-                                                    text == nullptr ? string() : text->text, std::move(input_media),
-                                                    std::move(input_reply_markup), std::move(entities)),
+        telegram_api::messages_editInlineBotMessage(
+            flags, disable_web_page_preview, invert_media, std::move(input_bot_inline_message_id),
+            text == nullptr ? string() : text->text, std::move(input_media), std::move(input_reply_markup),
+            std::move(entities), std::move(rich_message)),
         {}, dc_id));
   }
 
@@ -216,58 +221,53 @@ void InlineMessageManager::tear_down() {
 void InlineMessageManager::edit_inline_message_text(
     const string &inline_message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Promise<Unit> &&promise) {
-  CHECK(td_->auth_manager_->is_bot());
+  auto is_bot = td_->auth_manager_->is_bot();
+  CHECK(is_bot);
 
   if (input_message_content == nullptr) {
     return promise.set_error(400, "Can't edit message without new content");
   }
   int32 new_message_content_type = input_message_content->get_id();
-  if (new_message_content_type != td_api::inputMessageText::ID) {
-    return promise.set_error(400, "Input message content type must be InputMessageText");
+  if (new_message_content_type != td_api::inputMessageText::ID &&
+      new_message_content_type != td_api::inputMessageRichMessage::ID) {
+    return promise.set_error(400, "Input message content type must be inputMessageText or inputMessageRichMessage");
   }
 
-  TRY_RESULT_PROMISE(
-      promise, input_message_text,
-      process_input_message_text(td_, DialogId(), std::move(input_message_content), td_->auth_manager_->is_bot()));
-  TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true));
+  TRY_RESULT_PROMISE(promise, new_reply_markup, get_inline_reply_markup(std::move(reply_markup), is_bot, true));
   TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
+  if (new_message_content_type == td_api::inputMessageRichMessage::ID) {
+    auto input_rich_message = static_cast<td_api::inputMessageRichMessage *>(input_message_content.get());
+    TRY_RESULT_PROMISE(promise, rich_message,
+                       RichMessage::get_rich_message(td_, DialogId(), std::move(input_rich_message->message_), is_bot));
+    td_->create_handler<EditInlineMessageQuery>(std::move(promise))
+        ->send(std::move(input_bot_inline_message_id), false, nullptr, false, nullptr, false, new_reply_markup,
+               rich_message.get_input_rich_message(td_));
+    return;
+  }
+
+  TRY_RESULT_PROMISE(promise, input_message_text,
+                     process_input_message_text(td_, DialogId(), std::move(input_message_content), is_bot));
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(std::move(input_bot_inline_message_id), true, &input_message_text.text,
              input_message_text.disable_web_page_preview, input_message_text.get_input_media_web_page(),
-             input_message_text.show_above_text, new_reply_markup);
+             input_message_text.show_above_text, new_reply_markup, nullptr);
 }
 
 void InlineMessageManager::edit_inline_message_live_location(const string &inline_message_id,
                                                              td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                                             td_api::object_ptr<td_api::location> &&input_location,
-                                                             int32 live_period, int32 heading,
-                                                             int32 proximity_alert_radius, Promise<Unit> &&promise) {
+                                                             td_api::object_ptr<td_api::liveLocation> &&input_location,
+                                                             Promise<Unit> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true));
   TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
+  TRY_RESULT_PROMISE(promise, location, process_live_location(std::move(input_location), true));
 
-  Location location(input_location);
-  if (location.empty() && input_location != nullptr) {
-    return promise.set_error(400, "Invalid location specified");
-  }
-
-  int32 flags = 0;
-  if (live_period != 0) {
-    flags |= telegram_api::inputMediaGeoLive::PERIOD_MASK;
-  }
-  if (heading != 0) {
-    flags |= telegram_api::inputMediaGeoLive::HEADING_MASK;
-  }
-  flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
-  auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
-      flags, location.empty(), location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-      ->send(std::move(input_bot_inline_message_id), false, nullptr, false, std::move(input_media), false /*ignored*/,
-             new_reply_markup);
+      ->send(std::move(input_bot_inline_message_id), false, nullptr, false, location.get_input_media_geo_live(),
+             false /*ignored*/, new_reply_markup, nullptr);
 }
 
 void InlineMessageManager::edit_inline_message_media(
@@ -307,7 +307,7 @@ void InlineMessageManager::edit_inline_message_media(
   const FormattedText *caption = get_message_content_caption(content.content.get());
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(std::move(input_bot_inline_message_id), true, caption, false, std::move(input_media), content.invert_media,
-             new_reply_markup);
+             new_reply_markup, nullptr);
 }
 
 void InlineMessageManager::edit_inline_message_caption(const string &inline_message_id,
@@ -324,7 +324,8 @@ void InlineMessageManager::edit_inline_message_caption(const string &inline_mess
   TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-      ->send(std::move(input_bot_inline_message_id), true, &caption, false, nullptr, invert_media, new_reply_markup);
+      ->send(std::move(input_bot_inline_message_id), true, &caption, false, nullptr, invert_media, new_reply_markup,
+             nullptr);
 }
 
 void InlineMessageManager::edit_inline_message_reply_markup(const string &inline_message_id,
@@ -338,7 +339,7 @@ void InlineMessageManager::edit_inline_message_reply_markup(const string &inline
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(std::move(input_bot_inline_message_id), false, nullptr, false, nullptr, false /*ignored*/,
-             new_reply_markup);
+             new_reply_markup, nullptr);
 }
 
 void InlineMessageManager::set_inline_game_score(const string &inline_message_id, bool edit_message, UserId user_id,

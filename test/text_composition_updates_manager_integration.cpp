@@ -99,6 +99,6 @@ TEST(TextCompositionUpdatesManagerIntegration, RuntimeDispatchModelReloadsBefore
   ASSERT_TRUE(update_reload_pos < update_promise_pos);
 
   ASSERT_TRUE(reload_body.contains(td::w5_text_composition_reload_test::reload_dispatch_call()));
-  ASSERT_TRUE(reload_body.contains("&ConfigManager::reget_app_config"));
+  ASSERT_TRUE(reload_body.contains("&ConfigManager::reload_app_config"));
   ASSERT_TRUE(!reload_body.contains("std::move(promise).set_value(Unit());"));
 }

@@ -86,14 +86,8 @@ td_api::object_ptr<td_api::businessRecipients> BusinessRecipients::get_business_
 
 telegram_api::object_ptr<telegram_api::inputBusinessRecipients> BusinessRecipients::get_input_business_recipients(
     Td *td) const {
-  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
-  for (auto user_id : user_ids_) {
-    auto r_input_user = td->user_manager_->get_input_user(user_id);
-    if (r_input_user.is_ok()) {
-      input_users.push_back(r_input_user.move_as_ok());
-    }
-  }
   int32 flags = 0;
+  auto input_users = td->user_manager_->get_input_users_force(user_ids_);
   if (!input_users.empty()) {
     flags |= telegram_api::inputBusinessRecipients::USERS_MASK;
   }
@@ -103,24 +97,12 @@ telegram_api::object_ptr<telegram_api::inputBusinessRecipients> BusinessRecipien
 
 telegram_api::object_ptr<telegram_api::inputBusinessBotRecipients>
 BusinessRecipients::get_input_business_bot_recipients(Td *td) const {
-  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
-  for (auto user_id : user_ids_) {
-    auto r_input_user = td->user_manager_->get_input_user(user_id);
-    if (r_input_user.is_ok()) {
-      input_users.push_back(r_input_user.move_as_ok());
-    }
-  }
-  vector<telegram_api::object_ptr<telegram_api::InputUser>> excluded_input_users;
-  for (auto user_id : excluded_user_ids_) {
-    auto r_input_user = td->user_manager_->get_input_user(user_id);
-    if (r_input_user.is_ok()) {
-      excluded_input_users.push_back(r_input_user.move_as_ok());
-    }
-  }
   int32 flags = 0;
+  auto input_users = td->user_manager_->get_input_users_force(user_ids_);
   if (!input_users.empty()) {
     flags |= telegram_api::inputBusinessBotRecipients::USERS_MASK;
   }
+  auto excluded_input_users = td->user_manager_->get_input_users_force(excluded_user_ids_);
   if (!excluded_input_users.empty()) {
     flags |= telegram_api::inputBusinessBotRecipients::EXCLUDE_USERS_MASK;
   }

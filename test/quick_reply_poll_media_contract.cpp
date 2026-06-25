@@ -96,7 +96,7 @@ TEST(QuickReplyPollMediaContract, PollFileIdExtractionGuardsUnknownPollStateBefo
 
   ASSERT_TRUE(normalized.find("auto*poll_manager=get_poll_manager_for_content_access(td,poll->poll_id,"
                               "\"get_message_content_file_ids\");") != td::string::npos);
-  ASSERT_TRUE(normalized.find("result=poll_manager->get_poll_file_ids(poll->poll_id);") != td::string::npos);
+  ASSERT_TRUE(normalized.find("poll_manager->get_poll_file_ids(poll->poll_id);") != td::string::npos);
 }
 
 }  // namespace

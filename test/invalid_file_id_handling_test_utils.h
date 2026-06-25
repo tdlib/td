@@ -39,6 +39,10 @@ inline td::string read_file_manager_cpp() {
   return td::mtproto::test::read_repo_text_file("td/telegram/files/FileManager.cpp");
 }
 
+inline td::string read_file_upload_id_cpp() {
+  return td::mtproto::test::read_repo_text_file("td/telegram/files/FileUploadId.cpp");
+}
+
 inline td::string normalized_message_content_cpp() {
   return normalize_for_contract(read_message_content_cpp());
 }
@@ -49,6 +53,10 @@ inline td::string normalized_messages_manager_cpp() {
 
 inline td::string normalized_file_manager_cpp() {
   return normalize_for_contract(read_file_manager_cpp());
+}
+
+inline td::string normalized_file_upload_id_cpp() {
+  return normalize_for_contract(read_file_upload_id_cpp());
 }
 
 inline td::string extract_normalized_segment(const td::string &source, td::Slice begin_marker, td::Slice end_marker) {

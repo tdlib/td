@@ -22,7 +22,7 @@ td::FormattedText make_fuzz_text(td::int32 seed) {
 }
 
 TEST(DialogActionEqualityFieldsLightFuzz, RandomIdAndTextAlwaysParticipateInEquality) {
-  constexpr td::int32 kIterations = 4096;
+  constexpr td::int32 kIterations = 10000;
   for (td::int32 i = 1; i <= kIterations; ++i) {
     auto base_text = make_fuzz_text(i);
 

@@ -16,6 +16,9 @@ BusinessConnectedBot::BusinessConnectedBot(telegram_api::object_ptr<telegram_api
   user_id_ = UserId(connected_bot->bot_id_);
   recipients_ = BusinessRecipients(std::move(connected_bot->recipients_));
   rights_ = BusinessBotRights(connected_bot->rights_);
+  device_ = std::move(connected_bot->device_);
+  location_ = std::move(connected_bot->location_);
+  date_ = connected_bot->date_;
 }
 
 BusinessConnectedBot::BusinessConnectedBot(td_api::object_ptr<td_api::businessConnectedBot> connected_bot) {
@@ -34,8 +37,15 @@ td_api::object_ptr<td_api::businessConnectedBot> BusinessConnectedBot::get_busin
       recipients_.get_business_recipients_object(td), rights_.get_business_bot_rights_object());
 }
 
+td_api::object_ptr<td_api::businessConnectedBotInfo> BusinessConnectedBot::get_business_connected_bot_info_object(
+    Td *td) const {
+  return td_api::make_object<td_api::businessConnectedBotInfo>(get_business_connected_bot_object(td), date_, device_,
+                                                               location_);
+}
+
 bool operator==(const BusinessConnectedBot &lhs, const BusinessConnectedBot &rhs) {
-  return lhs.user_id_ == rhs.user_id_ && lhs.recipients_ == rhs.recipients_ && lhs.rights_ == rhs.rights_;
+  return lhs.user_id_ == rhs.user_id_ && lhs.recipients_ == rhs.recipients_ && lhs.rights_ == rhs.rights_ &&
+         lhs.device_ == rhs.device_ && lhs.location_ == rhs.location_ && lhs.date_ == rhs.date_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const BusinessConnectedBot &connected_bot) {

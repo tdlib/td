@@ -424,4 +424,26 @@ bool is_valid_color(int32 color) {
   return 0 <= color && color <= 0xFFFFFF;
 }
 
+void find_authentication_codes(Slice text, vector<string> &authentication_codes) {
+  for (size_t i = 0; i < text.size(); i++) {
+    if (is_digit(text[i])) {
+      string code;
+      while (i < text.size()) {
+        if (is_digit(text[i])) {
+          code += text[i++];
+          continue;
+        }
+        if (text[i] == '-') {
+          i++;
+          continue;
+        }
+        break;
+      };
+      if (5 <= code.size() && code.size() <= 7) {
+        authentication_codes.push_back(code);
+      }
+    }
+  }
+}
+
 }  // namespace td
