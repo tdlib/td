@@ -2863,6 +2863,15 @@ void Requests::on_request(uint64 id, td_api::translateMessageText &request) {
                                                  request.to_language_code_, request.tone_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::translateMessageRichMessage &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.to_language_code_);
+  CLEAN_INPUT_STRING(request.tone_);
+  CREATE_REQUEST_PROMISE();
+  td_->messages_manager_->translate_message_rich_message({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                         request.to_language_code_, request.tone_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::summarizeMessage &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.translate_to_language_code_);

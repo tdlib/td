@@ -5208,6 +5208,13 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, to_language_code);
       send_request(
           td_api::make_object<td_api::translateMessageText>(chat_id, message_id, to_language_code, as_tone(op)));
+    } else if (op == "tmrm" || op == "tmrmf" || op == "tmrmc" || op == "tmrmn") {
+      ChatId chat_id;
+      MessageId message_id;
+      string to_language_code;
+      get_args(args, chat_id, message_id, to_language_code);
+      send_request(
+          td_api::make_object<td_api::translateMessageRichMessage>(chat_id, message_id, to_language_code, as_tone(op)));
     } else if (op == "sum") {
       ChatId chat_id;
       MessageId message_id;

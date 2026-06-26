@@ -342,6 +342,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::translateMessageText &request);
 
+  void on_request(uint64 id, td_api::translateMessageRichMessage &request);
+
   void on_request(uint64 id, td_api::summarizeMessage &request);
 
   void on_request(uint64 id, td_api::composeTextWithAi &request);

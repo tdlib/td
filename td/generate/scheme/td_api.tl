@@ -11920,6 +11920,13 @@ translateRichMessage message:inputRichMessage to_language_code:string tone:strin
 //@tone Tone of the translation; see translateText.tone for the list of supported values
 translateMessageText chat_id:int53 message_id:int53 to_language_code:string tone:string = FormattedText;
 
+//@description Extracts rich message of the given message and translates it to the given language
+//@chat_id Identifier of the chat to which the message belongs
+//@message_id Identifier of the message
+//@to_language_code Language code of the language to which the message is translated. See translateText.to_language_code for the list of supported values
+//@tone Tone of the translation; see translateText.tone for the list of supported values
+translateMessageRichMessage chat_id:int53 message_id:int53 to_language_code:string tone:string = RichMessage;
+
 //@description Summarizes content of the message with non-empty summary_language_code
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message

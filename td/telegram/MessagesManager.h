@@ -632,6 +632,9 @@ class MessagesManager final : public Actor {
   void translate_message_text(MessageFullId message_full_id, const string &to_language_code, const string &tone,
                               Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
+  void translate_message_rich_message(MessageFullId message_full_id, const string &to_language_code, const string &tone,
+                                      Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
+
   bool is_message_edited_recently(MessageFullId message_full_id, int32 seconds);
 
   struct ReportDialogFromActionBar {

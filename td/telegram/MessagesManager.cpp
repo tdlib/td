@@ -14807,6 +14807,32 @@ void MessagesManager::translate_message_text(MessageFullId message_full_id, cons
                                             tone, std::move(promise));
 }
 
+void MessagesManager::translate_message_rich_message(MessageFullId message_full_id, const string &to_language_code,
+                                                     const string &tone,
+                                                     Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
+  auto m = get_message_force(message_full_id, "translate_message_rich_message");
+  if (m == nullptr) {
+    return promise.set_error(400, "Message not found");
+  }
+
+  auto message = get_message_content_rich_message(m->content.get());
+  if (message == nullptr) {
+    return promise.set_value(td_api::make_object<td_api::richMessage>());
+  }
+
+  auto dialog_id = message_full_id.get_dialog_id();
+  TranslationManager::InputRichMessage input_rich_message;
+  input_rich_message.message_ = message->clone(td_, dialog_id, MessageContentDupType::ServerCopy);
+  input_rich_message.skip_bot_commands_ = need_skip_bot_commands(message_full_id.get_dialog_id(), m);
+  auto has_autotranslation = dialog_id.get_type() == DialogType::Channel &&
+                             td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) &&
+                             m->message_id.is_server() &&
+                             td_->chat_manager_->get_channel_autotranslation(dialog_id.get_channel_id());
+  td_->translation_manager_->translate_rich_message(std::move(input_rich_message),
+                                                    has_autotranslation ? message_full_id : MessageFullId(),
+                                                    to_language_code, tone, std::move(promise));
+}
+
 void MessagesManager::reload_dialog_notification_settings(DialogId dialog_id, Promise<Unit> &&promise,
                                                           const char *source) {
   LOG(INFO) << "Reload notification settings for " << dialog_id << " from " << source;
