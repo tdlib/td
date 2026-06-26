@@ -687,10 +687,15 @@ void TranslationManager::proofread_message_with_ai(td_api::object_ptr<td_api::fo
 
 void TranslationManager::compose_rich_message_with_ai(td_api::object_ptr<td_api::inputRichMessage> &&message,
                                                       const string &translate_to_language_code, const string &tone,
-                                                      bool emojify,
+                                                      const string &custom_prompt, bool emojify,
                                                       Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_rich_message, get_input_rich_message(std::move(message)));
-  TRY_RESULT_PROMISE(promise, input_tone, ai_compose_tones_.get_input_ai_compose_tone(tone));
+  telegram_api::object_ptr<telegram_api::InputAiComposeTone> input_tone;
+  if (custom_prompt.empty()) {
+    TRY_RESULT_PROMISE_ASSIGN(promise, input_tone, ai_compose_tones_.get_input_ai_compose_tone(tone));
+  } else {
+    input_tone = telegram_api::make_object<telegram_api::inputAiComposeToneSingleUse>(custom_prompt);
+  }
   td_->create_handler<ComposeRichMessageWithAiQuery>(std::move(promise))
       ->send(true, input_rich_message, translate_to_language_code, std::move(input_tone), emojify, false);
 }

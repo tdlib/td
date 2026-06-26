@@ -5230,14 +5230,15 @@ class CliClient final : public Actor {
       get_args(args, to_language_code, style_name, emojify, text);
       send_request(td_api::make_object<td_api::composeTextWithAi>(as_formatted_text(text), to_language_code, style_name,
                                                                   emojify));
-    } else if (op == "crmwa") {
+    } else if (op == "crmwa" || op == "crmwac") {
       string to_language_code;
       string style_name;
       bool emojify;
       string message;
       get_args(args, to_language_code, style_name, emojify, message);
-      send_request(td_api::make_object<td_api::composeRichMessageWithAi>(as_input_rich_message(message),
-                                                                         to_language_code, style_name, emojify));
+      send_request(td_api::make_object<td_api::composeRichMessageWithAi>(
+          as_input_rich_message(message), to_language_code, style_name, op == "crmwac" ? "Make text uppercase" : "",
+          emojify));
     } else if (op == "ftwa") {
       string text;
       get_args(args, text);

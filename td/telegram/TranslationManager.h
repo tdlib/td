@@ -59,7 +59,8 @@ class TranslationManager final : public Actor {
                                Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   void compose_rich_message_with_ai(td_api::object_ptr<td_api::inputRichMessage> &&message,
-                                    const string &translate_to_language_code, const string &tone, bool emojify,
+                                    const string &translate_to_language_code, const string &tone,
+                                    const string &custom_prompt, bool emojify,
                                     Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
 
   void proofread_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
