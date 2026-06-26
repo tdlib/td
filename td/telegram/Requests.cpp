@@ -8134,6 +8134,13 @@ void Requests::on_request(uint64 id, td_api::getWebAppUrl &request) {
                                                         std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getGuardBotWebAppUrl &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->dialog_participant_manager_->get_chat_join_web_view_url(
+      request.query_id_, WebAppOpenParameters(std::move(request.parameters_)), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::sendWebAppData &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.button_text_);

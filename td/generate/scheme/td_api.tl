@@ -2525,9 +2525,8 @@ chatJoinResultRequestSent = ChatJoinResult;
 
 //@description An approval from a guard bot through a Web App is required to join the chat
 //@bot_user_id Identifier of the guard bot
-//@url The URL of the Web App to open
-//@query_id Unique identifier of the join request, which will be used in updateChatJoinResult
-chatJoinResultGuardBotApprovalRequired bot_user_id:int53 url:webAppUrl query_id:int53 = ChatJoinResult;
+//@query_id Unique identifier of the join request, which will be used in getGuardBotWebAppUrl and updateChatJoinResult
+chatJoinResultGuardBotApprovalRequired bot_user_id:int53 query_id:int64 = ChatJoinResult;
 
 //@description The join was declined by the guard bot
 chatJoinResultDeclined = ChatJoinResult;
@@ -12771,6 +12770,11 @@ getMainWebApp chat_id:int53 bot_user_id:int53 start_parameter:string parameters:
 //@url The URL from a keyboardButtonTypeWebApp button, inlineQueryResultsButtonTypeWebApp button, or an empty string when the bot is opened from the side menu
 //@parameters Parameters to use to open the Web App
 getWebAppUrl bot_user_id:int53 url:string parameters:webAppOpenParameters = WebAppUrl;
+
+//@description Returns an HTTPS URL of a Web App of a guard bot to open after receiving chatJoinResultGuardBotApprovalRequired
+//@query_id Unique identifier of the join request as received in chatJoinResultGuardBotApprovalRequired
+//@parameters Parameters to use to open the Web App
+getGuardBotWebAppUrl query_id:int64 parameters:webAppOpenParameters = WebAppUrl;
 
 //@description Sends data received from a keyboardButtonTypeWebApp Web App to a bot
 //@bot_user_id Identifier of the target bot

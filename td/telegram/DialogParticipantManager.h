@@ -16,6 +16,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/WebAppOpenParameters.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"
@@ -117,6 +118,9 @@ class DialogParticipantManager final : public Actor {
                                   Promise<DialogParticipants> &&promise);
 
   void join_dialog(DialogId dialog_id, Promise<td_api::object_ptr<td_api::ChatJoinResult>> &&promise);
+
+  void get_chat_join_web_view_url(int64 query_id, WebAppOpenParameters parameters,
+                                  Promise<td_api::object_ptr<td_api::webAppUrl>> &&promise);
 
   void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,
                               Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise);

@@ -6320,6 +6320,10 @@ class CliClient final : public Actor {
       string url;
       get_args(args, bot_user_id, url);
       send_request(td_api::make_object<td_api::getWebAppUrl>(bot_user_id, url, as_web_app_open_parameters()));
+    } else if (op == "ggbwau") {
+      int64 query_id;
+      get_args(args, query_id);
+      send_request(td_api::make_object<td_api::getGuardBotWebAppUrl>(query_id, as_web_app_open_parameters()));
     } else if (op == "swad") {
       UserId bot_user_id;
       string button_text;

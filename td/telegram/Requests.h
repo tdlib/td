@@ -1752,6 +1752,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::getWebAppUrl &request);
 
+  void on_request(uint64 id, td_api::getGuardBotWebAppUrl &request);
+
   void on_request(uint64 id, td_api::sendWebAppData &request);
 
   void on_request(uint64 id, td_api::openWebApp &request);
