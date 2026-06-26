@@ -2845,6 +2845,15 @@ void Requests::on_request(uint64 id, td_api::translateText &request) {
                                             std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::translateRichMessage &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.to_language_code_);
+  CLEAN_INPUT_STRING(request.tone_);
+  CREATE_REQUEST_PROMISE();
+  td_->translation_manager_->translate_rich_message(std::move(request.message_), request.to_language_code_,
+                                                    request.tone_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::translateMessageText &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.to_language_code_);

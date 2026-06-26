@@ -338,6 +338,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::translateText &request);
 
+  void on_request(uint64 id, td_api::translateRichMessage &request);
+
   void on_request(uint64 id, td_api::translateMessageText &request);
 
   void on_request(uint64 id, td_api::summarizeMessage &request);

@@ -82,6 +82,59 @@ class TranslateTextQuery final : public Td::ResultHandler {
   }
 };
 
+class TranslateRichMessageQuery final : public Td::ResultHandler {
+  Promise<vector<telegram_api::object_ptr<telegram_api::richMessage>>> promise_;
+
+ public:
+  explicit TranslateRichMessageQuery(Promise<vector<telegram_api::object_ptr<telegram_api::richMessage>>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(vector<telegram_api::object_ptr<telegram_api::InputRichMessage>> &&rich_messages,
+            MessageFullId message_full_id, const string &to_language_code, string tone) {
+    int32 flags = 0;
+    if (tone == "neutral") {
+      tone.clear();
+    }
+    if (!tone.empty()) {
+      flags |= telegram_api::messages_translateRichMessage::TONE_MASK;
+    }
+    if (message_full_id.get_message_id().is_valid()) {
+      CHECK(rich_messages.size() == 1u);
+      flags |= telegram_api::messages_translateRichMessage::PEER_MASK;
+      auto input_peer = td_->dialog_manager_->get_input_peer(message_full_id.get_dialog_id(), AccessRights::Read);
+      CHECK(input_peer != nullptr);
+      auto message_ids = {message_full_id.get_message_id().get_server_message_id().get()};
+      send_query(G()->net_query_creator().create(telegram_api::messages_translateRichMessage(
+          flags, std::move(input_peer), std::move(message_ids), Auto(), to_language_code, tone)));
+    } else {
+      flags |= telegram_api::messages_translateRichMessage::TEXT_MASK;
+      send_query(G()->net_query_creator().create(telegram_api::messages_translateRichMessage(
+          flags, nullptr, vector<int32>{}, std::move(rich_messages), to_language_code, tone)));
+    }
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_translateRichMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for TranslateRichMessageQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr->result_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "INPUT_TEXT_EMPTY") {
+      vector<telegram_api::object_ptr<telegram_api::richMessage>> result;
+      result.push_back(telegram_api::make_object<telegram_api::richMessage>());
+      return promise_.set_value(std::move(result));
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetAiComposeTonesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -505,6 +558,65 @@ void TranslationManager::on_get_translated_texts(vector<telegram_api::object_ptr
                                            true, "on_get_translated_texts");
   promise.set_value(
       get_formatted_text_object(td_->user_manager_.get(), formatted_text, skip_bot_commands, max_media_timestamp));
+}
+
+Result<TranslationManager::InputRichMessage> TranslationManager::get_input_rich_message(
+    td_api::object_ptr<td_api::inputRichMessage> &&message) const {
+  TRY_RESULT(rich_message, RichMessage::get_rich_message(td_, DialogId(), std::move(message), false));
+
+  InputRichMessage input_rich_message;
+  input_rich_message.skip_bot_commands_ = !rich_message.has_bot_commands();
+  input_rich_message.message_ = std::move(rich_message);
+  return std::move(input_rich_message);
+}
+
+void TranslationManager::translate_rich_message(td_api::object_ptr<td_api::inputRichMessage> &&message,
+                                                const string &to_language_code, const string &tone,
+                                                Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_rich_message, get_input_rich_message(std::move(message)));
+  translate_rich_message(std::move(input_rich_message), MessageFullId(), to_language_code, tone, std::move(promise));
+}
+
+void TranslationManager::translate_rich_message(InputRichMessage &&rich_message, MessageFullId message_full_id,
+                                                const string &to_language_code, const string &tone,
+                                                Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
+  auto input_rich_message = rich_message.message_.get_input_rich_message(td_);
+  if (input_rich_message == nullptr) {
+    return promise.set_error(400, "Invalid rich message specified");
+  }
+  vector<telegram_api::object_ptr<telegram_api::InputRichMessage>> input_rich_messages;
+  input_rich_messages.push_back(std::move(input_rich_message));
+
+  if (tone != string() && tone != "formal" && tone != "neutral" && tone != "casual") {
+    return promise.set_error(400, "Invalid tone specified");
+  }
+
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), skip_bot_commands = rich_message.skip_bot_commands_, promise = std::move(promise)](
+          Result<vector<telegram_api::object_ptr<telegram_api::richMessage>>> result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &TranslationManager::on_get_translated_rich_messages, result.move_as_ok(),
+                     skip_bot_commands, std::move(promise));
+      });
+
+  td_->create_handler<TranslateRichMessageQuery>(std::move(query_promise))
+      ->send(std::move(input_rich_messages), message_full_id, to_language_code, tone);
+}
+
+void TranslationManager::on_get_translated_rich_messages(
+    vector<telegram_api::object_ptr<telegram_api::richMessage>> rich_messages, bool skip_bot_commands,
+    Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (rich_messages.size() != 1u) {
+    if (rich_messages.empty()) {
+      return promise.set_error(500, "Translation failed");
+    }
+    return promise.set_error(500, "Receive invalid number of results");
+  }
+  auto rich_message = RichMessage(td_, std::move(rich_messages[0]), DialogId());
+  promise.set_value(rich_message.get_rich_message_object(td_, skip_bot_commands));
 }
 
 void TranslationManager::compose_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
