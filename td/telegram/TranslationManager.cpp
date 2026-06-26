@@ -404,6 +404,56 @@ class ComposeMessageWithAiQuery final : public Td::ResultHandler {
   }
 };
 
+class ComposeRichMessageWithAiQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::richMessage>> promise_;
+  bool skip_bot_commands_;
+
+ public:
+  explicit ComposeRichMessageWithAiQuery(Promise<td_api::object_ptr<td_api::richMessage>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(bool has_message, const TranslationManager::InputRichMessage &message,
+            const string &translate_to_language_code,
+            telegram_api::object_ptr<telegram_api::InputAiComposeTone> &&input_tone, bool emojify, bool proofread) {
+    skip_bot_commands_ = message.skip_bot_commands_;
+    telegram_api::object_ptr<telegram_api::InputRichMessage> input_rich_message;
+
+    int32 flags = 0;
+    if (!translate_to_language_code.empty()) {
+      flags |= telegram_api::messages_composeMessageWithAI::TRANSLATE_TO_LANG_MASK;
+    }
+    if (input_tone != nullptr) {
+      flags |= telegram_api::messages_composeMessageWithAI::TONE_MASK;
+    }
+    if (has_message) {
+      flags |= telegram_api::messages_composeRichMessageWithAI::TEXT_MASK;
+      input_rich_message = message.message_.get_input_rich_message(td_);
+      if (input_rich_message == nullptr) {
+        return on_error(Status::Error(400, "Invalid rich message specified"));
+      }
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_composeRichMessageWithAI(
+        flags, proofread, emojify, std::move(input_rich_message), translate_to_language_code, std::move(input_tone))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_composeRichMessageWithAI>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ComposeRichMessageWithAiQuery: " << to_string(ptr);
+    auto rich_message = RichMessage(td_, std::move(ptr->result_), DialogId());
+    promise_.set_value(rich_message.get_rich_message_object(td_, skip_bot_commands_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ProofreadMessageWithAiQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::fixedText>> promise_;
   bool skip_bot_commands_;
@@ -633,6 +683,16 @@ void TranslationManager::proofread_message_with_ai(td_api::object_ptr<td_api::fo
                                                    Promise<td_api::object_ptr<td_api::fixedText>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_text, get_input_text(std::move(text)));
   td_->create_handler<ProofreadMessageWithAiQuery>(std::move(promise))->send(input_text);
+}
+
+void TranslationManager::compose_rich_message_with_ai(td_api::object_ptr<td_api::inputRichMessage> &&message,
+                                                      const string &translate_to_language_code, const string &tone,
+                                                      bool emojify,
+                                                      Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_rich_message, get_input_rich_message(std::move(message)));
+  TRY_RESULT_PROMISE(promise, input_tone, ai_compose_tones_.get_input_ai_compose_tone(tone));
+  td_->create_handler<ComposeRichMessageWithAiQuery>(std::move(promise))
+      ->send(true, input_rich_message, translate_to_language_code, std::move(input_tone), emojify, false);
 }
 
 string TranslationManager::get_ai_compose_tones_key() {
