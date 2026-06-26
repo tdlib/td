@@ -5239,6 +5239,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::composeRichMessageWithAi>(
           as_input_rich_message(message), to_language_code, style_name, op == "crmwac" ? "Make text uppercase" : "",
           emojify));
+    } else if (op == "cnrmwa") {
+      string language_code;
+      bool emojify;
+      string prompt;
+      get_args(args, language_code, emojify, prompt);
+      send_request(td_api::make_object<td_api::createRichMessageWithAi>(prompt, language_code, emojify));
     } else if (op == "ftwa") {
       string text;
       get_args(args, text);

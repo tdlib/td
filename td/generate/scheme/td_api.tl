@@ -11941,7 +11941,7 @@ summarizeMessage chat_id:int53 message_id:int53 translate_to_language_code:strin
 //@add_emojis Pass true to add emoji to the text
 composeTextWithAi text:formattedText translate_to_language_code:string style_name:string add_emojis:Bool = FormattedText;
 
-//@description Changes rich messages using an AI model. May return an error with a message "AICOMPOSE_FLOOD_PREMIUM" if Telegram Premium is required to send further requests
+//@description Changes a rich message using an AI model. May return an error with a message "AICOMPOSE_FLOOD_PREMIUM" if Telegram Premium is required to send further requests
 //@message The original message
 //@translate_to_language_code Pass a language code to which the text will be translated; pass an empty string if translation isn't needed. See translateText.to_language_code for the list of supported values
 //@style_name Name of the style of the resulted text; handle updateTextCompositionStyles to get the list of supported styles; pass an empty string to keep the current style of the text or if a custom prompt is used
@@ -11949,11 +11949,17 @@ composeTextWithAi text:formattedText translate_to_language_code:string style_nam
 //@add_emojis Pass true to add emoji to the text
 composeRichMessageWithAi message:inputRichMessage translate_to_language_code:string style_name:string custom_prompt:string add_emojis:Bool = RichMessage;
 
+//@description Creates a new rich message using an AI model. May return an error with a message "AICOMPOSE_FLOOD_PREMIUM" if Telegram Premium is required to send further requests
+//@prompt Prompt that will be used to create the message; 0-getOption("text_composition_style_prompt_length_max") characters
+//@language_code Pass a language code in which the text will be created
+//@add_emojis Pass true to add emoji to the text
+createRichMessageWithAi prompt:string language_code:string add_emojis:Bool = RichMessage;
+
 //@description Fixes text using an AI model; must not be used in secret chats. May return an error with a message "AICOMPOSE_FLOOD_PREMIUM" if Telegram Premium is required to send further requests
 //@text The original text
 fixTextWithAi text:formattedText = FixedText;
 
-//@description Fixes rich message using an AI model. May return an error with a message "AICOMPOSE_FLOOD_PREMIUM" if Telegram Premium is required to send further requests
+//@description Fixes a rich message using an AI model. May return an error with a message "AICOMPOSE_FLOOD_PREMIUM" if Telegram Premium is required to send further requests
 //@message The original message
 fixRichMessageWithAi message:inputRichMessage = RichMessage;
 

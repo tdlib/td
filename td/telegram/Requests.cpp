@@ -2901,6 +2901,15 @@ void Requests::on_request(uint64 id, td_api::composeRichMessageWithAi &request) 
       request.add_emojis_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::createRichMessageWithAi &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.language_code_);
+  CLEAN_INPUT_STRING(request.prompt_);
+  CREATE_REQUEST_PROMISE();
+  td_->translation_manager_->create_rich_message_with_ai(request.prompt_, request.language_code_, request.add_emojis_,
+                                                         std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::fixTextWithAi &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
