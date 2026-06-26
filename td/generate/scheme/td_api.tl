@@ -11952,6 +11952,10 @@ composeRichMessageWithAi message:inputRichMessage translate_to_language_code:str
 //@text The original text
 fixTextWithAi text:formattedText = FixedText;
 
+//@description Fixes rich message using an AI model. May return an error with a message "AICOMPOSE_FLOOD_PREMIUM" if Telegram Premium is required to send further requests
+//@message The original message
+fixRichMessageWithAi message:inputRichMessage = RichMessage;
+
 //@description Recognizes speech in a video note or a voice note message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message. Use messageProperties.can_recognize_speech to check whether the message is suitable

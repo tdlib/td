@@ -5242,6 +5242,10 @@ class CliClient final : public Actor {
       string text;
       get_args(args, text);
       send_request(td_api::make_object<td_api::fixTextWithAi>(as_formatted_text(text)));
+    } else if (op == "frmwa") {
+      string message;
+      get_args(args, message);
+      send_request(td_api::make_object<td_api::fixRichMessageWithAi>(as_input_rich_message(message)));
     } else if (op == "rs") {
       ChatId chat_id;
       MessageId message_id;

@@ -695,6 +695,13 @@ void TranslationManager::compose_rich_message_with_ai(td_api::object_ptr<td_api:
       ->send(true, input_rich_message, translate_to_language_code, std::move(input_tone), emojify, false);
 }
 
+void TranslationManager::proofread_rich_message_with_ai(td_api::object_ptr<td_api::inputRichMessage> &&message,
+                                                        Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_rich_message, get_input_rich_message(std::move(message)));
+  td_->create_handler<ComposeRichMessageWithAiQuery>(std::move(promise))
+      ->send(true, input_rich_message, string(), nullptr, false, true);
+}
+
 string TranslationManager::get_ai_compose_tones_key() {
   return "ai_compose_styles";
 }

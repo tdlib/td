@@ -2906,6 +2906,12 @@ void Requests::on_request(uint64 id, td_api::fixTextWithAi &request) {
   td_->translation_manager_->proofread_message_with_ai(std::move(request.text_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::fixRichMessageWithAi &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->translation_manager_->proofread_rich_message_with_ai(std::move(request.message_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::recognizeSpeech &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

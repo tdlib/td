@@ -65,6 +65,9 @@ class TranslationManager final : public Actor {
   void proofread_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
                                  Promise<td_api::object_ptr<td_api::fixedText>> &&promise);
 
+  void proofread_rich_message_with_ai(td_api::object_ptr<td_api::inputRichMessage> &&message,
+                                      Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
+
   void reload_ai_compose_tones(Promise<Unit> &&promise);
 
   void on_get_ai_compose_tones(telegram_api::object_ptr<telegram_api::aicompose_Tones> &&tones_ptr);
