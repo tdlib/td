@@ -3724,7 +3724,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           return "tg://stars";
         }
         case td_api::settingsSectionMyGrams::ID:
-          return "tg://grams";
+          return "tg://ton";
         case td_api::settingsSectionNotifications::ID: {
           const auto &subsection = static_cast<const td_api::settingsSectionNotifications *>(section_ptr)->subsection_;
           if (td::contains(get_notification_settings_subsections(), subsection)) {
