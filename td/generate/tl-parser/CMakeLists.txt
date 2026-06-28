@@ -14,6 +14,11 @@ endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
+# Vendored wgetopt.c uses K&R declarations that are rejected by C23 (GCC 15+ default).
+if (CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+  set_target_properties(${PROJECT_NAME} PROPERTIES C_STANDARD 11)
+endif()
+
 if (NOT WIN32)
   target_link_libraries(${PROJECT_NAME} PRIVATE m)
 endif()
