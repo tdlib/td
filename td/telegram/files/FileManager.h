@@ -513,6 +513,16 @@ class FileManager final : public Actor {
   bool set_encryption_key(FileId file_id, FileEncryptionKey key);
   bool set_content(FileId file_id, BufferSlice bytes);
 
+  // readFileRemotePart implementation: fetch a remote byte range without
+  // persisting it locally. See StreamGetFileActor in FileManager.cpp.
+  void download_stream_part(FileId file_id, int64 offset, int32 count,
+                            Promise<td_api::object_ptr<td_api::data>> promise);
+
+  // Internal helpers used by StreamGetFileActor to recover from FILE_REFERENCE_EXPIRED.
+  void repair_stream_file_reference(FileId file_id, string bad_reference,
+                                    Promise<FullRemoteFileLocation> promise);
+  void on_stream_file_reference_repaired(FileId file_id, Promise<FullRemoteFileLocation> promise);
+
   void check_local_location(FileId file_id, bool skip_file_size_checks);
   void check_local_location_async(FileId file_id, bool skip_file_size_checks);
 
@@ -803,6 +813,7 @@ class FileManager final : public Actor {
   FlatHashMap<FileId, UserFileDownloadInfo, FileIdHash> pending_user_file_downloads_;
 
   class UserDownloadFileCallback;
+  class StreamingDownloadFileCallback;
 
   std::shared_ptr<UserDownloadFileCallback> user_download_file_callback_;
 

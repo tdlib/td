@@ -1237,6 +1237,7 @@ class Requests {
   void on_request(uint64 id, td_api::finishFileGeneration &request);
 
   void on_request(uint64 id, const td_api::readFilePart &request);
+  void on_request(uint64 id, const td_api::readFileRemotePart &request);
 
   void on_request(uint64 id, const td_api::deleteFile &request);
 

@@ -6347,6 +6347,20 @@ void Requests::on_request(uint64 id, const td_api::readFilePart &request) {
                request.count_, 2, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::readFileRemotePart &request) {
+  auto data_promise = PromiseCreator::lambda(
+      [actor_id = td_actor_, id](Result<td_api::object_ptr<td_api::data>> r) mutable {
+        if (r.is_error()) {
+          send_closure(actor_id, &Td::send_error, id, r.move_as_error());
+        } else {
+          send_closure(actor_id, &Td::send_result, id, r.move_as_ok());
+        }
+      });
+  send_closure(td_->file_manager_actor_, &FileManager::download_stream_part, FileId(request.file_id_, 0),
+               static_cast<int64>(request.offset_), static_cast<int32>(request.count_),
+               std::move(data_promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::deleteFile &request) {
   CREATE_OK_REQUEST_PROMISE();
   send_closure(td_->file_manager_actor_, &FileManager::delete_file, FileId(request.file_id_, 0), std::move(promise),

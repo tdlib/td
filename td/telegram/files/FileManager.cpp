@@ -1,3 +1,4 @@
+#include "td/telegram/telegram_api.h"
 //
 // Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 //
@@ -15,6 +16,228 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileLocation.hpp"
 #include "td/telegram/Global.h"
+#include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/net/NetQuery.h"
+#include "td/actor/actor.h"
+#include "td/utils/as.h"
+#include "td/utils/crypto.h"
+
+namespace td {
+// One-shot actor that fetches a remote byte range via the patched
+// readFileRemotePart streaming path. Supports:
+//   * Direct upload.getFile from the file's home DC (cdn_supported=true,
+//     so we may instead get back upload.fileCdnRedirect)
+//   * CDN: upload.getCdnFile to the CDN DC, AES-CTR-decrypt the bytes
+//   * Reupload-needed: upload.reuploadCdnFile against the primary DC,
+//     then retry the CDN fetch
+//   * FILE_REFERENCE_EXPIRED: clear cached CDN state, refresh the
+//     remote location via FileManager, restart from the Direct phase
+// Actor stops itself after fulfilling its promise.
+class StreamGetFileActor final : public NetQueryCallback {
+ public:
+  StreamGetFileActor(FileId file_id, int64 offset, int32 length, FullRemoteFileLocation remote,
+                     ActorId<FileManager> file_manager, Promise<string> promise)
+      : file_id_(file_id),
+        offset_(offset),
+        length_(length),
+        remote_(std::move(remote)),
+        file_manager_(std::move(file_manager)),
+        promise_(std::move(promise)) {
+  }
+
+  void start_up() override {
+    dispatch_query();
+  }
+
+  void on_result(NetQueryPtr net_query) override {
+    if (net_query->is_error()) {
+      return handle_error(net_query->move_as_error());
+    }
+    auto ctor = net_query->ok_tl_constructor();
+    switch (last_phase_) {
+      case Phase::Direct:
+        return on_direct_result(ctor, std::move(net_query));
+      case Phase::Cdn:
+        return on_cdn_result(ctor, std::move(net_query));
+      case Phase::Reupload:
+        return on_reupload_result(std::move(net_query));
+    }
+  }
+
+  void hangup() override {
+    if (promise_) {
+      promise_.set_error(Status::Error(500, "Canceled"));
+    }
+    stop();
+  }
+
+ private:
+  enum class Phase { Direct, Cdn, Reupload };
+
+  FileId file_id_;
+  int64 offset_;
+  int32 length_;
+  FullRemoteFileLocation remote_;
+  ActorId<FileManager> file_manager_;
+  Promise<string> promise_;
+  int retries_left_ = 3;
+
+  Phase last_phase_ = Phase::Direct;
+  bool have_cdn_ = false;
+  string cdn_file_token_;
+  DcId cdn_dc_id_;
+  string cdn_encryption_key_;  // 32 bytes
+  string cdn_encryption_iv_;   // 16 bytes
+  string cdn_reupload_token_;  // non-empty triggers a Reupload phase
+
+  void dispatch_query() {
+    NetQueryPtr net_query;
+    if (!have_cdn_) {
+      auto input_location = remote_.as_input_file_location();
+      if (!input_location) {
+        promise_.set_error(Status::Error(400, "Can't create input file location"));
+        return stop();
+      }
+      last_phase_ = Phase::Direct;
+      net_query = G()->net_query_creator().create(
+          telegram_api::upload_getFile(0, false, /*cdn_supported=*/true,
+                                       std::move(input_location), offset_, length_),
+          {}, remote_.get_dc_id());
+    } else if (!cdn_reupload_token_.empty()) {
+      last_phase_ = Phase::Reupload;
+      net_query = G()->net_query_creator().create(
+          telegram_api::upload_reuploadCdnFile(BufferSlice(cdn_file_token_),
+                                               BufferSlice(cdn_reupload_token_)),
+          {}, remote_.get_dc_id());
+      cdn_reupload_token_.clear();
+    } else {
+      last_phase_ = Phase::Cdn;
+      net_query = G()->net_query_creator().create_unauth(
+          telegram_api::upload_getCdnFile(BufferSlice(cdn_file_token_), offset_, length_),
+          cdn_dc_id_);
+    }
+    G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this));
+  }
+
+  void on_direct_result(int32 ctor, NetQueryPtr net_query) {
+    if (ctor == telegram_api::upload_fileCdnRedirect::ID) {
+      auto r = fetch_result<telegram_api::upload_getFile>(net_query->ok());
+      if (r.is_error()) {
+        promise_.set_error(r.move_as_error());
+        return stop();
+      }
+      auto redirect = move_tl_object_as<telegram_api::upload_fileCdnRedirect>(r.move_as_ok());
+      cdn_file_token_ = redirect->file_token_.as_slice().str();
+      cdn_dc_id_ = DcId::external(redirect->dc_id_);
+      cdn_encryption_key_ = redirect->encryption_key_.as_slice().str();
+      cdn_encryption_iv_ = redirect->encryption_iv_.as_slice().str();
+      if (cdn_encryption_key_.size() != 32 || cdn_encryption_iv_.size() != 16) {
+        promise_.set_error(Status::Error(500, "Invalid CDN key or IV size"));
+        return stop();
+      }
+      have_cdn_ = true;
+      return dispatch_query();
+    }
+    if (ctor != telegram_api::upload_file::ID) {
+      promise_.set_error(Status::Error(500, "Unexpected upload.getFile response"));
+      return stop();
+    }
+    auto r = fetch_result<telegram_api::upload_getFile>(net_query->ok());
+    if (r.is_error()) {
+      promise_.set_error(r.move_as_error());
+      return stop();
+    }
+    auto file = move_tl_object_as<telegram_api::upload_file>(r.move_as_ok());
+
+    promise_.set_value(file->bytes_.as_slice().str());
+    stop();
+  }
+
+  void on_cdn_result(int32 ctor, NetQueryPtr net_query) {
+    if (ctor == telegram_api::upload_cdnFileReuploadNeeded::ID) {
+      auto r = fetch_result<telegram_api::upload_getCdnFile>(net_query->ok());
+      if (r.is_error()) {
+        promise_.set_error(r.move_as_error());
+        return stop();
+      }
+      auto reup = move_tl_object_as<telegram_api::upload_cdnFileReuploadNeeded>(r.move_as_ok());
+      cdn_reupload_token_ = reup->request_token_.as_slice().str();
+      return dispatch_query();
+    }
+    if (ctor != telegram_api::upload_cdnFile::ID) {
+      promise_.set_error(Status::Error(500, "Unexpected upload.getCdnFile response"));
+      return stop();
+    }
+    auto r = fetch_result<telegram_api::upload_getCdnFile>(net_query->ok());
+    if (r.is_error()) {
+      promise_.set_error(r.move_as_error());
+      return stop();
+    }
+    auto cdn = move_tl_object_as<telegram_api::upload_cdnFile>(r.move_as_ok());
+    BufferSlice bytes = std::move(cdn->bytes_);
+
+    // AES-CTR decrypt. Counter for the first block = offset/16, written
+    // into IV[12..16] as a big-endian uint32 (mirrors FileDownloader).
+    if (offset_ % 16 != 0) {
+      promise_.set_error(Status::Error(500, "CDN offset must be 16-byte aligned"));
+      return stop();
+    }
+    auto ctr = narrow_cast<uint32>(offset_ / 16);
+    ctr = ((ctr & 0xff) << 24) | ((ctr & 0xff00) << 8)
+        | ((ctr & 0xff0000) >> 8) | ((ctr & 0xff000000) >> 24);
+    string iv = cdn_encryption_iv_;
+    as<uint32>(&iv[12]) = ctr;
+    AesCtrState ctr_state;
+    ctr_state.init(cdn_encryption_key_, iv);
+    ctr_state.decrypt(bytes.as_slice(), bytes.as_mutable_slice());
+
+    promise_.set_value(bytes.as_slice().str());
+    stop();
+  }
+
+  void on_reupload_result(NetQueryPtr net_query) {
+    // upload.reuploadCdnFile returns Vector<FileHash>. We don't verify
+    // hashes in this first cut — just retry the CDN fetch on success.
+    auto r = fetch_result<telegram_api::upload_reuploadCdnFile>(net_query->ok());
+    if (r.is_error()) {
+      promise_.set_error(r.move_as_error());
+      return stop();
+    }
+    return dispatch_query();
+  }
+
+  void handle_error(Status error) {
+    if (retries_left_ > 0 && FileReferenceManager::is_file_reference_error(error)) {
+      retries_left_--;
+      // Reset CDN state — after a file_reference refresh we restart from
+      // the Direct phase so a new redirect (and fresh CDN token) is issued.
+      have_cdn_ = false;
+      cdn_reupload_token_.clear();
+      string bad_reference = remote_.get_file_reference().str();
+      send_closure(file_manager_, &FileManager::repair_stream_file_reference, file_id_, std::move(bad_reference),
+                   PromiseCreator::lambda([actor_id = actor_id(this)](Result<FullRemoteFileLocation> r) {
+                     send_closure(actor_id, &StreamGetFileActor::on_reference_repaired, std::move(r));
+                   }));
+      return;
+    }
+    LOG(INFO) << "readFileRemotePart failed: phase=" << static_cast<int>(last_phase_)
+              << " file_id=" << file_id_.get()
+              << " offset=" << offset_ << " length=" << length_
+              << ": " << error;
+    promise_.set_error(std::move(error));
+    stop();
+  }
+
+  void on_reference_repaired(Result<FullRemoteFileLocation> r_remote) {
+    if (r_remote.is_error()) {
+      promise_.set_error(r_remote.move_as_error());
+      return stop();
+    }
+    remote_ = r_remote.move_as_ok();
+    dispatch_query();
+  }
+};
+}  // namespace td
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/SecureStorage.h"
@@ -51,6 +274,86 @@ namespace td {
 namespace {
 constexpr int64 MAX_FILE_SIZE = static_cast<int64>(4000) << 20;  // 4000MB
 }  // namespace
+
+void FileManager::download_stream_part(FileId file_id, int64 offset, int32 count,
+                                       Promise<td_api::object_ptr<td_api::data>> promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  constexpr int32 MAX_COUNT = 1024 * 1024;  // MTProto upload.getFile hard limit
+  if (offset < 0) {
+    return promise.set_error(Status::Error(400, "Offset must be non-negative"));
+  }
+  if (count <= 0 || count > MAX_COUNT) {
+    return promise.set_error(Status::Error(400, PSLICE() << "count must be in 1.." << MAX_COUNT));
+  }
+  // MTProto upload.getFile requires offset%4096==0, count%4096==0, 1MB%count==0,
+  // and the range must lie within a single 1 MiB block.
+  constexpr int32 ALIGN = 4096;
+  if (offset % ALIGN != 0) {
+    return promise.set_error(Status::Error(400, "offset must be a multiple of 4096"));
+  }
+  if (count % ALIGN != 0 || MAX_COUNT % count != 0) {
+    return promise.set_error(Status::Error(400, "count must be a power-of-two multiple of 4096 up to 1048576"));
+  }
+  if (offset / MAX_COUNT != (offset + count - 1) / MAX_COUNT) {
+    return promise.set_error(Status::Error(400, "Range must not cross a 1 MiB boundary"));
+  }
+
+  auto file_view = get_file_view(file_id);
+  if (file_view.empty()) {
+    return promise.set_error(Status::Error(400, "Unknown file_id"));
+  }
+  if (!file_view.has_full_remote_location()) {
+    return promise.set_error(Status::Error(400, "File has no remote location"));
+  }
+  const auto *remote = file_view.get_full_remote_location();
+  if (remote == nullptr) {
+    return promise.set_error(Status::Error(400, "Remote location unavailable"));
+  }
+
+  Promise<string> raw_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> r) mutable {
+    if (r.is_error()) {
+      return promise.set_error(r.move_as_error());
+    }
+    // The td_api::data.data field is a `bytes` type; the JSON serializer
+    // base64-encodes it automatically. Passing pre-encoded bytes here
+    // would double-encode — the client would see the base64 string of
+    // a base64 string instead of the original bytes.
+    promise.set_value(td_api::make_object<td_api::data>(r.move_as_ok()));
+  });
+
+  create_actor<StreamGetFileActor>("StreamGetFileActor", file_id, offset, count, *remote, actor_id(this),
+                                   std::move(raw_promise))
+      .release();
+}
+
+void FileManager::repair_stream_file_reference(FileId file_id, string bad_reference,
+                                               Promise<FullRemoteFileLocation> promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto node = get_sync_file_node(file_id);
+  if (!node) {
+    return promise.set_error(Status::Error(400, "File not found"));
+  }
+  if (!bad_reference.empty()) {
+    delete_file_reference(file_id, bad_reference);
+  }
+  context_->repair_file_reference(
+      file_id, PromiseCreator::lambda([actor_id = actor_id(this), file_id,
+                                       promise = std::move(promise)](Result<Unit> r) mutable {
+        if (r.is_error()) {
+          return promise.set_error(r.move_as_error());
+        }
+        send_closure(actor_id, &FileManager::on_stream_file_reference_repaired, file_id, std::move(promise));
+      }));
+}
+
+void FileManager::on_stream_file_reference_repaired(FileId file_id, Promise<FullRemoteFileLocation> promise) {
+  auto file_view = get_file_view(file_id);
+  if (file_view.empty() || !file_view.has_full_remote_location()) {
+    return promise.set_error(Status::Error(400, "Remote location lost after repair"));
+  }
+  promise.set_value(FullRemoteFileLocation(*file_view.get_full_remote_location()));
+}
 
 int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
 
@@ -1266,6 +1569,30 @@ void prepare_path_for_pmc(FileType file_type, string &path) {
   path = PathView::relative(path, get_files_base_dir(file_type)).str();
 }
 }  // namespace
+
+class FileManager::StreamingDownloadFileCallback final : public FileManager::DownloadCallback {
+  Promise<string> promise_;
+  int64 offset_;
+  int64 count_;
+
+ public:
+  explicit StreamingDownloadFileCallback(Promise<string> promise, int64 offset, int64 count)
+    : promise_(std::move(promise)), offset_(offset), count_(count) {
+  }
+
+  void on_download_ok(FileId file_id) final {
+    // The partial download is complete, now read the specific part
+    send_closure(G()->file_manager(), &FileManager::read_file_part, file_id, offset_, count_, 2, std::move(promise_));
+  }
+
+  void on_download_error(FileId file_id, Status error) final {
+    promise_.set_error(400, PSLICE() << "Failed to download file part: " << error.message());
+  }
+
+  void on_download_error(Status error) {
+    promise_.set_error(400, PSLICE() << "Failed to download file part: " << error.message());
+  }
+};
 
 class FileManager::UserDownloadFileCallback final : public FileManager::DownloadCallback {
   FileManager *file_manager_;
