@@ -1108,7 +1108,8 @@ void Td::init_file_manager() {
     }
 
     void reload_photo(PhotoSizeSource source, Promise<Unit> promise) final {
-      FileReferenceManager::reload_photo(std::move(source), std::move(promise));
+      send_closure(G()->file_reference_manager(), &FileReferenceManager::reload_photo, std::move(source),
+                   std::move(promise));
     }
 
     bool keep_exact_remote_location() final {
@@ -1128,7 +1129,7 @@ void Td::init_file_manager() {
   file_manager_->init_actor();
   G()->set_file_manager(file_manager_actor_.get());
 
-  file_reference_manager_ = make_unique<FileReferenceManager>(create_reference());
+  file_reference_manager_ = make_unique<FileReferenceManager>(this, create_reference());
   file_reference_manager_actor_ = register_actor("FileReferenceManager", file_reference_manager_.get());
   G()->set_file_reference_manager(file_reference_manager_actor_.get());
 }

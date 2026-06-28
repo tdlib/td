@@ -43,7 +43,7 @@ namespace td {
 
 int VERBOSITY_NAME(file_references) = VERBOSITY_NAME(INFO);
 
-FileReferenceManager::FileReferenceManager(ActorShared<> parent) : parent_(std::move(parent)) {
+FileReferenceManager::FileReferenceManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
 FileReferenceManager::~FileReferenceManager() {
@@ -108,7 +108,6 @@ bool FileReferenceManager::process_file_reference_error(const Status &status, bo
                                                         const vector<FileId> &cover_file_ids,
                                                         const vector<string> &cover_file_references, bool expect_index,
                                                         std::function<void(size_t pos)> on_error) {
-  auto *td_ = G()->td().get_actor_unsafe();
   if (td_->auth_manager_->is_bot() || !is_file_reference_error(status)) {
     return false;
   }
@@ -150,7 +149,6 @@ bool FileReferenceManager::process_file_reference_error(const Status &status, co
                                                         const vector<FileId> &cover_file_ids,
                                                         const vector<string> &cover_file_references, bool expect_index,
                                                         std::function<void(size_t pos)> on_error) {
-  auto *td_ = G()->td().get_actor_unsafe();
   if (td_->auth_manager_->is_bot() || !is_file_reference_error(status)) {
     return false;
   }
@@ -641,7 +639,7 @@ FileReferenceManager::Destination FileReferenceManager::on_query_result(Destinat
 }
 
 void FileReferenceManager::repair_file_reference(NodeId node_id, Promise<> promise) {
-  auto main_file_id = G()->td().get_actor_unsafe()->file_manager_->get_file_view(node_id).get_main_file_id();
+  auto main_file_id = td_->file_manager_->get_file_view(node_id).get_main_file_id();
   VLOG(file_references) << "Repair file reference for file " << node_id << "/" << main_file_id;
   node_id = main_file_id;
   auto &node = add_node(node_id);
@@ -656,20 +654,20 @@ void FileReferenceManager::repair_file_reference(NodeId node_id, Promise<> promi
 }
 
 void FileReferenceManager::reload_photo(PhotoSizeSource source, Promise<Unit> promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   switch (source.get_type("reload_photo")) {
     case PhotoSizeSource::Type::DialogPhotoBig:
     case PhotoSizeSource::Type::DialogPhotoSmall:
     case PhotoSizeSource::Type::DialogPhotoBigLegacy:
     case PhotoSizeSource::Type::DialogPhotoSmallLegacy:
-      send_closure(G()->dialog_manager(), &DialogManager::reload_dialog_info, source.dialog_photo().dialog_id,
-                   std::move(promise));
+      td_->dialog_manager_->reload_dialog_info(source.dialog_photo().dialog_id, std::move(promise));
       break;
     case PhotoSizeSource::Type::StickerSetThumbnail:
     case PhotoSizeSource::Type::StickerSetThumbnailLegacy:
     case PhotoSizeSource::Type::StickerSetThumbnailVersion:
-      send_closure(G()->stickers_manager(), &StickersManager::reload_sticker_set,
-                   StickerSetId(source.sticker_set_thumbnail().sticker_set_id),
-                   source.sticker_set_thumbnail().sticker_set_access_hash, std::move(promise));
+      td_->stickers_manager_->reload_sticker_set(StickerSetId(source.sticker_set_thumbnail().sticker_set_id),
+                                                 source.sticker_set_thumbnail().sticker_set_access_hash,
+                                                 std::move(promise));
       break;
     case PhotoSizeSource::Type::Legacy:
     case PhotoSizeSource::Type::FullLegacy:
@@ -699,8 +697,7 @@ td_api::object_ptr<td_api::message> FileReferenceManager::get_message_object(Fil
   td_api::object_ptr<td_api::message> result;
   file_sources_[index].visit(overloaded(
       [&](const FileSourceMessage &source) {
-        result = G()->td().get_actor_unsafe()->messages_manager_->get_message_object(source.message_full_id,
-                                                                                     "FileReferenceManager");
+        result = td_->messages_manager_->get_message_object(source.message_full_id, "FileReferenceManager");
       },
       [&](const auto &source) { LOG(ERROR) << "Unsupported file source"; }));
   return result;

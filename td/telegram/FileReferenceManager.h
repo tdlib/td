@@ -42,7 +42,7 @@ extern int VERBOSITY_NAME(file_references);
 
 class FileReferenceManager final : public Actor {
  public:
-  explicit FileReferenceManager(ActorShared<> parent);
+  FileReferenceManager(Td *td, ActorShared<> parent);
   FileReferenceManager(const FileReferenceManager &) = delete;
   FileReferenceManager &operator=(const FileReferenceManager &) = delete;
   FileReferenceManager(FileReferenceManager &&) = delete;
@@ -102,7 +102,7 @@ class FileReferenceManager final : public Actor {
 
   td_api::object_ptr<td_api::message> get_message_object(FileSourceId file_source_id) const;
 
-  static void reload_photo(PhotoSizeSource source, Promise<Unit> promise);
+  void reload_photo(PhotoSizeSource source, Promise<Unit> promise);
 
   bool add_file_source(NodeId node_id, FileSourceId file_source_id, const char *source);
 
@@ -248,6 +248,7 @@ class FileReferenceManager final : public Actor {
 
   WaitFreeHashMap<NodeId, unique_ptr<Node>, FileIdHash> nodes_;
 
+  Td *td_;
   ActorShared<> parent_;
 
   Node &add_node(NodeId node_id);
