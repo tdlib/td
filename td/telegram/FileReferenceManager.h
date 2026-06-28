@@ -12,6 +12,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageTopic.h"
 #include "td/telegram/PhotoSizeSource.h"
@@ -55,6 +56,16 @@ class FileReferenceManager final : public Actor {
     bool is_cover_;
   };
   static FileReferenceErrorSource get_file_reference_error_source(const Status &error);
+
+  bool process_file_reference_error(const Status &status, bool was_uploaded,
+                                    const vector<FileUploadId> &file_upload_ids, const vector<string> &file_references,
+                                    const vector<FileId> &cover_file_ids, const vector<string> &cover_file_references,
+                                    bool expect_index, std::function<void(size_t pos)> on_error);
+
+  bool process_file_reference_error(const Status &status, const vector<FileId> &file_ids,
+                                    const vector<string> &file_references, const vector<FileId> &cover_file_ids,
+                                    const vector<string> &cover_file_references, bool expect_index,
+                                    std::function<void(size_t pos)> on_error);
 
   FileSourceId create_message_file_source(MessageFullId message_full_id);
   FileSourceId create_user_photo_file_source(UserId user_id, int64 photo_id);

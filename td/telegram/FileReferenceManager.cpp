@@ -8,6 +8,7 @@
 
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AttachMenuManager.h"
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/BotInfoManager.h"
 #include "td/telegram/ChatManager.h"
@@ -99,6 +100,90 @@ FileReferenceManager::FileReferenceErrorSource FileReferenceManager::get_file_re
     message = message.substr(1);
   }
   return {pos, begins_with(message, "COVER_")};
+}
+
+bool FileReferenceManager::process_file_reference_error(const Status &status, bool was_uploaded,
+                                                        const vector<FileUploadId> &file_upload_ids,
+                                                        const vector<string> &file_references,
+                                                        const vector<FileId> &cover_file_ids,
+                                                        const vector<string> &cover_file_references, bool expect_index,
+                                                        std::function<void(size_t pos)> on_error) {
+  auto *td_ = G()->td().get_actor_unsafe();
+  if (td_->auth_manager_->is_bot() || !is_file_reference_error(status)) {
+    return false;
+  }
+  auto source = get_file_reference_error_source(status);
+  auto pos = source.pos_;
+  if (pos > 0) {
+    pos--;
+  } else if (expect_index) {
+    LOG(ERROR) << "Expected a file reference error with an index";
+    return false;
+  }
+  if (source.is_cover_) {
+    if (pos < cover_file_ids.size() && pos < cover_file_references.size() && cover_file_ids[pos].is_valid()) {
+      VLOG(file_references) << "Receive " << status << " for cover " << cover_file_ids[pos];
+      td_->file_manager_->delete_file_reference(cover_file_ids[pos], cover_file_references[pos]);
+      on_error(pos);
+      return true;
+    } else {
+      LOG(ERROR) << "Receive file reference error " << status << ", but cover_file_ids = " << cover_file_ids
+                 << ", file_references = " << cover_file_references;
+    }
+  } else {
+    if (pos < file_upload_ids.size() && pos < file_references.size() && !was_uploaded &&
+        file_upload_ids[pos].is_valid()) {
+      VLOG(file_references) << "Receive " << status << " for " << file_upload_ids[pos];
+      td_->file_manager_->delete_file_reference(file_upload_ids[pos].get_file_id(), file_references[pos]);
+      on_error(pos);
+      return true;
+    } else {
+      LOG(ERROR) << "Receive file reference error " << status << ", but file_upload_ids = " << file_upload_ids
+                 << ", was_uploaded = " << was_uploaded << ", file_references = " << file_references;
+    }
+  }
+  return false;
+}
+
+bool FileReferenceManager::process_file_reference_error(const Status &status, const vector<FileId> &file_ids,
+                                                        const vector<string> &file_references,
+                                                        const vector<FileId> &cover_file_ids,
+                                                        const vector<string> &cover_file_references, bool expect_index,
+                                                        std::function<void(size_t pos)> on_error) {
+  auto *td_ = G()->td().get_actor_unsafe();
+  if (td_->auth_manager_->is_bot() || !is_file_reference_error(status)) {
+    return false;
+  }
+  auto source = get_file_reference_error_source(status);
+  auto pos = source.pos_;
+  if (pos > 0) {
+    pos--;
+  } else if (expect_index) {
+    LOG(ERROR) << "Expected a file reference error with an index";
+    return false;
+  }
+  if (source.is_cover_) {
+    if (pos < cover_file_ids.size() && pos < cover_file_references.size()) {
+      VLOG(file_references) << "Receive " << status << " for cover " << cover_file_ids[pos];
+      td_->file_manager_->delete_file_reference(cover_file_ids[pos], cover_file_references[pos]);
+      on_error(pos);
+      return true;
+    } else {
+      LOG(ERROR) << "Receive file reference error " << status << ", but cover_file_ids = " << cover_file_ids
+                 << ", file_references = " << cover_file_references;
+    }
+  } else {
+    if (pos < file_ids.size() && pos < file_references.size() && file_ids[pos].is_valid()) {
+      VLOG(file_references) << "Receive " << status << " for " << file_ids[pos];
+      td_->file_manager_->delete_file_reference(file_ids[pos], file_references[pos]);
+      on_error(pos);
+      return true;
+    } else {
+      LOG(ERROR) << "Receive file reference error " << status << ", but file_ids = " << file_ids
+                 << ", file_references = " << file_references;
+    }
+  }
+  return false;
 }
 
 /*
