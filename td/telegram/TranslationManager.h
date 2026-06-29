@@ -50,9 +50,13 @@ class TranslationManager final : public Actor {
   void translate_rich_message(td_api::object_ptr<td_api::inputRichMessage> &&message, const string &to_language_code,
                               const string &tone, Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
 
-  void translate_rich_message(InputRichMessage &&richmessage, MessageFullId message_full_id,
+  void translate_rich_message(InputRichMessage &&input_rich_message, MessageFullId message_full_id,
                               const string &to_language_code, const string &tone,
                               Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
+
+  void do_translate_rich_message(RichMessage &&rich_message, MessageFullId message_full_id,
+                                 const string &to_language_code, const string &tone,
+                                 Promise<vector<telegram_api::object_ptr<telegram_api::richMessage>>> &&promise);
 
   void compose_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
                                const string &translate_to_language_code, const string &tone, bool emojify,

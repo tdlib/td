@@ -13,6 +13,8 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DiffText.h"
+#include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Td.h"
@@ -84,14 +86,20 @@ class TranslateTextQuery final : public Td::ResultHandler {
 
 class TranslateRichMessageQuery final : public Td::ResultHandler {
   Promise<vector<telegram_api::object_ptr<telegram_api::richMessage>>> promise_;
+  vector<FileId> file_ids_;
+  vector<string> file_references_;
+  vector<FileId> cover_file_ids_;
+  vector<string> cover_file_references_;
+  RichMessage rich_message_;
+  string to_language_code_;
+  string tone_;
 
  public:
   explicit TranslateRichMessageQuery(Promise<vector<telegram_api::object_ptr<telegram_api::richMessage>>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(vector<telegram_api::object_ptr<telegram_api::InputRichMessage>> &&rich_messages,
-            MessageFullId message_full_id, const string &to_language_code, string tone) {
+  void send(RichMessage &&rich_message, MessageFullId message_full_id, const string &to_language_code, string tone) {
     int32 flags = 0;
     if (tone == "neutral") {
       tone.clear();
@@ -100,7 +108,6 @@ class TranslateRichMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_translateRichMessage::TONE_MASK;
     }
     if (message_full_id.get_message_id().is_valid()) {
-      CHECK(rich_messages.size() == 1u);
       flags |= telegram_api::messages_translateRichMessage::PEER_MASK;
       auto input_peer = td_->dialog_manager_->get_input_peer(message_full_id.get_dialog_id(), AccessRights::Read);
       CHECK(input_peer != nullptr);
@@ -108,9 +115,24 @@ class TranslateRichMessageQuery final : public Td::ResultHandler {
       send_query(G()->net_query_creator().create(telegram_api::messages_translateRichMessage(
           flags, std::move(input_peer), std::move(message_ids), Auto(), to_language_code, tone)));
     } else {
+      auto input_rich_message = rich_message.get_input_rich_message(td_);
+      if (input_rich_message == nullptr) {
+        return on_error(Status::Error(400, "Invalid rich message specified"));
+      }
+
+      file_ids_ = rich_message.get_any_file_ids();
+      cover_file_ids_ = rich_message.get_cover_any_file_ids();
+      file_references_ = FileManager::extract_file_references(input_rich_message);
+      cover_file_references_ = FileManager::extract_cover_file_references(input_rich_message);
+      rich_message_ = std::move(rich_message);
+      to_language_code_ = to_language_code;
+      tone_ = tone;
+
+      vector<telegram_api::object_ptr<telegram_api::InputRichMessage>> input_rich_messages;
+      input_rich_messages.push_back(std::move(input_rich_message));
       flags |= telegram_api::messages_translateRichMessage::TEXT_MASK;
       send_query(G()->net_query_creator().create(telegram_api::messages_translateRichMessage(
-          flags, nullptr, vector<int32>{}, std::move(rich_messages), to_language_code, tone)));
+          flags, nullptr, vector<int32>{}, std::move(input_rich_messages), to_language_code_, tone_)));
     }
   }
 
@@ -130,6 +152,24 @@ class TranslateRichMessageQuery final : public Td::ResultHandler {
       vector<telegram_api::object_ptr<telegram_api::richMessage>> result;
       result.push_back(telegram_api::make_object<telegram_api::richMessage>());
       return promise_.set_value(std::move(result));
+    }
+    if (td_->file_reference_manager_->process_file_reference_error(
+            status, file_ids_, file_references_, cover_file_ids_, cover_file_references_, true,
+            [&](size_t pos, FileId file_id) mutable {
+              td_->file_reference_manager_->repair_file_reference(
+                  file_id,
+                  PromiseCreator::lambda([rich_message = std::move(rich_message_),
+                                          to_language_code = std::move(to_language_code_), tone = std::move(tone_),
+                                          promise = std::move(promise_)](Result<Unit> result) mutable {
+                    if (result.is_error()) {
+                      return promise.set_error(400, "Failed to find the rich message");
+                    }
+
+                    send_closure(G()->translation_manager(), &TranslationManager::do_translate_rich_message,
+                                 std::move(rich_message), MessageFullId(), to_language_code, tone, std::move(promise));
+                  }));
+            })) {
+      return;
     }
     promise_.set_error(std::move(status));
   }
@@ -627,32 +667,33 @@ void TranslationManager::translate_rich_message(td_api::object_ptr<td_api::input
   translate_rich_message(std::move(input_rich_message), MessageFullId(), to_language_code, tone, std::move(promise));
 }
 
-void TranslationManager::translate_rich_message(InputRichMessage &&rich_message, MessageFullId message_full_id,
+void TranslationManager::translate_rich_message(InputRichMessage &&input_rich_message, MessageFullId message_full_id,
                                                 const string &to_language_code, const string &tone,
                                                 Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
-  auto input_rich_message = rich_message.message_.get_input_rich_message(td_);
-  if (input_rich_message == nullptr) {
-    return promise.set_error(400, "Invalid rich message specified");
-  }
-  vector<telegram_api::object_ptr<telegram_api::InputRichMessage>> input_rich_messages;
-  input_rich_messages.push_back(std::move(input_rich_message));
-
   if (tone != string() && tone != "formal" && tone != "neutral" && tone != "casual") {
     return promise.set_error(400, "Invalid tone specified");
   }
 
-  auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), skip_bot_commands = rich_message.skip_bot_commands_, promise = std::move(promise)](
-          Result<vector<telegram_api::object_ptr<telegram_api::richMessage>>> result) mutable {
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), skip_bot_commands = input_rich_message.skip_bot_commands_,
+                              promise = std::move(promise)](
+                                 Result<vector<telegram_api::object_ptr<telegram_api::richMessage>>> result) mutable {
         if (result.is_error()) {
           return promise.set_error(result.move_as_error());
         }
         send_closure(actor_id, &TranslationManager::on_get_translated_rich_messages, result.move_as_ok(),
                      skip_bot_commands, std::move(promise));
       });
+  do_translate_rich_message(std::move(input_rich_message.message_), message_full_id, to_language_code, tone,
+                            std::move(query_promise));
+}
 
-  td_->create_handler<TranslateRichMessageQuery>(std::move(query_promise))
-      ->send(std::move(input_rich_messages), message_full_id, to_language_code, tone);
+void TranslationManager::do_translate_rich_message(
+    RichMessage &&rich_message, MessageFullId message_full_id, const string &to_language_code, const string &tone,
+    Promise<vector<telegram_api::object_ptr<telegram_api::richMessage>>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  td_->create_handler<TranslateRichMessageQuery>(std::move(promise))
+      ->send(std::move(rich_message), message_full_id, to_language_code, tone);
 }
 
 void TranslationManager::on_get_translated_rich_messages(
