@@ -102,6 +102,19 @@ FileReferenceManager::FileReferenceErrorSource FileReferenceManager::get_file_re
   return {pos, begins_with(message, "COVER_")};
 }
 
+bool FileReferenceManager::on_file_reference_error(const Status &status, size_t pos, FileId file_id,
+                                                   const string &file_reference,
+                                                   std::function<void(size_t pos)> &&on_error) {
+  if (!file_id.is_valid()) {
+    LOG(ERROR) << "Receive file reference error " << status << ", but have no corresponding file";
+    return false;
+  }
+  VLOG(file_references) << "Receive " << status << " for " << file_id;
+  td_->file_manager_->delete_file_reference(file_id, file_reference);
+  on_error(pos);
+  return true;
+}
+
 bool FileReferenceManager::process_file_reference_error(const Status &status, bool was_uploaded,
                                                         const vector<FileUploadId> &file_upload_ids,
                                                         const vector<string> &file_references,
@@ -120,22 +133,16 @@ bool FileReferenceManager::process_file_reference_error(const Status &status, bo
     return false;
   }
   if (source.is_cover_) {
-    if (pos < cover_file_ids.size() && pos < cover_file_references.size() && cover_file_ids[pos].is_valid()) {
-      VLOG(file_references) << "Receive " << status << " for cover " << cover_file_ids[pos];
-      td_->file_manager_->delete_file_reference(cover_file_ids[pos], cover_file_references[pos]);
-      on_error(pos);
-      return true;
+    if (pos < cover_file_ids.size() && pos < cover_file_references.size()) {
+      return on_file_reference_error(status, pos, cover_file_ids[pos], cover_file_references[pos], std::move(on_error));
     } else {
       LOG(ERROR) << "Receive file reference error " << status << ", but cover_file_ids = " << cover_file_ids
-                 << ", file_references = " << cover_file_references;
+                 << ", cover_file_references = " << cover_file_references;
     }
   } else {
-    if (pos < file_upload_ids.size() && pos < file_references.size() && !was_uploaded &&
-        file_upload_ids[pos].is_valid()) {
-      VLOG(file_references) << "Receive " << status << " for " << file_upload_ids[pos];
-      td_->file_manager_->delete_file_reference(file_upload_ids[pos].get_file_id(), file_references[pos]);
-      on_error(pos);
-      return true;
+    if (pos < file_upload_ids.size() && pos < file_references.size() && !was_uploaded) {
+      return on_file_reference_error(status, pos, file_upload_ids[pos].get_file_id(), file_references[pos],
+                                     std::move(on_error));
     } else {
       LOG(ERROR) << "Receive file reference error " << status << ", but file_upload_ids = " << file_upload_ids
                  << ", was_uploaded = " << was_uploaded << ", file_references = " << file_references;
@@ -162,20 +169,14 @@ bool FileReferenceManager::process_file_reference_error(const Status &status, co
   }
   if (source.is_cover_) {
     if (pos < cover_file_ids.size() && pos < cover_file_references.size()) {
-      VLOG(file_references) << "Receive " << status << " for cover " << cover_file_ids[pos];
-      td_->file_manager_->delete_file_reference(cover_file_ids[pos], cover_file_references[pos]);
-      on_error(pos);
-      return true;
+      return on_file_reference_error(status, pos, cover_file_ids[pos], cover_file_references[pos], std::move(on_error));
     } else {
       LOG(ERROR) << "Receive file reference error " << status << ", but cover_file_ids = " << cover_file_ids
-                 << ", file_references = " << cover_file_references;
+                 << ", cover_file_references = " << cover_file_references;
     }
   } else {
-    if (pos < file_ids.size() && pos < file_references.size() && file_ids[pos].is_valid()) {
-      VLOG(file_references) << "Receive " << status << " for " << file_ids[pos];
-      td_->file_manager_->delete_file_reference(file_ids[pos], file_references[pos]);
-      on_error(pos);
-      return true;
+    if (pos < file_ids.size() && pos < file_references.size()) {
+      return on_file_reference_error(status, pos, file_ids[pos], file_references[pos], std::move(on_error));
     } else {
       LOG(ERROR) << "Receive file reference error " << status << ", but file_ids = " << file_ids
                  << ", file_references = " << file_references;

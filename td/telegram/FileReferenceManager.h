@@ -262,6 +262,9 @@ class FileReferenceManager final : public Actor {
 
   FileSourceId get_current_file_source_id() const;
 
+  bool on_file_reference_error(const Status &status, size_t pos, FileId file_id, const string &file_reference,
+                               std::function<void(size_t pos)> &&on_error);
+
   void tear_down() final;
 };
 
