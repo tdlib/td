@@ -386,7 +386,7 @@ void MessageImportManager::on_upload_imported_messages(FileUploadId file_upload_
     }
 
     CHECK(file_view.get_type() == FileType::Document);
-    // delete file reference and forcely reupload the file
+    // delete file reference and forcibly reupload the file
     auto file_reference = FileManager::extract_file_reference(main_remote_location->as_input_document());
     td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), file_reference);
     upload_imported_messages(dialog_id, file_upload_id, std::move(attached_file_upload_ids), true, std::move(promise),
@@ -521,7 +521,7 @@ void MessageImportManager::on_upload_imported_message_attachment(
       return promise.set_error(400, "Failed to reupload the file");
     }
 
-    // delete file reference and forcely reupload the file
+    // delete file reference and forcibly reupload the file
     auto file_reference = file_view.get_type() == FileType::Photo
                               ? FileManager::extract_file_reference(main_remote_location->as_input_photo())
                               : FileManager::extract_file_reference(main_remote_location->as_input_document());

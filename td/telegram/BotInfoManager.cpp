@@ -1079,7 +1079,7 @@ void BotInfoManager::on_upload_bot_media_preview(FileUploadId file_upload_id,
     }
     pending_preview->was_reuploaded_ = true;
 
-    // delete file reference and forcely reupload the file
+    // delete file reference and forcibly reupload the file
     td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), main_remote_location->get_file_reference());
     return do_add_bot_media_preview(std::move(pending_preview), {-1});
   }

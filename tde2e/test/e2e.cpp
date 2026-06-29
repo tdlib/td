@@ -169,8 +169,8 @@ TEST(CheckSharedSecret, Basic) {
   auto alice = CheckSharedSecret::create();
   auto bob = CheckSharedSecret::create();
 
-  alice.recive_commit_nonce(bob.commit_nonce()).ensure();
-  bob.recive_commit_nonce(alice.commit_nonce()).ensure();
+  alice.receive_commit_nonce(bob.commit_nonce()).ensure();
+  bob.receive_commit_nonce(alice.commit_nonce()).ensure();
 
   alice.receive_reveal_nonce(bob.reveal_nonce().move_as_ok()).ensure();
   bob.receive_reveal_nonce(alice.reveal_nonce().move_as_ok()).ensure();

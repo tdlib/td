@@ -384,11 +384,11 @@ class DialogParticipantStatus {
   // legacy rights
   static DialogParticipantStatus ChannelAdministrator(bool is_current_user_creator, bool is_megagroup);
 
-  // forcely returns an administrator
+  // forcibly returns an administrator
   DialogParticipantStatus(bool can_be_edited, tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights, string rank,
                           ChannelType channel_type);
 
-  // forcely returns a restricted or banned
+  // forcibly returns a restricted or banned
   DialogParticipantStatus(bool is_member, tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights,
                           ChannelType channel_type, string rank);
 

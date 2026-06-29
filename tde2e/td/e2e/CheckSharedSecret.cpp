@@ -30,7 +30,7 @@ td::Result<td::UInt256> CheckSharedSecret::reveal_nonce() const {
   return nonce_;
 }
 
-td::Status CheckSharedSecret::recive_commit_nonce(const td::UInt256 &other_nonce_hash) {
+td::Status CheckSharedSecret::receive_commit_nonce(const td::UInt256 &other_nonce_hash) {
   if (o_other_nonce_hash_) {
     return td::Status::Error("Already received other nonce hash");
   }
