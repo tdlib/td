@@ -6132,7 +6132,7 @@ void StoryManager::on_upload_story(FileUploadId file_upload_id,
     }
     pending_story->was_reuploaded_ = true;
 
-    // delete file reference and forcely reupload the file
+    // delete file reference and forcibly reupload the file
     td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), main_remote_location->get_file_reference());
     do_send_story(std::move(pending_story), {-1});
     return;

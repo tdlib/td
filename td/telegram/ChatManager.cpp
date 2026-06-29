@@ -5103,7 +5103,7 @@ void ChatManager::on_load_channel_full_from_database(ChannelId channel_id, strin
   Dependencies dependencies;
   dependencies.add(channel_id);
   // must not depend on the linked_dialog_id/monoforum_channel_id itself, because message database can be disabled
-  // the Dialog will be forcely created in update_channel_full
+  // the Dialog will be forcibly created in update_channel_full
   dependencies.add_dialog_dependencies(DialogId(channel_full->linked_channel_id));
   dependencies.add_dialog_dependencies(DialogId(channel_full->monoforum_channel_id));
   dependencies.add(channel_full->migrated_from_chat_id);
@@ -6952,14 +6952,14 @@ void ChatManager::on_update_chat_add_user(ChatId chat_id, UserId inviter_user_id
     for (auto &participant : chat_full->participants) {
       if (participant.dialog_id_ == DialogId(user_id)) {
         if (participant.inviter_user_id_ != inviter_user_id) {
-          LOG(ERROR) << user_id << " was readded to " << chat_id << " by " << inviter_user_id
+          LOG(ERROR) << user_id << " was re-added to " << chat_id << " by " << inviter_user_id
                      << ", previously invited by " << participant.inviter_user_id_;
           participant.inviter_user_id_ = inviter_user_id;
           participant.joined_date_ = date;
           repair_chat_participants(chat_id);
         } else {
           // Possible if update comes twice
-          LOG(INFO) << user_id << " was readded to " << chat_id;
+          LOG(INFO) << user_id << " was re-added to " << chat_id;
         }
         return;
       }

@@ -24,7 +24,7 @@ struct CheckSharedSecret {
   static CheckSharedSecret create();
   td::UInt256 commit_nonce() const;
   td::Result<td::UInt256> reveal_nonce() const;
-  td::Status recive_commit_nonce(const td::UInt256 &other_nonce_hash);
+  td::Status receive_commit_nonce(const td::UInt256 &other_nonce_hash);
   td::Status receive_reveal_nonce(const td::UInt256 &other_nonce);
   td::Result<td::UInt256> finalize_hash(td::Slice shared_secret) const;
 };
