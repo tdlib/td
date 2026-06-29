@@ -315,6 +315,8 @@ class MessagesManager final : public Actor {
 
   void on_new_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message);
 
+  void on_edited_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message);
+
   void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
                                       bool skip_new_entities, Promise<Unit> &&promise);
 

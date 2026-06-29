@@ -4235,6 +4235,21 @@ void MessagesManager::on_new_ephemeral_message(telegram_api::object_ptr<telegram
   on_get_message(std::move(message_info), true, "on_new_ephemeral_message");
 }
 
+void MessagesManager::on_edited_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message) {
+  auto message_info = parse_ephemeral_message(td_, std::move(message), "on_edited_ephemeral_message");
+  auto dialog_id = message_info.dialog_id;
+  if (!dialog_id.is_valid()) {
+    return;
+  }
+
+  Dialog *d = get_dialog_force(dialog_id, "on_edited_ephemeral_message");
+  if (d == nullptr || d->ephemeral_message_ids.count(message_info.ephemeral_message_id) == 0) {
+    return;
+  }
+  message_info.message_id = d->ephemeral_message_ids[message_info.ephemeral_message_id];
+  on_get_message(std::move(message_info), false, "on_edited_ephemeral_message");
+}
+
 MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
   UserId service_notifications_user_id = td_->user_manager_->add_service_notifications_user();
   DialogId service_notifications_dialog_id(service_notifications_user_id);

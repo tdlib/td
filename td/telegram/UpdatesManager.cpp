@@ -3716,6 +3716,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewEphemeralMes
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditEphemeralMessage> update,
+                               Promise<Unit> &&promise) {
+  td_->messages_manager_->on_edited_ephemeral_message(std::move(update->message_));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadHistoryInbox> update, Promise<Unit> &&promise) {
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
@@ -5038,11 +5044,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReactio
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteEphemeralMessages> update,
-                               Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditEphemeralMessage> update,
                                Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
