@@ -5201,6 +5201,12 @@ class CliClient final : public Actor {
       string to_language_code;
       get_args(args, to_language_code, text);
       send_request(td_api::make_object<td_api::translateText>(as_formatted_text(text), to_language_code, as_tone(op)));
+    } else if (op == "trm" || op == "trmf" || op == "trmc" || op == "trmn") {
+      string message;
+      string to_language_code;
+      get_args(args, to_language_code, message);
+      send_request(td_api::make_object<td_api::translateRichMessage>(as_input_rich_message(message), to_language_code,
+                                                                     as_tone(op)));
     } else if (op == "tmt" || op == "tmtf" || op == "tmtc" || op == "tmtn") {
       ChatId chat_id;
       MessageId message_id;
