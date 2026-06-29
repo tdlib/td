@@ -4250,6 +4250,21 @@ void MessagesManager::on_edited_ephemeral_message(telegram_api::object_ptr<teleg
   on_get_message(std::move(message_info), false, "on_edited_ephemeral_message");
 }
 
+void MessagesManager::on_delete_ephemeral_messages(DialogId dialog_id, vector<int32> ephemeral_message_ids) {
+  Dialog *d = get_dialog_force(dialog_id, "on_delete_ephemeral_messages");
+  if (d == nullptr) {
+    return;
+  }
+  vector<MessageId> message_ids;
+  for (auto ephemeral_message_id : ephemeral_message_ids) {
+    auto it = d->ephemeral_message_ids.find(ephemeral_message_id);
+    if (it != d->ephemeral_message_ids.end()) {
+      message_ids.push_back(it->second);
+    }
+  }
+  do_delete_dialog_messages(d, message_ids, false, "on_delete_ephemeral_messages");
+}
+
 MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
   UserId service_notifications_user_id = td_->user_manager_->add_service_notifications_user();
   DialogId service_notifications_dialog_id(service_notifications_user_id);

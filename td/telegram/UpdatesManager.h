@@ -520,6 +520,8 @@ class UpdatesManager final : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateEditEphemeralMessage> update, Promise<Unit> &&promise);
 
+  void on_update(tl_object_ptr<telegram_api::updateDeleteEphemeralMessages> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateReadHistoryInbox> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateReadHistoryOutbox> update, Promise<Unit> &&promise);
@@ -777,8 +779,6 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateBotStarsSubscription> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updateDeleteEphemeralMessages> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateEphemeralBotCallbackQuery> update, Promise<Unit> &&promise);
 };
