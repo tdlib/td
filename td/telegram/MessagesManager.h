@@ -1703,6 +1703,9 @@ class MessagesManager final : public Actor {
   static MessageInfo parse_telegram_api_message(Td *td, tl_object_ptr<telegram_api::Message> message_ptr,
                                                 bool is_scheduled, bool is_business_message, const char *source);
 
+  static MessageInfo parse_ephemeral_message(Td *td, telegram_api::object_ptr<telegram_api::ephemeralMessage> message,
+                                             const char *source);
+
   static std::pair<DialogId, unique_ptr<Message>> create_message(Td *td, MessageInfo &&message_info,
                                                                  bool is_guest_message, const char *source);
 

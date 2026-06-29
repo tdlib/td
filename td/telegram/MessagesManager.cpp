@@ -11271,6 +11271,58 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
   return message_info;
 }
 
+MessagesManager::MessageInfo MessagesManager::parse_ephemeral_message(
+    Td *td, telegram_api::object_ptr<telegram_api::ephemeralMessage> message, const char *source) {
+  LOG(DEBUG) << "Receive from " << source << ' ' << to_string(message);
+  CHECK(message != nullptr);
+
+  MessageInfo message_info;
+  auto dialog_id = DialogId(message->peer_id_);
+  message_info.receiver_user_id = UserId(message->receiver_id_);
+  message_info.ephemeral_message_id = message->id_;
+  message_info.sender_dialog_id = DialogId(message->from_id_);
+  if (!dialog_id.is_valid() || !message_info.receiver_user_id.is_valid() || message_info.ephemeral_message_id == 0 ||
+      !message_info.sender_dialog_id.is_valid()) {
+    LOG(ERROR) << "Ignore ephemeral message " << message_info.ephemeral_message_id << " in " << dialog_id << " sent by "
+               << message_info.sender_dialog_id << " and received by " << message_info.receiver_user_id;
+    return message_info;
+  }
+  message_info.dialog_id = dialog_id;
+  message_info.date = message->date_;
+  message_info.reply_header =
+      MessageReplyHeader(td, std::move(message->reply_to_), dialog_id, message_info.message_id, message_info.date);
+  message_info.is_outgoing = message->out_;
+  message_info.is_channel_post = td->dialog_manager_->is_broadcast_channel(dialog_id);
+  // message_info.noforwards = message->noforwards_;
+  // message_info.invert_media = message->invert_media_;
+  // message_info.effect_id = MessageEffectId(message->effect_);
+  if (message->top_msg_id_ > 0) {
+    auto top_thread_message_id = MessageId(ServerMessageId(message->top_msg_id_));
+    if (message_info.reply_header.top_thread_message_id_ != MessageId()) {
+      if (message_info.reply_header.top_thread_message_id_ != top_thread_message_id) {
+        LOG(ERROR) << "Receive ephemeral message in thread of " << top_thread_message_id << " and "
+                   << message_info.reply_header.top_thread_message_id_;
+      }
+    } else {
+      message_info.reply_header.top_thread_message_id_ = top_thread_message_id;
+      message_info.reply_header.is_topic_message_ = td->dialog_manager_->can_dialog_have_threads(dialog_id);
+    }
+  }
+  message_info.content = get_message_content(
+      td,
+      get_message_text(td->user_manager_.get(), std::move(message->message_), std::move(message->entities_), true,
+                       td->auth_manager_->is_bot(), message_info.date, message_info.media_album_id != 0, source),
+      nullptr, std::move(message->media_), dialog_id,
+      message_info.date,  // std::move(message->rich_message_)
+      true, UserId(), &message_info.ttl, &message_info.disable_web_page_preview, source);
+  message_info.reply_markup = std::move(message->reply_markup_);
+  if (message_info.sender_dialog_id.get_type() == DialogType::User) {
+    message_info.sender_user_id = message_info.sender_dialog_id.get_user_id();
+    message_info.sender_dialog_id = DialogId();
+  }
+  return message_info;
+}
+
 std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::create_message(Td *td,
                                                                                           MessageInfo &&message_info,
                                                                                           bool is_guest_message,
