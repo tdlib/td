@@ -1035,6 +1035,7 @@ class MessagesManager final : public Actor {
     MessageId message_id;
     UserId sender_user_id;
     DialogId sender_dialog_id;
+    UserId receiver_user_id;
     SavedMessagesTopicId saved_messages_topic_id;
     int32 date = 0;
     int32 schedule_repeat_period = 0;
@@ -1089,6 +1090,7 @@ class MessagesManager final : public Actor {
     MessageId message_id;
     UserId sender_user_id;
     DialogId sender_dialog_id;
+    UserId receiver_user_id;
     SavedMessagesTopicId saved_messages_topic_id;
     int32 date = 0;
     int32 edit_date = 0;

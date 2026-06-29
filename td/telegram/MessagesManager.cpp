@@ -2269,7 +2269,7 @@ class MessagesManager::UploadThumbnailCallback final : public FileManager::Uploa
 template <class StorerT>
 void MessagesManager::Message::store(StorerT &storer) const {
   using td::store;
-  bool has_sender = sender_user_id.is_valid();
+  bool has_sender_user_id = sender_user_id.is_valid();
   bool has_edit_date = edit_date > 0;
   bool has_random_id = random_id != 0;
   bool is_reply_to_random_id = reply_to_random_id != 0;
@@ -2322,6 +2322,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_summary_from_language = !summary_from_language.empty();
   bool has_sender_rank = !sender_rank.empty();
   bool has_guest_bot_via_dialog_id = guest_bot_via_dialog_id.is_valid();
+  bool has_receiver_user_id = receiver_user_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -2333,7 +2334,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   STORE_FLAG(clear_draft);
   STORE_FLAG(false);
   STORE_FLAG(false);
-  STORE_FLAG(has_sender);
+  STORE_FLAG(has_sender_user_id);
   STORE_FLAG(has_edit_date);
   STORE_FLAG(has_random_id);
   STORE_FLAG(false);
@@ -2431,12 +2432,13 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(is_quick_reply_message);
     STORE_FLAG(has_sender_rank);
     STORE_FLAG(has_guest_bot_via_dialog_id);
+    STORE_FLAG(has_receiver_user_id);
     END_STORE_FLAGS();
   }
   // update MessageDb::get_message_info when flags5 is added
 
   store(message_id, storer);
-  if (has_sender) {
+  if (has_sender_user_id) {
     store(sender_user_id, storer);
   }
   store(date, storer);
@@ -2588,6 +2590,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_guest_bot_via_dialog_id) {
     store(guest_bot_via_dialog_id, storer);
   }
+  if (has_receiver_user_id) {
+    store(receiver_user_id, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -2596,7 +2601,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   using td::parse;
   bool legacy_have_previous;
   bool legacy_have_next;
-  bool has_sender;
+  bool has_sender_user_id;
   bool has_edit_date;
   bool has_random_id;
   bool legacy_is_forwarded;
@@ -2657,6 +2662,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_summary_from_language = false;
   bool has_sender_rank = false;
   bool has_guest_bot_via_dialog_id = false;
+  bool has_receiver_user_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -2668,7 +2674,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   PARSE_FLAG(clear_draft);
   PARSE_FLAG(legacy_have_previous);
   PARSE_FLAG(legacy_have_next);
-  PARSE_FLAG(has_sender);
+  PARSE_FLAG(has_sender_user_id);
   PARSE_FLAG(has_edit_date);
   PARSE_FLAG(has_random_id);
   PARSE_FLAG(legacy_is_forwarded);
@@ -2766,6 +2772,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(is_quick_reply_message);
     PARSE_FLAG(has_sender_rank);
     PARSE_FLAG(has_guest_bot_via_dialog_id);
+    PARSE_FLAG(has_receiver_user_id);
     END_PARSE_FLAGS();
   }
 
@@ -2773,7 +2780,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
     return parser.set_error("Invalid message identifier");
   }
-  if (has_sender) {
+  if (has_sender_user_id) {
     parse(sender_user_id, parser);
   }
   parse(date, parser);
@@ -2987,6 +2994,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_guest_bot_via_dialog_id) {
     parse(guest_bot_via_dialog_id, parser);
+  }
+  if (has_receiver_user_id) {
+    parse(receiver_user_id, parser);
   }
 
   CHECK(content != nullptr);
@@ -9897,6 +9907,7 @@ vector<UserId> MessagesManager::get_message_user_ids(const Message *m) const {
   if (m->sender_user_id.is_valid()) {
     user_ids.push_back(m->sender_user_id);
   }
+  // m->receiver_user_id is for ephemeral messages only
   if (m->via_bot_user_id.is_valid()) {
     user_ids.push_back(m->via_bot_user_id);
   }
@@ -11271,6 +11282,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(ERROR) << "Receive invalid " << sender_dialog_id;
     sender_dialog_id = DialogId();
   }
+  if (message_info.receiver_user_id != UserId() && !message_info.receiver_user_id.is_valid()) {
+    LOG(ERROR) << "Receive message receiver " << message_info.receiver_user_id;
+    message_info.receiver_user_id = UserId();
+  }
 
   bool is_channel_post = message_info.is_channel_post;
   if (is_channel_post && !td->dialog_manager_->is_broadcast_channel(dialog_id)) {
@@ -11443,6 +11458,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->message_id = message_id;
   message->sender_user_id = sender_user_id;
   message->sender_dialog_id = sender_dialog_id;
+  message->receiver_user_id = message_info.receiver_user_id;
   message->date = date;
   message->schedule_repeat_period = message_info.schedule_repeat_period;
   message->ttl_period = ttl_period;
@@ -20208,14 +20224,14 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
                                             m->disable_web_page_preview, "get_dialog_event_log_message_object");
 
   return td_api::make_object<td_api::message>(
-      m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
-      nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, can_be_saved, true, m->is_channel_post,
-      m->is_paid_suggested_post_stars, m->is_paid_suggested_post_ton, false, false, m->date, edit_date,
-      std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr, nullptr,
-      std::move(reply_to), nullptr, nullptr, 0.0, 0.0, via_bot_user_id, get_message_guest_sender_object(m), 0,
-      m->sender_boost_count, m->sender_rank, m->paid_message_star_count, m->author_signature, 0, 0,
-      get_restriction_info_object(m->restriction_reasons), m->summary_from_language, std::move(content),
-      std::move(reply_markup));
+      m->message_id.get(), std::move(sender), nullptr,
+      get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"), nullptr, nullptr, m->is_outgoing,
+      m->is_pinned, m->is_from_offline, can_be_saved, true, m->is_channel_post, m->is_paid_suggested_post_stars,
+      m->is_paid_suggested_post_ton, false, false, m->date, edit_date, std::move(forward_info), std::move(import_info),
+      std::move(interaction_info), Auto(), nullptr, nullptr, std::move(reply_to), nullptr, nullptr, 0.0, 0.0,
+      via_bot_user_id, get_message_guest_sender_object(m), 0, m->sender_boost_count, m->sender_rank,
+      m->paid_message_star_count, m->author_signature, 0, 0, get_restriction_info_object(m->restriction_reasons),
+      m->summary_from_language, std::move(content), std::move(reply_markup));
 }
 
 td_api::object_ptr<td_api::businessMessage> MessagesManager::get_business_message_object(
@@ -20282,8 +20298,8 @@ td_api::object_ptr<td_api::message> MessagesManager::get_guest_message_object(
   auto self_destruct_type = m->ttl.get_message_self_destruct_type_object();
 
   return td_api::make_object<td_api::message>(
-      m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_guest_message_object"), nullptr,
-      nullptr, m->is_outgoing, false, m->is_from_offline, can_be_saved, false, m->is_channel_post,
+      m->message_id.get(), std::move(sender), nullptr, get_chat_id_object(dialog_id, "get_guest_message_object"),
+      nullptr, nullptr, m->is_outgoing, false, m->is_from_offline, can_be_saved, false, m->is_channel_post,
       m->is_paid_suggested_post_stars, m->is_paid_suggested_post_ton, false, false, m->date, m->edit_date,
       std::move(forward_info), std::move(import_info), nullptr, Auto(), nullptr, nullptr, std::move(reply_to), nullptr,
       std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, get_message_guest_sender_object(m),
@@ -20382,19 +20398,22 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   auto content = get_message_message_content_object(dialog_id, m);
   auto self_destruct_type = m->ttl.get_message_self_destruct_type_object();
   auto contains_unread_poll_votes = has_unread_poll_votes(dialog_id, m);
+  auto receiver_id = m->receiver_user_id != UserId()
+                         ? get_message_sender_object_const(td_, m->receiver_user_id, DialogId(), source)
+                         : nullptr;
 
   return td_api::make_object<td_api::message>(
-      m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_message_object"),
-      std::move(sending_state), std::move(scheduling_state), is_outgoing, m->is_pinned, m->is_from_offline,
-      can_be_saved, has_timestamped_media, m->is_channel_post, m->is_paid_suggested_post_stars,
-      m->is_paid_suggested_post_ton, m->contains_unread_mention, contains_unread_poll_votes, date, edit_date,
-      std::move(forward_info), std::move(import_info), std::move(interaction_info), std::move(unread_reactions),
-      std::move(fact_check), std::move(suggested_post), std::move(reply_to), topic.get_message_topic_object(td_),
-      std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id,
-      get_message_guest_sender_object(m), via_business_bot_user_id, m->sender_boost_count, m->sender_rank,
-      m->paid_message_star_count, m->author_signature, m->media_album_id, m->effect_id.get(),
-      get_restriction_info_object(m->restriction_reasons), m->summary_from_language, std::move(content),
-      std::move(reply_markup));
+      m->message_id.get(), std::move(sender), std::move(receiver_id),
+      get_chat_id_object(dialog_id, "get_message_object"), std::move(sending_state), std::move(scheduling_state),
+      is_outgoing, m->is_pinned, m->is_from_offline, can_be_saved, has_timestamped_media, m->is_channel_post,
+      m->is_paid_suggested_post_stars, m->is_paid_suggested_post_ton, m->contains_unread_mention,
+      contains_unread_poll_votes, date, edit_date, std::move(forward_info), std::move(import_info),
+      std::move(interaction_info), std::move(unread_reactions), std::move(fact_check), std::move(suggested_post),
+      std::move(reply_to), topic.get_message_topic_object(td_), std::move(self_destruct_type), ttl_expires_in,
+      auto_delete_in, via_bot_user_id, get_message_guest_sender_object(m), via_business_bot_user_id,
+      m->sender_boost_count, m->sender_rank, m->paid_message_star_count, m->author_signature, m->media_album_id,
+      m->effect_id.get(), get_restriction_info_object(m->restriction_reasons), m->summary_from_language,
+      std::move(content), std::move(reply_markup));
 }
 
 td_api::object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
@@ -21049,6 +21068,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
   auto my_user_id = td_->user_manager_->get_my_id();
   auto is_bot = td_->auth_manager_->is_bot();
   dependencies.add(m->sender_user_id);
+  dependencies.add(m->receiver_user_id);
   dependencies.add_dialog_and_dependencies(m->sender_dialog_id);
   m->saved_messages_topic_id.add_dependencies(dependencies);
   m->replied_message_info.add_dependencies(dependencies, my_user_id, is_bot);
@@ -31690,6 +31710,13 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
     LOG(DEBUG) << "Change message sender";
     old_message->sender_dialog_id = new_message->sender_dialog_id;
+    need_send_update = true;
+  }
+  if (old_message->receiver_user_id != new_message->receiver_user_id) {
+    LOG(ERROR) << message_id << " in " << dialog_id << " has changed receiver from " << old_message->receiver_user_id
+               << " to " << new_message->receiver_user_id;
+
+    old_message->receiver_user_id = new_message->receiver_user_id;
     need_send_update = true;
   }
   if (old_message->sender_boost_count != new_message->sender_boost_count) {
