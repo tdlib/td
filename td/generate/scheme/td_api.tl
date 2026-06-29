@@ -2179,7 +2179,7 @@ giveawayParticipantStatusAlreadyWasMember joined_chat_date:int32 = GiveawayParti
 //@description The user can't participate in the giveaway, because they are an administrator in one of the chats that created the giveaway @chat_id Identifier of the chat administered by the user
 giveawayParticipantStatusAdministrator chat_id:int53 = GiveawayParticipantStatus;
 
-//@description The user can't participate in the giveaway, because they phone number is from a disallowed country @user_country_code A two-letter ISO 3166-1 alpha-2 country code of the user's country
+//@description The user can't participate in the giveaway, because their phone number is from a disallowed country @user_country_code A two-letter ISO 3166-1 alpha-2 country code of the user's country
 giveawayParticipantStatusDisallowedCountry user_country_code:string = GiveawayParticipantStatus;
 
 
