@@ -65,6 +65,12 @@ class TranslationManager final : public Actor {
                                const string &translate_to_language_code, const string &tone, bool emojify,
                                Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
+  void do_compose_rich_message_with_ai(bool has_message, TranslationManager::InputRichMessage &&message,
+                                       const string &translate_to_language_code,
+                                       telegram_api::object_ptr<telegram_api::InputAiComposeTone> &&input_tone,
+                                       bool emojify, bool proofread,
+                                       Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
+
   void compose_rich_message_with_ai(td_api::object_ptr<td_api::inputRichMessage> &&message,
                                     const string &translate_to_language_code, const string &tone,
                                     const string &custom_prompt, bool emojify,
