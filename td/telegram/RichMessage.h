@@ -68,6 +68,8 @@ class RichMessage {
 
   vector<FileId> get_any_file_ids() const;
 
+  vector<FileId> get_cover_any_file_ids() const;
+
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const;
 
   void add_dependencies(Dependencies &dependencies) const;

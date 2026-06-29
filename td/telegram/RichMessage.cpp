@@ -152,6 +152,11 @@ vector<FileId> RichMessage::get_any_file_ids() const {
                    [](const MessageContent *content) { return get_message_content_any_file_id(content); });
 }
 
+vector<FileId> RichMessage::get_cover_any_file_ids() const {
+  return transform(get_individual_message_content_refs(),
+                   [](const MessageContent *content) { return get_message_content_cover_any_file_id(content); });
+}
+
 void RichMessage::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
   for (const auto &block : blocks_) {
     block->append_file_ids(td, file_ids);

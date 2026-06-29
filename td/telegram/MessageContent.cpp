@@ -12455,11 +12455,7 @@ vector<FileId> get_message_content_cover_any_file_ids(const Td *td, const Messag
     }
     case MessageContentType::RichText: {
       const auto *m = static_cast<const MessageRichText *>(content);
-      vector<FileId> file_ids;
-      for (const auto *rich_text_content : m->rich_message.get_individual_message_content_refs()) {
-        file_ids.push_back(get_message_content_cover_any_file_id(rich_text_content));
-      }
-      return file_ids;
+      return m->rich_message.get_cover_any_file_ids();
     }
     default:
       break;
