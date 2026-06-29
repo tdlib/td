@@ -1537,7 +1537,7 @@ struct tl_combinator_tree *tl_union (struct tl_combinator_tree *L, struct tl_com
   switch (L->type) {
   case type_num:
     if (R->type != type_num_value) {
-      TL_ERROR ("Union: type mismatch\n");
+      TL_ERROR ("Union: type mistmatch\n");
       return 0;
     }
     tfree (v, sizeof (*v));
@@ -1545,7 +1545,7 @@ struct tl_combinator_tree *tl_union (struct tl_combinator_tree *L, struct tl_com
     return L;
   case type_num_value:
     if (R->type != type_num_value && R->type != type_num) {
-      TL_ERROR ("Union: type mismatch\n");
+      TL_ERROR ("Union: type mistmatch\n");
       return 0;
     }
     tfree (v, sizeof (*v));
@@ -1554,7 +1554,7 @@ struct tl_combinator_tree *tl_union (struct tl_combinator_tree *L, struct tl_com
   case type_list_item:   
   case type_list:
     if (R->type != type_list_item) {
-      TL_ERROR ("Union: type mismatch\n");
+      TL_ERROR ("Union: type mistmatch\n");
       return 0;
     }
     v->type = type_list;
@@ -1566,7 +1566,7 @@ struct tl_combinator_tree *tl_union (struct tl_combinator_tree *L, struct tl_com
       return 0;     
     }
     if (R->type != type_num && R->type != type_type && R->type != type_num_value) {
-      TL_ERROR ("Union: type mismatch\n");
+      TL_ERROR ("Union: type mistmatch\n");
       return 0;
     }
     if (R->type_len < 0) {
@@ -1579,7 +1579,7 @@ struct tl_combinator_tree *tl_union (struct tl_combinator_tree *L, struct tl_com
       return 0;     
     }
     if (L->type_len > 0 && ((L->type_flags & 1) != (R->type == type_num || R->type == type_num_value))) {
-      TL_ERROR ("Argument types mismatch: L->type_flags = %lld, R->type = %s\n", L->flags, TL_TYPE (R->type));
+      TL_ERROR ("Argument types mistmatch: L->type_flags = %lld, R->type = %s\n", L->flags, TL_TYPE (R->type));
       return 0;
     }
     v->type = type_type;
@@ -1653,7 +1653,7 @@ struct tl_combinator_tree *tl_parse_nat_const (struct tree *T, int s) {
   assert (T->type == type_nat_const);
   assert (!T->nc);
   if (s > 0) {
-    TL_ERROR ("Nat const can not precede with %%\n");
+    TL_ERROR ("Nat const can not preceed with %%\n");
     TL_FAIL;
   }
   assert (T->type == type_nat_const);
@@ -1681,7 +1681,7 @@ struct tl_combinator_tree *tl_parse_ident (struct tree *T, int s) {
     L->act = act_var;
     L->type = v->type ? type_num : type_type;
     if (L->type == type_num && s) {
-      TL_ERROR ("Nat var can not precede with %%\n");
+      TL_ERROR ("Nat var can not preceed with %%\n");
       TL_FAIL;
     } else {
       if (s) {
@@ -2027,7 +2027,7 @@ struct tl_combinator_tree *tl_parse_result_type (struct tree *T) {
     L->type = type_type;
     struct tl_var *v = tl_get_var (T->c[0]->text, T->c[0]->len);
     if (v->type) {
-      TL_ERROR ("Type mismatch\n");
+      TL_ERROR ("Type mistmatch\n");
       TL_FAIL;
     }
     L->data = v->ptr;
@@ -2144,7 +2144,7 @@ struct tl_combinator_tree *change_first_var (struct tl_combinator_tree *O, struc
     struct tl_type *t = tl_tree_get_type (O->left);
     if (t && !strcmp (t->id, "#")) {
       if (Y->type != type_num && Y->type != type_num_value) {
-        TL_ERROR ("change_var: Type mismatch\n");
+        TL_ERROR ("change_var: Type mistmatch\n");
         return 0;
       } else {
         *X = O;
@@ -2153,7 +2153,7 @@ struct tl_combinator_tree *change_first_var (struct tl_combinator_tree *O, struc
     }
     if (t && !strcmp (t->id, "Type")) {
       if (Y->type != type_type || Y->type_len != 0) {
-        TL_ERROR ("change_var: Type mismatch\n");
+        TL_ERROR ("change_var: Type mistmatch\n");
         return 0;
       } else {
         *X = O;
@@ -2398,7 +2398,7 @@ int tl_parse_partial_comb_app_decl (struct tree *T, int fun) {
     }
     L = Z;
     if (!K) {
-      TL_ERROR ("Partial app: not enough variables (i = %d)\n", i);
+      TL_ERROR ("Partial app: not enougth variables (i = %d)\n", i);
       TL_FAIL;
     }
     if (!(Z = change_first_var (R, &K, X))) {
@@ -2533,7 +2533,7 @@ int tl_parse_builtin_combinator_decl (struct tree *T, int fun) {
     }
     tl_print_combinator (c);
   } else {
-    TL_ERROR ("Unknown built-in type `%.*s`\n", T->c[0]->len, T->c[0]->text);
+    TL_ERROR ("Unknown builting type `%.*s`\n", T->c[0]->len, T->c[0]->text);
     return 0;
   }
 
