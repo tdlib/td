@@ -60,6 +60,8 @@ void RichMessage::parse(ParserT &parser) {
   }
   if (has_media) {
     td::parse(media_, parser);
+  } else {
+    media_ = get_page_blocks_rich_message_media(blocks_);
   }
 }
 
