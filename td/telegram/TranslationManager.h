@@ -30,6 +30,9 @@ class TranslationManager final : public Actor {
 
   void on_authorization_success();
 
+  static telegram_api::object_ptr<telegram_api::InputAiComposeTone> clone_input_ai_compose_tone(
+      const telegram_api::object_ptr<telegram_api::InputAiComposeTone> &input_tone);
+
   struct InputText {
     FormattedText text_;
     bool skip_bot_commands_ = true;

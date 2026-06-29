@@ -570,6 +570,34 @@ void TranslationManager::on_authorization_success() {
   }
 }
 
+telegram_api::object_ptr<telegram_api::InputAiComposeTone> TranslationManager::clone_input_ai_compose_tone(
+    const telegram_api::object_ptr<telegram_api::InputAiComposeTone> &input_tone) {
+  if (input_tone == nullptr) {
+    return nullptr;
+  }
+  switch (input_tone->get_id()) {
+    case telegram_api::inputAiComposeToneDefault::ID: {
+      const auto *tone = static_cast<const telegram_api::inputAiComposeToneDefault *>(input_tone.get());
+      return telegram_api::make_object<telegram_api::inputAiComposeToneDefault>(tone->tone_);
+    }
+    case telegram_api::inputAiComposeToneID::ID: {
+      const auto *tone = static_cast<const telegram_api::inputAiComposeToneID *>(input_tone.get());
+      return telegram_api::make_object<telegram_api::inputAiComposeToneID>(tone->id_, tone->access_hash_);
+    }
+    case telegram_api::inputAiComposeToneSlug::ID: {
+      const auto *tone = static_cast<const telegram_api::inputAiComposeToneSlug *>(input_tone.get());
+      return telegram_api::make_object<telegram_api::inputAiComposeToneSlug>(tone->slug_);
+    }
+    case telegram_api::inputAiComposeToneSingleUse::ID: {
+      const auto *tone = static_cast<const telegram_api::inputAiComposeToneSingleUse *>(input_tone.get());
+      return telegram_api::make_object<telegram_api::inputAiComposeToneSingleUse>(tone->custom_prompt_);
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 Result<TranslationManager::InputText> TranslationManager::get_input_text(
     td_api::object_ptr<td_api::formattedText> &&text) const {
   if (text == nullptr) {
