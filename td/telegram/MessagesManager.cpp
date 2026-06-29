@@ -1500,7 +1500,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive error for SendMultiMedia: " << status;
     if (td_->file_reference_manager_->process_file_reference_error(
             status, false, file_upload_ids_, file_references_, cover_file_ids_, cover_file_references_, true,
-            [&](size_t pos) mutable {
+            [&](size_t pos, FileId file_id) {
               td_->messages_manager_->on_send_media_group_file_reference_error(dialog_id_, std::move(random_ids_));
             })) {
       return;
@@ -1644,7 +1644,9 @@ class SendMediaQuery final : public Td::ResultHandler {
     }
     if (td_->file_reference_manager_->process_file_reference_error(
             status, was_uploaded_, file_upload_ids_, file_references_, cover_file_ids_, cover_file_references_, false,
-            [&](size_t pos) mutable { td_->messages_manager_->on_send_message_file_error(random_id_, pos, {-1}); })) {
+            [&](size_t pos, FileId file_id) {
+              td_->messages_manager_->on_send_message_file_error(random_id_, pos, {-1});
+            })) {
       return;
     }
     if (was_uploaded_) {
@@ -1737,7 +1739,7 @@ class UploadMediaQuery final : public Td::ResultHandler {
     }
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "UploadMediaQuery");
     if (td_->file_reference_manager_->process_file_reference_error(
-            status, true, {}, {}, {cover_file_id_}, {cover_file_reference_}, false, [&](size_t pos) mutable {
+            status, true, {}, {}, {cover_file_id_}, {cover_file_reference_}, false, [&](size_t pos, FileId file_id) {
               td_->messages_manager_->on_upload_message_media_file_parts_missing(dialog_id_, message_id_, media_pos_,
                                                                                  edit_generation_, {-1});
             })) {
@@ -23209,7 +23211,7 @@ void MessagesManager::on_message_media_edited(
     LOG(INFO) << "Failed to edit " << message_id << " in " << dialog_id << ": " << error;
     if (td_->file_reference_manager_->process_file_reference_error(
             error, was_uploaded, file_upload_ids, file_references, cover_file_ids, cover_file_references, false,
-            [&](size_t pos) mutable {
+            [&](size_t pos, FileId file_id) {
               on_send_message_file_error(dialog_id, m, edited_message->content_.get(), file_upload_ids, pos, {-1});
             })) {
       return;

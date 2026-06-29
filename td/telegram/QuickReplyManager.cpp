@@ -432,7 +432,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
     LOG(INFO) << "Receive error for SendQuickReplyMediaQuery: " << status;
     if (td_->file_reference_manager_->process_file_reference_error(
             status, was_uploaded_, file_upload_ids_, file_references_, cover_file_ids_, cover_file_references_, false,
-            [&](size_t pos) mutable {
+            [&](size_t pos, FileId file_id) {
               td_->quick_reply_manager_->on_send_message_file_error(shortcut_id_, message_id_, random_id_, pos, 0,
                                                                     {-1});
             })) {
@@ -531,7 +531,7 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
     }
     LOG(INFO) << "Receive error for UploadQuickReplyMediaQuery: " << status;
     if (td_->file_reference_manager_->process_file_reference_error(
-            status, true, {}, {}, {cover_file_id_}, {cover_file_reference_}, false, [&](size_t pos) mutable {
+            status, true, {}, {}, {cover_file_id_}, {cover_file_reference_}, false, [&](size_t pos, FileId file_id) {
               td_->quick_reply_manager_->on_send_message_file_error(shortcut_id_, message_id_, random_id_, media_pos_,
                                                                     edit_generation_, {-1});
             })) {
@@ -618,7 +618,7 @@ class QuickReplyManager::SendQuickReplyMultiMediaQuery final : public Td::Result
     LOG(INFO) << "Receive error for SendQuickReplyMultiMediaQuery: " << status;
     if (td_->file_reference_manager_->process_file_reference_error(
             status, file_ids_, file_references_, cover_file_ids_, cover_file_references_, true,
-            [&](size_t pos) mutable {
+            [&](size_t pos, FileId file_id) {
               td_->quick_reply_manager_->on_send_media_group_file_reference_error(shortcut_id_, std::move(random_ids_));
             })) {
       return;
@@ -3175,7 +3175,7 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId short
   }
   if (td_->file_reference_manager_->process_file_reference_error(
           status, was_uploaded, file_upload_ids, file_references, cover_file_ids, cover_file_references, false,
-          [&](size_t pos) mutable {
+          [&](size_t pos, FileId file_id) {
             on_send_message_file_error(shortcut_id, message_id, 0, pos, edit_generation, {-1});
           })) {
     return;

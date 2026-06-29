@@ -60,12 +60,12 @@ class FileReferenceManager final : public Actor {
   bool process_file_reference_error(const Status &status, bool was_uploaded,
                                     const vector<FileUploadId> &file_upload_ids, const vector<string> &file_references,
                                     const vector<FileId> &cover_file_ids, const vector<string> &cover_file_references,
-                                    bool expect_index, std::function<void(size_t pos)> on_error);
+                                    bool expect_index, std::function<void(size_t pos, FileId file_id)> on_error);
 
   bool process_file_reference_error(const Status &status, const vector<FileId> &file_ids,
                                     const vector<string> &file_references, const vector<FileId> &cover_file_ids,
                                     const vector<string> &cover_file_references, bool expect_index,
-                                    std::function<void(size_t pos)> on_error);
+                                    std::function<void(size_t pos, FileId file_id)> on_error);
 
   FileSourceId create_message_file_source(MessageFullId message_full_id);
   FileSourceId create_user_photo_file_source(UserId user_id, int64 photo_id);
@@ -263,7 +263,7 @@ class FileReferenceManager final : public Actor {
   FileSourceId get_current_file_source_id() const;
 
   bool on_file_reference_error(const Status &status, size_t pos, FileId file_id, const string &file_reference,
-                               std::function<void(size_t pos)> &&on_error);
+                               std::function<void(size_t pos, FileId file_id)> &&on_error);
 
   void tear_down() final;
 };

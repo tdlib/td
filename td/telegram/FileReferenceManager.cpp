@@ -104,14 +104,14 @@ FileReferenceManager::FileReferenceErrorSource FileReferenceManager::get_file_re
 
 bool FileReferenceManager::on_file_reference_error(const Status &status, size_t pos, FileId file_id,
                                                    const string &file_reference,
-                                                   std::function<void(size_t pos)> &&on_error) {
+                                                   std::function<void(size_t pos, FileId file_id)> &&on_error) {
   if (!file_id.is_valid()) {
     LOG(ERROR) << "Receive file reference error " << status << ", but have no corresponding file";
     return false;
   }
   VLOG(file_references) << "Receive " << status << " for " << file_id;
   td_->file_manager_->delete_file_reference(file_id, file_reference);
-  on_error(pos);
+  on_error(pos, file_id);
   return true;
 }
 
@@ -120,7 +120,7 @@ bool FileReferenceManager::process_file_reference_error(const Status &status, bo
                                                         const vector<string> &file_references,
                                                         const vector<FileId> &cover_file_ids,
                                                         const vector<string> &cover_file_references, bool expect_index,
-                                                        std::function<void(size_t pos)> on_error) {
+                                                        std::function<void(size_t pos, FileId file_id)> on_error) {
   if (td_->auth_manager_->is_bot() || !is_file_reference_error(status)) {
     return false;
   }
@@ -155,7 +155,7 @@ bool FileReferenceManager::process_file_reference_error(const Status &status, co
                                                         const vector<string> &file_references,
                                                         const vector<FileId> &cover_file_ids,
                                                         const vector<string> &cover_file_references, bool expect_index,
-                                                        std::function<void(size_t pos)> on_error) {
+                                                        std::function<void(size_t pos, FileId file_id)> on_error) {
   if (td_->auth_manager_->is_bot() || !is_file_reference_error(status)) {
     return false;
   }
