@@ -59,27 +59,25 @@ bool FileReferenceManager::is_file_reference_error(const Status &error) {
 }
 
 FileReferenceManager::FileReferenceErrorSource FileReferenceManager::get_file_reference_error_source(
-    const Status &error) {
-  if (!is_file_reference_error(error)) {
-    return {0, false};
-  }
+    const Status &error, bool expect_index) {
+  CHECK(is_file_reference_error(error));
   auto offset = Slice("FILE_REFERENCE_").size();
   Slice message = error.message();
   message = message.substr(offset);
   size_t pos = 0;
   if (begins_with(message, "ATTACH_")) {
-    pos = 1;
+    pos = 0;
     message = message.substr(7);
   } else if (begins_with(message, "SOLUTION_")) {
-    pos = 2;
+    pos = 1;
     message = message.substr(9);
   } else if (begins_with(message, "ANSWER_")) {
     message = message.substr(7);
     if (message.empty() || !is_digit(message[0])) {
       // add poll answer
-      pos = 1;
+      pos = 0;
     } else {
-      pos = 3 + to_integer<size_t>(message);
+      pos = 2 + to_integer<size_t>(message);
       auto underscore_pos = message.find('_');
       if (underscore_pos == Slice::npos) {
         message = Slice();
@@ -88,13 +86,15 @@ FileReferenceManager::FileReferenceErrorSource FileReferenceManager::get_file_re
       }
     }
   } else if (!message.empty() || is_digit(message[0])) {
-    pos = 1 + to_integer<size_t>(message);
+    pos = to_integer<size_t>(message);
     auto underscore_pos = message.find('_');
     if (underscore_pos == Slice::npos) {
       message = Slice();
     } else {
       message = message.substr(underscore_pos + 1);
     }
+  } else if (expect_index) {
+    LOG(ERROR) << "Expected a file reference error with an index, but receive " << error.message();
   }
   if (!message.empty() && message[0] == '_') {
     message = message.substr(1);
@@ -124,14 +124,8 @@ bool FileReferenceManager::process_file_reference_error(const Status &status, bo
   if (td_->auth_manager_->is_bot() || !is_file_reference_error(status)) {
     return false;
   }
-  auto source = get_file_reference_error_source(status);
+  auto source = get_file_reference_error_source(status, expect_index);
   auto pos = source.pos_;
-  if (pos > 0) {
-    pos--;
-  } else if (expect_index) {
-    LOG(ERROR) << "Expected a file reference error with an index";
-    return false;
-  }
   if (source.is_cover_) {
     if (pos < cover_file_ids.size() && pos < cover_file_references.size()) {
       return on_file_reference_error(status, pos, cover_file_ids[pos], cover_file_references[pos], std::move(on_error));
@@ -159,14 +153,8 @@ bool FileReferenceManager::process_file_reference_error(const Status &status, co
   if (td_->auth_manager_->is_bot() || !is_file_reference_error(status)) {
     return false;
   }
-  auto source = get_file_reference_error_source(status);
+  auto source = get_file_reference_error_source(status, expect_index);
   auto pos = source.pos_;
-  if (pos > 0) {
-    pos--;
-  } else if (expect_index) {
-    LOG(ERROR) << "Expected a file reference error with an index";
-    return false;
-  }
   if (source.is_cover_) {
     if (pos < cover_file_ids.size() && pos < cover_file_references.size()) {
       return on_file_reference_error(status, pos, cover_file_ids[pos], cover_file_references[pos], std::move(on_error));

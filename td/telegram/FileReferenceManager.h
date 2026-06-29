@@ -55,7 +55,7 @@ class FileReferenceManager final : public Actor {
     size_t pos_;
     bool is_cover_;
   };
-  static FileReferenceErrorSource get_file_reference_error_source(const Status &error);
+  static FileReferenceErrorSource get_file_reference_error_source(const Status &error, bool expect_index);
 
   bool process_file_reference_error(const Status &status, bool was_uploaded,
                                     const vector<FileUploadId> &file_upload_ids, const vector<string> &file_references,
