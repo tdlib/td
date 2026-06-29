@@ -9,6 +9,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
@@ -21,12 +22,14 @@ class Td;
 class BotCommand {
   string command_;
   string description_;
+  bool is_ephemeral_ = false;
 
   friend bool operator==(const BotCommand &lhs, const BotCommand &rhs);
 
  public:
   BotCommand() = default;
-  BotCommand(string command, string description) : command_(std::move(command)), description_(std::move(description)) {
+  BotCommand(string command, string description, bool is_ephemeral)
+      : command_(std::move(command)), description_(std::move(description)), is_ephemeral_(is_ephemeral) {
   }
   explicit BotCommand(telegram_api::object_ptr<telegram_api::botCommand> &&bot_command);
 
@@ -36,12 +39,20 @@ class BotCommand {
 
   template <class StorerT>
   void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_ephemeral_);
+    END_STORE_FLAGS();
     td::store(command_, storer);
     td::store(description_, storer);
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
+    if (parser.version() >= static_cast<int32>(Version::SupportEphemeralMessages)) {
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(is_ephemeral_);
+      END_PARSE_FLAGS();
+    }
     td::parse(command_, parser);
     td::parse(description_, parser);
   }

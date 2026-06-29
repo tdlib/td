@@ -73,7 +73,8 @@ enum class Version : int32 {
   AddDiceFlags,
   AddStarGiftAttributeRarity,
   AddPollCaption,
-  SupportRichMessages,
+  SupportRichMessages,  // 60
+  SupportEphemeralMessages,
   Next
 };
 

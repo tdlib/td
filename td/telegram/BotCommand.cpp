@@ -113,18 +113,19 @@ BotCommand::BotCommand(telegram_api::object_ptr<telegram_api::botCommand> &&bot_
   CHECK(bot_command != nullptr);
   command_ = std::move(bot_command->command_);
   description_ = std::move(bot_command->description_);
+  is_ephemeral_ = bot_command->ephemeral_;
 }
 
 td_api::object_ptr<td_api::botCommand> BotCommand::get_bot_command_object() const {
-  return td_api::make_object<td_api::botCommand>(command_, description_);
+  return td_api::make_object<td_api::botCommand>(command_, description_, is_ephemeral_);
 }
 
 telegram_api::object_ptr<telegram_api::botCommand> BotCommand::get_input_bot_command() const {
-  return telegram_api::make_object<telegram_api::botCommand>(0, false, command_, description_);
+  return telegram_api::make_object<telegram_api::botCommand>(0, is_ephemeral_, command_, description_);
 }
 
 bool operator==(const BotCommand &lhs, const BotCommand &rhs) {
-  return lhs.command_ == rhs.command_ && lhs.description_ == rhs.description_;
+  return lhs.command_ == rhs.command_ && lhs.description_ == rhs.description_ && lhs.is_ephemeral_ == rhs.is_ephemeral_;
 }
 
 BotCommands::BotCommands(UserId bot_user_id, vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands)
@@ -204,7 +205,7 @@ void set_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_pt
           400, PSLICE() << "Command description length must not exceed " << MAX_COMMAND_DESCRIPTION_LENGTH);
     }
 
-    new_commands.emplace_back(std::move(command->command_), std::move(command->description_));
+    new_commands.emplace_back(std::move(command->command_), std::move(command->description_), command->is_ephemeral_);
   }
 
   td->create_handler<SetBotCommandsQuery>(std::move(promise))->send(scope, language_code, std::move(new_commands));

@@ -819,8 +819,11 @@ userTypeBot can_be_edited:Bool can_join_groups:Bool can_read_all_group_messages:
 userTypeUnknown = UserType;
 
 
-//@description Represents a command supported by a bot @command Text of the bot command @param_description Description of the bot command
-botCommand command:string description:string = BotCommand;
+//@description Represents a command supported by a bot
+//@command Text of the bot command
+//@param_description Description of the bot command
+//@is_ephemeral True, if the command must send an ephemeral message instead of a regular one
+botCommand command:string description:string is_ephemeral:Bool = BotCommand;
 
 //@description Contains a list of bot commands @bot_user_id Bot's user identifier @commands List of bot commands
 botCommands bot_user_id:int53 commands:vector<botCommand> = BotCommands;
