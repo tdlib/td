@@ -2323,6 +2323,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_sender_rank = !sender_rank.empty();
   bool has_guest_bot_via_dialog_id = guest_bot_via_dialog_id.is_valid();
   bool has_receiver_user_id = receiver_user_id.is_valid();
+  bool has_ephemeral_message_id = ephemeral_message_id != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -2433,6 +2434,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_sender_rank);
     STORE_FLAG(has_guest_bot_via_dialog_id);
     STORE_FLAG(has_receiver_user_id);
+    STORE_FLAG(has_ephemeral_message_id);
     END_STORE_FLAGS();
   }
   // update MessageDb::get_message_info when flags5 is added
@@ -2593,6 +2595,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_receiver_user_id) {
     store(receiver_user_id, storer);
   }
+  if (has_ephemeral_message_id) {
+    store(ephemeral_message_id, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -2663,6 +2668,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_sender_rank = false;
   bool has_guest_bot_via_dialog_id = false;
   bool has_receiver_user_id = false;
+  bool has_ephemeral_message_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -2773,6 +2779,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_sender_rank);
     PARSE_FLAG(has_guest_bot_via_dialog_id);
     PARSE_FLAG(has_receiver_user_id);
+    PARSE_FLAG(has_ephemeral_message_id);
     END_PARSE_FLAGS();
   }
 
@@ -2997,6 +3004,12 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_receiver_user_id) {
     parse(receiver_user_id, parser);
+  }
+  if (has_ephemeral_message_id) {
+    parse(ephemeral_message_id, parser);
+    if (ephemeral_message_id == 0) {
+      parser.set_error("Invalid ephemeral message identifier");
+    }
   }
 
   CHECK(content != nullptr);
@@ -11286,6 +11299,11 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(ERROR) << "Receive message receiver " << message_info.receiver_user_id;
     message_info.receiver_user_id = UserId();
   }
+  if (message_info.ephemeral_message_id != 0 && message_info.receiver_user_id == UserId()) {
+    LOG(ERROR) << "Receive ephemeral message " << message_info.ephemeral_message_id << " without receiver in "
+               << dialog_id;
+    return {DialogId(), nullptr};
+  }
 
   bool is_channel_post = message_info.is_channel_post;
   if (is_channel_post && !td->dialog_manager_->is_broadcast_channel(dialog_id)) {
@@ -11459,6 +11477,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->sender_user_id = sender_user_id;
   message->sender_dialog_id = sender_dialog_id;
   message->receiver_user_id = message_info.receiver_user_id;
+  message->ephemeral_message_id = message_info.ephemeral_message_id;
   message->date = date;
   message->schedule_repeat_period = message_info.schedule_repeat_period;
   message->ttl_period = ttl_period;
@@ -31718,6 +31737,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
     old_message->receiver_user_id = new_message->receiver_user_id;
     need_send_update = true;
+  }
+  if (old_message->ephemeral_message_id != new_message->ephemeral_message_id) {
+    old_message->ephemeral_message_id = new_message->ephemeral_message_id;
   }
   if (old_message->sender_boost_count != new_message->sender_boost_count) {
     LOG(DEBUG) << "Change sender boost count";
