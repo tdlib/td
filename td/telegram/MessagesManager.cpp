@@ -4216,6 +4216,25 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
       << "Receive useless update " << oneline(to_string(update)) << " from " << source;
 }
 
+void MessagesManager::on_new_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message) {
+  auto message_info = parse_ephemeral_message(td_, std::move(message), "on_new_ephemeral_message");
+  auto dialog_id = message_info.dialog_id;
+  if (!dialog_id.is_valid()) {
+    return;
+  }
+
+  Dialog *d = get_dialog_force(dialog_id, "on_new_ephemeral_message");
+  if (d == nullptr && td_->dialog_manager_->have_dialog_info_force(dialog_id, "on_new_ephemeral_message")) {
+    force_create_dialog(dialog_id, "on_new_ephemeral_message");
+    d = get_dialog(dialog_id);
+  }
+  if (d == nullptr) {
+    return;
+  }
+  message_info.message_id = get_next_local_message_id(d);
+  on_get_message(std::move(message_info), true, "on_new_ephemeral_message");
+}
+
 MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
   UserId service_notifications_user_id = td_->user_manager_->add_service_notifications_user();
   DialogId service_notifications_dialog_id(service_notifications_user_id);

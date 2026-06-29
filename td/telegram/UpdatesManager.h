@@ -507,19 +507,31 @@ class UpdatesManager final : public Actor {
   bool is_acceptable_update(const telegram_api::Update *update) const;
 
   void on_update(tl_object_ptr<telegram_api::updateNewMessage> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateMessageID> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateReadMessagesContents> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateEditMessage> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateDeleteMessages> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateNewEphemeralMessage> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateReadHistoryInbox> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateReadHistoryOutbox> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateNotifySettings> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updatePeerSettings> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updatePeerHistoryTTL> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updatePeerLocated> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateWebPage> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateChannelWebPage> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateMessageReactions> update, Promise<Unit> &&promise);
@@ -763,8 +775,6 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateBotStarsSubscription> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updateNewEphemeralMessage> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateDeleteEphemeralMessages> update, Promise<Unit> &&promise);
 
