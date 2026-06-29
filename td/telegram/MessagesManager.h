@@ -1411,6 +1411,8 @@ class MessagesManager final : public Actor {
     MessageId pending_read_channel_inbox_max_message_id;       // for channels only
     FlatHashMap<int64, MessageId> random_id_to_message_id;     // for secret chats and yet unsent messages only
 
+    FlatHashMap<int32, MessageId> ephemeral_message_ids;
+
     MessageId last_assigned_message_id;  // identifier of the last local or yet unsent message, assigned after
                                          // application start, used to guarantee that all assigned message identifiers
                                          // are different
@@ -1654,6 +1656,8 @@ class MessagesManager final : public Actor {
   static constexpr int32 AUTH_NOTIFICATION_ID_CACHE_TIME = 7 * 86400;
   static constexpr size_t MAX_SAVED_AUTH_NOTIFICATION_IDS = 100;
 
+  static constexpr size_t MAX_DIALOG_EPHEMERAL_MESSAGES = 100;  // some reasonable limit
+
   static constexpr int32 MAX_RESEND_DELAY = 86400;  // seconds, some reasonable limit
 
   static constexpr bool DROP_SEND_MESSAGE_UPDATES = false;
@@ -1788,8 +1792,8 @@ class MessagesManager final : public Actor {
 
   void delete_messages_from_updates(const vector<MessageId> &message_ids, bool is_permanent);
 
-  void delete_dialog_messages(Dialog *d, const vector<MessageId> &message_ids, bool force_update_for_not_found_messages,
-                              const char *source);
+  void do_delete_dialog_messages(Dialog *d, const vector<MessageId> &message_ids,
+                                 bool force_update_for_not_found_messages, const char *source);
 
   void update_dialog_pinned_messages_from_updates(DialogId dialog_id, const vector<MessageId> &message_ids,
                                                   bool is_pin);

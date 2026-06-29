@@ -3075,6 +3075,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_history_generation = history_generation != 0;
   bool has_background = background_info.is_valid();
   bool has_business_bot_manage_bar = business_bot_manage_bar != nullptr;
+  bool has_ephemeral_message_ids = !ephemeral_message_ids.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -3151,26 +3152,27 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_action_bar);
     STORE_FLAG(has_default_send_message_as_dialog_id);
     STORE_FLAG(need_drop_default_send_message_as_dialog_id);
-    STORE_FLAG(has_legacy_available_reactions);
+    STORE_FLAG(has_legacy_available_reactions);  // 5
     STORE_FLAG(is_available_reactions_inited);
     STORE_FLAG(has_available_reactions_generation);
     STORE_FLAG(has_have_full_history_source);
     STORE_FLAG(has_available_reactions);
-    STORE_FLAG(has_history_generation);
+    STORE_FLAG(has_history_generation);  // 10
     STORE_FLAG(need_repair_unread_reaction_count);
     STORE_FLAG(is_translatable);
     STORE_FLAG(need_repair_unread_mention_count);
     STORE_FLAG(is_background_inited);
-    STORE_FLAG(has_background);
+    STORE_FLAG(has_background);  // 15
     STORE_FLAG(is_blocked_for_stories);
     STORE_FLAG(is_is_blocked_for_stories_inited);
     STORE_FLAG(view_as_messages);
     STORE_FLAG(is_view_as_messages_inited);
-    STORE_FLAG(is_forum);
+    STORE_FLAG(is_forum);  // 20
     STORE_FLAG(is_saved_messages_view_as_messages_inited);
     STORE_FLAG(has_business_bot_manage_bar);
     STORE_FLAG(is_forum_tabs);
     STORE_FLAG(need_repair_unread_poll_vote_count);
+    STORE_FLAG(has_ephemeral_message_ids);  // 25
     END_STORE_FLAGS();
   }
 
@@ -3292,6 +3294,13 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_business_bot_manage_bar) {
     store(business_bot_manage_bar, storer);
   }
+  if (has_ephemeral_message_ids) {
+    vector<std::pair<int32, MessageId>> stored_data;
+    for (const auto &it : ephemeral_message_ids) {
+      stored_data.emplace_back(it.first, it.second);
+    }
+    store(stored_data, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -3344,6 +3353,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_history_generation = false;
   bool has_background = false;
   bool has_business_bot_manage_bar = false;
+  bool has_ephemeral_message_ids = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -3455,6 +3465,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_business_bot_manage_bar);
     PARSE_FLAG(is_forum_tabs);
     PARSE_FLAG(need_repair_unread_poll_vote_count);
+    PARSE_FLAG(has_ephemeral_message_ids);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -3634,6 +3645,17 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_business_bot_manage_bar) {
     parse(business_bot_manage_bar, parser);
+  }
+  if (has_ephemeral_message_ids) {
+    vector<std::pair<int32, MessageId>> stored_data;
+    parse(stored_data, parser);
+    for (const auto &it : stored_data) {
+      if (it.first == 0 || !it.second.is_valid()) {
+        parser.set_error("Have invalid ephemeral message");
+      } else {
+        ephemeral_message_ids.emplace(it.first, it.second);
+      }
+    }
   }
 
   (void)legacy_know_can_report_spam;
@@ -7132,7 +7154,7 @@ bool MessagesManager::delete_newer_server_messages_at_the_end(Dialog *d, Message
     }
   }
 
-  delete_dialog_messages(d, server_message_ids, false, "delete_newer_server_messages_at_the_end");
+  do_delete_dialog_messages(d, server_message_ids, false, "delete_newer_server_messages_at_the_end");
 
   // connect all messages with ID > max_message_id
   for (size_t i = 0; i + 1 < kept_message_ids.size(); i++) {
@@ -7802,11 +7824,11 @@ void MessagesManager::delete_dialog_messages(DialogId dialog_id, const vector<Me
     return;
   }
 
-  delete_dialog_messages(d, message_ids, force_update_for_not_found_messages, source);
+  do_delete_dialog_messages(d, message_ids, force_update_for_not_found_messages, source);
 }
 
-void MessagesManager::delete_dialog_messages(Dialog *d, const vector<MessageId> &message_ids,
-                                             bool force_update_for_not_found_messages, const char *source) {
+void MessagesManager::do_delete_dialog_messages(Dialog *d, const vector<MessageId> &message_ids,
+                                                bool force_update_for_not_found_messages, const char *source) {
   vector<unique_ptr<Message>> deleted_messages;
   vector<int64> deleted_message_ids;
   bool need_update_dialog_pos = false;
@@ -8336,7 +8358,7 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
       dialog_id, std::move(deleted_scheduled_server_message_ids), 0, mpas.get_promise());
   lock.set_value(Unit());
 
-  delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
+  do_delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
 }
 
 void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageId message_id,
@@ -8605,7 +8627,7 @@ void MessagesManager::delete_local_dialog_messages_by_sender(DialogId dialog_id,
         return sender_dialog_id == get_message_sender(m) && can_delete_channel_message(false, channel_status, m, false);
       });
 
-  delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
+  do_delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
 }
 
 void MessagesManager::delete_local_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date) {
@@ -8621,7 +8643,7 @@ void MessagesManager::delete_local_dialog_messages_by_date(DialogId dialog_id, i
   }
 
   auto message_ids = d->ordered_messages.find_messages_by_date(min_date, max_date, get_get_message_date(d));
-  delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
+  do_delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
 }
 
 int32 MessagesManager::get_unload_dialog_delay() const {
@@ -10719,7 +10741,7 @@ void MessagesManager::finish_delete_secret_messages(DialogId dialog_id, std::vec
       LOG(INFO) << "Skip deletion of service " << message_id;
     }
   }
-  delete_dialog_messages(d, to_delete_message_ids, true, "finish_delete_secret_messages");
+  do_delete_dialog_messages(d, to_delete_message_ids, true, "finish_delete_secret_messages");
 }
 
 void MessagesManager::delete_secret_chat_history(SecretChatId secret_chat_id, bool remove_from_dialog_list,
@@ -13393,6 +13415,11 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
     default:
       UNREACHABLE();
   }
+  if (m->ephemeral_message_id != 0 && is_permanently_deleted) {
+    auto is_erased = d->ephemeral_message_ids.erase(m->ephemeral_message_id) > 0;
+    CHECK(is_erased);
+    on_dialog_updated(d->dialog_id, "delete_ephemeral_message");
+  }
   ttl_unregister_message(d->dialog_id, m, source);
   ttl_period_unregister_message(d->dialog_id, m);
   delete_bot_command_message_id(d->dialog_id, m->message_id);
@@ -14211,7 +14238,7 @@ void MessagesManager::block_message_sender_from_replies(MessageId message_id, bo
     message_ids.push_back(message_id);
   }
 
-  delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
+  do_delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
 
   td_->message_query_manager_->block_message_sender_from_replies_on_server(
       message_id, need_delete_message, need_delete_all_messages, report_spam, 0, std::move(promise));
@@ -31006,6 +31033,20 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     case DialogType::None:
     default:
       UNREACHABLE();
+  }
+  if (m->ephemeral_message_id != 0) {
+    if (d->ephemeral_message_ids.emplace(m->ephemeral_message_id, m->message_id).second &&
+        d->ephemeral_message_ids.size() > MAX_DIALOG_EPHEMERAL_MESSAGES) {
+      auto oldest_message_id = m->message_id;
+      for (const auto &it : d->ephemeral_message_ids) {
+        if (it.second < oldest_message_id) {
+          oldest_message_id = it.second;
+        }
+      }
+      send_closure_later(actor_id(this), &MessagesManager::delete_dialog_messages, dialog_id,
+                         vector<MessageId>{oldest_message_id}, false, "add_ephemeral_message");
+      on_dialog_updated(dialog_id, "add_ephemeral_message");
+    }
   }
 
   if (m->message_id.is_yet_unsent() || dialog_type == DialogType::SecretChat) {
