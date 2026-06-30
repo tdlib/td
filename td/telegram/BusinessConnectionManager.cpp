@@ -1180,6 +1180,7 @@ MessageInputReplyTo BusinessConnectionManager::create_business_message_input_rep
         reply_to_message->poll_option_id_.clear();
       }
       return MessageInputReplyTo{message_id,
+                                 {},
                                  DialogId(),
                                  MessageQuote(td_, std::move(reply_to_message->quote_)),
                                  max(0, reply_to_message->checklist_task_id_),

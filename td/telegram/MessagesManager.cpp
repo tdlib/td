@@ -20899,7 +20899,7 @@ MessageId MessagesManager::get_persistent_message_id(const Dialog *d, MessageId 
 
 MessageInputReplyTo MessagesManager::create_message_input_reply_to(
     Dialog *d, const MessageTopic &message_topic, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
-    bool for_draft) {
+    bool for_draft, bool for_ephemeral_message) {
   CHECK(d != nullptr);
   auto implicit_reply_to_message_id = message_topic.get_implicit_reply_to_message_id(td_);
   if (implicit_reply_to_message_id.is_valid() &&
@@ -20915,7 +20915,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
   }
   switch (reply_to->get_id()) {
     case td_api::inputMessageReplyToStory::ID: {
-      if (for_draft) {
+      if (for_draft || for_ephemeral_message) {
         return {};
       }
       auto reply_to_story = td_api::move_object_as<td_api::inputMessageReplyToStory>(reply_to);
@@ -20950,7 +20950,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
         reply_to_message->poll_option_id_.clear();
       }
       const Message *m = get_message_force(d, message_id, "create_message_input_reply_to 2");
-      if (!can_reply_to_message(d, message_id, m)) {
+      if (!can_reply_to_message(d, message_id, m) || (!for_ephemeral_message && is_ephemeral_message(m))) {
         message_id = {};
         m = nullptr;
       }
@@ -20961,6 +20961,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
              message_id <= d->notification_info->max_push_notification_message_id_)) {
           // allow to reply to yet unreceived server message in the same chat
           return MessageInputReplyTo{message_id,
+                                     {},
                                      DialogId(),
                                      MessageQuote{td_, std::move(reply_to_message->quote_)},
                                      checklist_task_id,
@@ -21004,6 +21005,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
         reply_to_message->poll_option_id_.clear();
       }
       return MessageInputReplyTo{m->message_id,
+                                 m->ephemeral_message_id,
                                  DialogId(),
                                  MessageQuote{td_, std::move(reply_to_message->quote_)},
                                  checklist_task_id,
@@ -21012,7 +21014,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
     }
     case td_api::inputMessageReplyToExternalMessage::ID: {
       auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToExternalMessage>(reply_to);
-      if (d->dialog_id.get_type() == DialogType::SecretChat) {
+      if (d->dialog_id.get_type() == DialogType::SecretChat || for_ephemeral_message) {
         return {};
       }
       auto reply_dialog_id = DialogId(reply_to_message->chat_id_);
@@ -21036,6 +21038,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
         reply_to_message->poll_option_id_.clear();
       }
       return MessageInputReplyTo{m->message_id,
+                                 {},
                                  reply_dialog_id,
                                  MessageQuote{td_, std::move(reply_to_message->quote_)},
                                  checklist_task_id,

@@ -26,6 +26,7 @@ class Td;
 
 class MessageInputReplyTo {
   MessageId message_id_;
+  int32 ephemeral_message_id_ = 0;
   DialogId dialog_id_;
   MessageQuote quote_;
   int32 todo_item_id_ = 0;
@@ -48,9 +49,10 @@ class MessageInputReplyTo {
   MessageInputReplyTo &operator=(MessageInputReplyTo &&) = default;
   ~MessageInputReplyTo();
 
-  MessageInputReplyTo(MessageId message_id, DialogId dialog_id, MessageQuote quote, int32 todo_item_id,
-                      const string &poll_option_id, const char *debug_source)
+  MessageInputReplyTo(MessageId message_id, int32 ephemeral_message_id, DialogId dialog_id, MessageQuote quote,
+                      int32 todo_item_id, const string &poll_option_id, const char *debug_source)
       : message_id_(message_id)
+      , ephemeral_message_id_(ephemeral_message_id)
       , dialog_id_(dialog_id)
       , quote_(std::move(quote))
       , todo_item_id_(todo_item_id)
@@ -98,7 +100,8 @@ class MessageInputReplyTo {
     if (story_full_id_.is_valid()) {
       return MessageInputReplyTo(story_full_id_);
     }
-    return MessageInputReplyTo(message_id_, dialog_id_, quote_.clone(), todo_item_id_, poll_option_id_, debug_source_);
+    return MessageInputReplyTo(message_id_, ephemeral_message_id_, dialog_id_, quote_.clone(), todo_item_id_,
+                               poll_option_id_, debug_source_);
   }
 
   void add_dependencies(Dependencies &dependencies) const;

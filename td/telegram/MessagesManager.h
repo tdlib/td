@@ -1786,7 +1786,7 @@ class MessagesManager final : public Actor {
 
   MessageInputReplyTo create_message_input_reply_to(Dialog *d, const MessageTopic &message_topic,
                                                     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
-                                                    bool for_draft);
+                                                    bool for_draft, bool for_ephemeral_message = false);
 
   static const MessageInputReplyTo *get_message_input_reply_to(const Message *m);
 

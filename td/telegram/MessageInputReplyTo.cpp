@@ -111,6 +111,9 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
                                                                       story_full_id_.get_story_id().get());
   }
   CHECK(!message_topic.is_saved_messages());
+  if (ephemeral_message_id_ != 0) {
+    return telegram_api::make_object<telegram_api::inputReplyToEphemeralMessage>(ephemeral_message_id_);
+  }
   auto reply_to_message_id = message_id_;
   if (reply_to_message_id == MessageId()) {
     if (message_topic.is_monoforum()) {
