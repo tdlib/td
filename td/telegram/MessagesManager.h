@@ -21,6 +21,7 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogSource.h"
 #include "td/telegram/EncryptedFile.h"
+#include "td/telegram/EphemeralMessageId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileUploadId.h"

@@ -824,6 +824,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/EmojiGroupType.h
   td/telegram/EmojiStatus.h
   td/telegram/EncryptedFile.h
+  td/telegram/EphemeralMessageId.h
   td/telegram/FactCheck.h
   td/telegram/FileReferenceManager.h
   td/telegram/files/FileBitmask.h
