@@ -5187,9 +5187,10 @@ Result<vector<unique_ptr<WebPageBlock>>> get_web_page_blocks(
         if (location.empty()) {
           return Status::Error(400, "Invalid location specified");
         }
-        if (block->zoom_ < 0 || block->zoom_ > 25 || block->width_ < 0 || block->width_ >= 65536 ||
-            block->height_ < 0 || block->height_ >= 65536) {
-          return Status::Error(400, "Invalid location parameters specified");
+        if (block->zoom_ < 0 || block->zoom_ >= 25 || block->width_ < 0 || block->width_ > 10000 ||
+            block->height_ < 0 || block->height_ > 10000 || block->width_ + block->height_ > 10000 ||
+            block->width_ > block->height_ * 20 || block->height_ > block->width_ * 20) {
+          return Status::Error(400, "Invalid map properties specified");
         }
         TRY_RESULT(caption, WebPageBlockCaption::get_web_page_block_caption(td, std::move(block->caption_)));
         result.push_back(td::make_unique<WebPageBlockMap>(

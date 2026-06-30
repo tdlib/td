@@ -5915,11 +5915,11 @@ inputPageBlockTable caption:RichText cells:vector<vector<pageBlockTableCell>> is
 //@is_open True, if the block is open by default
 inputPageBlockDetails header:RichText blocks:vector<InputPageBlock> is_open:Bool = InputPageBlock;
 
-//@description A map
+//@description A map. The map's width and height must not exceed 10000 in total. Width and height ratio must be at most 20
 //@location Location of the map center
-//@zoom Map zoom level
-//@width Map width
-//@height Map height
+//@zoom Map zoom level; 0-24
+//@width Map width; 0-10000
+//@height Map height; 0-10000
 //@caption Block caption
 inputPageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageBlockCaption = InputPageBlock;
 
