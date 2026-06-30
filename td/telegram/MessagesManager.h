@@ -493,6 +493,12 @@ class MessagesManager final : public Actor {
   void process_suggested_post(MessageFullId message_full_id, bool is_rejected, int32 schedule_date,
                               const string &comment, Promise<Unit> &&promise);
 
+  Result<td_api::object_ptr<td_api::message>> send_ephemeral_message(
+      DialogId dialog_id, const td_api::object_ptr<td_api::MessageTopic> &topic_id, UserId receiver_user_id,
+      td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, int32 sending_id, bool only_preview,
+      tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
+      tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
+
   Result<MessageId> add_local_message(
       DialogId dialog_id, td_api::object_ptr<td_api::MessageSender> &&sender,
       td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification,

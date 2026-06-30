@@ -676,6 +676,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::sendInlineQueryResultMessage &request);
 
+  void on_request(uint64 id, td_api::sendEphemeralMessage &request);
+
   void on_request(uint64 id, td_api::addLocalMessage &request);
 
   void on_request(uint64 id, td_api::editMessageText &request);

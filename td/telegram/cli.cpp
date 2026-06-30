@@ -2945,6 +2945,12 @@ class CliClient final : public Actor {
 
   void send_message(int64 chat_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                     bool disable_notification = false, bool from_background = false) {
+    if (ephemeral_message_receiver_id_ != 0) {
+      send_request(td_api::make_object<td_api::sendEphemeralMessage>(
+          chat_id, get_message_topic_id(), ephemeral_message_receiver_id_, get_input_message_reply_to(), 123,
+          only_preview_, nullptr, std::move(input_message_content)));
+      return;
+    }
     if (!business_connection_id_.empty()) {
       send_request(td_api::make_object<td_api::sendBusinessMessage>(
           business_connection_id_, chat_id, get_input_message_reply_to(), disable_notification, rand_bool(),
@@ -6463,6 +6469,8 @@ class CliClient final : public Actor {
       saved_messages_topic_id_ = as_chat_id(args);
     } else if (op == "sqrs") {
       quick_reply_shortcut_name_ = args;
+    } else if (op == "smer") {
+      get_args(args, ephemeral_message_receiver_id_);
     } else if (op == "smas") {
       added_sticker_file_ids_ = as_file_ids(args);
     } else if (op == "smc") {
@@ -9025,6 +9033,7 @@ class CliClient final : public Actor {
   GiftCollectionId gift_collection_id_;
   int64 saved_messages_topic_id_ = 0;
   string quick_reply_shortcut_name_;
+  int64 ephemeral_message_receiver_id_ = 0;
   vector<int32> added_sticker_file_ids_;
   string caption_;
   string rich_message_media_;

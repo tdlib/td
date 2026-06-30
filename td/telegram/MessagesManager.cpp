@@ -1530,11 +1530,12 @@ class SendMediaQuery final : public Td::ResultHandler {
  public:
   void send(vector<FileUploadId> file_upload_ids, vector<FileUploadId> thumbnail_file_upload_ids,
             vector<FileId> cover_file_ids, int32 flags, DialogId dialog_id,
-            tl_object_ptr<telegram_api::InputPeer> as_input_peer, const MessageInputReplyTo &input_reply_to,
-            const MessageTopic &message_topic, int32 schedule_date, int32 schedule_repeat_period,
-            MessageEffectId effect_id, int64 paid_message_star_count, const SuggestedPost *suggested_post,
-            const unique_ptr<ReplyMarkup> &reply_markup, const FormattedText *text, InputMedia &&input_media,
-            MessageContentType content_type, bool is_copy, int64 random_id, NetQueryRef *send_query_ref) {
+            tl_object_ptr<telegram_api::InputPeer> as_input_peer, UserId receiver_user_id,
+            const MessageInputReplyTo &input_reply_to, const MessageTopic &message_topic, int32 schedule_date,
+            int32 schedule_repeat_period, MessageEffectId effect_id, int64 paid_message_star_count,
+            const SuggestedPost *suggested_post, const unique_ptr<ReplyMarkup> &reply_markup, const FormattedText *text,
+            InputMedia &&input_media, MessageContentType content_type, bool is_copy, int64 random_id,
+            NetQueryRef *send_query_ref) {
     random_id_ = random_id;
     file_upload_ids_ = std::move(file_upload_ids);
     thumbnail_file_upload_ids_ = std::move(thumbnail_file_upload_ids);
@@ -1551,6 +1552,41 @@ class SendMediaQuery final : public Td::ResultHandler {
     }
 
     auto reply_to = input_reply_to.get_input_reply_to(td_, message_topic, false, dialog_id, flags);
+    if (receiver_user_id != UserId()) {
+      auto r_input_user = td_->user_manager_->get_input_user(receiver_user_id);
+      if (r_input_user.is_error()) {
+        return on_error(r_input_user.move_as_error());
+      }
+      flags = 0;
+      if (reply_to != nullptr) {
+        flags |= telegram_api::ephemeral_sendMessage::REPLY_TO_MASK;
+      }
+      auto entities = get_input_message_entities(td_->user_manager_.get(), text, "SendMediaQuery");
+      if (!entities.empty()) {
+        flags |= telegram_api::ephemeral_sendMessage::ENTITIES_MASK;
+      }
+      if (input_media.rich_message_ != nullptr) {
+        flags |= telegram_api::ephemeral_sendMessage::RICH_MESSAGE_MASK;
+      }
+      if (input_media.media_ != nullptr) {
+        flags |= telegram_api::ephemeral_sendMessage::MEDIA_MASK;
+      }
+      auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), reply_markup);
+      if (input_reply_markup != nullptr) {
+        flags |= telegram_api::ephemeral_sendMessage::REPLY_MARKUP_MASK;
+      }
+
+      auto query = G()->net_query_creator().create(
+          telegram_api::ephemeral_sendMessage(flags, std::move(input_peer), r_input_user.move_as_ok(), 0,
+                                              text == nullptr ? string() : text->text, std::move(entities),
+                                              std::move(input_media.media_), std::move(input_reply_markup),
+                                              std::move(input_media.rich_message_), random_id, std::move(reply_to)),
+          {{dialog_id, MessageContentType::Text},
+           {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
+      *send_query_ref = query.get_weak();
+      send_query(std::move(query));
+      return;
+    }
     if (input_media.rich_message_ != nullptr) {
       CHECK(text == nullptr);
       if (reply_to != nullptr) {
@@ -1599,7 +1635,7 @@ class SendMediaQuery final : public Td::ResultHandler {
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendMedia(
             flags, false, false, false, false, false, false, false, std::move(input_peer), std::move(reply_to),
-            std::move(input_media.media_), text == nullptr ? "" : text->text, random_id,
+            std::move(input_media.media_), text == nullptr ? string() : text->text, random_id,
             get_input_reply_markup(td_->user_manager_.get(), reply_markup), std::move(entities), schedule_date,
             schedule_repeat_period, std::move(as_input_peer), nullptr, effect_id.get(), paid_message_star_count,
             std::move(post)),
@@ -22015,10 +22051,10 @@ void MessagesManager::do_send_message_media(DialogId dialog_id, const Message *m
         td_->create_handler<SendMediaQuery>()->send(
             m->file_upload_ids, m->thumbnail_file_upload_ids,
             get_message_content_cover_any_file_ids(td_, m->content.get()), get_message_flags(m), dialog_id,
-            get_send_message_as_input_peer(m), *get_message_input_reply_to(m), get_send_message_topic(dialog_id, m),
-            get_message_schedule_date(m), get_message_schedule_repeat_period(m), m->effect_id,
-            m->paid_message_star_count, m->suggested_post.get(), m->reply_markup, caption, std::move(input_media),
-            m->content->get_type(), m->is_copy, random_id, &m->send_query_ref);
+            get_send_message_as_input_peer(m), m->receiver_user_id, *get_message_input_reply_to(m),
+            get_send_message_topic(dialog_id, m), get_message_schedule_date(m), get_message_schedule_repeat_period(m),
+            m->effect_id, m->paid_message_star_count, m->suggested_post.get(), m->reply_markup, caption,
+            std::move(input_media), m->content->get_type(), m->is_copy, random_id, &m->send_query_ref);
       }));
 }
 
@@ -22515,7 +22551,7 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
     CHECK(message_text != nullptr);
     int64 random_id = begin_send_message(dialog_id, m);
     auto input_media = get_message_content_input_media_web_page(td_, content);
-    if (input_media == nullptr) {
+    if (input_media == nullptr && m->receiver_user_id == UserId()) {
       td_->create_handler<SendMessageQuery>()->send(
           get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
           get_send_message_topic(dialog_id, m), get_message_schedule_date(m), get_message_schedule_repeat_period(m),
@@ -22523,7 +22559,7 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
           message_text == nullptr ? FormattedText() : *message_text, m->is_copy, random_id, &m->send_query_ref);
     } else {
       td_->create_handler<SendMediaQuery>()->send(
-          {}, {}, {}, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
+          {}, {}, {}, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), m->receiver_user_id,
           *get_message_input_reply_to(m), get_send_message_topic(dialog_id, m), get_message_schedule_date(m),
           get_message_schedule_repeat_period(m), m->effect_id, m->paid_message_star_count, m->suggested_post.get(),
           m->reply_markup, message_text, std::move(input_media), MessageContentType::Text, m->is_copy, random_id,
@@ -25117,6 +25153,90 @@ void MessagesManager::process_suggested_post(MessageFullId message_full_id, bool
   }
   td_->message_query_manager_->toggle_suggested_post_approval(message_full_id, is_rejected, schedule_date, comment,
                                                               std::move(promise));
+}
+
+Result<td_api::object_ptr<td_api::message>> MessagesManager::send_ephemeral_message(
+    DialogId dialog_id, const td_api::object_ptr<td_api::MessageTopic> &topic_id, UserId receiver_user_id,
+    td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, int32 sending_id, bool only_preview,
+    td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) {
+  if (input_message_content == nullptr) {
+    return Status::Error(400, "Can't send message without content");
+  }
+  switch (input_message_content->get_id()) {
+    case td_api::inputMessageText::ID:
+    case td_api::inputMessageRichMessage::ID:
+    case td_api::inputMessageAnimation::ID:
+    case td_api::inputMessageAudio::ID:
+    case td_api::inputMessageDocument::ID:
+    case td_api::inputMessagePhoto::ID:
+    case td_api::inputMessageSticker::ID:
+    case td_api::inputMessageVideo::ID:
+    case td_api::inputMessageVideoNote::ID:
+    case td_api::inputMessageVoiceNote::ID:
+    case td_api::inputMessageLocation::ID:
+    case td_api::inputMessageVenue::ID:
+    case td_api::inputMessageContact::ID:
+      // ok
+      break;
+    default:
+      return Status::Error(400, "Unallowed message content");
+  }
+
+  Dialog *d = get_dialog_force(dialog_id, "send_ephemeral_message");
+  if (d == nullptr) {
+    return Status::Error(400, "Chat not found");
+  }
+  TRY_STATUS(td_->user_manager_->get_input_user(receiver_user_id));
+  TRY_RESULT(message_topic, MessageTopic::get_send_message_topic(td_, dialog_id, topic_id));
+  auto input_reply_to = create_message_input_reply_to(d, message_topic, std::move(reply_to), false, true);
+  TRY_RESULT(message_reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
+  TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content), false));
+
+  // there must be no errors after get_message_to_send call
+
+  auto content = dup_message_content(td_, dialog_id, message_content.content.get(), MessageContentDupType::Send,
+                                     MessageCopyOptions());
+  bool need_update_dialog_pos = false;
+  unique_ptr<Message> message;
+  Message *m;
+  if (only_preview) {
+    message =
+        create_message_to_send(d, message_topic, std::move(input_reply_to), MessageSendOptions(), std::move(content),
+                               message_content.invert_media, false, nullptr, DialogId(), false, DialogId(), false);
+    m = message.get();
+  } else {
+    m = get_message_to_send(d, message_topic, std::move(input_reply_to), MessageSendOptions(), std::move(content),
+                            message_content.invert_media, &need_update_dialog_pos);
+  }
+  m->receiver_user_id = receiver_user_id;
+  m->sending_id = sending_id;
+  m->reply_markup = std::move(message_reply_markup);
+  m->disable_web_page_preview = message_content.disable_web_page_preview;
+  m->clear_draft = message_content.clear_draft;
+  if (message_content.ttl.is_valid()) {
+    m->ttl = message_content.ttl;
+    m->is_content_secret = m->ttl.is_secret_message_content(m->content->get_type());
+  }
+  m->send_emoji = std::move(message_content.emoji);
+
+  if (only_preview) {
+    return get_message_object(dialog_id, m, "send_ephemeral_message");
+  }
+
+  clear_dialog_draft_by_sent_message(d, m, !need_update_dialog_pos);
+
+  save_send_message_log_event(dialog_id, m);
+  do_send_message(dialog_id, m);
+
+  if (!td_->auth_manager_->is_bot()) {
+    send_update_new_message(d, m);
+    if (need_update_dialog_pos) {
+      send_update_chat_last_message(d, "send_ephemeral_message");
+    }
+  }
+
+  return get_message_object(dialog_id, m, "send_ephemeral_message");
 }
 
 Result<MessageId> MessagesManager::add_local_message(

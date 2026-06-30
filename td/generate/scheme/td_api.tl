@@ -12043,6 +12043,18 @@ sendQuickReplyShortcutMessages chat_id:int53 shortcut_id:int32 sending_id:int32 
 //@paid_message_star_count The number of Telegram Stars the user agreed to pay to send the messages. Ignored if messageSendingStateFailed.required_paid_message_star_count == 0
 resendMessages chat_id:int53 message_ids:vector<int53> quote:inputTextQuote paid_message_star_count:int53 = Messages;
 
+//@description Sends an ephemeral message which will be received only by one bot in a chat. Currently, only ephemeral bot commands and replies to bot ephemeral messages can be sent using the method.
+//-The message is persistent across application restarts only if the message database is used. Returns the sent message
+//@chat_id Target chat
+//@topic_id Topic in which the message will be sent; pass null if none
+//@receiver_user_id Identifier of the user who will receive the message
+//@reply_to Information about the message to be replied; pass null if none. The message can be an incoming ephemeral message
+//@sending_id Non-persistent identifier, which will be returned back in messageSendingStatePending object and can be used to match sent messages and corresponding updateNewMessage updates
+//@only_preview Pass true to get a fake message instead of actually sending them
+//@reply_markup Markup for replying to the message; pass null if none; for bots only
+//@input_message_content The content of the message to be added. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto, inputMessageSticker, inputMessageVideo, inputMessageVideoNote, inputMessageVoiceNote, inputMessageLocation, inputMessageVenue, inputMessageContact
+sendEphemeralMessage chat_id:int53 topic_id:MessageTopic receiver_user_id:int53 reply_to:InputMessageReplyTo sending_id:int32 only_preview:Bool reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
+
 //@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message
 //@chat_id Target chat; channel direct messages chats aren't supported
 //@sender_id Identifier of the sender of the message
