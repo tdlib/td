@@ -1366,6 +1366,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"autoarchive_setting_available", "can_archive_and_mute_new_chats_from_unknown_users"},
       {"can_edit_factcheck", "can_edit_fact_check"},
       {"channel_revenue_withdrawal_enabled", "can_withdraw_chat_revenue"},
+      {"message_primary_edited_date", "show_message_edit_date_by_default"},
       {"premium_gift_attach_menu_icon", "gift_premium_from_attachment_menu"},
       {"premium_gift_text_field_icon", "gift_premium_from_input_field"},
       {"settings_display_passkeys", "can_use_login_passkey"},
