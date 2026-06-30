@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/EphemeralMessageId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageQuote.h"
@@ -26,7 +27,7 @@ class Td;
 
 class MessageInputReplyTo {
   MessageId message_id_;
-  int32 ephemeral_message_id_ = 0;
+  EphemeralMessageId ephemeral_message_id_;
   DialogId dialog_id_;
   MessageQuote quote_;
   int32 todo_item_id_ = 0;
@@ -49,8 +50,8 @@ class MessageInputReplyTo {
   MessageInputReplyTo &operator=(MessageInputReplyTo &&) = default;
   ~MessageInputReplyTo();
 
-  MessageInputReplyTo(MessageId message_id, int32 ephemeral_message_id, DialogId dialog_id, MessageQuote quote,
-                      int32 todo_item_id, const string &poll_option_id, const char *debug_source)
+  MessageInputReplyTo(MessageId message_id, EphemeralMessageId ephemeral_message_id, DialogId dialog_id,
+                      MessageQuote quote, int32 todo_item_id, const string &poll_option_id, const char *debug_source)
       : message_id_(message_id)
       , ephemeral_message_id_(ephemeral_message_id)
       , dialog_id_(dialog_id)

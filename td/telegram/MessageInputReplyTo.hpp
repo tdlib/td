@@ -24,7 +24,7 @@ void MessageInputReplyTo::store(StorerT &storer) const {
   bool has_quote = !quote_.is_empty();
   bool has_todo_item_id = todo_item_id_ != 0;
   bool has_poll_option_id = !poll_option_id_.empty();
-  bool has_ephemeral_message_id = ephemeral_message_id_ != 0;
+  bool has_ephemeral_message_id = ephemeral_message_id_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_message_id);
   STORE_FLAG(has_story_full_id);

@@ -2323,7 +2323,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_sender_rank = !sender_rank.empty();
   bool has_guest_bot_via_dialog_id = guest_bot_via_dialog_id.is_valid();
   bool has_receiver_user_id = receiver_user_id.is_valid();
-  bool has_ephemeral_message_id = ephemeral_message_id != 0;
+  bool has_ephemeral_message_id = ephemeral_message_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -3004,10 +3004,13 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_receiver_user_id) {
     parse(receiver_user_id, parser);
+    if (!receiver_user_id.is_valid()) {
+      parser.set_error("Invalid ephemeral message receiver identifier");
+    }
   }
   if (has_ephemeral_message_id) {
     parse(ephemeral_message_id, parser);
-    if (ephemeral_message_id == 0) {
+    if (!ephemeral_message_id.is_valid()) {
       parser.set_error("Invalid ephemeral message identifier");
     }
   }
@@ -3295,7 +3298,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     store(business_bot_manage_bar, storer);
   }
   if (has_ephemeral_message_ids) {
-    vector<std::pair<int32, MessageId>> stored_data;
+    vector<std::pair<EphemeralMessageId, MessageId>> stored_data;
     for (const auto &it : ephemeral_message_ids) {
       stored_data.emplace_back(it.first, it.second);
     }
@@ -3647,10 +3650,10 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     parse(business_bot_manage_bar, parser);
   }
   if (has_ephemeral_message_ids) {
-    vector<std::pair<int32, MessageId>> stored_data;
+    vector<std::pair<EphemeralMessageId, MessageId>> stored_data;
     parse(stored_data, parser);
     for (const auto &it : stored_data) {
-      if (it.first == 0 || !it.second.is_valid()) {
+      if (!it.first.is_valid() || !it.second.is_valid()) {
         parser.set_error("Have invalid ephemeral message");
       } else {
         ephemeral_message_ids.emplace(it.first, it.second);
@@ -4257,7 +4260,7 @@ void MessagesManager::on_delete_ephemeral_messages(DialogId dialog_id, vector<in
   }
   vector<MessageId> message_ids;
   for (auto ephemeral_message_id : ephemeral_message_ids) {
-    auto it = d->ephemeral_message_ids.find(ephemeral_message_id);
+    auto it = d->ephemeral_message_ids.find(EphemeralMessageId(ephemeral_message_id));
     if (it != d->ephemeral_message_ids.end()) {
       message_ids.push_back(it->second);
     }
@@ -8140,7 +8143,7 @@ bool MessagesManager::can_reply_to_message(const Dialog *d, MessageId message_id
   CHECK(d != nullptr);
   auto dialog_id = d->dialog_id;
   if (is_ephemeral_message(m)) {
-    return m->ephemeral_message_id != 0 && !m->is_outgoing;
+    return m->ephemeral_message_id.is_valid() && !m->is_outgoing;
   }
   if (!td_->auth_manager_->is_bot() && m != nullptr && m->is_topic_message && d->is_forum) {
     auto forum_topic_id = ForumTopicId::from_top_thread_message_id(m->top_thread_message_id);
@@ -11334,11 +11337,11 @@ MessagesManager::MessageInfo MessagesManager::parse_ephemeral_message(
   MessageInfo message_info;
   auto dialog_id = DialogId(message->peer_id_);
   message_info.receiver_user_id = UserId(message->receiver_id_);
-  message_info.ephemeral_message_id = message->id_;
+  message_info.ephemeral_message_id = EphemeralMessageId(message->id_);
   message_info.sender_dialog_id = DialogId(message->from_id_);
-  if (!dialog_id.is_valid() || !message_info.receiver_user_id.is_valid() || message_info.ephemeral_message_id == 0 ||
-      !message_info.sender_dialog_id.is_valid()) {
-    LOG(ERROR) << "Ignore ephemeral message " << message_info.ephemeral_message_id << " in " << dialog_id << " sent by "
+  if (!dialog_id.is_valid() || !message_info.receiver_user_id.is_valid() ||
+      !message_info.ephemeral_message_id.is_valid() || !message_info.sender_dialog_id.is_valid()) {
+    LOG(ERROR) << "Ignore " << message_info.ephemeral_message_id << " in " << dialog_id << " sent by "
                << message_info.sender_dialog_id << " and received by " << message_info.receiver_user_id;
     return message_info;
   }
@@ -11429,9 +11432,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(ERROR) << "Receive message receiver " << message_info.receiver_user_id;
     message_info.receiver_user_id = UserId();
   }
-  if (message_info.ephemeral_message_id != 0 && message_info.receiver_user_id == UserId()) {
-    LOG(ERROR) << "Receive ephemeral message " << message_info.ephemeral_message_id << " without receiver in "
-               << dialog_id;
+  if (message_info.ephemeral_message_id.is_valid() && message_info.receiver_user_id == UserId()) {
+    LOG(ERROR) << "Receive " << message_info.ephemeral_message_id << " without receiver in " << dialog_id;
     return {DialogId(), nullptr};
   }
 
@@ -13523,7 +13525,7 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
     default:
       UNREACHABLE();
   }
-  if (m->ephemeral_message_id != 0 && is_permanently_deleted) {
+  if (m->ephemeral_message_id.is_valid() && is_permanently_deleted) {
     auto is_erased = d->ephemeral_message_ids.erase(m->ephemeral_message_id) > 0;
     CHECK(is_erased);
     on_dialog_updated(d->dialog_id, "delete_ephemeral_message");
@@ -15191,7 +15193,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
     can_delete_for_all_users = !can_delete_for_self;
   }
   if (is_ephemeral) {
-    can_delete_for_self = m->ephemeral_message_id == 0;
+    can_delete_for_self = !m->ephemeral_message_id.is_valid();
     can_delete_for_all_users = !can_delete_for_self;
   }
 
@@ -31156,7 +31158,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     default:
       UNREACHABLE();
   }
-  if (m->ephemeral_message_id != 0) {
+  if (m->ephemeral_message_id.is_valid()) {
     if (d->ephemeral_message_ids.emplace(m->ephemeral_message_id, m->message_id).second &&
         d->ephemeral_message_ids.size() > MAX_DIALOG_EPHEMERAL_MESSAGES) {
       auto oldest_message_id = m->message_id;

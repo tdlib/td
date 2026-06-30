@@ -1043,7 +1043,7 @@ class MessagesManager final : public Actor {
     UserId sender_user_id;
     DialogId sender_dialog_id;
     UserId receiver_user_id;
-    int32 ephemeral_message_id = 0;
+    EphemeralMessageId ephemeral_message_id;
     SavedMessagesTopicId saved_messages_topic_id;
     int32 date = 0;
     int32 schedule_repeat_period = 0;
@@ -1099,7 +1099,7 @@ class MessagesManager final : public Actor {
     UserId sender_user_id;
     DialogId sender_dialog_id;
     UserId receiver_user_id;
-    int32 ephemeral_message_id = 0;
+    EphemeralMessageId ephemeral_message_id;
     SavedMessagesTopicId saved_messages_topic_id;
     int32 date = 0;
     int32 edit_date = 0;
@@ -1418,7 +1418,7 @@ class MessagesManager final : public Actor {
     MessageId pending_read_channel_inbox_max_message_id;       // for channels only
     FlatHashMap<int64, MessageId> random_id_to_message_id;     // for secret chats and yet unsent messages only
 
-    FlatHashMap<int32, MessageId> ephemeral_message_ids;
+    FlatHashMap<EphemeralMessageId, MessageId, EphemeralMessageIdHash> ephemeral_message_ids;
 
     MessageId last_assigned_message_id;  // identifier of the last local or yet unsent message, assigned after
                                          // application start, used to guarantee that all assigned message identifiers
