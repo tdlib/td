@@ -70,6 +70,15 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
       LOG(ERROR) << "Receive reply from other chat " << to_string(reply_header) << " in "
                  << MessageFullId{dialog_id, message_id};
     }
+  } else if (reply_header->reply_to_ephemeral_) {
+    if (reply_header->reply_to_msg_id_ == 0 || reply_header->reply_to_peer_id_ != nullptr ||
+        reply_header->reply_from_ != nullptr || reply_header->reply_media_ != nullptr ||
+        reply_header->todo_item_id_ != 0 || !reply_header->poll_option_.empty()) {
+      LOG(ERROR) << "Receive " << to_string(reply_header) << " in " << MessageFullId{dialog_id, message_id};
+    } else {
+      message_id_ = td->messages_manager_->get_message_id_of_ephemeral_message_id(
+          dialog_id, EphemeralMessageId(reply_header->reply_to_msg_id_));
+    }
   } else {
     if (reply_header->reply_to_msg_id_ != 0) {
       message_id_ = MessageId(ServerMessageId(reply_header->reply_to_msg_id_));
