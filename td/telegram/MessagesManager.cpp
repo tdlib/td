@@ -6656,7 +6656,7 @@ void MessagesManager::on_upload_media(FileUploadId file_upload_id,
 
   bool is_edit = m->message_id.is_any_server();
   auto dialog_id = message_full_id.get_dialog_id();
-  auto can_send_status = can_send_message(dialog_id);
+  auto can_send_status = is_ephemeral_message(m) ? Status::OK() : can_send_message(dialog_id);
   if (!is_edit && can_send_status.is_error()) {
     // user has left the chat during upload of the file or lost their privileges
     LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status;
@@ -6877,7 +6877,7 @@ void MessagesManager::on_upload_thumbnail(FileUploadId thumbnail_file_upload_id,
     FileUploadId::delete_file_upload_id(get_message_file_upload_ids(dialog_id, m, true), media_pos);
   }
 
-  auto can_send_status = can_send_message(dialog_id);
+  auto can_send_status = is_ephemeral_message(m) ? Status::OK() : can_send_message(dialog_id);
   if (!is_edit && can_send_status.is_error()) {
     // user has left the chat during upload of the thumbnail or lost their privileges
     LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status;
@@ -20483,7 +20483,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   if (sending_state == nullptr || !is_bot) {
     m->is_update_sent = true;
   }
-  bool is_ephemeral = m->ephemeral_message_id != 0;
+  bool is_ephemeral = is_ephemeral_message(m);
   bool is_scheduled = m->message_id.is_scheduled();
   bool is_from_saved_messages = (dialog_id == td_->dialog_manager_->get_my_dialog_id());
   bool is_outgoing = m->is_outgoing;
@@ -21721,7 +21721,7 @@ void MessagesManager::on_cover_upload(DialogId dialog_id, MessageId message_id, 
   }
 
   bool is_edit = m->message_id.is_any_server();
-  if (!is_edit && result.is_ok()) {
+  if (!is_edit && result.is_ok() && !is_ephemeral_message(m)) {
     result = can_send_message(dialog_id);
   }
   if (result.is_error()) {
@@ -22430,7 +22430,7 @@ void MessagesManager::do_send_internal_media_group(DialogId dialog_id, MessageId
   CHECK(content != nullptr);
   CHECK(can_message_content_have_multiple_files(content->get_type()));
 
-  auto status = can_send_message(dialog_id);
+  auto status = is_ephemeral_message(m) ? Status::OK() : can_send_message(dialog_id);
   bool success = status.is_ok();
   for (auto &result : request.results) {
     if (success && result.is_error()) {
@@ -23108,6 +23108,10 @@ bool MessagesManager::is_deleted_secret_chat(const Dialog *d) const {
   }
 
   return true;
+}
+
+bool MessagesManager::is_ephemeral_message(const Message *m) {
+  return m != nullptr && m->receiver_user_id != UserId();
 }
 
 bool MessagesManager::is_message_forward(const Message *m) {
@@ -35474,7 +35478,7 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
     send_update_chat_has_scheduled_messages(d, false);
   }
 
-  auto can_send_status = can_send_message(dialog_id);
+  auto can_send_status = is_ephemeral_message(result_message) ? Status::OK() : can_send_message(dialog_id);
   if (can_send_status.is_ok() && result_message->send_date < now - MAX_RESEND_DELAY &&
       dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
     can_send_status = Status::Error(400, "Message is too old to be re-sent automatically");
