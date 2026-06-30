@@ -8110,6 +8110,9 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
   if (m->message_id.is_scheduled()) {
     return false;
   }
+  if (!is_copy && !m->message_id.is_server()) {
+    return false;
+  }
   switch (from_dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
@@ -8136,6 +8139,9 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
 bool MessagesManager::can_reply_to_message(const Dialog *d, MessageId message_id, const Message *m) const {
   CHECK(d != nullptr);
   auto dialog_id = d->dialog_id;
+  if (is_ephemeral_message(m)) {
+    return m->ephemeral_message_id != 0 && !m->is_outgoing;
+  }
   if (!td_->auth_manager_->is_bot() && m != nullptr && m->is_topic_message && d->is_forum) {
     auto forum_topic_id = ForumTopicId::from_top_thread_message_id(m->top_thread_message_id);
     if (!td_->forum_topic_manager_->can_send_message_to_forum_topic(dialog_id, forum_topic_id)) {
@@ -15158,6 +15164,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   message_id = m->message_id;
 
   bool can_delete = can_delete_message(dialog_id, m);
+  bool is_ephemeral = is_ephemeral_message(m);
   bool is_scheduled = message_id.is_scheduled();
   bool is_from_saved_messages = (dialog_id == td_->dialog_manager_->get_my_dialog_id());
   bool can_delete_for_self = false;
@@ -15181,6 +15188,10 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   }
   if (is_scheduled) {
     can_delete_for_self = is_from_saved_messages;
+    can_delete_for_all_users = !can_delete_for_self;
+  }
+  if (is_ephemeral) {
+    can_delete_for_self = m->ephemeral_message_id == 0;
     can_delete_for_all_users = !can_delete_for_self;
   }
 

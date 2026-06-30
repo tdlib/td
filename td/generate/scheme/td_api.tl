@@ -6086,7 +6086,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 //@can_be_forwarded True, if the message can be forwarded using inputMessageForwarded or forwardMessages without copy options
 //@can_be_paid True, if the message can be paid using inputInvoiceMessage
 //@can_be_pinned True, if the message can be pinned or unpinned in the chat using pinChatMessage or unpinChatMessage
-//@can_be_replied True, if the message can be replied in the same chat and forum topic using inputMessageReplyToMessage
+//@can_be_replied True, if the message can be replied in the same chat and forum topic using inputMessageReplyToMessage. Ephemeral messages can be replied only by other ephemeral messages
 //@can_be_replied_in_another_chat True, if the message can be replied in another chat or forum topic using inputMessageReplyToExternalMessage
 //@can_be_saved True, if content of the message can be saved locally
 //@can_be_shared_in_story True, if the message can be shared in a story using inputStoryAreaTypeMessage
