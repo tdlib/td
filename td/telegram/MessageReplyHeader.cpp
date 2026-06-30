@@ -24,8 +24,8 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
     auto reply_header = telegram_api::move_object_as<telegram_api::messageReplyStoryHeader>(reply_header_ptr);
     DialogId story_dialog_id(reply_header->peer_);
     StoryId story_id(reply_header->story_id_);
-    if (!story_dialog_id.is_valid() || !story_id.is_server()) {
-      LOG(ERROR) << "Receive " << to_string(reply_header);
+    if (!story_dialog_id.is_valid() || !story_id.is_server() || message_id == MessageId()) {
+      LOG(ERROR) << "Receive in " << dialog_id << ": " << to_string(reply_header);
     } else {
       story_full_id_ = {story_dialog_id, story_id};
     }
@@ -69,7 +69,7 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
         is_topic_message_ = false;
       }
     }
-    if (top_thread_message_id_ >= message_id) {
+    if (top_thread_message_id_ >= message_id && message_id != MessageId()) {
       LOG(ERROR) << "Receive top thread " << top_thread_message_id_ << " in " << message_id << " in " << dialog_id;
       top_thread_message_id_ = MessageId();
     }

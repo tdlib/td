@@ -11385,7 +11385,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     }
     return {DialogId(), nullptr};
   }
-  if (message_id.is_yet_unsent() || message_id.is_local()) {
+  if (message_id.is_yet_unsent() || (message_id.is_local() && message_info.receiver_user_id == UserId())) {
     LOG(ERROR) << "Receive " << message_id;
     return {DialogId(), nullptr};
   }

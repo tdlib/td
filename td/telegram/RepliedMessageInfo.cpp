@@ -85,7 +85,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
         LOG(ERROR) << "Receive " << to_string(reply_header) << " in " << MessageFullId{dialog_id, message_id};
         message_id_ = MessageId();
         dialog_id_ = DialogId();
-      } else if (!message_id.is_scheduled() && !dialog_id_.is_valid() &&
+      } else if (!message_id.is_scheduled() && message_id != MessageId() && !dialog_id_.is_valid() &&
                  ((message_id_ > message_id && !has_qts_messages(td, dialog_id)) || message_id_ == message_id)) {
         LOG(ERROR) << "Receive reply to " << message_id_ << " in " << MessageFullId{dialog_id, message_id};
         message_id_ = MessageId();
