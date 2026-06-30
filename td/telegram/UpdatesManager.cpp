@@ -1514,6 +1514,20 @@ vector<std::pair<const telegram_api::Message *, bool>> UpdatesManager::get_new_m
   return messages;
 }
 
+vector<const telegram_api::ephemeralMessage *> UpdatesManager::get_new_ephemeral_messages(
+    const telegram_api::Updates *updates_ptr) {
+  vector<const telegram_api::ephemeralMessage *> messages;
+  auto updates = get_updates(updates_ptr);
+  if (updates != nullptr) {
+    for (auto &update : *updates) {
+      if (update->get_id() == telegram_api::updateNewEphemeralMessage::ID) {
+        messages.push_back(static_cast<const telegram_api::updateNewEphemeralMessage *>(update.get())->message_.get());
+      }
+    }
+  }
+  return messages;
+}
+
 InputGroupCallId UpdatesManager::get_update_new_group_call_id(const telegram_api::Updates *updates_ptr) {
   InputGroupCallId result;
   auto updates = get_updates(updates_ptr);
