@@ -11342,6 +11342,7 @@ MessagesManager::MessageInfo MessagesManager::parse_ephemeral_message(
       MessageReplyHeader(td, std::move(message->reply_to_), dialog_id, message_info.message_id, message_info.date);
   message_info.is_outgoing = message->out_;
   message_info.is_channel_post = td->dialog_manager_->is_broadcast_channel(dialog_id);
+  message_info.ttl_period = 7 * 86400;
   // message_info.noforwards = message->noforwards_;
   // message_info.invert_media = message->invert_media_;
   // message_info.effect_id = MessageEffectId(message->effect_);
@@ -20482,6 +20483,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   if (sending_state == nullptr || !is_bot) {
     m->is_update_sent = true;
   }
+  bool is_ephemeral = m->ephemeral_message_id != 0;
   bool is_scheduled = m->message_id.is_scheduled();
   bool is_from_saved_messages = (dialog_id == td_->dialog_manager_->get_my_dialog_id());
   bool is_outgoing = m->is_outgoing;
@@ -20497,10 +20499,11 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
     is_outgoing = false;
   }
 
+  auto ttl_period = is_ephemeral ? 0 : m->ttl_period;
   double ttl_expires_in =
       m->ttl_expires_at != 0 ? clamp(m->ttl_expires_at - Time::now(), 1e-3, m->ttl.get_input_ttl() - 1e-3) : 0.0;
   double auto_delete_in =
-      m->ttl_period == 0 ? 0.0 : clamp(m->date + m->ttl_period - G()->server_time(), 1e-3, m->ttl_period - 1e-3);
+      ttl_period == 0 ? 0.0 : clamp(m->date + ttl_period - G()->server_time(), 1e-3, ttl_period - 1e-3);
   auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id, source);
   auto scheduling_state = is_scheduled ? MessageSendOptions::get_message_scheduling_state_object(
                                              m->date, m->schedule_repeat_period, m->video_processing_pending)
