@@ -314,6 +314,8 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_message_ttl(DialogId dialog_id, MessageTtl message_ttl);
 
+  MessageId get_message_id_of_ephemeral_message_id(DialogId dialog_id, EphemeralMessageId ephemeral_message_id);
+
   void on_new_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message);
 
   void on_edited_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message);

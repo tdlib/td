@@ -4219,6 +4219,19 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
       << "Receive useless update " << oneline(to_string(update)) << " from " << source;
 }
 
+MessageId MessagesManager::get_message_id_of_ephemeral_message_id(DialogId dialog_id,
+                                                                  EphemeralMessageId ephemeral_message_id) {
+  Dialog *d = get_dialog_force(dialog_id, "get_message_id_of_ephemeral_message_id");
+  if (d == nullptr) {
+    return MessageId();
+  }
+  auto it = d->ephemeral_message_ids.find(ephemeral_message_id);
+  if (it == d->ephemeral_message_ids.end()) {
+    return MessageId();
+  }
+  return it->second;
+}
+
 void MessagesManager::on_new_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message) {
   auto message_info = parse_ephemeral_message(td_, std::move(message), "on_new_ephemeral_message");
   auto dialog_id = message_info.dialog_id;
@@ -4231,7 +4244,7 @@ void MessagesManager::on_new_ephemeral_message(telegram_api::object_ptr<telegram
     force_create_dialog(dialog_id, "on_new_ephemeral_message");
     d = get_dialog(dialog_id);
   }
-  if (d == nullptr) {
+  if (d == nullptr || d->ephemeral_message_ids.count(message_info.ephemeral_message_id) != 0) {
     return;
   }
   message_info.message_id = get_next_local_message_id(d);
@@ -4245,11 +4258,10 @@ void MessagesManager::on_edited_ephemeral_message(telegram_api::object_ptr<teleg
     return;
   }
 
-  Dialog *d = get_dialog_force(dialog_id, "on_edited_ephemeral_message");
-  if (d == nullptr || d->ephemeral_message_ids.count(message_info.ephemeral_message_id) == 0) {
+  message_info.message_id = get_message_id_of_ephemeral_message_id(dialog_id, message_info.ephemeral_message_id);
+  if (message_info.message_id == MessageId()) {
     return;
   }
-  message_info.message_id = d->ephemeral_message_ids[message_info.ephemeral_message_id];
   on_get_message(std::move(message_info), false, "on_edited_ephemeral_message");
 }
 
