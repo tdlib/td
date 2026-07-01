@@ -8370,8 +8370,9 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
   if (m == nullptr) {
     return true;
   }
-  if (m->message_id.is_local()) {
-    return false;
+  auto dialog_type = dialog_id.get_type();
+  if (m->message_id.is_local() && dialog_type != DialogType::SecretChat) {
+    return m->ephemeral_message_id.is_valid();
   }
   if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     return false;
@@ -8386,7 +8387,7 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
 
   const int32 DEFAULT_REVOKE_TIME_LIMIT = td_->auth_manager_->is_bot() ? 2 * 86400 : std::numeric_limits<int32>::max();
   auto content_type = m->content->get_type();
-  switch (dialog_id.get_type()) {
+  switch (dialog_type) {
     case DialogType::User: {
       bool can_revoke_incoming = td_->option_manager_->get_option_boolean("revoke_pm_inbox", true);
       int64 revoke_time_limit =
@@ -8435,8 +8436,8 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
   vector<MessageId> message_ids;
   message_ids.reserve(input_message_ids.size());
   vector<MessageId> deleted_server_message_ids;
-
   vector<MessageId> deleted_scheduled_server_message_ids;
+  vector<std::pair<DialogId, EphemeralMessageId>> deleted_ephemeral_message_ids;
   for (auto message_id : input_message_ids) {
     if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
       return promise.set_error(400, "Invalid message identifier");
@@ -8449,6 +8450,10 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
       if (m->message_id.is_scheduled()) {
         if (m->message_id.is_scheduled_server()) {
           deleted_scheduled_server_message_ids.push_back(m->message_id);
+        }
+      } else if (is_ephemeral_message(m)) {
+        if (m->ephemeral_message_id.is_valid() && m->receiver_user_id.is_valid()) {
+          deleted_ephemeral_message_ids.emplace_back(DialogId(m->receiver_user_id), m->ephemeral_message_id);
         }
       } else {
         if (m->message_id.is_server() || is_secret) {
@@ -8464,7 +8469,7 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
     if (!can_delete_message(dialog_id, m)) {
       return promise.set_error(400, "Message can't be deleted");
     }
-    if (is_bot && !message_id.is_scheduled() && message_id.is_server() && !can_revoke_message(dialog_id, m)) {
+    if (is_bot && message_id.is_server() && !can_revoke_message(dialog_id, m)) {
       return promise.set_error(400, "Message can't be deleted for everyone");
     }
   }
@@ -8477,6 +8482,10 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
                                                          mpas.get_promise());
   td_->message_query_manager_->delete_scheduled_messages_on_server(
       dialog_id, std::move(deleted_scheduled_server_message_ids), 0, mpas.get_promise());
+  for (auto &it : deleted_ephemeral_message_ids) {
+    td_->message_query_manager_->delete_ephemeral_message_on_server(dialog_id, it.first, it.second, 0,
+                                                                    mpas.get_promise());
+  }
   lock.set_value(Unit());
 
   do_delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);

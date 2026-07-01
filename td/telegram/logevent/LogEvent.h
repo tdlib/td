@@ -106,6 +106,7 @@ class LogEvent {
     SendQuickReplyShortcutMessages = 0x128,
     UpdateReactionNotificationSettingsOnServer = 0x129,
     ReadAllPollVotesOnServer = 0x12a,
+    DeleteEphemeralMessageOnServer = 0x12b,
     GetChannelDifference = 0x140,
     AddMessagePushNotification = 0x200,
     EditMessagePushNotification = 0x201,

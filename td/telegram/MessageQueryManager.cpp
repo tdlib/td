@@ -1662,6 +1662,45 @@ class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteEphemeralMessageQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit DeleteEphemeralMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, DialogId receiver_dialog_id, EphemeralMessageId ephemeral_message_id) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr || receiver_dialog_id.get_type() != DialogType::User) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+    auto r_input_user = td_->user_manager_->get_input_user(receiver_dialog_id.get_user_id());
+    if (r_input_user.is_error()) {
+      return on_error(Status::Error(400, "Can't access the user"));
+    }
+    send_query(G()->net_query_creator().create(telegram_api::ephemeral_deleteMessage(
+        std::move(input_peer), r_input_user.move_as_ok(), ephemeral_message_id.get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::ephemeral_deleteMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeleteEphemeralMessageQuery")) {
+      LOG(ERROR) << "Receive error for delete ephemeral messages: " << status;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteTopicHistoryQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
   DialogId dialog_id_;
@@ -3684,6 +3723,53 @@ void MessageQueryManager::delete_scheduled_messages_on_server(DialogId dialog_id
   td_->create_handler<DeleteScheduledMessagesQuery>(std::move(promise))->send(dialog_id, std::move(message_ids));
 }
 
+class MessageQueryManager::DeleteEphemeralMessageOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  DialogId receiver_dialog_id_;
+  EphemeralMessageId ephemeral_message_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+    td::store(receiver_dialog_id_, storer);
+    td::store(ephemeral_message_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+    td::parse(receiver_dialog_id_, parser);
+    td::parse(ephemeral_message_id_, parser);
+  }
+};
+
+uint64 MessageQueryManager::save_delete_ephemeral_message_on_server_log_event(DialogId dialog_id,
+                                                                              DialogId receiver_dialog_id,
+                                                                              EphemeralMessageId ephemeral_message_id) {
+  DeleteEphemeralMessageOnServerLogEvent log_event{dialog_id, receiver_dialog_id, ephemeral_message_id};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteEphemeralMessageOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void MessageQueryManager::delete_ephemeral_message_on_server(DialogId dialog_id, DialogId receiver_dialog_id,
+                                                             EphemeralMessageId ephemeral_message_id,
+                                                             uint64 log_event_id, Promise<Unit> &&promise) {
+  LOG(INFO) << "Delete " << ephemeral_message_id << " from " << receiver_dialog_id << " in " << dialog_id
+            << " from server";
+
+  if (log_event_id == 0 && G()->use_message_database()) {
+    log_event_id =
+        save_delete_ephemeral_message_on_server_log_event(dialog_id, receiver_dialog_id, ephemeral_message_id);
+  }
+
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
+  td_->create_handler<DeleteEphemeralMessageQuery>(std::move(promise))
+      ->send(dialog_id, receiver_dialog_id, ephemeral_message_id);
+}
+
 void MessageQueryManager::delete_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(
@@ -4259,6 +4345,28 @@ void MessageQueryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         td_->messages_manager_->on_scheduled_messages_deleted(dialog_id, log_event.message_ids_);
 
         delete_scheduled_messages_on_server(dialog_id, std::move(log_event.message_ids_), event.id_, Auto());
+        break;
+      }
+      case LogEvent::HandlerType::DeleteEphemeralMessageOnServer: {
+        if (!have_old_message_database) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        DeleteEphemeralMessageOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        if (!td_->dialog_manager_->have_dialog_force(dialog_id, "DeleteEphemeralMessageOnServerLogEvent") ||
+            !td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        td_->messages_manager_->on_delete_ephemeral_messages(dialog_id, {log_event.ephemeral_message_id_});
+
+        delete_ephemeral_message_on_server(dialog_id, log_event.receiver_dialog_id_, log_event.ephemeral_message_id_,
+                                           event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::DeleteTopicHistoryOnServer: {

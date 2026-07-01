@@ -12,6 +12,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
 #include "td/telegram/EmojiGameInfo.h"
+#include "td/telegram/EphemeralMessageId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileUploadId.h"
@@ -211,6 +212,10 @@ class MessageQueryManager final : public Actor {
   void delete_scheduled_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
                                            Promise<Unit> &&promise);
 
+  void delete_ephemeral_message_on_server(DialogId dialog_id, DialogId receiver_dialog_id,
+                                          EphemeralMessageId ephemeral_message_id, uint64 log_event_id,
+                                          Promise<Unit> &&promise);
+
   void delete_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
 
   void delete_reactions_by_sender(DialogId dialog_id, DialogId sender_dialog_id, Promise<Unit> &&promise);
@@ -261,6 +266,7 @@ class MessageQueryManager final : public Actor {
   class DeleteDialogMessagesByDateOnServerLogEvent;
   class DeleteMessagesOnServerLogEvent;
   class DeleteScheduledMessagesOnServerLogEvent;
+  class DeleteEphemeralMessageOnServerLogEvent;
   class DeleteTopicHistoryOnServerLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
   class ReadAllDialogReactionsOnServerLogEvent;
@@ -351,6 +357,9 @@ class MessageQueryManager final : public Actor {
 
   static uint64 save_delete_scheduled_messages_on_server_log_event(DialogId dialog_id,
                                                                    const vector<MessageId> &message_ids);
+
+  static uint64 save_delete_ephemeral_message_on_server_log_event(DialogId dialog_id, DialogId receiver_dialog_id,
+                                                                  EphemeralMessageId ephemeral_message_id);
 
   static uint64 save_delete_topic_history_on_server_log_event(DialogId dialog_id, ForumTopicId forum_topic_id);
 
