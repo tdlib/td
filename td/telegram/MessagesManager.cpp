@@ -20485,7 +20485,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       std::move(interaction_info), Auto(), nullptr, nullptr, std::move(reply_to), nullptr, nullptr, 0.0, 0.0,
       via_bot_user_id, get_message_guest_sender_object(m), 0, m->sender_boost_count, m->sender_rank,
       m->paid_message_star_count, m->author_signature, 0, 0, get_restriction_info_object(m->restriction_reasons),
-      m->summary_from_language, std::move(content), std::move(reply_markup));
+      m->summary_from_language, std::move(content), std::move(reply_markup), 0);
 }
 
 td_api::object_ptr<td_api::businessMessage> MessagesManager::get_business_message_object(
@@ -20559,7 +20559,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_guest_message_object(
       std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, get_message_guest_sender_object(m),
       via_business_bot_user_id, m->sender_boost_count, m->sender_rank, m->paid_message_star_count, m->author_signature,
       m->media_album_id, m->effect_id.get(), get_restriction_info_object(m->restriction_reasons), string(),
-      std::move(content), std::move(reply_markup));
+      std::move(content), std::move(reply_markup), 0);
 }
 
 td_api::object_ptr<td_api::message> MessagesManager::get_message_object(Dialog *d, MessageId message_id,
@@ -20657,6 +20657,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   auto receiver_id = m->receiver_user_id != UserId()
                          ? get_message_sender_object_const(td_, m->receiver_user_id, DialogId(), source)
                          : nullptr;
+  auto ephemeral_message_id = is_bot ? m->ephemeral_message_id.get() : 0;
 
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), std::move(receiver_id),
@@ -20669,7 +20670,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
       auto_delete_in, via_bot_user_id, get_message_guest_sender_object(m), via_business_bot_user_id,
       m->sender_boost_count, m->sender_rank, m->paid_message_star_count, m->author_signature, m->media_album_id,
       m->effect_id.get(), get_restriction_info_object(m->restriction_reasons), m->summary_from_language,
-      std::move(content), std::move(reply_markup));
+      std::move(content), std::move(reply_markup), ephemeral_message_id);
 }
 
 td_api::object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
