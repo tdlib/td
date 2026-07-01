@@ -4283,6 +4283,11 @@ MessageId MessagesManager::get_message_id_of_ephemeral_message_id(DialogId dialo
   return it->second;
 }
 
+EphemeralMessageId MessagesManager::get_ephemeral_message_id_of_message_id(MessageFullId message_full_id) {
+  const auto *m = get_message_force(message_full_id, "get_ephemeral_message_id_of_message_id");
+  return m == nullptr ? EphemeralMessageId() : m->ephemeral_message_id;
+}
+
 void MessagesManager::on_new_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message) {
   auto message_info = parse_ephemeral_message(td_, std::move(message), "on_new_ephemeral_message");
   auto dialog_id = message_info.dialog_id;

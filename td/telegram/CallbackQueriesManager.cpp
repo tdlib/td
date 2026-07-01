@@ -98,6 +98,48 @@ class GetBotCallbackAnswerQuery final : public Td::ResultHandler {
   }
 };
 
+class GetEphemeralCallbackAnswerQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetEphemeralCallbackAnswerQuery(Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, EphemeralMessageId ephemeral_message_id, const string &data) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    int32 flags = telegram_api::ephemeral_getCallbackAnswer::DATA_MASK;
+    auto net_query = G()->net_query_creator().create(telegram_api::ephemeral_getCallbackAnswer(
+        flags, std::move(input_peer), ephemeral_message_id.get(), BufferSlice(data)));
+    net_query->need_resend_on_503_ = false;
+    send_query(std::move(net_query));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::ephemeral_getCallbackAnswer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto answer = result_ptr.move_as_ok();
+    promise_.set_value(
+        td_api::make_object<td_api::callbackQueryAnswer>(answer->message_, answer->alert_, answer->url_));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetEphemeralCallbackAnswerQuery");
+    if (status.message() == "BOT_RESPONSE_TIMEOUT") {
+      status = Status::Error(502, "The bot is not responding");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetBotCallbackAnswerQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -271,10 +313,20 @@ void CallbackQueriesManager::send_callback_query(MessageFullId message_full_id,
   if (!td_->messages_manager_->have_message_force(message_full_id, "send_callback_query")) {
     return promise.set_error(400, "Message not found");
   }
-  if (message_full_id.get_message_id().is_valid_scheduled()) {
+  auto message_id = message_full_id.get_message_id();
+  if (message_id.is_valid_scheduled()) {
     return promise.set_error(400, "Can't send callback queries from scheduled messages");
   }
-  if (!message_full_id.get_message_id().is_server()) {
+  if (!message_id.is_server()) {
+    if (payload->get_id() == td_api::callbackQueryPayloadData::ID) {
+      auto ephemeral_message_id = td_->messages_manager_->get_ephemeral_message_id_of_message_id(message_full_id);
+      if (ephemeral_message_id.is_valid()) {
+        td_->create_handler<GetEphemeralCallbackAnswerQuery>(std::move(promise))
+            ->send(dialog_id, ephemeral_message_id,
+                   static_cast<td_api::callbackQueryPayloadData *>(payload.get())->data_);
+        return;
+      }
+    }
     return promise.set_error(400, "Wrong message identifier");
   }
 
