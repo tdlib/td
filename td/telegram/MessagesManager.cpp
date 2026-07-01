@@ -1526,6 +1526,7 @@ class SendMediaQuery final : public Td::ResultHandler {
   vector<string> file_references_;
   bool was_uploaded_ = false;
   bool was_thumbnail_uploaded_ = false;
+  bool is_ephemeral_ = false;
 
  public:
   void send(vector<FileUploadId> file_upload_ids, vector<FileUploadId> thumbnail_file_upload_ids,
@@ -1553,6 +1554,7 @@ class SendMediaQuery final : public Td::ResultHandler {
 
     auto reply_to = input_reply_to.get_input_reply_to(td_, message_topic, false, dialog_id, flags);
     if (receiver_user_id != UserId()) {
+      is_ephemeral_ = true;
       auto r_input_user = td_->user_manager_->get_input_user(receiver_user_id);
       if (r_input_user.is_error()) {
         return on_error(r_input_user.move_as_error());
@@ -1654,6 +1656,8 @@ class SendMediaQuery final : public Td::ResultHandler {
   void on_result(BufferSlice packet) final {
     static_assert(std::is_same<telegram_api::messages_sendMessage::ReturnType,
                                telegram_api::messages_sendMedia::ReturnType>::value);
+    static_assert(std::is_same<telegram_api::ephemeral_sendMessage::ReturnType,
+                               telegram_api::messages_sendMedia::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::messages_sendMedia>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -1661,7 +1665,17 @@ class SendMediaQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendMediaQuery for " << random_id_ << ": " << to_string(ptr);
-    td_->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(), "SendMedia");
+    if (!is_ephemeral_) {
+      td_->messages_manager_->check_send_message_result(random_id_, dialog_id_, ptr.get(), "SendMedia");
+    } else {
+      auto sent_messages = UpdatesManager::get_new_ephemeral_messages(ptr.get());
+      if (sent_messages.size() != 1u || DialogId(sent_messages[0]->peer_id_) != dialog_id_) {
+        LOG(ERROR) << "Receive wrong result for sending ephemeral message with random_id " << random_id_ << " to "
+                   << dialog_id_ << ": " << oneline(to_string(ptr));
+      } else {
+        td_->messages_manager_->on_update_ephemeral_message_id(random_id_, EphemeralMessageId(sent_messages[0]->id_));
+      }
+    }
     td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
 
     if (was_thumbnail_uploaded_) {
@@ -8468,7 +8482,11 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
 }
 
 void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageId message_id,
-                                                    MessageId old_message_id) {
+                                                    EphemeralMessageId ephemeral_message_id, MessageId old_message_id) {
+  if (ephemeral_message_id.is_valid()) {
+    // TODO
+    return;
+  }
   // this would be a no-op, because replies have already been removed in cancel_send_message_query
   // update_reply_to_message_id(dialog_id, old_message_id, message_id, false, "delete_sent_message_on_server");
 
@@ -11785,12 +11803,14 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
 
   Dialog *d = get_dialog_force(dialog_id, source);
 
-  MessageId old_message_id = update_message_ids_.get(dialog_id, message_id);
+  auto is_ephemeral = new_message->ephemeral_message_id.is_valid();
+  MessageId old_message_id = is_ephemeral ? update_ephemeral_message_ids_[dialog_id][new_message->ephemeral_message_id]
+                                          : update_message_ids_.get(dialog_id, message_id);
   bool is_sent_message = false;
   if (old_message_id.is_valid() || old_message_id.is_valid_scheduled()) {
     CHECK(d != nullptr);
 
-    if (!from_update && !message_id.is_scheduled()) {
+    if (!from_update && message_id.is_server()) {
       if (message_id <= d->last_new_message_id || td_->auth_manager_->is_bot()) {
         if (get_message_force(d, message_id, "receive missed unsent message not from update") != nullptr) {
           LOG(ERROR) << "New " << old_message_id << "/" << message_id << " in " << dialog_id << " from " << source
@@ -11813,12 +11833,22 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
       }
     }
 
-    auto erased_count = update_message_ids_.erase(dialog_id, message_id);
-    CHECK(erased_count > 0);
+    if (is_ephemeral) {
+      auto it = update_ephemeral_message_ids_.find(dialog_id);
+      CHECK(it != update_ephemeral_message_ids_.end());
+      auto erased_count = it->second.erase(new_message->ephemeral_message_id);
+      CHECK(erased_count > 0);
+      if (it->second.empty()) {
+        update_ephemeral_message_ids_.erase(it);
+      }
+    } else {
+      auto erased_count = update_message_ids_.erase(dialog_id, message_id);
+      CHECK(erased_count > 0);
+    }
 
     if (!new_message->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
       // sent message is not from me
-      LOG(ERROR) << "Sent in " << dialog_id << " " << message_id << " is sent by "
+      LOG(ERROR) << "Sent in " << dialog_id << ' ' << message_id << " is sent by "
                  << get_message_sender(new_message.get());
       return MessageFullId();
     }
@@ -11829,7 +11859,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     being_readded_message_full_id_ = {dialog_id, old_message_id};
     auto old_message = delete_message(d, old_message_id, false, &need_update_dialog_pos, "add sent message");
     if (old_message == nullptr) {
-      delete_sent_message_on_server(dialog_id, message_id, old_message_id);
+      delete_sent_message_on_server(dialog_id, message_id, new_message->ephemeral_message_id, old_message_id);
       being_readded_message_full_id_ = MessageFullId();
       return MessageFullId();
     }
@@ -11850,7 +11880,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     new_message->message_id = message_id;
     send_update_message_send_succeeded(d, old_message_id, new_message.get(), &need_update_dialog_pos);
 
-    if (!message_id.is_scheduled()) {
+    if (message_id.is_server()) {
       is_sent_message = true;
     }
   }
@@ -11879,7 +11909,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
   if (need_update) {
     send_update_new_message(d, m);
   }
-  if (!td_->auth_manager_->is_bot() && !message_id.is_scheduled()) {
+  if (!td_->auth_manager_->is_bot() && message_id.is_server()) {
     auto it = awaited_message_full_ids_.find({dialog_id, message_id});
     if (it != awaited_message_full_ids_.end()) {
       auto promises = std::move(it->second);
@@ -25412,7 +25442,7 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
   being_sent_messages_.erase(it);
 
   if (!have_message_force({dialog_id, old_message_id}, "on_update_message_id")) {
-    delete_sent_message_on_server(dialog_id, new_message_id, old_message_id);
+    delete_sent_message_on_server(dialog_id, new_message_id, {}, old_message_id);
     return true;
   }
 
@@ -25420,6 +25450,28 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
   CHECK(old_message_id.is_yet_unsent());
   update_message_ids_.set(dialog_id, new_message_id, old_message_id);
   return true;
+}
+
+void MessagesManager::on_update_ephemeral_message_id(int64 random_id, EphemeralMessageId ephemeral_message_id) {
+  if (!ephemeral_message_id.is_valid()) {
+    LOG(ERROR) << "Receive " << ephemeral_message_id << " with random_id " << random_id;
+    return;
+  }
+
+  auto it = being_sent_messages_.find(random_id);
+  CHECK(it != being_sent_messages_.end());
+  auto dialog_id = it->second.get_dialog_id();
+  auto old_message_id = it->second.get_message_id();
+  being_sent_messages_.erase(it);
+
+  if (!have_message_force({dialog_id, old_message_id}, "on_update_ephemeral_message_id")) {
+    delete_sent_message_on_server(dialog_id, {}, ephemeral_message_id, old_message_id);
+    return;
+  }
+
+  LOG(INFO) << "Save correspondence from " << ephemeral_message_id << " in " << dialog_id << " to " << old_message_id;
+  CHECK(old_message_id.is_yet_unsent());
+  update_ephemeral_message_ids_[dialog_id][ephemeral_message_id] = old_message_id;
 }
 
 bool MessagesManager::on_get_message_error(DialogId dialog_id, MessageId message_id, const Status &status,
@@ -27607,7 +27659,7 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
   being_readded_message_full_id_ = {dialog_id, old_message_id};
   auto sent_message = delete_message(d, old_message_id, false, &need_update_dialog_pos, source);
   if (sent_message == nullptr) {
-    delete_sent_message_on_server(dialog_id, new_message_id, old_message_id);
+    delete_sent_message_on_server(dialog_id, new_message_id, {}, old_message_id);
     being_readded_message_full_id_ = MessageFullId();
     return {};
   }

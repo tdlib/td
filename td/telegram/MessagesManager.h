@@ -264,6 +264,8 @@ class MessagesManager final : public Actor {
 
   bool on_update_message_id(int64 random_id, MessageId new_message_id, const char *source);
 
+  void on_update_ephemeral_message_id(int64 random_id, EphemeralMessageId ephemeral_message_id);
+
   void on_update_dialog_draft_message(DialogId dialog_id, MessageId top_thread_message_id,
                                       telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message,
                                       int32 try_count = 0);
@@ -2051,7 +2053,8 @@ class MessagesManager final : public Actor {
 
   void delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanently_deleted);
 
-  void delete_sent_message_on_server(DialogId dialog_id, MessageId message_id, MessageId old_message_id);
+  void delete_sent_message_on_server(DialogId dialog_id, MessageId message_id, EphemeralMessageId ephemeral_message_id,
+                                     MessageId old_message_id);
 
   static vector<MessageId> find_dialog_messages(const Dialog *d, const std::function<bool(const Message *)> &condition);
 
@@ -3263,6 +3266,8 @@ class MessagesManager final : public Actor {
   FlatHashMap<int64, MessageFullId> being_sent_messages_;  // message_random_id -> message
 
   MessageHashMap<MessageId> update_message_ids_;  // new_message_id -> temporary_id
+  FlatHashMap<DialogId, FlatHashMap<EphemeralMessageId, MessageId, EphemeralMessageIdHash>, DialogIdHash>
+      update_ephemeral_message_ids_;
 
   FlatHashMap<MessageFullId, MessageId, MessageFullIdHash> messages_to_restore_;  // new_message_id -> temporary_id
 
