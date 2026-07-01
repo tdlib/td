@@ -4112,6 +4112,14 @@ void Requests::on_request(uint64 id, const td_api::deleteMessages &request) {
                                           request.revoke_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::deleteEphemeralMessage &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->message_query_manager_->delete_ephemeral_message_on_server(
+      DialogId(request.chat_id_), DialogId(UserId(request.receiver_user_id_)),
+      EphemeralMessageId(request.ephemeral_message_id_), 0, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::deleteChatMessagesBySender &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

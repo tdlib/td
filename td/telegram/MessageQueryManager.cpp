@@ -3758,6 +3758,8 @@ void MessageQueryManager::delete_ephemeral_message_on_server(DialogId dialog_id,
   LOG(INFO) << "Delete " << ephemeral_message_id << " from " << receiver_dialog_id << " in " << dialog_id
             << " from server";
 
+  td_->messages_manager_->on_delete_ephemeral_messages(dialog_id, {ephemeral_message_id});
+
   if (log_event_id == 0 && G()->use_message_database()) {
     log_event_id =
         save_delete_ephemeral_message_on_server_log_event(dialog_id, receiver_dialog_id, ephemeral_message_id);
@@ -4362,8 +4364,6 @@ void MessageQueryManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
-
-        td_->messages_manager_->on_delete_ephemeral_messages(dialog_id, {log_event.ephemeral_message_id_});
 
         delete_ephemeral_message_on_server(dialog_id, log_event.receiver_dialog_id_, log_event.ephemeral_message_id_,
                                            event.id_, Auto());

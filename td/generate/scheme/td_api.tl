@@ -12070,6 +12070,12 @@ addLocalMessage chat_id:int53 sender_id:MessageSender reply_to:InputMessageReply
 //@revoke Pass true to delete messages for all chat members. Always true for supergroups, channels and secret chats
 deleteMessages chat_id:int53 message_ids:vector<int53> revoke:Bool = Ok;
 
+//@description Deletes an ephemeral message; for bots only
+//@chat_id Chat identifier
+//@receiver_user_id Identifier of the user who received the message
+//@ephemeral_message_id Identifiers of the message to be deleted
+deleteEphemeralMessage chat_id:int53 receiver_user_id:int53 ephemeral_message_id:int32 = Ok;
+
 //@description Deletes all messages sent by the specified message sender in a chat. Supported only for supergroups; requires can_delete_messages administrator right @chat_id Chat identifier @sender_id Identifier of the sender of messages to delete
 deleteChatMessagesBySender chat_id:int53 sender_id:MessageSender = Ok;
 
