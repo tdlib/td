@@ -4315,14 +4315,15 @@ void MessagesManager::on_edited_ephemeral_message(telegram_api::object_ptr<teleg
   on_get_message(std::move(message_info), false, "on_edited_ephemeral_message");
 }
 
-void MessagesManager::on_delete_ephemeral_messages(DialogId dialog_id, vector<int32> ephemeral_message_ids) {
+void MessagesManager::on_delete_ephemeral_messages(DialogId dialog_id,
+                                                   vector<EphemeralMessageId> ephemeral_message_ids) {
   Dialog *d = get_dialog_force(dialog_id, "on_delete_ephemeral_messages");
   if (d == nullptr) {
     return;
   }
   vector<MessageId> message_ids;
   for (auto ephemeral_message_id : ephemeral_message_ids) {
-    auto it = d->ephemeral_message_ids.find(EphemeralMessageId(ephemeral_message_id));
+    auto it = d->ephemeral_message_ids.find(ephemeral_message_id);
     if (it != d->ephemeral_message_ids.end()) {
       message_ids.push_back(it->second);
     }

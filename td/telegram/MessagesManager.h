@@ -322,7 +322,7 @@ class MessagesManager final : public Actor {
 
   void on_edited_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message);
 
-  void on_delete_ephemeral_messages(DialogId dialog_id, vector<int32> ephemeral_message_ids);
+  void on_delete_ephemeral_messages(DialogId dialog_id, vector<EphemeralMessageId> ephemeral_message_ids);
 
   void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
                                       bool skip_new_entities, Promise<Unit> &&promise);

@@ -33,6 +33,15 @@ class EphemeralMessageId {
     return id;
   }
 
+  static vector<EphemeralMessageId> get_ephemeral_message_ids(const vector<int32> &message_ids) {
+    vector<EphemeralMessageId> ephemeral_message_ids;
+    ephemeral_message_ids.reserve(message_ids.size());
+    for (auto &message_id : message_ids) {
+      ephemeral_message_ids.emplace_back(message_id);
+    }
+    return ephemeral_message_ids;
+  }
+
   bool operator==(const EphemeralMessageId &other) const {
     return id == other.id;
   }
