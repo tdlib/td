@@ -1673,7 +1673,8 @@ class SendMediaQuery final : public Td::ResultHandler {
         LOG(ERROR) << "Receive wrong result for sending ephemeral message with random_id " << random_id_ << " to "
                    << dialog_id_ << ": " << oneline(to_string(ptr));
       } else {
-        td_->messages_manager_->on_update_ephemeral_message_id(random_id_, EphemeralMessageId(sent_messages[0]->id_));
+        td_->messages_manager_->on_update_ephemeral_message_id(random_id_, EphemeralMessageId(sent_messages[0]->id_),
+                                                               UserId(sent_messages[0]->receiver_id_));
       }
     }
     td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
@@ -8492,11 +8493,8 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
 }
 
 void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageId message_id,
-                                                    EphemeralMessageId ephemeral_message_id, MessageId old_message_id) {
-  if (ephemeral_message_id.is_valid()) {
-    // TODO
-    return;
-  }
+                                                    EphemeralMessageId ephemeral_message_id, UserId receiver_user_id,
+                                                    MessageId old_message_id) {
   // this would be a no-op, because replies have already been removed in cancel_send_message_query
   // update_reply_to_message_id(dialog_id, old_message_id, message_id, false, "delete_sent_message_on_server");
 
@@ -8504,6 +8502,12 @@ void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageI
   // don't need to send an update to the user, because the message has already been deleted
   if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
     LOG(INFO) << "Ignore sent " << message_id << " in inaccessible " << dialog_id;
+    return;
+  }
+  if (receiver_user_id.is_valid()) {
+    CHECK(ephemeral_message_id.is_valid());
+    td_->message_query_manager_->delete_ephemeral_message_on_server(dialog_id, DialogId(receiver_user_id),
+                                                                    ephemeral_message_id, 0, Auto());
     return;
   }
 
@@ -11869,7 +11873,8 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     being_readded_message_full_id_ = {dialog_id, old_message_id};
     auto old_message = delete_message(d, old_message_id, false, &need_update_dialog_pos, "add sent message");
     if (old_message == nullptr) {
-      delete_sent_message_on_server(dialog_id, message_id, new_message->ephemeral_message_id, old_message_id);
+      delete_sent_message_on_server(dialog_id, message_id, new_message->ephemeral_message_id,
+                                    new_message->receiver_user_id, old_message_id);
       being_readded_message_full_id_ = MessageFullId();
       return MessageFullId();
     }
@@ -25452,7 +25457,7 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
   being_sent_messages_.erase(it);
 
   if (!have_message_force({dialog_id, old_message_id}, "on_update_message_id")) {
-    delete_sent_message_on_server(dialog_id, new_message_id, {}, old_message_id);
+    delete_sent_message_on_server(dialog_id, new_message_id, {}, {}, old_message_id);
     return true;
   }
 
@@ -25462,9 +25467,10 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
   return true;
 }
 
-void MessagesManager::on_update_ephemeral_message_id(int64 random_id, EphemeralMessageId ephemeral_message_id) {
-  if (!ephemeral_message_id.is_valid()) {
-    LOG(ERROR) << "Receive " << ephemeral_message_id << " with random_id " << random_id;
+void MessagesManager::on_update_ephemeral_message_id(int64 random_id, EphemeralMessageId ephemeral_message_id,
+                                                     UserId receiver_user_id) {
+  if (!ephemeral_message_id.is_valid() || !receiver_user_id.is_valid()) {
+    LOG(ERROR) << "Receive " << ephemeral_message_id << " for " << receiver_user_id << " with random_id " << random_id;
     return;
   }
 
@@ -25475,7 +25481,7 @@ void MessagesManager::on_update_ephemeral_message_id(int64 random_id, EphemeralM
   being_sent_messages_.erase(it);
 
   if (!have_message_force({dialog_id, old_message_id}, "on_update_ephemeral_message_id")) {
-    delete_sent_message_on_server(dialog_id, {}, ephemeral_message_id, old_message_id);
+    delete_sent_message_on_server(dialog_id, {}, ephemeral_message_id, receiver_user_id, old_message_id);
     return;
   }
 
@@ -27669,7 +27675,7 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
   being_readded_message_full_id_ = {dialog_id, old_message_id};
   auto sent_message = delete_message(d, old_message_id, false, &need_update_dialog_pos, source);
   if (sent_message == nullptr) {
-    delete_sent_message_on_server(dialog_id, new_message_id, {}, old_message_id);
+    delete_sent_message_on_server(dialog_id, new_message_id, {}, {}, old_message_id);
     being_readded_message_full_id_ = MessageFullId();
     return {};
   }
