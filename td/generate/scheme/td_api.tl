@@ -8005,6 +8005,9 @@ premiumFeatureProtectPrivateChatContent = PremiumFeature;
 //@description The ability to compose text with AI
 premiumFeatureTextComposition = PremiumFeature;
 
+//@description The ability to send rich messages
+premiumFeatureRichMessages = PremiumFeature;
+
 
 //@class BusinessFeature @description Describes a feature available to Business user accounts
 
