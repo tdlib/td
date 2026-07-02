@@ -198,8 +198,8 @@ MessageFullId MessageInputReplyTo::get_reply_message_full_id(DialogId owner_dial
 }
 
 bool operator==(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
-  return lhs.message_id_ == rhs.message_id_ && lhs.dialog_id_ == rhs.dialog_id_ &&
-         lhs.story_full_id_ == rhs.story_full_id_ && lhs.quote_ == rhs.quote_ &&
+  return lhs.message_id_ == rhs.message_id_ && lhs.ephemeral_message_id_ == rhs.ephemeral_message_id_ &&
+         lhs.dialog_id_ == rhs.dialog_id_ && lhs.story_full_id_ == rhs.story_full_id_ && lhs.quote_ == rhs.quote_ &&
          lhs.todo_item_id_ == rhs.todo_item_id_ && lhs.poll_option_id_ == rhs.poll_option_id_;
 }
 
@@ -208,6 +208,9 @@ bool operator!=(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) 
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReplyTo &input_reply_to) {
+  if (input_reply_to.ephemeral_message_id_.is_valid()) {
+    return string_builder << input_reply_to.ephemeral_message_id_;
+  }
   if (input_reply_to.message_id_.is_valid() || input_reply_to.message_id_.is_valid_scheduled()) {
     string_builder << input_reply_to.message_id_;
     if (input_reply_to.dialog_id_ != DialogId()) {

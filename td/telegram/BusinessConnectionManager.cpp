@@ -11,6 +11,7 @@
 #include "td/telegram/BusinessBotRights.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/EphemeralMessageId.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
@@ -1189,6 +1190,20 @@ MessageInputReplyTo BusinessConnectionManager::create_business_message_input_rep
     }
     case td_api::inputMessageReplyToExternalMessage::ID:
       return {};
+    case td_api::inputMessageReplyToEphemeralMessage::ID: {
+      auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToEphemeralMessage>(reply_to);
+      auto ephemeral_message_id = EphemeralMessageId(reply_to_message->ephemeral_message_id_);
+      if (!ephemeral_message_id.is_valid()) {
+        return {};
+      }
+      return MessageInputReplyTo{MessageId(),
+                                 ephemeral_message_id,
+                                 DialogId(),
+                                 MessageQuote(),
+                                 0,
+                                 string(),
+                                 "business inputMessageReplyToEphemeralMessage"};
+    }
     default:
       UNREACHABLE();
       return {};

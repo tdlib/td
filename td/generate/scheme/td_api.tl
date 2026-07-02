@@ -3037,6 +3037,9 @@ inputMessageReplyToExternalMessage chat_id:int53 message_id:int53 quote:inputTex
 //@story_id The identifier of the story
 inputMessageReplyToStory story_poster_chat_id:int53 story_id:int32 = InputMessageReplyTo;
 
+//@description Describes an ephemeral message to be replied; for bots only @ephemeral_message_id The identifier of the ephemeral message to be replied 
+inputMessageReplyToEphemeralMessage ephemeral_message_id:int32 = InputMessageReplyTo;
+
 
 //@description Describes a fact-check added to the message by an independent checker
 //@text Text of the fact-check

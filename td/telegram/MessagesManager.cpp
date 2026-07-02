@@ -21146,6 +21146,20 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
                                  reply_to_message->poll_option_id_,
                                  "create_message_input_reply_to 6"};
     }
+    case td_api::inputMessageReplyToEphemeralMessage::ID: {
+      auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToEphemeralMessage>(reply_to);
+      auto ephemeral_message_id = EphemeralMessageId(reply_to_message->ephemeral_message_id_);
+      if (!for_ephemeral_message || !td_->auth_manager_->is_bot() || !ephemeral_message_id.is_valid()) {
+        return {};
+      }
+      return MessageInputReplyTo{MessageId(),
+                                 ephemeral_message_id,
+                                 DialogId(),
+                                 MessageQuote(),
+                                 0,
+                                 string(),
+                                 "create_message_input_reply_to 7"};
+    }
     default:
       UNREACHABLE();
       return {};
