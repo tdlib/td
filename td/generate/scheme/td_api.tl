@@ -5935,7 +5935,7 @@ inputPageBlockMap location:location zoom:int32 width:int32 height:int32 caption:
 //@clear_draft Pass true to delete message draft in the chat
 inputMessageText text:formattedText link_preview_options:linkPreviewOptions clear_draft:Bool = InputMessageContent;
 
-//@description A rich message @message The rich message to send; file upload isn't supported @clear_draft Pass true to delete message draft in the chat
+//@description A rich message @message The rich message to send @clear_draft Pass true to delete message draft in the chat
 inputMessageRichMessage message:inputRichMessage clear_draft:Bool = InputMessageContent;
 
 //@description An animation message (GIF-style).
