@@ -37,11 +37,9 @@ class TranslateTextQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(vector<FormattedText> &&texts, MessageFullId message_full_id, const string &to_language_code, string tone) {
+  void send(vector<FormattedText> &&texts, MessageFullId message_full_id, const string &to_language_code,
+            const string &tone) {
     int32 flags = 0;
-    if (tone == "neutral") {
-      tone.clear();
-    }
     if (!tone.empty()) {
       flags |= telegram_api::messages_translateText::TONE_MASK;
     }
@@ -101,9 +99,6 @@ class TranslateRichMessageQuery final : public Td::ResultHandler {
 
   void send(RichMessage &&rich_message, MessageFullId message_full_id, const string &to_language_code, string tone) {
     int32 flags = 0;
-    if (tone == "neutral") {
-      tone.clear();
-    }
     if (!tone.empty()) {
       flags |= telegram_api::messages_translateRichMessage::TONE_MASK;
     }
@@ -605,6 +600,15 @@ void TranslationManager::on_authorization_success() {
   }
 }
 
+Status TranslationManager::check_tone(string &tone) {
+  if (tone == "neutral") {
+    tone.clear();
+  } else if (!tone.empty() && tone != "formal" && tone != "casual") {
+    return Status::Error(400, "Invalid tone specified");
+  }
+  return Status::OK();
+}
+
 telegram_api::object_ptr<telegram_api::InputAiComposeTone> TranslationManager::clone_input_ai_compose_tone(
     const telegram_api::object_ptr<telegram_api::InputAiComposeTone> &input_tone) {
   if (input_tone == nullptr) {
@@ -666,22 +670,17 @@ Result<TranslationManager::InputText> TranslationManager::get_input_text(
 }
 
 void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText> &&text,
-                                        const string &to_language_code, const string &tone,
+                                        const string &to_language_code, string tone,
                                         Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_text, get_input_text(std::move(text)));
-  translate_text(std::move(input_text), MessageFullId(), to_language_code, tone, std::move(promise));
+  translate_text(std::move(input_text), MessageFullId(), to_language_code, std::move(tone), std::move(promise));
 }
 
 void TranslationManager::translate_text(InputText &&text, MessageFullId message_full_id, const string &to_language_code,
-                                        const string &tone,
-                                        Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
+                                        string tone, Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_tone(tone));
   vector<FormattedText> texts;
   texts.push_back(std::move(text.text_));
-
-  if (tone != string() && tone != "formal" && tone != "neutral" && tone != "casual") {
-    return promise.set_error(400, "Invalid tone specified");
-  }
-
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), skip_bot_commands = text.skip_bot_commands_,
        max_media_timestamp = text.max_media_timestamp_, promise = std::move(promise)](
@@ -724,19 +723,17 @@ Result<TranslationManager::InputRichMessage> TranslationManager::get_input_rich_
 }
 
 void TranslationManager::translate_rich_message(td_api::object_ptr<td_api::inputRichMessage> &&message,
-                                                const string &to_language_code, const string &tone,
+                                                const string &to_language_code, string tone,
                                                 Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_rich_message, get_input_rich_message(std::move(message)));
-  translate_rich_message(std::move(input_rich_message), MessageFullId(), to_language_code, tone, std::move(promise));
+  translate_rich_message(std::move(input_rich_message), MessageFullId(), to_language_code, std::move(tone),
+                         std::move(promise));
 }
 
 void TranslationManager::translate_rich_message(InputRichMessage &&input_rich_message, MessageFullId message_full_id,
-                                                const string &to_language_code, const string &tone,
+                                                const string &to_language_code, string tone,
                                                 Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
-  if (tone != string() && tone != "formal" && tone != "neutral" && tone != "casual") {
-    return promise.set_error(400, "Invalid tone specified");
-  }
-
+  TRY_STATUS_PROMISE(promise, check_tone(tone));
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), skip_bot_commands = input_rich_message.skip_bot_commands_,
                               promise = std::move(promise)](
@@ -747,12 +744,12 @@ void TranslationManager::translate_rich_message(InputRichMessage &&input_rich_me
         send_closure(actor_id, &TranslationManager::on_get_translated_rich_messages, result.move_as_ok(),
                      skip_bot_commands, std::move(promise));
       });
-  do_translate_rich_message(std::move(input_rich_message.message_), message_full_id, to_language_code, tone,
+  do_translate_rich_message(std::move(input_rich_message.message_), message_full_id, to_language_code, std::move(tone),
                             std::move(query_promise));
 }
 
 void TranslationManager::do_translate_rich_message(
-    RichMessage &&rich_message, MessageFullId message_full_id, const string &to_language_code, const string &tone,
+    RichMessage &&rich_message, MessageFullId message_full_id, const string &to_language_code, string tone,
     Promise<vector<telegram_api::object_ptr<telegram_api::richMessage>>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   td_->create_handler<TranslateRichMessageQuery>(std::move(promise))
@@ -774,8 +771,7 @@ void TranslationManager::on_get_translated_rich_messages(
 }
 
 void TranslationManager::compose_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
-                                                 const string &translate_to_language_code, const string &tone,
-                                                 bool emojify,
+                                                 const string &translate_to_language_code, string tone, bool emojify,
                                                  Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_text, get_input_text(std::move(text)));
   TRY_RESULT_PROMISE(promise, input_tone, ai_compose_tones_.get_input_ai_compose_tone(tone));
@@ -798,7 +794,7 @@ void TranslationManager::do_compose_rich_message_with_ai(
 }
 
 void TranslationManager::compose_rich_message_with_ai(td_api::object_ptr<td_api::inputRichMessage> &&message,
-                                                      const string &translate_to_language_code, const string &tone,
+                                                      const string &translate_to_language_code, string tone,
                                                       const string &custom_prompt, bool emojify,
                                                       Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_rich_message, get_input_rich_message(std::move(message)));

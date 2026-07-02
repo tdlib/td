@@ -30,6 +30,8 @@ class TranslationManager final : public Actor {
 
   void on_authorization_success();
 
+  static Status check_tone(string &tone);
+
   static telegram_api::object_ptr<telegram_api::InputAiComposeTone> clone_input_ai_compose_tone(
       const telegram_api::object_ptr<telegram_api::InputAiComposeTone> &input_tone);
 
@@ -39,11 +41,11 @@ class TranslationManager final : public Actor {
     int32 max_media_timestamp_ = -1;
   };
 
-  void translate_text(td_api::object_ptr<td_api::formattedText> &&text, const string &to_language_code,
-                      const string &tone, Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+  void translate_text(td_api::object_ptr<td_api::formattedText> &&text, const string &to_language_code, string tone,
+                      Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
-  void translate_text(InputText &&text, MessageFullId message_full_id, const string &to_language_code,
-                      const string &tone, Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+  void translate_text(InputText &&text, MessageFullId message_full_id, const string &to_language_code, string tone,
+                      Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   struct InputRichMessage {
     RichMessage message_;
@@ -51,18 +53,18 @@ class TranslationManager final : public Actor {
   };
 
   void translate_rich_message(td_api::object_ptr<td_api::inputRichMessage> &&message, const string &to_language_code,
-                              const string &tone, Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
+                              string tone, Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
 
   void translate_rich_message(InputRichMessage &&input_rich_message, MessageFullId message_full_id,
-                              const string &to_language_code, const string &tone,
+                              const string &to_language_code, string tone,
                               Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
 
   void do_translate_rich_message(RichMessage &&rich_message, MessageFullId message_full_id,
-                                 const string &to_language_code, const string &tone,
+                                 const string &to_language_code, string tone,
                                  Promise<vector<telegram_api::object_ptr<telegram_api::richMessage>>> &&promise);
 
   void compose_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
-                               const string &translate_to_language_code, const string &tone, bool emojify,
+                               const string &translate_to_language_code, string tone, bool emojify,
                                Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   void do_compose_rich_message_with_ai(bool has_message, TranslationManager::InputRichMessage &&message,
@@ -72,9 +74,8 @@ class TranslationManager final : public Actor {
                                        Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
 
   void compose_rich_message_with_ai(td_api::object_ptr<td_api::inputRichMessage> &&message,
-                                    const string &translate_to_language_code, const string &tone,
-                                    const string &custom_prompt, bool emojify,
-                                    Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
+                                    const string &translate_to_language_code, string tone, const string &custom_prompt,
+                                    bool emojify, Promise<td_api::object_ptr<td_api::richMessage>> &&promise);
 
   void create_rich_message_with_ai(const string &prompt, const string &language_code, bool emojify,
                                    Promise<td_api::object_ptr<td_api::richMessage>> &&promise);

@@ -11916,7 +11916,7 @@ translateText text:formattedText to_language_code:string tone:string = Formatted
 //@description Translates a rich message to the given language
 //@message Rich message to translate
 //@to_language_code Language code of the language to which the message is translated. See translateText.to_language_code for the list of supported values
-//@tone Tone of the translation; must be one of "", "formal", "neutral", "casual"; defaults to "neutral"
+//@tone Tone of the translation; see translateText.tone for the list of supported values
 translateRichMessage message:inputRichMessage to_language_code:string tone:string = RichMessage;
 
 //@description Extracts text or caption of the given message and translates it to the given language; must not be used in secret chats. If the current user is a Telegram Premium user, then text formatting is preserved
