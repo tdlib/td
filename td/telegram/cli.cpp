@@ -264,9 +264,13 @@ class CliClient final : public Actor {
     User &new_user = *new_user_ptr;
     new_user.first_name = user.first_name_;
     new_user.last_name = user.last_name_;
+    new_user.username = string();
     if (user.usernames_ != nullptr) {
       for (auto &username : user.usernames_->active_usernames_) {
         username_to_user_id_[to_lower(username)] = user.id_;
+      }
+      if (!user.usernames_->active_usernames_.empty()) {
+        new_user.username = user.usernames_->active_usernames_[0];
       }
     }
   }
