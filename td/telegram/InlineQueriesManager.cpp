@@ -739,7 +739,11 @@ void InlineQueriesManager::answer_inline_query(
     }
   }
 
-  vector<tl_object_ptr<telegram_api::InputBotInlineResult>> results;
+  if (input_results.size() > MAX_INLINE_QUERY_RESULT_COUNT) {
+    return promise.set_error(400, "Too many inline query results specified");
+  }
+
+  vector<telegram_api::object_ptr<telegram_api::InputBotInlineResult>> results;
   bool is_gallery = false;
   bool force_vertical = false;
   for (auto &input_result : input_results) {
