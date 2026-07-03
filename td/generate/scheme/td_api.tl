@@ -5871,40 +5871,40 @@ inputPageBlockAnchor name:string = InputPageBlock;
 //@description A list of data blocks @items The items of the list
 inputPageBlockList items:vector<inputPageBlockListItem> = InputPageBlock;
 
-//@description A block quote @blocks Quote blocks @credit Quote credit
+//@description A block quote @blocks Quote blocks @credit Quote credit; pass null if none
 inputPageBlockBlockQuote blocks:vector<InputPageBlock> credit:RichText = InputPageBlock;
 
-//@description A pull quote @text Quote text @credit Quote credit
+//@description A pull quote @text Quote text @credit Quote credit; pass null if none
 inputPageBlockPullQuote text:RichText credit:RichText = InputPageBlock;
 
 //@description An animation
 //@animation The animation to be sent
-//@caption Animation caption
+//@caption Animation caption; pass null if none
 //@has_spoiler True, if the animation preview must be covered by a spoiler animation
 inputPageBlockAnimation animation:inputAnimation caption:pageBlockCaption has_spoiler:Bool = InputPageBlock;
 
-//@description An audio file @audio The audio to be sent @caption Audio file caption
+//@description An audio file @audio The audio to be sent @caption Audio file caption; pass null if none
 inputPageBlockAudio audio:inputAudio caption:pageBlockCaption = InputPageBlock;
 
 //@description A photo
 //@photo The photo to be sent
-//@caption Photo caption
+//@caption Photo caption; pass null if none
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation
 inputPageBlockPhoto photo:inputPhoto caption:pageBlockCaption has_spoiler:Bool = InputPageBlock;
 
 //@description A video
 //@video The video to be sent
-//@caption Video caption
+//@caption Video caption; pass null if none
 //@has_spoiler True, if the video preview must be covered by a spoiler animation
 inputPageBlockVideo video:inputVideo caption:pageBlockCaption has_spoiler:Bool = InputPageBlock;
 
-//@description A voice note @voice_note The voice note to be sent @caption Voice note caption
+//@description A voice note @voice_note The voice note to be sent @caption Voice note caption; pass null if none
 inputPageBlockVoiceNote voice_note:inputVoiceNote caption:pageBlockCaption = InputPageBlock;
 
-//@description A collage @blocks Collage item contents @caption Block caption
+//@description A collage @blocks Collage item contents @caption Block caption; pass null if none
 inputPageBlockCollage blocks:vector<InputPageBlock> caption:pageBlockCaption = InputPageBlock;
 
-//@description A slideshow @blocks Slideshow item contents @caption Block caption
+//@description A slideshow @blocks Slideshow item contents @caption Block caption; pass null if none
 inputPageBlockSlideshow blocks:vector<InputPageBlock> caption:pageBlockCaption = InputPageBlock;
 
 //@description A table
@@ -5925,7 +5925,7 @@ inputPageBlockDetails header:RichText blocks:vector<InputPageBlock> is_open:Bool
 //@zoom Map zoom level; 0-24
 //@width Map width; 0-10000
 //@height Map height; 0-10000
-//@caption Block caption
+//@caption Block caption; pass null if none
 inputPageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageBlockCaption = InputPageBlock;
 
 
