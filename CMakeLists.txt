@@ -494,6 +494,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/JoinChatBotResult.cpp
   td/telegram/JsonValue.cpp
   td/telegram/KeyboardButtonStyle.cpp
+  td/telegram/LabeledPricePart.cpp
   td/telegram/LanguagePackManager.cpp
   td/telegram/LinkManager.cpp
   td/telegram/Location.cpp

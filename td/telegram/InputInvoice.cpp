@@ -284,13 +284,11 @@ tl_object_ptr<telegram_api::invoice> InputInvoice::Invoice::get_input_invoice() 
     terms_of_service_url = terms_of_service_url_;
   }
 
-  auto prices = transform(price_parts_, [](const LabeledPricePart &price) {
-    return telegram_api::make_object<telegram_api::labeledPrice>(price.label, price.amount);
-  });
   return telegram_api::make_object<telegram_api::invoice>(
       flags, is_test_, need_name_, need_phone_number_, need_email_address_, need_shipping_address_, is_flexible_,
-      send_phone_number_to_provider_, send_email_address_to_provider_, is_recurring, currency_, std::move(prices),
-      max_tip_amount_, vector<int64>(suggested_tip_amounts_), terms_of_service_url, subscription_period_);
+      send_phone_number_to_provider_, send_email_address_to_provider_, is_recurring, currency_,
+      LabeledPricePart::get_input_labeled_prices(price_parts_), max_tip_amount_, vector<int64>(suggested_tip_amounts_),
+      terms_of_service_url, subscription_period_);
 }
 
 static telegram_api::object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,
