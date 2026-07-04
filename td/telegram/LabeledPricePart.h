@@ -6,9 +6,11 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {
@@ -23,6 +25,9 @@ struct LabeledPricePart {
 
   LabeledPricePart(string &&label, int64 amount) : label(std::move(label)), amount(amount) {
   }
+
+  static Result<vector<LabeledPricePart>> get_labeled_price_parts(
+      vector<td_api::object_ptr<td_api::labeledPricePart>> &&parts, int64 *result_total_amount);
 
   static vector<telegram_api::object_ptr<telegram_api::labeledPrice>> get_input_labeled_prices(
       const vector<LabeledPricePart> &parts);

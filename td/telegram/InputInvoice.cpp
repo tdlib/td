@@ -172,25 +172,9 @@ Result<InputInvoice> InputInvoice::process_input_message_invoice(
   result.start_parameter_ = std::move(input_invoice->start_parameter_);
 
   result.invoice_.currency_ = std::move(input_invoice->invoice_->currency_);
-  result.invoice_.price_parts_.reserve(input_invoice->invoice_->price_parts_.size());
-  int64 total_amount = 0;
-  for (auto &price : input_invoice->invoice_->price_parts_) {
-    if (!clean_input_string(price->label_)) {
-      return Status::Error(400, "Invoice price label must be encoded in UTF-8");
-    }
-    if (!check_currency_amount(price->amount_)) {
-      return Status::Error(400, "Too big amount of the currency specified");
-    }
-    result.invoice_.price_parts_.emplace_back(std::move(price->label_), price->amount_);
-    total_amount += price->amount_;
-  }
-  if (total_amount <= 0) {
-    return Status::Error(400, "Total price must be positive");
-  }
-  if (!check_currency_amount(total_amount)) {
-    return Status::Error(400, "Total price is too big");
-  }
-  result.total_amount_ = total_amount;
+  TRY_RESULT_ASSIGN(result.invoice_.price_parts_,
+                    LabeledPricePart::get_labeled_price_parts(std::move(input_invoice->invoice_->price_parts_),
+                                                              &result.total_amount_));
   result.invoice_.subscription_period_ = max(input_invoice->invoice_->subscription_period_, 0);
 
   if (input_invoice->invoice_->max_tip_amount_ < 0 ||

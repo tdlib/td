@@ -1024,26 +1024,11 @@ void answer_shipping_query(Td *td, int64 shipping_query_id,
       return promise.set_error(400, "Shipping option title must be encoded in UTF-8");
     }
 
-    vector<tl_object_ptr<telegram_api::labeledPrice>> prices;
-    for (auto &price_part : option->price_parts_) {
-      if (price_part == nullptr) {
-        return promise.set_error(400, "Shipping option price part must be non-empty");
-      }
-      if (!clean_input_string(price_part->label_)) {
-        return promise.set_error(400, "Shipping option price part label must be encoded in UTF-8");
-      }
-      if (!check_currency_amount(price_part->amount_)) {
-        return promise.set_error(400, "Too big amount of the currency specified");
-      }
-
-      prices.push_back(make_tl_object<telegram_api::labeledPrice>(std::move(price_part->label_), price_part->amount_));
-    }
-    if (prices.empty()) {
-      return promise.set_error(400, "There must be at least one price");
-    }
-
-    options.push_back(make_tl_object<telegram_api::shippingOption>(std::move(option->id_), std::move(option->title_),
-                                                                   std::move(prices)));
+    TRY_RESULT_PROMISE(promise, labeled_price_parts,
+                       LabeledPricePart::get_labeled_price_parts(std::move(option->price_parts_), nullptr));
+    options.push_back(telegram_api::make_object<telegram_api::shippingOption>(
+        std::move(option->id_), std::move(option->title_),
+        LabeledPricePart::get_input_labeled_prices(labeled_price_parts)));
   }
   if (options.empty()) {
     return promise.set_error(400, "There must be at least one shipping option");
