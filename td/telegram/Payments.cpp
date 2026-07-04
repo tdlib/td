@@ -1038,9 +1038,15 @@ void answer_shipping_query(Td *td, int64 shipping_query_id,
 
       prices.push_back(make_tl_object<telegram_api::labeledPrice>(std::move(price_part->label_), price_part->amount_));
     }
+    if (prices.empty()) {
+      return promise.set_error(400, "There must be at least one price");
+    }
 
     options.push_back(make_tl_object<telegram_api::shippingOption>(std::move(option->id_), std::move(option->title_),
                                                                    std::move(prices)));
+  }
+  if (options.empty()) {
+    return promise.set_error(400, "There must be at least one shipping option");
   }
 
   td->create_handler<SetBotShippingAnswerQuery>(std::move(promise))
