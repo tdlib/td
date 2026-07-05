@@ -13,7 +13,7 @@
 namespace td {
 
 telegram_api::object_ptr<telegram_api::labeledPrice> LabeledPricePart::get_input_labeled_price() const {
-  return telegram_api::make_object<telegram_api::labeledPrice>(label, amount);
+  return telegram_api::make_object<telegram_api::labeledPrice>(label_, amount_);
 }
 
 vector<telegram_api::object_ptr<telegram_api::labeledPrice>> LabeledPricePart::get_input_labeled_prices(
@@ -55,7 +55,7 @@ Result<vector<LabeledPricePart>> LabeledPricePart::get_labeled_price_parts(
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const LabeledPricePart &labeled_price_part) {
-  return string_builder << '[' << labeled_price_part.label << ": " << labeled_price_part.amount << ']';
+  return string_builder << '[' << labeled_price_part.label_ << ": " << labeled_price_part.amount_ << ']';
 }
 
 }  // namespace td
