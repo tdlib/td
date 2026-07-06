@@ -3136,7 +3136,7 @@ FormattedText get_markdown_v3(FormattedText text) {
             result.text += "](";
             result.text += entity->argument;
             result.text += ')';
-            utf16_added += narrow_cast<int32>(3 + entity->argument.size());
+            utf16_added += 3 + text_length(entity->argument);
             break;
           case MessageEntity::Type::Code:
             result.text += '`';

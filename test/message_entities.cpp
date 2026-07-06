@@ -2026,6 +2026,9 @@ TEST(MessageEntities, get_markdown_v3) {
   check_get_markdown_v3(
       "[ ]t.me[)](http://t.me/) [ ](t.me)", {{25, 1, td::UserId(static_cast<td::int64>(1))}}, "[ ]t.me) [ ](t.me)",
       {{td::MessageEntity::Type::TextUrl, 7, 1, "http://t.me/"}, {9, 1, td::UserId(static_cast<td::int64>(1))}});
+  check_get_markdown_v3("[a](http://t.me/аб)b", {{19, 1, td::CustomEmojiId(static_cast<td::int64>(1))}}, "ab",
+                        {{td::MessageEntity::Type::TextUrl, 0, 1, "http://t.me/аб"},
+                         {td::MessageEntity::Type::CustomEmoji, 1, 1, td::CustomEmojiId(static_cast<td::int64>(1))}});
 
   check_get_markdown_v3("__ __", {}, " ", {{td::MessageEntity::Type::Italic, 0, 1}});
   check_get_markdown_v3("** **", {}, " ", {{td::MessageEntity::Type::Bold, 0, 1}});
