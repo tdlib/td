@@ -1909,7 +1909,7 @@ bool is_visible_url(const FormattedText &text, const string &url) {
     return false;
   }
 
-  auto url_size = static_cast<int32>(utf8_utf16_length(url));
+  auto url_size = text_length(url);
   auto cur_offset = 0;
   Slice left_text = text.text;
   for (auto &entity : text.entities) {
@@ -4633,7 +4633,7 @@ void truncate_formatted_text(FormattedText &text, size_t length) {
     return;
   }
   text.text.resize(result_size);
-  auto utf16_length = narrow_cast<int32>(utf8_utf16_length(text.text));
+  auto utf16_length = text_length(text.text);
   for (auto &entity : text.entities) {
     if (entity.offset + entity.length > utf16_length) {
       if (entity.offset >= utf16_length || is_continuous_entity(entity.type)) {
