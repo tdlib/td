@@ -3136,7 +3136,7 @@ FormattedText get_markdown_v3(FormattedText text) {
             result.text += "](";
             result.text += entity->argument;
             result.text += ')';
-            utf16_added += narrow_cast<int32>(3 + entity->argument.size());
+            utf16_added += 3 + text_length(entity->argument);
             break;
           case MessageEntity::Type::Code:
             result.text += '`';
@@ -3207,7 +3207,7 @@ FormattedText get_markdown_v3(FormattedText text) {
               utf16_added += 3;
               if (!text.entities[current_entity].argument.empty()) {
                 result.text += text.entities[current_entity].argument;
-                utf16_added += static_cast<int32>(text.entities[current_entity].argument.size());
+                utf16_added += text_length(text.entities[current_entity].argument);
               }
               if (c != '\n') {
                 result.text += "\n";
