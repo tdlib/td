@@ -12573,10 +12573,9 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
 
   bool need_update = false;
   bool is_content_changed = false;
-  merge_message_contents(td_, m->content.get(), new_content.get(), need_message_changed_warning(m), dialog_id, false,
-                         is_content_changed, need_update);
-  compare_message_contents(td_, m->content.get(), new_content.get(), is_content_changed, need_update);
-
+  merge_and_compare_message_contents(td_, m->content.get(), new_content.get(), need_message_changed_warning(m),
+                                     dialog_id, false, vector<FileUploadId>(), m->ttl, m->ttl_expires_at, nullptr,
+                                     is_content_changed, need_update);
   if (is_content_changed || need_update) {
     reregister_message_content(td_, m->content.get(), new_content.get(), message_full_id, m->date,
                                "on_update_sent_text_message");
