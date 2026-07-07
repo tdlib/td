@@ -7512,11 +7512,12 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       auto *new_ = static_cast<MessageRichText *>(new_content);
       const auto old_contents = old_->rich_message.get_individual_message_content_refs();
       auto new_contents = new_->rich_message.get_individual_message_content_refs();
-      if (old_contents.size() != new_contents.size()) {
-        if (!new_contents.empty() && !old_contents.empty()) {
-          LOG(ERROR) << "Had " << old_contents.size() << " rich message media, but now have " << new_contents.size();
-        }
-      } else {
+      // can't merge media, because each media might have been used multiple times or aren't used at all
+      /*
+      if (!new_->rich_message.is_full() || !old_->rich_message.is_full()) {
+        break;
+      }
+      if (old_contents.size() == new_contents.size()) {
         for (size_t i = 0; i < old_contents.size(); i++) {
           if (old_contents[i]->get_type() != new_contents[i]->get_type()) {
             LOG(INFO) << "Have " << old_contents[i]->get_type() << " as old content, but "
@@ -7527,6 +7528,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
                                  need_merge_files, is_content_changed, need_update);
         }
       }
+      */
       break;
     }
     case MessageContentType::Sticker: {
