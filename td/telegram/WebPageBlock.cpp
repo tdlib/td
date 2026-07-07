@@ -278,48 +278,33 @@ class RichText {
       case td_api::richTextUrl::ID: {
         auto text = td_api::move_object_as<td_api::richTextUrl>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        auto url = t.get_full_text();
         if (!clean_input_string(text->url_)) {
           return Status::Error(400, "Rich text URL must be encoded in UTF-8");
         }
-        if (url == text->url_) {
-          result.type = Type::AutoUrl;
-        } else {
-          result.type = Type::Url;
-          result.content = std::move(text->url_);
-        }
+        result.type = Type::Url;
+        result.content = std::move(text->url_);
         result.texts.push_back(std::move(t));
         break;
       }
       case td_api::richTextEmailAddress::ID: {
         auto text = td_api::move_object_as<td_api::richTextEmailAddress>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        auto email_address = t.get_full_text();
         if (!clean_input_string(text->email_address_)) {
           return Status::Error(400, "Rich text email address must be encoded in UTF-8");
         }
-        if (email_address == text->email_address_) {
-          result.type = Type::AutoEmailAddress;
-        } else {
-          result.type = Type::EmailAddress;
-          result.content = std::move(text->email_address_);
-        }
+        result.type = Type::EmailAddress;
+        result.content = std::move(text->email_address_);
         result.texts.push_back(std::move(t));
         break;
       }
       case td_api::richTextPhoneNumber::ID: {
         auto text = td_api::move_object_as<td_api::richTextPhoneNumber>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        auto phone_number = t.get_full_text();
         if (!clean_input_string(text->phone_number_)) {
           return Status::Error(400, "Rich text phone number must be encoded in UTF-8");
         }
-        if (phone_number == text->phone_number_) {
-          result.type = Type::AutoPhoneNumber;
-        } else {
-          result.type = Type::PhoneNumber;
-          result.content = std::move(text->phone_number_);
-        }
+        result.type = Type::PhoneNumber;
+        result.content = std::move(text->phone_number_);
         result.texts.push_back(std::move(t));
         break;
       }
