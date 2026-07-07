@@ -225,38 +225,23 @@ class RichText {
       }
       case td_api::richTextMention::ID: {
         auto text = td_api::move_object_as<td_api::richTextMention>(rich_text);
-        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Mention;
-        result.texts.push_back(std::move(t));
-        break;
+        return get_rich_text(td, std::move(text->text_));
       }
       case td_api::richTextHashtag::ID: {
         auto text = td_api::move_object_as<td_api::richTextHashtag>(rich_text);
-        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Hashtag;
-        result.texts.push_back(std::move(t));
-        break;
+        return get_rich_text(td, std::move(text->text_));
       }
       case td_api::richTextCashtag::ID: {
         auto text = td_api::move_object_as<td_api::richTextCashtag>(rich_text);
-        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Cashtag;
-        result.texts.push_back(std::move(t));
-        break;
+        return get_rich_text(td, std::move(text->text_));
       }
       case td_api::richTextBankCardNumber::ID: {
         auto text = td_api::move_object_as<td_api::richTextBankCardNumber>(rich_text);
-        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::BankCardNumber;
-        result.texts.push_back(std::move(t));
-        break;
+        return get_rich_text(td, std::move(text->text_));
       }
       case td_api::richTextBotCommand::ID: {
         auto text = td_api::move_object_as<td_api::richTextBotCommand>(rich_text);
-        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::BotCommand;
-        result.texts.push_back(std::move(t));
-        break;
+        return get_rich_text(td, std::move(text->text_));
       }
       case td_api::richTextFixed::ID: {
         auto text = td_api::move_object_as<td_api::richTextFixed>(rich_text);
@@ -390,15 +375,8 @@ class RichText {
         result.texts = std::move(texts);
         break;
       }
-      case td_api::richTextDiff::ID: {
-        auto text = td_api::move_object_as<td_api::richTextDiff>(rich_text);
-        TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        TRY_RESULT(old_t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Diff;
-        result.texts.push_back(std::move(t));
-        result.texts.push_back(std::move(old_t));
-        break;
-      }
+      case td_api::richTextDiff::ID:
+        return Status::Error(400, "Block is not allowed");
       default:
         UNREACHABLE();
         break;
