@@ -825,16 +825,16 @@ class WebPageBlockTableCell {
     if (cell == nullptr) {
       return Status::Error(400, "Table cell must be non-empty");
     }
-    if (cell->colspan_ <= 0) {
+    if (cell->colspan_ < 0) {
       return Status::Error(400, "Invalid table cell colspan specified");
     }
-    if (cell->rowspan_ <= 0) {
+    if (cell->rowspan_ < 0) {
       return Status::Error(400, "Invalid table cell rowspan specified");
     }
     TRY_RESULT_ASSIGN(result.text, RichText::get_rich_text(td, std::move(cell->text_)));
     result.is_header = cell->is_header_;
-    result.colspan = cell->colspan_;
-    result.rowspan = cell->rowspan_;
+    result.colspan = max(cell->colspan_, 1);
+    result.rowspan = max(cell->rowspan_, 1);
     if (cell->align_ == nullptr) {
       result.align_left = true;
     } else {
