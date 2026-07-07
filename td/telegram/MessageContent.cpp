@@ -7508,12 +7508,12 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::RichText: {
+      // can't merge media, because each media might have been used multiple times or aren't used at all
+      /*
       const auto *old_ = static_cast<const MessageRichText *>(old_content);
       auto *new_ = static_cast<MessageRichText *>(new_content);
       const auto old_contents = old_->rich_message.get_individual_message_content_refs();
       auto new_contents = new_->rich_message.get_individual_message_content_refs();
-      // can't merge media, because each media might have been used multiple times or aren't used at all
-      /*
       if (!new_->rich_message.is_full() || !old_->rich_message.is_full()) {
         break;
       }

@@ -305,7 +305,8 @@ void OptionManager::update_premium_options() {
     set_option_integer("story_suggested_reaction_area_count_max",
                        get_option_integer("stories_suggested_reactions_limit_default", 1));
     set_option_integer("owned_bot_count_max", get_option_integer("bots_create_limit_default", 20));
-    set_option_integer("added_text_composition_style_count_max", get_option_integer("aicompose_tone_saved_limit_default", 5));
+    set_option_integer("added_text_composition_style_count_max",
+                       get_option_integer("aicompose_tone_saved_limit_default", 5));
 
     set_option_boolean("can_set_new_chat_privacy_settings", !get_option_boolean("need_premium_for_new_chat_privacy"));
     set_option_boolean("can_use_text_entities_in_story_caption",
