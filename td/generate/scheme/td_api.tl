@@ -10991,6 +10991,14 @@ updateNewCustomEvent event:string = Update;
 //@description A new incoming query; for bots only @id The query identifier @data JSON-serialized query data @timeout Query timeout
 updateNewCustomQuery id:int64 data:string timeout:int32 = Update;
 
+//@description Subscription of a user to the bot was changed; for bots only
+//@user_id Identifier of the user
+//@payload Bot-specified subscription invoice payload
+//@is_canceled True, if the subscription was canceled
+//@is_restored True, if the subscription was restored
+//@is_payment_failed True, if the payment for the subscription has failed
+updateUserSubscription user_id:int53 payload:string is_canceled:Bool is_restored:Bool is_payment_failed:Bool = Update;
+
 //@description A poll was updated; for bots only @poll New data about the poll
 updatePoll poll:poll = Update;
 

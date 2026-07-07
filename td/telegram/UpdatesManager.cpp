@@ -112,6 +112,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
+#include "td/utils/utf8.h"
 
 #include <limits>
 
@@ -3339,6 +3340,20 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
         break;
       }
       case telegram_api::updateBotStarsSubscription::ID: {
+        auto update = move_tl_object_as<telegram_api::updateBotStarsSubscription>(update_ptr);
+        auto user_id = UserId(update->user_id_);
+        auto payload = update->payload_.as_slice().str();
+        if (!user_id.is_valid() || !check_utf8(payload) ||
+            static_cast<int>(update->canceled_) + static_cast<int>(update->restored_) +
+                    static_cast<int>(update->payment_failed_) !=
+                1u) {
+          LOG(ERROR) << "Receive invalid " << to_string(update);
+          break;
+        }
+        send_closure(G()->td(), &Td::send_update,
+                     td_api::make_object<td_api::updateUserSubscription>(
+                         td_->user_manager_->get_user_id_object(user_id, "updateUserSubscription"), payload,
+                         update->canceled_, update->restored_, update->payment_failed_));
         break;
       }
       default:
@@ -5001,6 +5016,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotDeleteBusine
   add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotStarsSubscription> update,
+                               Promise<Unit> &&promise) {
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> update, Promise<Unit> &&promise) {
   switch (update->balance_->get_id()) {
     case telegram_api::starsAmount::ID:
@@ -5053,12 +5074,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebBrowserExcep
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotStarsSubscription> update,
-                               Promise<Unit> &&promise) {
-  auto qts = update->qts_;
-  add_pending_qts_update(std::move(update), qts, std::move(promise));
-}
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
