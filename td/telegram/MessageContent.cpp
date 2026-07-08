@@ -12156,8 +12156,12 @@ unique_ptr<MessageContent> get_uploaded_message_content(
         auto &content =
             td->poll_manager_->get_individual_message_content(poll->poll_id, poll->attached_media, media_pos);
         CHECK(content != nullptr);
-        merge_message_contents(td, content.get(), new_content.get(), false, owner_dialog_id, true, is_content_changed,
-                               need_update);
+        if (content->get_type() == new_content->get_type()) {
+          merge_message_contents(td, content.get(), new_content.get(), false, owner_dialog_id, true, is_content_changed,
+                                 need_update);
+        } else {
+          need_update = true;
+        }
         content = std::move(new_content);
         return m;
       }
@@ -12169,8 +12173,12 @@ unique_ptr<MessageContent> get_uploaded_message_content(
                                                message_date, false, UserId(), nullptr, nullptr, source);
         auto &content = rich_text->rich_message.get_individual_message_content(media_pos);
         CHECK(content != nullptr);
-        merge_message_contents(td, content.get(), new_content.get(), false, owner_dialog_id, true, is_content_changed,
-                               need_update);
+        if (content->get_type() == new_content->get_type()) {
+          merge_message_contents(td, content.get(), new_content.get(), false, owner_dialog_id, true, is_content_changed,
+                                 need_update);
+        } else {
+          need_update = true;
+        }
         content = std::move(new_content);
         return m;
       }
