@@ -5934,12 +5934,14 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
                                                                     is_optional, text->web_page_url);
 }
 
-bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
+bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> &input_media, bool disallow_animation) {
   CHECK(input_media != nullptr);
   LOG(DEBUG) << "Have " << to_string(input_media);
   switch (input_media->get_id()) {
     case telegram_api::inputMediaUploadedDocument::ID:
-      static_cast<telegram_api::inputMediaUploadedDocument *>(input_media.get())->nosound_video_ = true;
+      if (disallow_animation) {
+        static_cast<telegram_api::inputMediaUploadedDocument *>(input_media.get())->nosound_video_ = true;
+      }
     // fallthrough
     case telegram_api::inputMediaUploadedPhoto::ID:
     case telegram_api::inputMediaDocumentExternal::ID:

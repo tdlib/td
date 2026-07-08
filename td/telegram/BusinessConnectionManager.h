@@ -189,12 +189,10 @@ class BusinessConnectionManager final : public Actor {
   Result<InputMessageContent> process_input_message_content(
       td_api::object_ptr<td_api::InputMessageContent> &&input_message_content);
 
-  unique_ptr<PendingMessage> create_business_message_to_send(BusinessConnectionId business_connection_id,
-                                                             DialogId dialog_id, MessageInputReplyTo &&input_reply_to,
-                                                             bool disable_notification, bool protect_content,
-                                                             MessageEffectId effect_id,
-                                                             unique_ptr<ReplyMarkup> &&reply_markup,
-                                                             InputMessageContent &&input_content) const;
+  unique_ptr<PendingMessage> create_business_message_to_send(
+      BusinessConnectionId business_connection_id, DialogId dialog_id, MessageInputReplyTo &&input_reply_to,
+      bool disable_notification, bool protect_content, MessageEffectId effect_id,
+      unique_ptr<ReplyMarkup> &&reply_markup, InputMessageContent &&input_content, bool is_in_album) const;
 
   void do_send_message(unique_ptr<PendingMessage> &&message,
                        Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);

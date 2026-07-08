@@ -22039,7 +22039,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
   auto is_edit = message_id.is_any_server();
   if ((!is_edit && m->media_album_id != 0) || media_pos != -1) {
     CHECK(input_media.rich_message_ == nullptr);
-    if (!is_uploaded_input_media(input_media.media_)) {
+    if (!is_uploaded_input_media(input_media.media_, m->media_album_id != 0)) {
       auto file_upload_id = get_message_send_file_upload_id(dialog_id, m, media_pos);
       auto thumbnail_file_upload_id = get_message_send_thumbnail_file_upload_id(dialog_id, m, media_pos);
       auto cover_file_ids = get_message_content_cover_any_file_ids(td_, m->content.get());

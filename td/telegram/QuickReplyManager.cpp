@@ -2545,7 +2545,7 @@ void QuickReplyManager::on_message_media_uploaded(const QuickReplyMessage *m, in
   auto is_edit = message_id.is_any_server();
   if ((!is_edit && m->media_album_id != 0) || media_pos != -1) {
     CHECK(input_media.media_ != nullptr);
-    if (!is_uploaded_input_media(input_media.media_)) {
+    if (!is_uploaded_input_media(input_media.media_, m->media_album_id != 0)) {
       td_->create_handler<UploadQuickReplyMediaQuery>()->send(m, media_pos, m->edit_generation,
                                                               std::move(input_media.media_));
     } else {

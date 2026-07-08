@@ -2331,7 +2331,7 @@ void MessageQueryManager::do_upload_cover(FileUploadId file_upload_id, BeingUplo
 
   auto input_media = being_uploaded_cover.cover_.get_input_media(td_, std::move(input_file));
   CHECK(input_media != nullptr);
-  if (is_uploaded_input_media(input_media)) {
+  if (is_uploaded_input_media(input_media, true)) {
     return being_uploaded_cover.promise_.set_value(Unit());
   } else {
     td_->create_handler<UploadCoverQuery>(std::move(being_uploaded_cover.promise_))
