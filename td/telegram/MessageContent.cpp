@@ -8744,6 +8744,24 @@ static void update_message_content_file_id_remotes(Td *td, MessageContent *conte
   update_message_content_file_id_remote(content, file_ids[0]);
 }
 
+static void try_merge_document_message_contents(Td *td, MessageContent *old_content, MessageContent *new_content,
+                                                const vector<FileUploadId> &old_file_upload_ids) {
+  auto old_content_type = old_content->get_type();
+  auto new_content_type = new_content->get_type();
+  CHECK(old_content_type != new_content_type);
+  if (old_content->get_type() == MessageContentType::RichText ||
+      new_content->get_type() == MessageContentType::RichText) {
+    return;
+  }
+  auto new_file_ids = get_message_content_any_file_ids(td, new_content);
+  if (new_file_ids.size() != old_file_upload_ids.size()) {
+    return;
+  }
+  for (size_t i = 0; i < old_file_upload_ids.size(); i++) {
+    td->file_manager_->try_merge_documents(new_file_ids[i], old_file_upload_ids[i].get_file_id());
+  }
+}
+
 void merge_and_compare_message_contents(Td *td, MessageContent *old_content, MessageContent *new_content,
                                         bool need_message_changed_warning, DialogId dialog_id, bool need_merge_files,
                                         const vector<FileUploadId> &old_file_upload_ids, MessageSelfDestructType ttl,
@@ -8767,12 +8785,7 @@ void merge_and_compare_message_contents(Td *td, MessageContent *old_content, Mes
     }
 
     if (need_merge_files) {
-      auto new_file_ids = get_message_content_any_file_ids(td, new_content);
-      if (new_file_ids.size() == old_file_upload_ids.size()) {
-        for (size_t i = 0; i < old_file_upload_ids.size(); i++) {
-          td->file_manager_->try_merge_documents(new_file_ids[i], old_file_upload_ids[i].get_file_id());
-        }
-      }
+      try_merge_document_message_contents(td, old_content, new_content, old_file_upload_ids);
     }
   } else {
     merge_message_contents(td, old_content, new_content, need_message_changed_warning, dialog_id, need_merge_files,
