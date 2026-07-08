@@ -245,11 +245,13 @@ telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_
     case InputType::None: {
       int32 flags = 0;
       vector<telegram_api::object_ptr<telegram_api::PageBlock>> blocks;
-      vector<telegram_api::object_ptr<telegram_api::InputPhoto>> photos;
-      vector<telegram_api::object_ptr<telegram_api::InputDocument>> documents;
+      GetInputPageBlockContext context;
+      context.td_ = td;
       for (const auto &block : blocks_) {
-        blocks.push_back(block->get_input_page_block(td, photos, documents));
+        blocks.push_back(block->get_input_page_block(context));
       }
+      auto photos = std::move(context.photos_);
+      auto documents = std::move(context.documents_);
       if (with_input_media) {
         photos.clear();
         documents.clear();

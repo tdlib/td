@@ -32,6 +32,12 @@ class RichText;
 
 class Td;
 
+struct GetInputPageBlockContext {
+  const Td *td_ = nullptr;
+  vector<telegram_api::object_ptr<telegram_api::InputPhoto>> photos_;
+  vector<telegram_api::object_ptr<telegram_api::InputDocument>> documents_;
+};
+
 class WebPageBlock {
  protected:
   enum class Type : int32 {
@@ -92,6 +98,8 @@ class WebPageBlock {
 
   using Context = GetWebPageBlockObjectContext;
 
+  using InputContext = GetInputPageBlockContext;
+
  public:
   WebPageBlock() = default;
   WebPageBlock(const WebPageBlock &) = delete;
@@ -128,9 +136,7 @@ class WebPageBlock {
 
   virtual unique_ptr<WebPageBlock> clone() const = 0;
 
-  virtual telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(
-      const Td *td, vector<telegram_api::object_ptr<telegram_api::InputPhoto>> &photos,
-      vector<telegram_api::object_ptr<telegram_api::InputDocument>> &documents) const = 0;
+  virtual telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(InputContext &context) const = 0;
 
   virtual td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const = 0;
 
@@ -163,9 +169,7 @@ int32 get_web_page_blocks_index_mask(const vector<unique_ptr<WebPageBlock>> &pag
 vector<unique_ptr<WebPageBlock>> clone_web_page_blocks(const vector<unique_ptr<WebPageBlock>> &page_blocks);
 
 vector<telegram_api::object_ptr<telegram_api::PageBlock>> get_input_page_blocks(
-    const vector<unique_ptr<WebPageBlock>> &page_blocks, const Td *td,
-    vector<telegram_api::object_ptr<telegram_api::InputPhoto>> &photos,
-    vector<telegram_api::object_ptr<telegram_api::InputDocument>> &documents);
+    const vector<unique_ptr<WebPageBlock>> &page_blocks, GetInputPageBlockContext &context);
 
 vector<RichMessageMedia> get_page_blocks_rich_message_media(const vector<unique_ptr<WebPageBlock>> &page_blocks);
 
