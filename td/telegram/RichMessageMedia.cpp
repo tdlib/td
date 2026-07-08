@@ -6,6 +6,7 @@
 //
 #include "td/telegram/RichMessageMedia.h"
 
+#include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/MessageContentType.h"
@@ -66,6 +67,33 @@ RichMessageMedia RichMessageMedia::clone(Td *td, DialogId dialog_id, const Messa
   return result;
 }
 
+const FullRemoteFileLocation *RichMessageMedia::get_full_main_remote_location(const Td *td) const {
+  auto file_id = get_message_content_any_file_id(media_.get());
+  CHECK(file_id.is_valid());
+  auto file_view = td->file_manager_->get_file_view(file_id);
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (file_view.is_encrypted() || main_remote_location == nullptr || main_remote_location->is_web()) {
+    return nullptr;
+  }
+  return main_remote_location;
+}
+
+telegram_api::object_ptr<telegram_api::InputPhoto> RichMessageMedia::get_input_photo(const Td *td) const {
+  const auto *main_remote_location = get_full_main_remote_location(td);
+  if (main_remote_location == nullptr) {
+    return nullptr;
+  }
+  return main_remote_location->as_input_photo();
+}
+
+telegram_api::object_ptr<telegram_api::InputDocument> RichMessageMedia::get_input_document(const Td *td) const {
+  const auto *main_remote_location = get_full_main_remote_location(td);
+  if (main_remote_location == nullptr) {
+    return nullptr;
+  }
+  return main_remote_location->as_input_document();
+}
+
 telegram_api::object_ptr<telegram_api::InputRichFile> RichMessageMedia::get_input_rich_file(
     const Td *td, telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) const {
   if (input_media != nullptr) {
@@ -82,19 +110,11 @@ telegram_api::object_ptr<telegram_api::InputRichFile> RichMessageMedia::get_inpu
         UNREACHABLE();
     }
   }
-  auto file_id = get_message_content_any_file_id(media_.get());
-  CHECK(file_id.is_valid());
-  auto file_view = td->file_manager_->get_file_view(file_id);
-  const auto *main_remote_location = file_view.get_main_remote_location();
-  if (file_view.is_encrypted() || main_remote_location == nullptr || main_remote_location->is_web()) {
-    return nullptr;
-  }
   switch (media_->get_type()) {
     case MessageContentType::Photo:
-      return telegram_api::make_object<telegram_api::inputRichFilePhoto>(id_, main_remote_location->as_input_photo());
+      return telegram_api::make_object<telegram_api::inputRichFilePhoto>(id_, get_input_photo(td));
     default:
-      return telegram_api::make_object<telegram_api::inputRichFileDocument>(id_,
-                                                                            main_remote_location->as_input_document());
+      return telegram_api::make_object<telegram_api::inputRichFileDocument>(id_, get_input_document(td));
   }
 }
 

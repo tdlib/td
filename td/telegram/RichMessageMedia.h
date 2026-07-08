@@ -17,11 +17,14 @@
 
 namespace td {
 
+class FullRemoteFileLocation;
 class Td;
 
 class RichMessageMedia {
   string id_;
   unique_ptr<MessageContent> media_;
+
+  const FullRemoteFileLocation *get_full_main_remote_location(const Td *td) const;
 
  public:
   RichMessageMedia() = default;
@@ -50,6 +53,10 @@ class RichMessageMedia {
   }
 
   RichMessageMedia clone(Td *td, DialogId dialog_id, const MessageContentDupType &type) const;
+
+  telegram_api::object_ptr<telegram_api::InputPhoto> get_input_photo(const Td *td) const;
+
+  telegram_api::object_ptr<telegram_api::InputDocument> get_input_document(const Td *td) const;
 
   telegram_api::object_ptr<telegram_api::InputRichFile> get_input_rich_file(
       const Td *td, telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) const;
