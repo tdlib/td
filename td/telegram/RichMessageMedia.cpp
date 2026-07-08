@@ -78,7 +78,7 @@ const FullRemoteFileLocation *RichMessageMedia::get_full_main_remote_location(co
   return main_remote_location;
 }
 
-telegram_api::object_ptr<telegram_api::InputPhoto> RichMessageMedia::get_input_photo(const Td *td) const {
+telegram_api::object_ptr<telegram_api::inputPhoto> RichMessageMedia::get_input_photo(const Td *td) const {
   const auto *main_remote_location = get_full_main_remote_location(td);
   if (main_remote_location == nullptr) {
     return nullptr;
@@ -86,7 +86,7 @@ telegram_api::object_ptr<telegram_api::InputPhoto> RichMessageMedia::get_input_p
   return main_remote_location->as_input_photo();
 }
 
-telegram_api::object_ptr<telegram_api::InputDocument> RichMessageMedia::get_input_document(const Td *td) const {
+telegram_api::object_ptr<telegram_api::inputDocument> RichMessageMedia::get_input_document(const Td *td) const {
   const auto *main_remote_location = get_full_main_remote_location(td);
   if (main_remote_location == nullptr) {
     return nullptr;

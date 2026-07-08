@@ -54,9 +54,9 @@ class RichMessageMedia {
 
   RichMessageMedia clone(Td *td, DialogId dialog_id, const MessageContentDupType &type) const;
 
-  telegram_api::object_ptr<telegram_api::InputPhoto> get_input_photo(const Td *td) const;
+  telegram_api::object_ptr<telegram_api::inputPhoto> get_input_photo(const Td *td) const;
 
-  telegram_api::object_ptr<telegram_api::InputDocument> get_input_document(const Td *td) const;
+  telegram_api::object_ptr<telegram_api::inputDocument> get_input_document(const Td *td) const;
 
   telegram_api::object_ptr<telegram_api::InputRichFile> get_input_rich_file(
       const Td *td, telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) const;

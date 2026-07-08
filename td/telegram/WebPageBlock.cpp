@@ -2499,12 +2499,13 @@ class WebPageBlockAnimation final : public WebPageBlock {
   }
 
   telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(InputContext &context) const final {
-    auto file_view = context.td_->file_manager_->get_file_view(animation_file_id);
-    const auto *main_remote_location = file_view.get_main_remote_location();
-    if (!file_view.is_encrypted() && main_remote_location != nullptr && !main_remote_location->is_web()) {
-      context.documents_.push_back(main_remote_location->as_input_document());
-      return telegram_api::make_object<telegram_api::pageBlockVideo>(
-          0, need_autoplay, true, has_spoiler, main_remote_location->get_id(), caption.get_input_page_caption(context));
+    CHECK(context.media_ != nullptr && context.media_pos_ < context.media_->size());
+    auto input_document = (*context.media_)[context.media_pos_++].get_input_document(context.td_);
+    if (input_document != nullptr) {
+      auto id = input_document->id_;
+      context.documents_.push_back(std::move(input_document));
+      return telegram_api::make_object<telegram_api::pageBlockVideo>(0, need_autoplay, true, has_spoiler, id,
+                                                                     caption.get_input_page_caption(context));
     }
     LOG(INFO) << "Can't create pageBlockVideo for animation " << animation_file_id;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
@@ -2622,12 +2623,13 @@ class WebPageBlockPhoto final : public WebPageBlock {
   }
 
   telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(InputContext &context) const final {
-    auto file_view = context.td_->file_manager_->get_file_view(get_photo_any_file_id(photo));
-    const auto *main_remote_location = file_view.get_main_remote_location();
-    if (!file_view.is_encrypted() && main_remote_location != nullptr && !main_remote_location->is_web()) {
-      context.photos_.push_back(main_remote_location->as_input_photo());
+    CHECK(context.media_ != nullptr && context.media_pos_ < context.media_->size());
+    auto input_photo = (*context.media_)[context.media_pos_++].get_input_photo(context.td_);
+    if (input_photo != nullptr) {
+      auto id = input_photo->id_;
+      context.photos_.push_back(std::move(input_photo));
       return telegram_api::make_object<telegram_api::pageBlockPhoto>(
-          0, has_spoiler, main_remote_location->get_id(), caption.get_input_page_caption(context), string(), 0);
+          0, has_spoiler, id, caption.get_input_page_caption(context), string(), 0);
     }
     LOG(INFO) << "Can't create pageBlockPhoto for " << photo;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
@@ -2735,12 +2737,12 @@ class WebPageBlockVideo final : public WebPageBlock {
   }
 
   telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(InputContext &context) const final {
-    auto file_view = context.td_->file_manager_->get_file_view(video_file_id);
-    const auto *main_remote_location = file_view.get_main_remote_location();
-    if (!file_view.is_encrypted() && main_remote_location != nullptr && !main_remote_location->is_web()) {
-      context.documents_.push_back(main_remote_location->as_input_document());
-      return telegram_api::make_object<telegram_api::pageBlockVideo>(0, need_autoplay, is_looped, has_spoiler,
-                                                                     main_remote_location->get_id(),
+    CHECK(context.media_ != nullptr && context.media_pos_ < context.media_->size());
+    auto input_document = (*context.media_)[context.media_pos_++].get_input_document(context.td_);
+    if (input_document != nullptr) {
+      auto id = input_document->id_;
+      context.documents_.push_back(std::move(input_document));
+      return telegram_api::make_object<telegram_api::pageBlockVideo>(0, need_autoplay, is_looped, has_spoiler, id,
                                                                      caption.get_input_page_caption(context));
     }
     LOG(INFO) << "Can't create pageBlockVideo for video " << video_file_id;
@@ -3420,12 +3422,12 @@ class WebPageBlockAudio final : public WebPageBlock {
   }
 
   telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(InputContext &context) const final {
-    auto file_view = context.td_->file_manager_->get_file_view(audio_file_id);
-    const auto *main_remote_location = file_view.get_main_remote_location();
-    if (!file_view.is_encrypted() && main_remote_location != nullptr && !main_remote_location->is_web()) {
-      context.documents_.push_back(main_remote_location->as_input_document());
-      return telegram_api::make_object<telegram_api::pageBlockAudio>(main_remote_location->get_id(),
-                                                                     caption.get_input_page_caption(context));
+    CHECK(context.media_ != nullptr && context.media_pos_ < context.media_->size());
+    auto input_document = (*context.media_)[context.media_pos_++].get_input_document(context.td_);
+    if (input_document != nullptr) {
+      auto id = input_document->id_;
+      context.documents_.push_back(std::move(input_document));
+      return telegram_api::make_object<telegram_api::pageBlockAudio>(id, caption.get_input_page_caption(context));
     }
     LOG(INFO) << "Can't create pageBlockAudio for audio " << audio_file_id;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
@@ -3972,12 +3974,12 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
   }
 
   telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(InputContext &context) const final {
-    auto file_view = context.td_->file_manager_->get_file_view(voice_note_file_id);
-    const auto *main_remote_location = file_view.get_main_remote_location();
-    if (!file_view.is_encrypted() && main_remote_location != nullptr && !main_remote_location->is_web()) {
-      context.documents_.push_back(main_remote_location->as_input_document());
-      return telegram_api::make_object<telegram_api::pageBlockAudio>(main_remote_location->get_id(),
-                                                                     caption.get_input_page_caption(context));
+    CHECK(context.media_ != nullptr && context.media_pos_ < context.media_->size());
+    auto input_document = (*context.media_)[context.media_pos_++].get_input_document(context.td_);
+    if (input_document != nullptr) {
+      auto id = input_document->id_;
+      context.documents_.push_back(std::move(input_document));
+      return telegram_api::make_object<telegram_api::pageBlockAudio>(id, caption.get_input_page_caption(context));
     }
     LOG(INFO) << "Can't create pageBlockAudio for voice note " << voice_note_file_id;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();

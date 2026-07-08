@@ -36,6 +36,8 @@ struct GetInputPageBlockContext {
   const Td *td_ = nullptr;
   vector<telegram_api::object_ptr<telegram_api::InputPhoto>> photos_;
   vector<telegram_api::object_ptr<telegram_api::InputDocument>> documents_;
+  const vector<RichMessageMedia> *media_ = nullptr;
+  size_t media_pos_ = 0;
 };
 
 class WebPageBlock {

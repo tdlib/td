@@ -247,6 +247,7 @@ telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_
       vector<telegram_api::object_ptr<telegram_api::PageBlock>> blocks;
       GetInputPageBlockContext context;
       context.td_ = td;
+      context.media_ = &media_;
       for (const auto &block : blocks_) {
         blocks.push_back(block->get_input_page_block(context));
       }
