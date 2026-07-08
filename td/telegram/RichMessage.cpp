@@ -251,6 +251,7 @@ telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_
       for (const auto &block : blocks_) {
         blocks.push_back(block->get_input_page_block(context));
       }
+      CHECK(context.media_pos_ == media_.size());
       auto photos = std::move(context.photos_);
       auto documents = std::move(context.documents_);
       if (with_input_media) {
