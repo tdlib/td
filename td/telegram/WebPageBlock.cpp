@@ -491,7 +491,7 @@ class RichText {
           auto height = static_cast<int32>(dimensions % 65536);
           return telegram_api::make_object<telegram_api::textImage>(main_remote_location->get_id(), width, height);
         }
-        LOG(ERROR) << "Can't create textImage for " << document_file_id;
+        LOG(ERROR) << "Can't create textImage for icon " << document_file_id;
         return telegram_api::make_object<telegram_api::textEmpty>();
       }
       case Type::Anchor:
@@ -2555,7 +2555,7 @@ class WebPageBlockAnimation final : public WebPageBlock {
                                                                      main_remote_location->get_id(),
                                                                      caption.get_input_page_caption(td, documents));
     }
-    LOG(INFO) << "Can't create pageBlockVideo for " << animation_file_id;
+    LOG(INFO) << "Can't create pageBlockVideo for animation " << animation_file_id;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
   }
 
@@ -2796,7 +2796,7 @@ class WebPageBlockVideo final : public WebPageBlock {
                                                                      main_remote_location->get_id(),
                                                                      caption.get_input_page_caption(td, documents));
     }
-    LOG(INFO) << "Can't create pageBlockVideo for " << video_file_id;
+    LOG(INFO) << "Can't create pageBlockVideo for video " << video_file_id;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
   }
 
@@ -3494,7 +3494,7 @@ class WebPageBlockAudio final : public WebPageBlock {
       return telegram_api::make_object<telegram_api::pageBlockAudio>(main_remote_location->get_id(),
                                                                      caption.get_input_page_caption(td, documents));
     }
-    LOG(INFO) << "Can't create pageBlockAudio for " << audio_file_id;
+    LOG(INFO) << "Can't create pageBlockAudio for audio " << audio_file_id;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
   }
 
@@ -4059,7 +4059,7 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
       return telegram_api::make_object<telegram_api::pageBlockAudio>(main_remote_location->get_id(),
                                                                      caption.get_input_page_caption(td, documents));
     }
-    LOG(INFO) << "Can't create pageBlockAudio for " << voice_note_file_id;
+    LOG(INFO) << "Can't create pageBlockAudio for voice note " << voice_note_file_id;
     return telegram_api::make_object<telegram_api::pageBlockDivider>();
   }
 
