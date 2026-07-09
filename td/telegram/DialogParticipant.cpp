@@ -215,6 +215,14 @@ RestrictedRights::RestrictedRights(const td_api::object_ptr<td_api::chatPermissi
       rights->can_edit_tag_, rights->can_react_to_messages_, false, channel_type);
 }
 
+RestrictedRights::RestrictedRights(const td_api::object_ptr<td_api::communityPermissions> &rights) {
+  if (rights == nullptr) {
+    flags_ = 0;
+    return;
+  }
+  flags_ = (static_cast<uint64>(rights->can_edit_chat_list_) * CAN_MANAGE_LINKED_PEERS);
+}
+
 RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_audios, bool can_send_documents,
                                    bool can_send_photos, bool can_send_videos, bool can_send_video_notes,
                                    bool can_send_voice_notes, bool can_send_stickers, bool can_send_animations,
@@ -260,6 +268,10 @@ td_api::object_ptr<td_api::chatPermissions> RestrictedRights::get_chat_permissio
       can_send_stickers() || can_send_animations() || can_send_games() || can_use_inline_bots(),
       can_add_web_page_previews(), can_send_reactions(), can_edit_rank(), can_change_info_and_settings(),
       can_invite_users(), can_pin_messages(), can_manage_topics());
+}
+
+td_api::object_ptr<td_api::communityPermissions> RestrictedRights::get_community_permissions_object() const {
+  return td_api::make_object<td_api::communityPermissions>(can_manage_linked_peers());
 }
 
 telegram_api::object_ptr<telegram_api::chatBannedRights> RestrictedRights::get_chat_banned_rights() const {

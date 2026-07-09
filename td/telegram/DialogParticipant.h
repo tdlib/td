@@ -219,6 +219,8 @@ class RestrictedRights {
 
   RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights, ChannelType channel_type);
 
+  RestrictedRights(const td_api::object_ptr<td_api::communityPermissions> &rights);
+
   RestrictedRights(bool can_send_messages, bool can_send_audios, bool can_send_documents, bool can_send_photos,
                    bool can_send_videos, bool can_send_video_notes, bool can_send_voice_notes, bool can_send_stickers,
                    bool can_send_animations, bool can_send_games, bool can_use_inline_bots,
@@ -229,6 +231,8 @@ class RestrictedRights {
   static RestrictedRights restrict_all();
 
   td_api::object_ptr<td_api::chatPermissions> get_chat_permissions_object() const;
+
+  td_api::object_ptr<td_api::communityPermissions> get_community_permissions_object() const;
 
   tl_object_ptr<telegram_api::chatBannedRights> get_chat_banned_rights() const;
 

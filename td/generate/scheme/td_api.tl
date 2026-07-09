@@ -2259,13 +2259,18 @@ profileAccentColors palette_colors:vector<int32> background_colors:vector<int32>
 profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_colors:profileAccentColors min_supergroup_chat_boost_level:int32 min_channel_chat_boost_level:int32 = ProfileAccentColor;
 
 
+//@description Describes actions that a user is allowed to take in a community
+//@can_edit_chat_list True, if the user can change the chats added to the community
+communityPermissions can_edit_chat_list:Bool = CommunityPermissions;
+
 //@description Represents a community consisting of supergroup chats, channel chats and chats with bots
 //@id Community identifier
 //@have_access If false, the community is inaccessible, and the only information known about the community is inside this class. Identifier of the community can't be passed to any method
 //@name Community name
 //@photo Community photo; may be null
 //@date Point in time (Unix timestamp) when the community was joined, or the point in time when the community was created, in case the user is not a member of any chat in the community
-community id:int53 have_access:Bool name:string photo:chatPhotoInfo date:int32 = Community;
+//@permissions Actions that non-administrator community members are allowed to take in the community
+community id:int53 have_access:Bool name:string photo:chatPhotoInfo date:int32 permissions:communityPermissions = Community;
 
 
 //@description Contains description of user rating
