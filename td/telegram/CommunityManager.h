@@ -41,6 +41,8 @@ class CommunityManager final : public Actor {
 
   void on_binlog_community_event(BinlogEvent &&event);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   struct Community {
     int64 access_hash = 0;

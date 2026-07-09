@@ -43,6 +43,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/CommonDialogManager.h"
+#include "td/telegram/CommunityManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConnectionStateManager.h"
 #include "td/telegram/CountryInfoManager.h"
@@ -2198,6 +2199,8 @@ void Requests::on_request(uint64 id, const td_api::getCurrentState &request) {
   td_->connection_state_manager_->get_current_state(updates);
 
   if (td_->auth_manager_->is_authorized()) {
+    td_->community_manager_->get_current_state(updates);
+
     td_->user_manager_->get_current_state(updates);
 
     td_->chat_manager_->get_current_state(updates);

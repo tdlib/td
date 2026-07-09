@@ -599,4 +599,16 @@ td_api::object_ptr<td_api::updateCommunity> CommunityManager::get_update_unknown
       td_api::make_object<td_api::community>(community_id.get(), false, string(), nullptr, 0));
 }
 
+void CommunityManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  for (auto community_id : unknown_communities_) {
+    if (!have_community(community_id)) {
+      updates.push_back(get_update_unknown_community_object(community_id));
+    }
+  }
+
+  communities_.foreach([&](const CommunityId &community_id, const unique_ptr<Community> &community) {
+    updates.push_back(get_update_community_object(community_id, community.get()));
+  });
+}
+
 }  // namespace td
