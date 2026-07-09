@@ -329,6 +329,7 @@ function split_file($file, $chunks, $undo) {
             'ChatId' => 'ChatId',
             'chat_manager[_(-](?![.]get[(][)])|ChatManager([^ ;.]| [^*])' => 'ChatManager',
             'common_dialog_manager[_(-](?![.]get[(][)])|CommonDialogManager' => 'CommonDialogManager',
+            'community_manager[_(-](?![.]get[(][)])|CommunityManager([^ ;.]| [^*])' => 'CommunityManager',
             'connection_state_manager[_(-](?![.]get[(][)])|ConnectionStateManager' => 'ConnectionStateManager',
             'country_info_manager[_(-](?![.]get[(][)])|CountryInfoManager' => 'CountryInfoManager',
             'CurrencyAmount' => 'CurrencyAmount',

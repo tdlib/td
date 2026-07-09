@@ -42,6 +42,7 @@ class BusinessConnectionManager;
 class BusinessManager;
 class CallManager;
 class ChatManager;
+class CommunityManager;
 class ConfigManager;
 class ConnectionCreator;
 class DialogActionManager;
@@ -284,6 +285,13 @@ class Global final : public ActorContext {
   }
   void set_chat_manager(ActorId<ChatManager> chat_manager) {
     chat_manager_ = chat_manager;
+  }
+
+  ActorId<CommunityManager> community_manager() const {
+    return community_manager_;
+  }
+  void set_community_manager(ActorId<CommunityManager> community_manager) {
+    community_manager_ = community_manager;
   }
 
   ActorId<ConfigManager> config_manager() const {
@@ -754,6 +762,7 @@ class Global final : public ActorContext {
   ActorId<BusinessManager> business_manager_;
   ActorId<CallManager> call_manager_;
   ActorId<ChatManager> chat_manager_;
+  ActorId<CommunityManager> community_manager_;
   ActorId<ConfigManager> config_manager_;
   ActorId<DialogActionManager> dialog_action_manager_;
   ActorId<DialogFilterManager> dialog_filter_manager_;

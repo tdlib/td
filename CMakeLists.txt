@@ -394,6 +394,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/ChatTheme.cpp
   td/telegram/ClientActor.cpp
   td/telegram/CommonDialogManager.cpp
+  td/telegram/CommunityManager.cpp
   td/telegram/ConfigManager.cpp
   td/telegram/ConnectionState.cpp
   td/telegram/ConnectionStateManager.cpp
@@ -773,6 +774,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ChatTheme.h
   td/telegram/ClientActor.h
   td/telegram/CommonDialogManager.h
+  td/telegram/CommunityManager.h
   td/telegram/ConfigManager.h
   td/telegram/ConnectionState.h
   td/telegram/ConnectionStateManager.h

@@ -25,6 +25,7 @@
 #include "td/telegram/ChannelRecommendationManager.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/CommonDialogManager.h"
+#include "td/telegram/CommunityManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/ConnectionStateManager.h"
 #include "td/telegram/CountryInfoManager.h"
@@ -524,6 +525,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(channel_recommendation_manager_, "ChannelRecommendationManager");
       reset_manager(chat_manager_, "ChatManager");
       reset_manager(common_dialog_manager_, "CommonDialogManager");
+      reset_manager(community_manager_, "CommunityManager");
       reset_manager(connection_state_manager_, "ConnectionStateManager");
       reset_manager(country_info_manager_, "CountryInfoManager");
       reset_manager(dialog_action_manager_, "DialogActionManager");
@@ -704,6 +706,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(channel_recommendation_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(chat_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(common_dialog_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(community_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(connection_state_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(country_info_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(dialog_action_manager_actor_)));
@@ -1183,6 +1186,9 @@ void Td::init_managers() {
   G()->set_chat_manager(chat_manager_actor_.get());
   common_dialog_manager_ = make_unique<CommonDialogManager>(this, create_reference());
   common_dialog_manager_actor_ = register_actor("CommonDialogManager", common_dialog_manager_.get());
+  community_manager_ = make_unique<CommunityManager>(this, create_reference());
+  community_manager_actor_ = register_actor("CommunityManager", community_manager_.get());
+  G()->set_community_manager(community_manager_actor_.get());
   connection_state_manager_ = make_unique<ConnectionStateManager>(this, create_reference());
   connection_state_manager_actor_ = register_actor("ConnectionStateManager", connection_state_manager_.get());
   country_info_manager_ = make_unique<CountryInfoManager>(this, create_reference());

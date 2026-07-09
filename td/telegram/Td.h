@@ -49,6 +49,7 @@ class CallbackQueriesManager;
 class ChannelRecommendationManager;
 class ChatManager;
 class CommonDialogManager;
+class CommunityManager;
 class ConfigManager;
 class ConnectionStateManager;
 class CountryInfoManager;
@@ -193,6 +194,8 @@ class Td final : public Actor {
   ActorOwn<ChatManager> chat_manager_actor_;
   unique_ptr<CommonDialogManager> common_dialog_manager_;
   ActorOwn<CommonDialogManager> common_dialog_manager_actor_;
+  unique_ptr<CommunityManager> community_manager_;
+  ActorOwn<CommunityManager> community_manager_actor_;
   unique_ptr<ConnectionStateManager> connection_state_manager_;
   ActorOwn<ConnectionStateManager> connection_state_manager_actor_;
   unique_ptr<CountryInfoManager> country_info_manager_;
