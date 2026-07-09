@@ -2263,6 +2263,14 @@ profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_co
 //@can_edit_chat_list True, if the user can change the chats added to the community
 communityPermissions can_edit_chat_list:Bool = CommunityPermissions;
 
+//@description Describes rights of the administrator in a community
+//@can_manage_community True, if the user is an administrator. Implied by any other privilege
+//@can_change_info True, if the administrator can change the community name, photo, and other settings
+//@can_edit_chat_list True, if the user can change the chats added to the community
+//@can_promote_members True, if the administrator can add new administrators with a subset of their own privileges or demote administrators that were directly or indirectly promoted by them
+//@can_ban_members True, if the administrator can ban, or unban community members
+communityAdministratorRights can_manage_community:Bool can_change_info:Bool can_edit_chat_list:Bool can_promote_members:Bool can_ban_members:Bool = CommunityAdministratorRights;
+
 //@description Represents a community consisting of supergroup chats, channel chats and chats with bots
 //@id Community identifier
 //@have_access If false, the community is inaccessible, and the only information known about the community is inside this class. Identifier of the community can't be passed to any method

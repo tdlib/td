@@ -50,6 +50,16 @@ AdministratorRights::AdministratorRights(const td_api::object_ptr<td_api::chatAd
                               rights->can_manage_direct_messages_, rights->can_manage_tags_, false, channel_type);
 }
 
+AdministratorRights::AdministratorRights(const td_api::object_ptr<td_api::communityAdministratorRights> &rights) {
+  if (rights == nullptr) {
+    flags_ = 0;
+    return;
+  }
+  *this = AdministratorRights(false, rights->can_manage_community_, rights->can_change_info_, false, false, false,
+                              false, rights->can_ban_members_, false, false, rights->can_promote_members_, false, false,
+                              false, false, false, false, rights->can_edit_chat_list_, ChannelType::Unknown);
+}
+
 AdministratorRights::AdministratorRights(bool is_anonymous, bool can_manage_dialog, bool can_change_info,
                                          bool can_post_messages, bool can_edit_messages, bool can_delete_messages,
                                          bool can_invite_users, bool can_restrict_members, bool can_pin_messages,
@@ -110,6 +120,13 @@ td_api::object_ptr<td_api::chatAdministratorRights> AdministratorRights::get_cha
       can_delete_messages(), can_invite_users(), can_restrict_members(), can_pin_messages(), can_manage_topics(),
       can_promote_members(), can_manage_calls(), can_post_stories(), can_edit_stories(), can_delete_stories(),
       can_manage_direct_messages(), can_manage_ranks(), is_anonymous());
+}
+
+td_api::object_ptr<td_api::communityAdministratorRights>
+AdministratorRights::get_community_administrator_rights_object() const {
+  return td_api::make_object<td_api::communityAdministratorRights>(can_manage_dialog(), can_change_info_and_settings(),
+                                                                   can_manage_linked_peers(), can_promote_members(),
+                                                                   can_restrict_members());
 }
 
 bool operator==(const AdministratorRights &lhs, const AdministratorRights &rhs) {

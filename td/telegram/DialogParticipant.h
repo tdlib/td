@@ -65,6 +65,8 @@ class AdministratorRights {
   AdministratorRights(const td_api::object_ptr<td_api::chatAdministratorRights> &administrator_rights,
                       ChannelType channel_type);
 
+  AdministratorRights(const td_api::object_ptr<td_api::communityAdministratorRights> &administrator_rights);
+
   AdministratorRights(bool is_anonymous, bool can_manage_dialog, bool can_change_info, bool can_post_messages,
                       bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
                       bool can_restrict_members, bool can_pin_messages, bool can_manage_topics,
@@ -75,6 +77,8 @@ class AdministratorRights {
   telegram_api::object_ptr<telegram_api::chatAdminRights> get_chat_admin_rights() const;
 
   td_api::object_ptr<td_api::chatAdministratorRights> get_chat_administrator_rights_object() const;
+
+  td_api::object_ptr<td_api::communityAdministratorRights> get_community_administrator_rights_object() const;
 
   bool can_manage_dialog() const {
     return (flags_ & CAN_MANAGE_DIALOG) != 0;
