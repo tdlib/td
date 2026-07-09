@@ -6113,7 +6113,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
   RestrictedRights permissions = [&] {
     if (!check_permissions) {
       return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
-                              true, true, true, true, ChannelType::Unknown);
+                              true, true, true, true, true, ChannelType::Unknown);
     }
     switch (dialog_type) {
       case DialogType::User:

@@ -196,9 +196,10 @@ class RestrictedRights {
   static constexpr uint64 CAN_MANAGE_TOPICS = 1 << 12;
   static constexpr uint64 CAN_EDIT_RANK = static_cast<uint64>(1) << 38;
   static constexpr uint64 CAN_SEND_REACTIONS = static_cast<uint64>(1) << 39;
+  static constexpr uint64 CAN_MANAGE_LINKED_PEERS = static_cast<uint64>(1) << 40;
 
   static constexpr uint64 ALL_ADMIN_PERMISSION_RIGHTS =
-      CAN_CHANGE_INFO_AND_SETTINGS | CAN_INVITE_USERS | CAN_PIN_MESSAGES | CAN_MANAGE_TOPICS;
+      CAN_CHANGE_INFO_AND_SETTINGS | CAN_INVITE_USERS | CAN_PIN_MESSAGES | CAN_MANAGE_TOPICS | CAN_MANAGE_LINKED_PEERS;
 
   static constexpr uint64 ALL_RESTRICTED_RIGHTS =
       CAN_SEND_MESSAGES | CAN_SEND_STICKERS | CAN_SEND_ANIMATIONS | CAN_SEND_GAMES | CAN_USE_INLINE_BOTS |
@@ -223,7 +224,7 @@ class RestrictedRights {
                    bool can_send_animations, bool can_send_games, bool can_use_inline_bots,
                    bool can_add_web_page_previews, bool can_send_polls, bool can_change_info_and_settings,
                    bool can_invite_users, bool can_pin_messages, bool can_manage_topics, bool can_edit_rank,
-                   bool can_send_reactions, ChannelType channel_type);
+                   bool can_send_reactions, bool can_manage_linked_peers, ChannelType channel_type);
 
   static RestrictedRights restrict_all();
 
@@ -305,6 +306,10 @@ class RestrictedRights {
 
   bool can_send_reactions() const {
     return (flags_ & CAN_SEND_REACTIONS) != 0;
+  }
+
+  bool can_manage_linked_peers() const {
+    return (flags_ & CAN_MANAGE_LINKED_PEERS) != 0;
   }
 
   template <class StorerT>
@@ -501,7 +506,7 @@ class DialogParticipantStatus {
   }
 
   bool can_manage_linked_peers() const {
-    return get_administrator_rights().can_manage_linked_peers();
+    return get_administrator_rights().can_manage_linked_peers() || get_restricted_rights().can_manage_linked_peers();
   }
 
   bool can_be_edited() const {

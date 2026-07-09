@@ -1931,7 +1931,7 @@ void ChatManager::Chat::parse(ParserT &parser) {
     }
     default_permissions = RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true,
                                            everyone_is_administrator, everyone_is_administrator,
-                                           everyone_is_administrator, false, false, true, ChannelType::Unknown);
+                                           everyone_is_administrator, false, false, true, false, ChannelType::Unknown);
   }
   if (has_default_permissions_version) {
     parse(default_permissions_version, parser);
@@ -2303,7 +2303,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
     } else {
       default_permissions =
           RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, false,
-                           anyone_can_invite, false, false, false, true, ChannelType::Megagroup);
+                           anyone_can_invite, false, false, false, true, false, ChannelType::Megagroup);
     }
   }
   if (has_cache_version) {
