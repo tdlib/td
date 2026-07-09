@@ -774,6 +774,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ChatTheme.h
   td/telegram/ClientActor.h
   td/telegram/CommonDialogManager.h
+  td/telegram/CommunityId.h
   td/telegram/CommunityManager.h
   td/telegram/ConfigManager.h
   td/telegram/ConnectionState.h
