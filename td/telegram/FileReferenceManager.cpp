@@ -12,6 +12,8 @@
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/BotInfoManager.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/CommunityId.h"
+#include "td/telegram/CommunityManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DraftMessageManager.h"
@@ -648,9 +650,18 @@ void FileReferenceManager::reload_photo(PhotoSizeSource source, Promise<Unit> pr
     case PhotoSizeSource::Type::DialogPhotoBig:
     case PhotoSizeSource::Type::DialogPhotoSmall:
     case PhotoSizeSource::Type::DialogPhotoBigLegacy:
-    case PhotoSizeSource::Type::DialogPhotoSmallLegacy:
-      td_->dialog_manager_->reload_dialog_info(source.dialog_photo().dialog_id, std::move(promise));
+    case PhotoSizeSource::Type::DialogPhotoSmallLegacy: {
+      auto dialog_id = source.dialog_photo().dialog_id;
+      if (dialog_id.get_type() == DialogType::Channel) {
+        auto channel_id = dialog_id.get_channel_id();
+        if (!channel_id.is_regular_channel()) {
+          td_->community_manager_->reload_community(CommunityId(channel_id.get()), std::move(promise), "reload_photo");
+          break;
+        }
+      }
+      td_->dialog_manager_->reload_dialog_info(dialog_id, std::move(promise));
       break;
+    }
     case PhotoSizeSource::Type::StickerSetThumbnail:
     case PhotoSizeSource::Type::StickerSetThumbnailLegacy:
     case PhotoSizeSource::Type::StickerSetThumbnailVersion:

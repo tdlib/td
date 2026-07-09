@@ -960,6 +960,11 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
 
 void Td::process_binlog_events(TdDb::OpenedDatabase &&events) {
   VLOG(td_init) << "Send binlog events";
+  // users and channels may contain links to communities, therefore must be inited after
+  for (auto &event : events.community_events) {
+    community_manager_->on_binlog_community_event(std::move(event));
+  }
+
   for (auto &event : events.user_events) {
     user_manager_->on_binlog_user_event(std::move(event));
   }
@@ -968,7 +973,7 @@ void Td::process_binlog_events(TdDb::OpenedDatabase &&events) {
     chat_manager_->on_binlog_channel_event(std::move(event));
   }
 
-  // chats may contain links to channels, so should be inited after
+  // chats may contain links to channels, so must be inited after
   for (auto &event : events.chat_events) {
     chat_manager_->on_binlog_chat_event(std::move(event));
   }

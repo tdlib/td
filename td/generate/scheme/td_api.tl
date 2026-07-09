@@ -2259,6 +2259,15 @@ profileAccentColors palette_colors:vector<int32> background_colors:vector<int32>
 profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_colors:profileAccentColors min_supergroup_chat_boost_level:int32 min_channel_chat_boost_level:int32 = ProfileAccentColor;
 
 
+//@description Represents a community consisting of supergroup chats, channel chats and chats with bots
+//@id Community identifier
+//@have_access If false, the community is inaccessible, and the only information known about the community is inside this class. Identifier of the community can't be passed to any method
+//@name Community name
+//@photo Community photo; may be null
+//@date Point in time (Unix timestamp) when the community was joined, or the point in time when the community was created, in case the user is not a member of any chat in the community
+community id:int53 have_access:Bool name:string photo:chatPhotoInfo date:int32 = Community;
+
+
 //@description Contains description of user rating
 //@level The level of the user; may be negative
 //@is_maximum_level_reached True, if the maximum level is reached
@@ -10549,6 +10558,9 @@ updateChatAction chat_id:int53 topic_id:MessageTopic sender_id:MessageSender act
 //@draft_id Unique identifier of the message draft within the message thread
 //@content Content of the message; always of the type messageText or messageRichMessage
 updatePendingMessage chat_id:int53 forum_topic_id:int32 draft_id:int64 content:MessageContent = Update;
+
+//@description Some data of a community has changed. This update is guaranteed to come before the community identifier is returned to the application @community New data about the community
+updateCommunity community:community = Update;
 
 //@description The user went online or offline @user_id User identifier @status New status of the user
 updateUserStatus user_id:int53 status:UserStatus = Update;

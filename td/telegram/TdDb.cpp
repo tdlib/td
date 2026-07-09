@@ -85,6 +85,9 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::SecretChatInfos:
         events.secret_chat_events.push_back(event.clone());
         break;
+      case LogEvent::HandlerType::Communities:
+        events.community_events.push_back(event.clone());
+        break;
       case LogEvent::HandlerType::WebPages:
         events.web_page_events.push_back(event.clone());
         break;

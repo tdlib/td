@@ -66,6 +66,7 @@ class LogEvent {
     Chats = 3,
     Channels = 4,
     SecretChatInfos = 5,
+    Communities = 6,
     WebPages = 0x10,
     SetPollAnswer = 0x20,
     StopPoll = 0x21,

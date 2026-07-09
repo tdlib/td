@@ -33,7 +33,11 @@ class ChannelId {
   ChannelId(T channel_id) = delete;
 
   bool is_valid() const {
-    return (0 < id && id < MAX_CHANNEL_ID) || (MIN_MONOFORUM_CHANNEL_ID <= id && id < MAX_MONOFORUM_CHANNEL_ID);
+    return is_regular_channel() || (MIN_MONOFORUM_CHANNEL_ID <= id && id < MAX_MONOFORUM_CHANNEL_ID);
+  }
+
+  bool is_regular_channel() const {
+    return 0 < id && id < MAX_CHANNEL_ID;
   }
 
   int64 get() const {

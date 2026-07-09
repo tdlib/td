@@ -70,6 +70,7 @@ class TdDb {
     vector<BinlogEvent> chat_events;
     vector<BinlogEvent> channel_events;
     vector<BinlogEvent> secret_chat_events;
+    vector<BinlogEvent> community_events;
     vector<BinlogEvent> web_page_events;
     vector<BinlogEvent> save_app_log_events;
     vector<BinlogEvent> to_account_manager;
