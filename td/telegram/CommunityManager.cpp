@@ -605,6 +605,20 @@ td_api::object_ptr<td_api::updateCommunity> CommunityManager::get_update_unknown
       RestrictedRights::restrict_all().get_community_permissions_object()));
 }
 
+telegram_api::object_ptr<telegram_api::InputChannel> CommunityManager::get_input_community(
+    CommunityId community_id) const {
+  int64 access_hash = 0;
+  const Community *c = get_community(community_id);
+  if (c == nullptr) {
+    if (!td_->auth_manager_->is_bot() || !community_id.is_valid()) {
+      return nullptr;
+    }
+  } else {
+    access_hash = c->access_hash;
+  }
+  return telegram_api::make_object<telegram_api::inputChannel>(community_id.get(), access_hash);
+}
+
 void CommunityManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   for (auto community_id : unknown_communities_) {
     if (!have_community(community_id)) {

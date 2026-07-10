@@ -44,6 +44,8 @@ class CommunityManager final : public Actor {
 
   td_api::object_ptr<td_api::community> get_community_object(CommunityId community_id) const;
 
+  telegram_api::object_ptr<telegram_api::InputChannel> get_input_community(CommunityId community_id) const;
+
   void on_binlog_community_event(BinlogEvent &&event);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
