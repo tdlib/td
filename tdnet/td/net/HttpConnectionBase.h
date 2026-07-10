@@ -36,6 +36,12 @@ class HttpConnectionBase : public Actor {
                      int32 idle_timeout, int32 slow_scheduler_id);
 
  private:
+  // Maximum size of received data pending in memory. When it is reached, reading from the socket is
+  // suspended, so that the kernel receive buffer fills up and TCP flow control throttles the peer.
+  // Must be greater than any size the query parser can request at once (which is at most
+  // max(HttpReader::MAX_TOTAL_HEADERS_LENGTH, HttpReader::MAX_TOTAL_PARAMETERS_LENGTH) + 1).
+  static constexpr size_t MAX_PENDING_READ_SIZE = 4 << 20;
+
   State state_;
 
   BufferedFd<SocketFd> fd_;
