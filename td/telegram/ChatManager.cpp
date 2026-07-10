@@ -11,6 +11,7 @@
 #include "td/telegram/BotVerification.h"
 #include "td/telegram/BotVerification.hpp"
 #include "td/telegram/ChatTheme.h"
+#include "td/telegram/CommunityManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogInviteLink.hpp"
@@ -5698,8 +5699,11 @@ void ChatManager::on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat, const ch
       on_get_channel_forbidden(static_cast<telegram_api::channelForbidden &>(*chat), source);
       break;
     case telegram_api::community::ID:
+      td_->community_manager_->on_get_community(static_cast<telegram_api::community &>(*chat), source);
       break;
     case telegram_api::communityForbidden::ID:
+      td_->community_manager_->on_get_community_forbidden(static_cast<telegram_api::communityForbidden &>(*chat),
+                                                          source);
       break;
     default:
       UNREACHABLE();
@@ -5709,10 +5713,20 @@ void ChatManager::on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat, const ch
 void ChatManager::on_get_chats(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source) {
   for (auto &chat : chats) {
     auto constuctor_id = chat->get_id();
-    if (constuctor_id == telegram_api::channel::ID || constuctor_id == telegram_api::channelForbidden::ID) {
-      // apply info about megagroups before corresponding chats
+    if (constuctor_id == telegram_api::community::ID || constuctor_id == telegram_api::communityForbidden::ID) {
+      // apply info about communities before the corresponding channels
       on_get_chat(std::move(chat), source);
       chat = nullptr;
+    }
+  }
+  for (auto &chat : chats) {
+    if (chat != nullptr) {
+      auto constuctor_id = chat->get_id();
+      if (constuctor_id == telegram_api::channel::ID || constuctor_id == telegram_api::channelForbidden::ID) {
+        // apply info about megagroups before the corresponding chats
+        on_get_chat(std::move(chat), source);
+        chat = nullptr;
+      }
     }
   }
   for (auto &chat : chats) {
