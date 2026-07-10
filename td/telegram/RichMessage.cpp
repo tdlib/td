@@ -148,13 +148,11 @@ Result<RichMessage> RichMessage::get_rich_message(Td *td, DialogId dialog_id,
 }
 
 vector<FileId> RichMessage::get_any_file_ids() const {
-  return transform(get_individual_message_content_refs(),
-                   [](const MessageContent *content) { return get_message_content_any_file_id(content); });
+  return transform(get_individual_message_content_refs(), get_message_content_any_file_id);
 }
 
 vector<FileId> RichMessage::get_cover_any_file_ids() const {
-  return transform(get_individual_message_content_refs(),
-                   [](const MessageContent *content) { return get_message_content_cover_any_file_id(content); });
+  return transform(get_individual_message_content_refs(), get_message_content_cover_any_file_id);
 }
 
 void RichMessage::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
