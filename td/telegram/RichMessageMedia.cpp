@@ -10,7 +10,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/MessageContentType.h"
-#include "td/telegram/OptionManager.h"
+#include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/base64.h"

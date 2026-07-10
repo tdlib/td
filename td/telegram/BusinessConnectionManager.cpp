@@ -32,7 +32,6 @@
 #include "td/telegram/MessageTopic.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/ReplyMarkup.h"
-#include "td/telegram/RichMessage.h"
 #include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarAmount.h"

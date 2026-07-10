@@ -68,6 +68,7 @@
 #include "td/telegram/EmailVerification.h"
 #include "td/telegram/EmojiGroupType.h"
 #include "td/telegram/EmojiStatus.h"
+#include "td/telegram/EphemeralMessageId.h"
 #include "td/telegram/files/FileGcParameters.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"

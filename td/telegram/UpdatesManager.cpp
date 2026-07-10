@@ -32,6 +32,7 @@
 #include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/EmojiStatus.h"
+#include "td/telegram/EphemeralMessageId.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/ForumTopicManager.h"

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/CustomEmojiId.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -19,17 +20,15 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Status.h"
 
 #include <functional>
 
 namespace td {
 
 class Dependencies;
-
 struct GetWebPageBlockObjectContext;
-
 class RichText;
-
 class Td;
 
 struct GetInputPageBlockContext {

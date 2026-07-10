@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DraftMessage.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/MessageTopic.h"

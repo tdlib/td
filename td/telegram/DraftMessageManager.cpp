@@ -17,9 +17,11 @@
 #include "td/telegram/SavedMessagesManager.h"
 #include "td/telegram/SuggestedPost.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"

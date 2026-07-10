@@ -7,11 +7,14 @@
 #include "td/telegram/CommunityManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChannelId.h"
+#include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/DialogPhoto.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
-#include "td/telegram/logevent/LogEventHelper.h"
+#include "td/telegram/Photo.h"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -23,6 +26,10 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/ScopeGuard.h"
+#include "td/utils/SliceBuilder.h"
+#include "td/utils/Status.h"
+#include "td/utils/tl_helpers.h"
 #include "td/utils/utf8.h"
 
 namespace td {
@@ -84,7 +91,7 @@ void CommunityManager::Community::store(StorerT &storer) const {
 template <class ParserT>
 void CommunityManager::Community::parse(ParserT &parser) {
   using td::parse;
-  bool has_photo = photo.small_file_id.is_valid();
+  bool has_photo;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_photo);
   PARSE_FLAG(collapsed_in_dialogs);

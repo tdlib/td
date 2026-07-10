@@ -10,6 +10,8 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogPhoto.h"
 #include "td/telegram/QueryMerger.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 

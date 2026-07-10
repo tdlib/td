@@ -20,7 +20,6 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/VideosManager.h"
 
-#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 #include "td/utils/MimeType.h"
 #include "td/utils/PathView.h"

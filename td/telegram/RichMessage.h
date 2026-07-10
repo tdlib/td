@@ -10,6 +10,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/RichMessageMedia.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"

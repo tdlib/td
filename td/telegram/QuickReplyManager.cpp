@@ -56,6 +56,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <type_traits>
 #include <unordered_map>
 
 namespace td {

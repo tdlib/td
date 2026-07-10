@@ -14,6 +14,7 @@
 #include "td/telegram/GiveawayParameters.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InputInvoice.h"
+#include "td/telegram/LabeledPricePart.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"

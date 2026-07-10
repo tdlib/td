@@ -19,7 +19,6 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
-#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/overloaded.h"

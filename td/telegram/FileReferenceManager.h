@@ -34,6 +34,8 @@
 #include "td/utils/WaitFreeHashMap.h"
 #include "td/utils/WaitFreeVector.h"
 
+#include <functional>
+
 namespace td {
 
 class Td;
