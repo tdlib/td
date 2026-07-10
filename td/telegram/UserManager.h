@@ -743,6 +743,7 @@ class UserManager final : public Actor {
 
     ChannelId personal_channel_id;
     ProfileTab main_profile_tab = ProfileTab::Default;
+    CommunityId linked_community_id;
 
     unique_ptr<BotInfo> bot_info;
     unique_ptr<BusinessInfo> business_info;
@@ -1030,6 +1031,8 @@ class UserManager final : public Actor {
   static void on_update_user_full_has_preview_medias(UserFull *user_full, bool has_preview_medias);
 
   static void on_update_user_full_can_manage_emoji_status(UserFull *user_full, bool can_manage_emoji_status);
+
+  static void on_update_user_full_linked_community_id(UserFull *user_full, CommunityId linked_community_id);
 
   static void on_update_user_full_first_saved_music_file_id(UserFull *user_full, FileId first_saved_music_file_id);
 

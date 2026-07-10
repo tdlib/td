@@ -2216,6 +2216,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_first_saved_music_file_id = first_saved_music_file_id != FileId();
   bool has_note = !note.text.empty();
   bool has_manager_bot_user_id = bot_info != nullptr && bot_info->manager_bot_user_id != UserId();
+  bool has_linked_community_id = linked_community_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -2275,6 +2276,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(noforwards_peer_enabled);
     STORE_FLAG(has_manager_bot_user_id);
     STORE_FLAG(unofficial_security_risk);
+    STORE_FLAG(has_linked_community_id);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -2383,6 +2385,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_manager_bot_user_id) {
     store(bot_info->manager_bot_user_id, storer);
   }
+  if (has_linked_community_id) {
+    store(linked_community_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -2426,6 +2431,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_first_saved_music_file_id = false;
   bool has_note = false;
   bool has_manager_bot_user_id = false;
+  bool has_linked_community_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -2485,6 +2491,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(noforwards_peer_enabled);
     PARSE_FLAG(has_manager_bot_user_id);
     PARSE_FLAG(unofficial_security_risk);
+    PARSE_FLAG(has_linked_community_id);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -2596,6 +2603,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_manager_bot_user_id) {
     parse(add_bot_info()->manager_bot_user_id, parser);
+  }
+  if (has_linked_community_id) {
+    parse(linked_community_id, parser);
   }
 }
 
@@ -3762,7 +3772,6 @@ void UserManager::on_update_user_linked_community_id(User *u, UserId user_id, Co
   }
   if (u->linked_community_id != linked_community_id) {
     u->linked_community_id = linked_community_id;
-    u->is_full_info_changed = true;
     u->need_save_to_database = true;
   }
 }
@@ -4610,6 +4619,14 @@ void UserManager::on_update_user_full_can_manage_emoji_status(UserFull *user_ful
   CHECK(user_full != nullptr);
   if (user_full->can_manage_emoji_status != can_manage_emoji_status) {
     user_full->can_manage_emoji_status = can_manage_emoji_status;
+    user_full->is_changed = true;
+  }
+}
+
+void UserManager::on_update_user_full_linked_community_id(UserFull *user_full, CommunityId linked_community_id) {
+  CHECK(user_full != nullptr);
+  if (user_full->linked_community_id != linked_community_id) {
+    user_full->linked_community_id = linked_community_id;
     user_full->is_changed = true;
   }
 }
@@ -9193,6 +9210,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     }
   }
 
+  on_update_user_full_linked_community_id(user_full, u->linked_community_id);
   on_update_user_full_can_manage_emoji_status(user_full, user->bot_can_manage_emoji_status_);
   if (personal_channel_id != ChannelId() &&
       td_->chat_manager_->get_channel_type(personal_channel_id) != ChannelType::Broadcast) {
@@ -9349,14 +9367,9 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
     return;
   }
 
-  User *u = get_user_force(user_id, "on_load_user_full_from_database 5");
-  if (u == nullptr) {
-    G()->td_db()->get_sqlite_pmc()->erase(get_user_full_database_key(user_id), Auto());
-    return;
-  }
-
   Dependencies dependencies;
-  dependencies.add(u->linked_community_id);
+  dependencies.add(user_id);
+  dependencies.add(user_full->linked_community_id);
   if (user_full->business_info != nullptr) {
     user_full->business_info->add_dependencies(dependencies);
   }
@@ -9382,6 +9395,8 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
     user_full->need_phone_number_privacy_exception = false;
   }
 
+  User *u = get_user(user_id);
+  CHECK(u != nullptr);
   drop_user_full_photos(user_full, user_id, u->photo.id, "on_load_user_full_from_database 2");
   if (!user_full->photo.is_empty()) {
     register_user_photo(u, user_id, user_full->photo);
@@ -9549,6 +9564,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->common_chat_count = 0;
   user_full->personal_channel_id = ChannelId();
   user_full->main_profile_tab = ProfileTab::Default;
+  user_full->linked_community_id = CommunityId();
   user_full->business_info = nullptr;
   user_full->bot_verification = nullptr;
   user_full->star_rating = nullptr;
@@ -10417,7 +10433,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       get_chat_photo_object(td_->file_manager_.get(), user_full->personal_photo),
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo),
       get_chat_photo_object(td_->file_manager_.get(), user_full->fallback_photo),
-      is_bot ? td_->community_manager_->get_community_id_object(u->linked_community_id, "userFullInfo") : 0,
+      is_bot ? td_->community_manager_->get_community_id_object(user_full->linked_community_id, "userFullInfo") : 0,
       block_list_id.get_block_list_object(), user_full->can_be_called, user_full->supports_video_calls,
       user_full->has_private_calls, !user_full->private_forward_name.empty(), voice_messages_forbidden,
       user_full->has_pinned_stories, user_full->sponsored_enabled, user_full->need_phone_number_privacy_exception,
