@@ -7,6 +7,7 @@
 #include "td/telegram/Dependencies.h"
 
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/CommunityManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
@@ -39,6 +40,12 @@ void Dependencies::add(ChannelId channel_id) {
 void Dependencies::add(SecretChatId secret_chat_id) {
   if (secret_chat_id.is_valid()) {
     secret_chat_ids.insert(secret_chat_id);
+  }
+}
+
+void Dependencies::add(CommunityId community_id) {
+  if (community_id.is_valid()) {
+    community_ids.insert(community_id);
   }
 }
 
@@ -134,6 +141,14 @@ bool Dependencies::resolve_force(Td *td, const char *source, bool ignore_errors)
         LOG(ERROR) << "Can't find " << dialog_id << " from " << source;
       }
       td->dialog_manager_->force_create_dialog(dialog_id, source, true);
+      success = false;
+    }
+  }
+  for (auto community_id : community_ids) {
+    if (!td->community_manager_->have_community_force(community_id, source)) {
+      if (!ignore_errors) {
+        LOG(ERROR) << "Can't find " << community_id << " from " << source;
+      }
       success = false;
     }
   }
