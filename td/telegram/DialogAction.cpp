@@ -513,6 +513,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::RichText:
+    case MessageContentType::ChangeCommunity:
       return false;
     default:
       UNREACHABLE();

@@ -22,6 +22,8 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/ChatTheme.hpp"
+#include "td/telegram/CommunityId.h"
+#include "td/telegram/CommunityManager.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/CurrencyAmount.h"
 #include "td/telegram/CurrencyAmount.hpp"
@@ -549,7 +551,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 60;
+  static constexpr int32 CURRENT_VERSION = 61;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1795,6 +1797,19 @@ class MessageRichText final : public MessageContent {
   }
 };
 
+class MessageChangeCommunity final : public MessageContent {
+ public:
+  CommunityId community_id;
+
+  MessageChangeCommunity() = default;
+  explicit MessageChangeCommunity(CommunityId community_id) : community_id(community_id) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::ChangeCommunity;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -2954,6 +2969,17 @@ static void store(const MessageContent *content, StorerT &storer) {
       BEGIN_STORE_FLAGS();
       END_STORE_FLAGS();
       store(m->rich_message, storer);
+      break;
+    }
+    case MessageContentType::ChangeCommunity: {
+      const auto *m = static_cast<const MessageChangeCommunity *>(content);
+      bool has_community_id = m->community_id.is_valid();
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_community_id);
+      END_STORE_FLAGS();
+      if (has_community_id) {
+        store(m->community_id, storer);
+      }
       break;
     }
     default:
@@ -4412,6 +4438,18 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::ChangeCommunity: {
+      auto m = make_unique<MessageChangeCommunity>();
+      bool has_community_id;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_community_id);
+      END_PARSE_FLAGS();
+      if (has_community_id) {
+        parse(m->community_id, parser);
+      }
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -5411,6 +5449,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::ChangeCommunity:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -5584,6 +5623,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::RichText:
+    case MessageContentType::ChangeCommunity:
       break;
     default:
       UNREACHABLE();
@@ -5818,6 +5858,7 @@ static InputMedia get_message_content_input_media_impl(
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::ChangeCommunity:
       break;
     default:
       UNREACHABLE();
@@ -6100,6 +6141,7 @@ void delete_message_content_thumbnail(Td *td, MessageContent *content, int32 med
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::ChangeCommunity:
       break;
     default:
       UNREACHABLE();
@@ -6374,6 +6416,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::ChangeCommunity:
       UNREACHABLE();
   }
   return Status::OK();
@@ -6575,6 +6618,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::ChangeCommunity:
       return 0;
     default:
       UNREACHABLE();
@@ -7042,6 +7086,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       const auto *content = static_cast<const MessageRichText *>(message_content);
       return content->rich_message.get_user_ids();
     }
+    case MessageContentType::ChangeCommunity:
+      break;
     default:
       UNREACHABLE();
       break;
@@ -7657,6 +7703,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::ChangeCommunity:
       break;
     default:
       UNREACHABLE();
@@ -7836,6 +7883,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::RichText:
+    case MessageContentType::ChangeCommunity:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -8660,6 +8708,14 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *lhs = static_cast<const MessageRichText *>(old_content);
       const auto *rhs = static_cast<const MessageRichText *>(new_content);
       RichMessage::compare(td, lhs->rich_message, rhs->rich_message, is_content_changed, need_update);
+      break;
+    }
+    case MessageContentType::ChangeCommunity: {
+      const auto *lhs = static_cast<const MessageChangeCommunity *>(old_content);
+      const auto *rhs = static_cast<const MessageChangeCommunity *>(new_content);
+      if (lhs->community_id != rhs->community_id) {
+        need_update = true;
+      }
       break;
     }
     default:
@@ -10255,6 +10311,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::ChangeCommunity:
       return nullptr;
     default:
       UNREACHABLE();
@@ -10296,6 +10353,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionSuggestedPostRefund::ID:
       case telegram_api::messageActionNewCreatorPending::ID:
       case telegram_api::messageActionChangeCreator::ID:
+      case telegram_api::messageActionChangeCommunity::ID:
         LOG(ERROR) << "Receive business " << to_string(action_ptr);
         break;
       case telegram_api::messageActionHistoryClear::ID:
@@ -10332,7 +10390,6 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionNoForwardsRequest::ID:
       case telegram_api::messageActionPollAppendAnswer::ID:
       case telegram_api::messageActionPollDeleteAnswer::ID:
-      case telegram_api::messageActionChangeCommunity::ID:
         // ok
         break;
       case telegram_api::messageActionBotAllowed::ID:
@@ -11123,7 +11180,12 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageManagedBotCreated>(bot_user_id);
     }
     case telegram_api::messageActionChangeCommunity::ID: {
-      break;
+      auto action = telegram_api::move_object_as<telegram_api::messageActionChangeCommunity>(action_ptr);
+      auto community_id = CommunityId(action->community_id_);
+      if (!community_id.is_valid()) {
+        community_id = {};
+      }
+      return td::make_unique<MessageChangeCommunity>(community_id);
     }
     default:
       UNREACHABLE();
@@ -11902,6 +11964,11 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       return td_api::make_object<td_api::messagePollOptionDeleted>(
           m->poll_message_id.get(), check_utf8(m->data) ? m->data : base64_encode(m->data),
           get_formatted_text_object(nullptr, m->text, true, -1));
+    }
+    case MessageContentType::ChangeCommunity: {
+      const auto *m = static_cast<const MessageChangeCommunity *>(content);
+      return td_api::make_object<td_api::messageChatCommunityChanged>(
+          td->community_manager_->get_community_id_object(m->community_id, "messageChatCommunityChanged"));
     }
     default:
       UNREACHABLE();
@@ -12842,6 +12909,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::ManagedBotCreated:
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
+    case MessageContentType::ChangeCommunity:
       return string();
     default:
       UNREACHABLE();
@@ -13414,6 +13482,11 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       content->rich_message.add_dependencies(dependencies);
       break;
     }
+    case MessageContentType::ChangeCommunity: {
+      const auto *content = static_cast<const MessageChangeCommunity *>(message_content);
+      dependencies.add(content->community_id);
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -13444,6 +13517,9 @@ void apply_updates_from_service_message_content(Td *td, const MessageContent *co
       return td->messages_manager_->get_message_from_server(
           get_message_content_replied_message_full_id(dialog_id, content), Promise<Unit>(),
           "apply_updates_from_service_message_content");
+    case MessageContentType::ChangeCommunity:
+      // TODO apply community change
+      return;
     default:
       // nothing to do
       return;

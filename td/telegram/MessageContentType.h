@@ -107,7 +107,8 @@ enum class MessageContentType : int32 {
   ManagedBotCreated,
   PollAppendAnswer,
   PollDeleteAnswer,
-  RichText
+  RichText,
+  ChangeCommunity
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 
