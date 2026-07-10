@@ -7,6 +7,7 @@
 #include "td/telegram/CommunityManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogPhoto.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -20,10 +21,46 @@
 #include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteKeyValueAsync.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/utf8.h"
 
 namespace td {
+
+class GetCommunitiesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit GetCommunitiesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputChannel> &&input_channel) {
+    CHECK(input_channel != nullptr);
+    vector<tl_object_ptr<telegram_api::InputChannel>> input_channels;
+    input_channels.push_back(std::move(input_channel));
+    send_query(G()->net_query_creator().create(telegram_api::channels_getChannels(std::move(input_channels))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_getChannels>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto chats_ptr = result_ptr.move_as_ok();
+    if (chats_ptr->get_id() == telegram_api::messages_chats::ID) {
+      auto chats = telegram_api::move_object_as<telegram_api::messages_chats>(chats_ptr);
+      td_->chat_manager_->on_get_chats(std::move(chats->chats_), "GetCommunitiesQuery");
+    } else {
+      LOG(ERROR) << "Receive " << to_string(chats_ptr);
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
 
 template <class StorerT>
 void CommunityManager::Community::store(StorerT &storer) const {
@@ -70,6 +107,15 @@ void CommunityManager::Community::parse(ParserT &parser) {
 }
 
 CommunityManager::CommunityManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  get_community_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
+    TRY_STATUS_PROMISE(promise, G()->close_status());
+    CHECK(query_ids.size() == 1u);
+    auto input_community = get_input_community(CommunityId(query_ids[0]));
+    if (input_community == nullptr) {
+      return promise.set_error(400, "Community not found");
+    }
+    td_->create_handler<GetCommunitiesQuery>(std::move(promise))->send(std::move(input_community));
+  });
 }
 
 CommunityManager::~CommunityManager() {
@@ -325,7 +371,7 @@ void CommunityManager::reload_community(CommunityId community_id, Promise<Unit> 
   }
 
   have_community_force(community_id, source);
-  //get_community_queries_.add_query(community_id.get(), std::move(promise), source);
+  get_community_queries_.add_query(community_id.get(), std::move(promise), source);
 }
 
 bool CommunityManager::have_community_force(CommunityId community_id, const char *source) {

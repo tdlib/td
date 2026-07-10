@@ -9,6 +9,7 @@
 #include "td/telegram/CommunityId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogPhoto.h"
+#include "td/telegram/QueryMerger.h"
 
 #include "td/actor/actor.h"
 
@@ -144,6 +145,8 @@ class CommunityManager final : public Actor {
 
   FlatHashMap<CommunityId, vector<Promise<Unit>>, CommunityIdHash> load_community_from_database_queries_;
   FlatHashSet<CommunityId, CommunityIdHash> loaded_from_database_communities_;
+
+  QueryMerger get_community_queries_{"GetCommunityMerger", 10, 1};
 };
 
 }  // namespace td
