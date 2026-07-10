@@ -2418,6 +2418,7 @@ botInfo short_description:string description:string photo:photo animation:animat
 //-If non-null and personal_photo is null, then it is the same photo as in user.profile_photo and chat.photo
 //@public_photo User profile photo visible if the main photo is hidden by privacy settings; may be null. If null and user.profile_photo is null, then the photo is empty; otherwise, it is unknown.
 //-If non-null and both photo and personal_photo are null, then it is the same photo as in user.profile_photo and chat.photo. This photo isn't returned in the list of user photos
+//@community_id Identifier of the community to which chat with the bot was added; for bots only
 //@block_list Block list to which the user is added; may be null if none
 //@can_be_called True, if the user can be called
 //@supports_video_calls True, if a video call can be created with the user
@@ -2446,7 +2447,7 @@ botInfo short_description:string description:string photo:photo animation:animat
 //@note Note added to the user's contact; may be null if none
 //@business_info Information about business settings for Telegram Business accounts; may be null if none
 //@bot_info For bots, information about the bot; may be null if the user isn't a bot
-userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_posted_to_profile_stories:Bool has_sponsored_messages_enabled:Bool need_phone_number_privacy_exception:Bool set_chat_background:Bool uses_unofficial_app:Bool bio:formattedText birthdate:birthdate personal_chat_id:int53 gift_count:int32 group_in_common_count:int32 incoming_paid_message_star_count:int53 outgoing_paid_message_star_count:int53 gift_settings:giftSettings bot_verification:botVerification main_profile_tab:ProfileTab first_profile_audio:audio rating:userRating pending_rating:userRating pending_rating_date:int32 note:formattedText business_info:businessInfo bot_info:botInfo = UserFullInfo;
+userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto community_id:int53 block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_posted_to_profile_stories:Bool has_sponsored_messages_enabled:Bool need_phone_number_privacy_exception:Bool set_chat_background:Bool uses_unofficial_app:Bool bio:formattedText birthdate:birthdate personal_chat_id:int53 gift_count:int32 group_in_common_count:int32 incoming_paid_message_star_count:int53 outgoing_paid_message_star_count:int53 gift_settings:giftSettings bot_verification:botVerification main_profile_tab:ProfileTab first_profile_audio:audio rating:userRating pending_rating:userRating pending_rating_date:int32 note:formattedText business_info:businessInfo bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int53> = Users;

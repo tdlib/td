@@ -15,6 +15,7 @@
 #include "td/telegram/BotVerifierSettings.h"
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/CommunityId.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
@@ -612,6 +613,7 @@ class UserManager final : public Actor {
     unique_ptr<PeerColorCollectible> peer_color_collectible;
     AccentColorId profile_accent_color_id;
     CustomEmojiId profile_background_custom_emoji_id;
+    CommunityId linked_community_id;
 
     int32 was_online = 0;
     int32 local_was_online = 0;
@@ -963,6 +965,8 @@ class UserManager final : public Actor {
 
   void on_update_user_profile_colors(User *u, UserId user_id, AccentColorId accent_color_id,
                                      CustomEmojiId background_custom_emoji_id);
+
+  void on_update_user_linked_community_id(User *u, UserId user_id, CommunityId linked_community_id);
 
   void on_update_user_emoji_status(User *u, UserId user_id, unique_ptr<EmojiStatus> emoji_status);
 

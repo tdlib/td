@@ -27,6 +27,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/ChatTheme.h"
 #include "td/telegram/CommonDialogManager.h"
+#include "td/telegram/CommunityManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogLocation.h"
@@ -1828,6 +1829,7 @@ void UserManager::User::store(StorerT &storer) const {
   bool has_bot_verification_icon = bot_verification_icon.is_valid();
   bool has_paid_message_star_count = paid_message_star_count != 0;
   bool has_peer_color_collectible = peer_color_collectible != nullptr;
+  bool has_linked_community_id = linked_community_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -1885,6 +1887,7 @@ void UserManager::User::store(StorerT &storer) const {
     STORE_FLAG(can_manage_bots);  // 20
     STORE_FLAG(is_guestchat_bot);
     STORE_FLAG(is_guard_bot);
+    STORE_FLAG(has_linked_community_id);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -1953,6 +1956,9 @@ void UserManager::User::store(StorerT &storer) const {
   if (has_peer_color_collectible) {
     store(peer_color_collectible, storer);
   }
+  if (has_linked_community_id) {
+    store(linked_community_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -1982,6 +1988,7 @@ void UserManager::User::parse(ParserT &parser) {
   bool has_bot_verification_icon = false;
   bool has_paid_message_star_count = false;
   bool has_peer_color_collectible = false;
+  bool has_linked_community_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -2039,6 +2046,7 @@ void UserManager::User::parse(ParserT &parser) {
     PARSE_FLAG(can_manage_bots);
     PARSE_FLAG(is_guestchat_bot);
     PARSE_FLAG(is_guard_bot);
+    PARSE_FLAG(has_linked_community_id);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -2134,6 +2142,9 @@ void UserManager::User::parse(ParserT &parser) {
   }
   if (has_peer_color_collectible) {
     parse(peer_color_collectible, parser);
+  }
+  if (has_linked_community_id) {
+    parse(linked_community_id, parser);
   }
 
   if (!check_utf8(first_name)) {
@@ -3404,6 +3415,7 @@ UserId UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&u
   PeerColor profile_peer_color(user->profile_color_);
   on_update_user_profile_colors(u, user_id, profile_peer_color.accent_color_id_,
                                 profile_peer_color.background_custom_emoji_id_);
+  on_update_user_linked_community_id(u, user_id, CommunityId(user->linked_community_id_));
   if (is_me_regular_user) {
     if (is_received) {
       on_update_user_stories_hidden(u, user_id, stories_hidden);
@@ -3741,6 +3753,17 @@ void UserManager::on_update_user_profile_colors(User *u, UserId user_id, AccentC
     u->profile_background_custom_emoji_id = background_custom_emoji_id;
     u->is_accent_color_changed = true;
     u->is_changed = true;
+  }
+}
+
+void UserManager::on_update_user_linked_community_id(User *u, UserId user_id, CommunityId linked_community_id) {
+  if (!linked_community_id.is_valid() || !is_user_bot(u)) {
+    linked_community_id = CommunityId();
+  }
+  if (u->linked_community_id != linked_community_id) {
+    u->linked_community_id = linked_community_id;
+    u->is_full_info_changed = true;
+    u->need_save_to_database = true;
   }
 }
 
@@ -9326,8 +9349,14 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
     return;
   }
 
+  User *u = get_user_force(user_id, "on_load_user_full_from_database 5");
+  if (u == nullptr) {
+    G()->td_db()->get_sqlite_pmc()->erase(get_user_full_database_key(user_id), Auto());
+    return;
+  }
+
   Dependencies dependencies;
-  dependencies.add(user_id);
+  dependencies.add(u->linked_community_id);
   if (user_full->business_info != nullptr) {
     user_full->business_info->add_dependencies(dependencies);
   }
@@ -9353,8 +9382,6 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
     user_full->need_phone_number_privacy_exception = false;
   }
 
-  User *u = get_user(user_id);
-  CHECK(u != nullptr);
   drop_user_full_photos(user_full, user_id, u->photo.id, "on_load_user_full_from_database 2");
   if (!user_full->photo.is_empty()) {
     register_user_photo(u, user_id, user_full->photo);
@@ -10389,10 +10416,11 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
   return td_api::make_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->personal_photo),
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo),
-      get_chat_photo_object(td_->file_manager_.get(), user_full->fallback_photo), block_list_id.get_block_list_object(),
-      user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
-      !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
-      user_full->sponsored_enabled, user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden,
+      get_chat_photo_object(td_->file_manager_.get(), user_full->fallback_photo),
+      is_bot ? u->linked_community_id.get() : 0, block_list_id.get_block_list_object(), user_full->can_be_called,
+      user_full->supports_video_calls, user_full->has_private_calls, !user_full->private_forward_name.empty(),
+      voice_messages_forbidden, user_full->has_pinned_stories, user_full->sponsored_enabled,
+      user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden,
       user_full->unofficial_security_risk, std::move(bio_object), user_full->birthdate.get_birthdate_object(),
       personal_chat_id, user_full->gift_count, user_full->common_chat_count, user_full->charge_paid_message_stars,
       user_full->send_paid_message_stars, user_full->gift_settings.get_gift_settings_object(),
