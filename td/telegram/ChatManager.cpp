@@ -2050,6 +2050,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
   bool has_bot_verification_icon = bot_verification_icon.is_valid();
   bool has_paid_message_star_count = paid_message_star_count != 0;
   bool has_monoforum_channel_id = monoforum_channel_id.is_valid();
+  bool has_linked_community_id = linked_community_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -2105,6 +2106,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(is_forum_tabs);
     STORE_FLAG(is_admined_monoforum);
     STORE_FLAG(has_live_story);
+    STORE_FLAG(has_linked_community_id);
     END_STORE_FLAGS();
   }
 
@@ -2166,6 +2168,9 @@ void ChatManager::Channel::store(StorerT &storer) const {
   if (has_monoforum_channel_id) {
     store(monoforum_channel_id, storer);
   }
+  if (has_linked_community_id) {
+    store(linked_community_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -2200,6 +2205,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
   bool has_bot_verification_icon = false;
   bool has_paid_message_star_count = false;
   bool has_monoforum_channel_id = false;
+  bool has_linked_community_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -2255,6 +2261,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(is_forum_tabs);
     PARSE_FLAG(is_admined_monoforum);
     PARSE_FLAG(has_live_story);
+    PARSE_FLAG(has_linked_community_id);
     END_PARSE_FLAGS();
   }
 
@@ -2350,6 +2357,9 @@ void ChatManager::Channel::parse(ParserT &parser) {
   if (has_monoforum_channel_id) {
     parse(monoforum_channel_id, parser);
   }
+  if (has_linked_community_id) {
+    parse(linked_community_id, parser);
+  }
 
   if (!check_utf8(title)) {
     LOG(ERROR) << "Have invalid title \"" << title << '"';
@@ -2404,6 +2414,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   bool has_send_paid_message_stars = send_paid_message_stars != 0;
   bool has_main_profile_tab = main_profile_tab != ProfileTab::Default;
   bool has_guard_bot_user_id = guard_bot_user_id.is_valid();
+  bool has_linked_community_id = linked_community_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -2455,6 +2466,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
     STORE_FLAG(has_send_paid_message_stars);
     STORE_FLAG(has_main_profile_tab);
     STORE_FLAG(has_guard_bot_user_id);
+    STORE_FLAG(has_linked_community_id);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -2534,6 +2546,9 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   if (has_guard_bot_user_id) {
     store(guard_bot_user_id, storer);
   }
+  if (has_linked_community_id) {
+    store(linked_community_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -2569,6 +2584,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   bool has_send_paid_message_stars = false;
   bool has_main_profile_tab = false;
   bool has_guard_bot_user_id = false;
+  bool has_linked_community_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -2620,6 +2636,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
     PARSE_FLAG(has_send_paid_message_stars);
     PARSE_FLAG(has_main_profile_tab);
     PARSE_FLAG(has_guard_bot_user_id);
+    PARSE_FLAG(has_linked_community_id);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -2706,6 +2723,9 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_guard_bot_user_id) {
     parse(guard_bot_user_id, parser);
+  }
+  if (has_linked_community_id) {
+    parse(linked_community_id, parser);
   }
 
   if (legacy_can_view_statistics) {
@@ -5105,10 +5125,11 @@ void ChatManager::on_load_channel_full_from_database(ChannelId channel_id, strin
 
   Dependencies dependencies;
   dependencies.add(channel_id);
-  // must not depend on the linked_dialog_id/monoforum_channel_id itself, because message database can be disabled
+  // must not depend on the linked_dialog_id/monoforum_dialog_id itself, because message database can be disabled
   // the Dialog will be forcely created in update_channel_full
   dependencies.add_dialog_dependencies(DialogId(channel_full->linked_channel_id));
   dependencies.add_dialog_dependencies(DialogId(channel_full->monoforum_channel_id));
+  dependencies.add(channel_full->linked_community_id);
   dependencies.add(channel_full->migrated_from_chat_id);
   dependencies.add(channel_full->guard_bot_user_id);
   for (auto bot_user_id : channel_full->bot_user_ids) {
@@ -6109,6 +6130,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         }
       }
       on_update_channel_full_monoforum_channel_id(channel_full, channel_id, monoforum_channel_id);
+      on_update_channel_full_linked_community_id(channel_full, channel_id, c->linked_community_id);
 
       ChannelId linked_channel_id;
       if ((channel->flags_ & telegram_api::channelFull::LINKED_CHAT_ID_MASK) != 0) {
@@ -6859,6 +6881,22 @@ void ChatManager::on_update_channel_full_monoforum_channel_id(ChannelFull *chann
     c->is_changed = true;
     update_channel(c, channel_id);
   }
+}
+
+void ChatManager::on_update_channel_full_linked_community_id(ChannelFull *channel_full, ChannelId channel_id,
+                                                             CommunityId linked_community_id) {
+  CHECK(channel_full != nullptr);
+  if (!linked_community_id.is_valid()) {
+    linked_community_id = CommunityId();
+  }
+  auto old_linked_community_id = channel_full->linked_community_id;
+  if (old_linked_community_id == linked_community_id) {
+    return;
+  }
+  LOG(INFO) << "Update community in " << channel_id << " from " << old_linked_community_id << " to "
+            << linked_community_id;
+  channel_full->linked_community_id = linked_community_id;
+  channel_full->is_changed = true;
 }
 
 void ChatManager::on_update_channel_full_location(ChannelFull *channel_full, ChannelId channel_id,
@@ -9253,6 +9291,10 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     LOG(ERROR) << "Receive channel direct messages " << monoforum_channel_id << " for " << channel_id;
     monoforum_channel_id = ChannelId();
   }
+  auto linked_community_id = CommunityId(channel.linked_community_id_);
+  if (!linked_community_id.is_valid()) {
+    linked_community_id = CommunityId();
+  }
 
   if (have_participant_count) {
     auto channel_full = get_channel_full_const(channel_id);
@@ -9342,10 +9384,11 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
         on_update_channel_bot_verification_icon(c, channel_id, CustomEmojiId(channel.bot_verification_icon_));
       }
       if (c->join_to_send != join_to_send || c->join_request != join_request ||
-          c->monoforum_channel_id != monoforum_channel_id) {
+          c->monoforum_channel_id != monoforum_channel_id || c->linked_community_id != linked_community_id) {
         c->join_to_send = join_to_send;
         c->join_request = join_request;
         c->monoforum_channel_id = monoforum_channel_id;
+        c->linked_community_id = linked_community_id;
 
         c->need_save_to_database = true;
       }
@@ -9473,10 +9516,11 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     on_update_channel_bot_verification_icon(c, channel_id, CustomEmojiId(channel.bot_verification_icon_));
   }
   if (c->join_to_send != join_to_send || c->join_request != join_request ||
-      c->monoforum_channel_id != monoforum_channel_id) {
+      c->monoforum_channel_id != monoforum_channel_id || c->linked_community_id != linked_community_id) {
     c->join_to_send = join_to_send;
     c->join_request = join_request;
     c->monoforum_channel_id = monoforum_channel_id;
+    c->linked_community_id = linked_community_id;
 
     c->need_save_to_database = true;
   }
@@ -9846,9 +9890,10 @@ td_api::object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_
     }
   }
   return td_api::make_object<td_api::supergroupFullInfo>(
-      get_chat_photo_object(td_->file_manager_.get(), *photo), channel_full->description,
-      channel_full->participant_count, channel_full->administrator_count, channel_full->restricted_count,
-      channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
+      get_chat_photo_object(td_->file_manager_.get(), *photo),
+      td_->community_manager_->get_community_id_object(channel_full->linked_community_id, "supergroupFullInfo"),
+      channel_full->description, channel_full->participant_count, channel_full->administrator_count,
+      channel_full->restricted_count, channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
       DialogId(channel_full->monoforum_channel_id).get(), channel_full->slow_mode_delay, slow_mode_delay_expires_in,
       channel_full->has_paid_messages_available, channel_full->has_paid_media_allowed,
       channel_full->can_get_participants, has_hidden_participants,
