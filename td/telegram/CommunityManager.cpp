@@ -346,6 +346,11 @@ bool CommunityManager::have_community(CommunityId community_id) const {
   return communities_.count(community_id) > 0;
 }
 
+bool CommunityManager::have_accessible_community(CommunityId community_id) const {
+  const auto *c = get_community(community_id);
+  return c != nullptr && c->access_hash != 0;
+}
+
 const CommunityManager::Community *CommunityManager::get_community(CommunityId community_id) const {
   return communities_.get_pointer(community_id);
 }

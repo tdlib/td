@@ -37,6 +37,8 @@ class CommunityManager final : public Actor {
 
   bool have_community_force(CommunityId community_id, const char *source);
 
+  bool have_accessible_community(CommunityId community_id) const;
+
   void reload_community(CommunityId community_id, Promise<Unit> &&promise, const char *source);
 
   void on_get_community(telegram_api::community &community, const char *source);

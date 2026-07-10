@@ -20,6 +20,7 @@
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/CommunityManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogActionManager.h"
@@ -722,6 +723,11 @@ bool UpdatesManager::is_acceptable_channel(ChannelId channel_id) const {
   return td_->chat_manager_->have_channel_force(channel_id, "is_acceptable_channel");
 }
 
+bool UpdatesManager::is_acceptable_community(CommunityId community_id) const {
+  return td_->community_manager_->have_community_force(community_id, "is_acceptable_community") &&
+         td_->community_manager_->have_accessible_community(community_id);
+}
+
 bool UpdatesManager::is_acceptable_peer(const tl_object_ptr<telegram_api::Peer> &peer) const {
   if (peer == nullptr) {
     return true;
@@ -992,7 +998,6 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionPollAppendAnswer::ID:
         case telegram_api::messageActionPollDeleteAnswer::ID:
         case telegram_api::messageActionManagedBotCreated::ID:
-        case telegram_api::messageActionChangeCommunity::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto action = static_cast<const telegram_api::messageActionChatCreate *>(action_ptr);
@@ -1106,6 +1111,13 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionChangeCreator::ID: {
           auto action = static_cast<const telegram_api::messageActionChangeCreator *>(action_ptr);
           if (!is_acceptable_user(UserId(action->new_creator_id_))) {
+            return false;
+          }
+          break;
+        }
+        case telegram_api::messageActionChangeCommunity::ID: {
+          auto action = static_cast<const telegram_api::messageActionChangeCommunity *>(action_ptr);
+          if (action->community_id_ != 0 && !is_acceptable_community(CommunityId(action->community_id_))) {
             return false;
           }
           break;

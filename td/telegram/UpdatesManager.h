@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
+#include "td/telegram/CommunityId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/MessageFullId.h"
@@ -490,6 +491,8 @@ class UpdatesManager final : public Actor {
   bool is_acceptable_chat(ChatId chat_id) const;
 
   bool is_acceptable_channel(ChannelId channel_id) const;
+
+  bool is_acceptable_community(CommunityId community_id) const;
 
   bool is_acceptable_peer(const tl_object_ptr<telegram_api::Peer> &peer) const;
 
