@@ -26,6 +26,11 @@ class Td;
 class CommunityManager final : public Actor {
  public:
   CommunityManager(Td *td, ActorShared<> parent);
+  CommunityManager(const CommunityManager &) = delete;
+  CommunityManager &operator=(const CommunityManager &) = delete;
+  CommunityManager(CommunityManager &&) = delete;
+  CommunityManager &operator=(CommunityManager &&) = delete;
+  ~CommunityManager() final;
 
   bool have_community(CommunityId community_id) const;
 

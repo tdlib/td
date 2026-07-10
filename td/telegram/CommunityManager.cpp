@@ -72,6 +72,10 @@ void CommunityManager::Community::parse(ParserT &parser) {
 CommunityManager::CommunityManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
+CommunityManager::~CommunityManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), communities_, unknown_communities_);
+}
+
 void CommunityManager::tear_down() {
   parent_.reset();
 }
