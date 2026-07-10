@@ -582,7 +582,8 @@ td_api::object_ptr<td_api::community> CommunityManager::get_community_object(Com
   }
   return td_api::make_object<td_api::community>(community_id.get(), c->access_hash != 0, c->title,
                                                 get_chat_photo_info_object(td_->file_manager_.get(), &c->photo),
-                                                c->date, c->default_permissions.get_community_permissions_object());
+                                                c->date, c->status.get_community_member_status_object(),
+                                                c->default_permissions.get_community_permissions_object());
 }
 
 td_api::object_ptr<td_api::updateCommunity> CommunityManager::get_update_community_object(CommunityId community_id,
@@ -595,9 +596,9 @@ td_api::object_ptr<td_api::updateCommunity> CommunityManager::get_update_communi
 
 td_api::object_ptr<td_api::updateCommunity> CommunityManager::get_update_unknown_community_object(
     CommunityId community_id) const {
-  return td_api::make_object<td_api::updateCommunity>(
-      td_api::make_object<td_api::community>(community_id.get(), false, string(), nullptr, 0,
-                                             RestrictedRights::restrict_all().get_community_permissions_object()));
+  return td_api::make_object<td_api::updateCommunity>(td_api::make_object<td_api::community>(
+      community_id.get(), false, string(), nullptr, 0, td_api::make_object<td_api::communityMemberStatusBanned>(),
+      RestrictedRights::restrict_all().get_community_permissions_object()));
 }
 
 void CommunityManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

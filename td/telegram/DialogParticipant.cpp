@@ -508,6 +508,28 @@ td_api::object_ptr<td_api::ChatMemberStatus> DialogParticipantStatus::get_chat_m
   }
 }
 
+td_api::object_ptr<td_api::CommunityMemberStatus> DialogParticipantStatus::get_community_member_status_object() const {
+  switch (type_) {
+    case Type::Creator:
+      return td_api::make_object<td_api::communityMemberStatusCreator>();
+    case Type::Administrator:
+      return td_api::make_object<td_api::communityMemberStatusAdministrator>(
+          can_be_edited(), get_administrator_rights().get_community_administrator_rights_object());
+    case Type::Member:
+      return td_api::make_object<td_api::communityMemberStatusMember>();
+    case Type::Restricted:
+      LOG(ERROR) << "Have restricted user in a community";
+      return td_api::make_object<td_api::communityMemberStatusMember>();
+    case Type::Left:
+      return td_api::make_object<td_api::communityMemberStatusLeft>();
+    case Type::Banned:
+      return td_api::make_object<td_api::communityMemberStatusBanned>();
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 tl_object_ptr<telegram_api::chatAdminRights> DialogParticipantStatus::get_chat_admin_rights() const {
   return get_administrator_rights().get_chat_admin_rights();
 }

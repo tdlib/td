@@ -2271,14 +2271,34 @@ communityPermissions can_edit_chat_list:Bool = CommunityPermissions;
 //@can_ban_members True, if the administrator can ban, or unban community members
 communityAdministratorRights can_manage_community:Bool can_change_info:Bool can_edit_chat_list:Bool can_promote_members:Bool can_ban_members:Bool = CommunityAdministratorRights;
 
+//@class CommunityMemberStatus @description Provides information about the status of a member in a community
+
+//@description The user is the owner of the community and has all the administrator privileges
+communityMemberStatusCreator = CommunityMemberStatus;
+
+//@description The user is a member of the community and has some additional privileges
+//@can_be_edited True, if the current user can edit the administrator privileges for the called user
+//@rights Rights of the administrator
+communityMemberStatusAdministrator can_be_edited:Bool rights:communityAdministratorRights = CommunityMemberStatus;
+
+//@description The user is a member of the community, without any additional privileges or restrictions
+communityMemberStatusMember = CommunityMemberStatus;
+
+//@description The user or the chat is not a community member
+communityMemberStatusLeft = CommunityMemberStatus;
+
+//@description The user or the chat was banned in the community; implies ban in all chats in the community
+communityMemberStatusBanned = CommunityMemberStatus;
+
 //@description Represents a community consisting of supergroup chats, channel chats and chats with bots
 //@id Community identifier
 //@have_access If false, the community is inaccessible, and the only information known about the community is inside this class. Identifier of the community can't be passed to any method
 //@name Community name
 //@photo Community photo; may be null
 //@date Point in time (Unix timestamp) when the community was joined, or the point in time when the community was created, in case the user is not a member of any chat in the community
+//@status Status of the current user in the community
 //@permissions Actions that non-administrator community members are allowed to take in the community
-community id:int53 have_access:Bool name:string photo:chatPhotoInfo date:int32 permissions:communityPermissions = Community;
+community id:int53 have_access:Bool name:string photo:chatPhotoInfo date:int32 status:CommunityMemberStatus permissions:communityPermissions = Community;
 
 
 //@description Contains description of user rating

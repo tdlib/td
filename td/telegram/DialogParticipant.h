@@ -422,6 +422,8 @@ class DialogParticipantStatus {
 
   td_api::object_ptr<td_api::ChatMemberStatus> get_chat_member_status_object(string *rank) const;
 
+  td_api::object_ptr<td_api::CommunityMemberStatus> get_community_member_status_object() const;
+
   telegram_api::object_ptr<telegram_api::chatAdminRights> get_chat_admin_rights() const;
 
   telegram_api::object_ptr<telegram_api::chatBannedRights> get_chat_banned_rights() const;
