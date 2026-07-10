@@ -621,6 +621,16 @@ void CommunityManager::on_update_community_default_permissions(Community *c, Com
   }
 }
 
+int64 CommunityManager::get_community_id_object(CommunityId community_id, const char *source) const {
+  if (community_id.is_valid() && get_community(community_id) == nullptr &&
+      unknown_communities_.count(community_id) == 0) {
+    LOG(ERROR) << "Have no information about " << community_id << " received from " << source;
+    unknown_communities_.insert(community_id);
+    send_closure(G()->td(), &Td::send_update, get_update_unknown_community_object(community_id));
+  }
+  return community_id.get();
+}
+
 td_api::object_ptr<td_api::community> CommunityManager::get_community_object(CommunityId community_id) const {
   return get_community_object(community_id, get_community(community_id));
 }

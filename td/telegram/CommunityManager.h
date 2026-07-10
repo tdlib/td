@@ -43,6 +43,8 @@ class CommunityManager final : public Actor {
 
   void on_get_community_forbidden(telegram_api::communityForbidden &community, const char *source);
 
+  int64 get_community_id_object(CommunityId community_id, const char *source) const;
+
   td_api::object_ptr<td_api::community> get_community_object(CommunityId community_id) const;
 
   telegram_api::object_ptr<telegram_api::InputChannel> get_input_community(CommunityId community_id) const;
