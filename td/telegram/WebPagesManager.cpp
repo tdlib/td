@@ -802,7 +802,8 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
         }
       }
       if (web_page->cached_page_ != nullptr) {
-        on_get_web_page_instant_view(page.get(), std::move(web_page->cached_page_), web_page->hash_, owner_dialog_id);
+        on_get_web_page_instant_view(web_page_id, page.get(), std::move(web_page->cached_page_), web_page->hash_,
+                                     owner_dialog_id);
       }
 
       pending_web_page_urls_.erase(web_page_id);
@@ -2382,8 +2383,9 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
   }
 }
 
-void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::page> &&page,
-                                                   int32 hash, DialogId owner_dialog_id) {
+void WebPagesManager::on_get_web_page_instant_view(WebPageId web_page_id, WebPage *web_page,
+                                                   tl_object_ptr<telegram_api::page> &&page, int32 hash,
+                                                   DialogId owner_dialog_id) {
   CHECK(page != nullptr);
   FlatHashMap<int64, unique_ptr<Photo>> photos;
   for (auto &photo_ptr : page->photos_) {
@@ -2477,7 +2479,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   web_page->instant_view_.is_loaded_ = true;
 
   LOG(DEBUG) << "Receive web page instant view: "
-             << to_string(get_web_page_instant_view_object(WebPageId(), &web_page->instant_view_, web_page->url_));
+             << to_string(get_web_page_instant_view_object(web_page_id, &web_page->instant_view_, web_page->url_));
 }
 
 class WebPagesManager::WebPageLogEvent {

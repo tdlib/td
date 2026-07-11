@@ -159,8 +159,8 @@ class WebPagesManager final : public Actor {
   void on_get_web_page_preview_success(unique_ptr<GetWebPagePreviewOptions> &&options, WebPageId web_page_id,
                                        Promise<td_api::object_ptr<td_api::linkPreview>> &&promise);
 
-  void on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::page> &&page, int32 hash,
-                                    DialogId owner_dialog_id);
+  void on_get_web_page_instant_view(WebPageId web_page_id, WebPage *web_page, tl_object_ptr<telegram_api::page> &&page,
+                                    int32 hash, DialogId owner_dialog_id);
 
   void save_web_page(const WebPage *web_page, WebPageId web_page_id, bool from_binlog);
 
