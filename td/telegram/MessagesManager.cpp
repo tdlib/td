@@ -25228,7 +25228,6 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_ephemeral_mess
   }
   switch (input_message_content->get_id()) {
     case td_api::inputMessageText::ID:
-    case td_api::inputMessageRichMessage::ID:
     case td_api::inputMessageAnimation::ID:
     case td_api::inputMessageAudio::ID:
     case td_api::inputMessageDocument::ID:

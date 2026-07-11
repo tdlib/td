@@ -1758,14 +1758,13 @@ void BusinessConnectionManager::finish_upload_message_internal_media(int64 reque
       return promise.set_error(r_upload_result.move_as_error());
     }
   }
-  vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_media;
+  vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_medias;
   for (auto &r_upload_result : upload_results) {
     auto upload_result = r_upload_result.move_as_ok();
-    input_media.push_back(std::move(upload_result.input_media_));
+    input_medias.push_back(std::move(upload_result.input_media_));
   }
-  complete_send_media(std::move(message),
-                      get_message_content_multi_input_media(message->content_.get(), td_, std::move(input_media)),
-                      std::move(promise));
+  auto input_media = get_message_content_multi_input_media(message->content_.get(), td_, std::move(input_medias));
+  complete_send_media(std::move(message), std::move(input_media), std::move(promise));
 }
 
 void BusinessConnectionManager::on_fail_send_message(unique_ptr<PendingMessage> &&message, const Status &error) {

@@ -674,7 +674,7 @@ game id:int64 short_name:string title:string text:formattedText description:stri
 
 //@description Describes state of the stake dice
 //@state_hash Hash of the state to use for sending the next dice; may be empty if the stake dice can't be sent by the current user
-//@stake_gram_amount The amount of TON Grams that was staked in the previous roll; in the smallest units of the currency
+//@stake_gram_amount The amount of TON Grams staked in the previous roll; in the smallest units of the currency
 //@suggested_stake_gram_amounts The amounts of Grams that are suggested to be staked; in the smallest units of the currency
 //@current_streak The number of rolled sixes towards the streak; 0-2
 //@prize_per_mille The number of Grams received by the user for each 1000 Grams staked if the dice outcome is 1-6 correspondingly; may be empty if the stake dice can't be sent by the current user
@@ -3080,7 +3080,7 @@ inputMessageReplyToExternalMessage chat_id:int53 message_id:int53 quote:inputTex
 //@story_id The identifier of the story
 inputMessageReplyToStory story_poster_chat_id:int53 story_id:int32 = InputMessageReplyTo;
 
-//@description Describes an ephemeral message to be replied; for bots only @ephemeral_message_id The identifier of the ephemeral message to be replied 
+//@description Describes an ephemeral message to be replied; for bots only @ephemeral_message_id The identifier of the ephemeral message to be replied
 inputMessageReplyToEphemeralMessage ephemeral_message_id:int32 = InputMessageReplyTo;
 
 
@@ -5891,7 +5891,7 @@ inputPollMediaVideo video:inputVideo = InputPollMedia;
 
 //@class InputPageBlock @description Describes a block of a rich message to send
 
-//@description A section heading @text Text of the section heading @size Realtive size of the text font; 1-6, 1 is the largest, 6 is the smallest
+//@description A section heading @text Text of the section heading @size Relative size of the text font; 1-6, 1 is the largest, 6 is the smallest
 inputPageBlockSectionHeading text:RichText size:int32 = InputPageBlock;
 
 //@description A text paragraph @text Paragraph text
@@ -12117,7 +12117,9 @@ resendMessages chat_id:int53 message_ids:vector<int53> quote:inputTextQuote paid
 //@sending_id Non-persistent identifier, which will be returned back in messageSendingStatePending object and can be used to match sent messages and corresponding updateNewMessage updates
 //@only_preview Pass true to get a fake message instead of actually sending them
 //@reply_markup Markup for replying to the message; pass null if none; for bots only
-//@input_message_content The content of the message to be added. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto, inputMessageSticker, inputMessageVideo, inputMessageVideoNote, inputMessageVoiceNote, inputMessageLocation, inputMessageVenue, inputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageAnimation,
+//-inputMessageAudio, inputMessageDocument, inputMessagePhoto, inputMessageSticker, inputMessageVideo, inputMessageVideoNote, inputMessageVoiceNote,
+//-inputMessageLocation, inputMessageVenue, inputMessageContact
 sendEphemeralMessage chat_id:int53 topic_id:MessageTopic receiver_user_id:int53 reply_to:InputMessageReplyTo sending_id:int32 only_preview:Bool reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
 //@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message

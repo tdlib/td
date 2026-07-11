@@ -2130,6 +2130,10 @@ MessageQueryManager::MessageQueryManager(Td *td, ActorShared<> parent) : td_(td)
   send_message_view_metrics_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
+MessageQueryManager::~MessageQueryManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), rich_message_full_id_to_file_source_id_);
+}
+
 void MessageQueryManager::tear_down() {
   parent_.reset();
 }

@@ -53,6 +53,11 @@ class Td;
 class MessageQueryManager final : public Actor {
  public:
   MessageQueryManager(Td *td, ActorShared<> parent);
+  MessageQueryManager(const MessageQueryManager &) = delete;
+  MessageQueryManager &operator=(const MessageQueryManager &) = delete;
+  MessageQueryManager(MessageQueryManager &&) = delete;
+  MessageQueryManager &operator=(MessageQueryManager &&) = delete;
+  ~MessageQueryManager() final;
 
   using AffectedHistoryQuery = std::function<void(DialogId, Promise<AffectedHistory>)>;
 
