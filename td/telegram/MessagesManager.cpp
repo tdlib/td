@@ -4316,7 +4316,7 @@ MessageFullId MessagesManager::on_edited_ephemeral_message(
 
   message_info.message_id = get_message_id_of_ephemeral_message_id(dialog_id, message_info.ephemeral_message_id);
   if (message_info.message_id == MessageId()) {
-    if (!force) {
+    if (!force && !td_->auth_manager_->is_bot()) {
       return MessageFullId();
     }
     force_create_dialog(dialog_id, "on_edited_ephemeral_message", true);

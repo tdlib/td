@@ -199,6 +199,11 @@ class MessageQueryManager final : public Actor {
                                                    bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
                                                    Promise<Unit> &&promise);
 
+  void edit_ephemeral_message(DialogId dialog_id, UserId receiver_user_id, EphemeralMessageId ephemeral_message_id,
+                              td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                              td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
+                              Promise<Unit> &&promise);
+
   void delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id, Promise<Unit> &&promise);
 
   void delete_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,

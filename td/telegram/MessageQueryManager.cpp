@@ -1341,6 +1341,68 @@ class BlockFromRepliesQuery final : public Td::ResultHandler {
   }
 };
 
+class EditEphemeralMessageQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit EditEphemeralMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, UserId receiver_user_id, EphemeralMessageId ephemeral_message_id, bool force_edit_text,
+            const FormattedText *text, bool disable_web_page_preview, InputMedia &&input_media, bool invert_media,
+            const unique_ptr<ReplyMarkup> &reply_markup) {
+    // file upload isn't supported, so only previously uploaded files or URLs can be used in the InputMedia
+    CHECK(!FileManager::extract_was_uploaded(input_media));
+
+    int32 flags = 0;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    CHECK(input_peer != nullptr);
+    auto r_input_user = td_->user_manager_->get_input_user(receiver_user_id);
+    if (r_input_user.is_error()) {
+      return on_error(Status::Error(400, "Can't access the user"));
+    }
+    auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), reply_markup);
+    if (input_reply_markup != nullptr) {
+      flags |= telegram_api::ephemeral_editMessage::REPLY_MARKUP_MASK;
+    }
+    vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
+    if (force_edit_text || (text != nullptr && !text->text.empty())) {
+      flags |= telegram_api::ephemeral_editMessage::MESSAGE_MASK;
+
+      entities = get_input_message_entities(td_->user_manager_.get(), text, "EditEphemeralMessageQuery");
+      if (!entities.empty()) {
+        flags |= telegram_api::ephemeral_editMessage::ENTITIES_MASK;
+      }
+    }
+    if (input_media.media_ != nullptr) {
+      flags |= telegram_api::ephemeral_editMessage::MEDIA_MASK;
+    }
+    if (input_media.rich_message_ != nullptr) {
+      // flags |= telegram_api::ephemeral_editMessage::RICH_MESSAGE_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::ephemeral_editMessage(
+        flags, std::move(input_peer), r_input_user.move_as_ok(), ephemeral_message_id.get(),
+        text == nullptr ? string() : text->text, std::move(input_media.media_), std::move(entities),
+        std::move(input_reply_markup))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::ephemeral_editMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditEphemeralMessageQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for EditInlineMessageQuery: " << status;
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeletePhoneCallHistoryQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
 
@@ -3286,6 +3348,58 @@ void MessageQueryManager::block_message_sender_from_replies_on_server(MessageId 
 
   td_->create_handler<BlockFromRepliesQuery>(get_erase_log_event_promise(log_event_id, std::move(promise)))
       ->send(message_id, need_delete_message, need_delete_all_messages, report_spam);
+}
+
+void MessageQueryManager::edit_ephemeral_message(
+    DialogId dialog_id, UserId receiver_user_id, EphemeralMessageId ephemeral_message_id,
+    td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Promise<Unit> &&promise) {
+  auto is_bot = td_->auth_manager_->is_bot();
+  CHECK(is_bot);
+
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
+                                                                        "edit_ephemeral_message_text"));
+  TRY_RESULT_PROMISE(promise, new_reply_markup, get_inline_reply_markup(std::move(reply_markup), is_bot, true));
+  if (input_message_content == nullptr) {
+    td_->create_handler<EditEphemeralMessageQuery>(std::move(promise))
+        ->send(dialog_id, receiver_user_id, ephemeral_message_id, false, nullptr, false, InputMedia(), false,
+               new_reply_markup);
+    return;
+  }
+  int32 new_message_content_type = input_message_content->get_id();
+  if (new_message_content_type == td_api::inputMessageText::ID) {
+    TRY_RESULT_PROMISE(promise, input_message_text,
+                       process_input_message_text(td_, dialog_id, std::move(input_message_content), is_bot));
+    td_->create_handler<EditEphemeralMessageQuery>(std::move(promise))
+        ->send(dialog_id, receiver_user_id, ephemeral_message_id, true, &input_message_text.text,
+               input_message_text.disable_web_page_preview, input_message_text.get_input_media_web_page(),
+               input_message_text.show_above_text, new_reply_markup);
+  }
+
+  if (new_message_content_type != td_api::inputMessageAnimation::ID &&
+      new_message_content_type != td_api::inputMessageAudio::ID &&
+      new_message_content_type != td_api::inputMessageDocument::ID &&
+      new_message_content_type != td_api::inputMessagePhoto::ID &&
+      new_message_content_type != td_api::inputMessageVideo::ID) {
+    return promise.set_error(400, "Invalid message content type specified");
+  }
+
+  TRY_RESULT_PROMISE(promise, content,
+                     get_input_message_content(dialog_id, std::move(input_message_content), td_, false));
+  if (!content.ttl.is_empty()) {
+    return promise.set_error(400, "Can't enable self-destruction for media");
+  }
+
+  auto input_media =
+      get_message_content_input_media(content.content.get(), td_, MessageSelfDestructType(), string(), true, -1);
+  if (input_media.is_empty()) {
+    return promise.set_error(400, "File upload isn't allowed");
+  }
+
+  const FormattedText *caption = get_message_content_caption(content.content.get());
+  td_->create_handler<EditEphemeralMessageQuery>(std::move(promise))
+      ->send(dialog_id, receiver_user_id, ephemeral_message_id, true, caption, false, std::move(input_media),
+             content.invert_media, new_reply_markup);
 }
 
 void MessageQueryManager::delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id,
