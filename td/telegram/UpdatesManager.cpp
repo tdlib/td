@@ -4513,6 +4513,13 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotCallbackQuer
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEphemeralBotCallbackQuery> update,
+                               Promise<Unit> &&promise) {
+  td_->callback_queries_manager_->on_new_ephemeral_query(update->query_id_, UserId(update->user_id_),
+                                                         std::move(update->data_), std::move(update->message_));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateInlineBotCallbackQuery> update,
                                Promise<Unit> &&promise) {
   td_->callback_queries_manager_->on_new_inline_query(update->query_id_, UserId(update->user_id_),
@@ -5089,11 +5096,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebBrowserExcep
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEphemeralBotCallbackQuery> update,
-                               Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

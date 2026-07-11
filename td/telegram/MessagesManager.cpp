@@ -4306,18 +4306,28 @@ void MessagesManager::on_new_ephemeral_message(telegram_api::object_ptr<telegram
   on_get_message(std::move(message_info), true, "on_new_ephemeral_message");
 }
 
-void MessagesManager::on_edited_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message) {
+MessageFullId MessagesManager::on_edited_ephemeral_message(
+    telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message, bool force) {
   auto message_info = parse_ephemeral_message(td_, std::move(message), "on_edited_ephemeral_message");
   auto dialog_id = message_info.dialog_id;
   if (!dialog_id.is_valid()) {
-    return;
+    return MessageFullId();
   }
 
   message_info.message_id = get_message_id_of_ephemeral_message_id(dialog_id, message_info.ephemeral_message_id);
   if (message_info.message_id == MessageId()) {
-    return;
+    if (!force) {
+      return MessageFullId();
+    }
+    force_create_dialog(dialog_id, "on_edited_ephemeral_message", true);
+    Dialog *d = get_dialog(dialog_id);
+    if (d == nullptr) {
+      return MessageFullId();
+    }
+    CHECK(d->ephemeral_message_ids.count(message_info.ephemeral_message_id) == 0);
+    message_info.message_id = get_next_local_message_id(d);
   }
-  on_get_message(std::move(message_info), false, "on_edited_ephemeral_message");
+  return on_get_message(std::move(message_info), false, "on_edited_ephemeral_message");
 }
 
 void MessagesManager::on_delete_ephemeral_messages(DialogId dialog_id,

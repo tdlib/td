@@ -31,6 +31,9 @@ class CallbackQueriesManager {
   void on_new_query(int64 callback_query_id, UserId sender_user_id, DialogId dialog_id, MessageId message_id,
                     BufferSlice &&data, int64 chat_instance, string &&game_short_name);
 
+  void on_new_ephemeral_query(int64 callback_query_id, UserId sender_user_id, BufferSlice &&data,
+                              telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message);
+
   void on_new_inline_query(int64 callback_query_id, UserId sender_user_id,
                            tl_object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id, BufferSlice &&data,
                            int64 chat_instance, string &&game_short_name);

@@ -323,7 +323,8 @@ class MessagesManager final : public Actor {
 
   void on_new_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message);
 
-  void on_edited_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message);
+  MessageFullId on_edited_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message,
+                                            bool force = false);
 
   void on_delete_ephemeral_messages(DialogId dialog_id, vector<EphemeralMessageId> ephemeral_message_ids);
 
