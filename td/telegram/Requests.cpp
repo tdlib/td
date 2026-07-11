@@ -4256,8 +4256,8 @@ void Requests::on_request(uint64 id, td_api::sendInlineQueryResultMessage &reque
 
 void Requests::on_request(uint64 id, td_api::sendEphemeralMessage &request) {
   auto r_sent_message = td_->messages_manager_->send_ephemeral_message(
-      DialogId(request.chat_id_), request.topic_id_, UserId(request.receiver_user_id_), std::move(request.reply_to_),
-      request.sending_id_, request.only_preview_, std::move(request.reply_markup_),
+      DialogId(request.chat_id_), request.topic_id_, UserId(request.receiver_user_id_), request.callback_query_id_,
+      std::move(request.reply_to_), request.sending_id_, request.only_preview_, std::move(request.reply_markup_),
       std::move(request.input_message_content_));
   if (r_sent_message.is_error()) {
     send_closure(td_actor_, &Td::send_error, id, r_sent_message.move_as_error());

@@ -501,8 +501,8 @@ class MessagesManager final : public Actor {
 
   Result<td_api::object_ptr<td_api::message>> send_ephemeral_message(
       DialogId dialog_id, const td_api::object_ptr<td_api::MessageTopic> &topic_id, UserId receiver_user_id,
-      td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, int32 sending_id, bool only_preview,
-      tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
+      int64 callback_query_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, int32 sending_id,
+      bool only_preview, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
       tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 
   Result<MessageId> add_local_message(
@@ -1137,6 +1137,7 @@ class MessagesManager final : public Actor {
     MessageId initial_top_thread_message_id;                 // for send_message
     MessageInputReplyTo input_reply_to;                      // for send_message
     int64 reply_to_random_id = 0;                            // for send_message
+    int64 send_callback_query_id = 0;                        // for send_message
     string send_emoji;                                       // for send_message
     int32 new_video_start_timestamp = 0;                     // for send_message
     mutable vector<FileUploadId> file_upload_ids;            // for send_message
