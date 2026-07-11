@@ -11967,8 +11967,12 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::ChangeCommunity: {
       const auto *m = static_cast<const MessageChangeCommunity *>(content);
-      return td_api::make_object<td_api::messageChatCommunityChanged>(
-          td->community_manager_->get_community_id_object(m->community_id, "messageChatCommunityChanged"));
+      if (m->community_id.is_valid()) {
+        return td_api::make_object<td_api::messageChatAddedToCommunity>(
+            td->community_manager_->get_community_id_object(m->community_id, "messageChatAddToCommunity"));
+      } else {
+        return td_api::make_object<td_api::messageChatRemovedFromCommunity>();
+      }
     }
     default:
       UNREACHABLE();

@@ -5279,9 +5279,11 @@ messageChatJoinByRequest = MessageContent;
 //@description A chat member was deleted @user_id User identifier of the deleted chat member
 messageChatDeleteMember user_id:int53 = MessageContent;
 
-//@description The chat was added or deleted from a community
-//@community_id Identifier of the community to which the chat belongs; 0 if none
-messageChatCommunityChanged community_id:int53 = MessageContent;
+//@description The chat was added to a community @community_id Identifier of the community to which the chat was added
+messageChatAddedToCommunity community_id:int53 = MessageContent;
+
+//@description The chat was removed from a community
+messageChatRemovedFromCommunity = MessageContent;
 
 //@description A basic group was upgraded to a supergroup and was deactivated as the result @supergroup_id Identifier of the supergroup to which the basic group was upgraded
 messageChatUpgradeTo supergroup_id:int53 = MessageContent;
