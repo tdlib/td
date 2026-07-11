@@ -1616,6 +1616,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       case td_api::pageBlockTitle::ID:
       case td_api::pageBlockAuthorDate::ID:
         break;
+      case td_api::pageBlockBlockQuote::ID:
+        // AI summary
+        break;
       case td_api::pageBlockCollage::ID: {
         auto *collage = static_cast<td_api::pageBlockCollage *>(block_object.get());
         process_album(std::move(collage->blocks_), std::move(collage->caption_));
