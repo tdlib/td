@@ -32617,6 +32617,10 @@ bool MessagesManager::need_message_changed_warning(const Message *old_message) {
     // message was edited
     return false;
   }
+  if (is_ephemeral_message(old_message)) {
+    // message has no edit_date, but could have been edited
+    return false;
+  }
   if (old_message->message_id.is_yet_unsent() &&
       (is_message_forward(old_message) || old_message->real_forward_from_dialog_id.is_valid())) {
     // original message may be edited
