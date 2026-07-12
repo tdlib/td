@@ -3368,8 +3368,12 @@ void MessageQueryManager::edit_ephemeral_message(
   }
   int32 new_message_content_type = input_message_content->get_id();
   if (new_message_content_type == td_api::inputMessageText::ID) {
-    TRY_RESULT_PROMISE(promise, input_message_text,
-                       process_input_message_text(td_, dialog_id, std::move(input_message_content), is_bot));
+    auto text = static_cast<td_api::inputMessageText *>(input_message_content.get());
+    InputMessageText input_message_text;
+    if ((text->text_ != nullptr && !text->text_->text_.empty()) || text->link_preview_options_ != nullptr) {
+      TRY_RESULT_PROMISE_ASSIGN(promise, input_message_text,
+                                process_input_message_text(td_, dialog_id, std::move(input_message_content), is_bot));
+    }
     td_->create_handler<EditEphemeralMessageQuery>(std::move(promise))
         ->send(dialog_id, receiver_user_id, ephemeral_message_id, true, &input_message_text.text,
                input_message_text.disable_web_page_preview, input_message_text.get_input_media_web_page(),
