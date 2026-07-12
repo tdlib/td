@@ -23,6 +23,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/InlineQueriesManager.h"
+#include "td/telegram/InputMessageText.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContent.h"
@@ -30,9 +31,11 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageSearchOffset.h"
+#include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/RequestedDialogType.h"
 #include "td/telegram/RichMessage.h"
 #include "td/telegram/SearchPostsFlood.h"
@@ -1398,7 +1401,7 @@ class EditEphemeralMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Receive error for EditInlineMessageQuery: " << status;
+    LOG(INFO) << "Receive error for EditEphemeralMessageQuery: " << status;
     promise_.set_error(std::move(status));
   }
 };
