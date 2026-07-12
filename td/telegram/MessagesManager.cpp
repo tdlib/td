@@ -15127,6 +15127,10 @@ void MessagesManager::get_callback_query_message(DialogId dialog_id, MessageId m
   TRY_RESULT_PROMISE(promise, d,
                      check_dialog_access(dialog_id, true, AccessRights::Read, "get_callback_query_message"));
   if (!message_id.is_server()) {
+    const auto *m = get_message_force(d, message_id, "get_callback_query_message");
+    if (is_ephemeral_message(m)) {
+      return promise.set_value(Unit());
+    }
     return promise.set_error(400, "Invalid message identifier specified");
   }
 
