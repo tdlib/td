@@ -1440,6 +1440,7 @@ class MessagesManager final : public Actor {
                                          // are different
 
     WaitFreeHashSet<MessageId, MessageIdHash> deleted_message_ids;
+    WaitFreeHashSet<EphemeralMessageId, EphemeralMessageIdHash> deleted_ephemeral_message_ids;
 
     string client_data;
 

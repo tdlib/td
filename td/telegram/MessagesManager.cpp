@@ -4312,7 +4312,8 @@ void MessagesManager::on_new_ephemeral_message(telegram_api::object_ptr<telegram
     force_create_dialog(dialog_id, "on_new_ephemeral_message");
     d = get_dialog(dialog_id);
   }
-  if (d == nullptr || d->ephemeral_message_ids.count(message_info.ephemeral_message_id) != 0) {
+  if (d == nullptr || d->ephemeral_message_ids.count(message_info.ephemeral_message_id) != 0 ||
+      d->deleted_ephemeral_message_ids.count(message_info.ephemeral_message_id) != 0) {
     return;
   }
   message_info.message_id = get_next_local_message_id(d);
@@ -4334,7 +4335,7 @@ MessageFullId MessagesManager::on_edited_ephemeral_message(
     }
     force_create_dialog(dialog_id, "on_edited_ephemeral_message", true);
     Dialog *d = get_dialog(dialog_id);
-    if (d == nullptr) {
+    if (d == nullptr || d->deleted_ephemeral_message_ids.count(message_info.ephemeral_message_id) != 0) {
       return MessageFullId();
     }
     CHECK(d->ephemeral_message_ids.count(message_info.ephemeral_message_id) == 0);
@@ -4351,6 +4352,11 @@ void MessagesManager::on_delete_ephemeral_messages(DialogId dialog_id,
   }
   vector<MessageId> message_ids;
   for (auto ephemeral_message_id : ephemeral_message_ids) {
+    if (!ephemeral_message_id.is_valid()) {
+      LOG(ERROR) << "Receive " << ephemeral_message_id;
+      continue;
+    }
+    d->deleted_ephemeral_message_ids.insert(ephemeral_message_id);
     auto it = d->ephemeral_message_ids.find(ephemeral_message_id);
     if (it != d->ephemeral_message_ids.end()) {
       message_ids.push_back(it->second);
