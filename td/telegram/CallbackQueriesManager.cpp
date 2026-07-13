@@ -236,7 +236,7 @@ void CallbackQueriesManager::on_new_callback_query(int64 callback_query_id, User
   td_->dialog_manager_->force_create_dialog(dialog_id, "on_new_callback_query", true);
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewCallbackQuery>(
-                   callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewCallbackQuery"),
+                   callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "on_new_callback_query"),
                    td_->dialog_manager_->get_chat_id_object(dialog_id, "updateNewCallbackQuery"), message_id.get(),
                    chat_instance, std::move(payload)));
 }
@@ -266,11 +266,12 @@ void CallbackQueriesManager::on_new_ephemeral_callback_query(
     return;
   }
 
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateNewCallbackQuery>(
-                   callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewCallbackQuery"),
-                   td_->dialog_manager_->get_chat_id_object(message_full_id.get_dialog_id(), "updateNewCallbackQuery"),
-                   message_id.get(), 0, std::move(payload)));
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateNewCallbackQuery>(
+          callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "on_new_ephemeral_callback_query"),
+          td_->dialog_manager_->get_chat_id_object(message_full_id.get_dialog_id(), "on_new_ephemeral_callback_query"),
+          message_id.get(), 0, std::move(payload)));
 }
 
 void CallbackQueriesManager::on_new_inline_callback_query(
@@ -295,7 +296,7 @@ void CallbackQueriesManager::on_new_inline_callback_query(
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateNewInlineCallbackQuery>(
-          callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewInlineCallbackQuery"),
+          callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "on_new_inline_callback_query"),
           InlineQueriesManager::get_inline_message_id(std::move(inline_message_id)), chat_instance,
           std::move(payload)));
 }
@@ -323,7 +324,7 @@ void CallbackQueriesManager::on_new_business_callback_query(
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateNewBusinessCallbackQuery>(
-          callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewInlineCallbackQuery"),
+          callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "on_new_business_callback_query"),
           connection_id, std::move(message_object), chat_instance, std::move(payload)));
 }
 
