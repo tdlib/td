@@ -62,7 +62,7 @@ class RepliedMessageInfo {
   RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messageReplyHeader> &&reply_header, DialogId dialog_id,
                      MessageId message_id, int32 date);
 
-  RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_reply_to, const MessageTopic &topic);
+  RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_reply_to, DialogId dialog_id, const MessageTopic &topic);
 
   RepliedMessageInfo clone(Td *td) const;
 

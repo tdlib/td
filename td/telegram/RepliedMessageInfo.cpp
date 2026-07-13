@@ -139,8 +139,13 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
   }
 }
 
-RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_reply_to, const MessageTopic &topic) {
+RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_reply_to, DialogId dialog_id,
+                                       const MessageTopic &topic) {
   if (!input_reply_to.message_id_.is_valid() && !input_reply_to.message_id_.is_valid_scheduled()) {
+    if (input_reply_to.ephemeral_message_id_.is_valid()) {
+      message_id_ = td->messages_manager_->get_message_id_of_ephemeral_message_id(dialog_id,
+                                                                                  input_reply_to.ephemeral_message_id_);
+    }
     return;
   }
   message_id_ = input_reply_to.message_id_;
