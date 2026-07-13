@@ -14114,7 +14114,8 @@ void MessagesManager::on_load_folder_dialog_list(FolderId folder_id, Result<Unit
 
   const auto &folder = *get_dialog_folder(folder_id);
   if (result.is_ok()) {
-    LOG(INFO) << "Successfully loaded chats in " << folder_id;
+    LOG(INFO) << "Successfully loaded chats in " << folder_id << " up to " << folder.folder_last_dialog_date_ << '/'
+              << folder.last_server_dialog_date_ << '/' << folder.last_loaded_database_dialog_date_;
     if (folder.last_server_dialog_date_ == MAX_DIALOG_DATE) {
       return;
     }
@@ -14129,6 +14130,8 @@ void MessagesManager::on_load_folder_dialog_list(FolderId folder_id, Result<Unit
     }
     if (need_new_get_dialog_list) {
       load_folder_dialog_list(folder_id, int32{MAX_GET_DIALOGS}, false);
+    } else {
+      LOG(INFO) << "Don't need to load more chats in " << folder_id;
     }
     return;
   }
@@ -14171,7 +14174,7 @@ void MessagesManager::on_get_dialogs_from_database(FolderId folder_id, int32 lim
   CHECK(!td_->auth_manager_->is_bot());
   auto &folder = *get_dialog_folder(folder_id);
   LOG(INFO) << "Receive " << dialogs.dialogs.size() << " from expected " << limit << " chats in " << folder_id
-            << " in from database with next order " << dialogs.next_order << " and next " << dialogs.next_dialog_id;
+            << " from database with next order " << dialogs.next_order << " and next " << dialogs.next_dialog_id;
   int32 new_get_dialogs_limit = 0;
   int32 have_more_dialogs_in_database = (limit == static_cast<int32>(dialogs.dialogs.size()));
   if (have_more_dialogs_in_database && limit < folder.load_dialog_list_limit_max_) {
