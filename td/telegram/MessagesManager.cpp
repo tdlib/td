@@ -11501,7 +11501,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     }
     return {DialogId(), nullptr};
   }
-  if (message_id.is_yet_unsent() || (message_id.is_local() && message_info.receiver_user_id == UserId())) {
+  auto dialog_type = dialog_id.get_type();
+  if (message_id.is_yet_unsent() ||
+      (dialog_type != DialogType::SecretChat && message_id.is_local() && message_info.receiver_user_id == UserId())) {
     LOG(ERROR) << "Receive " << message_id;
     return {DialogId(), nullptr};
   }
@@ -11509,7 +11511,6 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   CHECK(message_info.content != nullptr);
 
   auto is_bot = td->auth_manager_->is_bot();
-  auto dialog_type = dialog_id.get_type();
   UserId sender_user_id = message_info.sender_user_id;
   DialogId sender_dialog_id = message_info.sender_dialog_id;
   if (!sender_user_id.is_valid()) {
@@ -30952,7 +30953,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (!from_update && !message->is_failed_to_send) {
+  auto is_ephemeral = is_ephemeral_message(message.get());
+  if (!from_update && !message->is_failed_to_send && !is_ephemeral) {
     MessageId max_message_id;
     if (message_id.is_server()) {
       if (d->being_added_message_id.is_valid()) {
@@ -30990,7 +30992,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
   if ((message_id.is_server() || (message_id.is_local() && dialog_type == DialogType::SecretChat)) &&
-      message_id <= d->max_unavailable_message_id) {
+      message_id <= d->max_unavailable_message_id && !is_ephemeral) {
     LOG(INFO) << "Can't add an unavailable " << message_id << " to " << dialog_id;
     if (from_database) {
       delete_message_from_database(d, message_id, message.get(), true, "ignore unavailable message");
