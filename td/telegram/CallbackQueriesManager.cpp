@@ -260,7 +260,8 @@ void CallbackQueriesManager::on_new_ephemeral_query(
   }
 
   auto message_full_id = td_->messages_manager_->on_edited_ephemeral_message(std::move(message), true);
-  if (!message_full_id.get_message_id().is_local()) {
+  auto message_id = message_full_id.get_message_id();
+  if (!message_id.is_valid() || !message_id.is_local()) {
     LOG(ERROR) << "Receive ephemeral callback query from " << message_full_id;
     return;
   }
@@ -269,7 +270,7 @@ void CallbackQueriesManager::on_new_ephemeral_query(
                td_api::make_object<td_api::updateNewCallbackQuery>(
                    callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewCallbackQuery"),
                    td_->dialog_manager_->get_chat_id_object(message_full_id.get_dialog_id(), "updateNewCallbackQuery"),
-                   message_full_id.get_message_id().get(), 0, std::move(payload)));
+                   message_id.get(), 0, std::move(payload)));
 }
 
 void CallbackQueriesManager::on_new_inline_query(
