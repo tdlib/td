@@ -4495,8 +4495,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDcOptions> upda
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotInlineQuery> update, Promise<Unit> &&promise) {
-  td_->inline_queries_manager_->on_new_query(update->query_id_, UserId(update->user_id_), Location(td_, update->geo_),
-                                             std::move(update->peer_type_), update->query_, update->offset_);
+  td_->inline_queries_manager_->on_new_inline_query(update->query_id_, UserId(update->user_id_),
+                                                    Location(td_, update->geo_), std::move(update->peer_type_),
+                                                    update->query_, update->offset_);
   promise.set_value(Unit());
 }
 
@@ -4507,30 +4508,30 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotInlineSend> 
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotCallbackQuery> update, Promise<Unit> &&promise) {
-  td_->callback_queries_manager_->on_new_query(update->query_id_, UserId(update->user_id_), DialogId(update->peer_),
-                                               MessageId(ServerMessageId(update->msg_id_)), std::move(update->data_),
-                                               update->chat_instance_, std::move(update->game_short_name_));
+  td_->callback_queries_manager_->on_new_callback_query(
+      update->query_id_, UserId(update->user_id_), DialogId(update->peer_), MessageId(ServerMessageId(update->msg_id_)),
+      std::move(update->data_), update->chat_instance_, std::move(update->game_short_name_));
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEphemeralBotCallbackQuery> update,
                                Promise<Unit> &&promise) {
-  td_->callback_queries_manager_->on_new_ephemeral_query(update->query_id_, UserId(update->user_id_),
-                                                         std::move(update->data_), std::move(update->message_));
+  td_->callback_queries_manager_->on_new_ephemeral_callback_query(
+      update->query_id_, UserId(update->user_id_), std::move(update->data_), std::move(update->message_));
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateInlineBotCallbackQuery> update,
                                Promise<Unit> &&promise) {
-  td_->callback_queries_manager_->on_new_inline_query(update->query_id_, UserId(update->user_id_),
-                                                      std::move(update->msg_id_), std::move(update->data_),
-                                                      update->chat_instance_, std::move(update->game_short_name_));
+  td_->callback_queries_manager_->on_new_inline_callback_query(
+      update->query_id_, UserId(update->user_id_), std::move(update->msg_id_), std::move(update->data_),
+      update->chat_instance_, std::move(update->game_short_name_));
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBusinessBotCallbackQuery> update,
                                Promise<Unit> &&promise) {
-  td_->callback_queries_manager_->on_new_business_query(
+  td_->callback_queries_manager_->on_new_business_callback_query(
       update->query_id_, UserId(update->user_id_), std::move(update->connection_id_), std::move(update->message_),
       std::move(update->reply_to_message_), std::move(update->data_), update->chat_instance_);
   promise.set_value(Unit());

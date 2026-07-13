@@ -28,20 +28,20 @@ class CallbackQueriesManager {
   void answer_callback_query(int64 callback_query_id, const string &text, bool show_alert, const string &url,
                              int32 cache_time, Promise<Unit> &&promise) const;
 
-  void on_new_query(int64 callback_query_id, UserId sender_user_id, DialogId dialog_id, MessageId message_id,
-                    BufferSlice &&data, int64 chat_instance, string &&game_short_name);
+  void on_new_callback_query(int64 callback_query_id, UserId sender_user_id, DialogId dialog_id, MessageId message_id,
+                             BufferSlice &&data, int64 chat_instance, string &&game_short_name);
 
-  void on_new_ephemeral_query(int64 callback_query_id, UserId sender_user_id, BufferSlice &&data,
-                              telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message);
+  void on_new_ephemeral_callback_query(int64 callback_query_id, UserId sender_user_id, BufferSlice &&data,
+                                       telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message);
 
-  void on_new_inline_query(int64 callback_query_id, UserId sender_user_id,
-                           tl_object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id, BufferSlice &&data,
-                           int64 chat_instance, string &&game_short_name);
+  void on_new_inline_callback_query(int64 callback_query_id, UserId sender_user_id,
+                                    tl_object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id,
+                                    BufferSlice &&data, int64 chat_instance, string &&game_short_name);
 
-  void on_new_business_query(int64 callback_query_id, UserId sender_user_id, string &&connection_id,
-                             telegram_api::object_ptr<telegram_api::Message> &&message,
-                             telegram_api::object_ptr<telegram_api::Message> &&reply_to_message, BufferSlice &&data,
-                             int64 chat_instance);
+  void on_new_business_callback_query(int64 callback_query_id, UserId sender_user_id, string &&connection_id,
+                                      telegram_api::object_ptr<telegram_api::Message> &&message,
+                                      telegram_api::object_ptr<telegram_api::Message> &&reply_to_message,
+                                      BufferSlice &&data, int64 chat_instance);
 
   void send_callback_query(MessageFullId message_full_id, tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
                            Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> &&promise);

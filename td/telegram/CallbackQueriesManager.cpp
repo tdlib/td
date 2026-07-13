@@ -206,9 +206,9 @@ tl_object_ptr<td_api::CallbackQueryPayload> CallbackQueriesManager::get_query_pa
   return nullptr;
 }
 
-void CallbackQueriesManager::on_new_query(int64 callback_query_id, UserId sender_user_id, DialogId dialog_id,
-                                          MessageId message_id, BufferSlice &&data, int64 chat_instance,
-                                          string &&game_short_name) {
+void CallbackQueriesManager::on_new_callback_query(int64 callback_query_id, UserId sender_user_id, DialogId dialog_id,
+                                                   MessageId message_id, BufferSlice &&data, int64 chat_instance,
+                                                   string &&game_short_name) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive new callback query in invalid " << dialog_id;
     return;
@@ -241,7 +241,7 @@ void CallbackQueriesManager::on_new_query(int64 callback_query_id, UserId sender
                    chat_instance, std::move(payload)));
 }
 
-void CallbackQueriesManager::on_new_ephemeral_query(
+void CallbackQueriesManager::on_new_ephemeral_callback_query(
     int64 callback_query_id, UserId sender_user_id, BufferSlice &&data,
     telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message) {
   if (!sender_user_id.is_valid()) {
@@ -273,7 +273,7 @@ void CallbackQueriesManager::on_new_ephemeral_query(
                    message_id.get(), 0, std::move(payload)));
 }
 
-void CallbackQueriesManager::on_new_inline_query(
+void CallbackQueriesManager::on_new_inline_callback_query(
     int64 callback_query_id, UserId sender_user_id,
     tl_object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id, BufferSlice &&data, int64 chat_instance,
     string &&game_short_name) {
@@ -300,11 +300,10 @@ void CallbackQueriesManager::on_new_inline_query(
           std::move(payload)));
 }
 
-void CallbackQueriesManager::on_new_business_query(int64 callback_query_id, UserId sender_user_id,
-                                                   string &&connection_id,
-                                                   telegram_api::object_ptr<telegram_api::Message> &&message,
-                                                   telegram_api::object_ptr<telegram_api::Message> &&reply_to_message,
-                                                   BufferSlice &&data, int64 chat_instance) {
+void CallbackQueriesManager::on_new_business_callback_query(
+    int64 callback_query_id, UserId sender_user_id, string &&connection_id,
+    telegram_api::object_ptr<telegram_api::Message> &&message,
+    telegram_api::object_ptr<telegram_api::Message> &&reply_to_message, BufferSlice &&data, int64 chat_instance) {
   if (!sender_user_id.is_valid()) {
     LOG(ERROR) << "Receive new callback query from invalid " << sender_user_id;
     return;

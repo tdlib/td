@@ -2444,9 +2444,9 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
   return false;
 }
 
-void InlineQueriesManager::on_new_query(int64 query_id, UserId sender_user_id, Location user_location,
-                                        tl_object_ptr<telegram_api::InlineQueryPeerType> peer_type, const string &query,
-                                        const string &offset) {
+void InlineQueriesManager::on_new_inline_query(int64 query_id, UserId sender_user_id, Location user_location,
+                                               telegram_api::object_ptr<telegram_api::InlineQueryPeerType> peer_type,
+                                               const string &query, const string &offset) {
   if (!sender_user_id.is_valid()) {
     LOG(ERROR) << "Receive new inline query from invalid " << sender_user_id;
     return;
