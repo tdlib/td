@@ -223,6 +223,10 @@ bool RepliedMessageInfo::need_reply_changed_warning(
     const Td *td, const RepliedMessageInfo &old_info, const RepliedMessageInfo &new_info,
     MessageId old_top_thread_message_id, bool is_yet_unsent,
     std::function<bool(const RepliedMessageInfo &info)> is_reply_to_deleted_message) {
+  if (is_yet_unsent && old_info.is_empty() && new_info.message_id_.is_valid() && new_info.message_id_.is_local()) {
+    // reply to a previously unknown ephemeral message
+    return true;
+  }
   if (old_info.origin_date_ != new_info.origin_date_ && old_info.origin_date_ != 0 && new_info.origin_date_ != 0) {
     // date of the original message can't change
     return true;
