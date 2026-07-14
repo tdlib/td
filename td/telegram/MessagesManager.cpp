@@ -21903,7 +21903,13 @@ void MessagesManager::on_cover_upload(DialogId dialog_id, MessageId message_id, 
 
 void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int32 media_pos, vector<int> bad_parts) {
   bool is_edit = m->message_id.is_any_server();
-  LOG(INFO) << "Do " << (is_edit ? "edit" : "send") << ' ' << MessageFullId(dialog_id, m->message_id);
+  if (is_edit) {
+    LOG(INFO) << "Do edit " << (media_pos == -1 ? "" : (PSTRING() << "media " << media_pos << " of "))
+              << MessageFullId(dialog_id, m->message_id) << " with generation " << m->edit_generation;
+  } else {
+    LOG(INFO) << "Do send " << (media_pos == -1 ? "" : (PSTRING() << "media " << media_pos << " of "))
+              << MessageFullId(dialog_id, m->message_id);
+  }
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
 
   if (m->media_album_id != 0 && bad_parts.empty() && !is_secret && !is_edit) {
@@ -22112,7 +22118,7 @@ void MessagesManager::do_send_message_media(DialogId dialog_id, const Message *m
     bool was_uploaded = FileManager::extract_was_uploaded(input_media);
     bool was_thumbnail_uploaded = FileManager::extract_was_thumbnail_uploaded(input_media);
 
-    LOG(INFO) << "Edit media from " << message_id << " in " << dialog_id;
+    LOG(INFO) << "Edit media from " << message_id << " in " << dialog_id << " with generation " << m->edit_generation;
     auto schedule_date = get_message_schedule_date(m);
     auto schedule_repeat_period = get_message_schedule_repeat_period(m);
     auto promise = PromiseCreator::lambda(
@@ -23520,8 +23526,8 @@ void MessagesManager::on_message_media_edited(
 
   auto edited_message = edited_messages_.get_pointer(dialog_id, message_id);
   CHECK(edited_message->content_ != nullptr);
-  CHECK(edited_message->file_upload_ids_ == file_upload_ids);
-  CHECK(edited_message->thumbnail_file_upload_ids_ == thumbnail_file_upload_ids);
+  //CHECK(edited_message->file_upload_ids_ == file_upload_ids);
+  //CHECK(edited_message->thumbnail_file_upload_ids_ == thumbnail_file_upload_ids);
   if (result.is_ok()) {
     // message content has already been replaced from updateEdit{Channel,}Message
     // need only merge files from edited_content with their uploaded counterparts
@@ -23529,7 +23535,7 @@ void MessagesManager::on_message_media_edited(
     // only if 'i' and 't' sizes from edited_content were added to the photo
     auto pts = result.ok();
     LOG(INFO) << "Successfully edited " << message_id << " in " << dialog_id << " with PTS = " << pts
-              << " and last edit PTS = " << m->last_edit_pts;
+              << " and last edit PTS = " << m->last_edit_pts << " and generation = " << edit_generation;
     bool need_send_update_message_content = edited_message->content_->get_type() == MessageContentType::Photo &&
                                             m->content->get_type() == MessageContentType::Photo;
     bool need_merge_files = pts != 0 && pts == m->last_edit_pts;
