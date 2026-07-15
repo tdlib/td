@@ -7022,14 +7022,14 @@ void ChatManager::on_update_chat_add_user(ChatId chat_id, UserId inviter_user_id
     for (auto &participant : chat_full->participants) {
       if (participant.dialog_id_ == DialogId(user_id)) {
         if (participant.inviter_user_id_ != inviter_user_id) {
-          LOG(ERROR) << user_id << " was readded to " << chat_id << " by " << inviter_user_id
+          LOG(ERROR) << user_id << " was re-added to " << chat_id << " by " << inviter_user_id
                      << ", previously invited by " << participant.inviter_user_id_;
           participant.inviter_user_id_ = inviter_user_id;
           participant.joined_date_ = date;
           repair_chat_participants(chat_id);
         } else {
           // Possible if update comes twice
-          LOG(INFO) << user_id << " was readded to " << chat_id;
+          LOG(INFO) << user_id << " was re-added to " << chat_id;
         }
         return;
       }

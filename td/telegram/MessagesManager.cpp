@@ -8173,7 +8173,7 @@ bool MessagesManager::can_approve_message(DialogId dialog_id, const Message *m) 
   if (is_from_user) {
     auto channel_id = td_->chat_manager_->get_monoforum_channel_id(dialog_id.get_channel_id());
     if (!td_->chat_manager_->get_channel_status(channel_id).can_post_messages()) {
-      // there are no enough rights
+      // there are not enough rights
       return false;
     }
   } else {
@@ -20813,7 +20813,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   auto top_thread_message_id = is_general ? MessageId() : initial_top_thread_message_id;
   auto same_chat_reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
   if (same_chat_reply_to_message_id.is_valid() || same_chat_reply_to_message_id.is_valid_scheduled()) {
-    // the message was forcely preloaded in create_message_input_reply_to
+    // the message was forcibly preloaded in create_message_input_reply_to
     // it can be missing, only if it is unknown message from a push notification, or an unknown top thread message
     const Message *reply_m = get_message(d, same_chat_reply_to_message_id);
     if (reply_m != nullptr && !same_chat_reply_to_message_id.is_scheduled()) {
@@ -26612,7 +26612,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     return false;
   }
 
-  VLOG(notifications) << "Trying to " << (force ? "forcely " : "") << "add new message notification for "
+  VLOG(notifications) << "Trying to " << (force ? "forcibly " : "") << "add new message notification for "
                       << m->message_id << " in " << d->dialog_id
                       << (m->disable_notification ? " silently" : " with sound");
 
@@ -29118,7 +29118,7 @@ void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_a
   }
   if (!force && d->active_group_call_id.is_valid() && has_active_group_call &&
       td_->group_call_manager_->is_group_call_being_joined(d->active_group_call_id)) {
-    LOG(INFO) << "Ignore update in a being joined group call";
+    LOG(INFO) << "Ignore update in a group call being joined";
     return;
   }
 
@@ -29173,7 +29173,7 @@ void MessagesManager::on_update_dialog_default_join_group_call_as_dialog_id(Dial
 
   if (!force && d->active_group_call_id.is_valid() &&
       td_->group_call_manager_->is_group_call_being_joined(d->active_group_call_id)) {
-    LOG(INFO) << "Ignore default_join_as_dialog_id update in a being joined group call";
+    LOG(INFO) << "Ignore default_join_as_dialog_id update in a group call being joined";
     return;
   }
 
@@ -32084,7 +32084,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         CHECK(d->scheduled_messages != nullptr);
         CHECK(is_message_in_dialog);
         // scheduled_message_date_ must be in sync with scheduled_messages_, therefore it must not be changed there.
-        // The message will be deleted and readded soon because its message_id has changed
+        // The message will be deleted and re-added soon because its message_id has changed
         // int32 &date = d->scheduled_messages->scheduled_message_date_[message_id.get_scheduled_server_message_id()];
         // CHECK(date != 0);
         // date = new_message->date;

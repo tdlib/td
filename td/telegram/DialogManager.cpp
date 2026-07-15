@@ -2539,7 +2539,7 @@ void DialogManager::on_upload_dialog_photo(FileUploadId file_upload_id,
 
     if (is_animation) {
       CHECK(file_view.get_type() == FileType::Animation);
-      // delete file reference and forcely reupload the file
+      // delete file reference and forcibly reupload the file
       auto file_reference = FileManager::extract_file_reference(main_remote_location->as_input_document());
       td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), file_reference);
       upload_dialog_photo(dialog_id, file_upload_id, is_animation, main_frame_timestamp, true, std::move(promise),
