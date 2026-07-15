@@ -26,6 +26,7 @@ class MessageHashMap {
 
  public:
   void set(DialogId dialog_id, MessageId message_id, ValueT value) {
+    CHECK(dialog_id != DialogId());
     if (message_id.is_scheduled() && message_id.is_scheduled_server()) {
       scheduled_messages_[dialog_id][message_id.get_scheduled_server_message_id()] = std::move(value);
     } else {
@@ -115,8 +116,10 @@ class MessageHashMap {
 
   ValueT &operator[](MessageFullId message_full_id) {
     auto message_id = message_full_id.get_message_id();
+    auto dialog_id = message_full_id.get_dialog_id();
+    CHECK(dialog_id != DialogId());
     if (message_id.is_scheduled() && message_id.is_scheduled_server()) {
-      return scheduled_messages_[message_full_id.get_dialog_id()][message_id.get_scheduled_server_message_id()];
+      return scheduled_messages_[dialog_id][message_id.get_scheduled_server_message_id()];
     } else {
       return messages_[message_full_id];
     }
