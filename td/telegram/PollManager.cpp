@@ -2286,7 +2286,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         is_changed = true;
       }
       // creator sees poll results, while others don't, therefore the recent voters must not be dropped
-      // if countries, are limited, then results will be available for everyone, but hidden in get_poll_object
+      // if countries, are limited, then results will be available to everyone, but hidden in get_poll_object
       if (!(is_min && poll->is_creator_ && poll->hide_results_until_close_) && !is_bot) {
         vector<DialogId> recent_option_voter_dialog_ids;
         for (const auto &recent_voter : poll_result->recent_voters_) {
