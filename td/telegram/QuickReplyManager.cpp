@@ -2205,19 +2205,17 @@ void QuickReplyManager::on_cover_upload(QuickReplyMessageFullId message_full_id,
   }
 
   const QuickReplyMessage *m = get_message(message_full_id);
-  if (m == nullptr) {
+  bool is_edit = m->message_id.is_any_server();
+  if (m == nullptr || (is_edit && m->edit_generation != edit_generation)) {
     // message has already been deleted by the user, do not need to send or edit it
     LOG(INFO) << "Quick reply message with a cover has already been deleted";
     return;
   }
 
   if (result.is_error()) {
-    bool is_edit = m->message_id.is_any_server();
     if (is_edit) {
-      if (edit_generation == m->edit_generation) {
-        fail_edit_quick_reply_message(m->shortcut_id, m->message_id, edit_generation, {}, {}, {}, {}, {}, false, false,
-                                      result.move_as_error());
-      }
+      fail_edit_quick_reply_message(m->shortcut_id, m->message_id, edit_generation, {}, {}, {}, {}, {}, false, false,
+                                    result.move_as_error());
     } else {
       on_failed_send_quick_reply_messages(m->shortcut_id, {m->random_id}, result.move_as_error());
     }

@@ -21877,22 +21877,20 @@ void MessagesManager::on_cover_upload(DialogId dialog_id, MessageId message_id, 
 
   MessageFullId message_full_id{dialog_id, message_id};
   const Message *m = get_message(message_full_id);
-  if (m == nullptr) {
+  bool is_edit = m->message_id.is_any_server();
+  if (m == nullptr || (is_edit && m->edit_generation != edit_generation)) {
     // message has already been deleted by the user or sent to inaccessible channel, do not need to send or edit it
     // file upload should be already canceled in cancel_send_message_query
     LOG(INFO) << "Message with a cover has already been deleted";
     return;
   }
 
-  bool is_edit = m->message_id.is_any_server();
   if (!is_edit && result.is_ok() && !is_ephemeral_message(m)) {
     result = can_send_message(dialog_id);
   }
   if (result.is_error()) {
     if (is_edit) {
-      if (m->edit_generation == edit_generation) {
-        fail_edit_message_media(message_full_id, result.move_as_error());
-      }
+      fail_edit_message_media(message_full_id, result.move_as_error());
     } else {
       fail_send_message(message_full_id, result.move_as_error());
     }
@@ -22260,7 +22258,8 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
 
   CHECK(message_id.is_valid() || message_id.is_valid_scheduled());
   Message *m = get_message(d, message_id);
-  if (m == nullptr || (m->message_id.is_any_server() && m->edit_generation != edit_generation)) {
+  auto is_edit = m->message_id.is_any_server();
+  if (m == nullptr || (is_edit && m->edit_generation != edit_generation)) {
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
@@ -22273,7 +22272,6 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
     return;  // the message should be deleted soon
   }
 
-  auto is_edit = message_id.is_any_server();
   EditedMessage *edited_message = nullptr;
   if (is_edit) {
     edited_message = edited_messages_.get_pointer(dialog_id, message_id);
@@ -22318,7 +22316,8 @@ void MessagesManager::on_upload_message_media_file_parts_missing(DialogId dialog
   CHECK(d != nullptr);
 
   Message *m = get_message(d, message_id);
-  if (m == nullptr || (m->message_id.is_any_server() && m->edit_generation != edit_generation)) {
+  bool is_edit = m->message_id.is_any_server();
+  if (m == nullptr || (is_edit && m->edit_generation != edit_generation)) {
     // message has already been deleted by the user, sent to inaccessible channel
     // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
@@ -22342,7 +22341,8 @@ void MessagesManager::on_upload_message_media_fail(DialogId dialog_id, MessageId
   CHECK(d != nullptr);
 
   Message *m = get_message(d, message_id);
-  if (m == nullptr || (m->message_id.is_any_server() && m->edit_generation != edit_generation)) {
+  auto is_edit = m->message_id.is_any_server();
+  if (m == nullptr || (is_edit && m->edit_generation != edit_generation)) {
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
@@ -22372,7 +22372,8 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
       return;
     }
     const auto *m = get_message({dialog_id, message_id});
-    if (m == nullptr || (m->message_id.is_any_server() && m->edit_generation != edit_generation)) {
+    auto is_edit = m->message_id.is_any_server();
+    if (m == nullptr || (is_edit && m->edit_generation != edit_generation)) {
       LOG(INFO) << "The message edit generation doesn't match";
       return;
     }
@@ -23526,8 +23527,8 @@ void MessagesManager::on_message_media_edited(
 
   auto edited_message = edited_messages_.get_pointer(dialog_id, message_id);
   CHECK(edited_message->content_ != nullptr);
-  //CHECK(edited_message->file_upload_ids_ == file_upload_ids);
-  //CHECK(edited_message->thumbnail_file_upload_ids_ == thumbnail_file_upload_ids);
+  CHECK(edited_message->file_upload_ids_ == file_upload_ids);
+  CHECK(edited_message->thumbnail_file_upload_ids_ == thumbnail_file_upload_ids);
   if (result.is_ok()) {
     // message content has already been replaced from updateEdit{Channel,}Message
     // need only merge files from edited_content with their uploaded counterparts
