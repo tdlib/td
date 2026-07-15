@@ -121,12 +121,12 @@ int main(int argc, char *argv[]) {
     }
     assert(!extensions.empty());
 
-    std::map<std::string, std::string> preffered_extensions{{"image/jpeg", "jpg"},  {"audio/mpeg", "mp3"},
+    std::map<std::string, std::string> preferred_extensions{{"image/jpeg", "jpg"},  {"audio/mpeg", "mp3"},
                                                             {"audio/midi", "midi"}, {"text/x-pascal", "pas"},
                                                             {"text/x-asm", "asm"},  {"video/quicktime", "mov"}};
     std::size_t index = 0;
-    if (preffered_extensions.count(mime_type) != 0) {
-      index = std::find(extensions.begin(), extensions.end(), preffered_extensions[mime_type]) - extensions.begin();
+    if (preferred_extensions.count(mime_type) != 0) {
+      index = std::find(extensions.begin(), extensions.end(), preferred_extensions[mime_type]) - extensions.begin();
       assert(index < extensions.size());
     }
     if (mime_type_to_extension.emplace_hint(mime_type_to_extension.end(), mime_type, extensions[index])->second !=

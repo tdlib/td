@@ -6134,7 +6134,7 @@ void UserManager::on_upload_profile_photo(FileUploadId file_upload_id,
       return promise.set_error(400, "Failed to reupload the file");
     }
 
-    // delete file reference and forcely reupload the file
+    // delete file reference and forcibly reupload the file
     if (is_animation) {
       CHECK(file_view.get_type() == FileType::Animation);
       LOG_CHECK(main_remote_location->is_common()) << *main_remote_location;

@@ -13281,7 +13281,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::Poll: {
       const auto *content = static_cast<const MessagePoll *>(message_content);
-      // no need to add poll dependencies, because they are forcely loaded with the poll
+      // no need to add poll dependencies, because they are forcibly loaded with the poll
       if (content->attached_media != nullptr) {
         add_message_content_dependencies(dependencies, content->attached_media.get(), my_user_id, is_bot);
       }
