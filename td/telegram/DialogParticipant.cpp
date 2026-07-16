@@ -25,10 +25,15 @@ AdministratorRights::AdministratorRights(const telegram_api::object_ptr<telegram
     return;
   }
 
-  if (!rights->other_) {
-    LOG(ERROR) << "Receive wrong other flag in " << to_string(rights);
+  auto other = rights->other_;
+  if (!other) {
+    if (channel_type == ChannelType::Unknown) {
+      other = true;
+    } else {
+      LOG(ERROR) << "Receive wrong other flag in " << to_string(rights);
+    }
   }
-  *this = AdministratorRights(rights->anonymous_, rights->other_, rights->change_info_, rights->post_messages_,
+  *this = AdministratorRights(rights->anonymous_, other, rights->change_info_, rights->post_messages_,
                               rights->edit_messages_, rights->delete_messages_, rights->invite_users_,
                               rights->ban_users_, rights->pin_messages_, rights->manage_topics_, rights->add_admins_,
                               rights->manage_call_, rights->post_stories_, rights->edit_stories_,
