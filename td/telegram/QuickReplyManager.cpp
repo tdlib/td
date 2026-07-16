@@ -2205,7 +2205,7 @@ void QuickReplyManager::on_cover_upload(QuickReplyMessageFullId message_full_id,
   }
 
   const QuickReplyMessage *m = get_message(message_full_id);
-  bool is_edit = m->message_id.is_any_server();
+  bool is_edit = message_full_id.get_message_id().is_any_server();
   if (m == nullptr || (is_edit && m->edit_generation != edit_generation)) {
     // message has already been deleted by the user, do not need to send or edit it
     LOG(INFO) << "Quick reply message with a cover has already been deleted";

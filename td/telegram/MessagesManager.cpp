@@ -21869,7 +21869,7 @@ void MessagesManager::on_cover_upload(DialogId dialog_id, MessageId message_id, 
 
   MessageFullId message_full_id{dialog_id, message_id};
   const Message *m = get_message(message_full_id);
-  bool is_edit = m->message_id.is_any_server();
+  bool is_edit = message_id.is_any_server();
   if (m == nullptr || (is_edit && m->edit_generation != edit_generation)) {
     // message has already been deleted by the user or sent to inaccessible channel, do not need to send or edit it
     // file upload should be already canceled in cancel_send_message_query
@@ -21892,6 +21892,7 @@ void MessagesManager::on_cover_upload(DialogId dialog_id, MessageId message_id, 
 }
 
 void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int32 media_pos, vector<int> bad_parts) {
+  CHECK(m != nullptr);
   bool is_edit = m->message_id.is_any_server();
   if (is_edit) {
     LOG(INFO) << "Do edit " << (media_pos == -1 ? "" : (PSTRING() << "media " << media_pos << " of "))
@@ -22250,7 +22251,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
 
   CHECK(message_id.is_valid() || message_id.is_valid_scheduled());
   Message *m = get_message(d, message_id);
-  auto is_edit = m->message_id.is_any_server();
+  auto is_edit = message_id.is_any_server();
   if (m == nullptr || (is_edit && m->edit_generation != edit_generation)) {
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send error to the user, because the message has already been deleted
@@ -22308,7 +22309,7 @@ void MessagesManager::on_upload_message_media_file_parts_missing(DialogId dialog
   CHECK(d != nullptr);
 
   Message *m = get_message(d, message_id);
-  bool is_edit = m->message_id.is_any_server();
+  bool is_edit = message_id.is_any_server();
   if (m == nullptr || (is_edit && m->edit_generation != edit_generation)) {
     // message has already been deleted by the user, sent to inaccessible channel
     // don't need to send error to the user, because the message has already been deleted
@@ -22333,7 +22334,7 @@ void MessagesManager::on_upload_message_media_fail(DialogId dialog_id, MessageId
   CHECK(d != nullptr);
 
   Message *m = get_message(d, message_id);
-  auto is_edit = m->message_id.is_any_server();
+  auto is_edit = message_id.is_any_server();
   if (m == nullptr || (is_edit && m->edit_generation != edit_generation)) {
     // message has already been deleted by the user or sent to inaccessible channel
     // don't need to send error to the user, because the message has already been deleted
@@ -22364,7 +22365,7 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
       return;
     }
     const auto *m = get_message({dialog_id, message_id});
-    auto is_edit = m->message_id.is_any_server();
+    auto is_edit = message_id.is_any_server();
     if (m == nullptr || (is_edit && m->edit_generation != edit_generation)) {
       LOG(INFO) << "The message edit generation doesn't match";
       return;
