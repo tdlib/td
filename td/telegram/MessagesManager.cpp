@@ -11467,18 +11467,10 @@ MessagesManager::MessageInfo MessagesManager::parse_ephemeral_message(
   message_info.ttl_period = 7 * 86400;
   // message_info.noforwards = message->noforwards_;
   // message_info.invert_media = message->invert_media_;
-  // message_info.effect_id = MessageEffectId(message->effect_);
   if (message->top_msg_id_ > 0) {
     auto top_thread_message_id = MessageId(ServerMessageId(message->top_msg_id_));
-    if (message_info.reply_header.top_thread_message_id_ != MessageId()) {
-      if (message_info.reply_header.top_thread_message_id_ != top_thread_message_id) {
-        LOG(ERROR) << "Receive ephemeral message in thread of " << top_thread_message_id << " and "
-                   << message_info.reply_header.top_thread_message_id_;
-      }
-    } else {
-      message_info.reply_header.top_thread_message_id_ = top_thread_message_id;
-      message_info.reply_header.is_topic_message_ = td->dialog_manager_->can_dialog_have_threads(dialog_id);
-    }
+    message_info.reply_header.top_thread_message_id_ = top_thread_message_id;
+    message_info.reply_header.is_topic_message_ = td->dialog_manager_->can_dialog_have_threads(dialog_id);
   }
   message_info.content = get_message_content(
       td,
