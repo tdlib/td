@@ -60,7 +60,8 @@ class AdministratorRights {
   AdministratorRights() : flags_(0) {
   }
 
-  AdministratorRights(const tl_object_ptr<telegram_api::chatAdminRights> &admin_rights, ChannelType channel_type);
+  AdministratorRights(const telegram_api::object_ptr<telegram_api::chatAdminRights> &admin_rights,
+                      ChannelType channel_type);
 
   AdministratorRights(const td_api::object_ptr<td_api::chatAdministratorRights> &administrator_rights,
                       ChannelType channel_type);
@@ -219,7 +220,7 @@ class RestrictedRights {
   }
 
  public:
-  RestrictedRights(const tl_object_ptr<telegram_api::chatBannedRights> &rights, ChannelType channel_type);
+  RestrictedRights(const telegram_api::object_ptr<telegram_api::chatBannedRights> &rights, ChannelType channel_type);
 
   RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights, ChannelType channel_type);
 
@@ -238,7 +239,7 @@ class RestrictedRights {
 
   td_api::object_ptr<td_api::communityPermissions> get_community_permissions_object() const;
 
-  tl_object_ptr<telegram_api::chatBannedRights> get_chat_banned_rights() const;
+  telegram_api::object_ptr<telegram_api::chatBannedRights> get_chat_banned_rights() const;
 
   bool can_change_info_and_settings() const {
     return (flags_ & CAN_CHANGE_INFO_AND_SETTINGS) != 0;
@@ -403,11 +404,11 @@ class DialogParticipantStatus {
   static DialogParticipantStatus ChannelAdministrator(bool is_current_user_creator, bool is_megagroup);
 
   // forcibly returns an administrator
-  DialogParticipantStatus(bool can_be_edited, tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights, string rank,
-                          ChannelType channel_type);
+  DialogParticipantStatus(bool can_be_edited, telegram_api::object_ptr<telegram_api::chatAdminRights> &&admin_rights,
+                          string rank, ChannelType channel_type);
 
   // forcibly returns a restricted or banned
-  DialogParticipantStatus(bool is_member, tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights,
+  DialogParticipantStatus(bool is_member, telegram_api::object_ptr<telegram_api::chatBannedRights> &&banned_rights,
                           ChannelType channel_type, string rank);
 
   bool has_all_administrator_rights(AdministratorRights administrator_rights) const {
@@ -718,10 +719,11 @@ struct DialogParticipant {
 
   DialogParticipant(DialogId dialog_id, UserId inviter_user_id, int32 joined_date, DialogParticipantStatus status);
 
-  DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant> &&participant_ptr, int32 chat_creation_date,
+  DialogParticipant(telegram_api::object_ptr<telegram_api::ChatParticipant> &&participant_ptr, int32 chat_creation_date,
                     bool is_current_user_creator);
 
-  DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr, ChannelType channel_type);
+  DialogParticipant(telegram_api::object_ptr<telegram_api::ChannelParticipant> &&participant_ptr,
+                    ChannelType channel_type);
 
   static DialogParticipant left(DialogId dialog_id) {
     return {dialog_id, UserId(), 0, DialogParticipantStatus::Left()};

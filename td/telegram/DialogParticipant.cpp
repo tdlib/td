@@ -18,7 +18,7 @@
 
 namespace td {
 
-AdministratorRights::AdministratorRights(const tl_object_ptr<telegram_api::chatAdminRights> &rights,
+AdministratorRights::AdministratorRights(const telegram_api::object_ptr<telegram_api::chatAdminRights> &rights,
                                          ChannelType channel_type) {
   if (rights == nullptr) {
     flags_ = 0;
@@ -196,7 +196,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const AdministratorRigh
   return string_builder;
 }
 
-RestrictedRights::RestrictedRights(const tl_object_ptr<telegram_api::chatBannedRights> &rights,
+RestrictedRights::RestrictedRights(const telegram_api::object_ptr<telegram_api::chatBannedRights> &rights,
                                    ChannelType channel_type) {
   if (rights == nullptr || channel_type == ChannelType::Broadcast) {
     flags_ = 0;
@@ -229,7 +229,7 @@ RestrictedRights::RestrictedRights(const td_api::object_ptr<td_api::chatPermissi
       rights->can_send_other_messages_, rights->can_send_other_messages_, rights->can_send_other_messages_,
       rights->can_send_other_messages_, rights->can_add_link_previews_, rights->can_send_polls_,
       rights->can_change_info_, rights->can_invite_users_, rights->can_pin_messages_, rights->can_create_topics_,
-      rights->can_edit_tag_, rights->can_react_to_messages_, false, channel_type);
+      rights->can_edit_tag_, rights->can_react_to_messages_, true, channel_type);
 }
 
 RestrictedRights::RestrictedRights(const td_api::object_ptr<td_api::communityPermissions> &rights) {
@@ -446,15 +446,15 @@ DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_cu
 }
 
 DialogParticipantStatus::DialogParticipantStatus(bool can_be_edited,
-                                                 tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights,
+                                                 telegram_api::object_ptr<telegram_api::chatAdminRights> &&admin_rights,
                                                  string rank, ChannelType channel_type) {
   CHECK(admin_rights != nullptr);
   *this = Administrator(AdministratorRights(admin_rights, channel_type), std::move(rank), can_be_edited);
 }
 
-DialogParticipantStatus::DialogParticipantStatus(bool is_member,
-                                                 tl_object_ptr<telegram_api::chatBannedRights> &&banned_rights,
-                                                 ChannelType channel_type, string rank) {
+DialogParticipantStatus::DialogParticipantStatus(
+    bool is_member, telegram_api::object_ptr<telegram_api::chatBannedRights> &&banned_rights, ChannelType channel_type,
+    string rank) {
   CHECK(banned_rights != nullptr);
   if (banned_rights->view_messages_) {
     *this = Banned(banned_rights->until_date_, std::move(rank));
@@ -530,11 +530,11 @@ td_api::object_ptr<td_api::CommunityMemberStatus> DialogParticipantStatus::get_c
   }
 }
 
-tl_object_ptr<telegram_api::chatAdminRights> DialogParticipantStatus::get_chat_admin_rights() const {
+telegram_api::object_ptr<telegram_api::chatAdminRights> DialogParticipantStatus::get_chat_admin_rights() const {
   return get_administrator_rights().get_chat_admin_rights();
 }
 
-tl_object_ptr<telegram_api::chatBannedRights> DialogParticipantStatus::get_chat_banned_rights() const {
+telegram_api::object_ptr<telegram_api::chatBannedRights> DialogParticipantStatus::get_chat_banned_rights() const {
   auto result = get_restricted_rights().get_chat_banned_rights();
   if (type_ == Type::Banned) {
     result->view_messages_ = true;
@@ -720,23 +720,23 @@ DialogParticipant::DialogParticipant(DialogId dialog_id, UserId inviter_user_id,
   }
 }
 
-DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant> &&participant_ptr,
+DialogParticipant::DialogParticipant(telegram_api::object_ptr<telegram_api::ChatParticipant> &&participant_ptr,
                                      int32 chat_creation_date, bool is_current_user_creator) {
   switch (participant_ptr->get_id()) {
     case telegram_api::chatParticipant::ID: {
-      auto participant = move_tl_object_as<telegram_api::chatParticipant>(participant_ptr);
+      auto participant = telegram_api::move_object_as<telegram_api::chatParticipant>(participant_ptr);
       *this = {DialogId(UserId(participant->user_id_)), UserId(participant->inviter_id_), participant->date_,
                DialogParticipantStatus::Member(0, std::move(participant->rank_))};
       break;
     }
     case telegram_api::chatParticipantCreator::ID: {
-      auto participant = move_tl_object_as<telegram_api::chatParticipantCreator>(participant_ptr);
+      auto participant = telegram_api::move_object_as<telegram_api::chatParticipantCreator>(participant_ptr);
       *this = {DialogId(UserId(participant->user_id_)), UserId(participant->user_id_), chat_creation_date,
                DialogParticipantStatus::Creator(true, false, std::move(participant->rank_))};
       break;
     }
     case telegram_api::chatParticipantAdmin::ID: {
-      auto participant = move_tl_object_as<telegram_api::chatParticipantAdmin>(participant_ptr);
+      auto participant = telegram_api::move_object_as<telegram_api::chatParticipantAdmin>(participant_ptr);
       *this = {DialogId(UserId(participant->user_id_)), UserId(participant->inviter_id_), participant->date_,
                DialogParticipantStatus::GroupAdministrator(is_current_user_creator, std::move(participant->rank_))};
       break;
@@ -746,44 +746,44 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant
   }
 }
 
-DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr,
+DialogParticipant::DialogParticipant(telegram_api::object_ptr<telegram_api::ChannelParticipant> &&participant_ptr,
                                      ChannelType channel_type) {
   CHECK(participant_ptr != nullptr);
 
   switch (participant_ptr->get_id()) {
     case telegram_api::channelParticipant::ID: {
-      auto participant = move_tl_object_as<telegram_api::channelParticipant>(participant_ptr);
+      auto participant = telegram_api::move_object_as<telegram_api::channelParticipant>(participant_ptr);
       *this = {DialogId(UserId(participant->user_id_)), UserId(), participant->date_,
                DialogParticipantStatus::Member(participant->subscription_until_date_, std::move(participant->rank_))};
       break;
     }
     case telegram_api::channelParticipantSelf::ID: {
-      auto participant = move_tl_object_as<telegram_api::channelParticipantSelf>(participant_ptr);
+      auto participant = telegram_api::move_object_as<telegram_api::channelParticipantSelf>(participant_ptr);
       *this = {DialogId(UserId(participant->user_id_)), UserId(participant->inviter_id_), participant->date_,
                DialogParticipantStatus::Member(participant->subscription_until_date_, std::move(participant->rank_))};
       break;
     }
     case telegram_api::channelParticipantCreator::ID: {
-      auto participant = move_tl_object_as<telegram_api::channelParticipantCreator>(participant_ptr);
+      auto participant = telegram_api::move_object_as<telegram_api::channelParticipantCreator>(participant_ptr);
       *this = {DialogId(UserId(participant->user_id_)), UserId(), 0,
                DialogParticipantStatus::Creator(true, participant->admin_rights_->anonymous_,
                                                 std::move(participant->rank_))};
       break;
     }
     case telegram_api::channelParticipantAdmin::ID: {
-      auto participant = move_tl_object_as<telegram_api::channelParticipantAdmin>(participant_ptr);
+      auto participant = telegram_api::move_object_as<telegram_api::channelParticipantAdmin>(participant_ptr);
       *this = {DialogId(UserId(participant->user_id_)), UserId(participant->promoted_by_), participant->date_,
                DialogParticipantStatus(participant->can_edit_, std::move(participant->admin_rights_),
                                        std::move(participant->rank_), channel_type)};
       break;
     }
     case telegram_api::channelParticipantLeft::ID: {
-      auto participant = move_tl_object_as<telegram_api::channelParticipantLeft>(participant_ptr);
+      auto participant = telegram_api::move_object_as<telegram_api::channelParticipantLeft>(participant_ptr);
       *this = {DialogId(participant->peer_), UserId(), 0, DialogParticipantStatus::Left()};
       break;
     }
     case telegram_api::channelParticipantBanned::ID: {
-      auto participant = move_tl_object_as<telegram_api::channelParticipantBanned>(participant_ptr);
+      auto participant = telegram_api::move_object_as<telegram_api::channelParticipantBanned>(participant_ptr);
       *this = {DialogId(participant->peer_), UserId(participant->kicked_by_), participant->date_,
                DialogParticipantStatus(!participant->left_, std::move(participant->banned_rights_), channel_type,
                                        std::move(participant->rank_))};

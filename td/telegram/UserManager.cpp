@@ -5600,7 +5600,7 @@ RestrictedRights UserManager::get_user_default_permissions(UserId user_id) const
     return RestrictedRights::restrict_all();
   }
   return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, false, false,
-                          true, false, false, true, false, ChannelType::Unknown);
+                          true, false, false, true, true, ChannelType::Unknown);
 }
 
 RestrictedRights UserManager::get_secret_chat_default_permissions(SecretChatId secret_chat_id) const {
@@ -5609,7 +5609,7 @@ RestrictedRights UserManager::get_secret_chat_default_permissions(SecretChatId s
     return RestrictedRights::restrict_all();
   }
   return RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true, false, false,
-                          false, false, false, false, false, ChannelType::Unknown);
+                          false, false, false, false, true, ChannelType::Unknown);
 }
 
 td_api::object_ptr<td_api::emojiStatus> UserManager::get_user_emoji_status_object(UserId user_id) const {
