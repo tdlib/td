@@ -98,18 +98,18 @@ void HttpConnectionBase::loop() {
     ssl_stream_.write_byte_flow().reset_need_size();
   }
   sync_with_poll(fd_);
+  bool need_read_more = false;
   if (can_read_local(fd_)) {
     LOG(DEBUG) << "Can read from the connection";
-    auto pending_read_size = read_sink_.get_read_size();
-    if (pending_read_size < MAX_PENDING_READ_SIZE) {
-      auto r = fd_.flush_read(MAX_PENDING_READ_SIZE - pending_read_size);
-      if (r.is_error()) {
-        if (!begins_with(r.error().message(), "SSL error {336134278")) {  // if error is not yet outputted
-          LOG(INFO) << "Receive flush_read error: " << r.error();
-        }
-        on_error(Status::Error(r.error().public_message()));
-        return stop();
+    auto r = fd_.flush_read(MAX_READ_SIZE);
+    if (r.is_error()) {
+      if (!begins_with(r.error().message(), "SSL error {336134278")) {  // if error is not yet outputted
+        LOG(INFO) << "Receive flush_read error: " << r.error();
       }
+      on_error(Status::Error(r.error().public_message()));
+      return stop();
+    } else if (r.ok() == MAX_READ_SIZE) {
+      need_read_more = true;
     }
   }
   read_source_.wakeup();
@@ -199,9 +199,8 @@ void HttpConnectionBase::loop() {
     return stop();
   }
 
-  if (want_read && can_read_local(fd_)) {
-    // reading was suspended or truncated because of MAX_PENDING_READ_SIZE, but the parser needs
-    // more data and the socket may have no new events: return to the connection right away
+  if (need_read_more) {
+    // reading was suspended because of MAX_READ_SIZE, but there can be more data available
     yield();
   }
 }
