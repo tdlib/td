@@ -733,18 +733,34 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
                                                               int32 initial_date, bool is_real_message_content) const {
   auto poll_options = transform(
       poll->options_, [td = td_](const PollOption &poll_option) { return poll_option.get_poll_option_object(td); });
+  auto recent_voters = get_min_message_senders_object(td_, poll->recent_voter_dialog_ids_, "get_poll_object");
   int32 voter_count_diff = 0;
   auto it = pending_answers_.find(poll_id);
   if (it != pending_answers_.end() && !(it->second.is_finished_ && poll->was_saved_)) {
     const auto &chosen_options = it->second.options_;
     LOG(INFO) << "Have pending chosen options " << chosen_options << " in " << poll_id;
+    auto remove_self = [&](vector<td_api::object_ptr<td_api::MessageSender>> &voters) {
+      for (auto voter_it = voters.begin(); voter_it != voters.end(); ++voter_it) {
+        auto &voter_id = *voter_it;
+        if (voter_id->get_id() == td_api::messageSenderUser::ID &&
+            static_cast<const td_api::messageSenderUser *>(voter_id.get())->user_id_ ==
+                td_->user_manager_->get_my_id().get()) {
+          voters.erase(voter_it);
+          break;
+        }
+      }
+    };
     for (auto &poll_option : poll_options) {
       poll_option->is_being_chosen_ = td::contains(chosen_options, poll_option->id_);
-      if (poll_option->is_chosen_) {
+      if (poll_option->is_chosen_ && !poll_option->is_being_chosen_) {
         voter_count_diff = -1;
         poll_option->voter_count_--;
         poll_option->is_chosen_ = false;
+        remove_self(poll_option->recent_voter_ids_);
       }
+    }
+    if (chosen_options.empty()) {
+      remove_self(recent_voters);
     }
   }
   for (const auto &const_poll_option : poll_options) {
@@ -822,7 +838,6 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     close_date = 0;
   }
 
-  auto recent_voters = get_min_message_senders_object(td_, poll->recent_voter_dialog_ids_, "get_poll_object");
   vector<int32> option_order;
   if (poll->shuffle_answers_ && !poll->is_creator_ && !td_->auth_manager_->is_bot()) {
     auto my_user_id = td_->user_manager_->get_my_id().get();
