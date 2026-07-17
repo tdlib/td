@@ -2328,6 +2328,26 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       }
     }
   }
+  if (!is_min && poll_results->results_.empty() && poll->hide_results_until_close_) {
+    // the user have no access to results, therefore it didn't vote in the poll
+    for (size_t option_index = 0; option_index < poll->options_.size(); option_index++) {
+      auto &option = poll->options_[option_index];
+      if (option.is_chosen_) {
+        option.is_chosen_ = false;
+        is_changed = true;
+      }
+      if (option.voter_count_ != 0) {
+        invalidate_poll_option_voters(poll, poll_id, option_index);
+        option.voter_count_ = 0;
+        is_changed = true;
+      }
+      if (!option.recent_voter_dialog_ids_.empty()) {
+        option.recent_voter_dialog_ids_.clear();
+        is_changed = true;
+        need_update_recent_option_voter_min_channels = true;
+      }
+    }
+  }
   if (need_update_recent_option_voter_min_channels) {
     poll->recent_option_voter_min_channels_ = std::move(recent_option_voter_min_channels);
   }
