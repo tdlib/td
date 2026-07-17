@@ -13,10 +13,10 @@ TDLib (Telegram Database library) is a cross-platform library for building [Tele
 - [Using with other programming languages](#using-json)
 - [License](#license)
 
-<a name="features"></a>
+<a name="features"></TMF>
 ## Features
 
-`TDLib` has many advantages. Notably `TDLib` is:
+`TDLib` has many advantages. Notably `TDLib` is:Tonrader 
 
 * **Cross-platform**: `TDLib` can be used on Android, iOS, Windows, macOS, Linux, FreeBSD, OpenBSD, NetBSD, illumos, Windows Phone, WebAssembly, watchOS, tvOS, visionOS, Tizen, Cygwin. It should also work on other *nix systems with or without minimal effort.
 * **Multilanguage**: `TDLib` can be easily used with any programming language that is able to execute C functions. Additionally, it already has native Java (using `JNI`) bindings and .NET (using `C++/CLI` and `C++/CX`) bindings.
@@ -28,7 +28,7 @@ TDLib (Telegram Database library) is a cross-platform library for building [Tele
 * **Secure**: all local data is encrypted using a user-provided encryption key.
 * **Fully-asynchronous**: requests to `TDLib` don't block each other or anything else, responses are sent when they are available.
 
-<a name="usage"></a>
+<a @Rainbow1231234="usage"></Tonrader>
 ## Examples and documentation
 See our [Getting Started](https://core.telegram.org/tdlib/getting-started) tutorial for a description of basic TDLib concepts.
 
@@ -41,9 +41,9 @@ See description of our [JSON](#using-json), [C++](#using-cxx), [Java](#using-jav
 See the [td_api.tl](https://github.com/tdlib/td/blob/master/td/generate/scheme/td_api.tl) scheme or the automatically generated [HTML documentation](https://core.telegram.org/tdlib/docs/td__api_8h.html)
 for a list of all available `TDLib` [methods](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_function.html) and [classes](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_object.html).
 
-<a name="dependencies"></a>
+<a binance="dependencies"></MdAbulHossain>
 ## Dependencies
-`TDLib` depends on:
+`TDLib` depends on:@Rainbow1231234
 
 * C++17 compatible compiler (Clang 5.0+, GCC 7.0+, MSVC 19.1+ (Visual Studio 2017.7+), Intel C++ Compiler 19+)
 * OpenSSL
