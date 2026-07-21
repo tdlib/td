@@ -13,6 +13,7 @@
     <description>TDLib for Universal Windows Platform</description>
     <copyright>© Telegram FZ-LLC. All rights reserved.</copyright>
     <dependencies>
+      <group targetFramework="net9.0-windows10.0.26100.0" />
       <group targetFramework="UAP10.0" />
     </dependencies>
   </metadata>

@@ -5,7 +5,8 @@ param (
   [string]$mode = "all",
   [string]$compress = "7z",
   [switch]$release_only = $false,
-  [switch]$nupkg = $false
+  [switch]$nupkg = $false,
+  [switch]$net9 = $false
 )
 $ErrorActionPreference = "Stop"
 
@@ -14,7 +15,7 @@ $vcpkg_root = Resolve-Path $vcpkg_root
 $vcpkg_cmake="${vcpkg_root}\scripts\buildsystems\vcpkg.cmake"
 $arch_list = $arch
 $config_list = @( "Debug", "Release" )
-if ($release_only -or $nupkg) {
+if ($release_only -or $nupkg -or $net9) {
   $config_list = @(, "RelWithDebInfo")
 }
 $targets = @{ Debug = "Debug"; Release = "Retail"; RelWithDebInfo = "CommonConfiguration"}
@@ -119,13 +120,35 @@ function export-vsix {
   cd ..
 }
 
+function build-projection {
+  dotnet build ../Telegram.Td.Interop.csproj -c Release
+  if ($LASTEXITCODE -ne 0) {
+      throw "Build for projection failed with exit code $LASTEXITCODE"
+  }
+
+  New-Item -ItemType Directory -Force -Path nupkg/build/net9.0-windows10.0.26100.0
+  New-Item -ItemType Directory -Force -Path nupkg/buildTransitive/net9.0-windows10.0.26100.0
+  cp ../Telegram.Td.UWP.net9.targets nupkg/build/net9.0-windows10.0.26100.0/Telegram.Td.UWP.targets
+  cp ../Telegram.Td.UWP.net9.targets nupkg/buildTransitive/net9.0-windows10.0.26100.0/Telegram.Td.UWP.targets
+
+  New-Item -ItemType Directory -Force -Path nupkg/lib/net9.0-windows10.0.26100.0
+  cp ../bin/Release/net9.0-windows10.0.26100.0/* -include "Telegram.Td.Interop.dll","Telegram.Td.Interop.pdb" nupkg/lib/net9.0-windows10.0.26100.0
+}
+
 function export-nupkg {
   cd build-uwp
   Remove-Item nupkg -Force -Recurse -ErrorAction SilentlyContinue
+
+  if ($net9) {
+    build-projection
+  }
+  
   New-Item -ItemType Directory -Force -Path nupkg/build/native
+  New-Item -ItemType Directory -Force -Path nupkg/build/uap10.0
   cp ../LICENSE_1_0.txt nupkg
   cp ../Telegram.Td.UWP.nuspec nupkg
   cp ../Telegram.Td.UWP.targets nupkg/build/native
+  cp ../Telegram.Td.UWP.targets nupkg/build/uap10.0
 
   ForEach ($arch in $arch_list) {
     $fixed_arch = $arch.ToLower();
@@ -159,7 +182,7 @@ function run {
       build
     }
     if (($mode -eq "export") -or ($mode -eq "all")) {
-      if ($nupkg) {
+      if ($nupkg -or $net9) {
         export-nupkg
       } else {
         export-vsix
