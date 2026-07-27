@@ -140,8 +140,11 @@ if (CLANG OR GCC)
   endif()
 endif()
 
-include(GetGitRevisionDescription)
-get_git_head_revision(TD_GIT_REFSPEC TD_GIT_COMMIT_HASH)
+set(TD_GIT_COMMIT_HASH "" CACHE STRING "If set and not empty, override Git commit hash with the provided string.")
+if (NOT TD_GIT_COMMIT_HASH)
+  include(GetGitRevisionDescription)
+  get_git_head_revision(TD_GIT_REFSPEC TD_GIT_COMMIT_HASH)
+endif()
 message(STATUS "Git state: ${TD_GIT_COMMIT_HASH}")
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/td/telegram/GitCommitHash.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/GitCommitHash.cpp" @ONLY)
