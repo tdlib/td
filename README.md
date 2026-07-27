@@ -48,6 +48,7 @@ for a list of all available `TDLib` [methods](https://core.telegram.org/tdlib/do
 * C++17 compatible compiler (Clang 5.0+, GCC 7.0+, MSVC 19.1+ (Visual Studio 2017.7+), Intel C++ Compiler 19+)
 * OpenSSL
 * zlib
+* SQLCipher (optional)
 * gperf (build only)
 * CMake (3.10+, build only)
 * PHP (optional, for documentation generation)
