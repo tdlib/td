@@ -45,10 +45,11 @@
 
   <!-- Layout definition for a class page -->
   <class>
-    <briefdescription visible="yes"/>
+    <briefdescription visible="no"/>
     <includes visible="$SHOW_HEADERFILE"/>
     <inheritancegraph visible="yes"/>
     <collaborationgraph visible="yes"/>
+    <detaileddescription visible="yes" title="Description"/>
     <memberdecl>
       <nestedclasses visible="yes" title=""/>
       <publictypes visible="yes" title=""/>
@@ -83,7 +84,6 @@
       <related visible="yes" title="" subtitle=""/>
       <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription visible="yes" title=""/>
     <memberdef>
       <inlineclasses visible="yes" title=""/>
       <typedefs visible="yes" title=""/>
@@ -104,7 +104,8 @@
 
   <!-- Layout definition for a namespace page -->
   <namespace>
-    <briefdescription visible="yes"/>
+    <briefdescription visible="no"/>
+    <detaileddescription visible="yes" title="Description"/>
     <memberdecl>
       <nestednamespaces visible="yes" title=""/>
       <constantgroups visible="yes" title=""/>
@@ -122,7 +123,6 @@
       <properties visible="yes" title=""/>
       <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription visible="yes" title=""/>
     <memberdef>
       <inlineclasses visible="yes" title=""/>
       <typedefs visible="yes" title=""/>
@@ -138,19 +138,20 @@
 
   <!-- Layout definition for a concept page -->
   <concept>
-    <briefdescription visible="yes"/>
+    <briefdescription visible="no"/>
     <includes visible="$SHOW_HEADERFILE"/>
+    <detaileddescription visible="yes" title="Description"/>
     <definition visible="yes" title=""/>
-    <detaileddescription visible="yes" title=""/>
     <authorsection visible="yes"/>
   </concept>
 
   <!-- Layout definition for a file page -->
   <file>
-    <briefdescription visible="yes"/>
+    <briefdescription visible="no"/>
     <includes visible="$SHOW_INCLUDE_FILES"/>
     <includegraph visible="yes"/>
     <includedbygraph visible="yes"/>
+    <detaileddescription visible="yes" title="Description"/>
     <sourcelink visible="yes"/>
     <memberdecl>
       <interfaces visible="yes" title=""/>
@@ -170,7 +171,6 @@
       <properties visible="yes" title=""/>
       <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription visible="yes" title=""/>
     <memberdef>
       <inlineclasses visible="yes" title=""/>
       <defines visible="yes" title=""/>
@@ -187,8 +187,9 @@
 
   <!-- Layout definition for a group page -->
   <group>
-    <briefdescription visible="yes"/>
+    <briefdescription visible="no"/>
     <groupgraph visible="yes"/>
+    <detaileddescription visible="yes" title="Description"/>
     <memberdecl>
       <nestedgroups visible="yes" title=""/>
       <modules visible="yes" title=""/>
@@ -214,7 +215,6 @@
       <friends visible="yes" title=""/>
       <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription visible="yes" title=""/>
     <memberdef>
       <pagedocs/>
       <inlineclasses visible="yes" title=""/>
@@ -239,7 +239,8 @@
 
   <!-- Layout definition for a C++20 module page -->
   <module>
-    <briefdescription visible="yes"/>
+    <briefdescription visible="no"/>
+    <detaileddescription visible="yes" title="Description"/>
     <exportedmodules visible="yes"/>
     <memberdecl>
       <concepts visible="yes" title=""/>
@@ -250,7 +251,6 @@
       <variables visible="yes" title=""/>
       <membergroups visible="yes" title=""/>
     </memberdecl>
-    <detaileddescription visible="yes" title=""/>
     <memberdecl>
       <files visible="yes"/>
     </memberdecl>
@@ -258,12 +258,12 @@
 
   <!-- Layout definition for a directory page -->
   <directory>
-    <briefdescription visible="yes"/>
+    <briefdescription visible="no"/>
     <directorygraph visible="yes"/>
+    <detaileddescription visible="yes" title="Description"/>
     <memberdecl>
       <dirs visible="yes"/>
       <files visible="yes"/>
     </memberdecl>
-    <detaileddescription visible="yes" title=""/>
   </directory>
 </doxygenlayout>
