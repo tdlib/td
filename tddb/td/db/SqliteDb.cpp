@@ -95,6 +95,8 @@ Status SqliteDb::init(CSlice path, bool allow_creation) {
   }
   tdsqlite3_busy_timeout(db, 1000 * 5 /* 5 seconds */);
   raw_ = std::make_shared<detail::RawSqliteDb>(db, path.str());
+
+  LOG_STATUS(exec("PRAGMA cipher_log_level = NONE"));
   return Status::OK();
 }
 
