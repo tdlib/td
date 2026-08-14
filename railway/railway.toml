@@ -1,0 +1,7 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "railway/Dockerfile"
+
+[deploy]
+restartPolicyType = "ALWAYS"
+sleepApplication = false
