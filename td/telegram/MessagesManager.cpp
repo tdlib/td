@@ -19737,6 +19737,10 @@ void MessagesManager::load_last_dialog_message_later(DialogId dialog_id) {
 }
 
 void MessagesManager::load_last_dialog_message(const Dialog *d, const char *source) {
+  if (!G()->use_message_database() &&
+      td_->option_manager_->get_option_boolean("disable_automatic_last_message_loading")) {
+    return;
+  }
   get_history_impl(d, MessageId::max(), 0, -1, true, false, Promise<Unit>(), source);
 }
 
