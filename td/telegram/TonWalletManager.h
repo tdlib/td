@@ -37,6 +37,11 @@ class TonWalletManager final : public Actor {
   Td *td_;
   ActorShared<> parent_;
 
+  struct StreamingApiUrl {
+    string url_;
+    int32 expires_at_ = 0;
+  };
+  StreamingApiUrl streaming_api_url_;
   vector<Promise<td_api::object_ptr<td_api::tonCenterStreamingApiUrl>>> get_streaming_api_url_queries_;
 };
 

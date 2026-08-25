@@ -117,6 +117,11 @@ void TonWalletManager::perform_ton_center_api_request(const string &endpoint,
 
 void TonWalletManager::get_ton_center_streaming_api_url(
     Promise<td_api::object_ptr<td_api::tonCenterStreamingApiUrl>> &&promise) {
+  auto cache_expires_in = streaming_api_url_.expires_at_ - G()->unix_time();
+  if (cache_expires_in >= 60) {
+    return promise.set_value(
+        td_api::make_object<td_api::tonCenterStreamingApiUrl>(streaming_api_url_.url_, cache_expires_in));
+  }
   get_streaming_api_url_queries_.push_back(std::move(promise));
   if (get_streaming_api_url_queries_.size() == 1u) {
     auto query_promise = PromiseCreator::lambda(
@@ -139,12 +144,15 @@ void TonWalletManager::on_get_ton_center_streaming_api_url(
     return;
   }
   auto url = r_url.move_as_ok();
+
   auto expires_in = url->expires_ - G()->unix_time();
-  if (expires_in <= 0) {
+  if (expires_in <= 0 || url->url_.empty()) {
     LOG(ERROR) << "Receive " << to_string(url);
-    fail_promises(promises, Status::Error(500, "Receive expired URL"));
+    fail_promises(promises, Status::Error(500, "Receive invalid response"));
     return;
   }
+  streaming_api_url_.url_ = url->url_;
+  streaming_api_url_.expires_at_ = url->expires_;
   for (auto &promise : promises) {
     promise.set_value(td_api::make_object<td_api::tonCenterStreamingApiUrl>(url->url_, expires_in));
   }
