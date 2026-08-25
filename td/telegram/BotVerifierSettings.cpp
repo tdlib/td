@@ -20,7 +20,7 @@ BotVerifierSettings::BotVerifierSettings(
   }
   icon_ = CustomEmojiId(bot_verifier_settings->icon_);
   company_ = std::move(bot_verifier_settings->company_);
-  description_ = std::move(bot_verifier_settings->custom_description_);
+  description_ = std::move(bot_verifier_settings->custom_description_->text_);
   can_modify_custom_description_ = bot_verifier_settings->can_modify_custom_description_;
 }
 

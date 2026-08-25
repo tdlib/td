@@ -39,7 +39,8 @@ static Result<MessageEntity> parse_message_entity(JsonValue &value) {
       type == "messageEntityCashtag" || type == "messageEntityPhone" || type == "messageEntityBotCommand" ||
       type == "messageEntityBankCard" || type == "messageEntityUrl" || type == "messageEntityEmail" ||
       type == "messageEntityMentionName" || type == "messageEntityFormattedDate" || type == "messageEntityDiffInsert" ||
-      type == "messageEntityDiffReplace" || type == "messageEntityDiffDelete" || min_layer > MTPROTO_LAYER) {
+      type == "messageEntityDiffReplace" || type == "messageEntityDiffDelete" || type == "messageEntityTonAddress" ||
+      min_layer > MTPROTO_LAYER) {
     return Status::Error("Skip");
   }
   if (type == "messageEntityPre") {

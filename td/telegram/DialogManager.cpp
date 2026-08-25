@@ -94,7 +94,7 @@ class CheckChannelUsernameQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, const string &username, bool is_bot) {
     if (is_bot) {
       CHECK(channel_id == ChannelId());
-      send_query(G()->net_query_creator().create(telegram_api::bots_checkUsername(username), {{"me"}}));
+      send_query(G()->net_query_creator().create(telegram_api::bots_checkUsername(0, false, username), {{"me"}}));
       return;
     }
     channel_id_ = channel_id;

@@ -735,8 +735,9 @@ class SetCustomVerificationQuery final : public Td::ResultHandler {
       flags |= telegram_api::bots_setCustomVerification::CUSTOM_DESCRIPTION_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::bots_setCustomVerification(flags, is_verified, std::move(input_user), std::move(input_peer),
-                                                 custom_description),
+        telegram_api::bots_setCustomVerification(
+            flags, is_verified, std::move(input_user), std::move(input_peer),
+            telegram_api::make_object<telegram_api::textWithEntities>(custom_description, Auto())),
         {{dialog_id}}));
   }
 

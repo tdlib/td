@@ -21,7 +21,7 @@ BotVerification::BotVerification(telegram_api::object_ptr<telegram_api::botVerif
   }
   bot_user_id_ = UserId(bot_verification->bot_id_);
   icon_ = CustomEmojiId(bot_verification->icon_);
-  description_ = std::move(bot_verification->description_);
+  description_ = std::move(bot_verification->description_->text_);
 }
 
 unique_ptr<BotVerification> BotVerification::get_bot_verification(

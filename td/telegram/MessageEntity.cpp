@@ -3969,6 +3969,11 @@ vector<MessageEntity> get_message_entities(const UserManager *user_manager,
         entities.emplace_back(MessageEntity::Type::FormattedDate, entity->offset_, entity->length_, std::move(date));
         break;
       }
+      case telegram_api::messageEntityTonAddress::ID: {
+        auto entity = static_cast<const telegram_api::messageEntityTonAddress *>(server_entity.get());
+        entities.emplace_back(MessageEntity::Type::BankCardNumber, entity->offset_, entity->length_);
+        break;
+      }
       case telegram_api::messageEntityDiffInsert::ID:
       case telegram_api::messageEntityDiffReplace::ID:
       case telegram_api::messageEntityDiffDelete::ID:

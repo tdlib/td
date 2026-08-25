@@ -378,6 +378,12 @@ class RichText {
             0, nullptr, "1", std::move(rich_text->type_)));
         break;
       }
+      case telegram_api::textTonAddress::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textTonAddress>(rich_text_ptr);
+        type_ = Type::BankCardNumber;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
       default:
         UNREACHABLE();
     }
