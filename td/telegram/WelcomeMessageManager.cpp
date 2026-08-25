@@ -553,6 +553,7 @@ void WelcomeMessageManager::do_delete_welcome_messages(DialogId dialog_id,
   if (ephemeral_message_ids.empty()) {
     return;
   }
+  CHECK(dialog_id.is_valid());
   auto &messages = welcome_messages_[dialog_id].messages_;
   auto old_file_ids = get_dialog_welcome_message_file_ids(messages);
   td::remove_if(messages, [&](const auto &welcome_message) {
@@ -738,6 +739,7 @@ void WelcomeMessageManager::on_get_welcome_messages(
       need_update = true;
     }
   } else {
+    CHECK(dialog_id.is_valid());
     auto &messages = welcome_messages_[dialog_id].messages_;
     if (messages.size() != welcome_messages.size()) {
       need_update = true;

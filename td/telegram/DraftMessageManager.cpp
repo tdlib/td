@@ -261,6 +261,7 @@ void DraftMessageManager::tear_down() {
 
 void DraftMessageManager::save_draft_message(DialogId dialog_id, const MessageTopic &message_topic,
                                              const unique_ptr<DraftMessage> &draft_message, Promise<Unit> &&promise) {
+  CHECK(dialog_id.is_valid());
   if (dialog_id.get_type() == DialogType::SecretChat || is_local_draft_message(draft_message)) {
     return promise.set_value(Unit());
   }
