@@ -6,9 +6,12 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
+
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 
 namespace td {
 
@@ -17,6 +20,10 @@ class Td;
 class TonWalletManager final : public Actor {
  public:
   TonWalletManager(Td *td, ActorShared<> parent);
+
+  void perform_ton_center_api_request(const string &endpoint,
+                                      td_api::object_ptr<td_api::TonCenterApiRequestType> &&type,
+                                      Promise<string> &&promise);
 
  private:
   void tear_down() final;

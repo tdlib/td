@@ -174,6 +174,7 @@
 #include "td/telegram/TermsOfServiceManager.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TimeZoneManager.h"
+#include "td/telegram/TonWalletManager.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/TranscriptionManager.h"
@@ -7903,7 +7904,8 @@ void Requests::on_request(uint64 id, td_api::sendTonCenterApiRequest &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.endpoint_);
   CREATE_TEXT_REQUEST_PROMISE();
-  perform_ton_center_api_request(td_, request.endpoint_, std::move(request.type_), std::move(promise));
+  td_->ton_wallet_manager_->perform_ton_center_api_request(request.endpoint_, std::move(request.type_),
+                                                           std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getStarRevenueStatistics &request) {

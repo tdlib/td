@@ -1010,41 +1010,6 @@ class GetCollectibleInfoQuery final : public Td::ResultHandler {
   }
 };
 
-class PerformTonCenterApiRequestQuery final : public Td::ResultHandler {
-  Promise<string> promise_;
-
- public:
-  explicit PerformTonCenterApiRequestQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(const string &endpoint, bool is_post, const string &query, const string &payload) {
-    int32 flags = 0;
-    if (!query.empty()) {
-      flags |= telegram_api::toncenter_performApiRequest::QUERY_MASK;
-    }
-    if (!payload.empty()) {
-      flags |= telegram_api::toncenter_performApiRequest::PAYLOAD_MASK;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::toncenter_performApiRequest(flags, is_post, endpoint, query, payload), {},
-        G()->get_webfile_dc_id()));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::toncenter_performApiRequest>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto result = result_ptr.move_as_ok();
-    promise_.set_value(std::move(result->response_->data_));
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
 void answer_shipping_query(Td *td, int64 shipping_query_id,
                            vector<tl_object_ptr<td_api::shippingOption>> &&shipping_options,
                            const string &error_message, Promise<Unit> &&promise) {
@@ -1261,36 +1226,6 @@ void get_collectible_info(Td *td, td_api::object_ptr<td_api::CollectibleItemType
       }
       td->create_handler<GetCollectibleInfoQuery>(std::move(promise))
           ->send(telegram_api::make_object<telegram_api::inputCollectiblePhone>(phone_number->phone_number_));
-      break;
-    }
-    default:
-      UNREACHABLE();
-  }
-}
-
-void perform_ton_center_api_request(Td *td, const string &endpoint,
-                                    td_api::object_ptr<td_api::TonCenterApiRequestType> &&type,
-                                    Promise<string> &&promise) {
-  if (type == nullptr) {
-    return promise.set_error(400, "Item type must be non-empty");
-  }
-  switch (type->get_id()) {
-    case td_api::tonCenterApiRequestTypeGet::ID: {
-      auto get = td_api::move_object_as<td_api::tonCenterApiRequestTypeGet>(type);
-      if (!clean_input_string(get->query_)) {
-        return promise.set_error(400, "Query must be encoded in UTF-8");
-      }
-      td->create_handler<PerformTonCenterApiRequestQuery>(std::move(promise))
-          ->send(endpoint, false, get->query_, string());
-      break;
-    }
-    case td_api::tonCenterApiRequestTypePost::ID: {
-      auto post = td_api::move_object_as<td_api::tonCenterApiRequestTypePost>(type);
-      if (!clean_input_string(post->payload_)) {
-        return promise.set_error(400, "Phone number must be encoded in UTF-8");
-      }
-      td->create_handler<PerformTonCenterApiRequestQuery>(std::move(promise))
-          ->send(endpoint, true, string(), post->payload_);
       break;
     }
     default:
