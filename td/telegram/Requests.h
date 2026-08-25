@@ -1694,6 +1694,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::getTonTransactions &request);
 
+  void on_request(uint64 id, td_api::sendTonCenterApiRequest &request);
+
   void on_request(uint64 id, const td_api::getStarRevenueStatistics &request);
 
   void on_request(uint64 id, const td_api::getStarWithdrawalUrl &request);

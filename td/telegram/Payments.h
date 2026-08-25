@@ -56,4 +56,8 @@ void get_bank_card_info(Td *td, const string &bank_card_number,
 void get_collectible_info(Td *td, td_api::object_ptr<td_api::CollectibleItemType> type,
                           Promise<td_api::object_ptr<td_api::collectibleItemInfo>> &&promise);
 
+void perform_ton_center_api_request(Td *td, const string &endpoint,
+                                    td_api::object_ptr<td_api::TonCenterApiRequestType> &&type,
+                                    Promise<string> &&promise);
+
 }  // namespace td

@@ -8767,6 +8767,18 @@ class CliClient final : public Actor {
         direction = td_api::make_object<td_api::transactionDirectionOutgoing>();
       }
       send_request(td_api::make_object<td_api::getTonTransactions>(std::move(direction), offset, as_limit(limit)));
+    } else if (op == "stcarg") {
+      string endpoint;
+      string query;
+      get_args(args, endpoint, query);
+      send_request(td_api::make_object<td_api::sendTonCenterApiRequest>(
+          endpoint, td_api::make_object<td_api::tonCenterApiRequestTypeGet>(query)));
+    } else if (op == "stcarp") {
+      string endpoint;
+      string payload;
+      get_args(args, endpoint, payload);
+      send_request(td_api::make_object<td_api::sendTonCenterApiRequest>(
+          endpoint, td_api::make_object<td_api::tonCenterApiRequestTypePost>(payload)));
     } else if (op == "gsrs") {
       string owner_id;
       bool is_dark;

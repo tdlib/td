@@ -7899,6 +7899,13 @@ void Requests::on_request(uint64 id, td_api::getTonTransactions &request) {
                                            std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::sendTonCenterApiRequest &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.endpoint_);
+  CREATE_TEXT_REQUEST_PROMISE();
+  perform_ton_center_api_request(td_, request.endpoint_, std::move(request.type_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getStarRevenueStatistics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

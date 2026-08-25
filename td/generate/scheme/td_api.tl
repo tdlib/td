@@ -2168,6 +2168,15 @@ tonTransaction id:string gram_amount:int53 is_refund:Bool date:int32 type:TonTra
 tonTransactions gram_amount:int53 transactions:vector<tonTransaction> next_offset:string = TonTransactions;
 
 
+//@class TonCenterApiRequestType @description Describes state of active stories posted by a chat
+
+//@description A GET request @query URL-encoded query of the request
+tonCenterApiRequestTypeGet query:string = TonCenterApiRequestType;
+
+//@description A POST request @payload Payload of the request
+tonCenterApiRequestTypePost payload:string = TonCenterApiRequestType;
+
+
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
 
 //@description The chat has an active live story @story_id Identifier of the active live story
@@ -15731,6 +15740,12 @@ getChatRevenueTransactions chat_id:int53 offset:string limit:int32 = ChatRevenue
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of transactions to return
 getTonTransactions direction:TransactionDirection offset:string limit:int32 = TonTransactions;
+
+
+//@description Sends a request to TON Center API and returns its response in JSON format.
+//@endpoint The path of the requested endpoint. See https://toncenter.com/api/v3/index.html for the list of supported endpoints
+//@type Type of the request
+sendTonCenterApiRequest endpoint:string type:TonCenterApiRequestType = Text;
 
 
 //@description Returns detailed Telegram Star revenue statistics
