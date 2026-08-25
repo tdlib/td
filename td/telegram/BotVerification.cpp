@@ -21,7 +21,7 @@ BotVerification::BotVerification(telegram_api::object_ptr<telegram_api::botVerif
   }
   bot_user_id_ = UserId(bot_verification->bot_id_);
   icon_ = CustomEmojiId(bot_verification->icon_);
-  description_ = std::move(bot_verification->description_->text_);
+  description_ = get_formatted_text(nullptr, std::move(bot_verification->description_), true, false, "BotVerification");
 }
 
 unique_ptr<BotVerification> BotVerification::get_bot_verification(
@@ -41,16 +41,14 @@ td_api::object_ptr<td_api::botVerification> BotVerification::get_bot_verificatio
   if (!is_valid()) {
     return nullptr;
   }
-  FormattedText text;
-  text.text = description_;
-  text.entities = find_entities(text.text, true, true);
   return td_api::make_object<td_api::botVerification>(
       td->user_manager_->get_user_id_object(bot_user_id_, "botVerification"), icon_.get(),
-      get_formatted_text_object(td->user_manager_.get(), text, true, -1));
+      get_formatted_text_object(td->user_manager_.get(), description_, true, -1));
 }
 
 void BotVerification::add_dependencies(Dependencies &dependencies) const {
   dependencies.add(bot_user_id_);
+  add_formatted_text_dependencies(dependencies, &description_);
 }
 
 bool operator==(const BotVerification &lhs, const BotVerification &rhs) {
