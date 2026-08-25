@@ -7908,6 +7908,12 @@ void Requests::on_request(uint64 id, td_api::sendTonCenterApiRequest &request) {
                                                            std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getTonCenterStreamingApiUrl &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->get_ton_center_streaming_api_url(std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getStarRevenueStatistics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

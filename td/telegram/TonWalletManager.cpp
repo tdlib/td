@@ -9,6 +9,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/buffer.h"
 
@@ -42,6 +43,34 @@ class PerformTonCenterApiRequestQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     promise_.set_value(std::move(result->response_->data_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetTonCenterStreamingApiUrlQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::toncenter_streamingUrl>> promise_;
+
+ public:
+  explicit GetTonCenterStreamingApiUrlQuery(
+      Promise<telegram_api::object_ptr<telegram_api::toncenter_streamingUrl>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::toncenter_getStreamingUrl()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::toncenter_getStreamingUrl>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(std::move(result));
   }
 
   void on_error(Status status) final {
@@ -83,6 +112,41 @@ void TonWalletManager::perform_ton_center_api_request(const string &endpoint,
     }
     default:
       UNREACHABLE();
+  }
+}
+
+void TonWalletManager::get_ton_center_streaming_api_url(
+    Promise<td_api::object_ptr<td_api::tonCenterStreamingApiUrl>> &&promise) {
+  get_streaming_api_url_queries_.push_back(std::move(promise));
+  if (get_streaming_api_url_queries_.size() == 1u) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::toncenter_streamingUrl>> r_url) {
+          send_closure(actor_id, &TonWalletManager::on_get_ton_center_streaming_api_url, std::move(r_url));
+        });
+    td_->create_handler<GetTonCenterStreamingApiUrlQuery>(std::move(query_promise))->send();
+  }
+}
+
+void TonWalletManager::on_get_ton_center_streaming_api_url(
+    Result<telegram_api::object_ptr<telegram_api::toncenter_streamingUrl>> r_url) {
+  G()->ignore_result_if_closing(r_url);
+  auto promises = std::move(get_streaming_api_url_queries_);
+  CHECK(!promises.empty());
+  get_streaming_api_url_queries_.clear();
+
+  if (r_url.is_error()) {
+    fail_promises(promises, r_url.move_as_error());
+    return;
+  }
+  auto url = r_url.move_as_ok();
+  auto expires_in = url->expires_ - G()->unix_time();
+  if (expires_in <= 0) {
+    LOG(ERROR) << "Receive " << to_string(url);
+    fail_promises(promises, Status::Error(500, "Receive expired URL"));
+    return;
+  }
+  for (auto &promise : promises) {
+    promise.set_value(td_api::make_object<td_api::tonCenterStreamingApiUrl>(url->url_, expires_in));
   }
 }
 

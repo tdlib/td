@@ -7468,6 +7468,10 @@ botWriteAccessAllowReasonAcceptedRequest = BotWriteAccessAllowReason;
 httpUrl url:string = HttpUrl;
 
 
+//@description Contains an HTTP URL for TON Center Streaming API @url The URL @expires_in Time after which the URL expires
+tonCenterStreamingApiUrl url:string expires_in:int32 = TonCenterStreamingApiUrl;
+
+
 //@description Contains an HTTPS URL, which can be used to get information about a user @url The URL @expires_in Left time for which the link is valid, in seconds; 0 if the link is a public username link
 userLink url:string expires_in:int32 = UserLink;
 
@@ -15746,6 +15750,9 @@ getTonTransactions direction:TransactionDirection offset:string limit:int32 = To
 //@endpoint The path of the requested endpoint. See https://toncenter.com/api/v3/index.html for the list of supported endpoints
 //@type Type of the request
 sendTonCenterApiRequest endpoint:string type:TonCenterApiRequestType = Text;
+
+//@description Returns a URL for TON Center Streaming API
+getTonCenterStreamingApiUrl = TonCenterStreamingApiUrl;
 
 
 //@description Returns detailed Telegram Star revenue statistics

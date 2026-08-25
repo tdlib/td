@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 
@@ -25,11 +26,18 @@ class TonWalletManager final : public Actor {
                                       td_api::object_ptr<td_api::TonCenterApiRequestType> &&type,
                                       Promise<string> &&promise);
 
+  void get_ton_center_streaming_api_url(Promise<td_api::object_ptr<td_api::tonCenterStreamingApiUrl>> &&promise);
+
  private:
   void tear_down() final;
 
+  void on_get_ton_center_streaming_api_url(
+      Result<telegram_api::object_ptr<telegram_api::toncenter_streamingUrl>> r_url);
+
   Td *td_;
   ActorShared<> parent_;
+
+  vector<Promise<td_api::object_ptr<td_api::tonCenterStreamingApiUrl>>> get_streaming_api_url_queries_;
 };
 
 }  // namespace td
