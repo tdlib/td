@@ -20,7 +20,8 @@ BotVerifierSettings::BotVerifierSettings(
   }
   icon_ = CustomEmojiId(bot_verifier_settings->icon_);
   company_ = std::move(bot_verifier_settings->company_);
-  description_ = std::move(bot_verifier_settings->custom_description_->text_);
+  description_ = get_formatted_text(nullptr, std::move(bot_verifier_settings->custom_description_), true, false,
+                                    "BotVerifierSettings");
   can_modify_custom_description_ = bot_verifier_settings->can_modify_custom_description_;
 }
 
@@ -43,11 +44,8 @@ td_api::object_ptr<td_api::botVerificationParameters> BotVerifierSettings::get_b
     return nullptr;
   }
   td_api::object_ptr<td_api::formattedText> description;
-  if (!description_.empty() || can_modify_custom_description_) {
-    FormattedText text;
-    text.text = description_;
-    text.entities = find_entities(text.text, true, true);
-    description = get_formatted_text_object(td->user_manager_.get(), text, true, -1);
+  if (!description_.text.empty() || can_modify_custom_description_) {
+    description = get_formatted_text_object(td->user_manager_.get(), description_, true, -1);
   }
   return td_api::make_object<td_api::botVerificationParameters>(icon_.get(), company_, std::move(description),
                                                                 can_modify_custom_description_);

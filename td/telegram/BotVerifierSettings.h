@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/CustomEmojiId.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -41,7 +42,7 @@ class BotVerifierSettings {
  private:
   CustomEmojiId icon_;
   string company_;
-  string description_;
+  FormattedText description_;
   bool can_modify_custom_description_ = false;
 
   friend bool operator==(const BotVerifierSettings &lhs, const BotVerifierSettings &rhs);
