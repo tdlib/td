@@ -97,6 +97,7 @@
 #include "td/telegram/TermsOfServiceManager.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TimeZoneManager.h"
+#include "td/telegram/TonWalletManager.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/TranscriptionManager.h"
 #include "td/telegram/TranslationManager.h"
@@ -570,6 +571,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(terms_of_service_manager_, "TermsOfServiceManager");
       reset_manager(theme_manager_, "ThemeManager");
       reset_manager(time_zone_manager_, "TimeZoneManager");
+      reset_manager(ton_wallet_manager_, "TonWalletManager");
       reset_manager(top_dialog_manager_, "TopDialogManager");
       reset_manager(transcription_manager_, "TranscriptionManager");
       reset_manager(translation_manager_, "TranslationManager");
@@ -751,6 +753,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(terms_of_service_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(theme_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(time_zone_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(ton_wallet_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(top_dialog_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(transcription_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(translation_manager_actor_)));
@@ -1307,6 +1310,9 @@ void Td::init_managers() {
   time_zone_manager_ = make_unique<TimeZoneManager>(this, create_reference());
   time_zone_manager_actor_ = register_actor("TimeZoneManager", time_zone_manager_.get());
   G()->set_time_zone_manager(time_zone_manager_actor_.get());
+  ton_wallet_manager_ = make_unique<TonWalletManager>(this, create_reference());
+  ton_wallet_manager_actor_ = register_actor("TonWalletManager", ton_wallet_manager_.get());
+  G()->set_ton_wallet_manager(ton_wallet_manager_actor_.get());
   top_dialog_manager_ = make_unique<TopDialogManager>(this, create_reference());
   top_dialog_manager_actor_ = register_actor("TopDialogManager", top_dialog_manager_.get());
   G()->set_top_dialog_manager(top_dialog_manager_actor_.get());

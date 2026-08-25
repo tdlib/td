@@ -490,6 +490,7 @@ function split_file($file, $chunks, $undo) {
             'ToDoItem' => 'ToDoItem',
             'ToDoList' => 'ToDoList',
             'TonAmount' => 'TonAmount',
+            'ton_wallet_manager[_(-](?![.]get[(][)])|TonWalletManager' => 'TonWalletManager',
             'TopDialogCategory|get_top_dialog_category' => 'TopDialogCategory',
             'top_dialog_manager[_(-](?![.]get[(][)])|TopDialogManager' => 'TopDialogManager',
             'translation_manager[_(-](?![.]get[(][)])|TranslationManager' => 'TranslationManager',

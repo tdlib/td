@@ -90,6 +90,7 @@ class TdDb;
 class TempAuthKeyWatchdog;
 class ThemeManager;
 class TimeZoneManager;
+class TonWalletManager;
 class TopDialogManager;
 class TranscriptionManager;
 class TranslationManager;
@@ -574,6 +575,13 @@ class Global final : public ActorContext {
     time_zone_manager_ = time_zone_manager;
   }
 
+  ActorId<TonWalletManager> ton_wallet_manager() const {
+    return ton_wallet_manager_;
+  }
+  void set_ton_wallet_manager(ActorId<TonWalletManager> ton_wallet_manager) {
+    ton_wallet_manager_ = ton_wallet_manager;
+  }
+
   ActorId<TopDialogManager> top_dialog_manager() const {
     return top_dialog_manager_;
   }
@@ -818,6 +826,7 @@ class Global final : public ActorContext {
   ActorId<SuggestedActionManager> suggested_action_manager_;
   ActorId<ThemeManager> theme_manager_;
   ActorId<TimeZoneManager> time_zone_manager_;
+  ActorId<TonWalletManager> ton_wallet_manager_;
   ActorId<TopDialogManager> top_dialog_manager_;
   ActorId<TranscriptionManager> transcription_manager_;
   ActorId<TranslationManager> translation_manager_;
