@@ -2412,7 +2412,11 @@ class MessageQueryManager::UploadEphemeralMessageContentCallback final
 
   void on_uploaded_message_content_updated(MessageContentUploadId upload_id, unique_ptr<MessageContent> &&content,
                                            bool need_merge_files, bool is_content_changed, bool need_update) final {
-    UNREACHABLE();
+    auto &query = manager_->edit_ephemeral_message_queries_[upload_id];
+    merge_and_compare_message_contents(manager_->td_, query.content_.get(), content.get(), true, query.dialog_id_,
+                                       need_merge_files, vector<FileUploadId>(), MessageSelfDestructType(), 0.0,
+                                       nullptr, is_content_changed, need_update);
+    query.content_ = std::move(content);
   }
 
   void on_failed_to_upload_message_content(MessageContentUploadId upload_id, Status error) final {
