@@ -290,10 +290,8 @@ void DraftMessageManager::save_draft_message(DialogId dialog_id, const MessageTo
       dialog_id, draft_message->get_rich_message_content(), MessageSelfDestructType(), string(), false, false,
       upload_draft_message_callback_);
   if (message_topic.is_empty()) {
-    LOG(ERROR) << dialog_draft_message_upload_ids_.size();
     dialog_draft_message_upload_ids_[dialog_id] = upload_id;
   } else {
-    LOG(ERROR) << topic_draft_message_upload_ids_.size();
     topic_draft_message_upload_ids_[message_topic] = upload_id;
   }
   auto &query = save_draft_message_queries_[upload_id];
