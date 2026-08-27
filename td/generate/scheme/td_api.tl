@@ -2192,13 +2192,16 @@ currencyExchangeRates rates:vector<currencyExchangeRate> = CurrencyExchangeRates
 //@id Unique identifier of the provider
 //@name Name of the provider
 //@cryptocurrencies List of cryptocurrencies supported by the provider
-//@supports_base_currencies True, if the provider supports base currencies
+//@supports_base_currencies True, if the provider supports base currencies and can be used in the method getOnRampProviderBaseCurrencies
 //@supports_limits True, if the provider supports limits retrieval
 //@supports_quote True, if the provider supports quote retrieval
 onRampProvider id:string name:string cryptocurrencies:vector<string> supports_base_currencies:Bool supports_limits:Bool supports_quote:Bool = OnRampProvider;
 
 //@description Represents a list of on-ramp providers @providers A list of providers
 onRampProviders providers:vector<onRampProvider> = OnRampProviders;
+
+//@description Represents a list of currencies @currencies A list of ISO 4217 currency codes
+currencies currencies:vector<string> = Currencies;
 
 
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
@@ -15771,6 +15774,11 @@ getCurrencyExchangeRates = CurrencyExchangeRates;
 
 //@description Returns available on-ramp providers @cryptocurrency Pass a cryptocurrency to receive only providers that support it; pass an empty string to receive all providers
 getOnRampProviders cryptocurrency:string = OnRampProviders;
+
+//@description Returns the list of fiat currencies supported by an on-ramp provider for the given cryptocurrency
+//@provider_id Unique identifier of the provider; only for providers that supports base currencies
+//@cryptocurrency The cryptocurrency that will be bought
+getOnRampProviderBaseCurrencies provider_id:string cryptocurrency:string = Currencies;
 
 //@description Sends a request to TON Center API and returns its response in JSON format.
 //@endpoint The path of the requested endpoint. See https://toncenter.com/api/v3/index.html for the list of supported endpoints

@@ -75,6 +75,34 @@ class GetOnRampProvidersQuery final : public Td::ResultHandler {
   }
 };
 
+class GetOnRampBaseCurrenciesQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::currencies>> promise_;
+
+ public:
+  explicit GetOnRampBaseCurrenciesQuery(Promise<td_api::object_ptr<td_api::currencies>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &provider, const string &cryptocurrency) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::payments_getOnrampBaseCurrencies(provider, cryptocurrency)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getOnrampBaseCurrencies>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(td_api::make_object<td_api::currencies>(std::move(result)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class PerformTonCenterApiRequestQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
@@ -228,6 +256,11 @@ void TonWalletManager::on_get_on_ramp_providers(
     on_ramp_providers.push_back(on_ramp_provider.get_on_ramp_provider_object());
   }
   promise.set_value(td_api::make_object<td_api::onRampProviders>(std::move(on_ramp_providers)));
+}
+
+void TonWalletManager::get_on_ramp_base_currencies(const string &provider, const string &cryptocurrency,
+                                                   Promise<td_api::object_ptr<td_api::currencies>> &&promise) {
+  td_->create_handler<GetOnRampBaseCurrenciesQuery>(std::move(promise))->send(provider, cryptocurrency);
 }
 
 void TonWalletManager::perform_ton_center_api_request(const string &endpoint,

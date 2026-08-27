@@ -27,6 +27,9 @@ class TonWalletManager final : public Actor {
   void get_on_ramp_providers(const string &cryptocurrency,
                              Promise<td_api::object_ptr<td_api::onRampProviders>> &&promise);
 
+  void get_on_ramp_base_currencies(const string &provider, const string &cryptocurrency,
+                                   Promise<td_api::object_ptr<td_api::currencies>> &&promise);
+
   void perform_ton_center_api_request(const string &endpoint,
                                       td_api::object_ptr<td_api::TonCenterApiRequestType> &&type,
                                       Promise<string> &&promise);

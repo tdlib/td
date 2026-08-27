@@ -8773,6 +8773,11 @@ class CliClient final : public Actor {
       string cryptocurrency;
       get_args(args, cryptocurrency);
       send_request(td_api::make_object<td_api::getOnRampProviders>(cryptocurrency));
+    } else if (op == "gorpbc") {
+      string provider_id;
+      string cryptocurrency;
+      get_args(args, provider_id, cryptocurrency);
+      send_request(td_api::make_object<td_api::getOnRampProviderBaseCurrencies>(provider_id, cryptocurrency));
     } else if (op == "gtcsau") {
       send_request(td_api::make_object<td_api::getTonCenterStreamingApiUrl>());
     } else if (op == "stcarg") {
