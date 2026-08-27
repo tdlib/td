@@ -179,6 +179,8 @@ bool is_allowed_quote_entity_type(MessageEntity::Type type);
 
 bool keep_only_custom_emoji(FormattedText &text);
 
+bool keep_only_text_url(FormattedText &text);
+
 void remove_premium_custom_emoji_entities(const Td *td, vector<MessageEntity> &entities, bool remove_unknown);
 
 void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialog_id);

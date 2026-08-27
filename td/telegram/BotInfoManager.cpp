@@ -15,6 +15,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/StoryContent.h"
@@ -1234,6 +1235,7 @@ void BotInfoManager::set_custom_bot_verification(UserId bot_user_id, DialogId di
   TRY_RESULT_PROMISE(promise, description,
                      get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(custom_description),
                                         td_->auth_manager_->is_bot(), true, true, true));
+  keep_only_text_url(description);
   td_->create_handler<SetCustomVerificationQuery>(std::move(promise))
       ->send(std::move(bot_input_user), dialog_id, is_verified, description);
 }
