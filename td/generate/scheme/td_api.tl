@@ -2203,6 +2203,19 @@ onRampProviders providers:vector<onRampProvider> = OnRampProviders;
 //@description Represents a list of currencies @currencies A list of ISO 4217 currency codes
 currencies currencies:vector<string> = Currencies;
 
+//@description Describes a payment method of an on-ramp provider
+//@name Name of the method
+//@is_available True, if the method is available for the user
+onRampPaymentMethod name:string is_available:Bool = OnRampPaymentMethod;
+
+//@description Describes availability of cryptocurrency purchase through an on-ramp provider
+//@is_allowed True, if the current user can use the provider
+//@is_purchase_allowed True, if the current user can purchase through the provider
+//@methods The list of available payment methods
+//@country_code A two-letter ISO 3166-1 alpha-2 country code of the current user's country
+//@state Code of the state of the current user; may be empty if unknown
+onRampPaymentAvailability is_allowed:Bool is_purchase_allowed:Bool methods:vector<onRampPaymentMethod> country_code:string state:string = OnRampPaymentAvailability;
+
 
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
 
@@ -15776,9 +15789,15 @@ getCurrencyExchangeRates = CurrencyExchangeRates;
 getOnRampProviders cryptocurrency:string = OnRampProviders;
 
 //@description Returns the list of fiat currencies supported by an on-ramp provider for the given cryptocurrency
-//@provider_id Unique identifier of the provider; only for providers that supports base currencies
+//@provider_id Unique identifier of the on-ramp provider; only for providers that supports base currencies
 //@cryptocurrency The cryptocurrency that will be bought
 getOnRampProviderBaseCurrencies provider_id:string cryptocurrency:string = Currencies;
+
+//@description Returns the available on-ramp payment methods based on the current user location
+//@provider_id Unique identifier of the on-ramp provider
+//@cryptocurrency The cryptocurrency that will be bought
+//@base_currency ISO 4217 currency code of the currency that will be used for the purchase; pass an empty string if unknown
+getOnRampPaymentAvailability provider_id:string cryptocurrency:string base_currency:string = OnRampPaymentAvailability;
 
 //@description Sends a request to TON Center API and returns its response in JSON format.
 //@endpoint The path of the requested endpoint. See https://toncenter.com/api/v3/index.html for the list of supported endpoints

@@ -103,6 +103,43 @@ class GetOnRampBaseCurrenciesQuery final : public Td::ResultHandler {
   }
 };
 
+class GetOnRampAvailabilityQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::onRampPaymentAvailability>> promise_;
+
+ public:
+  explicit GetOnRampAvailabilityQuery(Promise<td_api::object_ptr<td_api::onRampPaymentAvailability>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &provider, const string &cryptocurrency, const string &base_currency) {
+    int32 flags = 0;
+    if (!base_currency.empty()) {
+      flags |= telegram_api::payments_getOnrampAvailability::BASE_CURRENCY_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getOnrampAvailability(flags, provider, cryptocurrency, base_currency)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getOnrampAvailability>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    vector<td_api::object_ptr<td_api::onRampPaymentMethod>> methods;
+    for (auto &method : result->methods_) {
+      methods.push_back(td_api::make_object<td_api::onRampPaymentMethod>(method->payment_method_, method->available_));
+    }
+    promise_.set_value(td_api::make_object<td_api::onRampPaymentAvailability>(
+        result->allowed_, result->buy_allowed_, std::move(methods), result->country_code_, result->state_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class PerformTonCenterApiRequestQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
@@ -261,6 +298,12 @@ void TonWalletManager::on_get_on_ramp_providers(
 void TonWalletManager::get_on_ramp_base_currencies(const string &provider, const string &cryptocurrency,
                                                    Promise<td_api::object_ptr<td_api::currencies>> &&promise) {
   td_->create_handler<GetOnRampBaseCurrenciesQuery>(std::move(promise))->send(provider, cryptocurrency);
+}
+
+void TonWalletManager::get_on_ramp_availability(
+    const string &provider, const string &cryptocurrency, const string &base_currency,
+    Promise<td_api::object_ptr<td_api::onRampPaymentAvailability>> &&promise) {
+  td_->create_handler<GetOnRampAvailabilityQuery>(std::move(promise))->send(provider, cryptocurrency, base_currency);
 }
 
 void TonWalletManager::perform_ton_center_api_request(const string &endpoint,
