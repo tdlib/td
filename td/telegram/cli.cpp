@@ -8493,7 +8493,7 @@ class CliClient final : public Actor {
       string custom_description;
       get_args(args, bot_user_id, sender_id, custom_description);
       send_request(td_api::make_object<td_api::setMessageSenderBotVerification>(
-          bot_user_id, as_message_sender(sender_id), custom_description));
+          bot_user_id, as_message_sender(sender_id), as_formatted_text(custom_description)));
     } else if (op == "rmsbv") {
       UserId bot_user_id;
       string sender_id;
