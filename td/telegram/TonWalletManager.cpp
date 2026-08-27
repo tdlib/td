@@ -11,9 +11,37 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 
 namespace td {
+
+class GetCurrencyRatesQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::payments_currencyRates>> promise_;
+
+ public:
+  explicit GetCurrencyRatesQuery(Promise<telegram_api::object_ptr<telegram_api::payments_currencyRates>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::payments_getCurrencyRates()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getCurrencyRates>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
 
 class PerformTonCenterApiRequestQuery final : public Td::ResultHandler {
   Promise<string> promise_;
@@ -85,6 +113,52 @@ void TonWalletManager::tear_down() {
   parent_.reset();
 }
 
+td_api::object_ptr<td_api::currencyExchangeRates> TonWalletManager::get_currency_exchange_rates_object() const {
+  return td_api::make_object<td_api::currencyExchangeRates>(
+      transform(currency_rates_.rates_, [](const CurrencyRate &rate) {
+        return td_api::make_object<td_api::currencyExchangeRate>(rate.currency_, rate.rate_);
+      }));
+}
+
+void TonWalletManager::get_currency_rates(Promise<td_api::object_ptr<td_api::currencyExchangeRates>> &&promise) {
+  if (Time::now() < currency_rates_.expires_at_) {
+    return promise.set_value(get_currency_exchange_rates_object());
+  }
+  get_currency_rates_queries_.push_back(std::move(promise));
+  if (get_currency_rates_queries_.size() == 1u) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::payments_currencyRates>> r_rates) {
+          send_closure(actor_id, &TonWalletManager::on_get_currency_rates, std::move(r_rates));
+        });
+    td_->create_handler<GetCurrencyRatesQuery>(std::move(query_promise))->send();
+  }
+}
+
+void TonWalletManager::on_get_currency_rates(
+    Result<telegram_api::object_ptr<telegram_api::payments_currencyRates>> r_rates) {
+  G()->ignore_result_if_closing(r_rates);
+  auto promises = std::move(get_currency_rates_queries_);
+  CHECK(!promises.empty());
+  get_currency_rates_queries_.clear();
+
+  if (r_rates.is_error()) {
+    fail_promises(promises, r_rates.move_as_error());
+    return;
+  }
+  auto rates = r_rates.move_as_ok();
+  currency_rates_.rates_.clear();
+  for (auto &rate : rates->rates_) {
+    CurrencyRate currency_rate;
+    currency_rate.currency_ = std::move(rate->currency_);
+    currency_rate.rate_ = rate->rate_;
+    currency_rates_.rates_.push_back(std::move(currency_rate));
+  }
+  currency_rates_.expires_at_ = Time::now() + 60;
+  for (auto &promise : promises) {
+    promise.set_value(get_currency_exchange_rates_object());
+  }
+}
+
 void TonWalletManager::perform_ton_center_api_request(const string &endpoint,
                                                       td_api::object_ptr<td_api::TonCenterApiRequestType> &&type,
                                                       Promise<string> &&promise) {
@@ -117,7 +191,7 @@ void TonWalletManager::perform_ton_center_api_request(const string &endpoint,
 
 void TonWalletManager::get_ton_center_streaming_api_url(
     Promise<td_api::object_ptr<td_api::tonCenterStreamingApiUrl>> &&promise) {
-  auto cache_expires_in = streaming_api_url_.expires_at_ - G()->unix_time();
+  auto cache_expires_in = streaming_api_url_.expiration_date_ - G()->unix_time();
   if (cache_expires_in >= 60) {
     return promise.set_value(
         td_api::make_object<td_api::tonCenterStreamingApiUrl>(streaming_api_url_.url_, cache_expires_in));
@@ -152,7 +226,7 @@ void TonWalletManager::on_get_ton_center_streaming_api_url(
     return;
   }
   streaming_api_url_.url_ = url->url_;
-  streaming_api_url_.expires_at_ = url->expires_;
+  streaming_api_url_.expiration_date_ = url->expires_;
   for (auto &promise : promises) {
     promise.set_value(td_api::make_object<td_api::tonCenterStreamingApiUrl>(url->url_, expires_in));
   }

@@ -2177,6 +2177,18 @@ tonCenterApiRequestTypeGet query:string = TonCenterApiRequestType;
 tonCenterApiRequestTypePost payload:string = TonCenterApiRequestType;
 
 
+//@description Contains an HTTP URL for TON Center Streaming API @url The URL @expires_in Time after which the URL expires
+tonCenterStreamingApiUrl url:string expires_in:int32 = TonCenterStreamingApiUrl;
+
+//@description Describes exchange rate of a currency to USD
+//@currency ISO 4217 currency code of the payment currency
+//@rate Exchange rate of the currency to USD
+currencyExchangeRate currency:string rate:double = CurrencyExchangeRate;
+
+//@description Represents a list of currency exchange rates @rates A list of currency exchange rates
+currencyExchangeRates rates:vector<currencyExchangeRate> = CurrencyExchangeRates;
+
+
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
 
 //@description The chat has an active live story @story_id Identifier of the active live story
@@ -7468,10 +7480,6 @@ botWriteAccessAllowReasonAcceptedRequest = BotWriteAccessAllowReason;
 httpUrl url:string = HttpUrl;
 
 
-//@description Contains an HTTP URL for TON Center Streaming API @url The URL @expires_in Time after which the URL expires
-tonCenterStreamingApiUrl url:string expires_in:int32 = TonCenterStreamingApiUrl;
-
-
 //@description Contains an HTTPS URL, which can be used to get information about a user @url The URL @expires_in Left time for which the link is valid, in seconds; 0 if the link is a public username link
 userLink url:string expires_in:int32 = UserLink;
 
@@ -10259,7 +10267,7 @@ chatRevenueAmount cryptocurrency:string total_amount:int64 balance_amount:int64 
 //@revenue_by_hour_graph A graph containing amount of revenue in a given hour
 //@revenue_graph A graph containing amount of revenue
 //@revenue_amount Amount of earned revenue
-//@usd_rate Current conversion rate of the cryptocurrency in which revenue is calculated to USD
+//@usd_rate Current exchange rate of the cryptocurrency in which revenue is calculated to USD
 chatRevenueStatistics revenue_by_hour_graph:StatisticalGraph revenue_graph:StatisticalGraph revenue_amount:chatRevenueAmount usd_rate:double = ChatRevenueStatistics;
 
 //@description A detailed statistics about a message
@@ -10338,7 +10346,7 @@ starRevenueStatus total_amount:starAmount current_amount:starAmount available_am
 //@description A detailed statistics about Telegram Stars earned by a user or a chat
 //@revenue_by_day_graph A graph containing amount of revenue in a given day
 //@status Telegram Star revenue status
-//@usd_rate Current conversion rate of a Telegram Star to USD
+//@usd_rate Current exchange rate of a Telegram Star to USD
 starRevenueStatistics revenue_by_day_graph:StatisticalGraph status:starRevenueStatus usd_rate:double = StarRevenueStatistics;
 
 //@description Contains information about TON Grams earned by the current user
@@ -10351,7 +10359,7 @@ gramRevenueStatus total_amount:int64 balance_amount:int64 available_amount:int64
 //@description A detailed statistics about TON Grams earned by the current user
 //@revenue_by_day_graph A graph containing amount of revenue in a given day
 //@status Amount of earned revenue
-//@usd_rate Current conversion rate of nanogram to USD cents
+//@usd_rate Current exchange rate of nanogram to USD cents
 gramRevenueStatistics revenue_by_day_graph:StatisticalGraph status:gramRevenueStatus usd_rate:double = GramRevenueStatistics;
 
 
@@ -15745,6 +15753,9 @@ getChatRevenueTransactions chat_id:int53 offset:string limit:int32 = ChatRevenue
 //@limit The maximum number of transactions to return
 getTonTransactions direction:TransactionDirection offset:string limit:int32 = TonTransactions;
 
+
+//@description Returns exchange rates of currencies to USD
+getCurrencyExchangeRates = CurrencyExchangeRates;
 
 //@description Sends a request to TON Center API and returns its response in JSON format.
 //@endpoint The path of the requested endpoint. See https://toncenter.com/api/v3/index.html for the list of supported endpoints
