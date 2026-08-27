@@ -8769,6 +8769,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getTonTransactions>(std::move(direction), offset, as_limit(limit)));
     } else if (op == "gcer") {
       send_request(td_api::make_object<td_api::getCurrencyExchangeRates>());
+    } else if (op == "gorp") {
+      string cryptocurrency;
+      get_args(args, cryptocurrency);
+      send_request(td_api::make_object<td_api::getOnRampProviders>(cryptocurrency));
     } else if (op == "gtcsau") {
       send_request(td_api::make_object<td_api::getTonCenterStreamingApiUrl>());
     } else if (op == "stcarg") {

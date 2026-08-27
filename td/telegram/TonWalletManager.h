@@ -24,6 +24,9 @@ class TonWalletManager final : public Actor {
 
   void get_currency_rates(Promise<td_api::object_ptr<td_api::currencyExchangeRates>> &&promise);
 
+  void get_on_ramp_providers(const string &cryptocurrency,
+                             Promise<td_api::object_ptr<td_api::onRampProviders>> &&promise);
+
   void perform_ton_center_api_request(const string &endpoint,
                                       td_api::object_ptr<td_api::TonCenterApiRequestType> &&type,
                                       Promise<string> &&promise);
@@ -36,6 +39,9 @@ class TonWalletManager final : public Actor {
   void on_get_currency_rates(Result<telegram_api::object_ptr<telegram_api::payments_currencyRates>> r_rates);
 
   td_api::object_ptr<td_api::currencyExchangeRates> get_currency_exchange_rates_object() const;
+
+  void on_get_on_ramp_providers(Result<vector<telegram_api::object_ptr<telegram_api::onrampProviderInfo>>> r_providers,
+                                Promise<td_api::object_ptr<td_api::onRampProviders>> &&promise);
 
   void on_get_ton_center_streaming_api_url(
       Result<telegram_api::object_ptr<telegram_api::toncenter_streamingUrl>> r_url);

@@ -2197,6 +2197,9 @@ currencyExchangeRates rates:vector<currencyExchangeRate> = CurrencyExchangeRates
 //@supports_quote True, if the provider supports quote retrieval
 onRampProvider id:string name:string cryptocurrencies:vector<string> supports_base_currencies:Bool supports_limits:Bool supports_quote:Bool = OnRampProvider;
 
+//@description Represents a list of on-ramp providers @providers A list of providers
+onRampProviders providers:vector<onRampProvider> = OnRampProviders;
+
 
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
 
@@ -15765,6 +15768,9 @@ getTonTransactions direction:TransactionDirection offset:string limit:int32 = To
 
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
+
+//@description Returns available on-ramp providers @cryptocurrency Pass a cryptocurrency to receive only providers that support it; pass an empty string to receive all providers
+getOnRampProviders cryptocurrency:string = OnRampProviders;
 
 //@description Sends a request to TON Center API and returns its response in JSON format.
 //@endpoint The path of the requested endpoint. See https://toncenter.com/api/v3/index.html for the list of supported endpoints
