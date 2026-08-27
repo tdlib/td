@@ -106,6 +106,20 @@ class GetTonCenterStreamingApiUrlQuery final : public Td::ResultHandler {
   }
 };
 
+TonWalletManager::OnRampProvider::OnRampProvider(telegram_api::object_ptr<telegram_api::onrampProviderInfo> &&info)
+    : id_(std::move(info->id_))
+    , name_(std::move(info->name_))
+    , cryptocurrencies_(std::move(info->crypto_currencies_))
+    , supports_base_currencies_(info->supports_base_currencies_)
+    , supports_limits_(info->supports_limits_)
+    , supports_quote_(info->supports_quote_) {
+}
+
+td_api::object_ptr<td_api::onRampProvider> TonWalletManager::OnRampProvider::get_on_ramp_provider_object() const {
+  return td_api::make_object<td_api::onRampProvider>(id_, name_, vector<string>(cryptocurrencies_),
+                                                     supports_base_currencies_, supports_limits_, supports_quote_);
+}
+
 TonWalletManager::TonWalletManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 

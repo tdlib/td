@@ -2188,6 +2188,15 @@ currencyExchangeRate currency:string rate:double = CurrencyExchangeRate;
 //@description Represents a list of currency exchange rates @rates A list of currency exchange rates
 currencyExchangeRates rates:vector<currencyExchangeRate> = CurrencyExchangeRates;
 
+//@description Describes an on-ramp provider
+//@id Unique identifier of the provider
+//@name Name of the provider
+//@cryptocurrencies List of cryptocurrencies supported by the provider
+//@supports_base_currencies True, if the provider supports base currencies
+//@supports_limits True, if the provider supports limits retrieval
+//@supports_quote True, if the provider supports quote retrieval
+onRampProvider id:string name:string cryptocurrencies:vector<string> supports_base_currencies:Bool supports_limits:Bool supports_quote:Bool = OnRampProvider;
+
 
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
 

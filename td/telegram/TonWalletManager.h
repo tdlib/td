@@ -54,6 +54,20 @@ class TonWalletManager final : public Actor {
   CurrencyRates currency_rates_;
   vector<Promise<td_api::object_ptr<td_api::currencyExchangeRates>>> get_currency_rates_queries_;
 
+  class OnRampProvider {
+    string id_;
+    string name_;
+    vector<string> cryptocurrencies_;
+    bool supports_base_currencies_ = false;
+    bool supports_limits_ = false;
+    bool supports_quote_ = false;
+
+   public:
+    OnRampProvider(telegram_api::object_ptr<telegram_api::onrampProviderInfo> &&info);
+
+    td_api::object_ptr<td_api::onRampProvider> get_on_ramp_provider_object() const;
+  };
+
   struct StreamingApiUrl {
     string url_;
     int32 expiration_date_ = 0;
