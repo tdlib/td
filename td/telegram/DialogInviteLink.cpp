@@ -79,17 +79,15 @@ DialogInviteLink::DialogInviteLink(telegram_api::object_ptr<telegram_api::Export
     request_count_ = 0;
   }
 
-  if (is_permanent_ &&
-      (!title_.empty() || expire_date_ > 0 || usage_limit_ > 0 || edit_date_ > 0 || request_count_ > 0)) {
-    LOG(ERROR) << "Receive wrong permanent " << full_source << ' ' << *this;
+  if (is_permanent_ && (!title_.empty() || expire_date_ > 0 || usage_limit_ > 0 || edit_date_ > 0)) {
+    LOG(ERROR) << "Receive wrong primary " << full_source << ' ' << *this;
     title_.clear();
     expire_date_ = 0;
     usage_limit_ = 0;
     edit_date_ = 0;
-    request_count_ = 0;
   }
   if (creates_join_request_ && usage_limit_ > 0) {
-    LOG(ERROR) << "Receive wrong permanent " << full_source << ' ' << *this;
+    LOG(ERROR) << "Receive wrong " << full_source << ' ' << *this;
     usage_limit_ = 0;
   }
 }
