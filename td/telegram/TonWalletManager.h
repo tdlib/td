@@ -122,6 +122,17 @@ class TonWalletManager final : public Actor {
     td_api::object_ptr<td_api::onRampPaymentQuote> get_on_ramp_payment_quote_object() const;
   };
 
+  class OnRampSession {
+    string session_id_;
+    int32 expires_date_ = 0;
+    string url_;
+
+   public:
+    OnRampSession(telegram_api::object_ptr<telegram_api::onrampSession> &&session);
+
+    td_api::object_ptr<td_api::onRampPaymentSession> get_on_ramp_payment_session_object() const;
+  };
+
   struct StreamingApiUrl {
     string url_;
     int32 expiration_date_ = 0;

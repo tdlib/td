@@ -321,6 +321,17 @@ td_api::object_ptr<td_api::onRampPaymentQuote> TonWalletManager::OnRampQuote::ge
                                                          network_fee_amount_, total_amount_);
 }
 
+TonWalletManager::OnRampSession::OnRampSession(telegram_api::object_ptr<telegram_api::onrampSession> &&session)
+    : session_id_(std::move(session->session_id_))
+    , expires_date_(session->expires_date_)
+    , url_(std::move(session->url_)) {
+}
+
+td_api::object_ptr<td_api::onRampPaymentSession> TonWalletManager::OnRampSession::get_on_ramp_payment_session_object()
+    const {
+  return td_api::make_object<td_api::onRampPaymentSession>(session_id_, expires_date_, url_);
+}
+
 TonWalletManager::TonWalletManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 

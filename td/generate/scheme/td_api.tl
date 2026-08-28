@@ -2236,6 +2236,12 @@ onRampPaymentLimits payment_method:string base_currency_min_amount:string base_c
 //@total_amount Total paid amount
 onRampPaymentQuote payment_method:string expiration_date:int32 base_currency_amount:string cryptocurrency_amount:string cryptocurrency_price:string fee_amount:string extra_fee_amount:string network_fee_amount:string total_amount:string = OnRampPaymentQuote;
 
+//@description Describes a session for an on-ramp purchase
+//@session_id Identifier of the session
+//@expiration_date Point in time (Unix timestamp) when the session will expire
+//@url HTTPS URL to be opened in a WebView to complete the purchase
+onRampPaymentSession session_id:string expiration_date:int32 url:string = OnRampPaymentSession;
+
 
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
 
