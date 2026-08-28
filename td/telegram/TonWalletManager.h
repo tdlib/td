@@ -33,6 +33,10 @@ class TonWalletManager final : public Actor {
   void get_on_ramp_availability(const string &provider, const string &cryptocurrency, const string &base_currency,
                                 Promise<td_api::object_ptr<td_api::onRampPaymentAvailability>> &&promise);
 
+  void get_on_ramp_limits(const string &provider, const string &cryptocurrency, const string &base_currency,
+                          const string &payment_method,
+                          Promise<td_api::object_ptr<td_api::onRampPaymentLimits>> &&promise);
+
   void perform_ton_center_api_request(const string &endpoint,
                                       td_api::object_ptr<td_api::TonCenterApiRequestType> &&type,
                                       Promise<string> &&promise);
@@ -40,6 +44,8 @@ class TonWalletManager final : public Actor {
   void get_ton_center_streaming_api_url(Promise<td_api::object_ptr<td_api::tonCenterStreamingApiUrl>> &&promise);
 
  private:
+  class GetOnRampLimitsQuery;
+
   void tear_down() final;
 
   void on_get_currency_rates(Result<telegram_api::object_ptr<telegram_api::payments_currencyRates>> r_rates);

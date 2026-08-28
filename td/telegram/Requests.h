@@ -1704,6 +1704,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::getOnRampPaymentAvailability &request);
 
+  void on_request(uint64 id, td_api::getOnRampPaymentLimits &request);
+
   void on_request(uint64 id, const td_api::getTonCenterStreamingApiUrl &request);
 
   void on_request(uint64 id, const td_api::getStarRevenueStatistics &request);

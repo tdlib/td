@@ -8785,6 +8785,14 @@ class CliClient final : public Actor {
       get_args(args, provider_id, cryptocurrency, base_currency);
       send_request(
           td_api::make_object<td_api::getOnRampPaymentAvailability>(provider_id, cryptocurrency, base_currency));
+    } else if (op == "gorpl") {
+      string provider_id;
+      string cryptocurrency;
+      string base_currency;
+      string payment_method;
+      get_args(args, provider_id, cryptocurrency, base_currency, payment_method);
+      send_request(td_api::make_object<td_api::getOnRampPaymentLimits>(provider_id, cryptocurrency, base_currency,
+                                                                       payment_method));
     } else if (op == "gtcsau") {
       send_request(td_api::make_object<td_api::getTonCenterStreamingApiUrl>());
     } else if (op == "stcarg") {

@@ -2193,7 +2193,7 @@ currencyExchangeRates rates:vector<currencyExchangeRate> = CurrencyExchangeRates
 //@name Name of the provider
 //@cryptocurrencies List of cryptocurrencies supported by the provider
 //@supports_base_currencies True, if the provider supports base currencies and can be used in the method getOnRampProviderBaseCurrencies
-//@supports_limits True, if the provider supports limits retrieval
+//@supports_limits True, if the provider supports limits retrieval using the method getOnRampPaymentLimits
 //@supports_quote True, if the provider supports quote retrieval
 onRampProvider id:string name:string cryptocurrencies:vector<string> supports_base_currencies:Bool supports_limits:Bool supports_quote:Bool = OnRampProvider;
 
@@ -15806,6 +15806,14 @@ getOnRampProviderBaseCurrencies provider_id:string cryptocurrency:string = Curre
 //@cryptocurrency The cryptocurrency that will be bought
 //@base_currency ISO 4217 currency code of the currency that will be used for the purchase; pass an empty string if unknown
 getOnRampPaymentAvailability provider_id:string cryptocurrency:string base_currency:string = OnRampPaymentAvailability;
+
+//@description Returns the limits for an on-ramp payment; only for providers that supports limits retrieval
+//@provider_id Unique identifier of the on-ramp provider
+//@cryptocurrency The cryptocurrency that will be bought
+//@base_currency ISO 4217 currency code of the currency that will be used for the purchase; pass an empty string if unknown
+//@payment_method_name Name of the chosen payment method; pass an empty string if none
+getOnRampPaymentLimits provider_id:string cryptocurrency:string base_currency:string payment_method_name:string = OnRampPaymentLimits;
+
 
 //@description Sends a request to TON Center API and returns its response in JSON format.
 //@endpoint The path of the requested endpoint. See https://toncenter.com/api/v3/index.html for the list of supported endpoints

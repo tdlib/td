@@ -7931,6 +7931,17 @@ void Requests::on_request(uint64 id, td_api::getOnRampPaymentAvailability &reque
                                                      request.base_currency_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getOnRampPaymentLimits &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.provider_id_);
+  CLEAN_INPUT_STRING(request.cryptocurrency_);
+  CLEAN_INPUT_STRING(request.base_currency_);
+  CLEAN_INPUT_STRING(request.payment_method_name_);
+  CREATE_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->get_on_ramp_limits(request.provider_id_, request.cryptocurrency_, request.base_currency_,
+                                               request.payment_method_name_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::sendTonCenterApiRequest &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.endpoint_);
