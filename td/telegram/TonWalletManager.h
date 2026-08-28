@@ -80,6 +80,19 @@ class TonWalletManager final : public Actor {
     td_api::object_ptr<td_api::onRampProvider> get_on_ramp_provider_object() const;
   };
 
+  class OnRampLimits {
+    string payment_method_;
+    string base_min_amount_;
+    string base_max_amount_;
+    string crypto_min_amount_;
+    string crypto_max_amount_;
+
+   public:
+    OnRampLimits(telegram_api::object_ptr<telegram_api::onrampLimits> &&limits);
+
+    td_api::object_ptr<td_api::onRampPaymentLimits> get_on_ramp_payment_limits_object() const;
+  };
+
   struct StreamingApiUrl {
     string url_;
     int32 expiration_date_ = 0;

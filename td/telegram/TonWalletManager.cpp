@@ -217,6 +217,20 @@ td_api::object_ptr<td_api::onRampProvider> TonWalletManager::OnRampProvider::get
                                                      supports_base_currencies_, supports_limits_, supports_quote_);
 }
 
+TonWalletManager::OnRampLimits::OnRampLimits(telegram_api::object_ptr<telegram_api::onrampLimits> &&limits)
+    : payment_method_(std::move(limits->payment_method_))
+    , base_min_amount_(std::move(limits->base_min_amount_))
+    , base_max_amount_(std::move(limits->base_max_amount_))
+    , crypto_min_amount_(std::move(limits->crypto_min_amount_))
+    , crypto_max_amount_(std::move(limits->crypto_max_amount_)) {
+}
+
+td_api::object_ptr<td_api::onRampPaymentLimits> TonWalletManager::OnRampLimits::get_on_ramp_payment_limits_object()
+    const {
+  return td_api::make_object<td_api::onRampPaymentLimits>(payment_method_, base_min_amount_, base_max_amount_,
+                                                          crypto_min_amount_, crypto_max_amount_);
+}
+
 TonWalletManager::TonWalletManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 

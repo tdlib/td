@@ -2216,6 +2216,14 @@ onRampPaymentMethod name:string is_available:Bool = OnRampPaymentMethod;
 //@state Code of the state of the current user; may be empty if unknown
 onRampPaymentAvailability is_allowed:Bool is_purchase_allowed:Bool methods:vector<onRampPaymentMethod> country_code:string state:string = OnRampPaymentAvailability;
 
+//@description Describes limits for an on-ramp purchase
+//@payment_method The payment method to be used
+//@base_currency_min_amount The minimum allowed amount of the base currency
+//@base_currency_max_amount The maximum allowed amount of the base currency
+//@cryptocurrency_min_amount The minimum allowed amount of the bought cryptocurrency
+//@cryptocurrency_max_amount The maximum allowed amount of the bought cryptocurrency
+onRampPaymentLimits payment_method:string base_currency_min_amount:string base_currency_max_amount:string cryptocurrency_min_amount:string cryptocurrency_max_amount:string = OnRampPaymentLimits;
+
 
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
 
