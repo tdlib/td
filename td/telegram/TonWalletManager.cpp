@@ -264,6 +264,24 @@ td_api::object_ptr<td_api::onRampPaymentLimits> TonWalletManager::OnRampLimits::
                                                           crypto_min_amount_, crypto_max_amount_);
 }
 
+TonWalletManager::OnRampQuote::OnRampQuote(telegram_api::object_ptr<telegram_api::onrampQuote> &&quote)
+    : payment_method_(std::move(quote->payment_method_))
+    , expires_date_(quote->expires_date_)
+    , base_amount_(std::move(quote->base_amount_))
+    , crypto_amount_(std::move(quote->crypto_amount_))
+    , crypto_price_(std::move(quote->crypto_price_))
+    , fee_amount_(std::move(quote->fee_amount_))
+    , extra_fee_amount_(std::move(quote->extra_fee_amount_))
+    , network_fee_amount_(std::move(quote->network_fee_amount_))
+    , total_amount_(std::move(quote->total_amount_)) {
+}
+
+td_api::object_ptr<td_api::onRampPaymentQuote> TonWalletManager::OnRampQuote::get_on_ramp_payment_quote_object() const {
+  return td_api::make_object<td_api::onRampPaymentQuote>(payment_method_, expires_date_, base_amount_, crypto_amount_,
+                                                         crypto_price_, fee_amount_, extra_fee_amount_,
+                                                         network_fee_amount_, total_amount_);
+}
+
 TonWalletManager::TonWalletManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 

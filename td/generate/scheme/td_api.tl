@@ -2224,6 +2224,18 @@ onRampPaymentAvailability is_allowed:Bool is_purchase_allowed:Bool methods:vecto
 //@cryptocurrency_max_amount The maximum allowed amount of the bought cryptocurrency
 onRampPaymentLimits payment_method:string base_currency_min_amount:string base_currency_max_amount:string cryptocurrency_min_amount:string cryptocurrency_max_amount:string = OnRampPaymentLimits;
 
+//@description Describes a quote for an on-ramp purchase
+//@payment_method The payment method to be used
+//@expiration_date Point in time (Unix timestamp) when the quote will expire
+//@base_currency_amount Paid amount of the base currency
+//@cryptocurrency_amount Received amount of the cryptocurrency
+//@cryptocurrency_price The price of the cryptocurrency
+//@fee_amount Fee amount
+//@extra_fee_amount Extra fee amount
+//@network_fee_amount Network fee amount
+//@total_amount Total paid amount
+onRampPaymentQuote payment_method:string expiration_date:int32 base_currency_amount:string cryptocurrency_amount:string cryptocurrency_price:string fee_amount:string extra_fee_amount:string network_fee_amount:string total_amount:string = OnRampPaymentQuote;
+
 
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
 
