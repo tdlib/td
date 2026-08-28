@@ -57,10 +57,9 @@ struct InlineKeyboardButton {
   InlineKeyboardButton &operator=(InlineKeyboardButton &&) = default;
   ~InlineKeyboardButton() = default;
 
-  void add_dependencies(Dependencies &dependencies) const;
-
-  InlineKeyboardButton clone(DialogId dialog_id, const MessageContentDupType &dup_type, bool is_via_bot,
-                             bool is_rich_message) const;
+  bool is_empty() const {
+    return text.empty() && !style.get_icon_custom_emoji_id().is_valid();
+  }
 
   bool is_buy() const {
     return type == Type::Buy;
@@ -69,6 +68,11 @@ struct InlineKeyboardButton {
   bool is_disabled() const {
     return type == Type::Disabled;
   }
+
+  void add_dependencies(Dependencies &dependencies) const;
+
+  InlineKeyboardButton clone(DialogId dialog_id, const MessageContentDupType &dup_type, bool is_via_bot,
+                             bool is_rich_message) const;
 
   const string &get_forward_text() const {
     return forward_text;

@@ -123,7 +123,7 @@ unique_ptr<ReplyMarkup> get_reply_markup(telegram_api::object_ptr<telegram_api::
         buttons.reserve(row->buttons_.size());
         for (auto &button : row->buttons_) {
           buttons.push_back(get_inline_keyboard_button(std::move(button)));
-          if (buttons.back().text.empty() && !buttons.back().style.get_icon_custom_emoji_id().is_valid()) {
+          if (buttons.back().is_empty()) {
             buttons.pop_back();
           }
         }
