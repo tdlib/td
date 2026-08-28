@@ -11891,6 +11891,11 @@ setCommunityName community_id:int53 name:string = Ok;
 //@photo New chat photo; pass null to delete the chat photo
 setCommunityPhoto community_id:int53 photo:InputChatPhoto = Ok;
 
+//@description Changes permissions of regular members in the given community; requires can_ban_members administrator right in the community
+//@community_id Identifier of the community
+//@permissions New permissions of the community
+setCommunityPermissions community_id:int53 permissions:communityPermissions = Ok;
+
 
 //@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date
 //@user_id User identifier

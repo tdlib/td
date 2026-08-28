@@ -194,6 +194,40 @@ class EditCommunityTitleQuery final : public Td::ResultHandler {
   }
 };
 
+class EditCommunityDefaultBannedRightsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit EditCommunityDefaultBannedRightsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(CommunityId community_id, RestrictedRights permissions) {
+    auto input_peer = td_->community_manager_->get_input_peer(community_id);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_editChatDefaultBannedRights(std::move(input_peer), permissions.get_chat_banned_rights()),
+        {{community_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_editChatDefaultBannedRights>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditCommunityDefaultBannedRightsQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED" && !td_->auth_manager_->is_bot()) {
+      return promise_.set_value(Unit());
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 template <class StorerT>
 void CommunityManager::Community::store(StorerT &storer) const {
   using td::store;
@@ -1180,6 +1214,26 @@ void CommunityManager::set_community_photo(CommunityId community_id,
   }
   td_->dialog_manager_->do_set_dialog_photo(community_id.get_fake_dialog_id(), DialogId(), input_photo,
                                             std::move(promise));
+}
+
+void CommunityManager::set_community_permissions(CommunityId community_id,
+                                                 const td_api::object_ptr<td_api::communityPermissions> &permissions,
+                                                 Promise<Unit> &&promise) {
+  if (permissions == nullptr) {
+    return promise.set_error(400, "New permissions must be non-empty");
+  }
+
+  auto *c = get_community(community_id);
+  if (c == nullptr) {
+    return promise.set_error(400, "Community not found");
+  }
+  auto status = get_community_status(c);
+  if (!status.can_restrict_members()) {
+    return promise.set_error(400, "Have not enough rights");
+  }
+
+  td_->create_handler<EditCommunityDefaultBannedRightsQuery>(std::move(promise))
+      ->send(community_id, RestrictedRights(permissions));
 }
 
 FileSourceId CommunityManager::get_community_full_file_source_id(CommunityId community_id) {

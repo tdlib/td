@@ -3429,8 +3429,16 @@ void Requests::on_request(uint64 id, td_api::setCommunityName &request) {
 }
 
 void Requests::on_request(uint64 id, const td_api::setCommunityPhoto &request) {
+  CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->community_manager_->set_community_photo(CommunityId(request.community_id_), request.photo_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::setCommunityPermissions &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->community_manager_->set_community_permissions(CommunityId(request.community_id_), request.permissions_,
+                                                     std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::searchPublicChat &request) {

@@ -3864,6 +3864,18 @@ class CliClient final : public Actor {
       InputChatPhoto input_chat_photo;
       get_args(args, community_id, input_chat_photo);
       send_request(td_api::make_object<td_api::setCommunityPhoto>(community_id, input_chat_photo));
+    } else if (op == "scoperm") {
+      CommunityId community_id;
+      string permissions;
+      get_args(args, community_id, permissions);
+      constexpr size_t EXPECTED_SIZE = 1;
+      if (permissions.size() == EXPECTED_SIZE) {
+        auto &s = permissions;
+        send_request(td_api::make_object<td_api::setCommunityPermissions>(
+            community_id, td_api::make_object<td_api::communityPermissions>(s[0] == '1')));
+      } else {
+        LOG(ERROR) << "Wrong permissions size, expected " << EXPECTED_SIZE;
+      }
     } else if (op == "gcc") {
       UserId user_id;
       ChatId offset_chat_id;
