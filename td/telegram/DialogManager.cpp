@@ -2016,8 +2016,13 @@ bool DialogManager::on_get_dialog_error(DialogId dialog_id, const Status &status
     case DialogType::SecretChat:
       // to be implemented if necessary
       break;
-    case DialogType::Channel:
-      return td_->chat_manager_->on_get_channel_error(dialog_id.get_channel_id(), status, source);
+    case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
+      if (channel_id.is_regular_channel()) {
+        return td_->chat_manager_->on_get_channel_error(dialog_id.get_channel_id(), status, source);
+      }
+      break;
+    }
     case DialogType::None:
       // to be implemented if necessary
       break;
