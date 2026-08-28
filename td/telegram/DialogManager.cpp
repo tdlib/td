@@ -2414,6 +2414,12 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
       UNREACHABLE();
   }
 
+  do_set_dialog_photo(dialog_id, dialog_id, input_photo, std::move(promise));
+}
+
+void DialogManager::do_set_dialog_photo(DialogId dialog_id, DialogId owner_dialog_id,
+                                        const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
+                                        Promise<Unit> &&promise) {
   const td_api::object_ptr<td_api::InputFile> *input_file = nullptr;
   double main_frame_timestamp = 0.0;
   bool is_animation = false;
@@ -2474,9 +2480,9 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
   }
 
   auto file_type = is_animation ? FileType::Animation : FileType::Photo;
-  TRY_RESULT_PROMISE(
-      promise, file_id,
-      td_->file_manager_->get_input_file_id(file_type, *input_file, dialog_id, true, false, false, false, false, true));
+  TRY_RESULT_PROMISE(promise, file_id,
+                     td_->file_manager_->get_input_file_id(file_type, *input_file, owner_dialog_id, true, false, false,
+                                                           false, false, true));
   if (!file_id.is_valid()) {
     send_edit_dialog_photo_query(dialog_id, FileUploadId(),
                                  telegram_api::make_object<telegram_api::inputChatPhotoEmpty>(), std::move(promise));

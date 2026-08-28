@@ -198,6 +198,9 @@ class DialogManager final : public Actor {
   void set_dialog_photo(DialogId dialog_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
                         Promise<Unit> &&promise);
 
+  void do_set_dialog_photo(DialogId dialog_id, DialogId owner_dialog_id,
+                           const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, Promise<Unit> &&promise);
+
   void set_dialog_accent_color(DialogId dialog_id, AccentColorId accent_color_id,
                                CustomEmojiId background_custom_emoji_id, Promise<Unit> &&promise);
 
