@@ -73,6 +73,8 @@ class CommunityManager final : public Actor {
                                  const td_api::object_ptr<td_api::communityPermissions> &permissions,
                                  Promise<Unit> &&promise);
 
+  void delete_community(CommunityId community_id, Promise<Unit> &&promise);
+
   FileSourceId get_community_full_file_source_id(CommunityId community_id);
 
   int64 get_community_id_object(CommunityId community_id, const char *source) const;

@@ -228,6 +228,36 @@ class EditCommunityDefaultBannedRightsQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteCommunityQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeleteCommunityQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(CommunityId community_id) {
+    auto input_community = td_->community_manager_->get_input_community(community_id);
+    CHECK(input_community != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::channels_deleteChannel(std::move(input_community)),
+                                               {{community_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_deleteChannel>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeleteCommunityQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 template <class StorerT>
 void CommunityManager::Community::store(StorerT &storer) const {
   using td::store;
@@ -1234,6 +1264,18 @@ void CommunityManager::set_community_permissions(CommunityId community_id,
 
   td_->create_handler<EditCommunityDefaultBannedRightsQuery>(std::move(promise))
       ->send(community_id, RestrictedRights(permissions));
+}
+
+void CommunityManager::delete_community(CommunityId community_id, Promise<Unit> &&promise) {
+  auto *c = get_community(community_id);
+  if (c == nullptr) {
+    return promise.set_error(400, "Community not found");
+  }
+  auto status = get_community_status(c);
+  if (!status.is_creator()) {
+    return promise.set_error(400, "Have not enough rights");
+  }
+  td_->create_handler<DeleteCommunityQuery>(std::move(promise))->send(community_id);
 }
 
 FileSourceId CommunityManager::get_community_full_file_source_id(CommunityId community_id) {

@@ -11896,6 +11896,9 @@ setCommunityPhoto community_id:int53 photo:InputChatPhoto = Ok;
 //@permissions New permissions of the community
 setCommunityPermissions community_id:int53 permissions:communityPermissions = Ok;
 
+//@description Deletes a community; requires owner privileges @community_id Identifier of the community
+deleteCommunity community_id:int53 = Ok;
+
 
 //@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date
 //@user_id User identifier

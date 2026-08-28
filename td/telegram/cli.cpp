@@ -3876,6 +3876,10 @@ class CliClient final : public Actor {
       } else {
         LOG(ERROR) << "Wrong permissions size, expected " << EXPECTED_SIZE;
       }
+    } else if (op == "DeleteCommunity") {
+      CommunityId community_id;
+      get_args(args, community_id);
+      send_request(td_api::make_object<td_api::deleteCommunity>(community_id));
     } else if (op == "gcc") {
       UserId user_id;
       ChatId offset_chat_id;
