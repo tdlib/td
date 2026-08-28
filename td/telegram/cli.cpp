@@ -8804,6 +8804,22 @@ class CliClient final : public Actor {
                payment_method);
       send_request(td_api::make_object<td_api::getOnRampPaymentQuote>(
           provider_id, cryptocurrency, base_currency, cryptocurrency_amount, base_currency_amount, payment_method));
+    } else if (op == "corps") {
+      string provider_id;
+      string cryptocurrency;
+      string address;
+      string payment_method;
+      string base_currency;
+      string cryptocurrency_amount;
+      string base_currency_amount;
+      string memo;
+      string success_return_url;
+      string fail_return_url;
+      get_args(args, provider_id, cryptocurrency, address, payment_method, base_currency, cryptocurrency_amount,
+               base_currency_amount, memo, success_return_url, fail_return_url);
+      send_request(td_api::make_object<td_api::createOnRampPaymentSession>(
+          provider_id, cryptocurrency, address, payment_method, base_currency, cryptocurrency_amount,
+          base_currency_amount, memo, as_theme_parameters(), success_return_url, fail_return_url));
     } else if (op == "gtcsau") {
       send_request(td_api::make_object<td_api::getTonCenterStreamingApiUrl>());
     } else if (op == "stcarg") {

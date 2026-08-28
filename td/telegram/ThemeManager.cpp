@@ -607,6 +607,9 @@ bool ThemeManager::on_update_profile_accent_colors(
 }
 
 string ThemeManager::get_theme_parameters_json_string(const td_api::object_ptr<td_api::themeParameters> &theme) {
+  if (theme == nullptr) {
+    return string();
+  }
   return json_encode<string>(json_object([&theme](auto &o) {
     auto get_color = [](int32 color) {
       string res(7, '#');

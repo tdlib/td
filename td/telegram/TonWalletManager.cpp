@@ -10,6 +10,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ThemeManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -205,6 +206,62 @@ class TonWalletManager::GetOnRampQuoteQuery final : public Td::ResultHandler {
 
     auto on_ramp_quote = OnRampQuote(result_ptr.move_as_ok());
     promise_.set_value(on_ramp_quote.get_on_ramp_payment_quote_object());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class TonWalletManager::CreateOnRampSessionQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::onRampPaymentSession>> promise_;
+
+ public:
+  explicit CreateOnRampSessionQuery(Promise<td_api::object_ptr<td_api::onRampPaymentSession>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &provider, const string &cryptocurrency, const string &address, const string &payment_method,
+            const string &base_currency, const string &cryptocurrency_amount, const string &base_currency_amount,
+            const string &memo, const string &theme, const string &success_return_url, const string &fail_return_url) {
+    int32 flags = 0;
+    if (!payment_method.empty()) {
+      flags |= telegram_api::payments_createOnrampSession::PAYMENT_METHOD_MASK;
+    }
+    if (!base_currency.empty()) {
+      flags |= telegram_api::payments_createOnrampSession::BASE_CURRENCY_MASK;
+    }
+    if (!cryptocurrency_amount.empty()) {
+      flags |= telegram_api::payments_createOnrampSession::CRYPTO_AMOUNT_MASK;
+    }
+    if (!base_currency_amount.empty()) {
+      flags |= telegram_api::payments_createOnrampSession::BASE_AMOUNT_MASK;
+    }
+    if (!memo.empty()) {
+      flags |= telegram_api::payments_createOnrampSession::MEMO_MASK;
+    }
+    if (!theme.empty()) {
+      flags |= telegram_api::payments_createOnrampSession::THEME_MASK;
+    }
+    if (!success_return_url.empty()) {
+      flags |= telegram_api::payments_createOnrampSession::SUCCESS_RETURN_URL_MASK;
+    }
+    if (!fail_return_url.empty()) {
+      flags |= telegram_api::payments_createOnrampSession::FAIL_RETURN_URL_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::payments_createOnrampSession(
+        flags, provider, cryptocurrency, address, payment_method, base_currency, base_currency_amount, memo, theme,
+        success_return_url, fail_return_url, cryptocurrency_amount)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_createOnrampSession>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto on_ramp_session = OnRampSession(result_ptr.move_as_ok());
+    promise_.set_value(on_ramp_session.get_on_ramp_payment_session_object());
   }
 
   void on_error(Status status) final {
@@ -434,6 +491,19 @@ void TonWalletManager::get_on_ramp_quote(const string &provider, const string &c
                                          Promise<td_api::object_ptr<td_api::onRampPaymentQuote>> &&promise) {
   td_->create_handler<GetOnRampQuoteQuery>(std::move(promise))
       ->send(provider, cryptocurrency, base_currency, cryptocurrency_amount, base_currency_amount, payment_method);
+}
+
+void TonWalletManager::create_on_ramp_session(const string &provider, const string &cryptocurrency,
+                                              const string &address, const string &payment_method,
+                                              const string &base_currency, const string &cryptocurrency_amount,
+                                              const string &base_currency_amount, const string &memo,
+                                              td_api::object_ptr<td_api::themeParameters> theme,
+                                              const string &success_return_url, const string &fail_return_url,
+                                              Promise<td_api::object_ptr<td_api::onRampPaymentSession>> &&promise) {
+  td_->create_handler<CreateOnRampSessionQuery>(std::move(promise))
+      ->send(provider, cryptocurrency, address, payment_method, base_currency, cryptocurrency_amount,
+             base_currency_amount, memo, ThemeManager::get_theme_parameters_json_string(theme), success_return_url,
+             fail_return_url);
 }
 
 void TonWalletManager::perform_ton_center_api_request(const string &endpoint,
