@@ -2194,7 +2194,7 @@ currencyExchangeRates rates:vector<currencyExchangeRate> = CurrencyExchangeRates
 //@cryptocurrencies List of cryptocurrencies supported by the provider
 //@supports_base_currencies True, if the provider supports base currencies and can be used in the method getOnRampProviderBaseCurrencies
 //@supports_limits True, if the provider supports limits retrieval using the method getOnRampPaymentLimits
-//@supports_quote True, if the provider supports quote retrieval
+//@supports_quote True, if the provider supports quote retrieval using the method getOnRampPaymentQuote
 onRampProvider id:string name:string cryptocurrencies:vector<string> supports_base_currencies:Bool supports_limits:Bool supports_quote:Bool = OnRampProvider;
 
 //@description Represents a list of on-ramp providers @providers A list of providers
@@ -15822,10 +15822,18 @@ getOnRampPaymentAvailability provider_id:string cryptocurrency:string base_curre
 //@description Returns the limits for an on-ramp payment; only for providers that supports limits retrieval
 //@provider_id Unique identifier of the on-ramp provider
 //@cryptocurrency The cryptocurrency that will be bought
-//@base_currency ISO 4217 currency code of the currency that will be used for the purchase; pass an empty string if unknown
+//@base_currency ISO 4217 currency code of the currency that will be used for the purchase
 //@payment_method_name Name of the chosen payment method; pass an empty string if none
 getOnRampPaymentLimits provider_id:string cryptocurrency:string base_currency:string payment_method_name:string = OnRampPaymentLimits;
 
+//@description Returns a quote for an on-ramp payment; only for providers that supports quote retrieval
+//@provider_id Unique identifier of the on-ramp provider
+//@cryptocurrency The cryptocurrency that will be bought
+//@base_currency ISO 4217 currency code of the currency that will be used for the purchase
+//@cryptocurrency_amount The amount of the cryptocurrency to buy; pass an empty string if the user selected base_currency_amount
+//@base_currency_amount The amount of the base currency to spend; pass an empty string if the user selected cryptocurrency_amount
+//@payment_method_name Name of the chosen payment method; pass an empty string if none
+getOnRampPaymentQuote provider_id:string cryptocurrency:string base_currency:string cryptocurrency_amount:string base_currency_amount:string payment_method_name:string = OnRampPaymentQuote;
 
 //@description Sends a request to TON Center API and returns its response in JSON format.
 //@endpoint The path of the requested endpoint. See https://toncenter.com/api/v3/index.html for the list of supported endpoints

@@ -173,6 +173,45 @@ class TonWalletManager::GetOnRampLimitsQuery final : public Td::ResultHandler {
   }
 };
 
+class TonWalletManager::GetOnRampQuoteQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::onRampPaymentQuote>> promise_;
+
+ public:
+  explicit GetOnRampQuoteQuery(Promise<td_api::object_ptr<td_api::onRampPaymentQuote>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &provider, const string &cryptocurrency, const string &base_currency,
+            const string &cryptocurrency_amount, const string &base_currency_amount, const string &payment_method) {
+    int32 flags = 0;
+    if (!base_currency_amount.empty()) {
+      flags |= telegram_api::payments_getOnrampQuote::BASE_AMOUNT_MASK;
+    }
+    if (!cryptocurrency_amount.empty()) {
+      flags |= telegram_api::payments_getOnrampQuote::CRYPTO_AMOUNT_MASK;
+    }
+    if (!payment_method.empty()) {
+      flags |= telegram_api::payments_getOnrampQuote::PAYMENT_METHOD_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::payments_getOnrampQuote(
+        flags, provider, cryptocurrency, base_currency, base_currency_amount, cryptocurrency_amount, payment_method)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getOnrampQuote>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto on_ramp_quote = OnRampQuote(result_ptr.move_as_ok());
+    promise_.set_value(on_ramp_quote.get_on_ramp_payment_quote_object());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class PerformTonCenterApiRequestQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
@@ -376,6 +415,14 @@ void TonWalletManager::get_on_ramp_limits(const string &provider, const string &
                                           Promise<td_api::object_ptr<td_api::onRampPaymentLimits>> &&promise) {
   td_->create_handler<GetOnRampLimitsQuery>(std::move(promise))
       ->send(provider, cryptocurrency, base_currency, payment_method);
+}
+
+void TonWalletManager::get_on_ramp_quote(const string &provider, const string &cryptocurrency,
+                                         const string &base_currency, const string &cryptocurrency_amount,
+                                         const string &base_currency_amount, const string &payment_method,
+                                         Promise<td_api::object_ptr<td_api::onRampPaymentQuote>> &&promise) {
+  td_->create_handler<GetOnRampQuoteQuery>(std::move(promise))
+      ->send(provider, cryptocurrency, base_currency, cryptocurrency_amount, base_currency_amount, payment_method);
 }
 
 void TonWalletManager::perform_ton_center_api_request(const string &endpoint,

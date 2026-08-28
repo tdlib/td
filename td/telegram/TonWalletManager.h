@@ -37,6 +37,11 @@ class TonWalletManager final : public Actor {
                           const string &payment_method,
                           Promise<td_api::object_ptr<td_api::onRampPaymentLimits>> &&promise);
 
+  void get_on_ramp_quote(const string &provider, const string &cryptocurrency, const string &base_currency,
+                         const string &cryptocurrency_amount, const string &base_currency_amount,
+                         const string &payment_method,
+                         Promise<td_api::object_ptr<td_api::onRampPaymentQuote>> &&promise);
+
   void perform_ton_center_api_request(const string &endpoint,
                                       td_api::object_ptr<td_api::TonCenterApiRequestType> &&type,
                                       Promise<string> &&promise);
@@ -45,6 +50,7 @@ class TonWalletManager final : public Actor {
 
  private:
   class GetOnRampLimitsQuery;
+  class GetOnRampQuoteQuery;
 
   void tear_down() final;
 
