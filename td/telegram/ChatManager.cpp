@@ -8158,12 +8158,11 @@ void ChatManager::on_update_channel_linked_community_id(ChannelId channel_id, Co
     c->linked_community_id = linked_community_id;
     c->need_save_to_database = true;
     update_channel(c, channel_id);
-
-    auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_linked_community_id");
-    if (channel_full != nullptr) {
-      on_update_channel_full_linked_community_id(channel_full, channel_id, linked_community_id);
-      update_channel_full(channel_full, channel_id, "on_update_channel_linked_community_id");
-    }
+  }
+  auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_linked_community_id");
+  if (channel_full != nullptr) {
+    on_update_channel_full_linked_community_id(channel_full, channel_id, linked_community_id);
+    update_channel_full(channel_full, channel_id, "on_update_channel_linked_community_id");
   }
 }
 

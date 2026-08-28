@@ -3777,12 +3777,11 @@ void UserManager::on_update_user_linked_community_id(UserId user_id, CommunityId
   if (u != nullptr) {
     on_update_user_linked_community_id(u, user_id, linked_community_id);
     update_user(u, user_id);
-
-    auto user_full = get_user_full_force(user_id, "on_update_user_linked_community_id");
-    if (user_full != nullptr) {
-      on_update_user_full_linked_community_id(user_full, linked_community_id);
-      update_user_full(user_full, user_id, "on_update_user_linked_community_id");
-    }
+  }
+  auto user_full = get_user_full_force(user_id, "on_update_user_linked_community_id");
+  if (user_full != nullptr) {
+    on_update_user_full_linked_community_id(user_full, linked_community_id);
+    update_user_full(user_full, user_id, "on_update_user_linked_community_id");
   }
 }
 
