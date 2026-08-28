@@ -3859,6 +3859,11 @@ class CliClient final : public Actor {
       string name;
       get_args(args, community_id, name);
       send_request(td_api::make_object<td_api::setCommunityName>(community_id, name));
+    } else if (op == "scop") {
+      CommunityId community_id;
+      InputChatPhoto input_chat_photo;
+      get_args(args, community_id, input_chat_photo);
+      send_request(td_api::make_object<td_api::setCommunityPhoto>(community_id, input_chat_photo));
     } else if (op == "gcc") {
       UserId user_id;
       ChatId offset_chat_id;

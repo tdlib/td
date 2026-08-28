@@ -14,6 +14,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/ChatReactions.h"
+#include "td/telegram/CommunityManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
@@ -304,7 +305,9 @@ class EditDialogPhotoQuery final : public Td::ResultHandler {
         break;
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
-        auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
+        auto input_channel = channel_id.is_regular_channel()
+                                 ? td_->chat_manager_->get_input_channel(channel_id)
+                                 : td_->community_manager_->get_input_community(CommunityId(channel_id.get()));
         CHECK(input_channel != nullptr);
         send_query(G()->net_query_creator().create(
             telegram_api::channels_editPhoto(std::move(input_channel), std::move(input_chat_photo)), {{dialog_id_}}));
@@ -2406,9 +2409,13 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
       break;
     }
     case DialogType::Channel: {
-      auto status = td_->chat_manager_->get_channel_permissions(dialog_id.get_channel_id());
+      auto channel_id = dialog_id.get_channel_id();
+      auto status = td_->chat_manager_->get_channel_permissions(channel_id);
       if (!status.can_change_info_and_settings()) {
         return promise.set_error(400, "Not enough rights to change chat photo");
+      }
+      if (!channel_id.is_regular_channel()) {
+        return promise.set_error(400, "Can't change chat photo");
       }
       break;
     }

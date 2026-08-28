@@ -462,6 +462,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::setCommunityName &request);
 
+  void on_request(uint64 id, const td_api::setCommunityPhoto &request);
+
   void on_request(uint64 id, td_api::searchPublicChat &request);
 
   void on_request(uint64 id, td_api::searchPublicChats &request);

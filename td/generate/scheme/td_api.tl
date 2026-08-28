@@ -11886,6 +11886,11 @@ createCommunity name:string chat_id:int53 is_chat_hidden:Bool = CommunityId;
 //@name New name of the community
 setCommunityName community_id:int53 name:string = Ok;
 
+//@description Changes the photo of a community; requires can_change_info administrator right in the community
+//@community_id Identifier of the community
+//@photo New chat photo; pass null to delete the chat photo
+setCommunityPhoto community_id:int53 photo:InputChatPhoto = Ok;
+
 
 //@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date
 //@user_id User identifier

@@ -3428,6 +3428,11 @@ void Requests::on_request(uint64 id, td_api::setCommunityName &request) {
   td_->community_manager_->set_community_name(CommunityId(request.community_id_), request.name_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::setCommunityPhoto &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  td_->community_manager_->set_community_photo(CommunityId(request.community_id_), request.photo_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::searchPublicChat &request) {
   CLEAN_INPUT_STRING(request.username_);
   CREATE_REQUEST(SearchPublicChatRequest, request.username_);

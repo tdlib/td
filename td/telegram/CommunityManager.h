@@ -66,6 +66,9 @@ class CommunityManager final : public Actor {
 
   void set_community_name(CommunityId community_id, const string &name, Promise<Unit> &&promise);
 
+  void set_community_photo(CommunityId community_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
+                           Promise<Unit> &&promise);
+
   FileSourceId get_community_full_file_source_id(CommunityId community_id);
 
   int64 get_community_id_object(CommunityId community_id, const char *source) const;

@@ -1167,6 +1167,21 @@ void CommunityManager::set_community_name(CommunityId community_id, const string
   td_->create_handler<EditCommunityTitleQuery>(std::move(promise))->send(community_id, title);
 }
 
+void CommunityManager::set_community_photo(CommunityId community_id,
+                                           const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
+                                           Promise<Unit> &&promise) {
+  auto *c = get_community(community_id);
+  if (c == nullptr) {
+    return promise.set_error(400, "Community not found");
+  }
+  auto status = get_community_status(c);
+  if (!status.is_administrator() || !status.can_change_info_and_settings()) {
+    return promise.set_error(400, "Have not enough rights");
+  }
+  td_->dialog_manager_->do_set_dialog_photo(community_id.get_fake_dialog_id(), DialogId(), input_photo,
+                                            std::move(promise));
+}
+
 FileSourceId CommunityManager::get_community_full_file_source_id(CommunityId community_id) {
   if (!community_id.is_valid()) {
     return FileSourceId();
