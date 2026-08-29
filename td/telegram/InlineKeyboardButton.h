@@ -39,14 +39,14 @@ struct InlineKeyboardButton {
     Disabled
   };
 
-  Type type = Type::Disabled;
-  int64 id = 0;    // UrlAuth: button_id or (2 * request_write_access - 1) * bot_user_id + request_write_access - 1
-                   // SwitchInline: mask of allowed target chats; 0 if any
-  UserId user_id;  // User only
-  KeyboardButtonStyle style;
-  string text;
-  string forward_text;  // UrlAuth only
-  string data;
+  Type type_ = Type::Disabled;
+  int64 id_ = 0;    // UrlAuth: button_id or (2 * request_write_access - 1) * bot_user_id + request_write_access - 1
+                    // SwitchInline: mask of allowed target chats; 0 if any
+  UserId user_id_;  // User only
+  KeyboardButtonStyle style_;
+  string text_;
+  string forward_text_;  // UrlAuth only
+  string data_;
 
   InlineKeyboardButton copy() const;
 
@@ -58,15 +58,15 @@ struct InlineKeyboardButton {
   ~InlineKeyboardButton() = default;
 
   bool is_empty() const {
-    return text.empty() && !style.get_icon_custom_emoji_id().is_valid();
+    return text_.empty() && !style_.get_icon_custom_emoji_id().is_valid();
   }
 
   bool is_buy() const {
-    return type == Type::Buy;
+    return type_ == Type::Buy;
   }
 
   bool is_disabled() const {
-    return type == Type::Disabled;
+    return type_ == Type::Disabled;
   }
 
   void add_dependencies(Dependencies &dependencies) const;
@@ -75,12 +75,12 @@ struct InlineKeyboardButton {
                              bool is_rich_message) const;
 
   const string &get_forward_text() const {
-    return forward_text;
+    return forward_text_;
   }
 
   const string *get_login_url(int64 button_id) const {
-    if (type == Type::UrlAuth && id == button_id) {
-      return &data;
+    if (type_ == Type::UrlAuth && id_ == button_id) {
+      return &data_;
     }
     return nullptr;
   }

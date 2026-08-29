@@ -17,11 +17,11 @@ namespace td {
 template <class StorerT>
 void InlineKeyboardButton::store(StorerT &storer) const {
   using td::store;
-  bool has_id = id != 0;
-  bool has_user_id = user_id.is_valid();
-  bool has_forward_text = !forward_text.empty();
-  bool has_data = !data.empty();
-  bool has_style = !style.is_default();
+  bool has_id = id_ != 0;
+  bool has_user_id = user_id_.is_valid();
+  bool has_forward_text = !forward_text_.empty();
+  bool has_data = !data_.empty();
+  bool has_style = !style_.is_default();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_id);
   STORE_FLAG(has_user_id);
@@ -29,22 +29,22 @@ void InlineKeyboardButton::store(StorerT &storer) const {
   STORE_FLAG(has_data);
   STORE_FLAG(has_style);
   END_STORE_FLAGS();
-  store(type, storer);
+  store(type_, storer);
   if (has_id) {
-    store(id, storer);
+    store(id_, storer);
   }
   if (has_user_id) {
-    store(user_id, storer);
+    store(user_id_, storer);
   }
-  store(text, storer);
+  store(text_, storer);
   if (has_forward_text) {
-    store(forward_text, storer);
+    store(forward_text_, storer);
   }
   if (has_data) {
-    store(data, storer);
+    store(data_, storer);
   }
   if (has_style) {
-    store(style, storer);
+    store(style_, storer);
   }
 }
 
@@ -64,36 +64,36 @@ void InlineKeyboardButton::parse(ParserT &parser) {
     PARSE_FLAG(has_data);
     PARSE_FLAG(has_style);
     END_PARSE_FLAGS();
-    parse(type, parser);
+    parse(type_, parser);
     if (has_id) {
-      parse(id, parser);
+      parse(id_, parser);
     }
     if (has_user_id) {
-      parse(user_id, parser);
+      parse(user_id_, parser);
     }
-    parse(text, parser);
+    parse(text_, parser);
     if (has_forward_text) {
-      parse(forward_text, parser);
+      parse(forward_text_, parser);
     }
     if (has_data) {
-      parse(data, parser);
+      parse(data_, parser);
     }
     if (has_style) {
-      parse(style, parser);
+      parse(style_, parser);
     }
   } else {
-    parse(type, parser);
-    if (type == InlineKeyboardButton::Type::UrlAuth) {
+    parse(type_, parser);
+    if (type_ == InlineKeyboardButton::Type::UrlAuth) {
       if (parser.version() >= static_cast<int32>(Version::Support64BitIds)) {
-        parse(id, parser);
+        parse(id_, parser);
       } else {
         int32 old_id;
         parse(old_id, parser);
-        id = old_id;
+        id_ = old_id;
       }
     }
-    parse(text, parser);
-    parse(data, parser);
+    parse(text_, parser);
+    parse(data_, parser);
   }
 }
 
