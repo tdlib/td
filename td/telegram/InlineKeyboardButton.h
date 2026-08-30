@@ -57,6 +57,11 @@ struct InlineKeyboardButton {
   InlineKeyboardButton &operator=(InlineKeyboardButton &&) = default;
   ~InlineKeyboardButton() = default;
 
+  explicit InlineKeyboardButton(telegram_api::object_ptr<telegram_api::keyboardInlineButton> &&keyboard_button);
+
+  static Result<InlineKeyboardButton> get_inline_keyboard_button(
+      td_api::object_ptr<td_api::inlineKeyboardButton> &&button, bool switch_inline_buttons_allowed);
+
   bool is_empty() const {
     return text_.empty() && !style_.get_icon_custom_emoji_id().is_valid();
   }
@@ -85,6 +90,11 @@ struct InlineKeyboardButton {
     return nullptr;
   }
 
+  telegram_api::object_ptr<telegram_api::keyboardInlineButton> get_input_keyboard_inline_button(
+      const UserManager *user_manager) const;
+
+  td_api::object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_object(UserManager *user_manager) const;
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
@@ -93,18 +103,6 @@ struct InlineKeyboardButton {
 };
 
 bool operator==(const InlineKeyboardButton &lhs, const InlineKeyboardButton &rhs);
-
-InlineKeyboardButton get_inline_keyboard_button(
-    telegram_api::object_ptr<telegram_api::keyboardInlineButton> &&keyboard_button);
-
-Result<InlineKeyboardButton> get_inline_keyboard_button(td_api::object_ptr<td_api::inlineKeyboardButton> &&button,
-                                                        bool switch_inline_buttons_allowed);
-
-telegram_api::object_ptr<telegram_api::keyboardInlineButton> get_input_keyboard_inline_button(
-    const UserManager *user_manager, const InlineKeyboardButton &keyboard_button);
-
-td_api::object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_object(
-    UserManager *user_manager, const InlineKeyboardButton &keyboard_button);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const InlineKeyboardButton &keyboard_button);
 
