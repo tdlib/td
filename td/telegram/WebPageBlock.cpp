@@ -5340,7 +5340,7 @@ void WebPageBlock::append_user_ids(vector<UserId> &user_ids) const {
       user_ids.push_back(text->user_id);
     }
     if (text->button != nullptr) {
-      auto user_id = text->button->user_id_;
+      auto user_id = text->button->get_user_id();
       if (user_id.is_valid()) {
         user_ids.push_back(user_id);
       }

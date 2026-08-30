@@ -22,7 +22,7 @@ namespace td {
 class Dependencies;
 class UserManager;
 
-struct InlineKeyboardButton {
+class InlineKeyboardButton {
   // append only
   enum class Type : int32 {
     Url,
@@ -50,6 +50,11 @@ struct InlineKeyboardButton {
 
   InlineKeyboardButton copy() const;
 
+  friend bool operator==(const InlineKeyboardButton &lhs, const InlineKeyboardButton &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const InlineKeyboardButton &keyboard_button);
+
+ public:
   InlineKeyboardButton() = default;
   InlineKeyboardButton(const InlineKeyboardButton &) = delete;
   InlineKeyboardButton &operator=(const InlineKeyboardButton &) = delete;
@@ -81,6 +86,10 @@ struct InlineKeyboardButton {
 
   const string &get_forward_text() const {
     return forward_text_;
+  }
+
+  UserId get_user_id() const {
+    return user_id_;
   }
 
   const string *get_login_url(int64 button_id) const {
