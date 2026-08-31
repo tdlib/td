@@ -459,6 +459,11 @@ void TonWalletManager::tear_down() {
 }
 
 void TonWalletManager::on_update_wallet_state(telegram_api::object_ptr<telegram_api::WalletState> &&wallet_state) {
+  LOG(INFO) << "Receive " << to_string(wallet_state);
+  if (td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive WalletState";
+    return;
+  }
   auto state = WalletState(std::move(wallet_state));
   if (is_wallet_state_inited_ && state == wallet_state_) {
     return;
