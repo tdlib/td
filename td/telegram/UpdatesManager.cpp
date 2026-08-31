@@ -92,6 +92,7 @@
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TimeZoneManager.h"
 #include "td/telegram/TonAmount.h"
+#include "td/telegram/TonWalletManager.h"
 #include "td/telegram/TranscriptionManager.h"
 #include "td/telegram/TranslationManager.h"
 #include "td/telegram/UserManager.h"
@@ -5108,6 +5109,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> u
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWalletState> update, Promise<Unit> &&promise) {
+  td_->ton_wallet_manager_->on_update_wallet_state(std::move(update->state_));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueStatus> update, Promise<Unit> &&promise) {
   auto dialog_id = DialogId(update->peer_);
   switch (update->status_->current_balance_->get_id()) {
@@ -5146,10 +5152,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebBrowserExcep
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWalletState> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

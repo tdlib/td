@@ -22,6 +22,8 @@ class TonWalletManager final : public Actor {
  public:
   TonWalletManager(Td *td, ActorShared<> parent);
 
+  void on_update_wallet_state(telegram_api::object_ptr<telegram_api::WalletState> &&wallet_state);
+
   void get_currency_rates(Promise<td_api::object_ptr<td_api::currencyExchangeRates>> &&promise);
 
   void get_on_ramp_providers(const string &cryptocurrency,
@@ -83,6 +85,10 @@ class TonWalletManager final : public Actor {
 
   void tear_down() final;
 
+  td_api::object_ptr<td_api::updateTonWalletState> get_update_ton_wallet_state() const;
+
+  void send_update_ton_wallet_state() const;
+
   void on_get_currency_rates(Result<telegram_api::object_ptr<telegram_api::payments_currencyRates>> r_rates);
 
   td_api::object_ptr<td_api::currencyExchangeRates> get_currency_exchange_rates_object() const;
@@ -95,6 +101,9 @@ class TonWalletManager final : public Actor {
 
   Td *td_;
   ActorShared<> parent_;
+
+  bool is_wallet_state_inited_ = false;
+  WalletState wallet_state_;
 
   struct CurrencyRate {
     string currency_;

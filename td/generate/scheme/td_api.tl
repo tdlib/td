@@ -11110,6 +11110,9 @@ updateOwnedStarCount star_amount:starAmount = Update;
 //@description The number of TON Grams owned by the current user has changed @gram_amount The new amount of owned Grams; in the smallest units of the cryptocurrency
 updateOwnedGramCount gram_amount:int53 = Update;
 
+//@description The state of the TON wallet of the current user has changed @state The new state of the wallet
+updateTonWalletState state:tonWalletState = Update;
+
 //@description The revenue earned from sponsored messages in a chat has changed. If chat revenue screen is opened, then getChatRevenueTransactions may be called to fetch new transactions
 //@chat_id Identifier of the chat
 //@revenue_amount New amount of earned revenue

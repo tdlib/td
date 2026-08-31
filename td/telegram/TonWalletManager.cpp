@@ -430,6 +430,24 @@ void TonWalletManager::tear_down() {
   parent_.reset();
 }
 
+void TonWalletManager::on_update_wallet_state(telegram_api::object_ptr<telegram_api::WalletState> &&wallet_state) {
+  auto state = WalletState(std::move(wallet_state));
+  if (is_wallet_state_inited_ && state == wallet_state_) {
+    return;
+  }
+  is_wallet_state_inited_ = true;
+  wallet_state_ = std::move(state);
+  send_update_ton_wallet_state();
+}
+
+td_api::object_ptr<td_api::updateTonWalletState> TonWalletManager::get_update_ton_wallet_state() const {
+  return td_api::make_object<td_api::updateTonWalletState>(wallet_state_.get_ton_wallet_state_object());
+}
+
+void TonWalletManager::send_update_ton_wallet_state() const {
+  send_closure(G()->td(), &Td::send_update, get_update_ton_wallet_state());
+}
+
 td_api::object_ptr<td_api::currencyExchangeRates> TonWalletManager::get_currency_exchange_rates_object() const {
   return td_api::make_object<td_api::currencyExchangeRates>(
       transform(currency_rates_.rates_, [](const CurrencyRate &rate) {
