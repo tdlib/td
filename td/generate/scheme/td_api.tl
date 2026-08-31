@@ -15834,6 +15834,9 @@ getChatRevenueTransactions chat_id:int53 offset:string limit:int32 = ChatRevenue
 getTonTransactions direction:TransactionDirection offset:string limit:int32 = TonTransactions;
 
 
+//@description Loads state of the TON wallet of the current user
+loadTonWalletState = Ok;
+
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
 

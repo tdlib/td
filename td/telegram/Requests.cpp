@@ -7920,6 +7920,12 @@ void Requests::on_request(uint64 id, td_api::getTonTransactions &request) {
                                            std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::loadTonWalletState &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->get_wallet_state(std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getCurrencyExchangeRates &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

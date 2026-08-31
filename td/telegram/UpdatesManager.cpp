@@ -2463,6 +2463,7 @@ void UpdatesManager::try_reload_data() {
   td_->theme_manager_->reload_chat_themes();
   td_->theme_manager_->reload_profile_accent_colors();
   td_->time_zone_manager_->reload_time_zones(Auto());
+  td_->ton_wallet_manager_->get_wallet_state(Auto());
   td_->translation_manager_->reload_ai_compose_tones(Auto());
   td_->user_manager_->reload_contact_birthdates(false);
   td_->user_manager_->reload_my_saved_music_list(Auto());

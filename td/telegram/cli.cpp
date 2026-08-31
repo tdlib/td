@@ -8788,6 +8788,8 @@ class CliClient final : public Actor {
         direction = td_api::make_object<td_api::transactionDirectionOutgoing>();
       }
       send_request(td_api::make_object<td_api::getTonTransactions>(std::move(direction), offset, as_limit(limit)));
+    } else if (op == "ltws") {
+      send_request(td_api::make_object<td_api::loadTonWalletState>());
     } else if (op == "gcer") {
       send_request(td_api::make_object<td_api::getCurrencyExchangeRates>());
     } else if (op == "gorp") {

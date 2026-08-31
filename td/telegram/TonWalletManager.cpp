@@ -15,8 +15,35 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/Time.h"
 
 namespace td {
+
+class GetWalletStateQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit GetWalletStateQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_getState()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_getState>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->ton_wallet_manager_->on_update_wallet_state(result_ptr.move_as_ok());
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
 
 class GetCurrencyRatesQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::payments_currencyRates>> promise_;
@@ -437,6 +464,7 @@ void TonWalletManager::on_update_wallet_state(telegram_api::object_ptr<telegram_
     return;
   }
   is_wallet_state_inited_ = true;
+  next_wallet_state_reload_at_ = Time::now() + 3500;
   wallet_state_ = std::move(state);
   send_update_ton_wallet_state();
 }
@@ -447,6 +475,33 @@ td_api::object_ptr<td_api::updateTonWalletState> TonWalletManager::get_update_to
 
 void TonWalletManager::send_update_ton_wallet_state() const {
   send_closure(G()->td(), &Td::send_update, get_update_ton_wallet_state());
+}
+
+void TonWalletManager::get_wallet_state(Promise<Unit> &&promise) {
+  if (is_wallet_state_inited_) {
+    promise.set_value(Unit());
+    if (Time::now() < next_wallet_state_reload_at_) {
+      return;
+    }
+  }
+  get_wallet_state_queries_.push_back(std::move(promise));
+  if (get_wallet_state_queries_.size() == 1u) {
+    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<Unit> result) {
+      send_closure(actor_id, &TonWalletManager::on_get_wallet_state, std::move(result));
+    });
+    td_->create_handler<GetWalletStateQuery>(std::move(query_promise))->send();
+  }
+}
+
+void TonWalletManager::on_get_wallet_state(Result<Unit> &&result) {
+  auto promises = std::move(get_wallet_state_queries_);
+  CHECK(!promises.empty());
+  get_wallet_state_queries_.clear();
+  if (result.is_ok()) {
+    set_promises(promises);
+  } else {
+    fail_promises(promises, result.move_as_error());
+  }
 }
 
 td_api::object_ptr<td_api::currencyExchangeRates> TonWalletManager::get_currency_exchange_rates_object() const {
