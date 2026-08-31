@@ -2255,6 +2255,8 @@ void Requests::on_request(uint64 id, const td_api::getCurrentState &request) {
 
     td_->message_query_manager_->get_current_state(updates);
 
+    td_->ton_wallet_manager_->get_current_state(updates);
+
     td_->translation_manager_->get_current_state(updates);
 
     td_->web_browser_manager_->get_current_state(updates);

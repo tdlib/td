@@ -6,6 +6,7 @@
 //
 #include "td/telegram/TonWalletManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
@@ -627,6 +628,16 @@ void TonWalletManager::on_get_ton_center_streaming_api_url(
   streaming_api_url_.expiration_date_ = url->expires_;
   for (auto &promise : promises) {
     promise.set_value(td_api::make_object<td_api::tonCenterStreamingApiUrl>(url->url_, expires_in));
+  }
+}
+
+void TonWalletManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (!td_->auth_manager_->is_authorized()) {
+    return;
+  }
+
+  if (is_wallet_state_inited_) {
+    updates.push_back(get_update_ton_wallet_state());
   }
 }
 

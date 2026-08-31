@@ -57,6 +57,8 @@ class TonWalletManager final : public Actor {
 
   void get_ton_center_streaming_api_url(Promise<td_api::object_ptr<td_api::tonCenterStreamingApiUrl>> &&promise);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   class GetOnRampLimitsQuery;
   class GetOnRampQuoteQuery;
