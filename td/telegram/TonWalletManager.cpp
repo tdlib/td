@@ -332,6 +332,40 @@ class GetTonCenterStreamingApiUrlQuery final : public Td::ResultHandler {
   }
 };
 
+TonWalletManager::WalletState::WalletState(telegram_api::object_ptr<telegram_api::WalletState> &&wallet_state) {
+  CHECK(wallet_state != nullptr);
+  switch (wallet_state->get_id()) {
+    case telegram_api::walletStateEmpty::ID: {
+      auto state = telegram_api::move_object_as<telegram_api::walletStateEmpty>(wallet_state);
+      is_being_created_ = state->creating_;
+      break;
+    }
+    case telegram_api::walletState::ID: {
+      auto state = telegram_api::move_object_as<telegram_api::walletState>(wallet_state);
+      is_backup_enabled_ = state->backup_enabled_;
+      can_export_phrase_ = state->can_export_phrase_;
+      can_enable_backup_ = state->can_enable_backup_;
+      address_ = std::move(state->address_);
+      public_key_ = state->public_key_.as_slice().str();
+      balance_ = state->balance_;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
+td_api::object_ptr<td_api::tonWalletState> TonWalletManager::WalletState::get_ton_wallet_state_object() const {
+  return td_api::make_object<td_api::tonWalletState>(address_, public_key_, balance_, is_being_created_,
+                                                     is_backup_enabled_, can_enable_backup_, can_export_phrase_);
+}
+
+bool operator==(const TonWalletManager::WalletState &lhs, const TonWalletManager::WalletState &rhs) {
+  return lhs.is_being_created_ == rhs.is_being_created_ && lhs.is_backup_enabled_ == rhs.is_backup_enabled_ &&
+         lhs.can_export_phrase_ == rhs.can_export_phrase_ && lhs.can_enable_backup_ == rhs.can_enable_backup_ &&
+         lhs.address_ == rhs.address_ && lhs.public_key_ == rhs.public_key_ && lhs.balance_ == rhs.balance_;
+}
+
 TonWalletManager::OnRampProvider::OnRampProvider(telegram_api::object_ptr<telegram_api::onrampProviderInfo> &&info)
     : id_(std::move(info->id_))
     , name_(std::move(info->name_))

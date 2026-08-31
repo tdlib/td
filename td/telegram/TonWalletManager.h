@@ -60,6 +60,27 @@ class TonWalletManager final : public Actor {
   class GetOnRampQuoteQuery;
   class CreateOnRampSessionQuery;
 
+  class WalletState {
+    bool is_being_created_ = false;
+    bool is_backup_enabled_ = false;
+    bool can_export_phrase_ = false;
+    bool can_enable_backup_ = false;
+    string address_;
+    string public_key_;
+    int64 balance_ = 0;
+
+    friend bool operator==(const WalletState &lhs, const WalletState &rhs);
+
+   public:
+    WalletState() = default;
+
+    explicit WalletState(telegram_api::object_ptr<telegram_api::WalletState> &&wallet_state);
+
+    td_api::object_ptr<td_api::tonWalletState> get_ton_wallet_state_object() const;
+  };
+
+  friend bool operator==(const WalletState &lhs, const WalletState &rhs);
+
   void tear_down() final;
 
   void on_get_currency_rates(Result<telegram_api::object_ptr<telegram_api::payments_currencyRates>> r_rates);
@@ -95,7 +116,7 @@ class TonWalletManager final : public Actor {
     bool supports_quote_ = false;
 
    public:
-    OnRampProvider(telegram_api::object_ptr<telegram_api::onrampProviderInfo> &&info);
+    explicit OnRampProvider(telegram_api::object_ptr<telegram_api::onrampProviderInfo> &&info);
 
     td_api::object_ptr<td_api::onRampProvider> get_on_ramp_provider_object() const;
   };
@@ -108,7 +129,7 @@ class TonWalletManager final : public Actor {
     string crypto_max_amount_;
 
    public:
-    OnRampLimits(telegram_api::object_ptr<telegram_api::onrampLimits> &&limits);
+    explicit OnRampLimits(telegram_api::object_ptr<telegram_api::onrampLimits> &&limits);
 
     td_api::object_ptr<td_api::onRampPaymentLimits> get_on_ramp_payment_limits_object() const;
   };
@@ -125,7 +146,7 @@ class TonWalletManager final : public Actor {
     string total_amount_;
 
    public:
-    OnRampQuote(telegram_api::object_ptr<telegram_api::onrampQuote> &&quote);
+    explicit OnRampQuote(telegram_api::object_ptr<telegram_api::onrampQuote> &&quote);
 
     td_api::object_ptr<td_api::onRampPaymentQuote> get_on_ramp_payment_quote_object() const;
   };
@@ -136,7 +157,7 @@ class TonWalletManager final : public Actor {
     string url_;
 
    public:
-    OnRampSession(telegram_api::object_ptr<telegram_api::onrampSession> &&session);
+    explicit OnRampSession(telegram_api::object_ptr<telegram_api::onrampSession> &&session);
 
     td_api::object_ptr<td_api::onRampPaymentSession> get_on_ramp_payment_session_object() const;
   };

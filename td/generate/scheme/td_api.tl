@@ -2242,6 +2242,16 @@ onRampPaymentQuote payment_method:string expiration_date:int32 base_currency_amo
 //@url HTTPS URL to be opened in a WebView to complete the purchase
 onRampPaymentSession session_id:string expiration_date:int32 url:string = OnRampPaymentSession;
 
+//@description Describes state of the wallet of the current user in the TON Blockchain
+//@address Address of the wallet; may be empty if none
+//@public_key Public key of the wallet; may be empty if none
+//@gram_amount The total amount of owned TON Grams, in the smallest units of the cryptocurrency
+//@is_being_created True, if the wallet is being created
+//@is_backup_enabled True, if backup for the wallet key is enabled
+//@can_enable_backup True, if the user can enable backup for the wallet key
+//@can_export_phrase True, if the wallet key can be exported
+tonWalletState address:string public_key:bytes gram_amount:int53 is_being_created:Bool is_backup_enabled:Bool can_enable_backup:Bool can_export_phrase:Bool = TonWalletState;
+
 
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
 
