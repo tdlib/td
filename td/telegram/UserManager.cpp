@@ -1888,6 +1888,9 @@ void UserManager::User::store(StorerT &storer) const {
     STORE_FLAG(is_guestchat_bot);
     STORE_FLAG(is_guard_bot);
     STORE_FLAG(has_linked_community_id);
+    STORE_FLAG(is_noforwards_inited);
+    STORE_FLAG(noforwards_my_enabled);  // 25
+    STORE_FLAG(noforwards_peer_enabled);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -2047,6 +2050,9 @@ void UserManager::User::parse(ParserT &parser) {
     PARSE_FLAG(is_guestchat_bot);
     PARSE_FLAG(is_guard_bot);
     PARSE_FLAG(has_linked_community_id);
+    PARSE_FLAG(is_noforwards_inited);
+    PARSE_FLAG(noforwards_my_enabled);
+    PARSE_FLAG(noforwards_peer_enabled);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -4524,14 +4530,33 @@ void UserManager::on_update_user_noforwards(UserId user_id, bool update_my, bool
   if (user_full == nullptr) {
     return;
   }
-  on_update_user_full_noforwards(user_full, update_my, noforwards_my_enabled, update_peer, noforwards_peer_enabled);
+  on_update_user_full_noforwards(user_full, get_user_force(user_id, "on_update_user_noforwards"), user_id, update_my,
+                                 noforwards_my_enabled, update_peer, noforwards_peer_enabled);
   update_user_full(user_full, user_id, "on_update_user_noforwards");
 }
 
-void UserManager::on_update_user_full_noforwards(UserFull *user_full, bool update_my, bool noforwards_my_enabled,
-                                                 bool update_peer, bool noforwards_peer_enabled) const {
+void UserManager::on_update_user_full_noforwards(UserFull *user_full, User *u, UserId user_id, bool update_my,
+                                                 bool noforwards_my_enabled, bool update_peer,
+                                                 bool noforwards_peer_enabled) {
   CHECK(user_full != nullptr);
   bool old_noforwards = user_full->noforwards_my_enabled || user_full->noforwards_peer_enabled;
+  if (u != nullptr && ((update_my && update_peer) || u->is_noforwards_inited)) {
+    if (update_my && u->noforwards_my_enabled != noforwards_my_enabled) {
+      u->noforwards_my_enabled = noforwards_my_enabled;
+      u->need_save_to_database = true;
+    }
+    if (update_peer && u->noforwards_peer_enabled != noforwards_peer_enabled) {
+      u->noforwards_peer_enabled = noforwards_peer_enabled;
+      u->need_save_to_database = true;
+    }
+    if (!u->is_noforwards_inited) {
+      u->is_noforwards_inited = true;
+      u->need_save_to_database = true;
+    }
+    if (u->need_save_to_database) {
+      update_user(u, user_id);
+    }
+  }
   if (update_my && user_full->noforwards_my_enabled != noforwards_my_enabled) {
     user_full->noforwards_my_enabled = noforwards_my_enabled;
     user_full->need_save_to_database = true;
@@ -5644,6 +5669,10 @@ td_api::object_ptr<td_api::emojiStatus> UserManager::get_secret_chat_emoji_statu
 }
 
 bool UserManager::get_user_has_protected_content_force(UserId user_id) {
+  auto u = get_user_force(user_id, "get_user_has_protected_content_force");
+  if (u != nullptr && u->is_noforwards_inited) {
+    return u->noforwards_my_enabled || u->noforwards_peer_enabled;
+  }
   auto user_full = get_user_full_force(user_id, "get_user_has_protected_content_force");
   if (user_full != nullptr) {
     return user_full->noforwards_my_enabled || user_full->noforwards_peer_enabled;
@@ -5652,6 +5681,10 @@ bool UserManager::get_user_has_protected_content_force(UserId user_id) {
 }
 
 bool UserManager::get_user_has_protected_content(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u != nullptr && u->is_noforwards_inited) {
+    return u->noforwards_my_enabled || u->noforwards_peer_enabled;
+  }
   auto user_full = get_user_full(user_id);
   if (user_full != nullptr) {
     return user_full->noforwards_my_enabled || user_full->noforwards_peer_enabled;
@@ -5660,6 +5693,10 @@ bool UserManager::get_user_has_protected_content(UserId user_id) const {
 }
 
 bool UserManager::get_user_has_protected_content_force_by_me(UserId user_id) {
+  auto u = get_user_force(user_id, "get_user_has_protected_content_force_by_me");
+  if (u != nullptr && u->is_noforwards_inited) {
+    return u->noforwards_my_enabled;
+  }
   auto user_full = get_user_full_force(user_id, "get_user_has_protected_content_force_by_me");
   if (user_full != nullptr) {
     return user_full->noforwards_my_enabled;
@@ -5668,6 +5705,10 @@ bool UserManager::get_user_has_protected_content_force_by_me(UserId user_id) {
 }
 
 bool UserManager::get_user_has_protected_content_force_by_other(UserId user_id) {
+  auto u = get_user_force(user_id, "get_user_has_protected_content_force_by_other");
+  if (u != nullptr && u->is_noforwards_inited) {
+    return u->noforwards_peer_enabled;
+  }
   auto user_full = get_user_full_force(user_id, "get_user_has_protected_content_force_by_other");
   if (user_full != nullptr) {
     return user_full->noforwards_peer_enabled;
@@ -9029,7 +9070,8 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
       user_full, StarManager::get_star_count(user->settings_->charge_paid_message_stars_));
   on_update_user_full_send_paid_message_stars(user_full, StarManager::get_star_count(user->send_paid_messages_stars_));
   on_update_user_full_wallpaper_overridden(user_full, user->wallpaper_overridden_);
-  on_update_user_full_noforwards(user_full, true, user->noforwards_my_enabled_, true, user->noforwards_peer_enabled_);
+  on_update_user_full_noforwards(user_full, u, user_id, true, user->noforwards_my_enabled_, true,
+                                 user->noforwards_peer_enabled_);
   on_update_user_full_note(user_full,
                            get_formatted_text(this, std::move(user->note_), true, false, "on_get_user_full note"));
 
@@ -9432,6 +9474,14 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
     drop_user_full(user_id);
   } else if (user_full->expires_at == 0.0) {
     reload_user_full(user_id, Auto(), "on_load_user_full_from_database 4");
+  }
+  if (u->noforwards_my_enabled != user_full->noforwards_my_enabled ||
+      u->noforwards_peer_enabled != user_full->noforwards_peer_enabled || !u->is_noforwards_inited) {
+    u->noforwards_my_enabled = user_full->noforwards_my_enabled;
+    u->noforwards_peer_enabled = user_full->noforwards_peer_enabled;
+    u->is_noforwards_inited = true;
+    u->need_save_to_database = true;
+    update_user(u, user_id);
   }
 }
 
