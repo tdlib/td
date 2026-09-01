@@ -2399,11 +2399,8 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(Sticke
   for (auto sticker_id : sticker_set->sticker_ids_) {
     stickers.push_back(get_sticker_object(sticker_id));
 
-    vector<string> sticker_emojis;
     auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
-    if (it != sticker_set->sticker_emojis_map_.end()) {
-      sticker_emojis = it->second;
-    }
+    auto sticker_emojis = it != sticker_set->sticker_emojis_map_.end() ? it->second : vector<string>();
     emojis.push_back(make_tl_object<td_api::emojis>(std::move(sticker_emojis)));
   }
   return td_api::make_object<td_api::stickerSet>(

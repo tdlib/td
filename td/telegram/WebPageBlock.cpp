@@ -5051,10 +5051,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     case telegram_api::pageBlockPhoto::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockPhoto>(page_block_ptr);
       auto it = photos.find(page_block->photo_id_);
-      Photo photo;
-      if (it != photos.end()) {
-        photo = *it->second;
-      }
+      auto photo = it != photos.end() ? *it->second : Photo();
       return td::make_unique<WebPageBlockPhoto>(
           std::move(photo), get_page_block_caption(std::move(page_block->caption_), documents),
           std::move(page_block->url_), WebPageId(page_block->webpage_id_), page_block->spoiler_);
@@ -5071,10 +5068,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       }
 
       auto it = videos.find(page_block->video_id_);
-      FileId video_file_id;
-      if (it != videos.end()) {
-        video_file_id = it->second;
-      }
+      auto video_file_id = it != videos.end() ? it->second : FileId();
       return make_unique<WebPageBlockVideo>(video_file_id,
                                             get_page_block_caption(std::move(page_block->caption_), documents),
                                             need_autoplay, is_looped, page_block->spoiler_);
@@ -5092,11 +5086,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockEmbed>(page_block_ptr);
       bool is_full_width = page_block->full_width_;
       bool allow_scrolling = page_block->allow_scrolling_;
-      Photo poster_photo;
       auto it = photos.find(page_block->poster_photo_id_);
-      if (it != photos.end()) {
-        poster_photo = *it->second;
-      }
+      auto poster_photo = it != photos.end() ? *it->second : Photo();
       auto dimensions = get_dimensions(page_block->w_, page_block->h_, "pageBlockEmbed");
       return td::make_unique<WebPageBlockEmbedded>(
           std::move(page_block->url_), std::move(page_block->html_), std::move(poster_photo), dimensions,
@@ -5105,10 +5096,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     case telegram_api::pageBlockEmbedPost::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockEmbedPost>(page_block_ptr);
       auto it = photos.find(page_block->author_photo_id_);
-      Photo author_photo;
-      if (it != photos.end()) {
-        author_photo = *it->second;
-      }
+      auto author_photo = it != photos.end() ? *it->second : Photo();
       return td::make_unique<WebPageBlockEmbeddedPost>(
           std::move(page_block->url_), std::move(page_block->author_), std::move(author_photo), page_block->date_,
           get_web_page_blocks(td, std::move(page_block->blocks_), animations, audios, documents, photos, videos,
@@ -5168,10 +5156,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       }
 
       auto it = audios.find(page_block->audio_id_);
-      FileId audio_file_id;
-      if (it != audios.end()) {
-        audio_file_id = it->second;
-      }
+      auto audio_file_id = it != audios.end() ? it->second : FileId();
       return make_unique<WebPageBlockAudio>(audio_file_id,
                                             get_page_block_caption(std::move(page_block->caption_), documents));
     }

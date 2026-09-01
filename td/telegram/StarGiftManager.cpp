@@ -3448,11 +3448,8 @@ void StarGiftManager::on_reload_gift_auction_timeout(int64 gift_id) {
     return;
   }
   CHECK(!td_->auth_manager_->is_bot());
-  int32 version = 0;
   auto it = gift_auction_infos_.find(gift_id);
-  if (it != gift_auction_infos_.end()) {
-    version = it->second.state_.get_version();
-  }
+  auto version = it != gift_auction_infos_.end() ? it->second.state_.get_version() : static_cast<int32>(0);
   reload_gift_auction_state(telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id), version, Auto());
 }
 

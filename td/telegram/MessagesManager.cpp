@@ -10932,12 +10932,8 @@ void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId 
     if (!DcId::is_valid(file->dc_id_)) {
       LOG(ERROR) << "Wrong dc_id = " << file->dc_id_ << " in file " << *file;
     } else {
-      DialogId owner_dialog_id;
       auto it = being_sent_messages_.find(random_id);
-      if (it != being_sent_messages_.end()) {
-        owner_dialog_id = it->second.get_dialog_id();
-      }
-
+      auto owner_dialog_id = it != being_sent_messages_.end() ? it->second.get_dialog_id() : DialogId();
       new_file_id = td_->file_manager_->register_remote(
           FullRemoteFileLocation(FileType::Encrypted, file->id_, file->access_hash_, DcId::internal(file->dc_id_), ""),
           FileLocationSource::FromServer, owner_dialog_id, 0, file->size_, to_string(static_cast<uint64>(file->id_)));

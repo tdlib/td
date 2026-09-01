@@ -4436,12 +4436,8 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
 
   story->receive_date_ = G()->unix_time();
 
-  const BeingEditedStory *edited_story = nullptr;
   auto it = being_edited_stories_.find(story_full_id);
-  if (it != being_edited_stories_.end()) {
-    edited_story = it->second.get();
-  }
-
+  auto edited_story = it != being_edited_stories_.end() ? it->second.get() : nullptr;
   auto content_type = content->get_type();
   auto old_file_ids = get_story_file_ids(story);
   if (edited_story != nullptr && edited_story->content_ != nullptr) {
