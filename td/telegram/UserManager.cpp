@@ -4454,7 +4454,7 @@ void UserManager::on_update_user_full_need_phone_number_privacy_exception(
   CHECK(user_full != nullptr);
   if (need_phone_number_privacy_exception) {
     const User *u = get_user(user_id);
-    if (u == nullptr || u->is_contact || user_id == get_my_id()) {
+    if (u == nullptr || u->is_deleted || u->is_contact || user_id == get_my_id()) {
       need_phone_number_privacy_exception = false;
     }
   }
@@ -9468,13 +9468,13 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
   td_->group_call_manager_->on_update_dialog_about(DialogId(user_id), user_full->about, false);
 
   user_full->is_update_user_full_sent = true;
-  update_user_full(user_full, user_id, "on_load_user_full_from_database 3", true);
-
   if (is_user_deleted(u)) {
     drop_user_full(user_id);
   } else if (user_full->expires_at == 0.0) {
     reload_user_full(user_id, Auto(), "on_load_user_full_from_database 4");
   }
+  update_user_full(user_full, user_id, "on_load_user_full_from_database 3", true);
+
   if (u->noforwards_my_enabled != user_full->noforwards_my_enabled ||
       u->noforwards_peer_enabled != user_full->noforwards_peer_enabled || !u->is_noforwards_inited) {
     u->noforwards_my_enabled = user_full->noforwards_my_enabled;
