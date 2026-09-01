@@ -7,11 +7,13 @@
 #include "td/telegram/TonWalletManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -38,6 +40,98 @@ class GetWalletStateQuery final : public Td::ResultHandler {
 
     td_->ton_wallet_manager_->on_update_wallet_state(result_ptr.move_as_ok());
     promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetTonWalletTransactionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonWalletTransactions>> promise_;
+
+ public:
+  explicit GetTonWalletTransactionsQuery(Promise<td_api::object_ptr<td_api::tonWalletTransactions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &offset, int32 limit, td_api::object_ptr<td_api::TransactionDirection> &&direction) {
+    bool inbound = false;
+    bool outbound = false;
+    if (direction != nullptr) {
+      switch (direction->get_id()) {
+        case td_api::transactionDirectionIncoming::ID:
+          inbound = true;
+          break;
+        case td_api::transactionDirectionOutgoing::ID:
+          outbound = true;
+          break;
+        default:
+          UNREACHABLE();
+      }
+    }
+    send_query(
+        G()->net_query_creator().create(telegram_api::wallet_getTransactions(0, inbound, outbound, offset, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_getTransactions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetTonWalletTransactionsQuery: " << to_string(result);
+
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetTonWalletTransactionsQuery");
+    td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetTonWalletTransactionsQuery");
+
+    vector<td_api::object_ptr<td_api::tonWalletTransaction>> transactions;
+    for (auto &transaction : result->transactions_) {
+      string peer_address;
+      UserId peer_user_id;
+      string peer_domain;
+      switch (transaction->peer_->get_id()) {
+        case telegram_api::walletTransactionPeerUser::ID: {
+          auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerUser>(transaction->peer_);
+          peer_user_id = UserId(peer->user_id_);
+          if (!peer_user_id.is_valid()) {
+            LOG(ERROR) << "Receive " << peer_user_id;
+            peer_user_id = UserId();
+          }
+          peer_address = std::move(peer->address_);
+          peer_domain = std::move(peer->domain_);
+          break;
+        }
+        case telegram_api::walletTransactionPeerAddress::ID: {
+          auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerAddress>(transaction->peer_);
+          peer_address = std::move(peer->address_);
+          peer_domain = std::move(peer->domain_);
+          break;
+        }
+        case telegram_api::walletTransactionPeerOnramp::ID:
+          break;
+        case telegram_api::walletTransactionPeerUnsupported::ID:
+          break;
+        default:
+          UNREACHABLE();
+      }
+      auto amount = transaction->amount_;
+      if (!transaction->incoming_ && amount > 0) {
+        amount = -amount;
+      }
+      auto type = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionState> {
+        if (transaction->failed_) {
+          return td_api::make_object<td_api::tonWalletTransactionStateFailed>();
+        }
+        return td_api::make_object<td_api::tonWalletTransactionStateSucceeded>(transaction->tx_hash_);
+      }();
+      transactions.push_back(td_api::make_object<td_api::tonWalletTransaction>(
+          transaction->id_, peer_address, td_->user_manager_->get_user_id_object(peer_user_id, "tonWalletTransaction"),
+          peer_domain, amount, transaction->fee_, transaction->comment_, transaction->date_, std::move(type)));
+    }
+    promise_.set_value(td_api::make_object<td_api::tonWalletTransactions>(result->balance_, std::move(transactions),
+                                                                          result->next_offset_));
   }
 
   void on_error(Status status) final {
@@ -507,6 +601,12 @@ void TonWalletManager::on_get_wallet_state(Result<Unit> &&result) {
   } else {
     fail_promises(promises, result.move_as_error());
   }
+}
+
+void TonWalletManager::get_ton_wallet_transactions(
+    const string &offset, int32 limit, td_api::object_ptr<td_api::TransactionDirection> &&direction,
+    Promise<td_api::object_ptr<td_api::tonWalletTransactions>> &&promise) {
+  td_->create_handler<GetTonWalletTransactionsQuery>(std::move(promise))->send(offset, limit, std::move(direction));
 }
 
 td_api::object_ptr<td_api::currencyExchangeRates> TonWalletManager::get_currency_exchange_rates_object() const {

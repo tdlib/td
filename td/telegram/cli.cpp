@@ -8790,6 +8790,18 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getTonTransactions>(std::move(direction), offset, as_limit(limit)));
     } else if (op == "ltws") {
       send_request(td_api::make_object<td_api::loadTonWalletState>());
+    } else if (op == "gtwta" || op == "gtwti" || op == "gtwto") {
+      string limit;
+      string offset;
+      get_args(args, limit, offset);
+      td_api::object_ptr<td_api::TransactionDirection> direction;
+      if (op == "gtwti") {
+        direction = td_api::make_object<td_api::transactionDirectionIncoming>();
+      } else if (op == "gtwto") {
+        direction = td_api::make_object<td_api::transactionDirectionOutgoing>();
+      }
+      send_request(
+          td_api::make_object<td_api::getTonWalletTransactions>(std::move(direction), offset, as_limit(limit)));
     } else if (op == "gcer") {
       send_request(td_api::make_object<td_api::getCurrencyExchangeRates>());
     } else if (op == "gorp") {

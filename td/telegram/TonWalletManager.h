@@ -26,6 +26,10 @@ class TonWalletManager final : public Actor {
 
   void get_wallet_state(Promise<Unit> &&promise);
 
+  void get_ton_wallet_transactions(const string &offset, int32 limit,
+                                   td_api::object_ptr<td_api::TransactionDirection> &&direction,
+                                   Promise<td_api::object_ptr<td_api::tonWalletTransactions>> &&promise);
+
   void get_currency_rates(Promise<td_api::object_ptr<td_api::currencyExchangeRates>> &&promise);
 
   void get_on_ramp_providers(const string &cryptocurrency,

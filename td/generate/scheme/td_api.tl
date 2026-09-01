@@ -2253,6 +2253,34 @@ onRampPaymentSession session_id:string expiration_date:int32 url:string = OnRamp
 tonWalletState address:string public_key:bytes gram_amount:int53 is_being_created:Bool is_backup_enabled:Bool can_enable_backup:Bool can_export_phrase:Bool = TonWalletState;
 
 
+//@class TonWalletTransactionState @description Describes state of a transaction with a TON wallet
+
+//@description The transaction succeeded @tx_hash Hash of the transaction
+tonWalletTransactionStateSucceeded tx_hash:string = TonWalletTransactionState;
+
+//@description The transaction failed
+tonWalletTransactionStateFailed = TonWalletTransactionState;
+
+
+//@description Represents a transaction with the TON wallet of the current user
+//@id Unique identifier of the transaction
+//@peer_address Address in the TON blockchain of the transaction peer; may be empty if the transaction isn't a wallet transfer
+//@peer_user_id Identifier of the other user that participated in the transaction; 0 if unknown
+//@peer_domain Identifier of the domain assigned to the peer address; may be empty if none
+//@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
+//@fee_amount The fee amount paid for the transaction, in the smallest units of the cryptocurrency
+//@comment Comment added to the transaction
+//@date Point in time (Unix timestamp) when the transaction was completed
+//@type Type of the transaction
+tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domain:string amount:int53 fee_amount:int53 comment:string date:int32 type:TonWalletTransactionState = TonWalletTransaction;
+
+//@description Represents a list of TON Gram transactions
+//@gram_amount The total amount of owned TON Grams, in the smallest units of the cryptocurrency
+//@transactions List of transactions
+//@next_offset The offset for the next request. If empty, then there are no more results
+tonWalletTransactions gram_amount:int53 transactions:vector<tonWalletTransaction> next_offset:string = TonWalletTransactions;
+
+
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
 
 //@description The chat has an active live story @story_id Identifier of the active live story
@@ -15827,11 +15855,17 @@ getChatRevenueWithdrawalUrl chat_id:int53 password:string = HttpUrl;
 //@limit The maximum number of transactions to be returned; up to 100
 getChatRevenueTransactions chat_id:int53 offset:string limit:int32 = ChatRevenueTransactions;
 
-//@description Returns the list of TON blockchain transactions of the current user
+//@description Returns the list of TON Gram transactions of the current user
 //@direction Direction of the transactions to receive; pass null to get all transactions
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of transactions to return
 getTonTransactions direction:TransactionDirection offset:string limit:int32 = TonTransactions;
+
+//@description Returns the list of TON blockchain transactions of the current user
+//@direction Direction of the transactions to receive; pass null to get all transactions
+//@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of transactions to return
+getTonWalletTransactions direction:TransactionDirection offset:string limit:int32 = TonWalletTransactions;
 
 
 //@description Loads state of the TON wallet of the current user
