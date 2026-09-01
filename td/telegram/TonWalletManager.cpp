@@ -74,6 +74,7 @@ class GetUserWalletAddressesQuery final : public Td::ResultHandler {
     vector<td_api::object_ptr<td_api::userTonWalletAddress>> addresses;
     for (auto &address : result->addresses_) {
       auto user_id = UserId(address->user_id_);
+      td_->user_manager_->on_update_user_gram_address(user_id, address->address_);
       addresses.push_back(td_api::make_object<td_api::userTonWalletAddress>(
           td_->user_manager_->get_user_id_object(user_id, "userTonWalletAddress"), address->address_));
     }

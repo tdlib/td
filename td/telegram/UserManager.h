@@ -174,6 +174,8 @@ class UserManager final : public Actor {
 
   void on_update_my_user_intro(BusinessIntro &&intro);
 
+  void on_update_user_gram_address(UserId user_id, const string &gram_address);
+
   void on_update_user_commands(UserId user_id,
                                vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands);
 
