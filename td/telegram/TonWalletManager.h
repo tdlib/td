@@ -8,6 +8,7 @@
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 
@@ -25,6 +26,9 @@ class TonWalletManager final : public Actor {
   void on_update_wallet_state(telegram_api::object_ptr<telegram_api::WalletState> &&wallet_state);
 
   void get_wallet_state(Promise<Unit> &&promise);
+
+  void get_user_addresses(vector<UserId> user_ids,
+                          Promise<td_api::object_ptr<td_api::userTonWalletAddresses>> &&promise);
 
   void get_ton_wallet_transactions(const string &offset, int32 limit,
                                    td_api::object_ptr<td_api::TransactionDirection> &&direction,

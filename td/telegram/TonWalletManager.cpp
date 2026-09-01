@@ -47,6 +47,44 @@ class GetWalletStateQuery final : public Td::ResultHandler {
   }
 };
 
+class GetUserWalletAddressesQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::userTonWalletAddresses>> promise_;
+
+ public:
+  explicit GetUserWalletAddressesQuery(Promise<td_api::object_ptr<td_api::userTonWalletAddresses>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(vector<telegram_api::object_ptr<telegram_api::InputUser>> &&input_users) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::wallet_getUserAddresses(0, false, std::move(input_users), vector<string>())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_getUserAddresses>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetUserWalletAddressesQuery: " << to_string(result);
+
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetUserWalletAddressesQuery");
+
+    vector<td_api::object_ptr<td_api::userTonWalletAddress>> addresses;
+    for (auto &address : result->addresses_) {
+      auto user_id = UserId(address->user_id_);
+      addresses.push_back(td_api::make_object<td_api::userTonWalletAddress>(
+          td_->user_manager_->get_user_id_object(user_id, "userTonWalletAddress"), address->address_));
+    }
+    promise_.set_value(td_api::make_object<td_api::userTonWalletAddresses>(std::move(addresses)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetTonWalletTransactionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::tonWalletTransactions>> promise_;
 
@@ -590,6 +628,16 @@ void TonWalletManager::get_wallet_state(Promise<Unit> &&promise) {
     });
     td_->create_handler<GetWalletStateQuery>(std::move(query_promise))->send();
   }
+}
+
+void TonWalletManager::get_user_addresses(vector<UserId> user_ids,
+                                          Promise<td_api::object_ptr<td_api::userTonWalletAddresses>> &&promise) {
+  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+  for (auto user_id : user_ids) {
+    TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+    input_users.push_back(std::move(input_user));
+  }
+  td_->create_handler<GetUserWalletAddressesQuery>(std::move(promise))->send(std::move(input_users));
 }
 
 void TonWalletManager::on_get_wallet_state(Result<Unit> &&result) {

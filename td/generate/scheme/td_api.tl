@@ -2180,6 +2180,14 @@ tonCenterApiRequestTypePost payload:string = TonCenterApiRequestType;
 //@description Contains an HTTP URL for TON Center Streaming API @url The URL @expires_in Time after which the URL expires
 tonCenterStreamingApiUrl url:string expires_in:int32 = TonCenterStreamingApiUrl;
 
+//@description Contains TON wallet address of a user
+//@user_id Identifier of the user
+//@wallet_address Address of the user's wallet in the TON blockchain
+userTonWalletAddress user_id:int53 wallet_address:string = UserTonWalletAddress;
+
+//@description Represents a list of TON wallet addresses of users @addresses A list of TON wallet addresses
+userTonWalletAddresses addresses:vector<userTonWalletAddress> = UserTonWalletAddresses;
+
 //@description Describes exchange rate of a currency to USD
 //@currency ISO 4217 currency code of the payment currency
 //@rate Exchange rate of the currency to USD
@@ -15870,6 +15878,10 @@ getTonWalletTransactions direction:TransactionDirection offset:string limit:int3
 
 //@description Loads state of the TON wallet of the current user
 loadTonWalletState = Ok;
+
+//@description Returns TON wallet addresses of the specified users
+//@user_ids Identifiers of the users, which wallet addresses have to be returned. If a user has no TON wallet, it will be skipped in the result
+getUserTonWalletAddresses user_ids:vector<int53> = UserTonWalletAddresses;
 
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
