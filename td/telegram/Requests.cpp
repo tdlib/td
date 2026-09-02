@@ -3408,11 +3408,10 @@ void Requests::on_request(uint64 id, const td_api::setPinnedSavedMessagesTopics 
       td_->saved_messages_manager_->get_topic_ids(DialogId(), request.saved_messages_topic_ids_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::loadCommunityFullInfo &request) {
+void Requests::on_request(uint64 id, const td_api::getCommunityFullInfo &request) {
   CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
-  td_->community_manager_->load_community_full(CommunityId(request.community_id_), std::move(promise),
-                                               "loadCommunityFullInfo");
+  CREATE_REQUEST_PROMISE();
+  td_->community_manager_->get_community_full(CommunityId(request.community_id_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::createCommunity &request) {

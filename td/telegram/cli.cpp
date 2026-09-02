@@ -5119,10 +5119,10 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getChat>(chat_id));
-    } else if (op == "lcfi") {
+    } else if (op == "gcfi") {
       CommunityId community_id;
       get_args(args, community_id);
-      send_request(td_api::make_object<td_api::loadCommunityFullInfo>(community_id));
+      send_request(td_api::make_object<td_api::getCommunityFullInfo>(community_id));
     } else if (op == "open") {
       ChatId chat_id;
       get_args(args, chat_id);

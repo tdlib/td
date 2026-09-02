@@ -53,7 +53,7 @@ class CommunityManager final : public Actor {
 
   void on_get_community_forbidden(telegram_api::communityForbidden &community, const char *source);
 
-  void load_community_full(CommunityId community_id, Promise<Unit> &&promise, const char *source);
+  void get_community_full(CommunityId community_id, Promise<td_api::object_ptr<td_api::communityFullInfo>> &&promise);
 
   void reload_community_full(CommunityId community_id, Promise<Unit> &&promise, const char *source);
 
@@ -202,6 +202,9 @@ class CommunityManager final : public Actor {
   void load_community_from_database_impl(CommunityId community_id, Promise<Unit> promise);
 
   void on_load_community_from_database(CommunityId community_id, string value, bool force);
+
+  void return_community_full(CommunityId community_id,
+                             Promise<td_api::object_ptr<td_api::communityFullInfo>> &&promise);
 
   void update_community(Community *c, CommunityId community_id, bool from_binlog = false, bool from_database = false);
 

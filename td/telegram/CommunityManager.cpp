@@ -1068,12 +1068,28 @@ void CommunityManager::on_load_community_full_from_database(CommunityId communit
   }
 }
 
-void CommunityManager::load_community_full(CommunityId community_id, Promise<Unit> &&promise, const char *source) {
-  auto community_full = get_community_full_force(community_id, true, source);
+void CommunityManager::get_community_full(CommunityId community_id,
+                                          Promise<td_api::object_ptr<td_api::communityFullInfo>> &&promise) {
+  auto community_full = get_community_full_force(community_id, true, "get_community_full");
   if (community_full != nullptr) {
-    return promise.set_value(Unit());
+    return promise.set_value(get_community_full_info_object(community_id, community_full));
   }
-  reload_community_full(community_id, std::move(promise), source);
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), community_id, promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &CommunityManager::return_community_full, community_id, std::move(promise));
+      });
+  reload_community_full(community_id, std::move(query_promise), "get_community_full");
+}
+
+void CommunityManager::return_community_full(CommunityId community_id,
+                                             Promise<td_api::object_ptr<td_api::communityFullInfo>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto community_full = get_community_full_force(community_id, true, "get_community_full");
+  CHECK(community_full != nullptr);
+  promise.set_value(get_community_full_info_object(community_id, community_full));
 }
 
 void CommunityManager::reload_community_full(CommunityId community_id, Promise<Unit> &&promise, const char *source) {

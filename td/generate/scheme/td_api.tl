@@ -11921,8 +11921,8 @@ toggleSavedMessagesTopicIsPinned saved_messages_topic_id:int53 is_pinned:Bool = 
 setPinnedSavedMessagesTopics saved_messages_topic_ids:vector<int53> = Ok;
 
 
-//@description Returns full information about a community. The data will be sent through update. @community_id Community identifier
-loadCommunityFullInfo community_id:int53 = Ok;
+//@description Returns full information about a community @community_id Community identifier
+getCommunityFullInfo community_id:int53 = CommunityFullInfo;
 
 //@description Creates a new community for the given chat. Returns identifier of the created community
 //@name Name of the new community
@@ -15931,7 +15931,7 @@ getOnRampPaymentQuote provider_id:string cryptocurrency:string base_currency:str
 //@fail_return_url The URL opened on failed payment; pass an empty string if none
 createOnRampPaymentSession provider_id:string cryptocurrency:string address:string payment_method_name:string base_currency:string cryptocurrency_amount:string base_currency_amount:string memo:string theme:themeParameters success_return_url:string fail_return_url:string = OnRampPaymentSession;
 
-//@description Sends a request to TON Center API and returns its response in JSON format.
+//@description Sends a request to TON Center API and returns its response in JSON format
 //@endpoint The path of the requested endpoint. See https://toncenter.com/api/v3/index.html for the list of supported endpoints
 //@type Type of the request
 sendTonCenterApiRequest endpoint:string type:TonCenterApiRequestType = Text;
