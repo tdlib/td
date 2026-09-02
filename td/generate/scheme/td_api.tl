@@ -629,7 +629,8 @@ voiceNote duration:int32 waveform:bytes mime_type:string speech_recognition_resu
 //@sticker_height Expected height of the sticker, which can be used if the sticker is null
 //@fitzpatrick_type Emoji modifier fitzpatrick type; 0-6; 0 if none
 //@sound File containing the sound to be played when the sticker is clicked; may be null. The sound is encoded with the Opus codec, and stored inside an OGG container
-animatedEmoji sticker:sticker sticker_width:int32 sticker_height:int32 fitzpatrick_type:int32 sound:file = AnimatedEmoji;
+//@is_regular_emoji True, if the emoji is a regular emoji
+animatedEmoji sticker:sticker sticker_width:int32 sticker_height:int32 fitzpatrick_type:int32 sound:file is_regular_emoji:Bool = AnimatedEmoji;
 
 //@description Describes a contact of a user
 //@phone_number Phone number of the user

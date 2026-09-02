@@ -2775,7 +2775,8 @@ td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_ob
     auto default_custom_emoji_dimension = static_cast<int32>(512 * animated_emoji_zoom_ + 0.5);
     auto sticker_width = sticker == nullptr ? default_custom_emoji_dimension : sticker->width_;
     auto sticker_height = sticker == nullptr ? default_custom_emoji_dimension : sticker->height_;
-    return td_api::make_object<td_api::animatedEmoji>(std::move(sticker), sticker_width, sticker_height, 0, nullptr);
+    return td_api::make_object<td_api::animatedEmoji>(std::move(sticker), sticker_width, sticker_height, 0, nullptr,
+                                                      false);
   }
 
   auto it = emoji_messages_.find(emoji);
@@ -2797,7 +2798,7 @@ td_api::object_ptr<td_api::animatedEmoji> StickersManager::get_animated_emoji_ob
   auto sticker_height = sticker->height_;
   return td_api::make_object<td_api::animatedEmoji>(
       std::move(sticker), sticker_width, sticker_height, animated_sticker.second,
-      sound_file_id.is_valid() ? td_->file_manager_->get_file_object(sound_file_id) : nullptr);
+      sound_file_id.is_valid() ? td_->file_manager_->get_file_object(sound_file_id) : nullptr, true);
 }
 
 tl_object_ptr<telegram_api::InputStickerSet> StickersManager::get_input_sticker_set(StickerSetId sticker_set_id) const {
