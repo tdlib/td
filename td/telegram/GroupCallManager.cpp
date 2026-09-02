@@ -6543,7 +6543,11 @@ void GroupCallManager::do_delete_group_call_participants(InputGroupCallId input_
       !is_ban) {
     return promise.set_value(Unit());
   }
-  auto block = tde2e_move_as_ok(tde2e_api::call_create_change_state_block(group_call->call_id, state));
+  auto r_block = tde2e_api::call_create_change_state_block(group_call->call_id, state);
+  if (r_block.is_error()) {
+    return promise.set_error(400, "Not enough rights to delete participants");
+  }
+  auto block = std::move(r_block.value());
 
   td_->create_handler<DeleteConferenceCallParticipantsQuery>(std::move(promise))
       ->send(input_group_call_id, std::move(user_ids), is_ban, BufferSlice(block));
