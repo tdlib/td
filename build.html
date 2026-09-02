@@ -942,7 +942,7 @@ function onOptionsChanged() {
     commands.push('git checkout bc3512a509f9d29b37346a7e7e929f9a26e66c7e');
     commands.push(local + 'bootstrap-vcpkg.bat');
     if (target === 'C++/CX') {
-      commands.push(local + 'vcpkg.exe install gperf:x86-windows openssl:arm-uwp openssl:arm64-uwp openssl:x64-uwp openssl:x86-uwp zlib:arm-uwp zlib:arm64-uwp zlib:x64-uwp zlib:x86-uwp');
+      commands.push(local + 'vcpkg.exe install gperf:x86-windows openssl:arm64-uwp openssl:x64-uwp openssl:x86-uwp zlib:arm64-uwp zlib:x64-uwp zlib:x86-uwp');
     } else {
       if (build_64bit) {
         commands.push(local + 'vcpkg.exe install gperf:x64-windows openssl:x64-windows zlib:x64-windows');

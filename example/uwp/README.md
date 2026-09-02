@@ -12,7 +12,7 @@ git clone https://github.com/Microsoft/vcpkg.git
 cd vcpkg
 git checkout bc3512a509f9d29b37346a7e7e929f9a26e66c7e
 .\bootstrap-vcpkg.bat
-.\vcpkg.exe install gperf:x86-windows openssl:arm-uwp openssl:arm64-uwp openssl:x64-uwp openssl:x86-uwp zlib:arm-uwp zlib:arm64-uwp zlib:x64-uwp zlib:x86-uwp
+.\vcpkg.exe install gperf:x86-windows openssl:arm64-uwp openssl:x64-uwp openssl:x86-uwp zlib:arm64-uwp zlib:x64-uwp zlib:x86-uwp
 ```
 * (Optional. For XML documentation generation.) Download [PHP](https://windows.php.net/download). Add the path to php.exe to the PATH environment variable.
 * Download and install [7-Zip](http://www.7-zip.org/download.html) archiver, which is used by the `build.ps1` script to create a Telegram.Td.UWP Visual Studio Extension. Add the path to 7z.exe to the PATH environment variable.

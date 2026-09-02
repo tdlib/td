@@ -1,7 +1,7 @@
 param (
   [string]$vcpkg_root = $(throw "-vcpkg_root=<path to vcpkg> is required"),
-  [ValidateSet('x86', 'x64', 'ARM', 'ARM64', IgnoreCase = $false)]
-  [string[]]$arch = @( "x86", "x64", "ARM", "ARM64" ),
+  [ValidateSet('x86', 'x64', 'ARM64', IgnoreCase = $false)]
+  [string[]]$arch = @( "x86", "x64", "ARM64" ),
   [string]$mode = "all",
   [string]$compress = "7z",
   [switch]$release_only = $false,
