@@ -6537,6 +6537,10 @@ void GroupCallManager::do_delete_group_call_participants(InputGroupCallId input_
     }
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
+  td::remove(user_ids, td_->user_manager_->get_my_id().get());
+  if (user_ids.empty()) {
+    return promise.set_value(Unit());
+  }
   auto state = tde2e_move_as_ok(tde2e_api::call_get_state(group_call->call_id));
   if (!td::remove_if(state.participants,
                      [&user_ids](const auto &participant) { return td::contains(user_ids, participant.user_id); }) &&
