@@ -142,7 +142,7 @@ Result<KeyboardButton> KeyboardButton::get_keyboard_button(td_api::object_ptr<td
         return Status::Error(400, PSLICE() << "Keyboard button Web App " << r_url.error().message());
       }
       current_button.type_ = Type::WebView;
-      current_button.url_ = std::move(button_type->url_);
+      current_button.url_ = r_url.move_as_ok();
       break;
     }
     case td_api::keyboardButtonTypeRequestUsers::ID: {

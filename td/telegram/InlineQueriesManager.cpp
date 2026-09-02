@@ -733,7 +733,7 @@ void InlineQueriesManager::answer_inline_query(
         if (r_url.is_error()) {
           return promise.set_error(400, PSLICE() << "Inline query button Web App " << r_url.error().message());
         }
-        web_view = telegram_api::make_object<telegram_api::inlineBotWebView>(button->text_, type->url_);
+        web_view = telegram_api::make_object<telegram_api::inlineBotWebView>(button->text_, r_url.ok());
         break;
       }
       default:
