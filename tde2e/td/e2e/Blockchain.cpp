@@ -233,10 +233,20 @@ td::StringBuilder &operator<<(td::StringBuilder &sb, const Block &block) {
             << "\tsignature_key=" << block.o_signature_public_key_ << ")";
 }
 
-td::Result<BitString> key_to_bitstring(td::Slice key) {
+static td::Result<td::UInt256> as_key(td::Slice key) {
   if (key.size() != 32) {
     return td::Status::Error("Invalid key size");
   }
+  td::UInt256 key_int256;
+  key_int256.as_mutable_slice().copy_from(key);
+  if (key_int256.is_zero()) {
+    return td::Status::Error("Invalid zero key");
+  }
+  return key_int256;
+}
+
+static td::Result<BitString> key_to_bitstring(td::Slice key) {
+  TRY_STATUS(as_key(key));
   return BitString(key);
 }
 
@@ -693,18 +703,6 @@ td::int64 Blockchain::get_height() const {
   return last_block_.height_;
 }
 
-td::Result<td::UInt256> as_key(td::Slice key) {
-  if (key.size() != 32) {
-    return td::Status::Error("Invalid key size");
-  }
-  td::UInt256 key_int256;
-  key_int256.as_mutable_slice().copy_from(key);
-  if (key_int256.is_zero()) {
-    return td::Status::Error("Invalid zero key");
-  }
-  return key_int256;
-}
-
 td::Result<Blockchain> Blockchain::create_from_block(Block block, td::optional<td::Slice> o_snapshot) {
   if (block.height_ < 0) {
     return Error(E::InvalidBlock, "negative height");
@@ -785,7 +783,7 @@ td::Result<std::vector<Change>> ClientBlockchain::try_apply_block(td::Slice bloc
   for (auto &change : block.changes_) {
     if (std::holds_alternative<ChangeSetValue>(change.value)) {
       auto &change_value = std::get<ChangeSetValue>(change.value);
-      auto key = as_key(change_value.key).move_as_ok();  // already verified in try_apply_block
+      TRY_RESULT(key, as_key(change_value.key));
       map_[key] = Entry{block.height_, change_value.value};
     }
   }
