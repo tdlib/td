@@ -275,7 +275,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const KeyboardButton &k
       string_builder << "RequestPollRegular";
       break;
     case KeyboardButton::Type::WebView:
-      string_builder << "WebApp";
+      string_builder << "WebApp " << keyboard_button.url_;
       break;
     case KeyboardButton::Type::RequestDialog:
       string_builder << "RequestChat";

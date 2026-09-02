@@ -109,6 +109,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const InlineKeyboardBut
       break;
     case InlineKeyboardButton::Type::UrlAuth:
       string_builder << "UrlAuth, ID = " << keyboard_button.id_;
+      if (!keyboard_button.forward_text_.empty()) {
+        string_builder << ", forward text = " << keyboard_button.forward_text_;
+      }
       break;
     case InlineKeyboardButton::Type::CallbackWithPassword:
       string_builder << "CallbackWithPassword";
