@@ -7772,7 +7772,7 @@ void ChatManager::on_channel_status_changed(Channel *c, ChannelId channel_id, co
   if (old_status.is_member() != new_status.is_member() || new_status.is_banned()) {
     td_->dialog_invite_link_manager_->remove_dialog_access_by_invite_link(DialogId(channel_id));
 
-    if (new_status.is_member() || new_status.is_creator()) {
+    if ((new_status.is_member() || new_status.is_creator()) && have_channel_full) {
       reload_channel_full(channel_id,
                           PromiseCreator::lambda([channel_id](Unit) { LOG(INFO) << "Reloaded full " << channel_id; }),
                           "on_channel_status_changed");
