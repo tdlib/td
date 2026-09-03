@@ -13096,7 +13096,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     update_dialog_lists(d, std::move(positions), true, false, source);
 
     if ((from_dialog_list || from_pinned_dialog_list) && d->order == DEFAULT_ORDER) {
-      load_last_dialog_message(d, "on_get_dialog");
+      get_history_impl(d, MessageId::max(), 0, -1, false, false, Promise<Unit>(), "on_get_dialog");
     }
   }
 
@@ -19817,6 +19817,10 @@ void MessagesManager::load_last_dialog_message_later(DialogId dialog_id) {
 }
 
 void MessagesManager::load_last_dialog_message(const Dialog *d, const char *source) {
+  if (td_->auth_manager_->is_bot() || d->dialog_id == being_added_dialog_id_ ||
+      d->dialog_id == being_added_by_new_message_dialog_id_ || (d->order == DEFAULT_ORDER && !is_dialog_sponsored(d))) {
+    return;
+  }
   get_history_impl(d, MessageId::max(), 0, -1, true, false, Promise<Unit>(), source);
 }
 
@@ -33625,8 +33629,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
   } else {
     d->pending_read_channel_inbox_pts = 0;
   }
-  if (need_get_history && !td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
-      dialog_id != being_added_by_new_message_dialog_id_ && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+  if (need_get_history) {
     load_last_dialog_message(d, "fix_new_dialog 15");
   }
   if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
@@ -33681,11 +33684,7 @@ bool MessagesManager::add_pending_dialog_data(Dialog *d, unique_ptr<Message> &&l
       was_added_last_message = true;
     } else {
       on_dialog_updated(dialog_id, "add_pending_dialog_data 4");  // resave without last database message
-
-      if (!td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
-          dialog_id != being_added_by_new_message_dialog_id_ && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-        load_last_dialog_message(d, "add_pending_dialog_data 5");
-      }
+      load_last_dialog_message(d, "add_pending_dialog_data 5");
     }
   }
   if (update_dialog_draft_message(d, std::move(draft_message), false, false, true, true)) {
@@ -35534,8 +35533,7 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
     }
   }
 
-  if (d != nullptr && !td_->auth_manager_->is_bot() && have_access && !d->last_message_id.is_valid() && !d->is_empty &&
-      (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
+  if (d != nullptr && have_access && !d->last_message_id.is_valid() && !d->is_empty) {
     load_last_dialog_message(d, "after_get_channel_difference");
   }
 
