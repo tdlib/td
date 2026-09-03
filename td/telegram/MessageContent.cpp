@@ -11684,7 +11684,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       auto month_count = get_premium_duration_month_count(m->days);
       return td_api::make_object<td_api::messageGiftedPremium>(
           gifter_user_id, receiver_user_id, get_text_object(m->text), m->currency, m->amount, m->crypto_currency,
-          m->crypto_amount, get_premium_duration_day_count(month_count) == m->days ? month_count : 0, m->days,
+          m->crypto_amount,
+          get_premium_duration_day_count(month_count) == m->days || m->days % 30 == 0 ? month_count : 0, m->days,
           td->stickers_manager_->get_premium_gift_sticker_object(month_count, 0));
     }
     case MessageContentType::TopicCreate: {
@@ -11750,7 +11751,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
               ? get_message_sender_object(td, m->creator_dialog_id, "messagePremiumGiftCode")
               : nullptr,
           get_text_object(m->text), m->via_giveaway, m->is_unclaimed, m->currency, m->amount, m->crypto_currency,
-          m->crypto_amount, get_premium_duration_day_count(month_count) == m->days ? month_count : 0, m->days,
+          m->crypto_amount,
+          get_premium_duration_day_count(month_count) == m->days || m->days % 30 == 0 ? month_count : 0, m->days,
           td->stickers_manager_->get_premium_gift_sticker_object(month_count, 0), m->code);
     }
     case MessageContentType::Giveaway: {

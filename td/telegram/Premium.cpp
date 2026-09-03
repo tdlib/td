@@ -568,8 +568,8 @@ class CheckGiftCodeQuery final : public Td::ResultHandler {
         creator_dialog_id == DialogId() ? nullptr
                                         : get_message_sender_object(td_, creator_dialog_id, "premiumGiftCodeInfo"),
         result->date_, result->via_giveaway_, message_id.get(),
-        get_premium_duration_day_count(month_count) == result->days_ ? month_count : 0, result->days_,
-        td_->user_manager_->get_user_id_object(user_id, "premiumGiftCodeInfo"), result->used_date_));
+        get_premium_duration_day_count(month_count) == result->days_ || result->days_ % 30 == 0 ? month_count : 0,
+        result->days_, td_->user_manager_->get_user_id_object(user_id, "premiumGiftCodeInfo"), result->used_date_));
   }
 
   void on_error(Status status) final {
