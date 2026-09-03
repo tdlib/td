@@ -8804,6 +8804,10 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::getTonWalletTransactions>(std::move(direction), offset, as_limit(limit)));
     } else if (op == "gutwa") {
       send_request(td_api::make_object<td_api::getUserTonWalletAddresses>(as_user_ids(args)));
+    } else if (op == "cutw") {
+      UserId user_id;
+      get_args(args, user_id);
+      send_request(td_api::make_object<td_api::createUserTonWallet>(user_id));
     } else if (op == "gcer") {
       send_request(td_api::make_object<td_api::getCurrencyExchangeRates>());
     } else if (op == "gorp") {

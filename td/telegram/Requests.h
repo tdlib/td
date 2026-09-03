@@ -1706,6 +1706,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getUserTonWalletAddresses &request);
 
+  void on_request(uint64 id, const td_api::createUserTonWallet &request);
+
   void on_request(uint64 id, const td_api::getCurrencyExchangeRates &request);
 
   void on_request(uint64 id, td_api::getOnRampProviders &request);

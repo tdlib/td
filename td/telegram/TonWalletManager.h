@@ -30,6 +30,8 @@ class TonWalletManager final : public Actor {
   void get_user_addresses(vector<UserId> user_ids,
                           Promise<td_api::object_ptr<td_api::userTonWalletAddresses>> &&promise);
 
+  void create_user_ton_wallet(UserId user_id, Promise<string> &&promise);
+
   void get_ton_wallet_transactions(const string &offset, int32 limit,
                                    td_api::object_ptr<td_api::TransactionDirection> &&direction,
                                    Promise<td_api::object_ptr<td_api::tonWalletTransactions>> &&promise);
