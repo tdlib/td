@@ -12835,6 +12835,15 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     total_count = narrow_cast<int32>(dialogs.size());
   }
 
+  if (message_full_id_to_message.size() > 1u) {
+    for (const auto &it : message_full_id_to_message) {
+      auto dialog_id = it.first.get_dialog_id();
+      if (dialog_id.is_valid()) {
+        being_added_dialog_ids_.insert(dialog_id);
+      }
+    }
+  }
+
   vector<DialogId> added_dialog_ids;
   for (auto &dialog : dialogs) {
     MessageId last_message_id(ServerMessageId(dialog->top_message_));
@@ -13159,6 +13168,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       G()->td_db()->get_binlog_pmc()->set(PSTRING() << "pinned_dialog_ids" << folder_id.get(), "");
     }
   }
+  being_added_dialog_ids_.clear();
   promise.set_value(Unit());
 }
 
@@ -19818,7 +19828,8 @@ void MessagesManager::load_last_dialog_message_later(DialogId dialog_id) {
 
 void MessagesManager::load_last_dialog_message(const Dialog *d, const char *source) {
   if (td_->auth_manager_->is_bot() || d->dialog_id == being_added_dialog_id_ ||
-      d->dialog_id == being_added_by_new_message_dialog_id_ || (d->order == DEFAULT_ORDER && !is_dialog_sponsored(d))) {
+      d->dialog_id == being_added_by_new_message_dialog_id_ || (d->order == DEFAULT_ORDER && !is_dialog_sponsored(d)) ||
+      being_added_dialog_ids_.count(d->dialog_id) > 0) {
     return;
   }
   get_history_impl(d, MessageId::max(), 0, -1, true, false, Promise<Unit>(), source);

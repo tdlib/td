@@ -3586,6 +3586,7 @@ class MessagesManager final : public Actor {
   DialogId being_added_dialog_id_;
   DialogId being_added_by_new_message_dialog_id_;
   DialogId being_added_new_dialog_id_;
+  FlatHashSet<DialogId, DialogIdHash> being_added_dialog_ids_;
 
   DialogId debug_channel_difference_dialog_;
   DialogId debug_last_get_channel_difference_dialog_id_;
