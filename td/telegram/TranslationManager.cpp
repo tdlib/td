@@ -579,7 +579,7 @@ void TranslationManager::start_up() {
       } else {
         Dependencies dependencies;
         ai_compose_tones_.add_dependencies(dependencies);
-        if (!dependencies.resolve_force(td_, "AiComposeTones")) {
+        if (!dependencies.resolve_force(td_, "AiComposeTones", true)) {
           ai_compose_tones_ = {};
         }
       }

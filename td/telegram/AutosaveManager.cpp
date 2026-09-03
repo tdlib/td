@@ -310,7 +310,7 @@ void AutosaveManager::on_load_autosave_settings_from_database(string value) {
   for (auto &exception : settings_.exceptions_) {
     dependencies.add_dialog_and_dependencies(exception.first);
   }
-  if (!dependencies.resolve_force(td_, "on_load_autosave_settings_from_database")) {
+  if (!dependencies.resolve_force(td_, "on_load_autosave_settings_from_database", true)) {
     G()->td_db()->get_binlog_pmc()->erase(get_autosave_settings_database_key());
     settings_ = {};
     return reload_autosave_settings();

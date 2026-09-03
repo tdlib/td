@@ -1499,7 +1499,7 @@ void ReactionManager::load_default_paid_reaction_type() {
       Dependencies dependencies;
       default_paid_reaction_type_.add_dependencies(dependencies);
       if (!default_paid_reaction_type_.is_valid() ||
-          !dependencies.resolve_force(td_, "load_default_paid_reaction_type")) {
+          !dependencies.resolve_force(td_, "load_default_paid_reaction_type", true)) {
         default_paid_reaction_type_ = {};
         save_default_paid_reaction_type();
       }
