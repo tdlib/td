@@ -3500,21 +3500,6 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_chat_theme);
     PARSE_FLAG(has_flags3);
     END_PARSE_FLAGS();
-  } else {
-    is_folder_id_inited = false;
-    has_scheduled_server_messages = false;
-    has_scheduled_database_messages = false;
-    need_repair_channel_server_unread_count = false;
-    has_outgoing_messages = false;
-    had_last_yet_unsent_message = false;
-    is_blocked = false;
-    is_is_blocked_inited = false;
-    has_active_group_call = false;
-    is_group_call_empty = false;
-    is_message_ttl_inited = false;
-    has_bots = false;
-    is_has_bots_inited = false;
-    is_chat_theme_inited = false;
   }
   if (has_flags3) {
     BEGIN_PARSE_FLAGS();
@@ -3546,17 +3531,6 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_ephemeral_message_ids);
     PARSE_FLAG(has_welcome_messages);
     END_PARSE_FLAGS();
-  } else {
-    need_repair_action_bar = false;
-    is_available_reactions_inited = false;
-    is_background_inited = false;
-    is_blocked_for_stories = false;
-    is_is_blocked_for_stories_inited = false;
-    view_as_messages = false;
-    is_view_as_messages_inited = false;
-    is_forum = false;
-    is_saved_messages_view_as_messages_inited = false;
-    is_forum_tabs = false;
   }
 
   parse(last_new_message_id, parser);

@@ -3327,8 +3327,6 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
         BEGIN_PARSE_FLAGS();
         PARSE_FLAG(m->is_approved);
         END_PARSE_FLAGS();
-      } else {
-        m->is_approved = false;
       }
       content = std::move(m);
       break;
@@ -3398,8 +3396,6 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
         PARSE_FLAG(m->is_video);
         PARSE_FLAG(has_call_access_hash);
         END_PARSE_FLAGS();
-      } else {
-        m->is_video = false;
       }
       parse(m->call_id, parser);
       parse(m->duration, parser);

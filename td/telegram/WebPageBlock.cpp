@@ -3939,16 +3939,13 @@ class WebPageBlockAudio final : public WebPageBlock {
   void parse(ParserT &parser) {
     using ::td::parse;
 
-    bool has_empty_audio;
-    bool is_voice_note_repaired;
+    bool has_empty_audio = false;
+    bool is_voice_note_repaired = false;
     if (parser.version() >= static_cast<int32>(Version::FixPageBlockAudioEmptyFile)) {
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_empty_audio);
       PARSE_FLAG(is_voice_note_repaired);
       END_PARSE_FLAGS();
-    } else {
-      has_empty_audio = false;
-      is_voice_note_repaired = false;
     }
 
     if (!has_empty_audio) {
