@@ -5669,6 +5669,13 @@ messageGiftedGrams gifter_user_id:int53 receiver_user_id:int53 gram_amount:int53
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id:int53 giveaway_message_id:int53 is_unclaimed:Bool sticker:sticker = MessageContent;
 
+//@description Represents a transfer with the TON wallet of the current user
+//@transaction_id Unique identifier of the transaction
+//@peer_address Address in the TON blockchain of the transaction peer
+//@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
+//@comment Comment added to the transaction
+messageTonWalletTransfer transaction_id:string peer_address:string amount:int53 comment:string = MessageContent;
+
 //@description A regular gift was received or sent by the current user, or the current user was notified about a channel gift
 //@gift The gift
 //@sender_id Sender of the gift; may be null for outgoing messages about prepaid upgrade of gifts from unknown users

@@ -109,7 +109,8 @@ enum class MessageContentType : int32 {
   PollDeleteAnswer,
   RichText,
   ChangeCommunity,
-  ChatJoinedViaCommunity
+  ChatJoinedViaCommunity,
+  GramTransfer
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 

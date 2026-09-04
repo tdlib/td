@@ -1828,6 +1828,26 @@ class MessageChatJoinedViaCommunity final : public MessageContent {
   }
 };
 
+class MessageGramTransfer final : public MessageContent {
+ public:
+  int64 amount = 0;
+  string peer_address;
+  string transaction_id;
+  string comment;
+
+  MessageGramTransfer() = default;
+  MessageGramTransfer(int64 amount, string peer_address, string transaction_id, string comment)
+      : amount(amount)
+      , peer_address(std::move(peer_address))
+      , transaction_id(std::move(transaction_id))
+      , comment(std::move(comment)) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::GramTransfer;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -3011,6 +3031,20 @@ static void store(const MessageContent *content, StorerT &storer) {
       BEGIN_STORE_FLAGS();
       END_STORE_FLAGS();
       store(m->community_id, storer);
+      break;
+    }
+    case MessageContentType::GramTransfer: {
+      const auto *m = static_cast<const MessageGramTransfer *>(content);
+      bool has_comment = !m->comment.empty();
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_comment);
+      END_STORE_FLAGS();
+      store(m->amount, storer);
+      store(m->peer_address, storer);
+      store(m->transaction_id, storer);
+      if (has_comment) {
+        store(m->comment, storer);
+      }
       break;
     }
     default:
@@ -4487,6 +4521,21 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::GramTransfer: {
+      auto m = make_unique<MessageGramTransfer>();
+      bool has_comment;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_comment);
+      END_PARSE_FLAGS();
+      parse(m->amount, parser);
+      parse(m->peer_address, parser);
+      parse(m->transaction_id, parser);
+      if (has_comment) {
+        parse(m->comment, parser);
+      }
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -5496,6 +5545,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
+    case MessageContentType::GramTransfer:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -5671,6 +5721,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::RichText:
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
+    case MessageContentType::GramTransfer:
       break;
     default:
       UNREACHABLE();
@@ -5907,6 +5958,7 @@ static InputMedia get_message_content_input_media_impl(
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
+    case MessageContentType::GramTransfer:
       break;
     default:
       UNREACHABLE();
@@ -6191,6 +6243,7 @@ void delete_message_content_thumbnail(Td *td, MessageContent *content, int32 med
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
+    case MessageContentType::GramTransfer:
       break;
     default:
       UNREACHABLE();
@@ -6468,6 +6521,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
+    case MessageContentType::GramTransfer:
       UNREACHABLE();
   }
   return Status::OK();
@@ -6671,6 +6725,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
+    case MessageContentType::GramTransfer:
       return 0;
     default:
       UNREACHABLE();
@@ -7141,6 +7196,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::ChangeCommunity:
       break;
     case MessageContentType::ChatJoinedViaCommunity:
+      break;
+    case MessageContentType::GramTransfer:
       break;
     default:
       UNREACHABLE();
@@ -7759,6 +7816,7 @@ static void merge_message_contents(Td *td, const MessageContent *old_content, Me
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
+    case MessageContentType::GramTransfer:
       break;
     default:
       UNREACHABLE();
@@ -7940,6 +7998,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::RichText:
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
+    case MessageContentType::GramTransfer:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -8786,6 +8845,15 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *lhs = static_cast<const MessageChatJoinedViaCommunity *>(old_content);
       const auto *rhs = static_cast<const MessageChatJoinedViaCommunity *>(new_content);
       if (lhs->community_id != rhs->community_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::GramTransfer: {
+      const auto *lhs = static_cast<const MessageGramTransfer *>(old_content);
+      const auto *rhs = static_cast<const MessageGramTransfer *>(new_content);
+      if (lhs->amount != rhs->amount || lhs->peer_address != rhs->peer_address ||
+          lhs->transaction_id != rhs->transaction_id || lhs->comment != rhs->comment) {
         need_update = true;
       }
       break;
@@ -10433,6 +10501,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
+    case MessageContentType::GramTransfer:
       return nullptr;
     default:
       UNREACHABLE();
@@ -11324,7 +11393,16 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageChatJoinedViaCommunity>(community_id);
     }
     case telegram_api::messageActionGramTransfer::ID: {
-      return td::make_unique<MessageUnsupported>();
+      auto action = telegram_api::move_object_as<telegram_api::messageActionGramTransfer>(action_ptr);
+      if (action->amount_ <= 0) {
+        LOG(ERROR) << "Receive " << to_string(action);
+        action->amount_ = 0;
+      }
+      if (action->peer_address_.empty() || action->transaction_id_.empty()) {
+        LOG(ERROR) << "Receive " << to_string(action);
+      }
+      return td::make_unique<MessageGramTransfer>(action->amount_, std::move(action->peer_address_),
+                                                  std::move(action->transaction_id_), std::move(action->comment_));
     }
     case telegram_api::messageActionWalletTonConnectRequest::ID: {
       return td::make_unique<MessageUnsupported>();
@@ -12129,6 +12207,11 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       const auto *m = static_cast<const MessageChatJoinedViaCommunity *>(content);
       return td_api::make_object<td_api::messageChatJoinFromCommunity>(
           td->community_manager_->get_community_id_object(m->community_id, "messageChatJoinFromCommunity"));
+    }
+    case MessageContentType::GramTransfer: {
+      const auto *m = static_cast<const MessageGramTransfer *>(content);
+      return td_api::make_object<td_api::messageTonWalletTransfer>(m->transaction_id, m->peer_address, m->amount,
+                                                                   m->comment);
     }
     default:
       UNREACHABLE();
@@ -13076,6 +13159,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
+    case MessageContentType::GramTransfer:
       return string();
     default:
       UNREACHABLE();
@@ -13679,6 +13763,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       dependencies.add(content->community_id);
       break;
     }
+    case MessageContentType::GramTransfer:
+      break;
     default:
       UNREACHABLE();
       break;
