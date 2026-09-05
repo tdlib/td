@@ -49,8 +49,6 @@ void parse(AnimationSize &animation_size, ParserT &parser) {
   parse(static_cast<PhotoSize &>(animation_size), parser);
   if (parser.version() >= static_cast<int32>(Version::AddDialogPhotoHasAnimation)) {
     parse(animation_size.main_frame_timestamp, parser);
-  } else {
-    animation_size.main_frame_timestamp = 0;
   }
 }
 

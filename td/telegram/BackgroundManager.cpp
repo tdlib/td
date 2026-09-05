@@ -354,8 +354,6 @@ void BackgroundManager::Background::parse(ParserT &parser) {
   td::parse(name, parser);
   if (has_file_id) {
     file_id = parser.context()->td().get_actor_unsafe()->documents_manager_->parse_document(parser);
-  } else {
-    file_id = FileId();
   }
   td::parse(type, parser);
 }

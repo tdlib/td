@@ -877,8 +877,6 @@ class WebPageBlockCaption {
     parse(text, parser);
     if (parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
       parse(credit, parser);
-    } else {
-      credit = RichText();
     }
   }
 };
@@ -3000,11 +2998,8 @@ class WebPageBlockAnimation final : public WebPageBlock {
     if (parser.version() >= static_cast<int32>(Version::FixWebPageInstantViewDatabase)) {
       if (!has_empty_animation) {
         animation_file_id = parser.context()->td().get_actor_unsafe()->animations_manager_->parse_animation(parser);
-      } else {
-        animation_file_id = FileId();
       }
     } else {
-      animation_file_id = FileId();
       parser.set_error("Wrong stored object");
     }
     parse(caption, parser);
@@ -3119,9 +3114,6 @@ class WebPageBlockPhoto final : public WebPageBlock {
     if (parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
       parse(url, parser);
       parse(web_page_id, parser);
-    } else {
-      url.clear();
-      web_page_id = WebPageId();
     }
   }
 };
@@ -3243,11 +3235,8 @@ class WebPageBlockVideo final : public WebPageBlock {
     if (parser.version() >= static_cast<int32>(Version::FixWebPageInstantViewDatabase)) {
       if (!has_empty_video) {
         video_file_id = parser.context()->td().get_actor_unsafe()->videos_manager_->parse_video(parser);
-      } else {
-        video_file_id = FileId();
       }
     } else {
-      video_file_id = FileId();
       parser.set_error("Wrong stored object");
     }
     parse(caption, parser);
@@ -3954,7 +3943,6 @@ class WebPageBlockAudio final : public WebPageBlock {
       if (!is_voice_note_repaired) {
         parser.set_error("Trying to repair WebPageBlockVoiceNote");
       }
-      audio_file_id = FileId();
     }
     parse(caption, parser);
   }
@@ -4534,8 +4522,6 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
 
     if (!has_empty_voice_note) {
       voice_note_file_id = parser.context()->td().get_actor_unsafe()->voice_notes_manager_->parse_voice_note(parser);
-    } else {
-      voice_note_file_id = FileId();
     }
     parse(caption, parser);
   }

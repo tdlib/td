@@ -3500,8 +3500,6 @@ class DialogManager::ReorderPinnedDialogsOnServerLogEvent {
   void parse(ParserT &parser) {
     if (parser.version() >= static_cast<int32>(Version::AddFolders)) {
       td::parse(folder_id_, parser);
-    } else {
-      folder_id_ = FolderId();
     }
     td::parse(dialog_ids_, parser);
   }

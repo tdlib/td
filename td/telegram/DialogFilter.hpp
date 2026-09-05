@@ -103,8 +103,6 @@ void DialogFilter::parse(ParserT &parser) {
   }
   if (has_color_id) {
     parse(color_id_, parser);
-  } else {
-    color_id_ = -1;
   }
 }
 

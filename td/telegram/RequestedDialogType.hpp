@@ -85,8 +85,6 @@ void RequestedDialogType::parse(ParserT &parser) {
   }
   if (has_max_quantity) {
     td::parse(max_quantity_, parser);
-  } else {
-    max_quantity_ = 1;
   }
   if (has_suggested_name) {
     td::parse(suggested_name_, parser);

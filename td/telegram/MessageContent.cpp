@@ -3096,13 +3096,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       parse(m->period, parser);
       if (parser.version() >= static_cast<int32>(Version::AddLiveLocationHeading)) {
         parse(m->heading, parser);
-      } else {
-        m->heading = 0;
       }
       if (parser.version() >= static_cast<int32>(Version::AddLiveLocationProximityAlertDistance)) {
         parse(m->proximity_alert_radius, parser);
-      } else {
-        m->proximity_alert_radius = 0;
       }
       if (m->period <= 0) {
         is_bad = true;
