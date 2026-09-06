@@ -117,6 +117,7 @@ class VoiceNotesManager;
 class WebAppManager;
 class WebBrowserManager;
 class WebPagesManager;
+class WelcomeMessageManager;
 
 extern int VERBOSITY_NAME(td_init);
 extern int VERBOSITY_NAME(td_requests);
@@ -300,6 +301,8 @@ class Td final : public Actor {
   ActorOwn<WebBrowserManager> web_browser_manager_actor_;
   unique_ptr<WebPagesManager> web_pages_manager_;
   ActorOwn<WebPagesManager> web_pages_manager_actor_;
+  unique_ptr<WelcomeMessageManager> welcome_message_manager_;
+  ActorOwn<WelcomeMessageManager> welcome_message_manager_actor_;
 
   ActorOwn<AlarmManager> alarm_manager_;
   ActorOwn<HashtagHints> cashtag_search_hints_;

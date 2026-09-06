@@ -37,7 +37,7 @@ Result<AffiliateType> AffiliateType::get_affiliate_type(Td *td, const td_api::ob
         return Status::Error(400, "The chat must be a channel chat");
       }
       auto channel_id = dialog_id.get_channel_id();
-      auto status = td->chat_manager_->get_channel_permissions(channel_id);
+      auto status = td->chat_manager_->get_channel_status(channel_id);
       if (!status.can_post_messages()) {
         return Status::Error(400, "Not enough rights in the chat");
       }

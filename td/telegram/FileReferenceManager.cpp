@@ -32,6 +32,7 @@
 #include "td/telegram/WebAppManager.h"
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
+#include "td/telegram/WelcomeMessageManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
@@ -202,6 +203,8 @@ fileSourceStoryAlbum chat_id:int53 story_album_id:int32 = FileSource;           
 fileSourceSavedMusic user_id:int53 file_id:int32 = FileSource;                             // users.getSavedMusicByID
 fileSourceDraftMessage chat_id:int53 topic:MessageTopic = FileSource;                      // messages.getPeerDialogs/messages.getForumTopicsByID/messages.getSavedDialogsByID
 fileSourceRichMessage chat_id:int53 message_id:int53 = FileSource;                         // messages.getRichMessage
+fileSourceWelcomeMessages chat_id:int53 = FileSource;                                      // ephemeral.getWelcomeMessages
+fileSourceCommunityFull community_id:int53 = FileSource;                                   // messages.getFullChannel
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -332,6 +335,16 @@ FileSourceId FileReferenceManager::create_draft_message_file_source(DialogId dia
 FileSourceId FileReferenceManager::create_rich_message_file_source(MessageFullId message_full_id) {
   FileSourceRichMessage source{message_full_id};
   return add_file_source_id(source, PSLICE() << "rich " << message_full_id);
+}
+
+FileSourceId FileReferenceManager::create_welcome_messages_file_source(DialogId dialog_id) {
+  FileSourceWelcomeMessages source{dialog_id};
+  return add_file_source_id(source, PSLICE() << "welcome messages of " << dialog_id);
+}
+
+FileSourceId FileReferenceManager::create_community_full_file_source(CommunityId community_id) {
+  FileSourceCommunityFull source{community_id};
+  return add_file_source_id(source, PSLICE() << "full " << community_id);
 }
 
 FileReferenceManager::Node &FileReferenceManager::add_node(NodeId node_id) {
@@ -583,6 +596,14 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       [&](const FileSourceRichMessage &source) {
         send_closure_later(G()->message_query_manager(), &MessageQueryManager::reload_full_rich_message,
                            source.message_full_id, std::move(promise));
+      },
+      [&](const FileSourceWelcomeMessages &source) {
+        send_closure_later(G()->welcome_message_manager(), &WelcomeMessageManager::reload_welcome_messages,
+                           source.dialog_id, std::move(promise));
+      },
+      [&](const FileSourceCommunityFull &source) {
+        send_closure_later(G()->community_manager(), &CommunityManager::reload_community_full, source.community_id,
+                           std::move(promise), "FileSourceCommunityFull");
       }));
 }
 
@@ -655,7 +676,8 @@ void FileReferenceManager::reload_photo(PhotoSizeSource source, Promise<Unit> pr
       if (dialog_id.get_type() == DialogType::Channel) {
         auto channel_id = dialog_id.get_channel_id();
         if (!channel_id.is_regular_channel()) {
-          td_->community_manager_->reload_community(CommunityId(channel_id.get()), std::move(promise), "reload_photo");
+          td_->community_manager_->reload_community_full(CommunityId(channel_id.get()), std::move(promise),
+                                                         "reload_photo");
           break;
         }
       }

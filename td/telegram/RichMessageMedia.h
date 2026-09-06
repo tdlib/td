@@ -52,7 +52,7 @@ class RichMessageMedia {
     return media_.get();
   }
 
-  RichMessageMedia clone(Td *td, DialogId dialog_id, const MessageContentDupType &type) const;
+  RichMessageMedia clone(Td *td, DialogId dialog_id, const MessageContentDupType &type, bool is_via_bot) const;
 
   telegram_api::object_ptr<telegram_api::inputPhoto> get_input_photo(const Td *td) const;
 

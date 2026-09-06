@@ -52,6 +52,7 @@ void HttpConnectionBase::start_up() {
   live_event();
   yield();
 }
+
 void HttpConnectionBase::tear_down() {
   Scheduler::unsubscribe_before_close(fd_.get_poll_info().get_pollable_fd_ref());
   fd_.close();
@@ -61,6 +62,7 @@ void HttpConnectionBase::write_next_noflush(BufferSlice buffer) {
   CHECK(state_ == State::Write);
   write_buffer_.append(std::move(buffer));
 }
+
 void HttpConnectionBase::write_next(BufferSlice buffer) {
   write_next_noflush(std::move(buffer));
   loop();
@@ -92,6 +94,7 @@ void HttpConnectionBase::timeout_expired() {
 
   stop();
 }
+
 void HttpConnectionBase::loop() {
   if (ssl_stream_) {
     //ssl_stream_.read_byte_flow().set_need_size(0);
@@ -99,7 +102,7 @@ void HttpConnectionBase::loop() {
   }
   sync_with_poll(fd_);
   bool need_read_more = false;
-  if (can_read_local(fd_)) {
+  if (state_ == State::Read && can_read_local(fd_)) {
     LOG(DEBUG) << "Can read from the connection";
     auto r = fd_.flush_read(MAX_READ_SIZE);
     if (r.is_error()) {

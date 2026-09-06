@@ -29,6 +29,7 @@ Result<RichMessageMedia> RichMessageMedia::get_rich_message_media(
   switch (input_message_content.content->get_type()) {
     case MessageContentType::Animation:
     case MessageContentType::Audio:
+    case MessageContentType::Document:
     case MessageContentType::Photo:
     case MessageContentType::Video:
     case MessageContentType::VoiceNote:
@@ -54,15 +55,15 @@ Result<vector<RichMessageMedia>> RichMessageMedia::get_rich_message_media(
 
 unique_ptr<MessageContent> RichMessageMedia::get_message_content(Td *td) const {
   CHECK(td != nullptr);
-  return dup_message_content(td, DialogId(), media_.get(), MessageContentDupType::ServerCopy,
-                             MessageCopyOptions(true, false));
+  return dup_message_content(td, DialogId(), media_.get(), MessageContentDupType::Send, false, MessageCopyOptions());
 }
 
-RichMessageMedia RichMessageMedia::clone(Td *td, DialogId dialog_id, const MessageContentDupType &type) const {
+RichMessageMedia RichMessageMedia::clone(Td *td, DialogId dialog_id, const MessageContentDupType &type,
+                                         bool is_via_bot) const {
   RichMessageMedia result;
   result.id_ = id_;
   result.media_ = dup_message_content(
-      td, dialog_id, media_.get(), type,
+      td, dialog_id, media_.get(), type, is_via_bot,
       MessageCopyOptions(type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy, false));
   return result;
 }
@@ -111,10 +112,20 @@ telegram_api::object_ptr<telegram_api::InputRichFile> RichMessageMedia::get_inpu
     }
   }
   switch (media_->get_type()) {
-    case MessageContentType::Photo:
-      return telegram_api::make_object<telegram_api::inputRichFilePhoto>(id_, get_input_photo(td));
-    default:
-      return telegram_api::make_object<telegram_api::inputRichFileDocument>(id_, get_input_document(td));
+    case MessageContentType::Photo: {
+      auto input_photo = get_input_photo(td);
+      if (input_photo == nullptr) {
+        return nullptr;
+      }
+      return telegram_api::make_object<telegram_api::inputRichFilePhoto>(id_, std::move(input_photo));
+    }
+    default: {
+      auto input_document = get_input_document(td);
+      if (input_document == nullptr) {
+        return nullptr;
+      }
+      return telegram_api::make_object<telegram_api::inputRichFileDocument>(id_, std::move(input_document));
+    }
   }
 }
 

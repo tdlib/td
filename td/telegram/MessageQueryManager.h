@@ -17,10 +17,13 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/ForumTopicId.h"
+#include "td/telegram/InputMedia.h"
+#include "td/telegram/MessageContentUploadId.h"
 #include "td/telegram/MessageCover.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
+#include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/MessageTopic.h"
 #include "td/telegram/MessageViewer.h"
@@ -46,7 +49,9 @@ namespace td {
 
 struct BinlogEvent;
 struct FormattedText;
+class MessageContent;
 struct MessageSearchOffset;
+struct ReplyMarkup;
 class RichMessage;
 class Td;
 
@@ -80,6 +85,46 @@ class MessageQueryManager final : public Actor {
                                      MessageCover cover, FileUploadId file_upload_id,
                                      telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                      Promise<Unit> &&promise);
+
+  class UploadMessageContentCallback {
+   public:
+    UploadMessageContentCallback() = default;
+    UploadMessageContentCallback(const UploadMessageContentCallback &) = delete;
+    UploadMessageContentCallback &operator=(const UploadMessageContentCallback &) = delete;
+    virtual ~UploadMessageContentCallback() = default;
+
+    virtual void on_message_content_uploaded(MessageContentUploadId upload_id, InputMedia &&input_media) = 0;
+
+    virtual void on_message_content_force_uploaded(MessageContentUploadId upload_id, Status status) = 0;
+
+    virtual void on_uploaded_message_content_updated(MessageContentUploadId upload_id,
+                                                     unique_ptr<MessageContent> &&content, bool need_merge_files,
+                                                     bool is_content_changed, bool need_update) = 0;
+
+    // called at most once
+    virtual void on_failed_to_upload_message_content(MessageContentUploadId upload_id, Status error) = 0;
+
+    virtual void on_failed_to_upload_message_content_thumbnail(MessageContentUploadId upload_id, int32 media_pos) = 0;
+  };
+  MessageContentUploadId create_upload_message_content_query(DialogId dialog_id, const MessageContent *content,
+                                                             MessageSelfDestructType ttl, const string &send_emoji,
+                                                             bool force_remote, bool disallow_animation,
+                                                             std::shared_ptr<UploadMessageContentCallback> &&callback);
+
+  void start_upload_message_content(MessageContentUploadId upload_id, bool after_file_reference_error = false);
+
+  void on_start_sending_message_content(MessageContentUploadId upload_id, const InputMedia &input_media);
+
+  void process_send_message_content_error(MessageContentUploadId upload_id, Status error);
+
+  void cancel_upload_message_content(MessageContentUploadId upload_id);
+
+  void on_upload_message_media_success(MessageContentUploadId upload_id, int32 media_pos,
+                                       telegram_api::object_ptr<telegram_api::MessageMedia> &&media);
+
+  void on_upload_message_media_file_error(MessageContentUploadId upload_id, int32 media_pos, vector<int> &&bad_parts);
+
+  void on_upload_message_media_fail(MessageContentUploadId upload_id, int32 media_pos, Status error);
 
   void report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push);
 
@@ -204,6 +249,19 @@ class MessageQueryManager final : public Actor {
                               td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                               Promise<Unit> &&promise);
 
+  void edit_ephemeral_message_caption(DialogId dialog_id, UserId receiver_user_id,
+                                      EphemeralMessageId ephemeral_message_id,
+                                      td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                      td_api::object_ptr<td_api::formattedText> &&input_caption, bool invert_media,
+                                      Promise<Unit> &&promise);
+
+  void edit_callback_query_message(int64 callback_query_id, bool noforwards,
+                                   td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                   td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
+                                   Promise<Unit> &&promise);
+
+  void cancel_edit_ephemeral_message(MessageContentUploadId upload_id, Status status);
+
   void delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id, Promise<Unit> &&promise);
 
   void delete_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
@@ -285,6 +343,10 @@ class MessageQueryManager final : public Actor {
   class UnpinAllDialogMessagesOnServerLogEvent;
 
   class UploadCoverCallback;
+  class UploadMediaCallback;
+  class UploadThumbnailCallback;
+
+  class UploadEphemeralMessageContentCallback;
 
   static constexpr int32 MAX_SEARCH_MESSAGES = 100;  // server-side limit
 
@@ -294,6 +356,23 @@ class MessageQueryManager final : public Actor {
     MessageCover cover_;
     telegram_api::object_ptr<telegram_api::InputFile> input_file_;
     Promise<Unit> promise_;
+  };
+
+  struct UploadMessageContentQuery {
+    DialogId dialog_id_;
+    unique_ptr<MessageContent> content_;
+    MessageSelfDestructType ttl_;
+    string send_emoji_;
+    bool force_remote_ = false;
+    bool disallow_animation_ = false;
+    bool is_started_ = false;
+    bool is_sending_started_ = false;
+    bool was_uploaded_ = false;
+    vector<string> file_references_;
+    vector<string> cover_file_references_;
+    vector<FileUploadId> file_upload_ids_;
+    vector<FileUploadId> thumbnail_file_upload_ids_;
+    std::shared_ptr<UploadMessageContentCallback> callback_;
   };
 
   void tear_down() final;
@@ -312,6 +391,34 @@ class MessageQueryManager final : public Actor {
   void on_upload_cover_error(FileUploadId file_upload_id, Status status);
 
   void do_upload_cover(FileUploadId file_upload_id, BeingUploadedCover &&being_uploaded_cover);
+
+  void on_upload_message_content_file_error(MessageContentUploadId upload_id, UploadMessageContentQuery &query,
+                                            size_t pos, vector<int> &&bad_parts);
+
+  void on_failed_to_upload_message_content(MessageContentUploadId upload_id, UploadMessageContentQuery &query,
+                                           Status &&error);
+
+  void on_upload_media(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+                       telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file);
+
+  void on_upload_media_error(FileUploadId file_upload_id, Status error);
+
+  void on_upload_thumbnail(FileUploadId thumbnail_file_upload_id,
+                           telegram_api::object_ptr<telegram_api::InputFile> thumbnail_input_file);
+
+  void do_upload_message_content(MessageContentUploadId upload_id, int32 media_pos, vector<int> bad_parts,
+                                 Result<Unit> result);
+
+  void on_message_media_uploaded(MessageContentUploadId upload_id, UploadMessageContentQuery &query, int32 media_pos,
+                                 InputMedia &&input_media);
+
+  void on_upload_message_media_finished(MessageContentUploadId upload_id, int32 media_pos, Status status);
+
+  void do_send_media(MessageContentUploadId upload_id, UploadMessageContentQuery &query, int32 media_pos,
+                     telegram_api::object_ptr<telegram_api::InputFile> input_file,
+                     telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail);
+
+  void do_send_internal_media_group(MessageContentUploadId upload_id, UploadMessageContentQuery &query);
 
   void on_reload_message_fact_checks(DialogId dialog_id, const vector<MessageId> &message_ids,
                                      Result<vector<telegram_api::object_ptr<telegram_api::factCheck>>> r_fact_checks);
@@ -413,6 +520,34 @@ class MessageQueryManager final : public Actor {
   FlatHashMap<DialogId, vector<MessageViewMetrics>, DialogIdHash> pending_message_view_metrics_;
 
   std::shared_ptr<UploadCoverCallback> upload_cover_callback_;
+  std::shared_ptr<UploadMediaCallback> upload_media_callback_;
+  std::shared_ptr<UploadThumbnailCallback> upload_thumbnail_callback_;
+
+  uint64 current_upload_id_ = 0;
+
+  FlatHashMap<MessageContentUploadId, UploadMessageContentQuery, MessageContentUploadIdHash>
+      upload_message_content_queries_;
+
+  struct PendingInternalMediaSend {
+    size_t finished_count_ = 0;
+    vector<bool> is_finished_;
+    vector<Status> results_;
+  };
+  FlatHashMap<MessageContentUploadId, PendingInternalMediaSend, MessageContentUploadIdHash>
+      pending_internal_media_sends_;
+
+  struct UploadedFileInfo {
+    MessageContentUploadId upload_id_;
+    int32 media_pos_;
+  };
+  FlatHashMap<FileUploadId, UploadedFileInfo, FileUploadIdHash> being_uploaded_files_;
+
+  struct UploadedThumbnailInfo {
+    MessageContentUploadId upload_id_;
+    telegram_api::object_ptr<telegram_api::InputFile> input_file_;  // original file InputFile
+    int32 media_pos_;
+  };
+  FlatHashMap<FileUploadId, UploadedThumbnailInfo, FileUploadIdHash> being_uploaded_thumbnails_;
 
   bool is_emoji_game_info_inited_ = false;
   double emoji_game_info_receive_time_ = 0.0;
@@ -425,6 +560,26 @@ class MessageQueryManager final : public Actor {
   WaitFreeHashMap<MessageFullId, FileSourceId, MessageFullIdHash> rich_message_full_id_to_file_source_id_;
 
   MultiTimeout send_message_view_metrics_timeout_{"SendMessageViewMetricsTimeout"};
+
+  struct EditEphemeralMessageRequest {
+    DialogId dialog_id_;
+    UserId receiver_user_id_;
+    EphemeralMessageId ephemeral_message_id_;
+    unique_ptr<ReplyMarkup> reply_markup_;
+    unique_ptr<MessageContent> content_;
+    bool invert_media_ = false;
+
+    bool is_send_ = false;
+    bool noforwards_ = false;
+    bool disable_web_page_preview_ = false;
+    int64 callback_query_id_ = 0;
+
+    Promise<Unit> promise_;
+  };
+  FlatHashMap<MessageContentUploadId, EditEphemeralMessageRequest, MessageContentUploadIdHash>
+      edit_ephemeral_message_queries_;
+
+  std::shared_ptr<UploadEphemeralMessageContentCallback> upload_ephemeral_message_content_callback_;
 
   Td *td_;
   ActorShared<> parent_;

@@ -252,6 +252,9 @@ void AnimationsManager::merge_animations(FileId new_id, FileId old_id) {
     if (new_->file_name.size() == old_->file_name.size() + 4 && new_->file_name == old_->file_name + ".mp4") {
       need_merge = false;
     }
+    if (new_->file_name.size() == old_->file_name.size() + 5 && new_->file_name == old_->file_name + ".webm") {
+      need_merge = false;
+    }
   }
   if (need_merge) {
     LOG_STATUS(td_->file_manager_->merge(new_id, old_id));

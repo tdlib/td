@@ -765,6 +765,9 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
   CHECK(is_aligned_pointer<4>(data.data()));
   TRY_RESULT(auth_key_id, mtproto::Transport::read_auth_key_id(data));
   mtproto::AuthKey *auth_key = nullptr;
+  if (auth_key_id == 0) {
+    return Status::Error(1, "Invalid auth_key_id");
+  }
   if (auth_key_id == pfs_state_.auth_key.id()) {
     auth_key = &pfs_state_.auth_key;
   } else if (auth_key_id == pfs_state_.other_auth_key.id()) {
@@ -773,6 +776,7 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
     return Status::Error(1, PSLICE() << "Unknown " << tag("auth_key_id", format::as_hex(auth_key_id))
                                      << tag("crc", crc64(encrypted_message.as_slice())));
   }
+  CHECK(!auth_key->empty());
 
   std::array<int, 2> versions{{2, 1}};
   BufferSlice encrypted_message_copy;

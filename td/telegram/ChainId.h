@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
+#include "td/telegram/CommunityId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/InputGroupCallId.h"
@@ -37,6 +38,9 @@ class ChainId {
   }
 
   ChainId(DialogId dialog_id) : id((static_cast<uint64>(dialog_id.get()) << 10) + 10) {
+  }
+
+  ChainId(CommunityId community_id) : id((static_cast<uint64>(community_id.get()) << 10) + 10) {
   }
 
   ChainId(InputGroupCallId input_group_call_id) : id(input_group_call_id.get_hash()) {

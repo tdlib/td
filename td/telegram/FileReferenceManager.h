@@ -9,6 +9,7 @@
 #include "td/telegram/BackgroundId.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
+#include "td/telegram/CommunityId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
@@ -96,6 +97,8 @@ class FileReferenceManager final : public Actor {
   FileSourceId create_user_saved_music_file_source(UserId user_id, int64 document_id, int64 access_hash);
   FileSourceId create_draft_message_file_source(DialogId dialog_id, MessageTopic topic);
   FileSourceId create_rich_message_file_source(MessageFullId message_full_id);
+  FileSourceId create_welcome_messages_file_source(DialogId dialog_id);
+  FileSourceId create_community_full_file_source(CommunityId community_id);
 
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
@@ -234,6 +237,12 @@ class FileReferenceManager final : public Actor {
   struct FileSourceRichMessage {
     MessageFullId message_full_id;
   };
+  struct FileSourceWelcomeMessages {
+    DialogId dialog_id;
+  };
+  struct FileSourceCommunityFull {
+    CommunityId community_id;
+  };
 
   // append only
   using FileSource =
@@ -243,7 +252,7 @@ class FileReferenceManager final : public Actor {
               FileSourceSavedRingtones, FileSourceUserFull, FileSourceAttachMenuBot, FileSourceWebApp, FileSourceStory,
               FileSourceQuickReplyMessage, FileSourceStarTransaction, FileSourceBotMediaPreview,
               FileSourceBotMediaPreviewInfo, FileSourceStoryAlbum, FileSourceUserSavedMusic, FileSourceDraftMessage,
-              FileSourceRichMessage>;
+              FileSourceRichMessage, FileSourceWelcomeMessages, FileSourceCommunityFull>;
   WaitFreeVector<FileSource> file_sources_;
 
   int64 query_generation_{0};

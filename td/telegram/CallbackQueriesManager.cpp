@@ -242,7 +242,7 @@ void CallbackQueriesManager::on_new_callback_query(int64 callback_query_id, User
 }
 
 void CallbackQueriesManager::on_new_ephemeral_callback_query(
-    int64 callback_query_id, UserId sender_user_id, BufferSlice &&data,
+    int64 callback_query_id, UserId sender_user_id, BufferSlice &&data, int64 chat_instance,
     telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message) {
   if (!sender_user_id.is_valid()) {
     LOG(ERROR) << "Receive new ephemeral callback query from invalid " << sender_user_id;
@@ -255,7 +255,7 @@ void CallbackQueriesManager::on_new_ephemeral_callback_query(
   }
 
   auto payload = get_query_payload(std::move(data), string());
-  if (payload == nullptr) {
+  if (payload == nullptr || message->peer_id_ == nullptr) {
     return;
   }
 
@@ -271,7 +271,7 @@ void CallbackQueriesManager::on_new_ephemeral_callback_query(
       td_api::make_object<td_api::updateNewCallbackQuery>(
           callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "on_new_ephemeral_callback_query"),
           td_->dialog_manager_->get_chat_id_object(message_full_id.get_dialog_id(), "on_new_ephemeral_callback_query"),
-          message_id.get(), 0, std::move(payload)));
+          message_id.get(), chat_instance, std::move(payload)));
 }
 
 void CallbackQueriesManager::on_new_inline_callback_query(
@@ -350,16 +350,13 @@ void CallbackQueriesManager::send_callback_query(MessageFullId message_full_id,
   if (message_id.is_valid_scheduled()) {
     return promise.set_error(400, "Can't send callback queries from scheduled messages");
   }
+  auto ephemeral_message_id = td_->messages_manager_->get_ephemeral_message_id_of_message_id(message_full_id);
+  if (ephemeral_message_id.is_valid() && payload->get_id() == td_api::callbackQueryPayloadData::ID) {
+    td_->create_handler<GetEphemeralCallbackAnswerQuery>(std::move(promise))
+        ->send(dialog_id, ephemeral_message_id, static_cast<td_api::callbackQueryPayloadData *>(payload.get())->data_);
+    return;
+  }
   if (!message_id.is_server()) {
-    if (payload->get_id() == td_api::callbackQueryPayloadData::ID) {
-      auto ephemeral_message_id = td_->messages_manager_->get_ephemeral_message_id_of_message_id(message_full_id);
-      if (ephemeral_message_id.is_valid()) {
-        td_->create_handler<GetEphemeralCallbackAnswerQuery>(std::move(promise))
-            ->send(dialog_id, ephemeral_message_id,
-                   static_cast<td_api::callbackQueryPayloadData *>(payload.get())->data_);
-        return;
-      }
-    }
     return promise.set_error(400, "Wrong message identifier");
   }
 

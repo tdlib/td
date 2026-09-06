@@ -1037,8 +1037,13 @@ void SavedMessagesManager::clear_monoforum_topic_draft_by_sent_message(DialogId 
       return;
     }
   }
-  do_set_topic_draft_message(topic, nullptr, false, false);
-  on_topic_changed(topic_list, topic, "clear_monoforum_topic_draft_by_sent_message");
+  // do_set_topic_draft_message(topic, nullptr, false, false);
+  if (topic->draft_message_ != nullptr) {
+    topic->draft_message_ = nullptr;
+    topic->is_changed_ = true;
+    // do not call change_draft_message_files to keep file source identifiers
+    on_topic_changed(topic_list, topic, "clear_monoforum_topic_draft_by_sent_message");
+  }
 }
 
 void SavedMessagesManager::repair_topic_unread_count(const SavedMessagesTopic *topic) {

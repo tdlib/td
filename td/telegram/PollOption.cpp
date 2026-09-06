@@ -98,13 +98,17 @@ void PollOption::remove_web_page() {
   remove_message_content_web_page(media_.get());
 }
 
+string PollOption::get_search_text() const {
+  return text_.text;
+}
+
 PollOption PollOption::dup_option(Td *td, DialogId dialog_id) const {
   PollOption result;
   result.text_ = text_;
   remove_unallowed_entities(td, result.text_, dialog_id);
   if (media_ != nullptr) {
-    result.media_ =
-        dup_message_content(td, dialog_id, media_.get(), MessageContentDupType::Copy, MessageCopyOptions(true, false));
+    result.media_ = dup_message_content(td, dialog_id, media_.get(), MessageContentDupType::Copy, false,
+                                        MessageCopyOptions(true, false));
   }
   return result;
 }

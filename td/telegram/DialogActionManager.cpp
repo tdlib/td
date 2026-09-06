@@ -124,6 +124,22 @@ void DialogActionManager::on_active_dialog_action_timeout_callback(void *dialog_
 void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,
                                            DialogId typing_dialog_id, DialogAction action, int32 date,
                                            MessageContentType message_content_type) {
+  {
+    auto info = action.get_stop_draft_info();
+    if (info.random_id_ != 0) {
+      if (dialog_id.get_type() != DialogType::User || dialog_id != typing_dialog_id) {
+        LOG(ERROR) << "Ignore " << action << " in " << dialog_id;
+        return;
+      }
+      td_->dialog_manager_->force_create_dialog(dialog_id, "on_dialog_action", true);
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateStopMessageDraft>(
+                       td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatAction"),
+                       ForumTopicId::from_top_thread_message_id(top_thread_message_id).get(), info.random_id_));
+      return;
+    }
+  }
+
   if (td_->auth_manager_->is_bot() || !typing_dialog_id.is_valid()) {
     return;
   }
@@ -144,6 +160,10 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
   if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
     return;
   }
+  if (!td_->messages_manager_->have_dialog(dialog_id)) {
+    LOG(DEBUG) << "Ignore " << action << " in unknown " << dialog_id;
+    return;
+  }
 
   auto typing_dialog_type = typing_dialog_id.get_type();
   if (typing_dialog_type != DialogType::User && dialog_type != DialogType::Chat && dialog_type != DialogType::Channel) {
@@ -160,12 +180,11 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
   }
 
   {
-    auto clicking_info = action.get_clicking_animated_emoji_action_info();
-    if (!clicking_info.data.empty()) {
+    auto info = action.get_clicking_animated_emoji_action_info();
+    if (!info.data.empty()) {
       if (date > G()->unix_time() - 10 && dialog_type == DialogType::User && dialog_id == typing_dialog_id) {
         td_->messages_manager_->on_message_animated_emoji_clicked(
-            {dialog_id, MessageId(ServerMessageId(clicking_info.message_id))}, std::move(clicking_info.emoji),
-            std::move(clicking_info.data));
+            {dialog_id, MessageId(ServerMessageId(info.message_id))}, std::move(info.emoji), std::move(info.data));
       }
       return;
     }
@@ -181,43 +200,38 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
   }
 
   {
-    auto text_draft_info = action.get_text_draft_info();
-    if (text_draft_info.text_ != nullptr) {
+    auto info = action.get_text_draft_info();
+    if (info.text_ != nullptr) {
       auto period = td_->option_manager_->get_option_integer("pending_text_message_period", 0);
       if (date > G()->unix_time() - period && dialog_type == DialogType::User && dialog_id == typing_dialog_id) {
         send_closure(
             G()->td(), &Td::send_update,
             td_api::make_object<td_api::updatePendingMessage>(
                 td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatAction"),
-                ForumTopicId::from_top_thread_message_id(top_thread_message_id).get(), text_draft_info.random_id_,
+                ForumTopicId::from_top_thread_message_id(top_thread_message_id).get(), info.random_id_, info.can_stop_,
+                info.keep_on_stop_,
                 td_api::make_object<td_api::messageText>(
-                    get_formatted_text_object(td_->user_manager_.get(), *text_draft_info.text_, false, -1), nullptr,
-                    nullptr)));
+                    get_formatted_text_object(td_->user_manager_.get(), *info.text_, false, -1), nullptr, nullptr)));
       }
       return;
     }
   }
 
   {
-    auto rich_message_draft_info = action.get_rich_message_draft_info();
-    if (rich_message_draft_info.message_ != nullptr) {
+    auto info = action.get_rich_message_draft_info();
+    if (info.message_ != nullptr) {
       auto period = td_->option_manager_->get_option_integer("pending_text_message_period", 0);
       if (date > G()->unix_time() - period && dialog_type == DialogType::User && dialog_id == typing_dialog_id) {
-        send_closure(G()->td(), &Td::send_update,
-                     td_api::make_object<td_api::updatePendingMessage>(
-                         td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatAction"),
-                         ForumTopicId::from_top_thread_message_id(top_thread_message_id).get(),
-                         rich_message_draft_info.random_id_,
-                         td_api::make_object<td_api::messageRichMessage>(
-                             rich_message_draft_info.message_->get_rich_message_object(td_, false))));
+        send_closure(
+            G()->td(), &Td::send_update,
+            td_api::make_object<td_api::updatePendingMessage>(
+                td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatAction"),
+                ForumTopicId::from_top_thread_message_id(top_thread_message_id).get(), info.random_id_, info.can_stop_,
+                info.keep_on_stop_,
+                td_api::make_object<td_api::messageRichMessage>(info.message_->get_rich_message_object(td_, false))));
       }
       return;
     }
-  }
-
-  if (!td_->messages_manager_->have_dialog(dialog_id)) {
-    LOG(DEBUG) << "Ignore " << action << " in unknown " << dialog_id;
-    return;
   }
 
   if (typing_dialog_type == DialogType::User) {
@@ -373,7 +387,7 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageTopic me
       return promise.set_value(Unit());
     }
 
-    if (td_->dialog_manager_->is_dialog_action_unneeded(dialog_id)) {
+    if (td_->dialog_manager_->is_dialog_action_unneeded(dialog_id) && action.get_stop_draft_info().random_id_ == 0) {
       LOG(INFO) << "Skip unneeded " << action << " in " << dialog_id;
       return promise.set_value(Unit());
     }
@@ -393,6 +407,17 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageTopic me
   auto input_action = action.get_input_send_message_action(td_);
   if (input_action == nullptr) {
     return promise.set_error(400, "New files can't be uploaded using the method");
+  }
+
+  if (dialog_id.get_type() == DialogType::User && (message_topic.is_empty() || message_topic.is_forum())) {
+    auto info = action.get_stop_draft_info();
+    if (info.random_id_ != 0) {
+      auto forum_topic_id = message_topic.is_empty() ? ForumTopicId() : message_topic.get_forum_topic_id();
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateStopMessageDraft>(
+                       td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatAction"), forum_topic_id.get(),
+                       info.random_id_));
+    }
   }
 
   CHECK(input_peer != nullptr);

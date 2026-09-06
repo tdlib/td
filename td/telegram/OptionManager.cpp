@@ -221,6 +221,9 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("rich_message_depth_max", 16);
   set_default_integer_option("rich_message_media_count_max", 50);
   set_default_integer_option("rich_message_table_column_count_max", 20);
+  set_default_integer_option("welcome_message_count_max", is_test_dc ? 5 : 3);
+  set_default_integer_option("community_chat_count_max", is_test_dc ? 10 : 100);
+  set_default_integer_option("community_bot_count_max", is_test_dc ? 10 : 100);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
@@ -808,7 +811,7 @@ td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_synchronously(
       break;
     case 'v':
       if (name == "version") {
-        return td_api::make_object<td_api::optionValueString>("1.8.66");
+        return td_api::make_object<td_api::optionValueString>("1.8.67");
       }
       break;
   }

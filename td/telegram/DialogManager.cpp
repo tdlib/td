@@ -535,7 +535,7 @@ class ReportPeerQuery final : public Td::ResultHandler {
       return promise_.set_value(td_api::make_object<td_api::reportChatResultMessagesRequired>());
     }
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportPeerQuery");
-    td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "ReportPeerQuery");
+    td_->messages_manager_->reload_dialog_action_bar(dialog_id_, "ReportPeerQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -680,7 +680,7 @@ class UpdatePeerSettingsQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for update peer settings: " << status;
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "UpdatePeerSettingsQuery");
-    td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "UpdatePeerSettingsQuery");
+    td_->messages_manager_->reload_dialog_action_bar(dialog_id_, "UpdatePeerSettingsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -718,7 +718,7 @@ class ReportEncryptedSpamQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for report encrypted spam: " << status;
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportEncryptedSpamQuery");
-    td_->messages_manager_->reget_dialog_action_bar(
+    td_->messages_manager_->reload_dialog_action_bar(
         DialogId(td_->user_manager_->get_secret_chat_user_id(dialog_id_.get_secret_chat_id())),
         "ReportEncryptedSpamQuery");
     promise_.set_error(std::move(status));
@@ -1085,7 +1085,7 @@ class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
     }
     if (!G()->close_flag()) {
       td_->dialog_manager_->get_dialog_info_full(dialog_id_, Auto(), "ToggleDialogIsBlockedQuery");
-      td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "ToggleDialogIsBlockedQuery");
+      td_->messages_manager_->reload_dialog_action_bar(dialog_id_, "ToggleDialogIsBlockedQuery");
     }
     promise_.set_error(std::move(status));
   }
@@ -2474,8 +2474,9 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
   }
 
   auto file_type = is_animation ? FileType::Animation : FileType::Photo;
-  TRY_RESULT_PROMISE(promise, file_id,
-                     td_->file_manager_->get_input_file_id(file_type, *input_file, dialog_id, true, false));
+  TRY_RESULT_PROMISE(
+      promise, file_id,
+      td_->file_manager_->get_input_file_id(file_type, *input_file, dialog_id, true, false, false, false, false, true));
   if (!file_id.is_valid()) {
     send_edit_dialog_photo_query(dialog_id, FileUploadId(),
                                  telegram_api::make_object<telegram_api::inputChatPhotoEmpty>(), std::move(promise));

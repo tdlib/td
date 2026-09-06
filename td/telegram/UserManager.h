@@ -136,6 +136,8 @@ class UserManager final : public Actor {
 
   void register_suggested_profile_photo(const Photo &photo);
 
+  void on_update_user_linked_community_id(UserId user_id, CommunityId linked_community_id);
+
   void on_update_user_emoji_status(UserId user_id, telegram_api::object_ptr<telegram_api::EmojiStatus> &&emoji_status);
 
   void on_update_user_story_ids(UserId user_id, telegram_api::object_ptr<telegram_api::recentStory> &&recent_story,

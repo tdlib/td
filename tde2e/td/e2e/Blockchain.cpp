@@ -761,7 +761,7 @@ td::Result<std::string> Blockchain::from_local_to_server(std::string block) {
   return block;
 }
 
-td::Result<ClientBlockchain> ClientBlockchain::create_from_block(td::Slice block_slice, const PublicKey &public_key) {
+td::Result<ClientBlockchain> ClientBlockchain::create_from_block(td::Slice block_slice) {
   TRY_RESULT(block, Block::from_tl_serialized(block_slice));
   TRY_RESULT(blockchain, Blockchain::create_from_block(std::move(block)));
   ClientBlockchain res;

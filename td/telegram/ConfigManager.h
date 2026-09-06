@@ -45,9 +45,6 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, boo
 ActorOwn<> get_simple_config_mozilla_dns(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
                                          bool is_test, int32 scheduler_id);
 
-ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> promise, bool prefer_ipv6,
-                                                    Slice domain_name, bool is_test, int32 scheduler_id);
-
 ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
                                                bool is_test, int32 scheduler_id);
 
@@ -77,7 +74,7 @@ class ConfigManager final : public NetQueryCallback {
 
  private:
   struct AppConfig {
-    static constexpr int32 CURRENT_VERSION = 132;
+    static constexpr int32 CURRENT_VERSION = 135;
     int32 version_ = 0;
     int32 hash_ = 0;
     telegram_api::object_ptr<telegram_api::JSONValue> config_;

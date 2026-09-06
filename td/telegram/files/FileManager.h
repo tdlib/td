@@ -538,7 +538,13 @@ class FileManager final : public Actor {
 
   void cancel_upload(FileUploadId file_upload_id);
 
+  void cancel_uploads(const vector<FileUploadId> &file_upload_ids);
+
   bool delete_partial_remote_location(FileUploadId file_upload_id);
+
+  void delete_partial_remote_location_if_needed(FileUploadId file_upload_id, bool was_uploaded);
+
+  void delete_partial_remote_location_if_needed(const vector<FileUploadId> &file_upload_ids, bool was_uploaded);
 
   void delete_partial_remote_location_if_needed(FileUploadId file_upload_id, const Status &error);
 
@@ -570,8 +576,8 @@ class FileManager final : public Actor {
                                              DialogId owner_dialog_id, bool is_encrypted) TD_WARN_UNUSED_RESULT;
   Result<FileId> get_input_file_id(FileType type, const tl_object_ptr<td_api::InputFile> &file,
                                    DialogId owner_dialog_id, bool allow_zero, bool is_encrypted,
-                                   bool get_by_hash = false, bool is_secure = false,
-                                   bool force_reuse = false) TD_WARN_UNUSED_RESULT;
+                                   bool get_by_hash = false, bool is_secure = false, bool force_reuse = false,
+                                   bool never_reuse = false) TD_WARN_UNUSED_RESULT;
 
   Result<FileId> get_map_thumbnail_file_id(Location location, int32 zoom, int32 width, int32 height, int32 scale,
                                            DialogId owner_dialog_id) TD_WARN_UNUSED_RESULT;

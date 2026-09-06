@@ -309,7 +309,7 @@ struct Blockchain {
 
 class ClientBlockchain {
  public:
-  static td::Result<ClientBlockchain> create_from_block(td::Slice block_slice, const PublicKey &public_key);
+  static td::Result<ClientBlockchain> create_from_block(td::Slice block_slice);
   static td::Result<ClientBlockchain> create_empty();
 
   td::Result<std::vector<Change>> try_apply_block(td::Slice block_slice);

@@ -322,14 +322,13 @@ struct EncryptedStorage {
   using UpdateId = td::int64;
 
   static td::Result<EncryptedStorage> create(td::Slice last_block, PrivateKey pk) {
-    auto public_key = pk.to_public_key();
     auto secret_for_key = MessageEncryption::hmac_sha512(pk.to_secure_string(), "EncryptedStorage::secret_for_key");
     auto secret_for_value = MessageEncryption::hmac_sha512(pk.to_secure_string(), "EncryptedStorage::secret_for_value");
     ClientBlockchain blockchain;
     if (last_block.empty()) {
       TRY_RESULT_ASSIGN(blockchain, ClientBlockchain::create_empty());
     } else {
-      TRY_RESULT_ASSIGN(blockchain, ClientBlockchain::create_from_block(last_block, std::move(public_key)));
+      TRY_RESULT_ASSIGN(blockchain, ClientBlockchain::create_from_block(last_block));
     }
     return EncryptedStorage(std::move(pk), std::move(secret_for_key), std::move(secret_for_value),
                             std::move(blockchain));

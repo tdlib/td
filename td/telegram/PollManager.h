@@ -10,6 +10,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/ForumTopicId.h"
+#include "td/telegram/MessageContentUploadId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
@@ -34,6 +35,7 @@
 #include "td/utils/WaitFreeHashMap.h"
 #include "td/utils/WaitFreeHashSet.h"
 
+#include <memory>
 #include <utility>
 
 namespace td {
@@ -95,6 +97,8 @@ class PollManager final : public Actor {
 
   void add_poll_option(MessageFullId message_full_id, td_api::object_ptr<td_api::inputPollOption> &&option,
                        Promise<Unit> &&promise);
+
+  void cancel_add_poll_option(MessageContentUploadId upload_id, Status status);
 
   void delete_poll_option(MessageFullId message_full_id, const string &option_id, Promise<Unit> &&promise);
 
@@ -202,6 +206,8 @@ class PollManager final : public Actor {
 
   class SetPollAnswerLogEvent;
   class StopPollLogEvent;
+
+  class UploadPollOptionContentCallback;
 
   void start_up() final;
   void tear_down() final;
@@ -318,6 +324,15 @@ class PollManager final : public Actor {
   int64 current_local_poll_id_ = 0;
 
   uint64 current_generation_ = 0;
+
+  struct AddPollOptionQuery {
+    MessageFullId message_full_id_;
+    PollOption option_;
+    Promise<Unit> promise_;
+  };
+  FlatHashMap<MessageContentUploadId, AddPollOptionQuery, MessageContentUploadIdHash> add_poll_option_queries_;
+
+  std::shared_ptr<UploadPollOptionContentCallback> upload_poll_option_content_callback_;
 
   FlatHashSet<PollId, PollIdHash> loaded_from_database_polls_;
 

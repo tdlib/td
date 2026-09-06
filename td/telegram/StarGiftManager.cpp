@@ -3078,6 +3078,7 @@ void StarGiftManager::drop_gift_original_details(StarGiftId star_gift_id, int64 
 }
 
 void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receiver_dialog_id, StarGiftResalePrice price,
+                                       td_api::object_ptr<td_api::formattedText> text, bool is_private,
                                        Promise<td_api::object_ptr<td_api::GiftResaleResult>> &&promise) {
   auto input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read);
   auto resale_input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read);
@@ -3087,10 +3088,23 @@ void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receive
   if (!td_->star_manager_->has_owned_amount(price)) {
     return promise.set_error(400, "Have not enough funds");
   }
-  auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftResale>(0, price.is_ton(), gift_name,
-                                                                                           std::move(input_peer));
+  TRY_RESULT_PROMISE(
+      promise, message,
+      get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(text), false, true, true, false));
+  remove_unallowed_quote_entities(message);
+
+  auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftResale>(
+      0, price.is_ton(), !is_private, gift_name, std::move(input_peer), nullptr);
   auto resale_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftResale>(
-      0, price.is_ton(), gift_name, std::move(resale_input_peer));
+      0, price.is_ton(), !is_private, gift_name, std::move(resale_input_peer), nullptr);
+  if (!message.text.empty()) {
+    input_invoice->flags_ |= telegram_api::inputInvoiceStarGiftResale::MESSAGE_MASK;
+    input_invoice->message_ = get_input_text_with_entities(td_->user_manager_.get(), message, "send_resold_gift");
+
+    resale_input_invoice->flags_ |= telegram_api::inputInvoiceStarGiftResale::MESSAGE_MASK;
+    resale_input_invoice->message_ =
+        get_input_text_with_entities(td_->user_manager_.get(), message, "send_resold_gift");
+  }
   StarGiftId star_gift_id;
   if (receiver_dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     star_gift_id = StarGiftId::from_slug(gift_name);

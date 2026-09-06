@@ -109,6 +109,7 @@
 #include "td/telegram/WebAppManager.h"
 #include "td/telegram/WebBrowserManager.h"
 #include "td/telegram/WebPagesManager.h"
+#include "td/telegram/WelcomeMessageManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"
 
@@ -580,6 +581,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(web_app_manager_, "WebAppManager");
       reset_manager(web_browser_manager_, "WebBrowserManager");
       reset_manager(web_pages_manager_, "WebPagesManager");
+      reset_manager(welcome_message_manager_, "WelcomeMessageManager");
 
       G()->set_option_manager(nullptr);
       option_manager_.reset();
@@ -759,6 +761,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(web_app_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(web_browser_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(web_pages_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(welcome_message_manager_actor_)));
   LOG(DEBUG) << "All actors were cleared" << timer;
 }
 
@@ -1259,6 +1262,7 @@ void Td::init_managers() {
   phone_number_manager_actor_ = register_actor("PhoneNumberManager", phone_number_manager_.get());
   poll_manager_ = make_unique<PollManager>(this, create_reference());
   poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
+  G()->set_poll_manager(poll_manager_actor_.get());
   privacy_manager_ = make_unique<PrivacyManager>(this, create_reference());
   privacy_manager_actor_ = register_actor("PrivacyManager", privacy_manager_.get());
   promo_data_manager_ = make_unique<PromoDataManager>(this, create_reference());
@@ -1331,6 +1335,9 @@ void Td::init_managers() {
   web_pages_manager_ = make_unique<WebPagesManager>(this, create_reference());
   web_pages_manager_actor_ = register_actor("WebPagesManager", web_pages_manager_.get());
   G()->set_web_pages_manager(web_pages_manager_actor_.get());
+  welcome_message_manager_ = make_unique<WelcomeMessageManager>(this, create_reference());
+  welcome_message_manager_actor_ = register_actor("WelcomeMessageManager", welcome_message_manager_.get());
+  G()->set_welcome_message_manager(welcome_message_manager_actor_.get());
 }
 
 void Td::init_pure_actor_managers(const Parameters &parameters) {

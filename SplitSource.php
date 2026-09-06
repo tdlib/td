@@ -381,6 +381,7 @@ function split_file($file, $chunks, $undo) {
             'language_pack_manager[_(-]|LanguagePackManager' => 'LanguagePackManager',
             'link_manager[_(-](?![.]get[(][)])|LinkManager' => 'LinkManager',
             'LogeventIdWithGeneration|add_log_event|delete_log_event|get_erase_log_event_promise|parse_time|store_time' => 'logevent/LogEventHelper',
+            'MessageContentUploadId' => 'MessageContentUploadId'
             'MessageCopyOptions' => 'MessageCopyOptions',
             'MessageCover' => 'MessageCover',
             'MessageEffectId' => 'MessageEffectId',
@@ -429,6 +430,7 @@ function split_file($file, $chunks, $undo) {
             'referral_program_manager[_(-](?![.]get[(][)])|ReferralProgramManager' => 'ReferralProgramManager',
             'ReferralProgramParameters' => 'ReferralProgramParameters',
             'RequestActor|RequestOnceActor' => 'RequestActor',
+            'RichButtonStyle' => 'RuchButtonStyle',
             'RichMessage[^M]' => 'RichMessage',
             'RichMessageMedia' => 'RichMessageMedia',
             'saved_messages_manager[_(-](?![.]get[(][)])|SavedMessagesManager' => 'SavedMessagesManager',
@@ -504,7 +506,8 @@ function split_file($file, $chunks, $undo) {
             'WebBrowserSettings' => 'WebBrowserSettings',
             'WebDomainException' => 'WebDomainException',
             'WebPageId(Hash)?' => 'WebPageId',
-            'web_pages_manager[_(-](?![.]get[(][)])|WebPagesManager' => 'WebPagesManager');
+            'web_pages_manager[_(-](?![.]get[(][)])|WebPagesManager' => 'WebPagesManager',
+            'welcome_message_manager[_(-](?![.]get[(][)])|WelcomeMessageManager' => 'WelcomeMessageManager');
 
         foreach ($td_methods as $pattern => $header) {
             if (strpos($cpp_name, $header) !== false) {

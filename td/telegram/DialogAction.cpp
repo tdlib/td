@@ -60,18 +60,28 @@ void DialogAction::init(Type type, int32 message_id, string emoji, const string 
   }
 }
 
-void DialogAction::init(Type type, int64 random_id, FormattedText &&text) {
+void DialogAction::init(Type type, int64 random_id, bool can_stop, bool keep_on_stop, FormattedText &&text) {
   CHECK(type == Type::TextDraft);
   type_ = type;
   random_id_ = random_id;
+  can_stop_ = can_stop;
+  keep_on_stop_ = keep_on_stop;
   text_ = std::move(text);
 }
 
-void DialogAction::init(Type type, int64 random_id, RichMessage &&message) {
+void DialogAction::init(Type type, int64 random_id, bool can_stop, bool keep_on_stop, RichMessage &&message) {
   CHECK(type == Type::RichTextDraft);
   type_ = type;
   random_id_ = random_id;
+  can_stop_ = can_stop;
+  keep_on_stop_ = keep_on_stop;
   message_ = std::move(message);
+}
+
+void DialogAction::init(Type type, int64 random_id) {
+  CHECK(type == Type::StopDraft);
+  type_ = type;
+  random_id_ = random_id;
 }
 
 DialogAction::DialogAction(Type type, int32 progress) {
@@ -222,20 +232,31 @@ DialogAction::DialogAction(Td *td, telegram_api::object_ptr<telegram_api::SendMe
     }
     case telegram_api::sendMessageTextDraftAction::ID: {
       auto action = telegram_api::move_object_as<telegram_api::sendMessageTextDraftAction>(action_ptr);
-      init(Type::TextDraft, action->random_id_,
+      init(Type::TextDraft, action->random_id_, action->can_stop_, action->keep_on_stop_,
            get_formatted_text(td->user_manager_.get(), std::move(action->text_), true, false,
                               "sendMessageTextDraftAction"));
       break;
     }
     case telegram_api::sendMessageRichMessageDraftAction::ID: {
       auto action = telegram_api::move_object_as<telegram_api::sendMessageRichMessageDraftAction>(action_ptr);
-      init(Type::RichTextDraft, action->random_id_, RichMessage(td, std::move(action->rich_message_), owner_dialog_id));
+      init(Type::RichTextDraft, action->random_id_, action->can_stop_, action->keep_on_stop_,
+           RichMessage(td, std::move(action->rich_message_), owner_dialog_id));
       break;
     }
     case telegram_api::inputSendMessageRichMessageDraftAction::ID:
       LOG(ERROR) << "Receive " << to_string(action_ptr);
       init(Type::Cancel);
       break;
+    case telegram_api::sendMessageStopDraftAction::ID: {
+      auto action = telegram_api::move_object_as<telegram_api::sendMessageStopDraftAction>(action_ptr);
+      if (action->random_id_ == 0) {
+        LOG(ERROR) << "Receive " << to_string(action);
+        init(Type::Cancel);
+      } else {
+        init(Type::StopDraft, action->random_id_);
+      }
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -249,7 +270,7 @@ DialogAction DialogAction::clone() const {
   action.emoji_ = emoji_;
   action.random_id_ = random_id_;
   action.text_ = text_;
-  action.message_ = message_.clone(nullptr, DialogId(), MessageContentDupType::ServerCopy);
+  action.message_ = message_.clone(nullptr, DialogId(), MessageContentDupType::Send, false);
   return action;
 }
 
@@ -292,15 +313,18 @@ telegram_api::object_ptr<telegram_api::SendMessageAction> DialogAction::get_inpu
       return telegram_api::make_object<telegram_api::sendMessageEmojiInteractionSeen>(emoji_);
     case Type::TextDraft:
       return telegram_api::make_object<telegram_api::sendMessageTextDraftAction>(
-          random_id_, get_input_text_with_entities(td->user_manager_.get(), text_, "sendMessageTextDraftAction"));
+          0, can_stop_, keep_on_stop_, random_id_,
+          get_input_text_with_entities(td->user_manager_.get(), text_, "sendMessageTextDraftAction"));
     case Type::RichTextDraft: {
       auto input_rich_message = message_.get_input_rich_message(td);
       if (input_rich_message == nullptr) {
         return nullptr;
       }
       return telegram_api::make_object<telegram_api::inputSendMessageRichMessageDraftAction>(
-          random_id_, std::move(input_rich_message));
+          0, can_stop_, keep_on_stop_, random_id_, std::move(input_rich_message));
     }
+    case Type::StopDraft:
+      return telegram_api::make_object<telegram_api::sendMessageStopDraftAction>(random_id_);
     case Type::ClickingAnimatedEmoji:
     default:
       UNREACHABLE();
@@ -348,6 +372,8 @@ secret_api::object_ptr<secret_api::SendMessageAction> DialogAction::get_secret_i
       return secret_api::make_object<secret_api::sendMessageTypingAction>();
     case Type::RichTextDraft:
       return secret_api::make_object<secret_api::sendMessageTypingAction>();
+    case Type::StopDraft:
+      return secret_api::make_object<secret_api::sendMessageTypingAction>();
     case Type::ClickingAnimatedEmoji:
     default:
       UNREACHABLE();
@@ -389,6 +415,7 @@ tl_object_ptr<td_api::ChatAction> DialogAction::get_chat_action_object(const Use
       return td_api::make_object<td_api::chatActionWatchingAnimations>(emoji_);
     case Type::TextDraft:
     case Type::RichTextDraft:
+    case Type::StopDraft:
     case Type::ImportingMessages:
     case Type::SpeakingInVoiceChat:
     case Type::ClickingAnimatedEmoji:
@@ -514,6 +541,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::RichText:
     case MessageContentType::ChangeCommunity:
+    case MessageContentType::ChatJoinedViaCommunity:
       return false;
     default:
       UNREACHABLE();
@@ -579,6 +607,8 @@ DialogAction::TextDraftInfo DialogAction::get_text_draft_info() const {
   TextDraftInfo result;
   if (type_ == Type::TextDraft) {
     result.random_id_ = random_id_;
+    result.can_stop_ = can_stop_;
+    result.keep_on_stop_ = keep_on_stop_;
     result.text_ = &text_;
   }
   return result;
@@ -588,7 +618,17 @@ DialogAction::RichMessageDraftInfo DialogAction::get_rich_message_draft_info() c
   RichMessageDraftInfo result;
   if (type_ == Type::RichTextDraft) {
     result.random_id_ = random_id_;
+    result.can_stop_ = can_stop_;
+    result.keep_on_stop_ = keep_on_stop_;
     result.message_ = &message_;
+  }
+  return result;
+}
+
+DialogAction::StopDraftInfo DialogAction::get_stop_draft_info() const {
+  StopDraftInfo result;
+  if (type_ == Type::StopDraft) {
+    result.random_id_ = random_id_;
   }
   return result;
 }
@@ -637,6 +677,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &act
         return "SendingTextDraft";
       case DialogAction::Type::RichTextDraft:
         return "SendingRichMessageDraft";
+      case DialogAction::Type::StopDraft:
+        return "StoppingDraft";
       default:
         UNREACHABLE();
         return "Cancel";
@@ -659,6 +701,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &act
       string_builder << '(' << action.random_id_ << ": " << action.text_ << ')';
     }
     if (action.type_ == DialogAction::Type::RichTextDraft) {
+      string_builder << '(' << action.random_id_ << ')';
+    }
+    if (action.type_ == DialogAction::Type::StopDraft) {
       string_builder << '(' << action.random_id_ << ')';
     }
   }

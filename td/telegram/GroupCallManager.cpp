@@ -7136,7 +7136,7 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
       bool old_is_joined = get_group_call_is_joined(group_call);
       if (cancel_join_group_call_request(input_group_call_id, group_call) != 0) {
         if (try_clear_group_call_participants(input_group_call_id) ||
-            old_is_joined != get_group_call_is_joined(group_call)) {
+            (old_is_joined != get_group_call_is_joined(group_call) && group_call->is_inited)) {
           send_update_group_call(group_call, "leave_group_call 1");
         }
         process_group_call_after_join_requests(input_group_call_id, "leave_group_call 1");

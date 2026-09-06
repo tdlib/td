@@ -444,12 +444,12 @@ Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
           MutableSlice value = query_->container_.back().as_mutable_slice();
           content_->advance(boundary_.size());
           form_data_skipped_length_ += form_data_read_length_ + boundary_.size();
-          form_data_read_length_ = 0;
 
           if (begins_with(field_content_type_, "application/x-www-form-urlencoded")) {
             // treat value as ordinary parameters
             auto result = parse_parameters(value);
             if (result.is_error()) {
+              form_data_read_length_ = 0;
               return std::move(result);
             }
           } else {
@@ -458,6 +458,7 @@ Result<bool> HttpReader::parse_multipart_form_data(bool can_be_slow) {
                        << "\"";
             query_->args_.emplace_back(field_name_, value);
           }
+          form_data_read_length_ = 0;
 
           form_data_parse_state_ = FormDataParseState::CheckForLastBoundary;
           continue;

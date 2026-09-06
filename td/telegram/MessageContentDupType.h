@@ -11,11 +11,12 @@
 namespace td {
 
 enum class MessageContentDupType : int32 {
-  Send,        // normal message sending
-  SendViaBot,  // message sending via bot
-  Forward,     // server-side message forward
-  Copy,        // local message copy
-  ServerCopy   // server-side message copy
+  Send,            // normal message sending
+  SendViaBot,      // message sending via bot
+  SendQuickReply,  // quick reply sending
+  Forward,         // server-side message forward
+  Copy,            // local message copy
+  ServerCopy       // server-side message copy
 };
 
 }  // namespace td

@@ -202,6 +202,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "RichMessage";
     case MessageContentType::ChangeCommunity:
       return string_builder << "ChangeCommunity";
+    case MessageContentType::ChatJoinedViaCommunity:
+      return string_builder << "ChatJoinedViaCommunity";
     default:
       return string_builder << "Invalid type " << static_cast<int32>(content_type);
   }
@@ -317,6 +319,7 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::RichText:
     case MessageContentType::ChangeCommunity:
+    case MessageContentType::ChatJoinedViaCommunity:
       return false;
     default:
       UNREACHABLE();
@@ -358,11 +361,47 @@ bool is_allowed_poll_option_content(MessageContentType content_type) {
   }
 }
 
+bool is_allowed_ephemeral_message_content(MessageContentType content_type) {
+  switch (content_type) {
+    case MessageContentType::Animation:
+    case MessageContentType::Audio:
+    case MessageContentType::Contact:
+    case MessageContentType::Document:
+    case MessageContentType::Location:
+    case MessageContentType::Photo:
+    case MessageContentType::RichText:
+    case MessageContentType::Sticker:
+    case MessageContentType::Text:
+    case MessageContentType::Venue:
+    case MessageContentType::Video:
+    case MessageContentType::VideoNote:
+    case MessageContentType::VoiceNote:
+      return true;
+    default:
+      return false;
+  }
+}
+
 bool can_message_content_have_multiple_files(MessageContentType content_type) {
   switch (content_type) {
     case MessageContentType::PaidMedia:
     case MessageContentType::Poll:
     case MessageContentType::RichText:
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool can_message_content_have_fact_check(MessageContentType content_type) {
+  switch (content_type) {
+    case MessageContentType::Animation:
+    case MessageContentType::Audio:
+    case MessageContentType::Document:
+    case MessageContentType::Photo:
+    case MessageContentType::RichText:
+    case MessageContentType::Text:
+    case MessageContentType::Video:
       return true;
     default:
       return false;
@@ -467,6 +506,7 @@ bool can_be_secret_message_content(MessageContentType content_type) {
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::RichText:
     case MessageContentType::ChangeCommunity:
+    case MessageContentType::ChatJoinedViaCommunity:
       return false;
     default:
       UNREACHABLE();
@@ -572,6 +612,7 @@ bool can_be_local_message_content(MessageContentType content_type) {
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
+    case MessageContentType::ChatJoinedViaCommunity:
       return false;
     default:
       UNREACHABLE();
@@ -677,6 +718,7 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
+    case MessageContentType::ChatJoinedViaCommunity:
       return true;
     default:
       UNREACHABLE();
@@ -782,9 +824,23 @@ bool is_editable_message_content(MessageContentType content_type) {
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
+    case MessageContentType::ChatJoinedViaCommunity:
       return false;
     default:
       UNREACHABLE();
+      return false;
+  }
+}
+
+bool is_editable_media_message_content(MessageContentType content_type) {
+  switch (content_type) {
+    case MessageContentType::Animation:
+    case MessageContentType::Audio:
+    case MessageContentType::Document:
+    case MessageContentType::Photo:
+    case MessageContentType::Video:
+      return true;
+    default:
       return false;
   }
 }
@@ -952,6 +1008,7 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::RichText:
     case MessageContentType::ChangeCommunity:
+    case MessageContentType::ChatJoinedViaCommunity:
       return false;
     default:
       UNREACHABLE();
@@ -1059,6 +1116,7 @@ bool can_send_message_content_to_secret_chat(MessageContentType content_type) {
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
+    case MessageContentType::ChatJoinedViaCommunity:
     default:
       UNREACHABLE();
       return false;
@@ -1181,6 +1239,7 @@ bool get_default_service_message_content_reactions_are_possible(MessageContentTy
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
     case MessageContentType::ChangeCommunity:
+    case MessageContentType::ChatJoinedViaCommunity:
       return true;
     default:
       UNREACHABLE();

@@ -13,6 +13,8 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/CommunityId.h"
+#include "td/telegram/CommunityManager.h"
 #include "td/telegram/DraftMessageManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileSourceId.h"
@@ -32,6 +34,7 @@
 #include "td/telegram/UserManager.h"
 #include "td/telegram/WebAppManager.h"
 #include "td/telegram/WebPagesManager.h"
+#include "td/telegram/WelcomeMessageManager.h"
 
 #include "td/utils/common.h"
 #include "td/utils/overloaded.h"
@@ -92,7 +95,9 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
                             td::store(source.dialog_id, storer);
                             td::store(source.topic, storer);
                           },
-                          [&](const FileSourceRichMessage &source) { td::store(source.message_full_id, storer); }));
+                          [&](const FileSourceRichMessage &source) { td::store(source.message_full_id, storer); },
+                          [&](const FileSourceWelcomeMessages &source) { td::store(source.dialog_id, storer); },
+                          [&](const FileSourceCommunityFull &source) { td::store(source.community_id, storer); }));
 }
 
 template <class ParserT>
@@ -231,6 +236,16 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
       MessageFullId message_full_id;
       td::parse(message_full_id, parser);
       return td->message_query_manager_->get_rich_message_file_source_id(message_full_id);
+    }
+    case 26: {
+      DialogId dialog_id;
+      td::parse(dialog_id, parser);
+      return td->welcome_message_manager_->get_welcome_messages_file_source_id(dialog_id);
+    }
+    case 27: {
+      CommunityId community_id;
+      td::parse(community_id, parser);
+      return td->community_manager_->get_community_full_file_source_id(community_id);
     }
     default:
       parser.set_error("Invalid type in FileSource");

@@ -714,11 +714,9 @@ void ForumTopicManager::clear_forum_topic_draft_by_sent_message(DialogId dialog_
       return;
     }
   }
-  auto old_file_ids = get_topic_file_ids(topic);
   if (topic->topic_->set_draft_message(nullptr, false)) {
     on_forum_topic_changed(dialog_id, topic);
-    td_->draft_message_manager_->change_draft_message_files(dialog_id, MessageTopic::forum(dialog_id, forum_topic_id),
-                                                            old_file_ids, get_topic_file_ids(topic), false);
+    // do not call change_draft_message_files to keep file source identifiers
   }
 }
 

@@ -6,6 +6,9 @@
 //
 #pragma once
 
+#include "td/telegram/ChannelId.h"
+#include "td/telegram/DialogId.h"
+
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
@@ -31,6 +34,10 @@ class CommunityId {
 
   int64 get() const {
     return id;
+  }
+
+  DialogId get_fake_dialog_id() const {
+    return DialogId(ChannelId(id));
   }
 
   bool operator==(const CommunityId &other) const {

@@ -25,6 +25,9 @@ KeyboardButtonStyle::KeyboardButtonStyle(td_api::object_ptr<td_api::ButtonStyle>
     case td_api::buttonStyleSuccess::ID:
       type_ = Type::Success;
       break;
+    case td_api::buttonStyleLink::ID:
+      // never allowed
+      break;
     default:
       UNREACHABLE();
       break;

@@ -71,6 +71,7 @@ class OnlineManager;
 class OptionManager;
 class PasswordManager;
 class PeopleNearbyManager;
+class PollManager;
 class PromoDataManager;
 class QuickReplyManager;
 class ReactionManager;
@@ -97,6 +98,7 @@ class UserManager;
 class WebAppManager;
 class WebBrowserManager;
 class WebPagesManager;
+class WelcomeMessageManager;
 
 class Global final : public ActorContext {
  public:
@@ -467,6 +469,13 @@ class Global final : public ActorContext {
     people_nearby_manager_ = people_nearby_manager;
   }
 
+  ActorId<PollManager> poll_manager() const {
+    return poll_manager_;
+  }
+  void set_poll_manager(ActorId<PollManager> poll_manager) {
+    poll_manager_ = poll_manager;
+  }
+
   ActorId<PromoDataManager> promo_data_manager() const {
     return promo_data_manager_;
   }
@@ -619,6 +628,13 @@ class Global final : public ActorContext {
   }
   void set_web_pages_manager(ActorId<WebPagesManager> web_pages_manager) {
     web_pages_manager_ = web_pages_manager;
+  }
+
+  ActorId<WelcomeMessageManager> welcome_message_manager() const {
+    return welcome_message_manager_;
+  }
+  void set_welcome_message_manager(ActorId<WelcomeMessageManager> welcome_message_manager) {
+    welcome_message_manager_ = welcome_message_manager;
   }
 
   ActorId<ConnectionCreator> connection_creator() const;
@@ -787,6 +803,7 @@ class Global final : public ActorContext {
   ActorId<OnlineManager> online_manager_;
   ActorId<PasswordManager> password_manager_;
   ActorId<PeopleNearbyManager> people_nearby_manager_;
+  ActorId<PollManager> poll_manager_;
   ActorId<PromoDataManager> promo_data_manager_;
   ActorId<QuickReplyManager> quick_reply_manager_;
   ActorId<ReactionManager> reaction_manager_;
@@ -809,6 +826,7 @@ class Global final : public ActorContext {
   ActorId<WebAppManager> web_app_manager_;
   ActorId<WebBrowserManager> web_browser_manager_;
   ActorId<WebPagesManager> web_pages_manager_;
+  ActorId<WelcomeMessageManager> welcome_message_manager_;
   ActorOwn<ConnectionCreator> connection_creator_;
   ActorOwn<TempAuthKeyWatchdog> temp_auth_key_watchdog_;
 

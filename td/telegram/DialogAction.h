@@ -42,12 +42,15 @@ class DialogAction {
     WatchingAnimations,
     ClickingAnimatedEmoji,
     TextDraft,
-    RichTextDraft
+    RichTextDraft,
+    StopDraft
   };
   Type type_ = Type::Cancel;
   int32 progress_ = 0;
   string emoji_;
   int64 random_id_ = 0;
+  bool can_stop_ = false;
+  bool keep_on_stop_ = false;
   FormattedText text_;
   RichMessage message_;
 
@@ -61,9 +64,11 @@ class DialogAction {
 
   void init(Type type, int32 message_id, string emoji, const string &data);
 
-  void init(Type type, int64 random_id, FormattedText &&text);
+  void init(Type type, int64 random_id, bool can_stop, bool keep_on_stop, FormattedText &&text);
 
-  void init(Type type, int64 random_id, RichMessage &&message);
+  void init(Type type, int64 random_id, bool can_stop, bool keep_on_stop, RichMessage &&message);
+
+  void init(Type type, int64 random_id);
 
   static bool is_valid_emoji(string &emoji);
 
@@ -75,12 +80,16 @@ class DialogAction {
   DialogAction(Td *td, telegram_api::object_ptr<telegram_api::SendMessageAction> &&action_ptr,
                DialogId owner_dialog_id);
 
-  DialogAction(int64 random_id, FormattedText &&text) {
-    init(Type::TextDraft, random_id, std::move(text));
+  DialogAction(int64 random_id, bool can_stop, bool keep_on_stop, FormattedText &&text) {
+    init(Type::TextDraft, random_id, can_stop, keep_on_stop, std::move(text));
   }
 
-  DialogAction(int64 random_id, RichMessage &&message) {
-    init(Type::RichTextDraft, random_id, std::move(message));
+  DialogAction(int64 random_id, bool can_stop, bool keep_on_stop, RichMessage &&message) {
+    init(Type::RichTextDraft, random_id, can_stop, keep_on_stop, std::move(message));
+  }
+
+  explicit DialogAction(int64 random_id) {
+    init(Type::StopDraft, random_id);
   }
 
   DialogAction clone() const;
@@ -112,19 +121,29 @@ class DialogAction {
 
   struct TextDraftInfo {
     int64 random_id_ = 0;
+    bool can_stop_ = false;
+    bool keep_on_stop_ = false;
     const FormattedText *text_ = nullptr;
   };
   TextDraftInfo get_text_draft_info() const;
 
   struct RichMessageDraftInfo {
     int64 random_id_ = 0;
+    bool can_stop_ = false;
+    bool keep_on_stop_ = false;
     const RichMessage *message_ = nullptr;
   };
   RichMessageDraftInfo get_rich_message_draft_info() const;
 
+  struct StopDraftInfo {
+    int64 random_id_ = 0;
+  };
+  StopDraftInfo get_stop_draft_info() const;
+
   friend bool operator==(const DialogAction &lhs, const DialogAction &rhs) {
     return lhs.type_ == rhs.type_ && lhs.progress_ == rhs.progress_ && lhs.emoji_ == rhs.emoji_ &&
-           lhs.random_id_ == rhs.random_id_ && lhs.text_ == rhs.text_ && lhs.message_ == rhs.message_;
+           lhs.random_id_ == rhs.random_id_ && lhs.can_stop_ == rhs.can_stop_ &&
+           lhs.keep_on_stop_ == rhs.keep_on_stop_ && lhs.text_ == rhs.text_ && lhs.message_ == rhs.message_;
   }
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &action);

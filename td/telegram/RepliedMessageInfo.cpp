@@ -207,7 +207,7 @@ RepliedMessageInfo RepliedMessageInfo::clone(Td *td) const {
   result.origin_ = origin_;
   if (content_ != nullptr) {
     result.content_ = dup_message_content(td, td->dialog_manager_->get_my_dialog_id(), content_.get(),
-                                          MessageContentDupType::Forward, MessageCopyOptions());
+                                          MessageContentDupType::Forward, false, MessageCopyOptions());
   }
   result.quote_ = quote_.clone();
   result.todo_item_id_ = todo_item_id_;

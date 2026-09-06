@@ -14,6 +14,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
@@ -28,6 +29,8 @@ class MessageTopic {
   MessageId top_thread_message_id_;
   ForumTopicId forum_topic_id_;
   SavedMessagesTopicId saved_messages_topic_id_;
+
+  friend struct MessageTopicHash;
 
   friend bool operator==(const MessageTopic &lhs, const MessageTopic &rhs);
 
@@ -66,6 +69,8 @@ class MessageTopic {
   bool is_empty() const {
     return type_ == Type::None;
   }
+
+  bool is_valid() const;
 
   bool is_thread() const {
     return type_ == Type::Thread;
@@ -129,6 +134,28 @@ class MessageTopic {
 
   template <class ParserT>
   void parse(ParserT &parser);
+};
+
+struct MessageTopicHash {
+  uint32 operator()(MessageTopic message_topic) const {
+    switch (message_topic.type_) {
+      case MessageTopic::Type::None:
+        return 0;
+      case MessageTopic::Type::Thread:
+        return combine_hashes(DialogIdHash()(message_topic.dialog_id_),
+                              MessageIdHash()(message_topic.top_thread_message_id_));
+      case MessageTopic::Type::Forum:
+        return combine_hashes(DialogIdHash()(message_topic.dialog_id_),
+                              ForumTopicIdHash()(message_topic.forum_topic_id_));
+      case MessageTopic::Type::Monoforum:
+      case MessageTopic::Type::SavedMessages:
+        return combine_hashes(DialogIdHash()(message_topic.dialog_id_),
+                              SavedMessagesTopicIdHash()(message_topic.saved_messages_topic_id_));
+      default:
+        UNREACHABLE();
+        return 0;
+    }
+  }
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageTopic &message_topic);

@@ -231,6 +231,22 @@ Result<MessageTopic> MessageTopic::get_send_message_topic(Td *td, DialogId dialo
   return std::move(message_topic);
 }
 
+bool MessageTopic::is_valid() const {
+  switch (type_) {
+    case Type::None:
+      return false;
+    case Type::Thread:
+      return dialog_id_.is_valid() && top_thread_message_id_.is_valid();
+    case Type::Forum:
+      return dialog_id_.is_valid() && forum_topic_id_.is_valid();
+    case Type::Monoforum:
+    case Type::SavedMessages:
+      return dialog_id_.is_valid() && saved_messages_topic_id_.is_valid();
+    default:
+      return false;
+  }
+}
+
 td_api::object_ptr<td_api::MessageTopic> MessageTopic::get_message_topic_object(Td *td) const {
   switch (type_) {
     case Type::None:

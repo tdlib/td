@@ -1560,7 +1560,7 @@ Status StarManager::can_manage_stars(DialogId dialog_id, bool allow_self) const 
     }
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
-      if (!td_->chat_manager_->get_channel_permissions(channel_id).is_creator() && !allow_self) {
+      if (!td_->chat_manager_->get_channel_status(channel_id).is_creator() && !allow_self) {
         return Status::Error(400, "Not enough rights");
       }
       break;

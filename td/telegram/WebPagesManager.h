@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/EphemeralMessageFullId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageFullId.h"
@@ -73,6 +74,12 @@ class WebPagesManager final : public Actor {
 
   void unregister_quick_reply_web_page(WebPageId web_page_id, QuickReplyMessageFullId message_full_id,
                                        const char *source);
+
+  void register_welcome_message_web_page(WebPageId web_page_id, EphemeralMessageFullId message_full_id,
+                                         const char *source);
+
+  void unregister_welcome_message_web_page(WebPageId web_page_id, EphemeralMessageFullId message_full_id,
+                                           const char *source);
 
   void register_poll_web_pages(PollId poll_id, vector<WebPageId> &&web_page_ids);
 
@@ -229,6 +236,9 @@ class WebPagesManager final : public Actor {
 
   FlatHashMap<WebPageId, FlatHashSet<QuickReplyMessageFullId, QuickReplyMessageFullIdHash>, WebPageIdHash>
       web_page_quick_reply_messages_;
+
+  FlatHashMap<WebPageId, FlatHashSet<EphemeralMessageFullId, EphemeralMessageFullIdHash>, WebPageIdHash>
+      web_page_welcome_messages_;
 
   FlatHashMap<WebPageId, FlatHashSet<PollId, PollIdHash>, WebPageIdHash> web_page_polls_;
   FlatHashMap<PollId, vector<WebPageId>, PollIdHash> poll_web_pages_;

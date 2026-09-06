@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DraftMessageManager.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/InputMessageText.h"
@@ -15,7 +16,6 @@
 #include "td/telegram/MessageEffectId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageTopic.h"
-#include "td/telegram/RichMessage.h"
 #include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -26,6 +26,7 @@
 namespace td {
 
 class Dependencies;
+class MessageContent;
 class SuggestedPost;
 class Td;
 
@@ -48,14 +49,14 @@ class DraftMessageContent {
 
 class DraftMessage {
   int32 date_ = 0;
-  bool is_rich_ = false;
   MessageInputReplyTo message_input_reply_to_;
   InputMessageText input_message_text_;
-  RichMessage rich_message_;
+  unique_ptr<MessageContent> rich_message_content_;  // must be MessageRichText
   unique_ptr<DraftMessageContent> local_content_;
   MessageEffectId message_effect_id_;
   unique_ptr<SuggestedPost> suggested_post_;
 
+  friend class DraftMessageManager::UploadDraftMessageCallback;
   friend class SaveDraftMessageQuery;
 
  public:
@@ -73,6 +74,10 @@ class DraftMessage {
 
   bool is_local() const {
     return local_content_ != nullptr;
+  }
+
+  const MessageContent *get_rich_message_content() const {
+    return rich_message_content_.get();
   }
 
   bool need_clear_local(MessageContentType content_type) const;

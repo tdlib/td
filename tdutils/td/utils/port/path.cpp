@@ -582,7 +582,7 @@ static Result<bool> walk_path_dir(const std::wstring &dir_name,
   std::wstring name = dir_name + L"\\*";
   WIN32_FIND_DATA file_data;
   auto handle =
-      td::FindFirstFileExFromAppW(name.c_str(), FindExInfoStandard, &file_data, FindExSearchNameMatch, nullptr, 0);
+      td::FindFirstFileExFromAppW(name.c_str(), FindExInfoBasic, &file_data, FindExSearchNameMatch, nullptr, 0);
   if (handle == INVALID_HANDLE_VALUE) {
     return OS_ERROR(PSLICE() << "FindFirstFileEx" << tag("name", from_wstring(name).ok()));
   }

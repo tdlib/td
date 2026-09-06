@@ -206,7 +206,7 @@ Result<Stat> stat(CSlice path) {
   }
   return detail::from_native_stat(buf);
 #elif TD_PORT_WINDOWS
-  TRY_RESULT(fd, FileFd::open(path, FileFd::Flags::Read | FileFd::PrivateFlags::WinStat));
+  TRY_RESULT(fd, FileFd::open(path, FileFd::PrivateFlags::WinStat));
   return fd.stat();
 #endif
 }

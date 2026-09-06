@@ -248,7 +248,7 @@ ActorOwn<> get_simple_config_mozilla_dns(Promise<SimpleConfigResult> promise, bo
   return get_simple_config_dns("mozilla.cloudflare-dns.com/dns-query", "mozilla.cloudflare-dns.com", std::move(promise),
                                prefer_ipv6, domain_name, is_test, scheduler_id);
 }
-
+/*
 static string generate_firebase_remote_config_payload() {
   unsigned char buf[17];
   Random::secure_bytes(buf, sizeof(buf));
@@ -283,7 +283,7 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
   return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "firebaseremoteconfig.googleapis.com",
                                 {}, prefer_ipv6, std::move(get_config), payload, "application/json");
 }
-
+*/
 ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
                                                bool is_test, int32 scheduler_id) {
   if (is_test) {
@@ -753,22 +753,20 @@ class ConfigRecoverer final : public Actor {
         send_closure(self, &ConfigRecoverer::on_simple_config, std::move(r_simple_config), false);
       });
       auto get_simple_config = [&] {
-        switch (simple_config_turn_ % 10) {
-          case 6:
+        switch (simple_config_turn_ % 9) {
+          case 5:
             return get_simple_config_azure;
           case 2:
-            return get_simple_config_firebase_remote_config;
-          case 4:
             return get_simple_config_firebase_firestore;
-          case 9:
+          case 8:
             return get_simple_config_firebase_realtime;
           case 0:
           case 3:
-          case 8:
+          case 7:
             return get_simple_config_google_dns;
           case 1:
-          case 5:
-          case 7:
+          case 4:
+          case 6:
           default:
             return get_simple_config_mozilla_dns;
         }
@@ -1395,8 +1393,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"chat_read_mark_expire_period", ""},
       {"chat_read_mark_size_threshold", ""},
       {"chatlist_update_period", "chat_folder_new_chats_update_period"},
+      {"community_bot_peers_limit", "community_bot_count_max"},
+      {"community_peers_limit", "community_chat_count_max"},
       {"conference_call_size_limit", "group_call_participant_count_max"},
       {"contact_note_length_limit", "user_note_text_length_max"},
+      {"ephemeral_welcome_messages_max", "welcome_message_count_max"},
       {"factcheck_length_limit", "fact_check_length_max"},
       {"giveaway_add_peers_max", "giveaway_additional_chat_count_max"},
       {"giveaway_boosts_per_premium", "giveaway_boost_count_per_premium"},

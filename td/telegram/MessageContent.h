@@ -11,6 +11,7 @@
 #include "td/telegram/ChatTheme.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/EncryptedFile.h"
+#include "td/telegram/EphemeralMessageFullId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/ForumTopicId.h"
@@ -115,9 +116,13 @@ unique_ptr<MessageContent> create_text_message_content(string text, vector<Messa
                                                        bool force_large_media, bool skip_confitmation,
                                                        string &&web_page_url);
 
+unique_ptr<MessageContent> create_rich_message_content(RichMessage &&rich_message);
+
 unique_ptr<MessageContent> create_animation_message_content(FileId animation_file_id);
 
 unique_ptr<MessageContent> create_audio_message_content(FileId audio_file_id);
+
+unique_ptr<MessageContent> create_document_message_content(FileId document_file_id);
 
 unique_ptr<MessageContent> create_photo_message_content(Photo photo, FileId video_file_id);
 
@@ -244,11 +249,9 @@ void remove_message_content_web_page(MessageContent *content);
 
 bool can_message_content_have_media_timestamp(const MessageContent *content);
 
-void merge_message_contents(Td *td, const MessageContent *old_content, MessageContent *new_content,
-                            bool need_message_changed_warning, DialogId dialog_id, bool need_merge_files,
-                            bool &is_content_changed, bool &need_update);
-
 bool merge_message_content_file_id(Td *td, MessageContent *message_content, FileId new_file_id);
+
+bool are_message_contents_same(Td *td, const MessageContent *lhs_content, const MessageContent *rhs_content);
 
 void compare_message_contents(Td *td, const MessageContent *lhs_content, const MessageContent *rhs_content,
                               bool &is_content_changed, bool &need_update);
@@ -278,6 +281,12 @@ void register_quick_reply_message_content(Td *td, const MessageContent *content,
 void unregister_quick_reply_message_content(Td *td, const MessageContent *content,
                                             QuickReplyMessageFullId message_full_id, const char *source);
 
+void register_welcome_message_content(Td *td, const MessageContent *content, EphemeralMessageFullId message_full_id,
+                                      const char *source);
+
+void unregister_welcome_message_content(Td *td, const MessageContent *content, EphemeralMessageFullId message_full_id,
+                                        const char *source);
+
 unique_ptr<MessageContent> get_secret_message_content(
     Td *td, string message_text, unique_ptr<EncryptedFile> file,
     tl_object_ptr<secret_api::DecryptedMessageMedia> &&media_ptr,
@@ -297,7 +306,8 @@ unique_ptr<MessageContent> get_uploaded_message_content(
     bool &is_content_changed, bool &need_update, const char *source);
 
 unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
-                                               MessageContentDupType type, MessageCopyOptions &&copy_options);
+                                               MessageContentDupType type, bool is_via_bot,
+                                               MessageCopyOptions &&copy_options);
 
 unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action_ptr,
                                                       DialogId owner_dialog_id, int32 message_date,
@@ -359,6 +369,8 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
 int64 get_message_content_stake_ton_count(const MessageContent *content);
 
 int64 get_message_content_prize_ton_count(const MessageContent *content);
+
+void extract_message_content_authentication_codes(const MessageContent *content, vector<string> &authentication_codes);
 
 bool update_message_content_extended_media(
     MessageContent *content, vector<telegram_api::object_ptr<telegram_api::MessageExtendedMedia>> extended_media,
