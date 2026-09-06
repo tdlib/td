@@ -3188,21 +3188,19 @@ void StickersManager::delete_sticker_thumbnail(FileId file_id) {
   sticker->s_thumbnail_ = PhotoSize();
 }
 
-vector<FileId> StickersManager::get_sticker_file_ids(FileId file_id) const {
-  vector<FileId> result;
+void StickersManager::append_sticker_file_ids(FileId file_id, vector<FileId> &file_ids) const {
   auto sticker = get_sticker(file_id);
   CHECK(sticker != nullptr);
-  result.push_back(file_id);
+  file_ids.push_back(file_id);
   if (sticker->s_thumbnail_.file_id.is_valid()) {
-    result.push_back(sticker->s_thumbnail_.file_id);
+    file_ids.push_back(sticker->s_thumbnail_.file_id);
   }
   if (sticker->m_thumbnail_.file_id.is_valid()) {
-    result.push_back(sticker->m_thumbnail_.file_id);
+    file_ids.push_back(sticker->m_thumbnail_.file_id);
   }
   if (sticker->premium_animation_file_id_.is_valid()) {
-    result.push_back(sticker->premium_animation_file_id_);
+    file_ids.push_back(sticker->premium_animation_file_id_);
   }
-  return result;
 }
 
 FileId StickersManager::dup_sticker(FileId new_id, FileId old_id) {
@@ -9317,7 +9315,7 @@ void StickersManager::send_update_recent_stickers(bool is_attached, bool from_da
 
   vector<FileId> new_recent_sticker_file_ids;
   for (auto &sticker_id : recent_sticker_ids_[is_attached]) {
-    append(new_recent_sticker_file_ids, get_sticker_file_ids(sticker_id));
+    append_sticker_file_ids(sticker_id, new_recent_sticker_file_ids);
   }
   std::sort(new_recent_sticker_file_ids.begin(), new_recent_sticker_file_ids.end());
   if (new_recent_sticker_file_ids != recent_sticker_file_ids_[is_attached]) {
@@ -9679,7 +9677,7 @@ void StickersManager::send_update_favorite_stickers(bool from_database) {
   if (are_favorite_stickers_loaded_) {
     vector<FileId> new_favorite_sticker_file_ids;
     for (auto &sticker_id : favorite_sticker_ids_) {
-      append(new_favorite_sticker_file_ids, get_sticker_file_ids(sticker_id));
+      append_sticker_file_ids(sticker_id, new_favorite_sticker_file_ids);
     }
     std::sort(new_favorite_sticker_file_ids.begin(), new_favorite_sticker_file_ids.end());
     if (new_favorite_sticker_file_ids != favorite_sticker_file_ids_) {

@@ -30,8 +30,7 @@ void Document::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
   }
 
   if (type == Type::Sticker) {
-    append(file_ids, td->stickers_manager_->get_sticker_file_ids(file_id));
-    return;
+    return td->stickers_manager_->append_sticker_file_ids(file_id, file_ids);
   }
 
   file_ids.push_back(file_id);

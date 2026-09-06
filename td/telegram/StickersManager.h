@@ -429,7 +429,7 @@ class StickersManager final : public Actor {
 
   FileId get_sticker_thumbnail_file_id(FileId file_id) const;
 
-  vector<FileId> get_sticker_file_ids(FileId file_id) const;
+  void append_sticker_file_ids(FileId file_id, vector<FileId> &file_ids) const;
 
   void delete_sticker_thumbnail(FileId file_id);
 
