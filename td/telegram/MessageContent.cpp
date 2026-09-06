@@ -12780,7 +12780,7 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
       const auto *photo = static_cast<const MessagePhoto *>(content);
       auto file_ids = photo_get_file_ids(photo->photo);
       if (photo->video_file_id.is_valid()) {
-        append(file_ids, Document(Document::Type::Video, photo->video_file_id).get_file_ids(td));
+        Document(Document::Type::Video, photo->video_file_id).append_file_ids(td, file_ids);
       }
       return file_ids;
     }
