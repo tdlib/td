@@ -1283,6 +1283,7 @@ void AuthManager::on_import_web_token_authorization_result(NetQueryPtr &&net_que
   if (r_authorization.is_error()) {
     return on_current_query_error(r_authorization.move_as_error());
   }
+  CHECK(dc_id.is_internal());
   G()->net_query_dispatcher().set_main_dc_id(dc_id.get_value());
   on_get_authorization(r_authorization.move_as_ok());
 }
