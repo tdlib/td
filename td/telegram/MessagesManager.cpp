@@ -4921,7 +4921,7 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
   }
 
   auto linked_channel_id =
-      td_->chat_manager_->get_channel_linked_channel_id(channel_id, "is_active_message_reply_info");
+      td_->chat_manager_->get_channel_linked_channel_id(channel_id, false, "is_active_message_reply_info");
   if (!linked_channel_id.is_valid()) {
     // keep the comment button while linked channel is unknown
     send_closure_later(G()->chat_manager(), &ChatManager::load_channel_full, channel_id, false, Promise<Unit>(),
@@ -17161,7 +17161,7 @@ void MessagesManager::open_dialog(Dialog *d) {
       reload_dialog_action_bar(dialog_id, "open_dialog", false);
 
       if (td_->chat_manager_->get_channel_has_linked_channel(channel_id)) {
-        auto linked_channel_id = td_->chat_manager_->get_channel_linked_channel_id(channel_id, "open_dialog");
+        auto linked_channel_id = td_->chat_manager_->get_channel_linked_channel_id(channel_id, false, "open_dialog");
         if (!linked_channel_id.is_valid()) {
           // load linked_channel_id
           send_closure_later(G()->chat_manager(), &ChatManager::load_channel_full, channel_id, false, Promise<Unit>(),
@@ -21016,7 +21016,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     m->reply_info.reply_count_ = 0;
     if (is_channel_post) {
       auto linked_channel_id =
-          td_->chat_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id(), "create_message_to_send");
+          td_->chat_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id(), true, "create_message_to_send");
       if (linked_channel_id.is_valid()) {
         m->reply_info.is_comment_ = true;
         m->reply_info.channel_id_ = linked_channel_id;
@@ -21567,7 +21567,7 @@ void MessagesManager::do_get_dialog_send_message_as_dialog_ids(
 
     bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
     auto linked_channel_id = td_->chat_manager_->get_channel_linked_channel_id(
-        dialog_id.get_channel_id(), "do_get_dialog_send_message_as_dialog_ids");
+        dialog_id.get_channel_id(), true, "do_get_dialog_send_message_as_dialog_ids");
     for (auto channel_id : created_public_broadcasts) {
       if (DialogId(channel_id) == dialog_id) {
         continue;

@@ -8805,15 +8805,12 @@ bool ChatManager::get_channel_join_request(const Channel *c) {
   return c->join_request && c->is_megagroup && !c->is_monoforum && !c->is_gigagroup;
 }
 
-ChannelId ChatManager::get_channel_linked_channel_id(ChannelId channel_id, const char *source) {
+ChannelId ChatManager::get_channel_linked_channel_id(ChannelId channel_id, bool force, const char *source) {
   auto channel_full = get_channel_full_const(channel_id);
-  if (channel_full == nullptr) {
+  if (channel_full == nullptr && force) {
     channel_full = get_channel_full_force(channel_id, true, source);
-    if (channel_full == nullptr) {
-      return ChannelId();
-    }
   }
-  return channel_full->linked_channel_id;
+  return channel_full == nullptr ? ChannelId() : channel_full->linked_channel_id;
 }
 
 int32 ChatManager::get_channel_slow_mode_delay(ChannelId channel_id, const char *source) {
