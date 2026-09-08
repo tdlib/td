@@ -2279,9 +2279,10 @@ tonWalletTransactionStateFailed = TonWalletTransactionState;
 //@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
 //@fee_amount The fee amount paid for the transaction, in the smallest units of the cryptocurrency
 //@comment Comment added to the transaction
+//@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@type Type of the transaction
-tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domain:string amount:int53 fee_amount:int53 comment:string date:int32 type:TonWalletTransactionState = TonWalletTransaction;
+tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domain:string amount:int53 fee_amount:int53 comment:string is_comment_encrypted:Bool date:int32 type:TonWalletTransactionState = TonWalletTransaction;
 
 //@description Represents a list of TON Gram transactions
 //@gram_amount The total amount of owned TON Grams, in the smallest units of the cryptocurrency

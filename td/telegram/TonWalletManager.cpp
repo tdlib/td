@@ -206,7 +206,8 @@ class GetTonWalletTransactionsQuery final : public Td::ResultHandler {
       }();
       transactions.push_back(td_api::make_object<td_api::tonWalletTransaction>(
           transaction->id_, peer_address, td_->user_manager_->get_user_id_object(peer_user_id, "tonWalletTransaction"),
-          peer_domain, amount, transaction->fee_, transaction->comment_, transaction->date_, std::move(type)));
+          peer_domain, amount, transaction->fee_, transaction->comment_, transaction->comment_encrypted_,
+          transaction->date_, std::move(type)));
     }
     promise_.set_value(td_api::make_object<td_api::tonWalletTransactions>(result->balance_, std::move(transactions),
                                                                           result->next_offset_));
