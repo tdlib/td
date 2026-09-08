@@ -8466,7 +8466,7 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
   if (m->message_id.is_yet_unsent()) {
     return true;
   }
-  CHECK(m->message_id.is_server());
+  CHECK(m->message_id.is_server() || dialog_type == DialogType::SecretChat);
 
   const int32 DEFAULT_REVOKE_TIME_LIMIT = td_->auth_manager_->is_bot() ? 2 * 86400 : std::numeric_limits<int32>::max();
   auto content_type = m->content->get_type();
