@@ -125,6 +125,34 @@ class CreateUserWalletAddressQuery final : public Td::ResultHandler {
   }
 };
 
+class GetWalletGaslessInfoQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> promise_;
+
+ public:
+  explicit GetWalletGaslessInfoQuery(Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_getGaslessInfo()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_getGaslessInfo>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetWalletGaslessInfoQuery: " << to_string(result);
+    promise_.set_value(nullptr);
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetTonWalletTransactionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::tonWalletTransactions>> promise_;
 
@@ -684,6 +712,11 @@ void TonWalletManager::get_user_addresses(vector<UserId> user_ids,
 void TonWalletManager::create_user_ton_wallet(UserId user_id, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
   td_->create_handler<CreateUserWalletAddressQuery>(std::move(promise))->send(std::move(input_user));
+}
+
+void TonWalletManager::get_ton_wallet_gasless_info(
+    Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> &&promise) {
+  td_->create_handler<GetWalletGaslessInfoQuery>(std::move(promise))->send();
 }
 
 void TonWalletManager::on_get_wallet_state(Result<Unit> &&result) {

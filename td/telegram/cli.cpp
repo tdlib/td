@@ -8808,6 +8808,8 @@ class CliClient final : public Actor {
       UserId user_id;
       get_args(args, user_id);
       send_request(td_api::make_object<td_api::createUserTonWallet>(user_id));
+    } else if (op == "gtwgti") {
+      send_request(td_api::make_object<td_api::getTonWalletGaslessTransfersInfo>());
     } else if (op == "gcer") {
       send_request(td_api::make_object<td_api::getCurrencyExchangeRates>());
     } else if (op == "gorp") {

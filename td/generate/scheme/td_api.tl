@@ -2189,6 +2189,12 @@ userTonWalletAddress user_id:int53 wallet_address:string = UserTonWalletAddress;
 //@description Represents a list of TON wallet addresses of users @addresses A list of TON wallet addresses
 userTonWalletAddresses addresses:vector<userTonWalletAddress> = UserTonWalletAddresses;
 
+//@description Represents state of gasless transfers for the current user
+//@left_transfer_count Number of left gasless transfers
+//@reset_date Point in time (Unix timestamp) when the number of left transfers will be reset; 0 if never
+//@relayer_address Address of the relayer for gasless transfers; may be empty if unavailable
+tonWalletGaslessTransfersInfo left_transfer_count:int32 reset_date:int32 relayer_address:string = TonWalletGaslessTransfersInfo;
+
 //@description Describes exchange rate of a currency to USD
 //@currency ISO 4217 currency code of the payment currency
 //@rate Exchange rate of the currency to USD
@@ -15896,6 +15902,9 @@ getUserTonWalletAddresses user_ids:vector<int53> = UserTonWalletAddresses;
 //@description Creates a TON wallet for the specified regular user. The current user must have positive TON wallet balance. Returns the address of the TON wallet of the user
 //@user_id Identifier of the user
 createUserTonWallet user_id:int53 = Text;
+
+//@description Returns the current state of gasless transfers for the current user
+getTonWalletGaslessTransfersInfo = TonWalletGaslessTransfersInfo;
 
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
