@@ -5675,7 +5675,8 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@peer_address Address in the TON blockchain of the transaction peer
 //@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
 //@comment Comment added to the transaction
-messageTonWalletTransfer transaction_id:string peer_address:string amount:int53 comment:string = MessageContent;
+//@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the receiver's or sender's private key
+messageTonWalletTransfer transaction_id:string peer_address:string amount:int53 comment:string is_comment_encrypted:Bool = MessageContent;
 
 //@description A regular gift was received or sent by the current user, or the current user was notified about a channel gift
 //@gift The gift

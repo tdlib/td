@@ -1834,13 +1834,16 @@ class MessageGramTransfer final : public MessageContent {
   string peer_address;
   string transaction_id;
   string comment;
+  bool is_comment_encrypted = false;
 
   MessageGramTransfer() = default;
-  MessageGramTransfer(int64 amount, string peer_address, string transaction_id, string comment)
+  MessageGramTransfer(int64 amount, string peer_address, string transaction_id, string comment,
+                      bool is_comment_encrypted)
       : amount(amount)
       , peer_address(std::move(peer_address))
       , transaction_id(std::move(transaction_id))
-      , comment(std::move(comment)) {
+      , comment(std::move(comment))
+      , is_comment_encrypted(is_comment_encrypted) {
   }
 
   MessageContentType get_type() const final {
@@ -3038,6 +3041,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_comment = !m->comment.empty();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_comment);
+      STORE_FLAG(m->is_comment_encrypted);
       END_STORE_FLAGS();
       store(m->amount, storer);
       store(m->peer_address, storer);
@@ -4526,6 +4530,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       bool has_comment;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_comment);
+      PARSE_FLAG(m->is_comment_encrypted);
       END_PARSE_FLAGS();
       parse(m->amount, parser);
       parse(m->peer_address, parser);
@@ -8853,7 +8858,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *lhs = static_cast<const MessageGramTransfer *>(old_content);
       const auto *rhs = static_cast<const MessageGramTransfer *>(new_content);
       if (lhs->amount != rhs->amount || lhs->peer_address != rhs->peer_address ||
-          lhs->transaction_id != rhs->transaction_id || lhs->comment != rhs->comment) {
+          lhs->transaction_id != rhs->transaction_id || lhs->comment != rhs->comment ||
+          lhs->is_comment_encrypted != rhs->is_comment_encrypted) {
         need_update = true;
       }
       break;
@@ -11402,7 +11408,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive " << to_string(action);
       }
       return td::make_unique<MessageGramTransfer>(action->amount_, std::move(action->peer_address_),
-                                                  std::move(action->transaction_id_), std::move(action->comment_));
+                                                  std::move(action->transaction_id_), std::move(action->comment_),
+                                                  action->comment_encrypted_);
     }
     case telegram_api::messageActionWalletTonConnectRequest::ID: {
       return td::make_unique<MessageUnsupported>();
@@ -12211,7 +12218,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     case MessageContentType::GramTransfer: {
       const auto *m = static_cast<const MessageGramTransfer *>(content);
       return td_api::make_object<td_api::messageTonWalletTransfer>(m->transaction_id, m->peer_address, m->amount,
-                                                                   m->comment);
+                                                                   m->comment, m->is_comment_encrypted);
     }
     default:
       UNREACHABLE();
