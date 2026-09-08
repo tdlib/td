@@ -2190,10 +2190,17 @@ userTonWalletAddress user_id:int53 wallet_address:string = UserTonWalletAddress;
 userTonWalletAddresses addresses:vector<userTonWalletAddress> = UserTonWalletAddresses;
 
 //@description Represents state of gasless transfers for the current user
-//@left_transfer_count Number of left gasless transfers
+//@left_count Number of left gasless transfers
 //@reset_date Point in time (Unix timestamp) when the number of left transfers will be reset; 0 if never
 //@relayer_address Address of the relayer for gasless transfers; may be empty if unavailable
-tonWalletGaslessTransfersInfo left_transfer_count:int32 reset_date:int32 relayer_address:string = TonWalletGaslessTransfersInfo;
+tonWalletGaslessTransfersInfo left_count:int32 reset_date:int32 relayer_address:string = TonWalletGaslessTransfersInfo;
+
+//@description Represents result of cryptocurrency transfer from the current user's TON wallet
+//@is_gasless True, if the transfer is gasless
+//@msg_hash Unique identifier of the sent message
+//@left_gasless_transfer_count Number of left gasless transfers
+//@gasless_transfer_reset_date Point in time (Unix timestamp) when the number of left gasless transfers will be reset; 0 if never
+tonWalletTransferResult is_gasless:Bool msg_hash:bytes left_gasless_transfer_count:int32 gasless_transfer_reset_date:int32 = TonWalletTransferResult;
 
 //@description Describes exchange rate of a currency to USD
 //@currency ISO 4217 currency code of the payment currency
@@ -15905,6 +15912,11 @@ createUserTonWallet user_id:int53 = Text;
 
 //@description Returns the current state of gasless transfers for the current user
 getTonWalletGaslessTransfersInfo = TonWalletGaslessTransfersInfo;
+
+//@description Sends a cryptocurrency from the user's TON wallet
+//@regular_transfer_data Serialized data for regular cryptocurrency transfer request
+//@gasless_transfer_data Serialized data for gasless cryptocurrency transfer request; pass an empty string to force a regular request
+sendTonWalletTransfer regular_transfer_data:bytes gasless_transfer_data:bytes = TonWalletTransferResult;
 
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;

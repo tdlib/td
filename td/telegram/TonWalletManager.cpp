@@ -17,6 +17,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/Random.h"
 #include "td/utils/Time.h"
 
 namespace td {
@@ -145,6 +146,40 @@ class GetWalletGaslessInfoQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetWalletGaslessInfoQuery: " << to_string(result);
+    promise_.set_value(nullptr);
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SendWalletTransferQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> promise_;
+
+ public:
+  explicit SendWalletTransferQuery(Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &data_normal, const string &data_gasless) {
+    int32 flags = 0;
+    if (!data_gasless.empty()) {
+      flags |= telegram_api::wallet_sendTransfer::DATA_GASLESS_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::wallet_sendTransfer(
+        flags, BufferSlice(data_normal), BufferSlice(data_gasless),
+        telegram_api::make_object<telegram_api::inputUserEmpty>(), Random::secure_int64())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_sendTransfer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendWalletTransferQuery: " << to_string(result);
     promise_.set_value(nullptr);
   }
 
@@ -717,6 +752,12 @@ void TonWalletManager::create_user_ton_wallet(UserId user_id, Promise<string> &&
 void TonWalletManager::get_ton_wallet_gasless_info(
     Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> &&promise) {
   td_->create_handler<GetWalletGaslessInfoQuery>(std::move(promise))->send();
+}
+
+void TonWalletManager::send_ton_wallet_transfer(
+    const string &data_normal, const string &data_gasless,
+    Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise) {
+  td_->create_handler<SendWalletTransferQuery>(std::move(promise))->send(data_normal, data_gasless);
 }
 
 void TonWalletManager::on_get_wallet_state(Result<Unit> &&result) {

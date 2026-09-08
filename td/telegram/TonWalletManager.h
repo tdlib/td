@@ -34,6 +34,9 @@ class TonWalletManager final : public Actor {
 
   void get_ton_wallet_gasless_info(Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> &&promise);
 
+  void send_ton_wallet_transfer(const string &data_normal, const string &data_gasless,
+                                Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise);
+
   void get_ton_wallet_transactions(const string &offset, int32 limit,
                                    td_api::object_ptr<td_api::TransactionDirection> &&direction,
                                    Promise<td_api::object_ptr<td_api::tonWalletTransactions>> &&promise);

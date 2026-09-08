@@ -8810,6 +8810,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::createUserTonWallet>(user_id));
     } else if (op == "gtwgti") {
       send_request(td_api::make_object<td_api::getTonWalletGaslessTransfersInfo>());
+    } else if (op == "stwt") {
+      string regular_transfer_data;
+      string gasless_transfer_data;
+      get_args(args, regular_transfer_data, gasless_transfer_data);
+      send_request(td_api::make_object<td_api::sendTonWalletTransfer>(hex_decode(regular_transfer_data).move_as_ok(),
+                                                                      hex_decode(gasless_transfer_data).move_as_ok()));
     } else if (op == "gcer") {
       send_request(td_api::make_object<td_api::getCurrencyExchangeRates>());
     } else if (op == "gorp") {
