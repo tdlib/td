@@ -286,6 +286,47 @@ class GetTonWalletTransactionsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetTonWalletTransactionQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonWalletTransaction>> promise_;
+
+ public:
+  explicit GetTonWalletTransactionQuery(Promise<td_api::object_ptr<td_api::tonWalletTransaction>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &id) {
+    vector<string> ids;
+    ids.push_back(std::move(id));
+    send_query(G()->net_query_creator().create(telegram_api::wallet_getTransactionsByIDs(std::move(ids))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_getTransactionsByIDs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetTonWalletTransactionQuery: " << to_string(result);
+
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetTonWalletTransactionQuery");
+    td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetTonWalletTransactionQuery");
+    if (result->transactions_.empty()) {
+      return promise_.set_value(nullptr);
+    }
+    if (result->transactions_.size() != 1u) {
+      LOG(ERROR) << "Receive " << to_string(result);
+      return on_error(Status::Error(500, "Receive invalid respomse"));
+    }
+
+    promise_.set_value(get_ton_wallet_transaction_object(td_, std::move(result->transactions_[0])));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetCurrencyRatesQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::payments_currencyRates>> promise_;
 
@@ -780,6 +821,11 @@ void TonWalletManager::get_ton_wallet_transactions(
     const string &offset, int32 limit, td_api::object_ptr<td_api::TransactionDirection> &&direction,
     Promise<td_api::object_ptr<td_api::tonWalletTransactions>> &&promise) {
   td_->create_handler<GetTonWalletTransactionsQuery>(std::move(promise))->send(offset, limit, std::move(direction));
+}
+
+void TonWalletManager::get_ton_wallet_transaction(const string &transaction_id,
+                                                  Promise<td_api::object_ptr<td_api::tonWalletTransaction>> &&promise) {
+  td_->create_handler<GetTonWalletTransactionQuery>(std::move(promise))->send(transaction_id);
 }
 
 td_api::object_ptr<td_api::currencyExchangeRates> TonWalletManager::get_currency_exchange_rates_object() const {

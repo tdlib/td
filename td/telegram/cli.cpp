@@ -8788,8 +8788,6 @@ class CliClient final : public Actor {
         direction = td_api::make_object<td_api::transactionDirectionOutgoing>();
       }
       send_request(td_api::make_object<td_api::getTonTransactions>(std::move(direction), offset, as_limit(limit)));
-    } else if (op == "ltws") {
-      send_request(td_api::make_object<td_api::loadTonWalletState>());
     } else if (op == "gtwta" || op == "gtwti" || op == "gtwto") {
       string limit;
       string offset;
@@ -8802,6 +8800,12 @@ class CliClient final : public Actor {
       }
       send_request(
           td_api::make_object<td_api::getTonWalletTransactions>(std::move(direction), offset, as_limit(limit)));
+    } else if (op == "gtwt") {
+      string transaction_id;
+      get_args(args, transaction_id);
+      send_request(td_api::make_object<td_api::getTonWalletTransaction>(transaction_id));
+    } else if (op == "ltws") {
+      send_request(td_api::make_object<td_api::loadTonWalletState>());
     } else if (op == "gutwa") {
       send_request(td_api::make_object<td_api::getUserTonWalletAddresses>(as_user_ids(args)));
     } else if (op == "cutw") {

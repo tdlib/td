@@ -5684,7 +5684,7 @@ messageGiftedGrams gifter_user_id:int53 receiver_user_id:int53 gram_amount:int53
 messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id:int53 giveaway_message_id:int53 is_unclaimed:Bool sticker:sticker = MessageContent;
 
 //@description Represents a transfer with the TON wallet of the current user
-//@transaction_id Unique identifier of the transaction
+//@transaction_id Unique identifier of the transaction; use getTonWalletTransaction to get additional information about the transaction
 //@peer_address Address in the TON blockchain of the transaction peer
 //@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
 //@comment Comment added to the transaction
@@ -15892,11 +15892,14 @@ getChatRevenueTransactions chat_id:int53 offset:string limit:int32 = ChatRevenue
 //@limit The maximum number of transactions to return
 getTonTransactions direction:TransactionDirection offset:string limit:int32 = TonTransactions;
 
-//@description Returns the list of TON blockchain transactions of the current user
+//@description Returns the list of TON wallet transactions of the current user
 //@direction Direction of the transactions to receive; pass null to get all transactions
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of transactions to return
 getTonWalletTransactions direction:TransactionDirection offset:string limit:int32 = TonWalletTransactions;
+
+//@description Returns a TON wallet transaction by their identifier @transaction_id Identifier of the transaction
+getTonWalletTransaction transaction_id:string = TonWalletTransaction;
 
 
 //@description Loads state of the TON wallet of the current user
