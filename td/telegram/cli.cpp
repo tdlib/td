@@ -8804,6 +8804,10 @@ class CliClient final : public Actor {
       string transaction_id;
       get_args(args, transaction_id);
       send_request(td_api::make_object<td_api::getTonWalletTransaction>(transaction_id));
+    } else if (op == "gtwtbmh") {
+      string msg_hash;
+      get_args(args, msg_hash);
+      send_request(td_api::make_object<td_api::getTonWalletTransactionByMsgHash>(msg_hash));
     } else if (op == "ltws") {
       send_request(td_api::make_object<td_api::loadTonWalletState>());
     } else if (op == "gutwa") {

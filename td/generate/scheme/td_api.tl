@@ -2197,7 +2197,7 @@ tonWalletGaslessTransfersInfo left_count:int32 reset_date:int32 relayer_address:
 
 //@description Represents result of cryptocurrency transfer from the current user's TON wallet
 //@is_gasless True, if the transfer is gasless
-//@msg_hash Unique identifier of the sent message
+//@msg_hash Unique identifier of the sent message; use getTonWalletTransactionByMsgHash to poll information about the transaction
 //@left_gasless_transfer_count Number of left gasless transfers
 //@gasless_transfer_reset_date Point in time (Unix timestamp) when the number of left gasless transfers will be reset; 0 if never
 tonWalletTransferResult is_gasless:Bool msg_hash:bytes left_gasless_transfer_count:int32 gasless_transfer_reset_date:int32 = TonWalletTransferResult;
@@ -15900,6 +15900,9 @@ getTonWalletTransactions direction:TransactionDirection offset:string limit:int3
 
 //@description Returns a TON wallet transaction by their identifier @transaction_id Identifier of the transaction
 getTonWalletTransaction transaction_id:string = TonWalletTransaction;
+
+//@description Returns a TON wallet transaction by their msg_hash; return an error if the transaction isn't finalized yet @msg_hash Value of msg_hash of the transaction
+getTonWalletTransactionByMsgHash msg_hash:string = TonWalletTransaction;
 
 
 //@description Loads state of the TON wallet of the current user

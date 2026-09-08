@@ -7934,6 +7934,13 @@ void Requests::on_request(uint64 id, td_api::getTonWalletTransaction &request) {
   td_->ton_wallet_manager_->get_ton_wallet_transaction(request.transaction_id_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getTonWalletTransactionByMsgHash &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.msg_hash_);
+  CREATE_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->get_ton_wallet_transaction_by_msg_hash(request.msg_hash_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::loadTonWalletState &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

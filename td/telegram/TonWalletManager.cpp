@@ -20,6 +20,8 @@
 #include "td/utils/Random.h"
 #include "td/utils/Time.h"
 
+#include <type_traits>
+
 namespace td {
 
 class GetWalletStateQuery final : public Td::ResultHandler {
@@ -294,13 +296,19 @@ class GetTonWalletTransactionQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(const string &id) {
+  void send(bool by_msg_hash, const string &id) {
     vector<string> ids;
     ids.push_back(std::move(id));
-    send_query(G()->net_query_creator().create(telegram_api::wallet_getTransactionsByIDs(std::move(ids))));
+    if (by_msg_hash) {
+      send_query(G()->net_query_creator().create(telegram_api::wallet_getTransactionsByMsgHash(std::move(ids))));
+    } else {
+      send_query(G()->net_query_creator().create(telegram_api::wallet_getTransactionsByIDs(std::move(ids))));
+    }
   }
 
   void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::wallet_getTransactionsByMsgHash::ReturnType,
+                               telegram_api::wallet_getTransactionsByIDs::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::wallet_getTransactionsByIDs>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -825,7 +833,12 @@ void TonWalletManager::get_ton_wallet_transactions(
 
 void TonWalletManager::get_ton_wallet_transaction(const string &transaction_id,
                                                   Promise<td_api::object_ptr<td_api::tonWalletTransaction>> &&promise) {
-  td_->create_handler<GetTonWalletTransactionQuery>(std::move(promise))->send(transaction_id);
+  td_->create_handler<GetTonWalletTransactionQuery>(std::move(promise))->send(false, transaction_id);
+}
+
+void TonWalletManager::get_ton_wallet_transaction_by_msg_hash(
+    const string &msg_hash, Promise<td_api::object_ptr<td_api::tonWalletTransaction>> &&promise) {
+  td_->create_handler<GetTonWalletTransactionQuery>(std::move(promise))->send(true, msg_hash);
 }
 
 td_api::object_ptr<td_api::currencyExchangeRates> TonWalletManager::get_currency_exchange_rates_object() const {
