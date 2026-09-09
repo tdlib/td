@@ -113,6 +113,9 @@ struct PollOption {
 
   void remove_web_page();
 
+  void merge_media(Td *td, unique_ptr<MessageContent> &&content, DialogId dialog_id, bool need_merge_files,
+                   bool is_content_changed, bool need_update);
+
   string get_search_text() const;
 
   PollOption dup_option(Td *td, DialogId dialog_id) const;

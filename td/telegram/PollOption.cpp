@@ -102,6 +102,14 @@ void PollOption::remove_web_page() {
   remove_message_content_web_page(media_.get());
 }
 
+void PollOption::merge_media(Td *td, unique_ptr<MessageContent> &&content, DialogId dialog_id, bool need_merge_files,
+                             bool is_content_changed, bool need_update) {
+  merge_and_compare_message_contents(td, media_.get(), content.get(), true, dialog_id, need_merge_files,
+                                     vector<FileUploadId>(), MessageSelfDestructType(), 0.0, nullptr,
+                                     is_content_changed, need_update);
+  media_ = std::move(content);
+}
+
 string PollOption::get_search_text() const {
   return text_.text;
 }
