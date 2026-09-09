@@ -55,6 +55,14 @@ struct PollOption {
     return text_;
   }
 
+  const MessageContent *get_media() const {
+    return media_.get();
+  }
+
+  MessageContent *get_media_ref() {
+    return media_.get();
+  }
+
   const string &get_data() const {
     return data_;
   }

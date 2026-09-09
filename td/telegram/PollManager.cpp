@@ -349,7 +349,7 @@ class PollManager::UploadPollOptionContentCallback final : public MessageQueryMa
     }
     auto &query = manager_->add_poll_option_queries_[upload_id];
     auto input_media =
-        get_message_content_input_media(query.option_.media_.get(), manager_->td_, {}, string(), true, -1);
+        get_message_content_input_media(query.option_.get_media(), manager_->td_, {}, string(), true, -1);
     CHECK(!input_media.is_empty());
     manager_->td_->create_handler<AddPollAnswerQuery>()->send(query.message_full_id_, query.option_, upload_id,
                                                               std::move(input_media));
@@ -370,7 +370,7 @@ class PollManager::UploadPollOptionContentCallback final : public MessageQueryMa
 
   void on_failed_to_upload_message_content_thumbnail(MessageContentUploadId upload_id, int32 media_pos) final {
     auto &query = manager_->add_poll_option_queries_[upload_id];
-    delete_message_content_thumbnail(manager_->td_, query.option_.media_.get(), media_pos);
+    delete_message_content_thumbnail(manager_->td_, query.option_.get_media_ref(), media_pos);
   }
 };
 
@@ -2001,7 +2001,7 @@ vector<MessageContent *> PollManager::get_individual_message_content_refs(PollId
   message_contents.push_back(attached_media);
   message_contents.push_back(poll->explanation_media_.get());
   for (auto &option : poll->options_) {
-    message_contents.push_back(option.media_.get());
+    message_contents.push_back(option.get_media_ref());
   }
   return message_contents;
 }
@@ -2015,7 +2015,7 @@ vector<const MessageContent *> PollManager::get_individual_message_content_refs(
   message_contents.push_back(attached_media);
   message_contents.push_back(poll->explanation_media_.get());
   for (const auto &option : poll->options_) {
-    message_contents.push_back(option.media_.get());
+    message_contents.push_back(option.get_media());
   }
   return message_contents;
 }
