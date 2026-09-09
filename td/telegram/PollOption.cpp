@@ -89,6 +89,10 @@ Result<vector<PollOption>> PollOption::get_poll_options(
   return std::move(options);
 }
 
+unique_ptr<MessageContent> PollOption::get_text_message_content() const {
+  return create_text_message_content(text_.text, text_.entities, WebPageId(), false, false, false, string());
+}
+
 WebPageId PollOption::get_web_page_id() const {
   return get_message_content_web_page_id(media_.get());
 }

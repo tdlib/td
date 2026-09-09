@@ -63,6 +63,8 @@ struct PollOption {
     return media_.get();
   }
 
+  unique_ptr<MessageContent> get_text_message_content() const;
+
   const string &get_data() const {
     return data_;
   }

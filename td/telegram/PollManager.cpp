@@ -1200,13 +1200,10 @@ void PollManager::add_poll_option(MessageFullId message_full_id, td_api::object_
   TRY_STATUS_PROMISE(promise, td_->messages_manager_->get_message_poll_id(message_full_id, false));
   auto dialog_id = message_full_id.get_dialog_id();
   TRY_RESULT_PROMISE(promise, poll_option, PollOption::get_poll_option(td_, dialog_id, std::move(option)));
+  const auto *media = poll_option.get_media();
   auto upload_id = td_->message_query_manager_->create_upload_message_content_query(
-      dialog_id,
-      poll_option.media_ == nullptr ? create_text_message_content(poll_option.text_.text, poll_option.text_.entities,
-                                                                  WebPageId(), false, false, false, string())
-                                          .get()
-                                    : poll_option.media_.get(),
-      MessageSelfDestructType(), string(), true, false, upload_poll_option_content_callback_);
+      dialog_id, media != nullptr ? media : poll_option.get_text_message_content().get(), MessageSelfDestructType(),
+      string(), true, false, upload_poll_option_content_callback_);
   auto &query = add_poll_option_queries_[upload_id];
   query.message_full_id_ = message_full_id;
   query.option_ = std::move(poll_option);
