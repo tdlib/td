@@ -772,12 +772,6 @@ td_api::object_ptr<td_api::onRampPaymentSession> TonWalletManager::OnRampSession
 TonWalletManager::TonWalletManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
-void TonWalletManager::start_up() {
-  if (td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot()) {
-    load_backup_holder_dcs(Auto());
-  }
-}
-
 void TonWalletManager::tear_down() {
   parent_.reset();
 }
@@ -1091,8 +1085,16 @@ void TonWalletManager::on_get_backup_holder_dcs(
     }
     BackupHolderDc holder_dc;
     holder_dc.dc_id_ = DcId::internal(dc->dc_);
-    holder_dc.public_key = dc->public_key_.as_slice().str();
+    holder_dc.public_key_ = dc->public_key_.as_slice().str();
+    auto r_public_key_id = tde2e_api::key_from_public_key(holder_dc.public_key_);
+    if (r_public_key_id.is_error()) {
+      return fail_promises(promises, Status::Error(400, "Failed to parse public key"));
+    }
+    holder_dc.public_key_id_ = r_public_key_id.value();
     holder_dcs.push_back(std::move(holder_dc));
+  }
+  if (holder_dcs.empty()) {
+    return fail_promises(promises, Status::Error(400, "Failed to get backup holder DCs"));
   }
 
   CHECK(backup_holder_dcs_.dcs_.empty());

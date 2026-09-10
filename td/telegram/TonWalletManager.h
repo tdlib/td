@@ -13,6 +13,8 @@
 
 #include "td/actor/actor.h"
 
+#include "td/e2e/e2e_api.h"
+
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
 
@@ -108,8 +110,6 @@ class TonWalletManager final : public Actor {
   };
 
   friend bool operator==(const WalletState &lhs, const WalletState &rhs);
-
-  void start_up() final;
 
   void tear_down() final;
 
@@ -217,7 +217,8 @@ class TonWalletManager final : public Actor {
 
   struct BackupHolderDc {
     DcId dc_id_;
-    string public_key;
+    string public_key_;
+    tde2e_api::PublicKeyId public_key_id_;
   };
   struct BackupHolderDcs {
     vector<BackupHolderDc> dcs_;
