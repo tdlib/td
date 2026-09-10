@@ -650,6 +650,34 @@ class GetTonCenterStreamingApiUrlQuery final : public Td::ResultHandler {
   }
 };
 
+class GetWalletBackupHolderDcsQuery final : public Td::ResultHandler {
+  Promise<vector<telegram_api::object_ptr<telegram_api::wallet_holderDc>>> promise_;
+
+ public:
+  explicit GetWalletBackupHolderDcsQuery(
+      Promise<vector<telegram_api::object_ptr<telegram_api::wallet_holderDc>>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_getBackupHolderDcs()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_getBackupHolderDcs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 TonWalletManager::WalletState::WalletState(telegram_api::object_ptr<telegram_api::WalletState> &&wallet_state) {
   CHECK(wallet_state != nullptr);
   switch (wallet_state->get_id()) {
@@ -742,6 +770,12 @@ td_api::object_ptr<td_api::onRampPaymentSession> TonWalletManager::OnRampSession
 }
 
 TonWalletManager::TonWalletManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+}
+
+void TonWalletManager::start_up() {
+  if (td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot()) {
+    load_backup_holder_dcs(Auto());
+  }
 }
 
 void TonWalletManager::tear_down() {
@@ -1021,6 +1055,49 @@ void TonWalletManager::on_get_ton_center_streaming_api_url(
   for (auto &promise : promises) {
     promise.set_value(td_api::make_object<td_api::tonCenterStreamingApiUrl>(url->url_, expires_in));
   }
+}
+
+void TonWalletManager::load_backup_holder_dcs(Promise<Unit> &&promise) {
+  if (!backup_holder_dcs_.dcs_.empty()) {
+    return promise.set_value(Unit());
+  }
+  get_backup_holder_dcs_queries_.push_back(std::move(promise));
+  if (get_backup_holder_dcs_queries_.size() == 1u) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this)](Result<vector<telegram_api::object_ptr<telegram_api::wallet_holderDc>>> r_dcs) {
+          send_closure(actor_id, &TonWalletManager::on_get_backup_holder_dcs, std::move(r_dcs));
+        });
+    td_->create_handler<GetWalletBackupHolderDcsQuery>(std::move(query_promise))->send();
+  }
+}
+
+void TonWalletManager::on_get_backup_holder_dcs(
+    Result<vector<telegram_api::object_ptr<telegram_api::wallet_holderDc>>> r_dcs) {
+  auto promises = std::move(get_backup_holder_dcs_queries_);
+  CHECK(!promises.empty());
+  get_backup_holder_dcs_queries_.clear();
+
+  if (r_dcs.is_error()) {
+    return fail_promises(promises, r_dcs.move_as_error());
+  }
+  auto dcs = r_dcs.move_as_ok();
+
+  vector<BackupHolderDc> holder_dcs;
+  for (auto &dc : dcs) {
+    LOG(INFO) << "Receive " << to_string(dc);
+    if (!DcId::is_valid(dc->dc_)) {
+      LOG(ERROR) << "Receive " << to_string(dc);
+      return fail_promises(promises, Status::Error(400, "Receive invalid DC identifier"));
+    }
+    BackupHolderDc holder_dc;
+    holder_dc.dc_id_ = DcId::internal(dc->dc_);
+    holder_dc.public_key = dc->public_key_.as_slice().str();
+    holder_dcs.push_back(std::move(holder_dc));
+  }
+
+  CHECK(backup_holder_dcs_.dcs_.empty());
+  backup_holder_dcs_.dcs_ = std::move(holder_dcs);
+  set_promises(promises);
 }
 
 void TonWalletManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -108,6 +109,8 @@ class TonWalletManager final : public Actor {
 
   friend bool operator==(const WalletState &lhs, const WalletState &rhs);
 
+  void start_up() final;
+
   void tear_down() final;
 
   td_api::object_ptr<td_api::updateTonWalletState> get_update_ton_wallet_state() const;
@@ -125,6 +128,10 @@ class TonWalletManager final : public Actor {
 
   void on_get_ton_center_streaming_api_url(
       Result<telegram_api::object_ptr<telegram_api::toncenter_streamingUrl>> r_url);
+
+  void load_backup_holder_dcs(Promise<Unit> &&promise);
+
+  void on_get_backup_holder_dcs(Result<vector<telegram_api::object_ptr<telegram_api::wallet_holderDc>>> r_dcs);
 
   Td *td_;
   ActorShared<> parent_;
@@ -207,6 +214,16 @@ class TonWalletManager final : public Actor {
   };
   StreamingApiUrl streaming_api_url_;
   vector<Promise<td_api::object_ptr<td_api::tonCenterStreamingApiUrl>>> get_streaming_api_url_queries_;
+
+  struct BackupHolderDc {
+    DcId dc_id_;
+    string public_key;
+  };
+  struct BackupHolderDcs {
+    vector<BackupHolderDc> dcs_;
+  };
+  BackupHolderDcs backup_holder_dcs_;
+  vector<Promise<Unit>> get_backup_holder_dcs_queries_;
 };
 
 }  // namespace td
