@@ -368,7 +368,7 @@ class PollManager::UploadPollOptionContentCallback final : public MessageQueryMa
 
   void on_failed_to_upload_message_content_thumbnail(MessageContentUploadId upload_id, int32 media_pos) final {
     auto &query = manager_->add_poll_option_queries_[upload_id];
-    delete_message_content_thumbnail(manager_->td_, query.option_.get_media_ref(), media_pos);
+    delete_message_content_thumbnail(manager_->td_, query.option_.get_message_content_ref().get(), media_pos);
   }
 };
 
@@ -1265,7 +1265,7 @@ void PollManager::set_poll_answer(MessageFullId message_full_id, vector<int32> &
     affected_option_ids[index + 1]++;
   }
   for (size_t option_index = 0; option_index < poll->options_.size(); option_index++) {
-    if (poll->options_[option_index].is_chosen_) {
+    if (poll->options_[option_index].is_chosen()) {
       if (poll->has_revoting_disabled_) {
         return promise.set_error(400, "Can't revote in a quiz");
       }
@@ -1996,7 +1996,7 @@ vector<MessageContent *> PollManager::get_individual_message_content_refs(PollId
   message_contents.push_back(attached_media);
   message_contents.push_back(poll->explanation_media_.get());
   for (auto &option : poll->options_) {
-    message_contents.push_back(option.get_media_ref());
+    message_contents.push_back(option.get_message_content_ref().get());
   }
   return message_contents;
 }
@@ -2029,7 +2029,7 @@ unique_ptr<MessageContent> &PollManager::get_individual_message_content(PollId p
   }
   auto pos = static_cast<size_t>(media_pos - 2);
   CHECK(pos < poll->options_.size());
-  return poll->options_[pos].media_;
+  return poll->options_[pos].get_message_content_ref();
 }
 
 PollId PollManager::dup_poll(DialogId dialog_id, PollId poll_id) {

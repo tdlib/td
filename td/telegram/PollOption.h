@@ -27,7 +27,7 @@ class Dependencies;
 class MessageContent;
 class Td;
 
-struct PollOption {
+class PollOption {
   FormattedText text_;
   unique_ptr<MessageContent> media_;
   DialogId added_by_dialog_id_;
@@ -38,6 +38,7 @@ struct PollOption {
 
   friend bool operator==(const PollOption &lhs, const PollOption &rhs);
 
+ public:
   PollOption() = default;
 
   PollOption(FormattedText &&text, unique_ptr<MessageContent> &&media);
@@ -59,8 +60,8 @@ struct PollOption {
     return media_.get();
   }
 
-  MessageContent *get_media_ref() {
-    return media_.get();
+  unique_ptr<MessageContent> &get_message_content_ref() {
+    return media_;
   }
 
   unique_ptr<MessageContent> get_text_message_content() const;
