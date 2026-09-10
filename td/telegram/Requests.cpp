@@ -2477,6 +2477,7 @@ void Requests::on_request(uint64 id, const td_api::setAccountTtl &request) {
 void Requests::on_request(uint64 id, td_api::deleteAccount &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.reason_);
+  CLEAN_INPUT_STRING(request.password_);
   send_closure(td_->auth_manager_actor_, &AuthManager::delete_account, id, request.reason_, request.password_);
 }
 
@@ -7896,8 +7897,9 @@ void Requests::on_request(uint64 id, const td_api::getChatRevenueStatistics &req
                                                           std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getChatRevenueWithdrawalUrl &request) {
+void Requests::on_request(uint64 id, td_api::getChatRevenueWithdrawalUrl &request) {
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.password_);
   CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->statistics_manager_->get_dialog_revenue_withdrawal_url(DialogId(request.chat_id_), request.password_,
                                                               std::move(promise));
@@ -8068,8 +8070,9 @@ void Requests::on_request(uint64 id, const td_api::getStarRevenueStatistics &req
   td_->star_manager_->get_star_revenue_statistics(request.owner_id_, request.is_dark_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getStarWithdrawalUrl &request) {
+void Requests::on_request(uint64 id, td_api::getStarWithdrawalUrl &request) {
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.password_);
   CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->star_manager_->get_star_withdrawal_url(request.owner_id_, request.star_count_, request.password_,
                                               std::move(promise));
@@ -8087,8 +8090,9 @@ void Requests::on_request(uint64 id, const td_api::getGramRevenueStatistics &req
   td_->star_manager_->get_ton_revenue_statistics(request.is_dark_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getGramWithdrawalUrl &request) {
+void Requests::on_request(uint64 id, td_api::getGramWithdrawalUrl &request) {
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.password_);
   CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->star_manager_->get_ton_withdrawal_url(request.password_, std::move(promise));
 }
@@ -8818,8 +8822,9 @@ void Requests::on_request(uint64 id, td_api::getUpgradedGiftValueInfo &request) 
   td_->star_gift_manager_->get_upgraded_gift_value_info(request.name_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getUpgradedGiftWithdrawalUrl &request) {
+void Requests::on_request(uint64 id, td_api::getUpgradedGiftWithdrawalUrl &request) {
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.password_);
   CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->star_gift_manager_->get_star_gift_withdrawal_url(StarGiftId(request.received_gift_id_), request.password_,
                                                         std::move(promise));

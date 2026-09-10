@@ -1694,7 +1694,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getChatRevenueStatistics &request);
 
-  void on_request(uint64 id, const td_api::getChatRevenueWithdrawalUrl &request);
+  void on_request(uint64 id, td_api::getChatRevenueWithdrawalUrl &request);
 
   void on_request(uint64 id, td_api::getChatRevenueTransactions &request);
 
@@ -1736,13 +1736,13 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getStarRevenueStatistics &request);
 
-  void on_request(uint64 id, const td_api::getStarWithdrawalUrl &request);
+  void on_request(uint64 id, td_api::getStarWithdrawalUrl &request);
 
   void on_request(uint64 id, const td_api::getStarAdAccountUrl &request);
 
   void on_request(uint64 id, const td_api::getGramRevenueStatistics &request);
 
-  void on_request(uint64 id, const td_api::getGramWithdrawalUrl &request);
+  void on_request(uint64 id, td_api::getGramWithdrawalUrl &request);
 
   void on_request(uint64 id, const td_api::getMessageStatistics &request);
 
@@ -1926,7 +1926,7 @@ class Requests {
 
   void on_request(uint64 id, td_api::getUpgradedGiftValueInfo &request);
 
-  void on_request(uint64 id, const td_api::getUpgradedGiftWithdrawalUrl &request);
+  void on_request(uint64 id, td_api::getUpgradedGiftWithdrawalUrl &request);
 
   void on_request(uint64 id, const td_api::getUpgradedGiftsPromotionalAnimation &request);
 
