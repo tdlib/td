@@ -35,6 +35,8 @@ class TonWalletManager final : public Actor {
 
   void create_user_ton_wallet(UserId user_id, Promise<string> &&promise);
 
+  void get_ton_wallet_secret_phrase(Promise<string> &&promise);
+
   void get_ton_wallet_gasless_info(Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> &&promise);
 
   void send_ton_wallet_transfer(const string &data_normal, const string &data_gasless,
@@ -90,6 +92,8 @@ class TonWalletManager final : public Actor {
   class GetOnRampQuoteQuery;
   class CreateOnRampSessionQuery;
 
+  static constexpr size_t MAX_MNEMONIC_BACKUP_SIZE = 215u;
+
   class WalletState {
     bool is_being_created_ = false;
     bool is_backup_enabled_ = false;
@@ -118,6 +122,17 @@ class TonWalletManager final : public Actor {
   void send_update_ton_wallet_state() const;
 
   void on_get_wallet_state(Result<Unit> &&result);
+
+  void do_get_ton_wallet_secret_phrase(Promise<string> &&promise);
+
+  void do_get_ton_wallet_secret_phrase_with_parts(
+      telegram_api::object_ptr<telegram_api::wallet_secretPhraseParts> &&parts, Promise<string> &&promise);
+
+  static Result<string> process_secret_phrase_part(Slice data, tde2e_api::PrivateKeyId private_key_id);
+
+  void on_get_ton_wallet_secret_phrase_part(
+      Result<telegram_api::object_ptr<telegram_api::wallet_encryptedSecretPhrasePart>> r_part, uint64 query_id,
+      tde2e_api::PrivateKeyId private_key_id);
 
   void on_get_currency_rates(Result<telegram_api::object_ptr<telegram_api::payments_currencyRates>> r_rates);
 
@@ -225,6 +240,14 @@ class TonWalletManager final : public Actor {
   };
   BackupHolderDcs backup_holder_dcs_;
   vector<Promise<Unit>> get_backup_holder_dcs_queries_;
+
+  struct GetSecretPhraseQuery {
+    Promise<string> promise_;
+    string result_;
+    size_t left_responses_ = 0;
+  };
+  uint64 current_get_secret_phrase_query_id_ = 0;
+  FlatHashMap<uint64, GetSecretPhraseQuery> get_secret_phrase_queries_;
 };
 
 }  // namespace td

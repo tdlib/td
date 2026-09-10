@@ -2271,7 +2271,7 @@ onRampPaymentSession session_id:string expiration_date:int32 url:string = OnRamp
 //@is_being_created True, if the wallet is being created
 //@is_backup_enabled True, if backup for the wallet key is enabled
 //@can_enable_backup True, if the user can enable backup for the wallet key
-//@can_export_phrase True, if the wallet key can be exported
+//@can_export_phrase True, if the wallet key can be exported using getTonWalletSecretPhrase
 tonWalletState address:string public_key:bytes gram_amount:int53 is_being_created:Bool is_backup_enabled:Bool can_enable_backup:Bool can_export_phrase:Bool = TonWalletState;
 
 
@@ -15915,6 +15915,9 @@ getUserTonWalletAddresses user_ids:vector<int53> = UserTonWalletAddresses;
 //@description Creates a TON wallet for the specified regular user. The current user must have positive TON wallet balance. Returns the address of the TON wallet of the user
 //@user_id Identifier of the user
 createUserTonWallet user_id:int53 = Text;
+
+//@description Returns the secret phrase of the user's TON wallet as a space separated list of words. Works only if tonWalletState.can_export_phrase is true
+getTonWalletSecretPhrase = Text;
 
 //@description Returns the current state of gasless transfers for the current user
 getTonWalletGaslessTransfersInfo = TonWalletGaslessTransfersInfo;

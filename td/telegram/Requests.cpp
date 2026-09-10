@@ -7961,6 +7961,12 @@ void Requests::on_request(uint64 id, const td_api::createUserTonWallet &request)
   td_->ton_wallet_manager_->create_user_ton_wallet(UserId(request.user_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getTonWalletSecretPhrase &request) {
+  CHECK_IS_USER();
+  CREATE_TEXT_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->get_ton_wallet_secret_phrase(std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getTonWalletGaslessTransfersInfo &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

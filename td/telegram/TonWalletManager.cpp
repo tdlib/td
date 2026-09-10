@@ -10,10 +10,13 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/PasswordManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/UserManager.h"
+
+#include "td/e2e/e2e_api.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -121,6 +124,65 @@ class CreateUserWalletAddressQuery final : public Td::ResultHandler {
     auto user_id = UserId(result->addresses_[0]->user_id_);
     td_->user_manager_->on_update_user_gram_address(user_id, result->addresses_[0]->address_);
     promise_.set_value(std::move(result->addresses_[0]->address_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ExportWalletSecretPhraseQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::wallet_secretPhraseParts>> promise_;
+
+ public:
+  explicit ExportWalletSecretPhraseQuery(
+      Promise<telegram_api::object_ptr<telegram_api::wallet_secretPhraseParts>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_exportSecretPhrase(0, nullptr)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_exportSecretPhrase>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ExportWalletSecretPhraseQuery: " << to_string(result);
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class FetchWalletEncryptedSecretPhrasePartQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::wallet_encryptedSecretPhrasePart>> promise_;
+
+ public:
+  explicit FetchWalletEncryptedSecretPhrasePartQuery(
+      Promise<telegram_api::object_ptr<telegram_api::wallet_encryptedSecretPhrasePart>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &token, const string &public_key, DcId dc_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::wallet_fetchEncryptedSecretPhrasePart(token, BufferSlice(public_key)), {}, dc_id));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_fetchEncryptedSecretPhrasePart>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for FetchWalletEncryptedSecretPhrasePartQuery: " << to_string(result);
+    promise_.set_value(std::move(result));
   }
 
   void on_error(Status status) final {
@@ -829,6 +891,128 @@ void TonWalletManager::get_user_addresses(vector<UserId> user_ids,
 void TonWalletManager::create_user_ton_wallet(UserId user_id, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
   td_->create_handler<CreateUserWalletAddressQuery>(std::move(promise))->send(std::move(input_user));
+}
+
+void TonWalletManager::get_ton_wallet_secret_phrase(Promise<string> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (backup_holder_dcs_.dcs_.empty()) {
+    return load_backup_holder_dcs(
+        PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+          send_closure(actor_id, &TonWalletManager::get_ton_wallet_secret_phrase, std::move(promise));
+        }));
+  }
+  do_get_ton_wallet_secret_phrase(std::move(promise));
+}
+
+void TonWalletManager::do_get_ton_wallet_secret_phrase(Promise<string> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), promise = std::move(promise)](
+          Result<telegram_api::object_ptr<telegram_api::wallet_secretPhraseParts>> r_parts) mutable {
+        if (r_parts.is_error()) {
+          return promise.set_error(r_parts.move_as_error());
+        }
+        send_closure(actor_id, &TonWalletManager::do_get_ton_wallet_secret_phrase_with_parts, r_parts.move_as_ok(),
+                     std::move(promise));
+      });
+  td_->create_handler<ExportWalletSecretPhraseQuery>(std::move(query_promise))->send();
+}
+
+void TonWalletManager::do_get_ton_wallet_secret_phrase_with_parts(
+    telegram_api::object_ptr<telegram_api::wallet_secretPhraseParts> &&parts, Promise<string> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  CHECK(!backup_holder_dcs_.dcs_.empty());
+  auto query_id = ++current_get_secret_phrase_query_id_;
+  for (auto dc : backup_holder_dcs_.dcs_) {
+    auto r_private_key_id = tde2e_api::key_generate_temporary_private_key();
+    if (r_private_key_id.is_error()) {
+      return promise.set_error(400, "Failed to generate encryption key");
+    }
+    auto private_key_id = r_private_key_id.value();
+    auto public_key = tde2e_api::key_to_public_key(private_key_id).value();
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), query_id, private_key_id](
+            Result<telegram_api::object_ptr<telegram_api::wallet_encryptedSecretPhrasePart>> r_part) mutable {
+          send_closure(actor_id, &TonWalletManager::on_get_ton_wallet_secret_phrase_part, std::move(r_part), query_id,
+                       private_key_id);
+        });
+    td_->create_handler<FetchWalletEncryptedSecretPhrasePartQuery>(std::move(query_promise))
+        ->send(parts->token_, public_key, dc.dc_id_);
+  }
+  auto &query = get_secret_phrase_queries_[query_id];
+  query.promise_ = std::move(promise);
+  query.left_responses_ = backup_holder_dcs_.dcs_.size();
+}
+
+Result<string> TonWalletManager::process_secret_phrase_part(Slice data, tde2e_api::PrivateKeyId private_key_id) {
+  if (data.size() != 288) {
+    return Status::Error(400, "Receive secret phrase of invalid length");
+  }
+  auto r_public_key_id = tde2e_api::key_from_public_key(data.substr(0, 32).str());
+  if (r_public_key_id.is_error()) {
+    return Status::Error(400, "Receive invalid secret phrase public key");
+  }
+  auto r_key_id = tde2e_api::key_from_ecdh(private_key_id, r_public_key_id.value());
+  if (r_key_id.is_error()) {
+    return Status::Error(400, "Failed to generate shared key");
+  }
+  auto r_data = tde2e_api::decrypt_message_for_one(r_key_id.value(), data.substr(32).str());
+  if (r_data.is_error()) {
+    return Status::Error(400, "Failed to decrypt phrase part");
+  }
+  return r_data.value().substr(5);
+}
+
+void TonWalletManager::on_get_ton_wallet_secret_phrase_part(
+    Result<telegram_api::object_ptr<telegram_api::wallet_encryptedSecretPhrasePart>> r_part, uint64 query_id,
+    tde2e_api::PrivateKeyId private_key_id) {
+  auto it = get_secret_phrase_queries_.find(query_id);
+  if (it == get_secret_phrase_queries_.end()) {
+    return;
+  }
+  auto &query = it->second;
+  string data;
+  if (r_part.is_ok()) {
+    auto r_data = process_secret_phrase_part(r_part.ok()->data_.as_slice(), private_key_id);
+    if (r_data.is_error()) {
+      r_part = r_data.move_as_error();
+    } else {
+      data = r_data.move_as_ok();
+    }
+  }
+  if (r_part.is_error()) {
+    auto promise = std::move(query.promise_);
+    get_secret_phrase_queries_.erase(it);
+    promise.set_error(r_part.move_as_error());
+    return;
+  }
+  if (query.result_.empty()) {
+    query.result_.resize(MAX_MNEMONIC_BACKUP_SIZE);
+  }
+  CHECK(data.size() == MAX_MNEMONIC_BACKUP_SIZE);
+  for (size_t i = 0; i < MAX_MNEMONIC_BACKUP_SIZE; i++) {
+    query.result_[i] = static_cast<char>(
+        static_cast<unsigned char>(static_cast<unsigned char>(query.result_[i]) ^ static_cast<unsigned char>(data[i])));
+  }
+  CHECK(query.left_responses_ > 0);
+  query.left_responses_--;
+  if (query.left_responses_ == 0) {
+    auto promise = std::move(query.promise_);
+    auto result = std::move(query.result_);
+    get_secret_phrase_queries_.erase(it);
+    while (!result.empty() && result.back() == ' ') {
+      result.pop_back();
+    }
+    for (auto c : result) {
+      if (!is_alpha(c) && c != ' ') {
+        return promise.set_error(400, "Receive invalid secret phrase");
+      }
+    }
+    promise.set_value(std::move(result));
+  }
 }
 
 void TonWalletManager::get_ton_wallet_gasless_info(
