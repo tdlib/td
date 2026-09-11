@@ -355,6 +355,9 @@ static td_api::object_ptr<td_api::tonWalletTransaction> get_ton_wallet_transacti
     return td_api::make_object<td_api::tonWalletTransactionStateSucceeded>(transaction->tx_hash_);
   }();
   auto type = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionType> {
+    if (transaction->key_change_) {
+      return td_api::make_object<td_api::tonWalletTransactionTypeKeyChange>(transaction->fee_);
+    }
     return td_api::make_object<td_api::tonWalletTransactionTypeTransfer>(
         amount, transaction->fee_, transaction->comment_, transaction->comment_encrypted_);
   }();

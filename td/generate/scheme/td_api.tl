@@ -2293,8 +2293,9 @@ tonWalletTransactionStateFailed = TonWalletTransactionState;
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
 tonWalletTransactionTypeTransfer amount:int53 fee_amount:int53 comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
 
-//@description An unknown transaction
-tonWalletTransactionTypeUnknown = TonWalletTransactionType;
+//@description Change of the wallet key
+//@fee_amount The fee amount paid for the transaction in TON Grams, in the smallest units of the cryptocurrency
+tonWalletTransactionTypeKeyChange fee_amount:int53 = TonWalletTransactionType;
 
 
 //@description Represents a transaction with the TON wallet of the current user
