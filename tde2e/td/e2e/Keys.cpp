@@ -124,7 +124,7 @@ td::Result<PrivateKey> PrivateKey::generate() {
 }
 
 td::Result<PrivateKey> PrivateKey::from_slice(const td::Slice &slice) {
-  if (slice.size() != td::Ed25519::PublicKey::LENGTH) {
+  if (slice.size() != td::Ed25519::PrivateKey::LENGTH) {
     return td::Status::Error("Invalid private key length");
   }
   auto private_key = td::Ed25519::PrivateKey(td::SecureString(slice));

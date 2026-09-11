@@ -15951,6 +15951,12 @@ sendTonWalletTransfer regular_transfer_data:bytes gasless_transfer_data:bytes = 
 //@password Password of the current user; pass an empty string if the user has no password
 deleteTonWallet password:string = Ok;
 
+//@description Replaces the current TON wallet with another existing v6r2 wallet
+//@password Password of the current user; pass an empty string if the user has no password
+//@address Normalized address of the new TON wallet in the URL-safe base64 format
+//@private_key Private key of the TON wallet; the key will be used only to proof ownership of the address
+replaceTonWallet password:string address:string private_key:bytes = Ok;
+
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
 

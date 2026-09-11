@@ -48,6 +48,9 @@ class TonWalletManager final : public Actor {
 
   void delete_ton_wallet(const string &password, Promise<Unit> &&promise);
 
+  void replace_ton_wallet(const string &password, const string &address, const string &private_key,
+                          Promise<Unit> &&promise);
+
   void get_ton_wallet_transactions(const string &offset, int32 limit,
                                    td_api::object_ptr<td_api::TransactionDirection> &&direction,
                                    Promise<td_api::object_ptr<td_api::tonWalletTransactions>> &&promise);
@@ -150,6 +153,14 @@ class TonWalletManager final : public Actor {
 
   void do_delete_ton_wallet(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                             Promise<Unit> &&promise);
+
+  void do_replace_ton_wallet(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
+                             const string &address, const string &private_key, Promise<Unit> &&promise);
+
+  void do_replace_ton_wallet_with_challenge(
+      telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
+      telegram_api::object_ptr<telegram_api::wallet_proofChallenge> &&challenge, const string &address,
+      const string &private_key, Promise<Unit> &&promise);
 
   void do_get_ton_wallet_transactions(const string &offset, int32 limit,
                                       td_api::object_ptr<td_api::TransactionDirection> &&direction,
