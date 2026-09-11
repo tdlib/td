@@ -1826,8 +1826,8 @@ void BusinessConnectionManager::edit_business_message_live_location(
                      get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true));
 
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
-      ->send(business_connection_id, dialog_id, message_id, false, nullptr, false,
-             InputMedia(location.get_input_media_geo_live()), false, new_reply_markup);
+      ->send(business_connection_id, dialog_id, message_id, false, nullptr, false, location.get_input_media_geo_live(),
+             false, new_reply_markup);
 }
 
 void BusinessConnectionManager::edit_business_message_to_do_list(

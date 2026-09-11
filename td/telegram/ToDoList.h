@@ -59,7 +59,7 @@ class ToDoList {
                                                              DialogId dialog_id, MessageId message_id, bool is_outgoing,
                                                              bool is_forward, bool is_real_message_content) const;
 
-  telegram_api::object_ptr<telegram_api::inputMediaTodo> get_input_media_todo(const UserManager *user_manager) const;
+  telegram_api::object_ptr<telegram_api::InputMedia> get_input_media_todo(const UserManager *user_manager) const;
 
   void add_dependencies(Dependencies &dependencies) const;
 

@@ -143,7 +143,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Location &locatio
                         << ", accuracy = " << location.horizontal_accuracy_ << "]";
 }
 
-telegram_api::object_ptr<telegram_api::inputMediaGeoLive> InputMessageLocation::get_input_media_geo_live() const {
+telegram_api::object_ptr<telegram_api::InputMedia> InputMessageLocation::get_input_media_geo_live() const {
   int32 flags = telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
   if (live_period != 0) {
     flags |= telegram_api::inputMediaGeoLive::PERIOD_MASK;

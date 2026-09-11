@@ -137,7 +137,7 @@ struct InputMessageLocation {
       , proximity_alert_radius(proximity_alert_radius) {
   }
 
-  telegram_api::object_ptr<telegram_api::inputMediaGeoLive> get_input_media_geo_live() const;
+  telegram_api::object_ptr<telegram_api::InputMedia> get_input_media_geo_live() const;
 };
 
 Result<InputMessageLocation> process_input_message_location(

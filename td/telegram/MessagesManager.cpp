@@ -23540,7 +23540,7 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
                                              has_message_sender_user_id(dialog_id, m)));
 
   td_->create_handler<EditMessageQuery>(std::move(promise))
-      ->send(dialog_id, m->message_id, false, nullptr, false, InputMedia(location.get_input_media_geo_live()), false,
+      ->send(dialog_id, m->message_id, false, nullptr, false, location.get_input_media_geo_live(), false,
              new_reply_markup, get_message_schedule_date(m), get_message_schedule_repeat_period(m));
 }
 
@@ -23570,9 +23570,8 @@ void MessagesManager::edit_message_to_do_list(MessageFullId message_full_id,
                                              has_message_sender_user_id(dialog_id, m)));
 
   td_->create_handler<EditMessageQuery>(std::move(promise))
-      ->send(dialog_id, m->message_id, false, nullptr, false,
-             InputMedia(to_do_list.get_input_media_todo(td_->user_manager_.get())), false, new_reply_markup,
-             get_message_schedule_date(m), get_message_schedule_repeat_period(m));
+      ->send(dialog_id, m->message_id, false, nullptr, false, to_do_list.get_input_media_todo(td_->user_manager_.get()),
+             false, new_reply_markup, get_message_schedule_date(m), get_message_schedule_repeat_period(m));
 }
 
 void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message) {

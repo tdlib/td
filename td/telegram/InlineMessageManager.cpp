@@ -272,8 +272,8 @@ void InlineMessageManager::edit_inline_message_live_location(const string &inlin
   TRY_RESULT_PROMISE(promise, location, process_live_location(std::move(input_location), true));
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-      ->send(std::move(input_bot_inline_message_id), false, nullptr, false,
-             InputMedia(location.get_input_media_geo_live()), false /*ignored*/, new_reply_markup);
+      ->send(std::move(input_bot_inline_message_id), false, nullptr, false, location.get_input_media_geo_live(),
+             false /*ignored*/, new_reply_markup);
 }
 
 void InlineMessageManager::edit_inline_message_media(
