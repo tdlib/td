@@ -1708,6 +1708,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::loadTonWalletState &request);
 
+  void on_request(uint64 id, const td_api::checkWalletBotBalance &request);
+
   void on_request(uint64 id, const td_api::getUserTonWalletAddresses &request);
 
   void on_request(uint64 id, const td_api::createUserTonWallet &request);

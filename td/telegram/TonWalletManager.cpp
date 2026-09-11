@@ -58,6 +58,36 @@ class GetWalletStateQuery final : public Td::ResultHandler {
   }
 };
 
+class GetExistingWalletBalanceQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit GetExistingWalletBalanceQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_getExistingWaltBalance()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_getExistingWaltBalance>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetExistingWalletBalanceQuery: " << to_string(result);
+    if (!result->has_balance_) {
+      return on_error(Status::Error(400, "Balance is empty"));
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUserWalletAddressesQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::userTonWalletAddresses>> promise_;
 
@@ -1010,6 +1040,10 @@ void TonWalletManager::get_wallet_state(Promise<Unit> &&promise) {
     });
     td_->create_handler<GetWalletStateQuery>(std::move(query_promise))->send();
   }
+}
+
+void TonWalletManager::get_existing_wallet_balance(Promise<Unit> &&promise) {
+  td_->create_handler<GetExistingWalletBalanceQuery>(std::move(promise))->send();
 }
 
 void TonWalletManager::get_user_addresses(vector<UserId> user_ids,

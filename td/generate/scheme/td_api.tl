@@ -15920,6 +15920,9 @@ getTonWalletTransactionByMsgHash msg_hash:string = TonWalletTransaction;
 //@description Loads state of the TON wallet of the current user
 loadTonWalletState = Ok;
 
+//@description Returns Ok if the current user has positive TON Gram balance in the bot https://t.me/wallet
+checkWalletBotBalance = Ok;
+
 //@description Returns TON wallet addresses of the specified users
 //@user_ids Identifiers of the users, which wallet addresses have to be returned. If a user has no TON wallet, it will be skipped in the result
 getUserTonWalletAddresses user_ids:vector<int53> = UserTonWalletAddresses;
