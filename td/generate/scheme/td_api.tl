@@ -15919,6 +15919,10 @@ createUserTonWallet user_id:int53 = Text;
 //@description Returns the secret phrase of the user's TON wallet as a space separated list of words. Works only if tonWalletState.can_export_phrase is true
 getTonWalletSecretPhrase = Text;
 
+//@description Disables backup of the TON wallet of the user. Works only if tonWalletState.is_backup_enabled is true
+//@password Password of the current user; pass an empty string if the user has no password
+disableTonWalletBackup password:string = Ok;
+
 //@description Returns the current state of gasless transfers for the current user
 getTonWalletGaslessTransfersInfo = TonWalletGaslessTransfersInfo;
 

@@ -7967,6 +7967,13 @@ void Requests::on_request(uint64 id, const td_api::getTonWalletSecretPhrase &req
   td_->ton_wallet_manager_->get_ton_wallet_secret_phrase(std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::disableTonWalletBackup &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.password_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->disable_ton_wallet_backup(request.password_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getTonWalletGaslessTransfersInfo &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

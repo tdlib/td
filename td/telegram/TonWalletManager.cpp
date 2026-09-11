@@ -190,6 +190,38 @@ class FetchWalletEncryptedSecretPhrasePartQuery final : public Td::ResultHandler
   }
 };
 
+class DisableWalletBackupQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DisableWalletBackupQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password) {
+    int32 flags = 0;
+    if (input_password != nullptr) {
+      flags |= telegram_api::wallet_disableBackup::PASSWORD_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::wallet_disableBackup(flags, std::move(input_password), BufferSlice(), nullptr)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_disableBackup>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    td_->ton_wallet_manager_->on_update_wallet_state(std::move(result));
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetWalletGaslessInfoQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> promise_;
 
@@ -1013,6 +1045,28 @@ void TonWalletManager::on_get_ton_wallet_secret_phrase_part(
     }
     promise.set_value(std::move(result));
   }
+}
+
+void TonWalletManager::disable_ton_wallet_backup(const string &password, Promise<Unit> &&promise) {
+  if (password.empty()) {
+    return do_disable_ton_wallet_backup(nullptr, std::move(promise));
+  }
+  send_closure(G()->password_manager(), &PasswordManager::get_input_check_password_srp, password,
+               PromiseCreator::lambda(
+                   [actor_id = actor_id(this), promise = std::move(promise)](
+                       Result<telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP>> r_input_password) mutable {
+                     if (r_input_password.is_error()) {
+                       return promise.set_error(r_input_password.move_as_error());
+                     }
+                     send_closure(actor_id, &TonWalletManager::do_disable_ton_wallet_backup,
+                                  r_input_password.move_as_ok(), std::move(promise));
+                   }));
+}
+
+void TonWalletManager::do_disable_ton_wallet_backup(
+    telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  td_->create_handler<DisableWalletBackupQuery>(std::move(promise))->send(std::move(input_password));
 }
 
 void TonWalletManager::get_ton_wallet_gasless_info(

@@ -37,6 +37,8 @@ class TonWalletManager final : public Actor {
 
   void get_ton_wallet_secret_phrase(Promise<string> &&promise);
 
+  void disable_ton_wallet_backup(const string &password, Promise<Unit> &&promise);
+
   void get_ton_wallet_gasless_info(Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> &&promise);
 
   void send_ton_wallet_transfer(const string &data_normal, const string &data_gasless,
@@ -133,6 +135,9 @@ class TonWalletManager final : public Actor {
   void on_get_ton_wallet_secret_phrase_part(
       Result<telegram_api::object_ptr<telegram_api::wallet_encryptedSecretPhrasePart>> r_part, uint64 query_id,
       tde2e_api::PrivateKeyId private_key_id);
+
+  void do_disable_ton_wallet_backup(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
+                                    Promise<Unit> &&promise);
 
   void on_get_currency_rates(Result<telegram_api::object_ptr<telegram_api::payments_currencyRates>> r_rates);
 

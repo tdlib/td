@@ -8818,6 +8818,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::createUserTonWallet>(user_id));
     } else if (op == "gtwsp") {
       send_request(td_api::make_object<td_api::getTonWalletSecretPhrase>());
+    } else if (op == "dtwb") {
+      string password;
+      get_args(args, password);
+      send_request(td_api::make_object<td_api::disableTonWalletBackup>(password));
     } else if (op == "gtwgti") {
       send_request(td_api::make_object<td_api::getTonWalletGaslessTransfersInfo>());
     } else if (op == "stwt") {
