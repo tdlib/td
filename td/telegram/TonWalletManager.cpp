@@ -356,6 +356,7 @@ static td_api::object_ptr<td_api::tonWalletTransaction> get_ton_wallet_transacti
   }();
   auto type = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionType> {
     if (transaction->key_change_) {
+      peer_user_id = td->user_manager_->get_my_id();
       return td_api::make_object<td_api::tonWalletTransactionTypeKeyChange>(transaction->fee_);
     }
     return td_api::make_object<td_api::tonWalletTransactionTypeTransfer>(
