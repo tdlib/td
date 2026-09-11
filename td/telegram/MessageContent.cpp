@@ -1851,6 +1851,31 @@ class MessageGramTransfer final : public MessageContent {
   }
 };
 
+class MessageWalletTonConnectRequest final : public MessageContent {
+ public:
+  int64 session_id = 0;
+  int32 expire_date = 0;
+  string topic;
+  string trace_id;
+  bool is_accepted = false;
+  bool is_declined = false;
+
+  MessageWalletTonConnectRequest() = default;
+  MessageWalletTonConnectRequest(int64 session_id, int32 expire_date, string topic, string trace_id, bool is_accepted,
+                                 bool is_declined)
+      : session_id(session_id)
+      , expire_date(expire_date)
+      , topic(std::move(topic))
+      , trace_id(std::move(trace_id))
+      , is_accepted(is_accepted)
+      , is_declined(is_declined) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::WalletTonConnectRequest;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -3048,6 +3073,26 @@ static void store(const MessageContent *content, StorerT &storer) {
       store(m->transaction_id, storer);
       if (has_comment) {
         store(m->comment, storer);
+      }
+      break;
+    }
+    case MessageContentType::WalletTonConnectRequest: {
+      const auto *m = static_cast<const MessageWalletTonConnectRequest *>(content);
+      bool has_topic = !m->topic.empty();
+      bool has_trace_id = !m->trace_id.empty();
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_topic);
+      STORE_FLAG(has_trace_id);
+      STORE_FLAG(m->is_accepted);
+      STORE_FLAG(m->is_declined);
+      END_STORE_FLAGS();
+      store(m->session_id, storer);
+      store(m->expire_date, storer);
+      if (has_topic) {
+        store(m->topic, storer);
+      }
+      if (has_trace_id) {
+        store(m->trace_id, storer);
       }
       break;
     }
@@ -4541,6 +4586,27 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::WalletTonConnectRequest: {
+      auto m = make_unique<MessageWalletTonConnectRequest>();
+      bool has_topic;
+      bool has_trace_id;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_topic);
+      PARSE_FLAG(has_trace_id);
+      PARSE_FLAG(m->is_accepted);
+      PARSE_FLAG(m->is_declined);
+      END_PARSE_FLAGS();
+      parse(m->session_id, parser);
+      parse(m->expire_date, parser);
+      if (has_topic) {
+        parse(m->topic, parser);
+      }
+      if (has_trace_id) {
+        parse(m->trace_id, parser);
+      }
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -5551,6 +5617,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
     case MessageContentType::GramTransfer:
+    case MessageContentType::WalletTonConnectRequest:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -5727,6 +5794,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
     case MessageContentType::GramTransfer:
+    case MessageContentType::WalletTonConnectRequest:
       break;
     default:
       UNREACHABLE();
@@ -5964,6 +6032,7 @@ static InputMedia get_message_content_input_media_impl(
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
     case MessageContentType::GramTransfer:
+    case MessageContentType::WalletTonConnectRequest:
       break;
     default:
       UNREACHABLE();
@@ -6249,6 +6318,7 @@ void delete_message_content_thumbnail(Td *td, MessageContent *content, int32 med
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
     case MessageContentType::GramTransfer:
+    case MessageContentType::WalletTonConnectRequest:
       break;
     default:
       UNREACHABLE();
@@ -6527,6 +6597,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
     case MessageContentType::GramTransfer:
+    case MessageContentType::WalletTonConnectRequest:
       UNREACHABLE();
   }
   return Status::OK();
@@ -6731,6 +6802,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
     case MessageContentType::GramTransfer:
+    case MessageContentType::WalletTonConnectRequest:
       return 0;
     default:
       UNREACHABLE();
@@ -7203,6 +7275,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::ChatJoinedViaCommunity:
       break;
     case MessageContentType::GramTransfer:
+      break;
+    case MessageContentType::WalletTonConnectRequest:
       break;
     default:
       UNREACHABLE();
@@ -7822,6 +7896,7 @@ static void merge_message_contents(Td *td, const MessageContent *old_content, Me
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
     case MessageContentType::GramTransfer:
+    case MessageContentType::WalletTonConnectRequest:
       break;
     default:
       UNREACHABLE();
@@ -8004,6 +8079,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
     case MessageContentType::GramTransfer:
+    case MessageContentType::WalletTonConnectRequest:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -8860,6 +8936,16 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       if (lhs->amount != rhs->amount || lhs->peer_address != rhs->peer_address ||
           lhs->transaction_id != rhs->transaction_id || lhs->comment != rhs->comment ||
           lhs->is_comment_encrypted != rhs->is_comment_encrypted) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::WalletTonConnectRequest: {
+      const auto *lhs = static_cast<const MessageWalletTonConnectRequest *>(old_content);
+      const auto *rhs = static_cast<const MessageWalletTonConnectRequest *>(new_content);
+      if (lhs->session_id != rhs->session_id || lhs->expire_date != rhs->expire_date || lhs->topic != rhs->topic ||
+          lhs->trace_id != rhs->trace_id || lhs->is_accepted != rhs->is_accepted ||
+          lhs->is_declined != rhs->is_declined) {
         need_update = true;
       }
       break;
@@ -10508,6 +10594,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
     case MessageContentType::GramTransfer:
+    case MessageContentType::WalletTonConnectRequest:
       return nullptr;
     default:
       UNREACHABLE();
@@ -11412,7 +11499,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                                   action->comment_encrypted_);
     }
     case telegram_api::messageActionWalletTonConnectRequest::ID: {
-      return td::make_unique<MessageUnsupported>();
+      auto action = telegram_api::move_object_as<telegram_api::messageActionWalletTonConnectRequest>(action_ptr);
+      return td::make_unique<MessageWalletTonConnectRequest>(action->session_id_, action->expires_,
+                                                             std::move(action->topic_), std::move(action->trace_id_),
+                                                             action->accepted_, action->declined_);
     }
     default:
       UNREACHABLE();
@@ -12219,6 +12309,20 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       const auto *m = static_cast<const MessageGramTransfer *>(content);
       return td_api::make_object<td_api::messageTonWalletTransfer>(m->transaction_id, m->peer_address, m->amount,
                                                                    m->comment, m->is_comment_encrypted);
+    }
+    case MessageContentType::WalletTonConnectRequest: {
+      const auto *m = static_cast<const MessageWalletTonConnectRequest *>(content);
+      auto state = [&]() -> td_api::object_ptr<td_api::TonConnectRequestState> {
+        if (m->is_accepted) {
+          return td_api::make_object<td_api::tonConnectRequestStateAccepted>();
+        }
+        if (m->is_declined) {
+          return td_api::make_object<td_api::tonConnectRequestStateRejected>();
+        }
+        return td_api::make_object<td_api::tonConnectRequestStatePending>(m->expire_date);
+      }();
+      return td_api::make_object<td_api::messageTonConnectRequest>(m->session_id, std::move(state), m->topic,
+                                                                   m->trace_id);
     }
     default:
       UNREACHABLE();
@@ -13167,6 +13271,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::ChangeCommunity:
     case MessageContentType::ChatJoinedViaCommunity:
     case MessageContentType::GramTransfer:
+    case MessageContentType::WalletTonConnectRequest:
       return string();
     default:
       UNREACHABLE();
@@ -13771,6 +13876,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     }
     case MessageContentType::GramTransfer:
+      break;
+    case MessageContentType::WalletTonConnectRequest:
       break;
     default:
       UNREACHABLE();

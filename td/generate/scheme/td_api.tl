@@ -2275,6 +2275,20 @@ onRampPaymentSession session_id:string expiration_date:int32 url:string = OnRamp
 tonWalletState address:string public_key:bytes gram_amount:int53 is_being_created:Bool is_backup_enabled:Bool can_enable_backup:Bool can_export_phrase:Bool = TonWalletState;
 
 
+//@class TonConnectRequestState @description Describes state of a request received from a dApp through TON Connect
+
+//@description The request must be accepted or rejected if it isn't expired yet
+//@expiration_date Point in time (Unix timestamp) when the request will expire or has expired
+tonConnectRequestStatePending expiration_date:int32 = TonConnectRequestState;
+
+//@description The request was accepted
+tonConnectRequestStateAccepted = TonConnectRequestState;
+
+//@description The request was rejected
+tonConnectRequestStateRejected = TonConnectRequestState;
+
+
+
 //@class TonWalletTransactionState @description Describes state of a transaction with a TON wallet
 
 //@description The transaction succeeded @tx_hash Hash of the transaction
@@ -5701,6 +5715,13 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@comment Comment added to the transaction
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the receiver's or sender's private key
 messageTonWalletTransfer transaction_id:string peer_address:string amount:int53 comment:string is_comment_encrypted:Bool = MessageContent;
+
+//@description A request from a dApp was received thriugh TON Connect
+//@session_id Unique identifier of the TON Connect session
+//@state State of the request
+//@topic Topic of the request; may be empty if none
+//@trace_id Identifier to trace the connection request; may be empty if none
+messageTonConnectRequest session_id:int64 state:TonConnectRequestState topic:string trace_id:string = MessageContent;
 
 //@description A regular gift was received or sent by the current user, or the current user was notified about a channel gift
 //@gift The gift

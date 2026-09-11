@@ -110,7 +110,8 @@ enum class MessageContentType : int32 {
   RichText,
   ChangeCommunity,
   ChatJoinedViaCommunity,
-  GramTransfer
+  GramTransfer,
+  WalletTonConnectRequest
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 
