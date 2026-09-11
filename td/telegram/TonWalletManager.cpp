@@ -20,7 +20,9 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/misc.h"
 #include "td/utils/Random.h"
+#include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
 
 #include <type_traits>
@@ -183,6 +185,34 @@ class FetchWalletEncryptedSecretPhrasePartQuery final : public Td::ResultHandler
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for FetchWalletEncryptedSecretPhrasePartQuery: " << to_string(result);
     promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class EnableWalletBackupQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit EnableWalletBackupQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(vector<BufferSlice> parts, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::wallet_enableBackup(0, std::move(parts), BufferSlice(), nullptr)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_enableBackup>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    td_->ton_wallet_manager_->on_update_wallet_state(std::move(result));
+    promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
@@ -979,7 +1009,27 @@ void TonWalletManager::do_get_ton_wallet_secret_phrase_with_parts(
   query.left_responses_ = backup_holder_dcs_.dcs_.size();
 }
 
-Result<string> TonWalletManager::process_secret_phrase_part(Slice data, tde2e_api::PrivateKeyId private_key_id) {
+Result<BufferSlice> TonWalletManager::encrypt_secret_phrase_part(Slice data, tde2e_api::PublicKeyId dc_public_key_id) {
+  CHECK(data.size() == MAX_MNEMONIC_BACKUP_SIZE);
+  auto r_private_key_id = tde2e_api::key_generate_temporary_private_key();
+  if (r_private_key_id.is_error()) {
+    return Status::Error(400, "Failed to generate encryption key");
+  }
+  auto private_key_id = r_private_key_id.value();
+  auto public_key = tde2e_api::key_to_public_key(private_key_id).value();
+  auto r_key_id = tde2e_api::key_from_ecdh(private_key_id, dc_public_key_id);
+  if (r_key_id.is_error()) {
+    return Status::Error(400, "Failed to generate shared key");
+  }
+  auto r_encrypted_part =
+      tde2e_api::encrypt_message_for_one(r_key_id.value(), PSTRING() << "\x08\xdd\x90\x8b\xd7" << data);
+  if (r_encrypted_part.is_error()) {
+    return Status::Error(400, "Failed to encrypt phrase part");
+  }
+  return BufferSlice(PSLICE() << public_key << r_encrypted_part.value());
+}
+
+Result<string> TonWalletManager::descrypt_secret_phrase_part(Slice data, tde2e_api::PrivateKeyId private_key_id) {
   if (data.size() != 288) {
     return Status::Error(400, "Receive secret phrase of invalid length");
   }
@@ -1008,7 +1058,7 @@ void TonWalletManager::on_get_ton_wallet_secret_phrase_part(
   auto &query = it->second;
   string data;
   if (r_part.is_ok()) {
-    auto r_data = process_secret_phrase_part(r_part.ok()->data_.as_slice(), private_key_id);
+    auto r_data = descrypt_secret_phrase_part(r_part.ok()->data_.as_slice(), private_key_id);
     if (r_data.is_error()) {
       r_part = r_data.move_as_error();
     } else {
@@ -1045,6 +1095,65 @@ void TonWalletManager::on_get_ton_wallet_secret_phrase_part(
     }
     promise.set_value(std::move(result));
   }
+}
+
+void TonWalletManager::enable_ton_wallet_backup(const string &password, const string &secret_phrase,
+                                                Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (backup_holder_dcs_.dcs_.empty()) {
+    return load_backup_holder_dcs(PromiseCreator::lambda([actor_id = actor_id(this), password, secret_phrase,
+                                                          promise = std::move(promise)](Result<Unit> result) mutable {
+      if (result.is_error()) {
+        return promise.set_error(result.move_as_error());
+      }
+      send_closure(actor_id, &TonWalletManager::enable_ton_wallet_backup, password, secret_phrase, std::move(promise));
+    }));
+  }
+  if (password.empty()) {
+    return do_enable_ton_wallet_backup(nullptr, secret_phrase, std::move(promise));
+  }
+  send_closure(G()->password_manager(), &PasswordManager::get_input_check_password_srp, password,
+               PromiseCreator::lambda(
+                   [actor_id = actor_id(this), secret_phrase, promise = std::move(promise)](
+                       Result<telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP>> r_input_password) mutable {
+                     if (r_input_password.is_error()) {
+                       return promise.set_error(r_input_password.move_as_error());
+                     }
+                     send_closure(actor_id, &TonWalletManager::do_enable_ton_wallet_backup,
+                                  r_input_password.move_as_ok(), secret_phrase, std::move(promise));
+                   }));
+}
+
+void TonWalletManager::do_enable_ton_wallet_backup(
+    telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password, const string &secret_phrase,
+    Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (secret_phrase.size() > MAX_MNEMONIC_BACKUP_SIZE) {
+    return promise.set_error(400, "Invalid secret phrase specified");
+  }
+  for (auto c : secret_phrase) {
+    if (!is_alpha(c) && c != ' ') {
+      return promise.set_error(400, "Receive invalid secret phrase");
+    }
+  }
+  string a(MAX_MNEMONIC_BACKUP_SIZE, '\0');
+  string b(MAX_MNEMONIC_BACKUP_SIZE, '\0');
+  string c = rpad(secret_phrase, MAX_MNEMONIC_BACKUP_SIZE, ' ');
+  Random::secure_bytes(a);
+  Random::secure_bytes(b);
+  for (size_t i = 0; i < MAX_MNEMONIC_BACKUP_SIZE; i++) {
+    c[i] = static_cast<char>(static_cast<unsigned char>(
+        static_cast<unsigned char>(a[i]) ^ static_cast<unsigned char>(b[i]) ^ static_cast<unsigned char>(c[i])));
+  }
+  CHECK(backup_holder_dcs_.dcs_.size() == 3u);
+  TRY_RESULT_PROMISE(promise, part_a, encrypt_secret_phrase_part(a, backup_holder_dcs_.dcs_[0].public_key_id_));
+  TRY_RESULT_PROMISE(promise, part_b, encrypt_secret_phrase_part(b, backup_holder_dcs_.dcs_[1].public_key_id_));
+  TRY_RESULT_PROMISE(promise, part_c, encrypt_secret_phrase_part(c, backup_holder_dcs_.dcs_[2].public_key_id_));
+  vector<BufferSlice> parts;
+  parts.push_back(std::move(part_a));
+  parts.push_back(std::move(part_b));
+  parts.push_back(std::move(part_c));
+  td_->create_handler<EnableWalletBackupQuery>(std::move(promise))->send(std::move(parts), std::move(input_password));
 }
 
 void TonWalletManager::disable_ton_wallet_backup(const string &password, Promise<Unit> &&promise) {
@@ -1331,7 +1440,7 @@ void TonWalletManager::on_get_backup_holder_dcs(
     holder_dc.public_key_id_ = r_public_key_id.value();
     holder_dcs.push_back(std::move(holder_dc));
   }
-  if (holder_dcs.empty()) {
+  if (holder_dcs.size() != 3u) {
     return fail_promises(promises, Status::Error(400, "Failed to get backup holder DCs"));
   }
 

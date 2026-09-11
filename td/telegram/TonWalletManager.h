@@ -37,6 +37,8 @@ class TonWalletManager final : public Actor {
 
   void get_ton_wallet_secret_phrase(Promise<string> &&promise);
 
+  void enable_ton_wallet_backup(const string &password, const string &secret_phrase, Promise<Unit> &&promise);
+
   void disable_ton_wallet_backup(const string &password, Promise<Unit> &&promise);
 
   void get_ton_wallet_gasless_info(Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> &&promise);
@@ -130,11 +132,16 @@ class TonWalletManager final : public Actor {
   void do_get_ton_wallet_secret_phrase_with_parts(
       telegram_api::object_ptr<telegram_api::wallet_secretPhraseParts> &&parts, Promise<string> &&promise);
 
-  static Result<string> process_secret_phrase_part(Slice data, tde2e_api::PrivateKeyId private_key_id);
+  static Result<BufferSlice> encrypt_secret_phrase_part(Slice data, tde2e_api::PublicKeyId dc_public_key_id);
+
+  static Result<string> descrypt_secret_phrase_part(Slice data, tde2e_api::PrivateKeyId private_key_id);
 
   void on_get_ton_wallet_secret_phrase_part(
       Result<telegram_api::object_ptr<telegram_api::wallet_encryptedSecretPhrasePart>> r_part, uint64 query_id,
       tde2e_api::PrivateKeyId private_key_id);
+
+  void do_enable_ton_wallet_backup(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
+                                   const string &secret_phrase, Promise<Unit> &&promise);
 
   void do_disable_ton_wallet_backup(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                                     Promise<Unit> &&promise);
