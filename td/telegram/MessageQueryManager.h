@@ -255,7 +255,7 @@ class MessageQueryManager final : public Actor {
                                       td_api::object_ptr<td_api::formattedText> &&input_caption, bool invert_media,
                                       Promise<Unit> &&promise);
 
-  void edit_callback_query_message(int64 callback_query_id, bool noforwards,
+  void edit_callback_query_message(int64 callback_query_id, bool anchor, bool noforwards,
                                    td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                                    Promise<Unit> &&promise);
@@ -570,6 +570,7 @@ class MessageQueryManager final : public Actor {
     bool invert_media_ = false;
 
     bool is_send_ = false;
+    bool anchor_ = false;
     bool noforwards_ = false;
     bool disable_web_page_preview_ = false;
     int64 callback_query_id_ = 0;

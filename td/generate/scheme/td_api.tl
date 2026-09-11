@@ -12564,13 +12564,14 @@ editEphemeralMessage chat_id:int53 receiver_user_id:int53 ephemeral_message_id:i
 //@show_caption_above_media Pass true to show the caption above the media; otherwise, the caption will be shown below the media. May be true only for animation, photo, and video messages
 editEphemeralMessageCaption chat_id:int53 receiver_user_id:int53 ephemeral_message_id:int32 reply_markup:ReplyMarkup caption:formattedText show_caption_above_media:Bool = Ok;
 
-//@description Edits the message from which a callback query has originated with an ephemeral message; for bots only
+//@description Replies to a callback query with an ephemeral message; for bots only
 //@callback_query_id Identifier of the callback query
+//@replace_callback_query_message Pass true if the ephemeral message must replace the message from which the callback query originated
 //@protect_content Pass true if the content of the message must be protected from forwarding and saving
 //@reply_markup The new message reply markup; pass null if none
 //@input_message_content New content of the message. Must be one of the following types: inputMessageText, inputMessageAnimation,
 //-inputMessageAudio, inputMessageDocument, inputMessagePhoto, inputMessageRichMessage, inputMessageSticker, inputMessageVideo, inputMessageVideoNote, inputMessageVoiceNote
-editCallbackQueryMessage callback_query_id:int64 protect_content:Bool reply_markup:ReplyMarkup input_message_content:InputMessageContent = Ok;
+replyToCallbackQueryWithEphemeralMessage callback_query_id:int64 replace_callback_query_message:Bool protect_content:Bool reply_markup:ReplyMarkup input_message_content:InputMessageContent = Ok;
 
 //@description Edits the time when a scheduled message will be sent. Scheduling state of all messages in the same album or forwarded together with the message will be also changed
 //@chat_id The chat the message belongs to
