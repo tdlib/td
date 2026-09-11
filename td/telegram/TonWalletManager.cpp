@@ -8,6 +8,8 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/Document.h"
+#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PasswordManager.h"
@@ -993,6 +995,36 @@ TonWalletManager::OnRampSession::OnRampSession(telegram_api::object_ptr<telegram
 td_api::object_ptr<td_api::onRampPaymentSession> TonWalletManager::OnRampSession::get_on_ramp_payment_session_object()
     const {
   return td_api::make_object<td_api::onRampPaymentSession>(session_id_, expires_date_, url_);
+}
+
+TonWalletManager::TonConnectManifest::TonConnectManifest(
+    Td *td, telegram_api::object_ptr<telegram_api::tonConnectManifest> &&manifest)
+    : url_(std::move(manifest->url_)), name_(std::move(manifest->name_)) {
+  if (manifest->icon_ != nullptr) {
+    auto attributes = [icon = manifest->icon_.get()] {
+      switch (icon->get_id()) {
+        case telegram_api::webDocument::ID:
+          return std::move(static_cast<telegram_api::webDocument *>(icon)->attributes_);
+        case telegram_api::webDocumentNoProxy::ID:
+          return std::move(static_cast<telegram_api::webDocumentNoProxy *>(icon)->attributes_);
+        default:
+          UNREACHABLE();
+          return vector<telegram_api::object_ptr<telegram_api::DocumentAttribute>>();
+      }
+    }();
+    auto parsed_document =
+        td->documents_manager_->on_get_document({std::move(manifest->icon_), PhotoSize(), std::move(attributes)},
+                                                DialogId(), false, false, nullptr, Document::Type::General);
+    if (parsed_document.file_id.is_valid() && parsed_document.type == Document::Type::General) {
+      icon_file_id_ = parsed_document.file_id;
+    }
+  }
+}
+
+td_api::object_ptr<td_api::tonConnectManifest> TonWalletManager::TonConnectManifest::get_ton_connect_manifest_object(
+    Td *td) const {
+  return td_api::make_object<td_api::tonConnectManifest>(
+      url_, name_, td->documents_manager_->get_document_object(icon_file_id_, PhotoFormat::Jpeg));
 }
 
 TonWalletManager::TonWalletManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {

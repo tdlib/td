@@ -2329,6 +2329,13 @@ tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domai
 tonWalletTransactions gram_amount:int53 transactions:vector<tonWalletTransaction> next_offset:string = TonWalletTransactions;
 
 
+//@description Represents manifest of the app that is being connected using TON Connect
+//@url App URL
+//@name Name of the app
+//@icon App icon in PNG or ICO format
+tonConnectManifest url:string name:string icon:document = TonConnectManifest;
+
+
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
 
 //@description The chat has an active live story @story_id Identifier of the active live story

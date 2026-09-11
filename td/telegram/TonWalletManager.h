@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -288,6 +289,17 @@ class TonWalletManager final : public Actor {
   };
   uint64 current_get_secret_phrase_query_id_ = 0;
   FlatHashMap<uint64, GetSecretPhraseQuery> get_secret_phrase_queries_;
+
+  class TonConnectManifest {
+    string url_;
+    string name_;
+    FileId icon_file_id_;
+
+   public:
+    TonConnectManifest(Td *td, telegram_api::object_ptr<telegram_api::tonConnectManifest> &&manifest);
+
+    td_api::object_ptr<td_api::tonConnectManifest> get_ton_connect_manifest_object(Td *td) const;
+  };
 };
 
 }  // namespace td
