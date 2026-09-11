@@ -2284,18 +2284,28 @@ tonWalletTransactionStateSucceeded tx_hash:string = TonWalletTransactionState;
 tonWalletTransactionStateFailed = TonWalletTransactionState;
 
 
+//@class TonWalletTransactionType @description Describes type of a transaction with a TON wallet
+
+//@description A transfer of TON Grams to or from the wallet
+//@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
+//@fee_amount The fee amount paid for the transaction, in the smallest units of the cryptocurrency
+//@comment Comment added to the transaction
+//@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
+tonWalletTransactionTypeTransfer amount:int53 fee_amount:int53 comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
+
+//@description An unknown transaction
+tonWalletTransactionTypeUnknown = TonWalletTransactionType;
+
+
 //@description Represents a transaction with the TON wallet of the current user
 //@id Unique identifier of the transaction
 //@peer_address Address in the TON blockchain of the transaction peer; may be empty if the transaction isn't a wallet transfer
 //@peer_user_id Identifier of the other user that participated in the transaction; 0 if unknown
 //@peer_domain Identifier of the domain assigned to the peer address; may be empty if none
-//@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
-//@fee_amount The fee amount paid for the transaction, in the smallest units of the cryptocurrency
-//@comment Comment added to the transaction
-//@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
 //@date Point in time (Unix timestamp) when the transaction was completed
+//@state State of the transaction
 //@type Type of the transaction
-tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domain:string amount:int53 fee_amount:int53 comment:string is_comment_encrypted:Bool date:int32 type:TonWalletTransactionState = TonWalletTransaction;
+tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domain:string date:int32 state:TonWalletTransactionState type:TonWalletTransactionType = TonWalletTransaction;
 
 //@description Represents a list of TON Gram transactions
 //@gram_amount The total amount of owned TON Grams, in the smallest units of the cryptocurrency

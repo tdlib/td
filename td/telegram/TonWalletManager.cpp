@@ -348,16 +348,19 @@ static td_api::object_ptr<td_api::tonWalletTransaction> get_ton_wallet_transacti
   if (!transaction->incoming_ && amount > 0) {
     amount = -amount;
   }
-  auto type = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionState> {
+  auto state = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionState> {
     if (transaction->failed_) {
       return td_api::make_object<td_api::tonWalletTransactionStateFailed>();
     }
     return td_api::make_object<td_api::tonWalletTransactionStateSucceeded>(transaction->tx_hash_);
   }();
+  auto type = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionType> {
+    return td_api::make_object<td_api::tonWalletTransactionTypeTransfer>(
+        amount, transaction->fee_, transaction->comment_, transaction->comment_encrypted_);
+  }();
   return td_api::make_object<td_api::tonWalletTransaction>(
       transaction->id_, peer_address, td->user_manager_->get_user_id_object(peer_user_id, "tonWalletTransaction"),
-      peer_domain, amount, transaction->fee_, transaction->comment_, transaction->comment_encrypted_,
-      transaction->date_, std::move(type));
+      peer_domain, transaction->date_, std::move(state), std::move(type));
 }
 
 class GetTonWalletTransactionsQuery final : public Td::ResultHandler {
