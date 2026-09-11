@@ -1489,6 +1489,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"telegram_antispam_user_id", "anti_spam_bot_user_id"},
       {"ton_stakedice_stake_amount_max", "stake_dice_stake_amount_max"},
       {"ton_stakedice_stake_amount_min", "stake_dice_stake_amount_min"},
+      {"wallet_gasless_min_nanos", "ton_wallet_gasless_transfer_amount_min"},
       {"wallet_transfer_min_nanos", "ton_wallet_transfer_amount_min"}};
   static const FlatHashMap<Slice, Slice, SliceHash> string_keys = {
       {"gif_search_branding", "animation_search_provider"},
