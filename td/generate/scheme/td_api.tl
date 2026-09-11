@@ -15943,8 +15943,9 @@ disableTonWalletBackup password:string = Ok;
 getTonWalletGaslessTransfersInfo = TonWalletGaslessTransfersInfo;
 
 //@description Sends a cryptocurrency from the user's TON wallet
-//@regular_transfer_data Serialized data for regular cryptocurrency transfer request
-//@gasless_transfer_data Serialized data for gasless cryptocurrency transfer request; pass an empty string to force a regular request
+//@regular_transfer_data Serialized data for regular cryptocurrency transfer request. The minimum allowed transfer amount is getOption("ton_wallet_transfer_amount_min")
+//@gasless_transfer_data Serialized data for gasless cryptocurrency transfer request; pass an empty string to force a regular request.
+//-The minimum allowed transfer amount for a gassless transfer is getOption("ton_wallet_gasless_transfer_amount_min")
 sendTonWalletTransfer regular_transfer_data:bytes gasless_transfer_data:bytes = TonWalletTransferResult;
 
 //@description Deletes the current TON wallet of the user and creates a new one
