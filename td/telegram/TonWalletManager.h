@@ -146,6 +146,16 @@ class TonWalletManager final : public Actor {
   void do_disable_ton_wallet_backup(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                                     Promise<Unit> &&promise);
 
+  void do_get_ton_wallet_transactions(const string &offset, int32 limit,
+                                      td_api::object_ptr<td_api::TransactionDirection> &&direction,
+                                      Promise<td_api::object_ptr<td_api::tonWalletTransactions>> &&promise);
+
+  void do_get_ton_wallet_transaction(const string &transaction_id,
+                                     Promise<td_api::object_ptr<td_api::tonWalletTransaction>> &&promise);
+
+  void do_get_ton_wallet_transaction_by_msg_hash(const string &msg_hash,
+                                                 Promise<td_api::object_ptr<td_api::tonWalletTransaction>> &&promise);
+
   void on_get_currency_rates(Result<telegram_api::object_ptr<telegram_api::payments_currencyRates>> r_rates);
 
   td_api::object_ptr<td_api::currencyExchangeRates> get_currency_exchange_rates_object() const;

@@ -1209,16 +1209,46 @@ void TonWalletManager::on_get_wallet_state(Result<Unit> &&result) {
 void TonWalletManager::get_ton_wallet_transactions(
     const string &offset, int32 limit, td_api::object_ptr<td_api::TransactionDirection> &&direction,
     Promise<td_api::object_ptr<td_api::tonWalletTransactions>> &&promise) {
+  td_->user_manager_->get_me(
+      PromiseCreator::lambda([actor_id = actor_id(this), offset, limit, direction = std::move(direction),
+                              promise = std::move(promise)](Unit) mutable {
+        send_closure(actor_id, &TonWalletManager::do_get_ton_wallet_transactions, offset, limit, std::move(direction),
+                     std::move(promise));
+      }));
+}
+
+void TonWalletManager::do_get_ton_wallet_transactions(
+    const string &offset, int32 limit, td_api::object_ptr<td_api::TransactionDirection> &&direction,
+    Promise<td_api::object_ptr<td_api::tonWalletTransactions>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   td_->create_handler<GetTonWalletTransactionsQuery>(std::move(promise))->send(offset, limit, std::move(direction));
 }
 
 void TonWalletManager::get_ton_wallet_transaction(const string &transaction_id,
                                                   Promise<td_api::object_ptr<td_api::tonWalletTransaction>> &&promise) {
+  td_->user_manager_->get_me(
+      PromiseCreator::lambda([actor_id = actor_id(this), transaction_id, promise = std::move(promise)](Unit) mutable {
+        send_closure(actor_id, &TonWalletManager::do_get_ton_wallet_transaction, transaction_id, std::move(promise));
+      }));
+}
+
+void TonWalletManager::do_get_ton_wallet_transaction(
+    const string &transaction_id, Promise<td_api::object_ptr<td_api::tonWalletTransaction>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   td_->create_handler<GetTonWalletTransactionQuery>(std::move(promise))->send(false, transaction_id);
 }
 
 void TonWalletManager::get_ton_wallet_transaction_by_msg_hash(
     const string &msg_hash, Promise<td_api::object_ptr<td_api::tonWalletTransaction>> &&promise) {
+  td_->user_manager_->get_me(PromiseCreator::lambda([actor_id = actor_id(this), msg_hash,
+                                                     promise = std::move(promise)](Unit) mutable {
+    send_closure(actor_id, &TonWalletManager::do_get_ton_wallet_transaction_by_msg_hash, msg_hash, std::move(promise));
+  }));
+}
+
+void TonWalletManager::do_get_ton_wallet_transaction_by_msg_hash(
+    const string &msg_hash, Promise<td_api::object_ptr<td_api::tonWalletTransaction>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   td_->create_handler<GetTonWalletTransactionQuery>(std::move(promise))->send(true, msg_hash);
 }
 
