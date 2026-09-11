@@ -8835,6 +8835,10 @@ class CliClient final : public Actor {
       get_args(args, regular_transfer_data, gasless_transfer_data);
       send_request(td_api::make_object<td_api::sendTonWalletTransfer>(hex_decode(regular_transfer_data).move_as_ok(),
                                                                       hex_decode(gasless_transfer_data).move_as_ok()));
+    } else if (op == "deleteTonWallet") {
+      string password;
+      get_args(args, password);
+      send_request(td_api::make_object<td_api::deleteTonWallet>(password));
     } else if (op == "gcer") {
       send_request(td_api::make_object<td_api::getCurrencyExchangeRates>());
     } else if (op == "gorp") {

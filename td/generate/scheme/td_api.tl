@@ -15947,6 +15947,10 @@ getTonWalletGaslessTransfersInfo = TonWalletGaslessTransfersInfo;
 //@gasless_transfer_data Serialized data for gasless cryptocurrency transfer request; pass an empty string to force a regular request
 sendTonWalletTransfer regular_transfer_data:bytes gasless_transfer_data:bytes = TonWalletTransferResult;
 
+//@description Deletes the current TON wallet of the user and creates a new one
+//@password Password of the current user; pass an empty string if the user has no password
+deleteTonWallet password:string = Ok;
+
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
 

@@ -314,6 +314,39 @@ class SendWalletTransferQuery final : public Td::ResultHandler {
   }
 };
 
+class ReplaceWalletQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ReplaceWalletQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputWalletReplacement> &&new_wallet,
+            telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password) {
+    int32 flags = 0;
+    if (input_password != nullptr) {
+      flags |= telegram_api::wallet_replaceWallet::PASSWORD_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::wallet_replaceWallet(flags, std::move(new_wallet), std::move(input_password))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_disableBackup>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    td_->ton_wallet_manager_->on_update_wallet_state(std::move(result));
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 static td_api::object_ptr<td_api::tonWalletTransaction> get_ton_wallet_transaction_object(
     const Td *td, telegram_api::object_ptr<telegram_api::walletTransaction> &&transaction) {
   string peer_address;
@@ -1194,6 +1227,29 @@ void TonWalletManager::send_ton_wallet_transfer(
     const string &data_normal, const string &data_gasless,
     Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise) {
   td_->create_handler<SendWalletTransferQuery>(std::move(promise))->send(data_normal, data_gasless);
+}
+
+void TonWalletManager::delete_ton_wallet(const string &password, Promise<Unit> &&promise) {
+  if (password.empty()) {
+    return do_delete_ton_wallet(nullptr, std::move(promise));
+  }
+  send_closure(G()->password_manager(), &PasswordManager::get_input_check_password_srp, password,
+               PromiseCreator::lambda(
+                   [actor_id = actor_id(this), promise = std::move(promise)](
+                       Result<telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP>> r_input_password) mutable {
+                     if (r_input_password.is_error()) {
+                       return promise.set_error(r_input_password.move_as_error());
+                     }
+                     send_closure(actor_id, &TonWalletManager::do_delete_ton_wallet, r_input_password.move_as_ok(),
+                                  std::move(promise));
+                   }));
+}
+
+void TonWalletManager::do_delete_ton_wallet(
+    telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  td_->create_handler<ReplaceWalletQuery>(std::move(promise))
+      ->send(telegram_api::make_object<telegram_api::inputWalletNew>(), std::move(input_password));
 }
 
 void TonWalletManager::on_get_wallet_state(Result<Unit> &&result) {
