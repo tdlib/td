@@ -65,8 +65,8 @@ TEST(ChainScheduler, Basic) {
   for (int i = 0; i < 100; i++) {
     scheduler.create_task({td::ChainScheduler<int>::ChainId{1}}, i);
   }
-  int j = 0;
-  while (j != 100) {
+  int i = 0;
+  while (i != 100) {
     td::vector<td::ChainScheduler<int>::TaskId> tasks;
     while (true) {
       auto o_task_id = scheduler.start_next_task();
@@ -78,8 +78,8 @@ TEST(ChainScheduler, Basic) {
       auto parents =
           td::transform(o_task_id.value().parents, [&](auto parent) { return *scheduler.get_task_extra(parent); });
       LOG(INFO) << "Start " << extra << parents;
-      CHECK(extra == j);
-      j++;
+      CHECK(extra == i);
+      i++;
       tasks.push_back(task_id);
     }
     for (auto &task_id : tasks) {

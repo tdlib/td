@@ -113,9 +113,9 @@ Status ThreadPthread::set_affinity_mask(id thread_id, uint64 mask) {
   cpu_set_t cpuset;
 #endif
   CPU_ZERO(&cpuset);
-  for (int j = 0; j < 64 && j < CPU_SETSIZE; j++) {
-    if ((mask >> j) & 1) {
-      CPU_SET(j, &cpuset);
+  for (int i = 0; i < 64 && i < CPU_SETSIZE; i++) {
+    if ((mask >> i) & 1) {
+      CPU_SET(i, &cpuset);
     }
   }
 
@@ -132,9 +132,9 @@ Status ThreadPthread::set_affinity_mask(id thread_id, uint64 mask) {
   SCOPE_EXIT {
     cpuset_destroy(cpuset);
   };
-  for (int j = 0; j < 64; j++) {
-    if ((mask >> j) & 1) {
-      if (cpuset_set(j, cpuset) != 0) {
+  for (int i = 0; i < 64; i++) {
+    if ((mask >> i) & 1) {
+      if (cpuset_set(i, cpuset) != 0) {
         return OS_ERROR("Failed to set CPU identifier");
       }
     }
@@ -167,9 +167,9 @@ uint64 ThreadPthread::get_affinity_mask(id thread_id) {
   }
 
   uint64 mask = 0;
-  for (int j = 0; j < 64 && j < CPU_SETSIZE; j++) {
-    if (CPU_ISSET(j, &cpuset)) {
-      mask |= static_cast<uint64>(1) << j;
+  for (int i = 0; i < 64 && i < CPU_SETSIZE; i++) {
+    if (CPU_ISSET(i, &cpuset)) {
+      mask |= static_cast<uint64>(1) << i;
     }
   }
   return mask;
@@ -187,16 +187,16 @@ uint64 ThreadPthread::get_affinity_mask(id thread_id) {
   }
 
   uint64 mask = 0;
-  for (int j = 0; j < 64; j++) {
-    if (cpuset_isset(j, cpuset) > 0) {
-      mask |= static_cast<uint64>(1) << j;
+  for (int i = 0; i < 64; i++) {
+    if (cpuset_isset(i, cpuset) > 0) {
+      mask |= static_cast<uint64>(1) << i;
     }
   }
   if (mask == 0) {
     // the mask wasn't set, all CPUs are allowed
     auto proc_count = sysconf(_SC_NPROCESSORS_ONLN);
-    for (int j = 0; j < 64 && j < proc_count; j++) {
-      mask |= static_cast<uint64>(1) << j;
+    for (int i = 0; i < 64 && i < proc_count; i++) {
+      mask |= static_cast<uint64>(1) << i;
     }
   }
   return mask;

@@ -1137,7 +1137,7 @@ TEST(MessageEntities, fix_formatted_text) {
 
     auto n = td::Random::fast(1, 20);
     td::vector<td::MessageEntity> entities;
-    for (int j = 0; j < n; j++) {
+    for (int i = 0; i < n; i++) {
       td::int32 type = td::Random::fast(4, static_cast<int>(td::MessageEntity::Type::Size) - 1);
       td::int32 offset = td::Random::fast(0, static_cast<int>(str.size()) - 1);
       auto max_length = static_cast<int>(str.size() - offset);
