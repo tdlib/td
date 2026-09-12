@@ -7862,7 +7862,7 @@ chatEventAccentColorChanged old_accent_color_id:int32 old_background_custom_emoj
 //@new_profile_background_custom_emoji_id New identifier of the custom emoji; 0 if none
 chatEventProfileAccentColorChanged old_profile_accent_color_id:int32 old_profile_background_custom_emoji_id:int64 new_profile_accent_color_id:int32 new_profile_background_custom_emoji_id:int64 = ChatEventAction;
 
-//@description The has_protected_content setting of a channel was toggled @has_protected_content New value of has_protected_content
+//@description The has_protected_content setting of a chat was toggled @has_protected_content New value of has_protected_content
 chatEventHasProtectedContentToggled has_protected_content:Bool = ChatEventAction;
 
 //@description The can_invite_users permission of a supergroup chat was toggled @can_invite_users New value of can_invite_users permission
@@ -7907,7 +7907,7 @@ chatEventVideoChatParticipantIsMutedToggled participant_id:MessageSender is_mute
 //@description A video chat participant volume level was changed @participant_id Identifier of the affected group call participant @volume_level New value of volume_level; 1-20000 in hundreds of percents
 chatEventVideoChatParticipantVolumeLevelChanged participant_id:MessageSender volume_level:int32 = ChatEventAction;
 
-//@description The is_forum setting of a channel was toggled @is_forum New value of is_forum
+//@description The is_forum setting of a supergroup was toggled @is_forum New value of is_forum
 chatEventIsForumToggled is_forum:Bool = ChatEventAction;
 
 //@description A new forum topic was created @topic_info Information about the topic
