@@ -105,6 +105,13 @@ class RichText {
     return str;
   }
 
+  static vector<RichText> get_rich_texts(vector<tl_object_ptr<telegram_api::RichText>> &&rich_text_ptrs,
+                                         const FlatHashMap<int64, FileId> &documents) {
+    return transform(std::move(rich_text_ptrs), [&documents](tl_object_ptr<telegram_api::RichText> &&rich_text) {
+      return RichText(std::move(rich_text), documents);
+    });
+  }
+
  public:
   RichText() = default;
   RichText(const RichText &) = delete;
@@ -155,6 +162,226 @@ class RichText {
   UserId user_id;
   RichButtonStyle button_style;
   unique_ptr<InlineKeyboardButton> button;
+
+  RichText(telegram_api::object_ptr<telegram_api::RichText> &&rich_text_ptr,
+           const FlatHashMap<int64, FileId> &documents) {
+    CHECK(rich_text_ptr != nullptr);
+
+    switch (rich_text_ptr->get_id()) {
+      case telegram_api::textEmpty::ID:
+        break;
+      case telegram_api::textPlain::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textPlain>(rich_text_ptr);
+        content = std::move(rich_text->text_);
+        break;
+      }
+      case telegram_api::textBold::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textBold>(rich_text_ptr);
+        type = RichText::Type::Bold;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textItalic::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textItalic>(rich_text_ptr);
+        type = RichText::Type::Italic;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textUnderline::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textUnderline>(rich_text_ptr);
+        type = RichText::Type::Underline;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textStrike::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textStrike>(rich_text_ptr);
+        type = RichText::Type::Strikethrough;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textFixed::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textFixed>(rich_text_ptr);
+        type = RichText::Type::Fixed;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textUrl::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textUrl>(rich_text_ptr);
+        type = RichText::Type::Url;
+        content = std::move(rich_text->url_);
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        web_page_id = WebPageId(rich_text->webpage_id_);
+        break;
+      }
+      case telegram_api::textEmail::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textEmail>(rich_text_ptr);
+        type = RichText::Type::EmailAddress;
+        content = std::move(rich_text->email_);
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textConcat::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textConcat>(rich_text_ptr);
+        type = RichText::Type::Concatenation;
+        texts = get_rich_texts(std::move(rich_text->texts_), documents);
+        break;
+      }
+      case telegram_api::textSubscript::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textSubscript>(rich_text_ptr);
+        type = RichText::Type::Subscript;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textSuperscript::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textSuperscript>(rich_text_ptr);
+        type = RichText::Type::Superscript;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textMarked::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textMarked>(rich_text_ptr);
+        type = RichText::Type::Marked;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textPhone::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textPhone>(rich_text_ptr);
+        type = RichText::Type::PhoneNumber;
+        content = std::move(rich_text->phone_);
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textImage::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textImage>(rich_text_ptr);
+        auto it = documents.find(rich_text->document_id_);
+        if (it != documents.end()) {
+          type = RichText::Type::Icon;
+          document_file_id = it->second;
+          Dimensions dimensions = get_dimensions(rich_text->w_, rich_text->h_, "textImage");
+          content = PSTRING() << (dimensions.width * static_cast<uint32>(65536) + dimensions.height);
+        } else {
+          LOG(ERROR) << "Can't find document " << rich_text->document_id_;
+        }
+        break;
+      }
+      case telegram_api::textAnchor::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textAnchor>(rich_text_ptr);
+        type = RichText::Type::Anchor;
+        content = std::move(rich_text->name_);
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textMath::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textMath>(rich_text_ptr);
+        type = RichText::Type::Math;
+        content = std::move(rich_text->source_);
+        break;
+      }
+      case telegram_api::textCustomEmoji::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textCustomEmoji>(rich_text_ptr);
+        type = RichText::Type::CustomEmoji;
+        custom_emoji_id = CustomEmojiId(rich_text->document_id_);
+        content = std::move(rich_text->alt_);
+        break;
+      }
+      case telegram_api::textSpoiler::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textSpoiler>(rich_text_ptr);
+        type = RichText::Type::Spoiler;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textMention::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textMention>(rich_text_ptr);
+        type = RichText::Type::Mention;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textHashtag::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textHashtag>(rich_text_ptr);
+        type = RichText::Type::Hashtag;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textBotCommand::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textBotCommand>(rich_text_ptr);
+        type = RichText::Type::BotCommand;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textCashtag::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textCashtag>(rich_text_ptr);
+        type = RichText::Type::Cashtag;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textAutoUrl::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textAutoUrl>(rich_text_ptr);
+        type = RichText::Type::AutoUrl;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textAutoEmail::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textAutoEmail>(rich_text_ptr);
+        type = RichText::Type::AutoEmailAddress;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textAutoPhone::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textAutoPhone>(rich_text_ptr);
+        type = RichText::Type::AutoPhoneNumber;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textBankCard::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textBankCard>(rich_text_ptr);
+        type = RichText::Type::BankCardNumber;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        break;
+      }
+      case telegram_api::textMentionName::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textMentionName>(rich_text_ptr);
+        type = RichText::Type::MentionName;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        user_id = UserId(rich_text->user_id_);
+        if (!user_id.is_valid()) {
+          LOG(ERROR) << "Receive " << user_id;
+          user_id = UserId();
+        }
+        break;
+      }
+      case telegram_api::textDate::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textDate>(rich_text_ptr);
+        auto formatted_date =
+            FormattedDate(rich_text->date_, rich_text->relative_, rich_text->short_time_, rich_text->long_time_,
+                          rich_text->short_date_, rich_text->long_date_, rich_text->day_of_week_);
+        if (!formatted_date.is_valid()) {
+          break;
+        }
+        type = RichText::Type::FormattedDate;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        date = std::move(formatted_date);
+        break;
+      }
+      case telegram_api::textDiff::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textDiff>(rich_text_ptr);
+        type = RichText::Type::Diff;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        texts.emplace_back(std::move(rich_text->old_text_), documents);
+        break;
+      }
+      case telegram_api::textButton::ID: {
+        auto rich_text = telegram_api::move_object_as<telegram_api::textButton>(rich_text_ptr);
+        type = RichText::Type::Button;
+        texts.emplace_back(std::move(rich_text->text_), documents);
+        button_style = RichButtonStyle(std::move(rich_text->style_));
+        button = make_unique<InlineKeyboardButton>(telegram_api::make_object<telegram_api::keyboardInlineButton>(
+            0, nullptr, "1", std::move(rich_text->type_)));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
 
   static Result<RichText> get_rich_text(const Td *td, td_api::object_ptr<td_api::RichText> &&rich_text) {
     RichText result;
@@ -4628,243 +4855,12 @@ class WebPageBlockDocument final : public WebPageBlock {
   }
 };
 
-vector<RichText> get_rich_texts(vector<tl_object_ptr<telegram_api::RichText>> &&rich_text_ptrs,
-                                const FlatHashMap<int64, FileId> &documents);
-
-RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
-                       const FlatHashMap<int64, FileId> &documents) {
-  CHECK(rich_text_ptr != nullptr);
-
-  RichText result;
-  switch (rich_text_ptr->get_id()) {
-    case telegram_api::textEmpty::ID:
-      break;
-    case telegram_api::textPlain::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textPlain>(rich_text_ptr);
-      result.content = std::move(rich_text->text_);
-      break;
-    }
-    case telegram_api::textBold::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textBold>(rich_text_ptr);
-      result.type = RichText::Type::Bold;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textItalic::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textItalic>(rich_text_ptr);
-      result.type = RichText::Type::Italic;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textUnderline::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textUnderline>(rich_text_ptr);
-      result.type = RichText::Type::Underline;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textStrike::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textStrike>(rich_text_ptr);
-      result.type = RichText::Type::Strikethrough;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textFixed::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textFixed>(rich_text_ptr);
-      result.type = RichText::Type::Fixed;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textUrl::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textUrl>(rich_text_ptr);
-      result.type = RichText::Type::Url;
-      result.content = std::move(rich_text->url_);
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      result.web_page_id = WebPageId(rich_text->webpage_id_);
-      break;
-    }
-    case telegram_api::textEmail::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textEmail>(rich_text_ptr);
-      result.type = RichText::Type::EmailAddress;
-      result.content = std::move(rich_text->email_);
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textConcat::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textConcat>(rich_text_ptr);
-      result.type = RichText::Type::Concatenation;
-      result.texts = get_rich_texts(std::move(rich_text->texts_), documents);
-      break;
-    }
-    case telegram_api::textSubscript::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textSubscript>(rich_text_ptr);
-      result.type = RichText::Type::Subscript;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textSuperscript::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textSuperscript>(rich_text_ptr);
-      result.type = RichText::Type::Superscript;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textMarked::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textMarked>(rich_text_ptr);
-      result.type = RichText::Type::Marked;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textPhone::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textPhone>(rich_text_ptr);
-      result.type = RichText::Type::PhoneNumber;
-      result.content = std::move(rich_text->phone_);
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textImage::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textImage>(rich_text_ptr);
-      auto it = documents.find(rich_text->document_id_);
-      if (it != documents.end()) {
-        result.type = RichText::Type::Icon;
-        result.document_file_id = it->second;
-        Dimensions dimensions = get_dimensions(rich_text->w_, rich_text->h_, "textImage");
-        result.content = PSTRING() << (dimensions.width * static_cast<uint32>(65536) + dimensions.height);
-      } else {
-        LOG(ERROR) << "Can't find document " << rich_text->document_id_;
-      }
-      break;
-    }
-    case telegram_api::textAnchor::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textAnchor>(rich_text_ptr);
-      result.type = RichText::Type::Anchor;
-      result.content = std::move(rich_text->name_);
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textMath::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textMath>(rich_text_ptr);
-      result.type = RichText::Type::Math;
-      result.content = std::move(rich_text->source_);
-      break;
-    }
-    case telegram_api::textCustomEmoji::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textCustomEmoji>(rich_text_ptr);
-      result.type = RichText::Type::CustomEmoji;
-      result.custom_emoji_id = CustomEmojiId(rich_text->document_id_);
-      result.content = std::move(rich_text->alt_);
-      break;
-    }
-    case telegram_api::textSpoiler::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textSpoiler>(rich_text_ptr);
-      result.type = RichText::Type::Spoiler;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textMention::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textMention>(rich_text_ptr);
-      result.type = RichText::Type::Mention;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textHashtag::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textHashtag>(rich_text_ptr);
-      result.type = RichText::Type::Hashtag;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textBotCommand::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textBotCommand>(rich_text_ptr);
-      result.type = RichText::Type::BotCommand;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textCashtag::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textCashtag>(rich_text_ptr);
-      result.type = RichText::Type::Cashtag;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textAutoUrl::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textAutoUrl>(rich_text_ptr);
-      result.type = RichText::Type::AutoUrl;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textAutoEmail::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textAutoEmail>(rich_text_ptr);
-      result.type = RichText::Type::AutoEmailAddress;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textAutoPhone::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textAutoPhone>(rich_text_ptr);
-      result.type = RichText::Type::AutoPhoneNumber;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textBankCard::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textBankCard>(rich_text_ptr);
-      result.type = RichText::Type::BankCardNumber;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      break;
-    }
-    case telegram_api::textMentionName::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textMentionName>(rich_text_ptr);
-      result.type = RichText::Type::MentionName;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      result.user_id = UserId(rich_text->user_id_);
-      if (!result.user_id.is_valid()) {
-        LOG(ERROR) << "Receive " << result.user_id;
-        result.user_id = UserId();
-      }
-      break;
-    }
-    case telegram_api::textDate::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textDate>(rich_text_ptr);
-      auto date = FormattedDate(rich_text->date_, rich_text->relative_, rich_text->short_time_, rich_text->long_time_,
-                                rich_text->short_date_, rich_text->long_date_, rich_text->day_of_week_);
-      if (!date.is_valid()) {
-        break;
-      }
-      result.type = RichText::Type::FormattedDate;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      result.date = std::move(date);
-      break;
-    }
-    case telegram_api::textDiff::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textDiff>(rich_text_ptr);
-      result.type = RichText::Type::Diff;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      result.texts.push_back(get_rich_text(std::move(rich_text->old_text_), documents));
-      break;
-    }
-    case telegram_api::textButton::ID: {
-      auto rich_text = telegram_api::move_object_as<telegram_api::textButton>(rich_text_ptr);
-      result.type = RichText::Type::Button;
-      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
-      result.button_style = RichButtonStyle(std::move(rich_text->style_));
-      result.button = make_unique<InlineKeyboardButton>(
-          telegram_api::make_object<telegram_api::keyboardInlineButton>(0, nullptr, "1", std::move(rich_text->type_)));
-      break;
-    }
-    default:
-      UNREACHABLE();
-  }
-  return result;
-}
-
-vector<RichText> get_rich_texts(vector<tl_object_ptr<telegram_api::RichText>> &&rich_text_ptrs,
-                                const FlatHashMap<int64, FileId> &documents) {
-  return transform(std::move(rich_text_ptrs), [&documents](tl_object_ptr<telegram_api::RichText> &&rich_text) {
-    return get_rich_text(std::move(rich_text), documents);
-  });
-}
-
 WebPageBlockCaption get_page_block_caption(tl_object_ptr<telegram_api::pageCaption> &&page_caption,
                                            const FlatHashMap<int64, FileId> &documents) {
   CHECK(page_caption != nullptr);
   WebPageBlockCaption result;
-  result.text = get_rich_text(std::move(page_caption->text_), documents);
-  result.credit = get_rich_text(std::move(page_caption->credit_), documents);
+  result.text = RichText(std::move(page_caption->text_), documents);
+  result.credit = RichText(std::move(page_caption->credit_), documents);
   return result;
 }
 
@@ -4881,41 +4877,41 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       return nullptr;
     case telegram_api::pageBlockTitle::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockTitle>(page_block_ptr);
-      return make_unique<WebPageBlockTitle>(get_rich_text(std::move(page_block->text_), documents));
+      return make_unique<WebPageBlockTitle>(RichText(std::move(page_block->text_), documents));
     }
     case telegram_api::pageBlockSubtitle::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockSubtitle>(page_block_ptr);
-      return make_unique<WebPageBlockSubtitle>(get_rich_text(std::move(page_block->text_), documents));
+      return make_unique<WebPageBlockSubtitle>(RichText(std::move(page_block->text_), documents));
     }
     case telegram_api::pageBlockAuthorDate::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockAuthorDate>(page_block_ptr);
-      return make_unique<WebPageBlockAuthorDate>(get_rich_text(std::move(page_block->author_), documents),
+      return make_unique<WebPageBlockAuthorDate>(RichText(std::move(page_block->author_), documents),
                                                  page_block->published_date_);
     }
     case telegram_api::pageBlockHeader::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeader>(page_block_ptr);
-      return make_unique<WebPageBlockHeader>(get_rich_text(std::move(page_block->text_), documents));
+      return make_unique<WebPageBlockHeader>(RichText(std::move(page_block->text_), documents));
     }
     case telegram_api::pageBlockSubheader::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockSubheader>(page_block_ptr);
-      return make_unique<WebPageBlockSubheader>(get_rich_text(std::move(page_block->text_), documents));
+      return make_unique<WebPageBlockSubheader>(RichText(std::move(page_block->text_), documents));
     }
     case telegram_api::pageBlockKicker::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockKicker>(page_block_ptr);
-      return make_unique<WebPageBlockKicker>(get_rich_text(std::move(page_block->text_), documents));
+      return make_unique<WebPageBlockKicker>(RichText(std::move(page_block->text_), documents));
     }
     case telegram_api::pageBlockParagraph::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockParagraph>(page_block_ptr);
-      return make_unique<WebPageBlockParagraph>(get_rich_text(std::move(page_block->text_), documents));
+      return make_unique<WebPageBlockParagraph>(RichText(std::move(page_block->text_), documents));
     }
     case telegram_api::pageBlockPreformatted::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockPreformatted>(page_block_ptr);
-      return td::make_unique<WebPageBlockPreformatted>(get_rich_text(std::move(page_block->text_), documents),
+      return td::make_unique<WebPageBlockPreformatted>(RichText(std::move(page_block->text_), documents),
                                                        std::move(page_block->language_));
     }
     case telegram_api::pageBlockFooter::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockFooter>(page_block_ptr);
-      return make_unique<WebPageBlockFooter>(get_rich_text(std::move(page_block->text_), documents));
+      return make_unique<WebPageBlockFooter>(RichText(std::move(page_block->text_), documents));
     }
     case telegram_api::pageBlockDivider::ID:
       return make_unique<WebPageBlockDivider>();
@@ -4933,8 +4929,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                       switch (list_item_ptr->get_id()) {
                         case telegram_api::pageListItemText::ID: {
                           auto list_item = telegram_api::move_object_as<telegram_api::pageListItemText>(list_item_ptr);
-                          item.page_blocks.push_back(make_unique<WebPageBlockParagraph>(
-                              get_rich_text(std::move(list_item->text_), documents)));
+                          item.page_blocks.push_back(
+                              make_unique<WebPageBlockParagraph>(RichText(std::move(list_item->text_), documents)));
                           item.has_checkbox = list_item->checkbox_;
                           item.is_checked = list_item->checked_;
                           break;
@@ -4973,8 +4969,8 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                           auto list_item =
                               telegram_api::move_object_as<telegram_api::pageListOrderedItemText>(list_item_ptr);
                           item.label = std::move(list_item->num_);
-                          item.page_blocks.push_back(make_unique<WebPageBlockParagraph>(
-                              get_rich_text(std::move(list_item->text_), documents)));
+                          item.page_blocks.push_back(
+                              make_unique<WebPageBlockParagraph>(RichText(std::move(list_item->text_), documents)));
                           item.has_checkbox = list_item->checkbox_;
                           item.is_checked = list_item->checked_;
                           if ((list_item->flags_ & telegram_api::pageListOrderedItemText::VALUE_MASK) != 0) {
@@ -5020,16 +5016,16 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     case telegram_api::pageBlockBlockquote::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockBlockquote>(page_block_ptr);
       if (page_block->collapsed_) {
-        return make_unique<WebPageBlockExpandableBlockQuote>(get_rich_text(std::move(page_block->text_), documents),
-                                                             get_rich_text(std::move(page_block->caption_), documents));
+        return make_unique<WebPageBlockExpandableBlockQuote>(RichText(std::move(page_block->text_), documents),
+                                                             RichText(std::move(page_block->caption_), documents));
       }
-      return make_unique<WebPageBlockBlockQuote>(get_rich_text(std::move(page_block->text_), documents),
-                                                 get_rich_text(std::move(page_block->caption_), documents));
+      return make_unique<WebPageBlockBlockQuote>(RichText(std::move(page_block->text_), documents),
+                                                 RichText(std::move(page_block->caption_), documents));
     }
     case telegram_api::pageBlockPullquote::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockPullquote>(page_block_ptr);
-      return make_unique<WebPageBlockPullQuote>(get_rich_text(std::move(page_block->text_), documents),
-                                                get_rich_text(std::move(page_block->caption_), documents));
+      return make_unique<WebPageBlockPullQuote>(RichText(std::move(page_block->text_), documents),
+                                                RichText(std::move(page_block->caption_), documents));
     }
     case telegram_api::pageBlockPhoto::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockPhoto>(page_block_ptr);
@@ -5167,20 +5163,20 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
             }
           }
           if (table_cell->text_ != nullptr) {
-            cell.text = get_rich_text(std::move(table_cell->text_), documents);
+            cell.text = RichText(std::move(table_cell->text_), documents);
           }
           cell.colspan = max(table_cell->colspan_, 1);
           cell.rowspan = max(table_cell->rowspan_, 1);
           return cell;
         });
       });
-      return td::make_unique<WebPageBlockTable>(get_rich_text(std::move(page_block->title_), documents),
-                                                std::move(cells), is_bordered, is_striped, is_compact);
+      return td::make_unique<WebPageBlockTable>(RichText(std::move(page_block->title_), documents), std::move(cells),
+                                                is_bordered, is_striped, is_compact);
     }
     case telegram_api::pageBlockDetails::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockDetails>(page_block_ptr);
       auto is_open = page_block->open_;
-      return td::make_unique<WebPageBlockDetails>(get_rich_text(std::move(page_block->title_), documents),
+      return td::make_unique<WebPageBlockDetails>(RichText(std::move(page_block->title_), documents),
                                                   get_web_page_blocks(td, std::move(page_block->blocks_), animations,
                                                                       audios, documents, photos, videos, voice_notes),
                                                   is_open);
@@ -5204,7 +5200,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                                   }
                                   return article;
                                 });
-      return td::make_unique<WebPageBlockRelatedArticles>(get_rich_text(std::move(page_block->title_), documents),
+      return td::make_unique<WebPageBlockRelatedArticles>(RichText(std::move(page_block->title_), documents),
                                                           std::move(articles));
     }
     case telegram_api::pageBlockMap::ID: {
@@ -5229,27 +5225,27 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::pageBlockHeading1::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading1>(page_block_ptr);
-      return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 1);
+      return make_unique<WebPageBlockHeading>(RichText(std::move(page_block->text_), documents), 1);
     }
     case telegram_api::pageBlockHeading2::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading2>(page_block_ptr);
-      return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 2);
+      return make_unique<WebPageBlockHeading>(RichText(std::move(page_block->text_), documents), 2);
     }
     case telegram_api::pageBlockHeading3::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading3>(page_block_ptr);
-      return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 3);
+      return make_unique<WebPageBlockHeading>(RichText(std::move(page_block->text_), documents), 3);
     }
     case telegram_api::pageBlockHeading4::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading4>(page_block_ptr);
-      return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 4);
+      return make_unique<WebPageBlockHeading>(RichText(std::move(page_block->text_), documents), 4);
     }
     case telegram_api::pageBlockHeading5::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading5>(page_block_ptr);
-      return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 5);
+      return make_unique<WebPageBlockHeading>(RichText(std::move(page_block->text_), documents), 5);
     }
     case telegram_api::pageBlockHeading6::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockHeading6>(page_block_ptr);
-      return make_unique<WebPageBlockHeading>(get_rich_text(std::move(page_block->text_), documents), 6);
+      return make_unique<WebPageBlockHeading>(RichText(std::move(page_block->text_), documents), 6);
     }
     case telegram_api::pageBlockMath::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockMath>(page_block_ptr);
@@ -5257,7 +5253,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
     }
     case telegram_api::pageBlockThinking::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockThinking>(page_block_ptr);
-      return td::make_unique<WebPageBlockThinking>(get_rich_text(std::move(page_block->text_), documents));
+      return td::make_unique<WebPageBlockThinking>(RichText(std::move(page_block->text_), documents));
     }
     case telegram_api::inputPageBlockMap::ID:
       break;
@@ -5266,7 +5262,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       return td::make_unique<WebPageBlockBlockQuoteBlocks>(
           get_web_page_blocks(td, std::move(page_block->blocks_), animations, audios, documents, photos, videos,
                               voice_notes),
-          get_rich_text(std::move(page_block->caption_), documents));
+          RichText(std::move(page_block->caption_), documents));
     }
     case telegram_api::pageBlockButtonRow::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockButtonRow>(page_block_ptr);
@@ -5274,7 +5270,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
           transform(std::move(page_block->buttons_),
                     [&](auto &&button) {
                       WebPageBlockButtonRow::Button result;
-                      result.text = get_rich_text(std::move(button->text_), documents);
+                      result.text = RichText(std::move(button->text_), documents);
                       result.style = RichButtonStyle(std::move(button->style_));
                       result.button =
                           InlineKeyboardButton(telegram_api::make_object<telegram_api::keyboardInlineButton>(
