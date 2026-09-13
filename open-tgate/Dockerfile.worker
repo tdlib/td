@@ -5,7 +5,11 @@ COPY . /src/td
 RUN cmake -S /src/td -B /build -DCMAKE_BUILD_TYPE=Release -DTD_ENABLE_JNI=OFF && cmake --build /build --target tdjson -j4
 
 FROM python:3.13-slim AS runtime
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 TDLIB_LIBRARY_PATH=/usr/local/lib/libtdjson.so
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    TDLIB_LIBRARY_PATH=/usr/local/lib/libtdjson.so \
+    TDLIB_DATABASE_DIRECTORY=/data/tdlib/db \
+    TDLIB_FILES_DIRECTORY=/data/tdlib/files
 WORKDIR /app
 COPY open-tgate/requirements.txt .
 RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/* && pip install --no-cache-dir -r requirements.txt

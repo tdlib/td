@@ -91,6 +91,47 @@ jobs:
       - name: Build API image
         working-directory: ${{ github.workspace }}
         run: docker build -f open-tgate/Dockerfile.api -t open-tgate-api:test .
+      - name: Smoke API runtime health contract
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --rm --name open-tgate-api-ci -p 18000:8000 open-tgate-api:test
+          trap 'docker rm -f open-tgate-api-ci >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:18000/healthz >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs open-tgate-api-ci
+          exit 1
+      - name: Build worker image
+        working-directory: ${{ github.workspace }}
+        run: docker build -f open-tgate/Dockerfile.worker -t open-tgate-worker:test .
+      - name: Smoke worker entrypoint and TDLib startup
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --rm --name open-tgate-worker-ci \
+            -e SUPABASE_URL=http://127.0.0.1:9 \
+            -e SUPABASE_SECRET_KEY=ci-placeholder \
+            -e HEARTBEAT_INTERVAL_SECONDS=1 \
+            open-tgate-worker:test
+          trap 'docker rm -f open-tgate-worker-ci >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 20); do
+            if docker logs open-tgate-worker-ci 2>&1 | grep -q 'TDLib loaded'; then
+              exit 0
+            fi
+            if ! docker ps --format '{{.Names}}' | grep -qx open-tgate-worker-ci; then
+              docker logs open-tgate-worker-ci || true
+              exit 1
+            fi
+            sleep 1
+          done
+          docker logs open-tgate-worker-ci
+          exit 1
       - name: Validate Cloudflare Worker
         working-directory: open-tgate/dashboard
         run: npm install && npm run check
