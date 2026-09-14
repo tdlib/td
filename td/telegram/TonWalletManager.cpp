@@ -1021,9 +1021,9 @@ TonWalletManager::TonConnectManifest::TonConnectManifest(
   }
 }
 
-td_api::object_ptr<td_api::tonConnectManifest> TonWalletManager::TonConnectManifest::get_ton_connect_manifest_object(
+td_api::object_ptr<td_api::TonConnectManifest> TonWalletManager::TonConnectManifest::get_ton_connect_manifest_object(
     Td *td) const {
-  return td_api::make_object<td_api::tonConnectManifest>(
+  return td_api::make_object<td_api::tonConnectManifestInfo>(
       url_, name_, td->documents_manager_->get_document_object(icon_file_id_, PhotoFormat::Jpeg));
 }
 
@@ -1711,6 +1711,23 @@ void TonWalletManager::on_get_backup_holder_dcs(
   CHECK(backup_holder_dcs_.dcs_.empty());
   backup_holder_dcs_.dcs_ = std::move(holder_dcs);
   set_promises(promises);
+}
+
+td_api::object_ptr<td_api::TonConnectManifest> TonWalletManager::get_ton_connect_manifest_object(
+    Td *td, const TonConnectManifest *manifest, int32 manifest_error) {
+  if (manifest != nullptr) {
+    LOG_IF(ERROR, manifest_error != 0) << "Have error " << manifest_error << " with a manifest";
+    return manifest->get_ton_connect_manifest_object(td);
+  }
+  switch (manifest_error) {
+    case 0:
+      return td_api::make_object<td_api::tonConnectManifestPending>();
+    case 3:
+      return td_api::make_object<td_api::tonConnectManifestInvalid>();
+    default:
+      LOG_IF(ERROR, manifest_error != 2) << "Have manifest error " << manifest_error;
+      return td_api::make_object<td_api::tonConnectManifestFailed>();
+  }
 }
 
 void TonWalletManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

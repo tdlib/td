@@ -2329,11 +2329,22 @@ tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domai
 tonWalletTransactions gram_amount:int53 transactions:vector<tonWalletTransaction> next_offset:string = TonWalletTransactions;
 
 
-//@description Represents manifest of the app that is being connected using TON Connect
-//@url App URL
-//@name Name of the app
+//@class TonConnectManifest @description Describes manifest of the dApp that is being connected using TON Connect
+
+//@description The manifest is being downloaded
+tonConnectManifestPending = TonConnectManifest;
+
+//@description The manifest is available
+//@url URL of the dApp
+//@name Name of the dApp
 //@icon App icon in PNG or ICO format
-tonConnectManifest url:string name:string icon:document = TonConnectManifest;
+tonConnectManifestInfo url:string name:string icon:document = TonConnectManifest;
+
+//@description The manifest has failed to download
+tonConnectManifestFailed = TonConnectManifest;
+
+//@description The manifest is invalid
+tonConnectManifestInvalid = TonConnectManifest;
 
 
 //@class ActiveStoryState @description Describes state of active stories posted by a chat

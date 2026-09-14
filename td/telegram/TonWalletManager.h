@@ -127,6 +127,17 @@ class TonWalletManager final : public Actor {
 
   friend bool operator==(const WalletState &lhs, const WalletState &rhs);
 
+  class TonConnectManifest {
+    string url_;
+    string name_;
+    FileId icon_file_id_;
+
+   public:
+    TonConnectManifest(Td *td, telegram_api::object_ptr<telegram_api::tonConnectManifest> &&manifest);
+
+    td_api::object_ptr<td_api::TonConnectManifest> get_ton_connect_manifest_object(Td *td) const;
+  };
+
   void tear_down() final;
 
   td_api::object_ptr<td_api::updateTonWalletState> get_update_ton_wallet_state() const;
@@ -188,6 +199,9 @@ class TonWalletManager final : public Actor {
   void load_backup_holder_dcs(Promise<Unit> &&promise);
 
   void on_get_backup_holder_dcs(Result<vector<telegram_api::object_ptr<telegram_api::wallet_holderDc>>> r_dcs);
+
+  static td_api::object_ptr<td_api::TonConnectManifest> get_ton_connect_manifest_object(
+      Td *td, const TonConnectManifest *manifest, int32 manifest_error);
 
   Td *td_;
   ActorShared<> parent_;
@@ -289,17 +303,6 @@ class TonWalletManager final : public Actor {
   };
   uint64 current_get_secret_phrase_query_id_ = 0;
   FlatHashMap<uint64, GetSecretPhraseQuery> get_secret_phrase_queries_;
-
-  class TonConnectManifest {
-    string url_;
-    string name_;
-    FileId icon_file_id_;
-
-   public:
-    TonConnectManifest(Td *td, telegram_api::object_ptr<telegram_api::tonConnectManifest> &&manifest);
-
-    td_api::object_ptr<td_api::tonConnectManifest> get_ton_connect_manifest_object(Td *td) const;
-  };
 };
 
 }  // namespace td
