@@ -130,6 +130,25 @@ class TonWalletManager final : public Actor {
 
   friend bool operator==(const WalletState &lhs, const WalletState &rhs);
 
+  class WalletGaslessInfo {
+    bool is_available_ = false;
+    int32 left_ = 0;
+    int32 reset_date_ = 0;
+    int64 min_amount_ = 0;
+    string relayer_address_;
+
+    friend bool operator==(const WalletGaslessInfo &lhs, const WalletGaslessInfo &rhs);
+
+   public:
+    WalletGaslessInfo() = default;
+
+    explicit WalletGaslessInfo(telegram_api::object_ptr<telegram_api::updateWalletGaslessInfo> &&wallet_info);
+
+    td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo> get_ton_wallet_gasless_transfers_info_object() const;
+  };
+
+  friend bool operator==(const WalletGaslessInfo &lhs, const WalletGaslessInfo &rhs);
+
   class TonConnectManifest {
     string url_;
     string name_;

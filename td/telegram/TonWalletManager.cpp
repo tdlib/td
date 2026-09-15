@@ -988,6 +988,26 @@ bool operator==(const TonWalletManager::WalletState &lhs, const TonWalletManager
          lhs.address_ == rhs.address_ && lhs.public_key_ == rhs.public_key_ && lhs.balance_ == rhs.balance_;
 }
 
+TonWalletManager::WalletGaslessInfo::WalletGaslessInfo(
+    telegram_api::object_ptr<telegram_api::updateWalletGaslessInfo> &&wallet_info)
+    : is_available_(wallet_info->available_)
+    , left_(wallet_info->left_)
+    , reset_date_(wallet_info->reset_at_)
+    , min_amount_(wallet_info->min_amount_)
+    , relayer_address_(std::move(wallet_info->relayer_address_)) {
+}
+
+td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>
+TonWalletManager::WalletGaslessInfo::get_ton_wallet_gasless_transfers_info_object() const {
+  return td_api::make_object<td_api::tonWalletGaslessTransfersInfo>(is_available_ ? left_ : 0, reset_date_,
+                                                                    is_available_ ? relayer_address_ : string());
+}
+
+bool operator==(const TonWalletManager::WalletGaslessInfo &lhs, const TonWalletManager::WalletGaslessInfo &rhs) {
+  return lhs.is_available_ == rhs.is_available_ && lhs.left_ == rhs.left_ && lhs.reset_date_ == rhs.reset_date_ &&
+         lhs.min_amount_ == rhs.min_amount_ && lhs.relayer_address_ == rhs.relayer_address_;
+}
+
 TonWalletManager::OnRampProvider::OnRampProvider(telegram_api::object_ptr<telegram_api::onrampProviderInfo> &&info)
     : id_(std::move(info->id_))
     , name_(std::move(info->name_))
