@@ -1118,12 +1118,12 @@ void TonWalletManager::on_update_wallet_state(telegram_api::object_ptr<telegram_
   send_update_ton_wallet_state();
 }
 
-td_api::object_ptr<td_api::updateTonWalletState> TonWalletManager::get_update_ton_wallet_state() const {
+td_api::object_ptr<td_api::updateTonWalletState> TonWalletManager::get_update_ton_wallet_state_object() const {
   return td_api::make_object<td_api::updateTonWalletState>(wallet_state_.get_ton_wallet_state_object());
 }
 
 void TonWalletManager::send_update_ton_wallet_state() const {
-  send_closure(G()->td(), &Td::send_update, get_update_ton_wallet_state());
+  send_closure(G()->td(), &Td::send_update, get_update_ton_wallet_state_object());
 }
 
 void TonWalletManager::get_wallet_state(Promise<Unit> &&promise) {
@@ -1140,6 +1140,32 @@ void TonWalletManager::get_wallet_state(Promise<Unit> &&promise) {
     });
     td_->create_handler<GetWalletStateQuery>(std::move(query_promise))->send();
   }
+}
+
+void TonWalletManager::on_update_wallet_gasless_info(
+    telegram_api::object_ptr<telegram_api::updateWalletGaslessInfo> &&wallet_info) {
+  LOG(INFO) << "Receive " << to_string(wallet_info);
+  if (td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive updateWalletGaslessInfo";
+    return;
+  }
+  auto info = WalletGaslessInfo(std::move(wallet_info));
+  if (is_wallet_gasless_info_inited_ && info == wallet_gasless_info_) {
+    return;
+  }
+  is_wallet_gasless_info_inited_ = true;
+  wallet_gasless_info_ = std::move(info);
+  send_update_ton_wallet_gasless_transfers_info();
+}
+
+td_api::object_ptr<td_api::updateTonWalletGaslessTransfersInfo>
+TonWalletManager::get_update_ton_wallet_gasless_transfers_info_object() const {
+  return td_api::make_object<td_api::updateTonWalletGaslessTransfersInfo>(
+      wallet_gasless_info_.get_ton_wallet_gasless_transfers_info_object());
+}
+
+void TonWalletManager::send_update_ton_wallet_gasless_transfers_info() const {
+  send_closure(G()->td(), &Td::send_update, get_update_ton_wallet_gasless_transfers_info_object());
 }
 
 void TonWalletManager::get_existing_wallet_balance(Promise<Unit> &&promise) {
@@ -1810,7 +1836,11 @@ void TonWalletManager::get_current_state(vector<td_api::object_ptr<td_api::Updat
   }
 
   if (is_wallet_state_inited_) {
-    updates.push_back(get_update_ton_wallet_state());
+    updates.push_back(get_update_ton_wallet_state_object());
+  }
+
+  if (is_wallet_gasless_info_inited_) {
+    updates.push_back(get_update_ton_wallet_gasless_transfers_info_object());
   }
 }
 

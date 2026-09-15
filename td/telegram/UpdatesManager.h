@@ -779,6 +779,8 @@ class UpdatesManager final : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateWalletState> update, Promise<Unit> &&promise);
 
+  void on_update(tl_object_ptr<telegram_api::updateWalletGaslessInfo> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateStarsRevenueStatus> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateAiComposeTones> update, Promise<Unit> &&promise);
@@ -796,8 +798,6 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateWalletTonConnectPendingDisconnect> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateSentWalletTransaction> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updateWalletGaslessInfo> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

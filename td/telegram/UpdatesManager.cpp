@@ -5115,6 +5115,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWalletState> up
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWalletGaslessInfo> update, Promise<Unit> &&promise) {
+  td_->ton_wallet_manager_->on_update_wallet_gasless_info(std::move(update));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueStatus> update, Promise<Unit> &&promise) {
   auto dialog_id = DialogId(update->peer_);
   switch (update->status_->current_balance_->get_id()) {
@@ -5168,10 +5173,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWalletTonConnec
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSentWalletTransaction> update,
                                Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWalletGaslessInfo> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

@@ -29,6 +29,8 @@ class TonWalletManager final : public Actor {
 
   void on_update_wallet_state(telegram_api::object_ptr<telegram_api::WalletState> &&wallet_state);
 
+  void on_update_wallet_gasless_info(telegram_api::object_ptr<telegram_api::updateWalletGaslessInfo> &&wallet_info);
+
   void get_wallet_state(Promise<Unit> &&promise);
 
   void get_existing_wallet_balance(Promise<Unit> &&promise);
@@ -162,11 +164,16 @@ class TonWalletManager final : public Actor {
 
   void tear_down() final;
 
-  td_api::object_ptr<td_api::updateTonWalletState> get_update_ton_wallet_state() const;
+  td_api::object_ptr<td_api::updateTonWalletState> get_update_ton_wallet_state_object() const;
 
   void send_update_ton_wallet_state() const;
 
   void on_get_wallet_state(Result<Unit> &&result);
+
+  td_api::object_ptr<td_api::updateTonWalletGaslessTransfersInfo> get_update_ton_wallet_gasless_transfers_info_object()
+      const;
+
+  void send_update_ton_wallet_gasless_transfers_info() const;
 
   void do_get_ton_wallet_secret_phrase(Promise<string> &&promise);
 
@@ -233,6 +240,9 @@ class TonWalletManager final : public Actor {
   WalletState wallet_state_;
 
   vector<Promise<Unit>> get_wallet_state_queries_;
+
+  bool is_wallet_gasless_info_inited_ = false;
+  WalletGaslessInfo wallet_gasless_info_;
 
   struct CurrencyRate {
     string currency_;
