@@ -701,6 +701,18 @@ class RichText {
     }
   }
 
+  void append_user_ids(vector<UserId> &user_ids) const {
+    if (user_id.is_valid()) {
+      user_ids.push_back(user_id);
+    }
+    if (button != nullptr) {
+      auto button_user_id = button->get_user_id();
+      if (button_user_id.is_valid()) {
+        user_ids.push_back(button_user_id);
+      }
+    }
+  }
+
   RichText clone(CloneWebPageBlockContext &context) const {
     RichText result;
     result.type = type;
@@ -5298,17 +5310,7 @@ void WebPageBlock::for_each_text(const std::function<void(Slice text)> &callback
 }
 
 void WebPageBlock::append_user_ids(vector<UserId> &user_ids) const {
-  for_each_rich_text(true, [&](const RichText *text) {
-    if (text->user_id.is_valid()) {
-      user_ids.push_back(text->user_id);
-    }
-    if (text->button != nullptr) {
-      auto user_id = text->button->get_user_id();
-      if (user_id.is_valid()) {
-        user_ids.push_back(user_id);
-      }
-    }
-  });
+  for_each_rich_text(true, [&](const RichText *text) { text->append_user_ids(user_ids); });
 }
 
 bool WebPageBlock::has_bot_commands() const {
