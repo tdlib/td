@@ -173,6 +173,49 @@ class CreateUserWalletAddressQuery final : public Td::ResultHandler {
   }
 };
 
+class GetAddressWalletQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::userTonWalletAddress>> promise_;
+
+ public:
+  explicit GetAddressWalletQuery(Promise<td_api::object_ptr<td_api::userTonWalletAddress>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &address) {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_getUserAddresses(
+        0, false, vector<telegram_api::object_ptr<telegram_api::InputUser>>(), vector<string>{address})));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_getUserAddresses>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetAddressWalletQuery: " << to_string(result);
+
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetUserWalletAddressesQuery");
+
+    if (result->addresses_.size() != 1u) {
+      return on_error(Status::Error(400, "Address not found"));
+    }
+
+    auto address = std::move(result->addresses_[0]);
+    auto user_id = UserId(address->user_id_);
+    if (user_id.is_valid()) {
+      td_->user_manager_->on_update_user_gram_address(user_id, address->address_);
+    }
+    promise_.set_value(td_api::make_object<td_api::userTonWalletAddress>(
+        td_->user_manager_->get_user_id_object(user_id, "userTonWalletAddress"), address->address_,
+        address->public_key_.as_slice().str()));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ExportWalletSecretPhraseQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::wallet_secretPhraseParts>> promise_;
 
@@ -1097,6 +1140,11 @@ void TonWalletManager::create_user_ton_wallet(UserId user_id,
                                               Promise<td_api::object_ptr<td_api::userTonWalletAddress>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
   td_->create_handler<CreateUserWalletAddressQuery>(std::move(promise))->send(std::move(input_user));
+}
+
+void TonWalletManager::get_address_ton_wallet(const string &address,
+                                              Promise<td_api::object_ptr<td_api::userTonWalletAddress>> &&promise) {
+  td_->create_handler<GetAddressWalletQuery>(std::move(promise))->send(address);
 }
 
 void TonWalletManager::get_ton_wallet_secret_phrase(Promise<string> &&promise) {

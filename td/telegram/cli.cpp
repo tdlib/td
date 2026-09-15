@@ -8820,6 +8820,10 @@ class CliClient final : public Actor {
       UserId user_id;
       get_args(args, user_id);
       send_request(td_api::make_object<td_api::createUserTonWallet>(user_id));
+    } else if (op == "gatw") {
+      string address;
+      get_args(args, address);
+      send_request(td_api::make_object<td_api::getAddressTonWallet>(address));
     } else if (op == "gtwsp") {
       send_request(td_api::make_object<td_api::getTonWalletSecretPhrase>());
     } else if (op == "etwb") {

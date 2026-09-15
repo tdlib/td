@@ -15970,6 +15970,9 @@ getUserTonWalletAddresses user_ids:vector<int53> = UserTonWalletAddresses;
 //@description Creates a TON wallet for the specified regular user. The current user must have positive TON wallet balance @user_id Identifier of the user
 createUserTonWallet user_id:int53 = UserTonWalletAddress;
 
+//@description Returns information about a TON wallet with the given address @address Address in the TON blockchain
+getAddressTonWallet address:string = UserTonWalletAddress;
+
 //@description Returns the secret phrase of the user's TON wallet as a space separated list of words. Works only if tonWalletState.can_export_phrase is true
 getTonWalletSecretPhrase = Text;
 
