@@ -119,7 +119,8 @@ class GetUserWalletAddressesQuery final : public Td::ResultHandler {
       auto user_id = UserId(address->user_id_);
       td_->user_manager_->on_update_user_gram_address(user_id, address->address_);
       addresses.push_back(td_api::make_object<td_api::userTonWalletAddress>(
-          td_->user_manager_->get_user_id_object(user_id, "userTonWalletAddress"), address->address_));
+          td_->user_manager_->get_user_id_object(user_id, "userTonWalletAddress"), address->address_,
+          address->public_key_.as_slice().str()));
     }
     promise_.set_value(td_api::make_object<td_api::userTonWalletAddresses>(std::move(addresses)));
   }
