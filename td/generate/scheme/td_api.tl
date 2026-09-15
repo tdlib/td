@@ -2289,7 +2289,6 @@ tonConnectRequestStateAccepted = TonConnectRequestState;
 tonConnectRequestStateRejected = TonConnectRequestState;
 
 
-
 //@class TonWalletTransactionState @description Describes state of a transaction with a TON wallet
 
 //@description The transaction succeeded @tx_hash Hash of the transaction
@@ -2304,9 +2303,10 @@ tonWalletTransactionStateFailed = TonWalletTransactionState;
 //@description A transfer of TON Grams to or from the wallet
 //@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
 //@fee_amount The fee amount paid for the transaction, in the smallest units of the cryptocurrency
+//@is_gasless True, if the fee was paid by Telegram
 //@comment Comment added to the transaction
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
-tonWalletTransactionTypeTransfer amount:int53 fee_amount:int53 comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
+tonWalletTransactionTypeTransfer amount:int53 fee_amount:int53 is_gasless:Bool comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
 
 //@description Change of the wallet key
 //@fee_amount The fee amount paid for the transaction in TON Grams, in the smallest units of the cryptocurrency

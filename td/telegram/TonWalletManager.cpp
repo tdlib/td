@@ -505,7 +505,7 @@ static td_api::object_ptr<td_api::tonWalletTransaction> get_ton_wallet_transacti
       return td_api::make_object<td_api::tonWalletTransactionTypeKeyChange>(transaction->fee_);
     }
     return td_api::make_object<td_api::tonWalletTransactionTypeTransfer>(
-        amount, transaction->fee_, transaction->comment_, transaction->comment_encrypted_);
+        amount, transaction->fee_, transaction->gasless_, transaction->comment_, transaction->comment_encrypted_);
   }();
   return td_api::make_object<td_api::tonWalletTransaction>(
       transaction->id_, peer_address, td->user_manager_->get_user_id_object(peer_user_id, "tonWalletTransaction"),
