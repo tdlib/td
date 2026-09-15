@@ -15967,9 +15967,8 @@ checkWalletBotBalance = Ok;
 //@user_ids Identifiers of the users, which wallet addresses have to be returned. If a user has no TON wallet, it will be skipped in the result
 getUserTonWalletAddresses user_ids:vector<int53> = UserTonWalletAddresses;
 
-//@description Creates a TON wallet for the specified regular user. The current user must have positive TON wallet balance. Returns the address of the TON wallet of the user
-//@user_id Identifier of the user
-createUserTonWallet user_id:int53 = Text;
+//@description Creates a TON wallet for the specified regular user. The current user must have positive TON wallet balance @user_id Identifier of the user
+createUserTonWallet user_id:int53 = UserTonWalletAddress;
 
 //@description Returns the secret phrase of the user's TON wallet as a space separated list of words. Works only if tonWalletState.can_export_phrase is true
 getTonWalletSecretPhrase = Text;

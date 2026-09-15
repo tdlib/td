@@ -7963,7 +7963,7 @@ void Requests::on_request(uint64 id, const td_api::getUserTonWalletAddresses &re
 
 void Requests::on_request(uint64 id, const td_api::createUserTonWallet &request) {
   CHECK_IS_USER();
-  CREATE_TEXT_REQUEST_PROMISE();
+  CREATE_REQUEST_PROMISE();
   td_->ton_wallet_manager_->create_user_ton_wallet(UserId(request.user_id_), std::move(promise));
 }
 

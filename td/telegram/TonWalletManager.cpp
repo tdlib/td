@@ -131,10 +131,11 @@ class GetUserWalletAddressesQuery final : public Td::ResultHandler {
 };
 
 class CreateUserWalletAddressQuery final : public Td::ResultHandler {
-  Promise<string> promise_;
+  Promise<td_api::object_ptr<td_api::userTonWalletAddress>> promise_;
 
  public:
-  explicit CreateUserWalletAddressQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  explicit CreateUserWalletAddressQuery(Promise<td_api::object_ptr<td_api::userTonWalletAddress>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
@@ -159,9 +160,12 @@ class CreateUserWalletAddressQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Failed to create TON wallet address"));
     }
 
-    auto user_id = UserId(result->addresses_[0]->user_id_);
-    td_->user_manager_->on_update_user_gram_address(user_id, result->addresses_[0]->address_);
-    promise_.set_value(std::move(result->addresses_[0]->address_));
+    auto address = std::move(result->addresses_[0]);
+    auto user_id = UserId(address->user_id_);
+    td_->user_manager_->on_update_user_gram_address(user_id, address->address_);
+    promise_.set_value(td_api::make_object<td_api::userTonWalletAddress>(
+        td_->user_manager_->get_user_id_object(user_id, "userTonWalletAddress"), address->address_,
+        address->public_key_.as_slice().str()));
   }
 
   void on_error(Status status) final {
@@ -1089,7 +1093,8 @@ void TonWalletManager::get_user_addresses(vector<UserId> user_ids,
   td_->create_handler<GetUserWalletAddressesQuery>(std::move(promise))->send(std::move(input_users));
 }
 
-void TonWalletManager::create_user_ton_wallet(UserId user_id, Promise<string> &&promise) {
+void TonWalletManager::create_user_ton_wallet(UserId user_id,
+                                              Promise<td_api::object_ptr<td_api::userTonWalletAddress>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
   td_->create_handler<CreateUserWalletAddressQuery>(std::move(promise))->send(std::move(input_user));
 }
