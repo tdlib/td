@@ -713,6 +713,12 @@ class RichText {
     }
   }
 
+  void append_custom_emoji_ids(vector<CustomEmojiId> &custom_emoji_ids) const {
+    if (custom_emoji_id.is_valid()) {
+      custom_emoji_ids.push_back(custom_emoji_id);
+    }
+  }
+
   bool is_bot_command() const {
     return type == Type::BotCommand;
   }
@@ -5351,11 +5357,7 @@ vector<string> WebPageBlock::get_hashtags() const {
 
 vector<CustomEmojiId> WebPageBlock::get_custom_emoji_ids() const {
   vector<CustomEmojiId> custom_emoji_ids;
-  for_each_rich_text(true, [&](const RichText *text) {
-    if (text->custom_emoji_id.is_valid()) {
-      custom_emoji_ids.push_back(text->custom_emoji_id);
-    }
-  });
+  for_each_rich_text(true, [&](const RichText *text) { text->append_custom_emoji_ids(custom_emoji_ids); });
   return custom_emoji_ids;
 }
 
