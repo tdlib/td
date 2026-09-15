@@ -4760,6 +4760,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::acceptTermsOfService>(args));
     } else if (op == "gdli") {
       send_request(td_api::make_object<td_api::getDeepLinkInfo>(args));
+    } else if (op == "dwt") {
+      send_request(td_api::make_object<td_api::dismissWebToken>(args));
     } else if (op == "tme") {
       send_request(td_api::make_object<td_api::getRecentlyVisitedTMeUrls>(args));
     } else if (op == "gbms") {

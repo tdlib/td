@@ -62,6 +62,8 @@ class AccountManager final : public Actor {
 
   void disconnect_all_websites(Promise<Unit> &&promise);
 
+  void cancel_web_token(const string &token, Promise<Unit> &&promise);
+
   void get_user_link(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
   void import_contact_token(const string &token, Promise<td_api::object_ptr<td_api::user>> &&promise);

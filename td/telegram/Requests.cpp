@@ -9460,16 +9460,16 @@ void Requests::on_request(uint64 id, td_api::getCollectibleItemInfo &request) {
   get_collectible_info(td_, std::move(request.type_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getApplicationDownloadLink &request) {
-  CHECK_IS_USER();
-  CREATE_HTTP_URL_REQUEST_PROMISE();
-  get_invite_text(td_, std::move(promise));
-}
-
 void Requests::on_request(uint64 id, td_api::getDeepLinkInfo &request) {
   CLEAN_INPUT_STRING(request.link_);
   CREATE_REQUEST_PROMISE();
   td_->link_manager_->get_deep_link_info(request.link_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, td_api::dismissWebToken &request) {
+  CLEAN_INPUT_STRING(request.token_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->account_manager_->cancel_web_token(request.token_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getApplicationConfig &request) {
@@ -9484,6 +9484,12 @@ void Requests::on_request(uint64 id, td_api::saveApplicationLogEvent &request) {
   CREATE_OK_REQUEST_PROMISE();
   save_app_log(td_, request.type_, DialogId(request.chat_id_), convert_json_value(std::move(request.data_)),
                std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::getApplicationDownloadLink &request) {
+  CHECK_IS_USER();
+  CREATE_HTTP_URL_REQUEST_PROMISE();
+  get_invite_text(td_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::addProxy &request) {

@@ -542,6 +542,31 @@ class ResetWebAuthorizationsQuery final : public Td::ResultHandler {
   }
 };
 
+class CancelWebTokenAuthorizationQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit CancelWebTokenAuthorizationQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &token) {
+    send_query(G()->net_query_creator().create(telegram_api::auth_cancelWebTokenAuthorization(token)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::auth_cancelWebTokenAuthorization>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ExportContactTokenQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::userLink>> promise_;
 
@@ -1200,6 +1225,10 @@ void AccountManager::reset_web_authorizations_on_server(uint64 log_event_id, Pro
 
 void AccountManager::disconnect_all_websites(Promise<Unit> &&promise) {
   reset_web_authorizations_on_server(0, std::move(promise));
+}
+
+void AccountManager::cancel_web_token(const string &token, Promise<Unit> &&promise) {
+  td_->create_handler<CancelWebTokenAuthorizationQuery>(std::move(promise))->send(token);
 }
 
 void AccountManager::get_user_link(Promise<td_api::object_ptr<td_api::userLink>> &&promise) {

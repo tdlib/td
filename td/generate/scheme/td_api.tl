@@ -16514,6 +16514,10 @@ getCollectibleItemInfo type:CollectibleItemType = CollectibleItemInfo;
 getDeepLinkInfo link:string = DeepLinkInfo;
 
 
+//@description Dismissess a received web token without consumption; for official Telegram apps only @token The token to dismiss
+dismissWebToken token:string = Ok;
+
+
 //@description Returns application config, provided by the server. Can be called before authorization
 getApplicationConfig = JsonValue;
 
