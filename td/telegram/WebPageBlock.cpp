@@ -717,6 +717,10 @@ class RichText {
     return type == Type::BotCommand;
   }
 
+  bool is_hashtag() const {
+    return type == Type::Hashtag;
+  }
+
   RichText clone(CloneWebPageBlockContext &context) const {
     RichText result;
     result.type = type;
@@ -5330,7 +5334,7 @@ bool WebPageBlock::has_bot_commands() const {
 vector<string> WebPageBlock::get_hashtags() const {
   vector<string> result;
   for_each_rich_text(true, [&](const RichText *text) {
-    if (text->type == RichText::Type::Hashtag) {
+    if (text->is_hashtag()) {
       auto hashtag = text->get_full_text();
       if (!hashtag.empty()) {
         if (hashtag[0] == '#') {
