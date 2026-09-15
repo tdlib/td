@@ -7949,6 +7949,12 @@ void Requests::on_request(uint64 id, const td_api::loadTonWalletState &request) 
   td_->ton_wallet_manager_->get_wallet_state(std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::loadTonWalletGaslessTransfersInfo &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->get_ton_wallet_gasless_info(std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::checkWalletBotBalance &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
@@ -7993,12 +7999,6 @@ void Requests::on_request(uint64 id, td_api::disableTonWalletBackup &request) {
   CLEAN_INPUT_STRING(request.password_);
   CREATE_OK_REQUEST_PROMISE();
   td_->ton_wallet_manager_->disable_ton_wallet_backup(request.password_, std::move(promise));
-}
-
-void Requests::on_request(uint64 id, const td_api::getTonWalletGaslessTransfersInfo &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  td_->ton_wallet_manager_->get_ton_wallet_gasless_info(std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::sendTonWalletTransfer &request) {

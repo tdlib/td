@@ -49,7 +49,7 @@ class TonWalletManager final : public Actor {
 
   void disable_ton_wallet_backup(const string &password, Promise<Unit> &&promise);
 
-  void get_ton_wallet_gasless_info(Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> &&promise);
+  void get_ton_wallet_gasless_info(Promise<Unit> &&promise);
 
   void send_ton_wallet_transfer(const string &data_normal, const string &data_gasless,
                                 Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise);

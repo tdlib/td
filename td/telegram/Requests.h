@@ -1708,6 +1708,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::loadTonWalletState &request);
 
+  void on_request(uint64 id, const td_api::loadTonWalletGaslessTransfersInfo &request);
+
   void on_request(uint64 id, const td_api::checkWalletBotBalance &request);
 
   void on_request(uint64 id, const td_api::getUserTonWalletAddresses &request);
@@ -1721,8 +1723,6 @@ class Requests {
   void on_request(uint64 id, td_api::enableTonWalletBackup &request);
 
   void on_request(uint64 id, td_api::disableTonWalletBackup &request);
-
-  void on_request(uint64 id, const td_api::getTonWalletGaslessTransfersInfo &request);
 
   void on_request(uint64 id, const td_api::sendTonWalletTransfer &request);
 

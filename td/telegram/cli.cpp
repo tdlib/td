@@ -8812,6 +8812,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getTonWalletTransactionByMsgHash>(msg_hash));
     } else if (op == "ltws") {
       send_request(td_api::make_object<td_api::loadTonWalletState>());
+    } else if (op == "ltwgti") {
+      send_request(td_api::make_object<td_api::loadTonWalletGaslessTransfersInfo>());
     } else if (op == "cwbb") {
       send_request(td_api::make_object<td_api::checkWalletBotBalance>());
     } else if (op == "gutwa") {
@@ -8835,8 +8837,6 @@ class CliClient final : public Actor {
       string password;
       get_args(args, password);
       send_request(td_api::make_object<td_api::disableTonWalletBackup>(password));
-    } else if (op == "gtwgti") {
-      send_request(td_api::make_object<td_api::getTonWalletGaslessTransfersInfo>());
     } else if (op == "stwt") {
       string regular_transfer_data;
       string gasless_transfer_data;

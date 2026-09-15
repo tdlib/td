@@ -15963,6 +15963,9 @@ getTonWalletTransactionByMsgHash msg_hash:string = TonWalletTransaction;
 //@description Loads state of the TON wallet of the current user
 loadTonWalletState = Ok;
 
+//@description Loads or reloads the current state of gasless transfers for the current user
+loadTonWalletGaslessTransfersInfo = Ok;
+
 //@description Returns Ok if the current user has positive TON Gram balance in the bot https://t.me/wallet
 checkWalletBotBalance = Ok;
 
@@ -15987,9 +15990,6 @@ enableTonWalletBackup password:string secret_phrase:string = Ok;
 //@description Disables backup of the TON wallet of the user. Works only if tonWalletState.is_backup_enabled is true
 //@password Password of the current user; pass an empty string if the user has no password
 disableTonWalletBackup password:string = Ok;
-
-//@description Returns the current state of gasless transfers for the current user
-getTonWalletGaslessTransfersInfo = TonWalletGaslessTransfersInfo;
 
 //@description Sends a cryptocurrency from the user's TON wallet
 //@regular_transfer_data Serialized data for regular cryptocurrency transfer request. The minimum allowed transfer amount is getOption("ton_wallet_transfer_amount_min")

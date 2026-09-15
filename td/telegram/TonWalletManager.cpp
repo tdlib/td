@@ -16,6 +16,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
 
 #include "td/e2e/e2e_api.h"
@@ -336,11 +337,10 @@ class DisableWalletBackupQuery final : public Td::ResultHandler {
 };
 
 class GetWalletGaslessInfoQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> promise_;
+  Promise<Unit> promise_;
 
  public:
-  explicit GetWalletGaslessInfoQuery(Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> &&promise)
-      : promise_(std::move(promise)) {
+  explicit GetWalletGaslessInfoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send() {
@@ -355,7 +355,7 @@ class GetWalletGaslessInfoQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetWalletGaslessInfoQuery: " << to_string(result);
-    promise_.set_value(nullptr);
+    td_->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -1416,8 +1416,7 @@ void TonWalletManager::do_disable_ton_wallet_backup(
   td_->create_handler<DisableWalletBackupQuery>(std::move(promise))->send(std::move(input_password));
 }
 
-void TonWalletManager::get_ton_wallet_gasless_info(
-    Promise<td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>> &&promise) {
+void TonWalletManager::get_ton_wallet_gasless_info(Promise<Unit> &&promise) {
   td_->create_handler<GetWalletGaslessInfoQuery>(std::move(promise))->send();
 }
 
