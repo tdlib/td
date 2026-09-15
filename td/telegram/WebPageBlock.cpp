@@ -713,6 +713,10 @@ class RichText {
     }
   }
 
+  bool is_bot_command() const {
+    return type == Type::BotCommand;
+  }
+
   RichText clone(CloneWebPageBlockContext &context) const {
     RichText result;
     result.type = type;
@@ -5316,7 +5320,7 @@ void WebPageBlock::append_user_ids(vector<UserId> &user_ids) const {
 bool WebPageBlock::has_bot_commands() const {
   bool result = false;
   for_each_rich_text(true, [&](const RichText *text) {
-    if (text->type == RichText::Type::BotCommand) {
+    if (text->is_bot_command()) {
       result = true;
     }
   });
