@@ -1664,6 +1664,17 @@ telegram_api::object_ptr<telegram_api::StoryItem> UpdatesManager::extract_story(
   return nullptr;
 }
 
+telegram_api::object_ptr<telegram_api::updateSentWalletTransaction> UpdatesManager::extract_sent_wallet_transaction(
+    telegram_api::Updates *updates_ptr) {
+  auto updates = get_updates(updates_ptr);
+  for (auto it = updates->begin(); it != updates->end(); ++it) {
+    if ((*it)->get_id() == telegram_api::updateSentWalletTransaction::ID) {
+      return telegram_api::move_object_as<telegram_api::updateSentWalletTransaction>(*it);
+    }
+  }
+  return nullptr;
+}
+
 vector<DialogId> UpdatesManager::get_update_notify_settings_dialog_ids(const telegram_api::Updates *updates_ptr) {
   vector<DialogId> dialog_ids;
   auto updates = get_updates(updates_ptr);
@@ -5120,6 +5131,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWalletGaslessIn
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSentWalletTransaction> update,
+                               Promise<Unit> &&promise) {
+  LOG(INFO) << "Ignore unexpected " << to_string(update);
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueStatus> update, Promise<Unit> &&promise) {
   auto dialog_id = DialogId(update->peer_);
   switch (update->status_->current_balance_->get_id()) {
@@ -5167,11 +5184,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWalletTonConnec
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWalletTonConnectPendingDisconnect> update,
-                               Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSentWalletTransaction> update,
                                Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
