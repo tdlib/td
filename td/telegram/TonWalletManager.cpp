@@ -997,6 +997,19 @@ TonWalletManager::WalletGaslessInfo::WalletGaslessInfo(
     , relayer_address_(std::move(wallet_info->relayer_address_)) {
 }
 
+int32 TonWalletManager::WalletGaslessInfo::try_reset() {
+  if (reset_date_ == 0) {
+    return 0;
+  }
+  auto now = G()->unix_time();
+  if (reset_date_ > now) {
+    return reset_date_ - now + 1;
+  }
+  reset_date_ = 0;
+  left_ = static_cast<int32>(min(G()->get_option_integer("ton_wallet_gasless_transfer_daily_count", 0), static_cast<int64>(1000000)));
+  return 0;
+}
+
 td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo>
 TonWalletManager::WalletGaslessInfo::get_ton_wallet_gasless_transfers_info_object() const {
   return td_api::make_object<td_api::tonWalletGaslessTransfersInfo>(is_available_ ? left_ : 0, reset_date_,
@@ -1098,6 +1111,19 @@ td_api::object_ptr<td_api::TonConnectManifest> TonWalletManager::TonConnectManif
 TonWalletManager::TonWalletManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
+void TonWalletManager::timeout_expired() {
+  if (is_wallet_gasless_info_inited_) {
+    auto old_info = wallet_gasless_info_;
+    auto reset_in = wallet_gasless_info_.try_reset();
+    if (reset_in > 0) {
+      set_timeout_in(reset_in);
+    }
+    if (!(old_info == wallet_gasless_info_)) {
+      send_update_ton_wallet_gasless_transfers_info();
+    }
+  }
+}
+
 void TonWalletManager::tear_down() {
   parent_.reset();
 }
@@ -1155,6 +1181,10 @@ void TonWalletManager::on_update_wallet_gasless_info(
   }
   is_wallet_gasless_info_inited_ = true;
   wallet_gasless_info_ = std::move(info);
+  auto reset_in = wallet_gasless_info_.try_reset();
+  if (reset_in > 0) {
+    set_timeout_in(reset_in);
+  }
   send_update_ton_wallet_gasless_transfers_info();
 }
 

@@ -146,6 +146,8 @@ class TonWalletManager final : public Actor {
 
     explicit WalletGaslessInfo(telegram_api::object_ptr<telegram_api::updateWalletGaslessInfo> &&wallet_info);
 
+    int32 try_reset();
+
     td_api::object_ptr<td_api::tonWalletGaslessTransfersInfo> get_ton_wallet_gasless_transfers_info_object() const;
   };
 
@@ -161,6 +163,8 @@ class TonWalletManager final : public Actor {
 
     td_api::object_ptr<td_api::TonConnectManifest> get_ton_connect_manifest_object(Td *td) const;
   };
+
+  void timeout_expired() final;
 
   void tear_down() final;
 
