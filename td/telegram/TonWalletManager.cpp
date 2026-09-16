@@ -368,40 +368,6 @@ class GetWalletGaslessInfoQuery final : public Td::ResultHandler {
   }
 };
 
-class SendWalletTransferQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> promise_;
-
- public:
-  explicit SendWalletTransferQuery(Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise)
-      : promise_(std::move(promise)) {
-  }
-
-  void send(const string &data_normal, const string &data_gasless) {
-    int32 flags = 0;
-    if (!data_gasless.empty()) {
-      flags |= telegram_api::wallet_sendTransfer::DATA_GASLESS_MASK;
-    }
-    send_query(G()->net_query_creator().create(telegram_api::wallet_sendTransfer(
-        flags, BufferSlice(data_normal), BufferSlice(data_gasless),
-        telegram_api::make_object<telegram_api::inputUserEmpty>(), Random::secure_int64())));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::wallet_sendTransfer>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendWalletTransferQuery: " << to_string(result);
-    promise_.set_value(nullptr);
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetWalletProofChallengeQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::wallet_proofChallenge>> promise_;
 
@@ -466,6 +432,9 @@ class ReplaceWalletQuery final : public Td::ResultHandler {
 
 static td_api::object_ptr<td_api::tonWalletTransaction> get_ton_wallet_transaction_object(
     const Td *td, telegram_api::object_ptr<telegram_api::walletTransaction> &&transaction) {
+  if (transaction == nullptr) {
+    return nullptr;
+  }
   string peer_address;
   UserId peer_user_id;
   string peer_domain;
@@ -609,6 +578,51 @@ class GetTonWalletTransactionQuery final : public Td::ResultHandler {
     }
 
     promise_.set_value(get_ton_wallet_transaction_object(td_, std::move(result->transactions_[0])));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SendWalletTransferQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> promise_;
+
+ public:
+  explicit SendWalletTransferQuery(Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &data_normal, const string &data_gasless) {
+    int32 flags = 0;
+    if (!data_gasless.empty()) {
+      flags |= telegram_api::wallet_sendTransfer::DATA_GASLESS_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::wallet_sendTransfer(
+        flags, BufferSlice(data_normal), BufferSlice(data_gasless),
+        telegram_api::make_object<telegram_api::inputUserEmpty>(), Random::secure_int64())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_sendTransfer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendWalletTransferQuery: " << to_string(result);
+    auto sent_wallet_transaction = UpdatesManager::extract_sent_wallet_transaction(result.get());
+    if (sent_wallet_transaction == nullptr) {
+      LOG(ERROR) << "Receive " << to_string(result);
+      return on_error(Status::Error(500, "Receive no sent wallet transaction"));
+    }
+    auto transfer_result = td_api::make_object<td_api::tonWalletTransferResult>(
+        sent_wallet_transaction->gasless_, sent_wallet_transaction->msg_hash_,
+        get_ton_wallet_transaction_object(td_, std::move(sent_wallet_transaction->transaction_)));
+    td_->updates_manager_->on_get_updates(
+        std::move(result),
+        PromiseCreator::lambda([transfer_result = std::move(transfer_result), promise = std::move(promise_)](
+                                   Result<Unit>) mutable { return promise.set_value(std::move(transfer_result)); }));
   }
 
   void on_error(Status status) final {

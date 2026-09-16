@@ -2206,13 +2206,6 @@ userTonWalletAddresses addresses:vector<userTonWalletAddress> = UserTonWalletAdd
 //@relayer_address Address of the relayer for gasless transfers; may be empty if unavailable
 tonWalletGaslessTransfersInfo left_count:int32 reset_date:int32 relayer_address:string = TonWalletGaslessTransfersInfo;
 
-//@description Represents result of cryptocurrency transfer from the current user's TON wallet
-//@is_gasless True, if the transfer is gasless
-//@msg_hash Unique identifier of the sent message; use getTonWalletTransactionByMsgHash to poll information about the transaction
-//@left_gasless_transfer_count Number of left gasless transfers. The daily available number of gasless transfers is available as getOption("ton_wallet_gasless_transfer_daily_count_max")
-//@gasless_transfer_reset_date Point in time (Unix timestamp) when the number of left gasless transfers will be reset; 0 if never
-tonWalletTransferResult is_gasless:Bool msg_hash:bytes left_gasless_transfer_count:int32 gasless_transfer_reset_date:int32 = TonWalletTransferResult;
-
 //@description Describes exchange rate of a currency to USD
 //@currency ISO 4217 currency code of the payment currency
 //@rate Exchange rate of the currency to USD
@@ -2286,19 +2279,6 @@ onRampPaymentSession session_id:string expiration_date:int32 url:string = OnRamp
 tonWalletState address:string public_key:bytes gram_amount:int53 is_being_created:Bool is_backup_enabled:Bool can_enable_backup:Bool can_export_phrase:Bool = TonWalletState;
 
 
-//@class TonConnectRequestState @description Describes state of a request received from a dApp through TON Connect
-
-//@description The request must be accepted or rejected if it isn't expired yet
-//@expiration_date Point in time (Unix timestamp) when the request will expire or has expired
-tonConnectRequestStatePending expiration_date:int32 = TonConnectRequestState;
-
-//@description The request was accepted
-tonConnectRequestStateAccepted = TonConnectRequestState;
-
-//@description The request was rejected
-tonConnectRequestStateRejected = TonConnectRequestState;
-
-
 //@class TonWalletTransactionState @description Describes state of a transaction with a TON wallet
 
 //@description The transaction succeeded @tx_hash Hash of the transaction
@@ -2340,6 +2320,19 @@ tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domai
 tonWalletTransactions gram_amount:int53 transactions:vector<tonWalletTransaction> next_offset:string = TonWalletTransactions;
 
 
+//@class TonConnectRequestState @description Describes state of a request received from a dApp through TON Connect
+
+//@description The request must be accepted or rejected if it isn't expired yet
+//@expiration_date Point in time (Unix timestamp) when the request will expire or has expired
+tonConnectRequestStatePending expiration_date:int32 = TonConnectRequestState;
+
+//@description The request was accepted
+tonConnectRequestStateAccepted = TonConnectRequestState;
+
+//@description The request was rejected
+tonConnectRequestStateRejected = TonConnectRequestState;
+
+
 //@class TonConnectManifest @description Describes manifest of the dApp that is being connected using TON Connect
 
 //@description The manifest is being downloaded
@@ -2356,6 +2349,13 @@ tonConnectManifestFailed = TonConnectManifest;
 
 //@description The manifest is invalid
 tonConnectManifestInvalid = TonConnectManifest;
+
+
+//@description Represents result of cryptocurrency transfer from the current user's TON wallet
+//@is_gasless True, if the transfer is gasless
+//@msg_hash Unique identifier of the sent message; use getTonWalletTransactionByMsgHash to poll information about the transaction
+//@transaction The completed transaction; may be null if the transaction is still pending
+tonWalletTransferResult is_gasless:Bool msg_hash:bytes transaction:tonWalletTransaction = TonWalletTransferResult;
 
 
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
