@@ -152,16 +152,16 @@ class RichText {
     Diff,
     Button
   };
-  Type type = Type::Plain;
-  string content;
-  vector<RichText> texts;
-  FileId document_file_id;
-  CustomEmojiId custom_emoji_id;
-  WebPageId web_page_id;
-  FormattedDate date;
-  UserId user_id;
-  RichButtonStyle button_style;
-  unique_ptr<InlineKeyboardButton> button;
+  Type type_ = Type::Plain;
+  string content_;
+  vector<RichText> texts_;
+  FileId document_file_id_;
+  CustomEmojiId custom_emoji_id_;
+  WebPageId web_page_id_;
+  FormattedDate date_;
+  UserId user_id_;
+  RichButtonStyle button_style_;
+  unique_ptr<InlineKeyboardButton> button_;
 
   RichText(telegram_api::object_ptr<telegram_api::RichText> &&rich_text_ptr,
            const FlatHashMap<int64, FileId> &documents) {
@@ -172,93 +172,93 @@ class RichText {
         break;
       case telegram_api::textPlain::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textPlain>(rich_text_ptr);
-        content = std::move(rich_text->text_);
+        content_ = std::move(rich_text->text_);
         break;
       }
       case telegram_api::textBold::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textBold>(rich_text_ptr);
-        type = Type::Bold;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Bold;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textItalic::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textItalic>(rich_text_ptr);
-        type = Type::Italic;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Italic;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textUnderline::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textUnderline>(rich_text_ptr);
-        type = Type::Underline;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Underline;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textStrike::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textStrike>(rich_text_ptr);
-        type = Type::Strikethrough;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Strikethrough;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textFixed::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textFixed>(rich_text_ptr);
-        type = Type::Fixed;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Fixed;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textUrl::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textUrl>(rich_text_ptr);
-        type = Type::Url;
-        content = std::move(rich_text->url_);
-        texts.emplace_back(std::move(rich_text->text_), documents);
-        web_page_id = WebPageId(rich_text->webpage_id_);
+        type_ = Type::Url;
+        content_ = std::move(rich_text->url_);
+        texts_.emplace_back(std::move(rich_text->text_), documents);
+        web_page_id_ = WebPageId(rich_text->webpage_id_);
         break;
       }
       case telegram_api::textEmail::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textEmail>(rich_text_ptr);
-        type = Type::EmailAddress;
-        content = std::move(rich_text->email_);
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::EmailAddress;
+        content_ = std::move(rich_text->email_);
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textConcat::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textConcat>(rich_text_ptr);
-        type = Type::Concatenation;
-        texts = get_rich_texts(std::move(rich_text->texts_), documents);
+        type_ = Type::Concatenation;
+        texts_ = get_rich_texts(std::move(rich_text->texts_), documents);
         break;
       }
       case telegram_api::textSubscript::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textSubscript>(rich_text_ptr);
-        type = Type::Subscript;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Subscript;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textSuperscript::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textSuperscript>(rich_text_ptr);
-        type = Type::Superscript;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Superscript;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textMarked::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textMarked>(rich_text_ptr);
-        type = Type::Marked;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Marked;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textPhone::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textPhone>(rich_text_ptr);
-        type = Type::PhoneNumber;
-        content = std::move(rich_text->phone_);
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::PhoneNumber;
+        content_ = std::move(rich_text->phone_);
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textImage::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textImage>(rich_text_ptr);
         auto it = documents.find(rich_text->document_id_);
         if (it != documents.end()) {
-          type = Type::Icon;
-          document_file_id = it->second;
+          type_ = Type::Icon;
+          document_file_id_ = it->second;
           Dimensions dimensions = get_dimensions(rich_text->w_, rich_text->h_, "textImage");
-          content = PSTRING() << (dimensions.width * static_cast<uint32>(65536) + dimensions.height);
+          content_ = PSTRING() << (dimensions.width * static_cast<uint32>(65536) + dimensions.height);
         } else {
           LOG(ERROR) << "Can't find document " << rich_text->document_id_;
         }
@@ -266,86 +266,86 @@ class RichText {
       }
       case telegram_api::textAnchor::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textAnchor>(rich_text_ptr);
-        type = Type::Anchor;
-        content = std::move(rich_text->name_);
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Anchor;
+        content_ = std::move(rich_text->name_);
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textMath::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textMath>(rich_text_ptr);
-        type = Type::Math;
-        content = std::move(rich_text->source_);
+        type_ = Type::Math;
+        content_ = std::move(rich_text->source_);
         break;
       }
       case telegram_api::textCustomEmoji::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textCustomEmoji>(rich_text_ptr);
-        type = Type::CustomEmoji;
-        custom_emoji_id = CustomEmojiId(rich_text->document_id_);
-        content = std::move(rich_text->alt_);
+        type_ = Type::CustomEmoji;
+        custom_emoji_id_ = CustomEmojiId(rich_text->document_id_);
+        content_ = std::move(rich_text->alt_);
         break;
       }
       case telegram_api::textSpoiler::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textSpoiler>(rich_text_ptr);
-        type = Type::Spoiler;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Spoiler;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textMention::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textMention>(rich_text_ptr);
-        type = Type::Mention;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Mention;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textHashtag::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textHashtag>(rich_text_ptr);
-        type = Type::Hashtag;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Hashtag;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textBotCommand::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textBotCommand>(rich_text_ptr);
-        type = Type::BotCommand;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::BotCommand;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textCashtag::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textCashtag>(rich_text_ptr);
-        type = Type::Cashtag;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::Cashtag;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textAutoUrl::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textAutoUrl>(rich_text_ptr);
-        type = Type::AutoUrl;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::AutoUrl;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textAutoEmail::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textAutoEmail>(rich_text_ptr);
-        type = Type::AutoEmailAddress;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::AutoEmailAddress;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textAutoPhone::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textAutoPhone>(rich_text_ptr);
-        type = Type::AutoPhoneNumber;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::AutoPhoneNumber;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textBankCard::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textBankCard>(rich_text_ptr);
-        type = Type::BankCardNumber;
-        texts.emplace_back(std::move(rich_text->text_), documents);
+        type_ = Type::BankCardNumber;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
         break;
       }
       case telegram_api::textMentionName::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textMentionName>(rich_text_ptr);
-        type = Type::MentionName;
-        texts.emplace_back(std::move(rich_text->text_), documents);
-        user_id = UserId(rich_text->user_id_);
-        if (!user_id.is_valid()) {
-          LOG(ERROR) << "Receive " << user_id;
-          user_id = UserId();
+        type_ = Type::MentionName;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
+        user_id_ = UserId(rich_text->user_id_);
+        if (!user_id_.is_valid()) {
+          LOG(ERROR) << "Receive " << user_id_;
+          user_id_ = UserId();
         }
         break;
       }
@@ -357,24 +357,24 @@ class RichText {
         if (!formatted_date.is_valid()) {
           break;
         }
-        type = Type::FormattedDate;
-        texts.emplace_back(std::move(rich_text->text_), documents);
-        date = std::move(formatted_date);
+        type_ = Type::FormattedDate;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
+        date_ = std::move(formatted_date);
         break;
       }
       case telegram_api::textDiff::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textDiff>(rich_text_ptr);
-        type = Type::Diff;
-        texts.emplace_back(std::move(rich_text->text_), documents);
-        texts.emplace_back(std::move(rich_text->old_text_), documents);
+        type_ = Type::Diff;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
+        texts_.emplace_back(std::move(rich_text->old_text_), documents);
         break;
       }
       case telegram_api::textButton::ID: {
         auto rich_text = telegram_api::move_object_as<telegram_api::textButton>(rich_text_ptr);
-        type = Type::Button;
-        texts.emplace_back(std::move(rich_text->text_), documents);
-        button_style = RichButtonStyle(std::move(rich_text->style_));
-        button = make_unique<InlineKeyboardButton>(telegram_api::make_object<telegram_api::keyboardInlineButton>(
+        type_ = Type::Button;
+        texts_.emplace_back(std::move(rich_text->text_), documents);
+        button_style_ = RichButtonStyle(std::move(rich_text->style_));
+        button_ = make_unique<InlineKeyboardButton>(telegram_api::make_object<telegram_api::keyboardInlineButton>(
             0, nullptr, "1", std::move(rich_text->type_)));
         break;
       }
@@ -394,73 +394,73 @@ class RichText {
         if (!clean_input_string(text->text_)) {
           return Status::Error(400, "Rich text must be encoded in UTF-8");
         }
-        result.type = Type::Plain;
-        result.content = std::move(text->text_);
+        result.type_ = Type::Plain;
+        result.content_ = std::move(text->text_);
         break;
       }
       case td_api::richTextBold::ID: {
         auto text = td_api::move_object_as<td_api::richTextBold>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Bold;
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Bold;
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextItalic::ID: {
         auto text = td_api::move_object_as<td_api::richTextItalic>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Italic;
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Italic;
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextUnderline::ID: {
         auto text = td_api::move_object_as<td_api::richTextUnderline>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Underline;
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Underline;
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextStrikethrough::ID: {
         auto text = td_api::move_object_as<td_api::richTextStrikethrough>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Strikethrough;
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Strikethrough;
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextSpoiler::ID: {
         auto text = td_api::move_object_as<td_api::richTextSpoiler>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Spoiler;
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Spoiler;
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextSubscript::ID: {
         auto text = td_api::move_object_as<td_api::richTextSubscript>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Subscript;
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Subscript;
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextSuperscript::ID: {
         auto text = td_api::move_object_as<td_api::richTextSuperscript>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Superscript;
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Superscript;
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextMarked::ID: {
         auto text = td_api::move_object_as<td_api::richTextMarked>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Marked;
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Marked;
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextDateTime::ID: {
         auto text = td_api::move_object_as<td_api::richTextDateTime>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
         TRY_RESULT(formatted_date, FormattedDate::get_formatted_date(text->unix_time_, text->formatting_type_));
-        result.type = Type::FormattedDate;
-        result.texts.push_back(std::move(t));
-        result.date = std::move(formatted_date);
+        result.type_ = Type::FormattedDate;
+        result.texts_.push_back(std::move(t));
+        result.date_ = std::move(formatted_date);
         break;
       }
       case td_api::richTextMention::ID: {
@@ -486,8 +486,8 @@ class RichText {
       case td_api::richTextFixed::ID: {
         auto text = td_api::move_object_as<td_api::richTextFixed>(rich_text);
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Fixed;
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Fixed;
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextMentionName::ID: {
@@ -495,9 +495,9 @@ class RichText {
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
         auto user_id = UserId(text->user_id_);
         TRY_STATUS(td->user_manager_->get_input_user(user_id));
-        result.type = Type::MentionName;
-        result.texts.push_back(std::move(t));
-        result.user_id = user_id;
+        result.type_ = Type::MentionName;
+        result.texts_.push_back(std::move(t));
+        result.user_id_ = user_id;
         break;
       }
       case td_api::richTextUrl::ID: {
@@ -506,9 +506,9 @@ class RichText {
         if (!clean_input_string(text->url_)) {
           return Status::Error(400, "Rich text URL must be encoded in UTF-8");
         }
-        result.type = Type::Url;
-        result.content = std::move(text->url_);
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Url;
+        result.content_ = std::move(text->url_);
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextEmailAddress::ID: {
@@ -517,9 +517,9 @@ class RichText {
         if (!clean_input_string(text->email_address_)) {
           return Status::Error(400, "Rich text email address must be encoded in UTF-8");
         }
-        result.type = Type::EmailAddress;
-        result.content = std::move(text->email_address_);
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::EmailAddress;
+        result.content_ = std::move(text->email_address_);
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextPhoneNumber::ID: {
@@ -528,9 +528,9 @@ class RichText {
         if (!clean_input_string(text->phone_number_)) {
           return Status::Error(400, "Rich text phone number must be encoded in UTF-8");
         }
-        result.type = Type::PhoneNumber;
-        result.content = std::move(text->phone_number_);
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::PhoneNumber;
+        result.content_ = std::move(text->phone_number_);
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextCustomEmoji::ID: {
@@ -538,13 +538,13 @@ class RichText {
         if (!clean_input_string(text->alternative_text_)) {
           return Status::Error(400, "Custom emoji alternative text must be encoded in UTF-8");
         }
-        auto custom_emoji_id = CustomEmojiId(text->custom_emoji_id_);
-        if (!custom_emoji_id.is_valid()) {
+        auto custom_emoji_id_ = CustomEmojiId(text->custom_emoji_id_);
+        if (!custom_emoji_id_.is_valid()) {
           return Status::Error(400, "Invalid custom emoji identifier specified");
         }
-        result.type = Type::CustomEmoji;
-        result.content = std::move(text->alternative_text_);
-        result.custom_emoji_id = custom_emoji_id;
+        result.type_ = Type::CustomEmoji;
+        result.content_ = std::move(text->alternative_text_);
+        result.custom_emoji_id_ = custom_emoji_id_;
         break;
       }
       case td_api::richTextIcon::ID:
@@ -554,8 +554,8 @@ class RichText {
         if (!clean_input_string(text->expression_)) {
           return Status::Error(400, "Mathematical expression must be encoded in UTF-8");
         }
-        result.type = Type::Math;
-        result.content = std::move(text->expression_);
+        result.type_ = Type::Math;
+        result.content_ = std::move(text->expression_);
         break;
       }
       case td_api::richTextButton::ID: {
@@ -564,14 +564,14 @@ class RichText {
           return Status::Error(400, "Button must be non-empty");
         }
         TRY_RESULT(t, get_rich_text(td, std::move(text->button_->text_)));
-        TRY_RESULT(button, InlineKeyboardButton::get_inline_keyboard_button(
-                               td_api::make_object<td_api::inlineKeyboardButton>("1", 0, nullptr,
-                                                                                 std::move(text->button_->type_)),
-                               true));
-        result.type = Type::Button;
-        result.texts.push_back(std::move(t));
-        result.button_style = RichButtonStyle(std::move(text->button_->style_));
-        result.button = make_unique<InlineKeyboardButton>(std::move(button));
+        TRY_RESULT(button_, InlineKeyboardButton::get_inline_keyboard_button(
+                                td_api::make_object<td_api::inlineKeyboardButton>("1", 0, nullptr,
+                                                                                  std::move(text->button_->type_)),
+                                true));
+        result.type_ = Type::Button;
+        result.texts_.push_back(std::move(t));
+        result.button_style_ = RichButtonStyle(std::move(text->button_->style_));
+        result.button_ = make_unique<InlineKeyboardButton>(std::move(button_));
         break;
       }
       case td_api::richTextReference::ID: {
@@ -580,9 +580,9 @@ class RichText {
           return Status::Error(400, "Reference name must be encoded in UTF-8");
         }
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Anchor;
-        result.content = std::move(text->name_);
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Anchor;
+        result.content_ = std::move(text->name_);
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextReferenceLink::ID: {
@@ -591,9 +591,9 @@ class RichText {
           return Status::Error(400, "Reference name must be encoded in UTF-8");
         }
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Url;
-        result.content = PSTRING() << '#' << url_encode(text->reference_name_);
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Url;
+        result.content_ = PSTRING() << '#' << url_encode(text->reference_name_);
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTextAnchor::ID: {
@@ -601,9 +601,9 @@ class RichText {
         if (!clean_input_string(text->name_)) {
           return Status::Error(400, "Anchor name must be encoded in UTF-8");
         }
-        result.type = Type::Anchor;
-        result.content = std::move(text->name_);
-        result.texts.push_back(RichText());
+        result.type_ = Type::Anchor;
+        result.content_ = std::move(text->name_);
+        result.texts_.push_back(RichText());
         break;
       }
       case td_api::richTextAnchorLink::ID: {
@@ -612,9 +612,9 @@ class RichText {
           return Status::Error(400, "Anchor name must be encoded in UTF-8");
         }
         TRY_RESULT(t, get_rich_text(td, std::move(text->text_)));
-        result.type = Type::Url;
-        result.content = PSTRING() << '#' << url_encode(text->anchor_name_);
-        result.texts.push_back(std::move(t));
+        result.type_ = Type::Url;
+        result.content_ = PSTRING() << '#' << url_encode(text->anchor_name_);
+        result.texts_.push_back(std::move(t));
         break;
       }
       case td_api::richTexts::ID: {
@@ -622,13 +622,13 @@ class RichText {
         if (text->texts_.empty()) {
           break;
         }
-        vector<RichText> texts;
+        vector<RichText> texts_;
         for (auto &subtext : text->texts_) {
           TRY_RESULT(t, get_rich_text(td, std::move(subtext)));
-          texts.push_back(std::move(t));
+          texts_.push_back(std::move(t));
         }
-        result.type = Type::Concatenation;
-        result.texts = std::move(texts);
+        result.type_ = Type::Concatenation;
+        result.texts_ = std::move(texts_);
         break;
       }
       case td_api::richTextDiff::ID:
@@ -641,34 +641,34 @@ class RichText {
   }
 
   bool empty() const {
-    return type == Type::Plain && content.empty();
+    return type_ == Type::Plain && content_.empty();
   }
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const {
-    if (type == Type::Icon) {
-      CHECK(document_file_id.is_valid());
-      Document(Document::Type::General, document_file_id).append_file_ids(td, file_ids);
+    if (type_ == Type::Icon) {
+      CHECK(document_file_id_.is_valid());
+      Document(Document::Type::General, document_file_id_).append_file_ids(td, file_ids);
     } else {
-      for (auto &text : texts) {
+      for (auto &text : texts_) {
         text.append_file_ids(td, file_ids);
       }
     }
   }
 
   void add_dependencies(Dependencies &dependencies) const {
-    for (auto &text : texts) {
+    for (auto &text : texts_) {
       text.add_dependencies(dependencies);
     }
-    dependencies.add(web_page_id);
-    dependencies.add(user_id);
-    if (button != nullptr) {
-      button->add_dependencies(dependencies);
+    dependencies.add(web_page_id_);
+    dependencies.add(user_id_);
+    if (button_ != nullptr) {
+      button_->add_dependencies(dependencies);
     }
   }
 
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const {
     if (recurse_text) {
-      for (auto &text : texts) {
+      for (auto &text : texts_) {
         text.for_each_rich_text(recurse_text, callback);
       }
     }
@@ -678,17 +678,17 @@ class RichText {
   string get_full_text() const {
     string result;
     for_each_rich_text(true, [&](const RichText *text) {
-      if (text->type == Type::Plain || text->type == Type::Math || text->type == Type::CustomEmoji) {
-        result += text->content;
+      if (text->type_ == Type::Plain || text->type_ == Type::Math || text->type_ == Type::CustomEmoji) {
+        result += text->content_;
       }
     });
     return result;
   }
 
   int32 get_index_mask() const {
-    switch (type) {
+    switch (type_) {
       case Type::Url:
-        if (content[0] == '#') {
+        if (content_[0] == '#') {
           return 0;
         }
         return message_search_filter_index_mask(MessageSearchFilter::Url);
@@ -702,11 +702,11 @@ class RichText {
   }
 
   void append_user_ids(vector<UserId> &user_ids) const {
-    if (user_id.is_valid()) {
-      user_ids.push_back(user_id);
+    if (user_id_.is_valid()) {
+      user_ids.push_back(user_id_);
     }
-    if (button != nullptr) {
-      auto button_user_id = button->get_user_id();
+    if (button_ != nullptr) {
+      auto button_user_id = button_->get_user_id();
       if (button_user_id.is_valid()) {
         user_ids.push_back(button_user_id);
       }
@@ -714,133 +714,133 @@ class RichText {
   }
 
   void append_custom_emoji_ids(vector<CustomEmojiId> &custom_emoji_ids) const {
-    if (custom_emoji_id.is_valid()) {
-      custom_emoji_ids.push_back(custom_emoji_id);
+    if (custom_emoji_id_.is_valid()) {
+      custom_emoji_ids.push_back(custom_emoji_id_);
     }
   }
 
   bool is_bot_command() const {
-    return type == Type::BotCommand;
+    return type_ == Type::BotCommand;
   }
 
   bool is_hashtag() const {
-    return type == Type::Hashtag;
+    return type_ == Type::Hashtag;
   }
 
   RichText clone(CloneWebPageBlockContext &context) const {
     RichText result;
-    result.type = type;
-    result.content = content;
-    for (auto &text : texts) {
-      result.texts.push_back(text.clone(context));
+    result.type_ = type_;
+    result.content_ = content_;
+    for (auto &text : texts_) {
+      result.texts_.push_back(text.clone(context));
     }
-    result.document_file_id = document_file_id;
-    result.custom_emoji_id = custom_emoji_id;
-    result.web_page_id = web_page_id;
-    result.date = date;
-    result.user_id = user_id;
-    result.button_style = button_style;
-    if (button != nullptr) {
-      if (context.dup_type_ == MessageContentDupType::Forward && !button->get_forward_text().empty()) {
-        CHECK(result.texts.size() == 1u);
-        result.texts[0] = {};
-        result.texts[0].type = Type::Plain;
-        result.texts[0].content = button->get_forward_text();
+    result.document_file_id_ = document_file_id_;
+    result.custom_emoji_id_ = custom_emoji_id_;
+    result.web_page_id_ = web_page_id_;
+    result.date_ = date_;
+    result.user_id_ = user_id_;
+    result.button_style_ = button_style_;
+    if (button_ != nullptr) {
+      if (context.dup_type_ == MessageContentDupType::Forward && !button_->get_forward_text().empty()) {
+        CHECK(result.texts_.size() == 1u);
+        result.texts_[0] = {};
+        result.texts_[0].type_ = Type::Plain;
+        result.texts_[0].content_ = button_->get_forward_text();
       }
-      result.button = make_unique<InlineKeyboardButton>(
-          button->clone(context.dialog_id_, context.dup_type_, context.is_via_bot_, true));
+      result.button_ = make_unique<InlineKeyboardButton>(
+          button_->clone(context.dialog_id_, context.dup_type_, context.is_via_bot_, true));
     }
     return result;
   }
 
   telegram_api::object_ptr<telegram_api::RichText> get_input_rich_text(GetInputPageBlockContext &context) const {
-    switch (type) {
+    switch (type_) {
       case Type::Plain:
-        if (content.empty()) {
+        if (content_.empty()) {
           return telegram_api::make_object<telegram_api::textEmpty>();
         }
-        return telegram_api::make_object<telegram_api::textPlain>(content);
+        return telegram_api::make_object<telegram_api::textPlain>(content_);
       case Type::Bold:
-        return telegram_api::make_object<telegram_api::textBold>(texts[0].get_input_rich_text(context));
+        return telegram_api::make_object<telegram_api::textBold>(texts_[0].get_input_rich_text(context));
       case Type::Italic:
-        return telegram_api::make_object<telegram_api::textItalic>(texts[0].get_input_rich_text(context));
+        return telegram_api::make_object<telegram_api::textItalic>(texts_[0].get_input_rich_text(context));
       case Type::Underline:
-        return telegram_api::make_object<telegram_api::textUnderline>(texts[0].get_input_rich_text(context));
+        return telegram_api::make_object<telegram_api::textUnderline>(texts_[0].get_input_rich_text(context));
       case Type::Strikethrough:
-        return telegram_api::make_object<telegram_api::textStrike>(texts[0].get_input_rich_text(context));
+        return telegram_api::make_object<telegram_api::textStrike>(texts_[0].get_input_rich_text(context));
       case Type::Fixed:
-        return telegram_api::make_object<telegram_api::textFixed>(texts[0].get_input_rich_text(context));
+        return telegram_api::make_object<telegram_api::textFixed>(texts_[0].get_input_rich_text(context));
       case Type::Url:
-        return telegram_api::make_object<telegram_api::textUrl>(texts[0].get_input_rich_text(context), content, 0);
+        return telegram_api::make_object<telegram_api::textUrl>(texts_[0].get_input_rich_text(context), content_, 0);
       case Type::EmailAddress:
-        return telegram_api::make_object<telegram_api::textEmail>(texts[0].get_input_rich_text(context), content);
+        return telegram_api::make_object<telegram_api::textEmail>(texts_[0].get_input_rich_text(context), content_);
       case Type::Concatenation:
-        return telegram_api::make_object<telegram_api::textConcat>(get_input_rich_texts(texts, context));
+        return telegram_api::make_object<telegram_api::textConcat>(get_input_rich_texts(texts_, context));
       case Type::Subscript:
-        return telegram_api::make_object<telegram_api::textSubscript>(texts[0].get_input_rich_text(context));
+        return telegram_api::make_object<telegram_api::textSubscript>(texts_[0].get_input_rich_text(context));
       case Type::Superscript:
-        return telegram_api::make_object<telegram_api::textSuperscript>(texts[0].get_input_rich_text(context));
+        return telegram_api::make_object<telegram_api::textSuperscript>(texts_[0].get_input_rich_text(context));
       case Type::Marked:
-        return telegram_api::make_object<telegram_api::textMarked>(texts[0].get_input_rich_text(context));
+        return telegram_api::make_object<telegram_api::textMarked>(texts_[0].get_input_rich_text(context));
       case Type::PhoneNumber:
-        return telegram_api::make_object<telegram_api::textPhone>(texts[0].get_input_rich_text(context), content);
+        return telegram_api::make_object<telegram_api::textPhone>(texts_[0].get_input_rich_text(context), content_);
       case Type::Icon: {
-        auto file_view = context.td_->file_manager_->get_file_view(document_file_id);
+        auto file_view = context.td_->file_manager_->get_file_view(document_file_id_);
         const auto *main_remote_location = file_view.get_main_remote_location();
         if (!file_view.is_encrypted() && main_remote_location != nullptr && !main_remote_location->is_web()) {
           context.documents_.push_back(main_remote_location->as_input_document());
 
-          auto dimensions = to_integer<uint32>(content);
+          auto dimensions = to_integer<uint32>(content_);
           auto width = static_cast<int32>(dimensions / 65536);
           auto height = static_cast<int32>(dimensions % 65536);
           return telegram_api::make_object<telegram_api::textImage>(main_remote_location->get_id(), width, height);
         }
-        LOG(ERROR) << "Can't create textImage for icon " << document_file_id;
+        LOG(ERROR) << "Can't create textImage for icon " << document_file_id_;
         return telegram_api::make_object<telegram_api::textEmpty>();
       }
       case Type::Anchor:
-        return telegram_api::make_object<telegram_api::textAnchor>(texts[0].get_input_rich_text(context), content);
+        return telegram_api::make_object<telegram_api::textAnchor>(texts_[0].get_input_rich_text(context), content_);
       case Type::Math:
-        return telegram_api::make_object<telegram_api::textMath>(content);
+        return telegram_api::make_object<telegram_api::textMath>(content_);
       case Type::CustomEmoji:
-        return telegram_api::make_object<telegram_api::textCustomEmoji>(custom_emoji_id.get(), content);
+        return telegram_api::make_object<telegram_api::textCustomEmoji>(custom_emoji_id_.get(), content_);
       case Type::Spoiler:
-        return telegram_api::make_object<telegram_api::textSpoiler>(texts[0].get_input_rich_text(context));
+        return telegram_api::make_object<telegram_api::textSpoiler>(texts_[0].get_input_rich_text(context));
       case Type::Mention:
-        return texts[0].get_input_rich_text(context);
+        return texts_[0].get_input_rich_text(context);
       case Type::Hashtag:
-        return texts[0].get_input_rich_text(context);
+        return texts_[0].get_input_rich_text(context);
       case Type::Cashtag:
-        return texts[0].get_input_rich_text(context);
+        return texts_[0].get_input_rich_text(context);
       case Type::BotCommand:
-        return texts[0].get_input_rich_text(context);
+        return texts_[0].get_input_rich_text(context);
       case Type::AutoUrl:
-        return texts[0].get_input_rich_text(context);
+        return texts_[0].get_input_rich_text(context);
       case Type::AutoEmailAddress:
-        return texts[0].get_input_rich_text(context);
+        return texts_[0].get_input_rich_text(context);
       case Type::AutoPhoneNumber:
-        return texts[0].get_input_rich_text(context);
+        return texts_[0].get_input_rich_text(context);
       case Type::FormattedDate:
-        return date.get_input_text_date(texts[0].get_input_rich_text(context));
+        return date_.get_input_text_date(texts_[0].get_input_rich_text(context));
       case Type::BankCardNumber:
-        return texts[0].get_input_rich_text(context);
+        return texts_[0].get_input_rich_text(context);
       case Type::MentionName:
         // input users will be added separately
-        return telegram_api::make_object<telegram_api::textMentionName>(texts[0].get_input_rich_text(context),
-                                                                        user_id.get());
+        return telegram_api::make_object<telegram_api::textMentionName>(texts_[0].get_input_rich_text(context),
+                                                                        user_id_.get());
       case Type::Diff:
-        CHECK(texts.size() == 2u);
-        return telegram_api::make_object<telegram_api::textDiff>(texts[0].get_input_rich_text(context),
-                                                                 texts[1].get_input_rich_text(context));
+        CHECK(texts_.size() == 2u);
+        return telegram_api::make_object<telegram_api::textDiff>(texts_[0].get_input_rich_text(context),
+                                                                 texts_[1].get_input_rich_text(context));
       case Type::Button: {
         int32 flags = 0;
-        auto style = button_style.get_input_rich_button_style();
+        auto style = button_style_.get_input_rich_button_style();
         if (style != nullptr) {
           flags |= telegram_api::textButton::STYLE_MASK;
         }
-        CHECK(button != nullptr);
-        auto input_button = button->get_input_keyboard_inline_button(context.td_->user_manager_.get());
-        return telegram_api::make_object<telegram_api::textButton>(flags, texts[0].get_input_rich_text(context),
+        CHECK(button_ != nullptr);
+        auto input_button = button_->get_input_keyboard_inline_button(context.td_->user_manager_.get());
+        return telegram_api::make_object<telegram_api::textButton>(flags, texts_[0].get_input_rich_text(context),
                                                                    std::move(input_button->type_), std::move(style));
       }
       default:
@@ -851,28 +851,28 @@ class RichText {
 
   td_api::object_ptr<td_api::RichText> get_rich_text_object(GetWebPageBlockObjectContext *context,
                                                             bool allow_null = false) const {
-    switch (type) {
+    switch (type_) {
       case Type::Plain:
-        if (allow_null && content.empty()) {
+        if (allow_null && content_.empty()) {
           return nullptr;
         }
-        return td_api::make_object<td_api::richTextPlain>(content);
+        return td_api::make_object<td_api::richTextPlain>(content_);
       case Type::Bold:
-        return td_api::make_object<td_api::richTextBold>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextBold>(texts_[0].get_rich_text_object(context));
       case Type::Italic:
-        return td_api::make_object<td_api::richTextItalic>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextItalic>(texts_[0].get_rich_text_object(context));
       case Type::Underline:
-        return td_api::make_object<td_api::richTextUnderline>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextUnderline>(texts_[0].get_rich_text_object(context));
       case Type::Strikethrough:
-        return td_api::make_object<td_api::richTextStrikethrough>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextStrikethrough>(texts_[0].get_rich_text_object(context));
       case Type::Fixed:
-        return td_api::make_object<td_api::richTextFixed>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextFixed>(texts_[0].get_rich_text_object(context));
       case Type::Url:
-        if (begins_with(content, context->base_url_) && content[context->base_url_.size()] == '#') {
+        if (begins_with(content_, context->base_url_) && content_[context->base_url_.size()] == '#') {
           if (context->is_first_pass_) {
             context->has_anchor_urls_ = true;
           } else {
-            auto anchor = Slice(content).substr(context->base_url_.size() + 1);
+            auto anchor = Slice(content_).substr(context->base_url_.size() + 1);
             // https://html.spec.whatwg.org/multipage/browsing-the-web.html#the-indicated-part-of-the-document
             for (int i = 0; i < 2; i++) {
               string url_decoded_anchor;
@@ -883,104 +883,104 @@ class RichText {
               auto it = context->anchors_.find(anchor);
               if (it != context->anchors_.end()) {
                 if (it->second == nullptr) {
-                  return td_api::make_object<td_api::richTextAnchorLink>(texts[0].get_rich_text_object(context),
-                                                                         anchor.str(), content);
+                  return td_api::make_object<td_api::richTextAnchorLink>(texts_[0].get_rich_text_object(context),
+                                                                         anchor.str(), content_);
                 } else {
-                  return td_api::make_object<td_api::richTextReferenceLink>(texts[0].get_rich_text_object(context),
-                                                                            anchor.str(), content);
+                  return td_api::make_object<td_api::richTextReferenceLink>(texts_[0].get_rich_text_object(context),
+                                                                            anchor.str(), content_);
                 }
               }
             }
           }
         }
-        if (!context->real_url_rhash_.empty() && get_url_host(content) == context->real_url_host_) {
+        if (!context->real_url_rhash_.empty() && get_url_host(content_) == context->real_url_host_) {
           if (context->is_first_pass_) {
             context->has_anchor_urls_ = true;
           } else {
             return td_api::make_object<td_api::richTextUrl>(
-                texts[0].get_rich_text_object(context),
-                LinkManager::get_instant_view_link(content, context->real_url_rhash_), true);
+                texts_[0].get_rich_text_object(context),
+                LinkManager::get_instant_view_link(content_, context->real_url_rhash_), true);
           }
         }
-        return td_api::make_object<td_api::richTextUrl>(texts[0].get_rich_text_object(context), content,
-                                                        web_page_id.is_valid());
+        return td_api::make_object<td_api::richTextUrl>(texts_[0].get_rich_text_object(context), content_,
+                                                        web_page_id_.is_valid());
       case Type::EmailAddress:
-        return td_api::make_object<td_api::richTextEmailAddress>(texts[0].get_rich_text_object(context), content);
+        return td_api::make_object<td_api::richTextEmailAddress>(texts_[0].get_rich_text_object(context), content_);
       case Type::Concatenation:
-        return td_api::make_object<td_api::richTexts>(get_rich_texts_object(texts, context));
+        return td_api::make_object<td_api::richTexts>(get_rich_texts_object(texts_, context));
       case Type::Subscript:
-        return td_api::make_object<td_api::richTextSubscript>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextSubscript>(texts_[0].get_rich_text_object(context));
       case Type::Superscript:
-        return td_api::make_object<td_api::richTextSuperscript>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextSuperscript>(texts_[0].get_rich_text_object(context));
       case Type::Marked:
-        return td_api::make_object<td_api::richTextMarked>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextMarked>(texts_[0].get_rich_text_object(context));
       case Type::PhoneNumber:
-        return td_api::make_object<td_api::richTextPhoneNumber>(texts[0].get_rich_text_object(context), content);
+        return td_api::make_object<td_api::richTextPhoneNumber>(texts_[0].get_rich_text_object(context), content_);
       case Type::Icon: {
-        auto dimensions = to_integer<uint32>(content);
+        auto dimensions = to_integer<uint32>(content_);
         auto width = static_cast<int32>(dimensions / 65536);
         auto height = static_cast<int32>(dimensions % 65536);
         return td_api::make_object<td_api::richTextIcon>(
-            context->td_->documents_manager_->get_document_object(document_file_id, PhotoFormat::Jpeg), width, height);
+            context->td_->documents_manager_->get_document_object(document_file_id_, PhotoFormat::Jpeg), width, height);
       }
       case Type::Anchor: {
         if (context->is_first_pass_) {
-          context->anchors_.emplace(Slice(content), texts[0].empty() ? nullptr : &texts[0]);
+          context->anchors_.emplace(Slice(content_), texts_[0].empty() ? nullptr : &texts_[0]);
         }
-        if (texts[0].empty()) {
-          return td_api::make_object<td_api::richTextAnchor>(content);
+        if (texts_[0].empty()) {
+          return td_api::make_object<td_api::richTextAnchor>(content_);
         }
-        return td_api::make_object<td_api::richTextReference>(content, texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextReference>(content_, texts_[0].get_rich_text_object(context));
       }
       case Type::Math:
-        return td_api::make_object<td_api::richTextMathematicalExpression>(content);
+        return td_api::make_object<td_api::richTextMathematicalExpression>(content_);
       case Type::CustomEmoji:
-        return td_api::make_object<td_api::richTextCustomEmoji>(custom_emoji_id.get(), content);
+        return td_api::make_object<td_api::richTextCustomEmoji>(custom_emoji_id_.get(), content_);
       case Type::Spoiler:
-        return td_api::make_object<td_api::richTextSpoiler>(texts[0].get_rich_text_object(context));
+        return td_api::make_object<td_api::richTextSpoiler>(texts_[0].get_rich_text_object(context));
       case Type::Mention:
-        return td_api::make_object<td_api::richTextMention>(texts[0].get_rich_text_object(context),
-                                                            trim_first(texts[0].get_full_text(), '@'));
+        return td_api::make_object<td_api::richTextMention>(texts_[0].get_rich_text_object(context),
+                                                            trim_first(texts_[0].get_full_text(), '@'));
       case Type::Hashtag:
-        return td_api::make_object<td_api::richTextHashtag>(texts[0].get_rich_text_object(context),
-                                                            trim_first(texts[0].get_full_text(), '#'));
+        return td_api::make_object<td_api::richTextHashtag>(texts_[0].get_rich_text_object(context),
+                                                            trim_first(texts_[0].get_full_text(), '#'));
       case Type::Cashtag:
-        return td_api::make_object<td_api::richTextCashtag>(texts[0].get_rich_text_object(context),
-                                                            trim_first(texts[0].get_full_text(), '$'));
+        return td_api::make_object<td_api::richTextCashtag>(texts_[0].get_rich_text_object(context),
+                                                            trim_first(texts_[0].get_full_text(), '$'));
       case Type::BotCommand:
         if (context->skip_bot_commands_) {
-          return texts[0].get_rich_text_object(context);
+          return texts_[0].get_rich_text_object(context);
         }
-        return td_api::make_object<td_api::richTextBotCommand>(texts[0].get_rich_text_object(context),
-                                                               trim_first(texts[0].get_full_text(), '/'));
+        return td_api::make_object<td_api::richTextBotCommand>(texts_[0].get_rich_text_object(context),
+                                                               trim_first(texts_[0].get_full_text(), '/'));
       case Type::AutoUrl:
-        return td_api::make_object<td_api::richTextUrl>(texts[0].get_rich_text_object(context),
-                                                        texts[0].get_full_text(), false);
+        return td_api::make_object<td_api::richTextUrl>(texts_[0].get_rich_text_object(context),
+                                                        texts_[0].get_full_text(), false);
       case Type::AutoEmailAddress:
-        return td_api::make_object<td_api::richTextEmailAddress>(texts[0].get_rich_text_object(context),
-                                                                 texts[0].get_full_text());
+        return td_api::make_object<td_api::richTextEmailAddress>(texts_[0].get_rich_text_object(context),
+                                                                 texts_[0].get_full_text());
       case Type::AutoPhoneNumber:
-        return td_api::make_object<td_api::richTextPhoneNumber>(texts[0].get_rich_text_object(context),
-                                                                texts[0].get_full_text());
+        return td_api::make_object<td_api::richTextPhoneNumber>(texts_[0].get_rich_text_object(context),
+                                                                texts_[0].get_full_text());
       case Type::FormattedDate:
-        return td_api::make_object<td_api::richTextDateTime>(texts[0].get_rich_text_object(context), date.get_date(),
-                                                             date.get_date_time_formatting_type_object());
+        return td_api::make_object<td_api::richTextDateTime>(texts_[0].get_rich_text_object(context), date_.get_date(),
+                                                             date_.get_date_time_formatting_type_object());
       case Type::BankCardNumber:
-        return td_api::make_object<td_api::richTextBankCardNumber>(texts[0].get_rich_text_object(context),
-                                                                   texts[0].get_full_text());
+        return td_api::make_object<td_api::richTextBankCardNumber>(texts_[0].get_rich_text_object(context),
+                                                                   texts_[0].get_full_text());
       case Type::MentionName:
         return td_api::make_object<td_api::richTextMentionName>(
-            texts[0].get_rich_text_object(context),
-            context->td_->user_manager_->get_user_id_object(user_id, "richTextMentionName"));
+            texts_[0].get_rich_text_object(context),
+            context->td_->user_manager_->get_user_id_object(user_id_, "richTextMentionName"));
       case Type::Diff:
-        CHECK(texts.size() == 2u);
-        return td_api::make_object<td_api::richTextDiff>(texts[0].get_rich_text_object(context),
-                                                         texts[1].get_rich_text_object(context));
+        CHECK(texts_.size() == 2u);
+        return td_api::make_object<td_api::richTextDiff>(texts_[0].get_rich_text_object(context),
+                                                         texts_[1].get_rich_text_object(context));
       case Type::Button: {
-        CHECK(button != nullptr);
-        auto button_object = button->get_inline_keyboard_button_object(context->td_->user_manager_.get());
+        CHECK(button_ != nullptr);
+        auto button_object = button_->get_inline_keyboard_button_object(context->td_->user_manager_.get());
         return td_api::make_object<td_api::richTextButton>(td_api::make_object<td_api::inlineButton>(
-            texts[0].get_rich_text_object(context), button_style.get_button_style_object(),
+            texts_[0].get_rich_text_object(context), button_style_.get_button_style_object(),
             std::move(button_object->type_)));
       }
       default:
@@ -990,67 +990,67 @@ class RichText {
   }
 
   friend bool operator==(const RichText &lhs, const RichText &rhs) {
-    return lhs.type == rhs.type && lhs.content == rhs.content && lhs.texts == rhs.texts &&
-           lhs.document_file_id == rhs.document_file_id && lhs.custom_emoji_id == rhs.custom_emoji_id &&
-           lhs.web_page_id == rhs.web_page_id && lhs.date == rhs.date && lhs.user_id == rhs.user_id &&
-           lhs.button_style == rhs.button_style && lhs.button == rhs.button;
+    return lhs.type_ == rhs.type_ && lhs.content_ == rhs.content_ && lhs.texts_ == rhs.texts_ &&
+           lhs.document_file_id_ == rhs.document_file_id_ && lhs.custom_emoji_id_ == rhs.custom_emoji_id_ &&
+           lhs.web_page_id_ == rhs.web_page_id_ && lhs.date_ == rhs.date_ && lhs.user_id_ == rhs.user_id_ &&
+           lhs.button_style_ == rhs.button_style_ && lhs.button_ == rhs.button_;
   }
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using ::td::store;
-    store(type, storer);
-    store(content, storer);
-    store(texts, storer);
-    if (type == Type::Icon) {
-      storer.context()->td().get_actor_unsafe()->documents_manager_->store_document(document_file_id, storer);
+    store(type_, storer);
+    store(content_, storer);
+    store(texts_, storer);
+    if (type_ == Type::Icon) {
+      storer.context()->td().get_actor_unsafe()->documents_manager_->store_document(document_file_id_, storer);
     }
-    if (type == Type::Url) {
-      store(web_page_id, storer);
+    if (type_ == Type::Url) {
+      store(web_page_id_, storer);
     }
-    if (type == Type::CustomEmoji) {
-      store(custom_emoji_id, storer);
+    if (type_ == Type::CustomEmoji) {
+      store(custom_emoji_id_, storer);
     }
-    if (type == Type::FormattedDate) {
-      store(date, storer);
+    if (type_ == Type::FormattedDate) {
+      store(date_, storer);
     }
-    if (type == Type::MentionName) {
-      store(user_id, storer);
+    if (type_ == Type::MentionName) {
+      store(user_id_, storer);
     }
-    if (type == Type::Button) {
-      store(button_style, storer);
-      store(button, storer);
+    if (type_ == Type::Button) {
+      store(button_style_, storer);
+      store(button_, storer);
     }
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     using ::td::parse;
-    parse(type, parser);
-    parse(content, parser);
-    parse(texts, parser);
-    if (type == Type::Icon) {
-      document_file_id = parser.context()->td().get_actor_unsafe()->documents_manager_->parse_document(parser);
-      if (!document_file_id.is_valid()) {
+    parse(type_, parser);
+    parse(content_, parser);
+    parse(texts_, parser);
+    if (type_ == Type::Icon) {
+      document_file_id_ = parser.context()->td().get_actor_unsafe()->documents_manager_->parse_document(parser);
+      if (!document_file_id_.is_valid()) {
         LOG(ERROR) << "Failed to load document from database";
         *this = RichText();
       }
     }
-    if (type == Type::Url && parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
-      parse(web_page_id, parser);
+    if (type_ == Type::Url && parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
+      parse(web_page_id_, parser);
     }
-    if (type == Type::CustomEmoji) {
-      parse(custom_emoji_id, parser);
+    if (type_ == Type::CustomEmoji) {
+      parse(custom_emoji_id_, parser);
     }
-    if (type == Type::FormattedDate) {
-      parse(date, parser);
+    if (type_ == Type::FormattedDate) {
+      parse(date_, parser);
     }
-    if (type == Type::MentionName) {
-      parse(user_id, parser);
+    if (type_ == Type::MentionName) {
+      parse(user_id_, parser);
     }
-    if (type == Type::Button) {
-      parse(button_style, parser);
-      parse(button, parser);
+    if (type_ == Type::Button) {
+      parse(button_style_, parser);
+      parse(button_, parser);
     }
   }
 };
@@ -2779,8 +2779,8 @@ class WebPageBlockButtonRow final : public WebPageBlock {
     Button clone(CloneContext &context) const {
       Button result;
       if (context.dup_type_ == MessageContentDupType::Forward && !button.get_forward_text().empty()) {
-        result.text.type = RichText::Type::Plain;
-        result.text.content = button.get_forward_text();
+        result.text.type_ = RichText::Type::Plain;
+        result.text.content_ = button.get_forward_text();
       } else {
         result.text = text.clone(context);
       }
