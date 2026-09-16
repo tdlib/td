@@ -2201,7 +2201,7 @@ userTonWalletAddress user_id:int53 wallet_address:string public_key:bytes = User
 userTonWalletAddresses addresses:vector<userTonWalletAddress> = UserTonWalletAddresses;
 
 //@description Represents state of gasless transfers for the current user
-//@left_count Number of left gasless transfers
+//@left_count Number of left gasless transfers. The daily available number of gasless transfers is available as getOption("ton_wallet_gasless_transfer_daily_count_max")
 //@reset_date Point in time (Unix timestamp) when the number of left transfers will be reset; 0 if never
 //@relayer_address Address of the relayer for gasless transfers; may be empty if unavailable
 tonWalletGaslessTransfersInfo left_count:int32 reset_date:int32 relayer_address:string = TonWalletGaslessTransfersInfo;
@@ -2209,7 +2209,7 @@ tonWalletGaslessTransfersInfo left_count:int32 reset_date:int32 relayer_address:
 //@description Represents result of cryptocurrency transfer from the current user's TON wallet
 //@is_gasless True, if the transfer is gasless
 //@msg_hash Unique identifier of the sent message; use getTonWalletTransactionByMsgHash to poll information about the transaction
-//@left_gasless_transfer_count Number of left gasless transfers
+//@left_gasless_transfer_count Number of left gasless transfers. The daily available number of gasless transfers is available as getOption("ton_wallet_gasless_transfer_daily_count_max")
 //@gasless_transfer_reset_date Point in time (Unix timestamp) when the number of left gasless transfers will be reset; 0 if never
 tonWalletTransferResult is_gasless:Bool msg_hash:bytes left_gasless_transfer_count:int32 gasless_transfer_reset_date:int32 = TonWalletTransferResult;
 

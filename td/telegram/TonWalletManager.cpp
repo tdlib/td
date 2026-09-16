@@ -1012,7 +1012,7 @@ int32 TonWalletManager::WalletGaslessInfo::try_reset() {
   }
   reset_date_ = 0;
   left_ = static_cast<int32>(
-      min(G()->get_option_integer("ton_wallet_gasless_transfer_daily_count", 0), static_cast<int64>(1000000)));
+      min(G()->get_option_integer("ton_wallet_gasless_transfer_daily_count_max", 0), static_cast<int64>(1000000)));
   return 0;
 }
 
