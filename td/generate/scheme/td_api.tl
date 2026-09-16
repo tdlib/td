@@ -2351,6 +2351,32 @@ tonConnectManifestFailed = TonConnectManifest;
 tonConnectManifestInvalid = TonConnectManifest;
 
 
+//@class TonConnectSessionState @description Describes state of a TON Connect session
+
+//@description The session is pending
+tonConnectSessionStatePending = TonConnectSessionState;
+
+//@description The session is ready
+tonConnectSessionStateReady = TonConnectSessionState;
+
+//@description The session is being closed
+tonConnectSessionStateClosing = TonConnectSessionState;
+
+//@description The session is closed
+tonConnectSessionStateClosed = TonConnectSessionState;
+
+
+//@description Represents a TON Connect session
+//@id Unique identifier of the session
+//@dapp_client_id Hex-encoded public X25519 key of the dApp
+//@wallet_client_id Hex-encoded public X25519 key of the current user's application; may be empty if none
+//@creation_date Point in time (Unix timestamp) when the session was created
+//@manifest Manifest of the dApp
+//@nonce Nonce used for the session
+//@state Session state
+tonConnectSession id:int64 dapp_client_id:string wallet_client_id:string creation_date:int32 manifest:TonConnectManifest nonce:bytes state:TonConnectSessionState = TonConnectSession;
+
+
 //@description Represents result of cryptocurrency transfer from the current user's TON wallet
 //@is_gasless True, if the transfer is gasless
 //@msg_hash Unique identifier of the sent message; use getTonWalletTransactionByMsgHash to poll information about the transaction

@@ -1128,6 +1128,41 @@ td_api::object_ptr<td_api::TonConnectManifest> TonWalletManager::TonConnectManif
       url_, name_, td->documents_manager_->get_document_object(icon_file_id_, PhotoFormat::Jpeg));
 }
 
+TonWalletManager::TonConnectSession::TonConnectSession(
+    Td *td, telegram_api::object_ptr<telegram_api::tonConnectSession> &&session)
+    : id_(session->id_)
+    , dapp_client_id_(std::move(session->dapp_client_id_))
+    , client_id_(std::move(session->client_id_))
+    , nonce_(session->nonce_.as_slice().str())
+    , manifest_error_(session->manifest_error_)
+    , date_(session->date_)
+    , is_pending_(session->pending_)
+    , is_closing_(session->closing_)
+    , is_closed_(session->closed_) {
+  if (session->manifest_ != nullptr) {
+    manifest_ = make_unique<TonConnectManifest>(td, std::move(session->manifest_));
+  }
+}
+
+td_api::object_ptr<td_api::tonConnectSession> TonWalletManager::TonConnectSession::get_ton_connect_session_object(
+    Td *td) const {
+  auto state = [&]() -> td_api::object_ptr<td_api::TonConnectSessionState> {
+    if (is_pending_) {
+      return td_api::make_object<td_api::tonConnectSessionStatePending>();
+    }
+    if (is_closing_) {
+      return td_api::make_object<td_api::tonConnectSessionStateClosing>();
+    }
+    if (is_closed_) {
+      return td_api::make_object<td_api::tonConnectSessionStateClosed>();
+    }
+    return td_api::make_object<td_api::tonConnectSessionStateReady>();
+  }();
+  return td_api::make_object<td_api::tonConnectSession>(
+      id_, dapp_client_id_, client_id_, date_, get_ton_connect_manifest_object(td, manifest_.get(), manifest_error_),
+      nonce_, std::move(state));
+}
+
 TonWalletManager::TonWalletManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 

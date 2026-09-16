@@ -164,6 +164,24 @@ class TonWalletManager final : public Actor {
     td_api::object_ptr<td_api::TonConnectManifest> get_ton_connect_manifest_object(Td *td) const;
   };
 
+  class TonConnectSession {
+    int64 id_ = 0;
+    string dapp_client_id_;
+    string client_id_;
+    string nonce_;
+    unique_ptr<TonConnectManifest> manifest_;
+    int32 manifest_error_ = 0;
+    int32 date_ = 0;
+    bool is_pending_ = false;
+    bool is_closing_ = false;
+    bool is_closed_ = false;
+
+   public:
+    explicit TonConnectSession(Td *td, telegram_api::object_ptr<telegram_api::tonConnectSession> &&session);
+
+    td_api::object_ptr<td_api::tonConnectSession> get_ton_connect_session_object(Td *td) const;
+  };
+
   void timeout_expired() final;
 
   void tear_down() final;
