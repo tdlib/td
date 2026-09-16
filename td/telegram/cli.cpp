@@ -8827,7 +8827,9 @@ class CliClient final : public Actor {
       get_args(args, address);
       send_request(td_api::make_object<td_api::getAddressTonWallet>(address));
     } else if (op == "gtwsp") {
-      send_request(td_api::make_object<td_api::getTonWalletSecretPhrase>());
+      string password;
+      get_args(args, password);
+      send_request(td_api::make_object<td_api::getTonWalletSecretPhrase>(password));
     } else if (op == "etwb") {
       string password;
       string secret_phrase;

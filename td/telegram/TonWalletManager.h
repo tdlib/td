@@ -43,7 +43,7 @@ class TonWalletManager final : public Actor {
   void get_address_ton_wallet(const string &address,
                               Promise<td_api::object_ptr<td_api::userTonWalletAddress>> &&promise);
 
-  void get_ton_wallet_secret_phrase(Promise<string> &&promise);
+  void get_ton_wallet_secret_phrase(const string &password, Promise<string> &&promise);
 
   void enable_ton_wallet_backup(const string &password, const string &secret_phrase, Promise<Unit> &&promise);
 
@@ -179,7 +179,8 @@ class TonWalletManager final : public Actor {
 
   void send_update_ton_wallet_gasless_transfers_info() const;
 
-  void do_get_ton_wallet_secret_phrase(Promise<string> &&promise);
+  void do_get_ton_wallet_secret_phrase(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
+                                       Promise<string> &&promise);
 
   void do_get_ton_wallet_secret_phrase_with_parts(
       telegram_api::object_ptr<telegram_api::wallet_secretPhraseParts> &&parts, Promise<string> &&promise);

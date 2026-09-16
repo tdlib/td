@@ -226,8 +226,13 @@ class ExportWalletSecretPhraseQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send() {
-    send_query(G()->net_query_creator().create(telegram_api::wallet_exportSecretPhrase(0, nullptr)));
+  void send(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password) {
+    int32 flags = 0;
+    if (input_password != nullptr) {
+      flags = telegram_api::wallet_exportSecretPhrase::PASSWORD_MASK;
+    }
+    send_query(
+        G()->net_query_creator().create(telegram_api::wallet_exportSecretPhrase(flags, std::move(input_password))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1006,7 +1011,8 @@ int32 TonWalletManager::WalletGaslessInfo::try_reset() {
     return reset_date_ - now + 1;
   }
   reset_date_ = 0;
-  left_ = static_cast<int32>(min(G()->get_option_integer("ton_wallet_gasless_transfer_daily_count", 0), static_cast<int64>(1000000)));
+  left_ = static_cast<int32>(
+      min(G()->get_option_integer("ton_wallet_gasless_transfer_daily_count", 0), static_cast<int64>(1000000)));
   return 0;
 }
 
@@ -1223,21 +1229,34 @@ void TonWalletManager::get_address_ton_wallet(const string &address,
   td_->create_handler<GetAddressWalletQuery>(std::move(promise))->send(address);
 }
 
-void TonWalletManager::get_ton_wallet_secret_phrase(Promise<string> &&promise) {
+void TonWalletManager::get_ton_wallet_secret_phrase(const string &password, Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   if (backup_holder_dcs_.dcs_.empty()) {
-    return load_backup_holder_dcs(
-        PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> result) mutable {
+    return load_backup_holder_dcs(PromiseCreator::lambda(
+        [actor_id = actor_id(this), password, promise = std::move(promise)](Result<Unit> result) mutable {
           if (result.is_error()) {
             return promise.set_error(result.move_as_error());
           }
-          send_closure(actor_id, &TonWalletManager::get_ton_wallet_secret_phrase, std::move(promise));
+          send_closure(actor_id, &TonWalletManager::get_ton_wallet_secret_phrase, password, std::move(promise));
         }));
   }
-  do_get_ton_wallet_secret_phrase(std::move(promise));
+  if (password.empty()) {
+    return do_get_ton_wallet_secret_phrase(nullptr, std::move(promise));
+  }
+  send_closure(G()->password_manager(), &PasswordManager::get_input_check_password_srp, password,
+               PromiseCreator::lambda(
+                   [actor_id = actor_id(this), promise = std::move(promise)](
+                       Result<telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP>> r_input_password) mutable {
+                     if (r_input_password.is_error()) {
+                       return promise.set_error(r_input_password.move_as_error());
+                     }
+                     send_closure(actor_id, &TonWalletManager::do_get_ton_wallet_secret_phrase,
+                                  r_input_password.move_as_ok(), std::move(promise));
+                   }));
 }
 
-void TonWalletManager::do_get_ton_wallet_secret_phrase(Promise<string> &&promise) {
+void TonWalletManager::do_get_ton_wallet_secret_phrase(
+    telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password, Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), promise = std::move(promise)](
@@ -1248,7 +1267,7 @@ void TonWalletManager::do_get_ton_wallet_secret_phrase(Promise<string> &&promise
         send_closure(actor_id, &TonWalletManager::do_get_ton_wallet_secret_phrase_with_parts, r_parts.move_as_ok(),
                      std::move(promise));
       });
-  td_->create_handler<ExportWalletSecretPhraseQuery>(std::move(query_promise))->send();
+  td_->create_handler<ExportWalletSecretPhraseQuery>(std::move(query_promise))->send(std::move(input_password));
 }
 
 void TonWalletManager::do_get_ton_wallet_secret_phrase_with_parts(

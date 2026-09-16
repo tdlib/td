@@ -15980,7 +15980,8 @@ createUserTonWallet user_id:int53 = UserTonWalletAddress;
 getAddressTonWallet address:string = UserTonWalletAddress;
 
 //@description Returns the secret phrase of the user's TON wallet as a space separated list of words. Works only if tonWalletState.can_export_phrase is true
-getTonWalletSecretPhrase = Text;
+//@password Password of the current user; pass an empty string unless receive an error PASSWORD_MISSING for a passwordless request
+getTonWalletSecretPhrase password:string = Text;
 
 //@description Enables backup of the TON wallet of the user. Works only if tonWalletState.can_enable_backup is true
 //@password Password of the current user; pass an empty string if the user has no password
