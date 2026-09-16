@@ -2178,6 +2178,16 @@ tonCenterApiRequestTypeGet query:string = TonCenterApiRequestType;
 tonCenterApiRequestTypePost payload:string = TonCenterApiRequestType;
 
 
+//@class TonWalletTransferReceiver @description Represents expected receiver of a TON Wallet transfer
+
+//@description The receiver is specified by its username @username Username of the user. Use searchPublicChat to find the user, check that it is a regular user,
+//-and then use createUserTonWallet to get information about the user's TON Wallet
+tonWalletTransferReceiverUser username:string = TonWalletTransferReceiver;
+
+//@description The receiver is specified by its address @address Address of the receiver. Use getAddressTonWallet to get information about the user's TON Wallet
+tonWalletTransferReceiverAddress address:string = TonWalletTransferReceiver;
+
+
 //@description Contains an HTTP URL for TON Center Streaming API @url The URL @expires_in Time after which the URL expires
 tonCenterStreamingApiUrl url:string expires_in:int32 = TonCenterStreamingApiUrl;
 
@@ -9821,6 +9831,11 @@ internalLinkTypeTextCompositionStyle style_name:string = InternalLinkType;
 
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @theme_name Name of the theme
 internalLinkTypeTheme theme_name:string = InternalLinkType;
+
+//@description The link is a link for sending Grams from the user's TON Wallet
+//@receiver Chosen receiver of the transfer; may be null if none
+//@gram_amount The pre-filled amount of TON Grams to send; in the smallest units of the cryptocurrency
+internalLinkTypeTonWalletTransfer receiver:TonWalletTransferReceiver gram_amount:int53 = InternalLinkType;
 
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link @link Link to be passed to getDeepLinkInfo
 internalLinkTypeUnknownDeepLink link:string = InternalLinkType;

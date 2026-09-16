@@ -174,6 +174,66 @@ static bool is_valid_story_album_id(Slice story_album_id) {
   return r_story_album_id.is_ok() && StoryAlbumId(r_story_album_id.ok()).is_valid();
 }
 
+static bool is_valid_gram_receiver(Slice receiver) {
+  if (receiver.empty()) {
+    return true;
+  }
+  if (receiver[0] == '@') {
+    return receiver.size() >= 5 && is_valid_username(receiver.substr(1));
+  }
+  return is_base64url_characters(receiver);
+}
+
+static bool is_valid_gram_amount(Slice amount) {
+  if (amount.empty()) {
+    return true;
+  }
+  auto dot_pos = amount.find('.');
+  if (dot_pos == string::npos) {
+    dot_pos = amount.size();
+  }
+  auto integer_part = amount.substr(0, dot_pos);
+  if (integer_part.size() > 7u || (integer_part.size() == 7u && integer_part[0] == '9')) {
+    return false;
+  }
+  for (auto c : integer_part) {
+    if (!is_digit(c)) {
+      return false;
+    }
+  }
+  auto fractional_part = amount.substr(dot_pos + (dot_pos != amount.size()));
+  if (fractional_part.size() > 9u) {
+    return false;
+  }
+  for (auto c : fractional_part) {
+    if (!is_digit(c)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static int64 get_gram_amount(Slice amount) {
+  CHECK(is_valid_gram_amount(amount));
+  auto dot_pos = amount.find('.');
+  if (dot_pos == string::npos) {
+    dot_pos = amount.size();
+  }
+  auto integer_part = amount.substr(0, dot_pos);
+  int64 result = 0;
+  for (auto c : integer_part) {
+    result = result * 10 + (c - '0');
+  }
+  result *= 1000000000;
+  auto fractional_part = amount.substr(dot_pos + (dot_pos != amount.size()));
+  auto multiplier = 100000000;
+  for (auto c : fractional_part) {
+    result = result + multiplier * (c - '0');
+    multiplier /= 10;
+  }
+  return result;
+}
+
 static const vector<string> &get_appearance_settings_subsections() {
   static const vector<string> subsections{
       "themes", "themes/edit", "themes/create", "wallpapers", "wallpapers/edit", "wallpapers/set",
@@ -696,7 +756,7 @@ class LinkManager::InternalLinkBuyStars final : public InternalLink {
 
  public:
   InternalLinkBuyStars(int64 star_count, string purpose)
-      : star_count_(clamp(star_count, static_cast<int64>(1), static_cast<int64>(1000000000000)))
+      : star_count_(clamp(star_count, static_cast<int64>(1), static_cast<int64>(1000000000000ll)))
       , purpose_(std::move(purpose)) {
   }
 };
@@ -1161,6 +1221,29 @@ class LinkManager::InternalLinkSavedMessages final : public InternalLink {
 class LinkManager::InternalLinkSearch final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeSearch>();
+  }
+};
+
+class LinkManager::InternalLinkSendGrams final : public InternalLink {
+  string receiver_;
+  int64 gram_amount_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    auto receiver = [&]() -> td_api::object_ptr<td_api::TonWalletTransferReceiver> {
+      if (receiver_.empty()) {
+        return nullptr;
+      }
+      if (receiver_[0] == '@') {
+        return td_api::make_object<td_api::tonWalletTransferReceiverUser>(receiver_.substr(1));
+      }
+      return td_api::make_object<td_api::tonWalletTransferReceiverAddress>(receiver_);
+    }();
+    return td_api::make_object<td_api::internalLinkTypeTonWalletTransfer>(std::move(receiver), gram_amount_);
+  }
+
+ public:
+  InternalLinkSendGrams(string &&receiver, int64 gram_amount)
+      : receiver_(std::move(receiver)), gram_amount_(gram_amount) {
   }
 };
 
@@ -2466,6 +2549,16 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       // confirmphone?phone=<phone>&hash=<hash>
       return td::make_unique<InternalLinkConfirmPhone>(std::move(hash), std::move(phone_number));
     }
+  } else if (path.size() == 1 && path[0] == "sendgrams") {
+    // sendgrams?to=<receiver>&amount=<amount>
+    auto receiver = get_arg("to");
+    auto amount = get_arg("amount");
+    if (is_valid_gram_receiver(receiver) && is_valid_gram_amount(amount)) {
+      auto gram_amount = get_gram_amount(amount);
+      if (gram_amount == 0 || !receiver.empty()) {
+        return td::make_unique<InternalLinkSendGrams>(std::move(receiver), gram_amount);
+      }
+    }
   } else if (path.size() == 1 && path[0] == "socks") {
     // socks?server=<server>&port=<port>&user=<user>&pass=<pass>
     auto server = get_arg("server");
@@ -2710,6 +2803,16 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (is_valid_phone_number_hash(hash) && is_valid_phone_number(phone_number)) {
       // /confirmphone?phone=<phone>&hash=<hash>
       return td::make_unique<InternalLinkConfirmPhone>(std::move(hash), std::move(phone_number));
+    }
+  } else if (path[0] == "sendgrams") {
+    // /sendgrams?to=<receiver>&amount=<amount>
+    auto receiver = get_arg("to");
+    auto amount = get_arg("amount");
+    if (is_valid_gram_receiver(receiver) && is_valid_gram_amount(amount)) {
+      auto gram_amount = get_gram_amount(amount);
+      if (gram_amount == 0 || !receiver.empty()) {
+        return td::make_unique<InternalLinkSendGrams>(std::move(receiver), gram_amount);
+      }
     }
   } else if (path[0] == "socks") {
     // /socks?server=<server>&port=<port>&user=<user>&pass=<pass>
@@ -3867,6 +3970,60 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       } else {
         return PSTRING() << get_t_me_url() << "addtheme/" << url_encode(link->theme_name_);
       }
+    }
+    case td_api::internalLinkTypeTonWalletTransfer::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeTonWalletTransfer *>(type_ptr);
+      auto receiver = [&] {
+        if (link->receiver_ == nullptr) {
+          return string();
+        }
+        switch (link->receiver_->get_id()) {
+          case td_api::tonWalletTransferReceiverUser::ID:
+            return PSTRING()
+                   << '@'
+                   << static_cast<const td_api::tonWalletTransferReceiverUser *>(link->receiver_.get())->username_;
+          case td_api::tonWalletTransferReceiverAddress::ID: {
+            const auto &address =
+                static_cast<const td_api::tonWalletTransferReceiverAddress *>(link->receiver_.get())->address_;
+            if (address.empty() || address[0] == '@') {
+              return string("!invalid!");
+            }
+            return address;
+          }
+          default:
+            UNREACHABLE();
+            return string();
+        }
+      }();
+      if (!is_valid_gram_receiver(receiver)) {
+        return Status::Error(400, "Invalid receiver specified");
+      }
+      if (link->gram_amount_ < 0 || link->gram_amount_ >= 9000000000000000ll) {
+        return Status::Error(400, "Invalid amount specified");
+      }
+      if (receiver.empty() && link->gram_amount_ != 0) {
+        return Status::Error(400, "Amount must not be specified without the receiver");
+      }
+      auto result = is_internal ? string("tg://sendgrams") : PSTRING() << get_t_me_url() << "sendgrams";
+      if (!receiver.empty()) {
+        result += "?to=";
+        result += receiver;
+        if (link->gram_amount_ != 0) {
+          result += "&amount=";
+          result += to_string(link->gram_amount_ / 1000000000);
+          auto fractional_part = link->gram_amount_ % 1000000000;
+          if (fractional_part != 0) {
+            result += '.';
+            auto multiplier = 100000000;
+            while (fractional_part != 0) {
+              result += static_cast<char>('0' + fractional_part / multiplier);
+              fractional_part %= multiplier;
+              multiplier /= 10;
+            }
+          }
+        }
+      }
+      return result;
     }
     case td_api::internalLinkTypeUnknownDeepLink::ID: {
       auto link = static_cast<const td_api::internalLinkTypeUnknownDeepLink *>(type_ptr);

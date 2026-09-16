@@ -510,6 +510,11 @@ static auto theme(const td::string &theme_name) {
   return td::td_api::make_object<td::td_api::internalLinkTypeTheme>(theme_name);
 }
 
+static auto ton_wallet_transfer(td::td_api::object_ptr<td::td_api::TonWalletTransferReceiver> &&receiver,
+                                td::int64 gram_amount) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeTonWalletTransfer>(std::move(receiver), gram_amount);
+}
+
 static auto unknown_deep_link(const td::string &link) {
   return td::td_api::make_object<td::td_api::internalLinkTypeUnknownDeepLink>(link);
 }
@@ -1406,6 +1411,56 @@ TEST(Link, parse_internal_link_part3) {
   parse_internal_link("tg:proxy", unsupported_proxy());
   parse_internal_link("tg:proxy?server=&port=80&secret=1234567890abcdef1234567890ABCDEF", unsupported_proxy());
   parse_internal_link("tg:proxy?server=%FF&port=80&secret=1234567890abcdef1234567890ABCDEF", unsupported_proxy());
+
+  parse_internal_link("t.me/sendgrams?asdjlkass", ton_wallet_transfer(nullptr, 0));
+  parse_internal_link("t.me/sendgrams", ton_wallet_transfer(nullptr, 0));
+  parse_internal_link("t.me/sendgrams/", ton_wallet_transfer(nullptr, 0));
+  parse_internal_link("t.me/sendgrams?to=@mon", nullptr);
+  parse_internal_link(
+      "t.me/sendgrams?to=@monk",
+      ton_wallet_transfer(td::td_api::make_object<td::td_api::tonWalletTransferReceiverUser>("monk"), 0));
+  parse_internal_link("t.me/sendgrams?to=UQATQGPKFFH5ENzxW7hiFLdPYNPRcXAU-0PWloA5QETFZRMw=", nullptr);
+  parse_internal_link("t.me/sendgrams?to=UQATQGPKFFH5ENzxW7hiFLdPYNPRcXAU-0PWloA5QETFZRMw",
+                      ton_wallet_transfer(td::td_api::make_object<td::td_api::tonWalletTransferReceiverAddress>(
+                                              "UQATQGPKFFH5ENzxW7hiFLdPYNPRcXAU-0PWloA5QETFZRMw"),
+                                          0));
+  parse_internal_link("t.me/sendgrams?to=@monk&amount=8999999",
+                      ton_wallet_transfer(td::td_api::make_object<td::td_api::tonWalletTransferReceiverUser>("monk"),
+                                          8999999000000000));
+  parse_internal_link("t.me/sendgrams?to=@monk&amount=9000000", nullptr);
+  parse_internal_link("t.me/sendgrams?to=@monk&amount=-1", nullptr);
+  parse_internal_link(
+      "t.me/sendgrams?to=@monk&amount=0000000.000000000",
+      ton_wallet_transfer(td::td_api::make_object<td::td_api::tonWalletTransferReceiverUser>("monk"), 0));
+  parse_internal_link("t.me/sendgrams?to=@monk&amount=1234567.123456789",
+                      ton_wallet_transfer(td::td_api::make_object<td::td_api::tonWalletTransferReceiverUser>("monk"),
+                                          1234567123456789));
+  parse_internal_link("t.me/sendgrams?to=@monk&amount=1234567.91",
+                      ton_wallet_transfer(td::td_api::make_object<td::td_api::tonWalletTransferReceiverUser>("monk"),
+                                          1234567910000000));
+  parse_internal_link("t.me/sendgrams?to=@monk&amount=1.1234567891", nullptr);
+  parse_internal_link("t.me/sendgrams?to=@monk&amount=1,1", nullptr);
+  parse_internal_link("t.me/sendgrams?amount=1.1", nullptr);
+
+  parse_internal_link("tg:sendgrams?to=@monk&amount=8999999",
+                      ton_wallet_transfer(td::td_api::make_object<td::td_api::tonWalletTransferReceiverUser>("monk"),
+                                          8999999000000000));
+  parse_internal_link("tg:sendgrams?to=@monk&amount=9000000",
+                      unknown_deep_link("tg://sendgrams?to=@monk&amount=9000000"));
+  parse_internal_link("tg:sendgrams?to=@monk&amount=-1", unknown_deep_link("tg://sendgrams?to=@monk&amount=-1"));
+  parse_internal_link(
+      "tg:sendgrams?to=@monk&amount=0000000.000000000",
+      ton_wallet_transfer(td::td_api::make_object<td::td_api::tonWalletTransferReceiverUser>("monk"), 0));
+  parse_internal_link("tg:sendgrams?to=@monk&amount=1234567.123456789",
+                      ton_wallet_transfer(td::td_api::make_object<td::td_api::tonWalletTransferReceiverUser>("monk"),
+                                          1234567123456789));
+  parse_internal_link("tg:sendgrams?to=@monk&amount=1234567.91",
+                      ton_wallet_transfer(td::td_api::make_object<td::td_api::tonWalletTransferReceiverUser>("monk"),
+                                          1234567910000000));
+  parse_internal_link("tg:sendgrams?to=@monk&amount=1.1234567891",
+                      unknown_deep_link("tg://sendgrams?to=@monk&amount=1.1234567891"));
+  parse_internal_link("tg:sendgrams?to=@monk&amount=1,1", unknown_deep_link("tg://sendgrams?to=@monk&amount=1,1"));
+  parse_internal_link("tg:sendgrams?amount=1.1", unknown_deep_link("tg://sendgrams?amount=1.1"));
 
   parse_internal_link("t.me/socks?server=1.2.3.4&port=80", proxy_socks("1.2.3.4", 80, "", ""));
   parse_internal_link("t.me/socks?server=1.2.3.4&port=80adasdas", proxy_socks("1.2.3.4", 80, "", ""));
