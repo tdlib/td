@@ -640,6 +640,12 @@ class RichText {
     return std::move(result);
   }
 
+  static RichText create_plain(string text) {
+    RichText result;
+    result.content_ = std::move(text);
+    return result;
+  }
+
   bool empty() const {
     return type_ == Type::Plain && content_.empty();
   }
@@ -743,9 +749,7 @@ class RichText {
     if (button_ != nullptr) {
       if (context.dup_type_ == MessageContentDupType::Forward && !button_->get_forward_text().empty()) {
         CHECK(result.texts_.size() == 1u);
-        result.texts_[0] = {};
-        result.texts_[0].type_ = Type::Plain;
-        result.texts_[0].content_ = button_->get_forward_text();
+        result.texts_[0] = create_plain(button_->get_forward_text());
       }
       result.button_ = make_unique<InlineKeyboardButton>(
           button_->clone(context.dialog_id_, context.dup_type_, context.is_via_bot_, true));
@@ -2779,8 +2783,7 @@ class WebPageBlockButtonRow final : public WebPageBlock {
     Button clone(CloneContext &context) const {
       Button result;
       if (context.dup_type_ == MessageContentDupType::Forward && !button.get_forward_text().empty()) {
-        result.text.type_ = RichText::Type::Plain;
-        result.text.content_ = button.get_forward_text();
+        result.text = RichText::create_plain(button.get_forward_text());
       } else {
         result.text = text.clone(context);
       }
