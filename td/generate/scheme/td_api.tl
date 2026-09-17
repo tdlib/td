@@ -16055,6 +16055,13 @@ replaceTonWallet password:string address:string private_key:bytes = Ok;
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
 
+
+//@description Creates a TON Connect session
+//@dapp_client_id Hex-encoded public X25519 key of the dApp
+//@manifest_url URL of the manifest of the dApp
+createTonConnectSession dapp_client_id:string manifest_url:string = TonConnectSession;
+
+
 //@description Returns available on-ramp providers @cryptocurrency Pass a cryptocurrency to receive only providers that support it; pass an empty string to receive all providers
 getOnRampProviders cryptocurrency:string = OnRampProviders;
 

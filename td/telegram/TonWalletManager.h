@@ -73,6 +73,9 @@ class TonWalletManager final : public Actor {
 
   void get_currency_rates(Promise<td_api::object_ptr<td_api::currencyExchangeRates>> &&promise);
 
+  void create_ton_connect_session(const string &dapp_client_id, const string &manifest_url,
+                                  Promise<td_api::object_ptr<td_api::tonConnectSession>> &&promise);
+
   void get_on_ramp_providers(const string &cryptocurrency,
                              Promise<td_api::object_ptr<td_api::onRampProviders>> &&promise);
 
@@ -107,6 +110,7 @@ class TonWalletManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
+  class CreateTonConnectSessionQuery;
   class GetOnRampLimitsQuery;
   class GetOnRampQuoteQuery;
   class CreateOnRampSessionQuery;

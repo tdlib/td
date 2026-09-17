@@ -657,6 +657,39 @@ class GetCurrencyRatesQuery final : public Td::ResultHandler {
   }
 };
 
+class TonWalletManager::CreateTonConnectSessionQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonConnectSession>> promise_;
+
+ public:
+  explicit CreateTonConnectSessionQuery(Promise<td_api::object_ptr<td_api::tonConnectSession>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &dapp_client_id, const string &manifest_url) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::wallet_tonConnectCreateSession(dapp_client_id, manifest_url)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_tonConnectCreateSession>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendWalletTransferQuery: " << to_string(result);
+    auto session = TonConnectSession(td_, std::move(result));
+    send_closure(
+        G()->td(), &Td::send_update,
+        td_api::make_object<td_api::updateTonWalletTonConnectSession>(session.get_ton_connect_session_object(td_)));
+    promise_.set_value(session.get_ton_connect_session_object(td_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetOnRampProvidersQuery final : public Td::ResultHandler {
   Promise<vector<telegram_api::object_ptr<telegram_api::onrampProviderInfo>>> promise_;
 
@@ -1732,6 +1765,11 @@ void TonWalletManager::on_get_currency_rates(
   for (auto &promise : promises) {
     promise.set_value(get_currency_exchange_rates_object());
   }
+}
+
+void TonWalletManager::create_ton_connect_session(const string &dapp_client_id, const string &manifest_url,
+                                                  Promise<td_api::object_ptr<td_api::tonConnectSession>> &&promise) {
+  td_->create_handler<CreateTonConnectSessionQuery>(std::move(promise))->send(dapp_client_id, manifest_url);
 }
 
 void TonWalletManager::get_on_ramp_providers(const string &cryptocurrency,
