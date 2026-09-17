@@ -188,6 +188,16 @@ class TonWalletManager final : public Actor {
     td_api::object_ptr<td_api::tonConnectSession> get_ton_connect_session_object(Td *td) const;
   };
 
+  class TonConnectChallenge {
+    string challenge_;
+    int64 event_id_ = 0;
+
+   public:
+    explicit TonConnectChallenge(telegram_api::object_ptr<telegram_api::wallet_tonConnectChallenge> &&challenge);
+
+    td_api::object_ptr<td_api::tonConnectChallenge> get_ton_connect_challenge_object() const;
+  };
+
   void timeout_expired() final;
 
   void tear_down() final;

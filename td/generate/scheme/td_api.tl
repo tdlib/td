@@ -2376,6 +2376,11 @@ tonConnectSessionStateClosed = TonConnectSessionState;
 //@state Session state
 tonConnectSession id:int64 dapp_client_id:string wallet_client_id:string creation_date:int32 manifest:TonConnectManifest nonce:bytes state:TonConnectSessionState = TonConnectSession;
 
+//@description Represents a TON Connect challenge
+//@challenge 104-byte challenge
+//@event_id Unique identifier of the first outgoing event
+tonConnectChallenge challenge:bytes event_id:int64 = TonConnectChallenge;
+
 
 //@description Represents result of cryptocurrency transfer from the current user's TON wallet
 //@is_gasless True, if the transfer is gasless

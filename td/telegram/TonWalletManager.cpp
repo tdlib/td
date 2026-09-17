@@ -1196,6 +1196,16 @@ td_api::object_ptr<td_api::tonConnectSession> TonWalletManager::TonConnectSessio
       nonce_, std::move(state));
 }
 
+TonWalletManager::TonConnectChallenge::TonConnectChallenge(
+    telegram_api::object_ptr<telegram_api::wallet_tonConnectChallenge> &&challenge)
+    : challenge_(challenge->challenge_.as_slice().str()), event_id_(challenge->event_id_) {
+}
+
+td_api::object_ptr<td_api::tonConnectChallenge>
+TonWalletManager::TonConnectChallenge::get_ton_connect_challenge_object() const {
+  return td_api::make_object<td_api::tonConnectChallenge>(challenge_, event_id_);
+}
+
 TonWalletManager::TonWalletManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
