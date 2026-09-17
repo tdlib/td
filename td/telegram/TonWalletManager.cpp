@@ -1253,6 +1253,18 @@ void TonWalletManager::send_update_ton_wallet_gasless_transfers_info() const {
   send_closure(G()->td(), &Td::send_update, get_update_ton_wallet_gasless_transfers_info_object());
 }
 
+void TonWalletManager::on_update_wallet_ton_connect_session(
+    telegram_api::object_ptr<telegram_api::tonConnectSession> &&session) {
+  LOG(INFO) << "Receive " << to_string(session);
+  if (td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive TonConnectSession";
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateTonWalletTonConnectSession>(
+                   TonConnectSession(td_, std::move(session)).get_ton_connect_session_object(td_)));
+}
+
 void TonWalletManager::get_existing_wallet_balance(Promise<Unit> &&promise) {
   td_->create_handler<GetExistingWalletBalanceQuery>(std::move(promise))->send();
 }

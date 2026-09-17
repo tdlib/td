@@ -784,6 +784,8 @@ class UpdatesManager final : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateWalletGaslessInfo> update, Promise<Unit> &&promise);
 
+  void on_update(tl_object_ptr<telegram_api::updateWalletTonConnectSession> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateStarsRevenueStatus> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateSentWalletTransaction> update, Promise<Unit> &&promise);
@@ -797,8 +799,6 @@ class UpdatesManager final : public Actor {
   // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updateWalletTonConnectSession> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateWalletTonConnectPendingDisconnect> update, Promise<Unit> &&promise);
 };

@@ -11267,6 +11267,9 @@ updateTonWalletState state:tonWalletState = Update;
 //@description The information about gasless transfers has changed @info The new state of the wallet
 updateTonWalletGaslessTransfersInfo info:tonWalletGaslessTransfersInfo = Update;
 
+//@description A session of a TON Connect request has changed @session The new state of the session
+updateTonWalletTonConnectSession session:tonConnectSession = Update;
+
 //@description The revenue earned from sponsored messages in a chat has changed. If chat revenue screen is opened, then getChatRevenueTransactions may be called to fetch new transactions
 //@chat_id Identifier of the chat
 //@revenue_amount New amount of earned revenue

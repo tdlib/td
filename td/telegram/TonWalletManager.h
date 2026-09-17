@@ -31,6 +31,8 @@ class TonWalletManager final : public Actor {
 
   void on_update_wallet_gasless_info(telegram_api::object_ptr<telegram_api::updateWalletGaslessInfo> &&wallet_info);
 
+  void on_update_wallet_ton_connect_session(telegram_api::object_ptr<telegram_api::tonConnectSession> &&session);
+
   void get_wallet_state(Promise<Unit> &&promise);
 
   void get_existing_wallet_balance(Promise<Unit> &&promise);
