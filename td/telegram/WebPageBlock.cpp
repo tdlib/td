@@ -112,14 +112,6 @@ class RichText {
     });
   }
 
- public:
-  RichText() = default;
-  RichText(const RichText &) = delete;
-  RichText &operator=(const RichText &) = delete;
-  RichText(RichText &&) = default;
-  RichText &operator=(RichText &&) = default;
-  ~RichText() = default;
-
   enum class Type : int32 {
     Plain,
     Bold,
@@ -162,6 +154,14 @@ class RichText {
   UserId user_id_;
   RichButtonStyle button_style_;
   unique_ptr<InlineKeyboardButton> button_;
+
+ public:
+  RichText() = default;
+  RichText(const RichText &) = delete;
+  RichText &operator=(const RichText &) = delete;
+  RichText(RichText &&) = default;
+  RichText &operator=(RichText &&) = default;
+  ~RichText() = default;
 
   RichText(telegram_api::object_ptr<telegram_api::RichText> &&rich_text_ptr,
            const FlatHashMap<int64, FileId> &documents) {
