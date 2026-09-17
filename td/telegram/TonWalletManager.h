@@ -76,6 +76,9 @@ class TonWalletManager final : public Actor {
   void create_ton_connect_session(const string &dapp_client_id, const string &manifest_url,
                                   Promise<td_api::object_ptr<td_api::tonConnectSession>> &&promise);
 
+  void register_ton_connect_key(int64 session_id, const string &client_id,
+                                Promise<td_api::object_ptr<td_api::tonConnectChallenge>> &&promise);
+
   void get_on_ramp_providers(const string &cryptocurrency,
                              Promise<td_api::object_ptr<td_api::onRampProviders>> &&promise);
 
@@ -114,6 +117,7 @@ class TonWalletManager final : public Actor {
   class GetOnRampLimitsQuery;
   class GetOnRampQuoteQuery;
   class CreateOnRampSessionQuery;
+  class RegisterTonConnectKeyQuery;
 
   static constexpr size_t MAX_MNEMONIC_BACKUP_SIZE = 215u;
 

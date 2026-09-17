@@ -8863,6 +8863,11 @@ class CliClient final : public Actor {
       string manifest_url;
       get_args(args, dapp_client_id, manifest_url);
       send_request(td_api::make_object<td_api::createTonConnectSession>(dapp_client_id, manifest_url));
+    } else if (op == "stcswci") {
+      int64 session_id;
+      string wallet_client_id;
+      get_args(args, session_id, wallet_client_id);
+      send_request(td_api::make_object<td_api::setTonConnectSessionWalletClientId>(session_id, wallet_client_id));
     } else if (op == "gorp") {
       string cryptocurrency;
       get_args(args, cryptocurrency);

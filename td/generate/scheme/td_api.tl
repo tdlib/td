@@ -16066,6 +16066,11 @@ getCurrencyExchangeRates = CurrencyExchangeRates;
 //@manifest_url URL of the manifest of the dApp
 createTonConnectSession dapp_client_id:string manifest_url:string = TonConnectSession;
 
+//@description Sets wallet_client_id for a pending TON Connect session
+//@session_id Unique identifier of the session
+//@wallet_client_id Hex-encoded public X25519 key of the current user's application calculated from the TON wallet private key and session parameters
+setTonConnectSessionWalletClientId session_id:int64 wallet_client_id:string = TonConnectChallenge;
+
 
 //@description Returns available on-ramp providers @cryptocurrency Pass a cryptocurrency to receive only providers that support it; pass an empty string to receive all providers
 getOnRampProviders cryptocurrency:string = OnRampProviders;

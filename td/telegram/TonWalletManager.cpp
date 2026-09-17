@@ -677,12 +677,41 @@ class TonWalletManager::CreateTonConnectSessionQuery final : public Td::ResultHa
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendWalletTransferQuery: " << to_string(result);
+    LOG(INFO) << "Receive result for CreateTonConnectSessionQuery: " << to_string(result);
     auto session = TonConnectSession(td_, std::move(result));
     send_closure(
         G()->td(), &Td::send_update,
         td_api::make_object<td_api::updateTonWalletTonConnectSession>(session.get_ton_connect_session_object(td_)));
     promise_.set_value(session.get_ton_connect_session_object(td_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class TonWalletManager::RegisterTonConnectKeyQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonConnectChallenge>> promise_;
+
+ public:
+  explicit RegisterTonConnectKeyQuery(Promise<td_api::object_ptr<td_api::tonConnectChallenge>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 session_id, const string &client_id) {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_tonConnectRegisterKey(session_id, client_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_tonConnectRegisterKey>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for RegisterTonConnectKeyQuery: " << to_string(result);
+    auto challenge = TonConnectChallenge(std::move(result));
+    promise_.set_value(challenge.get_ton_connect_challenge_object());
   }
 
   void on_error(Status status) final {
@@ -1780,6 +1809,11 @@ void TonWalletManager::on_get_currency_rates(
 void TonWalletManager::create_ton_connect_session(const string &dapp_client_id, const string &manifest_url,
                                                   Promise<td_api::object_ptr<td_api::tonConnectSession>> &&promise) {
   td_->create_handler<CreateTonConnectSessionQuery>(std::move(promise))->send(dapp_client_id, manifest_url);
+}
+
+void TonWalletManager::register_ton_connect_key(int64 session_id, const string &client_id,
+                                                Promise<td_api::object_ptr<td_api::tonConnectChallenge>> &&promise) {
+  td_->create_handler<RegisterTonConnectKeyQuery>(std::move(promise))->send(session_id, client_id);
 }
 
 void TonWalletManager::get_on_ramp_providers(const string &cryptocurrency,

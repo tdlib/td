@@ -8040,6 +8040,14 @@ void Requests::on_request(uint64 id, td_api::createTonConnectSession &request) {
                                                        std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::setTonConnectSessionWalletClientId &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.wallet_client_id_);
+  CREATE_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->register_ton_connect_key(request.session_id_, request.wallet_client_id_,
+                                                     std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getOnRampProviders &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.cryptocurrency_);
