@@ -672,20 +672,20 @@ class RichText {
     }
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const {
     if (recurse_text) {
       for (auto &text : texts_) {
         text.for_each_rich_text(recurse_text, callback);
       }
     }
-    callback(this);
+    callback(*this);
   }
 
   string get_full_text() const {
     string result;
-    for_each_rich_text(true, [&](const RichText *text) {
-      if (text->type_ == Type::Plain || text->type_ == Type::Math || text->type_ == Type::CustomEmoji) {
-        result += text->content_;
+    for_each_rich_text(true, [&](const RichText &text) {
+      if (text.type_ == Type::Plain || text.type_ == Type::Math || text.type_ == Type::CustomEmoji) {
+        result += text.content_;
       }
     });
     return result;
@@ -1086,7 +1086,7 @@ class WebPageBlockCaption {
     credit.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const {
     text.for_each_rich_text(recurse_text, callback);
     credit.for_each_rich_text(recurse_text, callback);
   }
@@ -1226,7 +1226,7 @@ class WebPageBlockTableCell {
     text.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const {
     text.for_each_rich_text(recurse_text, callback);
   }
 
@@ -1368,7 +1368,7 @@ class RelatedArticle {
     dependencies.add(web_page_id);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const {
   }
 
   td_api::object_ptr<td_api::pageBlockRelatedArticle> get_page_block_related_article_object(
@@ -1469,7 +1469,7 @@ class WebPageBlockUnsupported final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
   }
 
   int32 get_index_mask() const final {
@@ -1534,7 +1534,7 @@ class WebPageBlockTitle final : public WebPageBlock {
     title.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     title.for_each_rich_text(recurse_text, callback);
   }
 
@@ -1592,7 +1592,7 @@ class WebPageBlockSubtitle final : public WebPageBlock {
     subtitle.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     subtitle.for_each_rich_text(recurse_text, callback);
   }
 
@@ -1651,7 +1651,7 @@ class WebPageBlockAuthorDate final : public WebPageBlock {
     author.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     author.for_each_rich_text(recurse_text, callback);
   }
 
@@ -1711,7 +1711,7 @@ class WebPageBlockHeader final : public WebPageBlock {
     header.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     header.for_each_rich_text(recurse_text, callback);
   }
 
@@ -1769,7 +1769,7 @@ class WebPageBlockSubheader final : public WebPageBlock {
     subheader.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     subheader.for_each_rich_text(recurse_text, callback);
   }
 
@@ -1828,7 +1828,7 @@ class WebPageBlockHeading final : public WebPageBlock {
     text.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     text.for_each_rich_text(recurse_text, callback);
   }
 
@@ -1909,7 +1909,7 @@ class WebPageBlockKicker final : public WebPageBlock {
     kicker.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     kicker.for_each_rich_text(recurse_text, callback);
   }
 
@@ -1967,7 +1967,7 @@ class WebPageBlockParagraph final : public WebPageBlock {
     text.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     text.for_each_rich_text(recurse_text, callback);
   }
 
@@ -2025,7 +2025,7 @@ class WebPageBlockPreformatted final : public WebPageBlock {
     text.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     text.for_each_rich_text(recurse_text, callback);
   }
 
@@ -2084,7 +2084,7 @@ class WebPageBlockFooter final : public WebPageBlock {
     footer.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     footer.for_each_rich_text(recurse_text, callback);
   }
 
@@ -2141,7 +2141,7 @@ class WebPageBlockThinking final : public WebPageBlock {
     text.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     text.for_each_rich_text(recurse_text, callback);
   }
 
@@ -2194,7 +2194,7 @@ class WebPageBlockDivider final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
   }
 
   int32 get_index_mask() const final {
@@ -2244,7 +2244,7 @@ class WebPageBlockMath final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
   }
 
   int32 get_index_mask() const final {
@@ -2302,7 +2302,7 @@ class WebPageBlockAnchor final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
   }
 
   int32 get_index_mask() const final {
@@ -2467,7 +2467,7 @@ class WebPageBlockList final : public WebPageBlock {
       }
     }
 
-    void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const {
+    void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const {
       for (const auto &page_block : page_blocks) {
         page_block->for_each_rich_text(recurse_text, callback);
       }
@@ -2618,7 +2618,7 @@ class WebPageBlockList final : public WebPageBlock {
     }
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     for (auto &item : items) {
       item.for_each_rich_text(recurse_text, callback);
     }
@@ -2772,7 +2772,7 @@ class WebPageBlockButtonRow final : public WebPageBlock {
       button.add_dependencies(dependencies);
     }
 
-    void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const {
+    void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const {
       text.for_each_rich_text(recurse_text, callback);
     }
 
@@ -2870,7 +2870,7 @@ class WebPageBlockButtonRow final : public WebPageBlock {
     }
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     for (auto &button : buttons) {
       button.for_each_rich_text(recurse_text, callback);
     }
@@ -2964,7 +2964,7 @@ class WebPageBlockBlockQuote final : public WebPageBlock {
     credit.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     text.for_each_rich_text(recurse_text, callback);
     credit.for_each_rich_text(recurse_text, callback);
   }
@@ -3032,7 +3032,7 @@ class WebPageBlockExpandableBlockQuote final : public WebPageBlock {
     credit.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     text.for_each_rich_text(recurse_text, callback);
     credit.for_each_rich_text(recurse_text, callback);
   }
@@ -3101,7 +3101,7 @@ class WebPageBlockPullQuote final : public WebPageBlock {
     credit.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     text.for_each_rich_text(recurse_text, callback);
     credit.for_each_rich_text(recurse_text, callback);
   }
@@ -3177,7 +3177,7 @@ class WebPageBlockAnimation final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     caption.for_each_rich_text(recurse_text, callback);
   }
 
@@ -3298,7 +3298,7 @@ class WebPageBlockPhoto final : public WebPageBlock {
     dependencies.add(web_page_id);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     caption.for_each_rich_text(recurse_text, callback);
   }
 
@@ -3410,7 +3410,7 @@ class WebPageBlockVideo final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     caption.for_each_rich_text(recurse_text, callback);
   }
 
@@ -3522,7 +3522,7 @@ class WebPageBlockCover final : public WebPageBlock {
     cover->add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     cover->for_each_rich_text(recurse_text, callback);
   }
 
@@ -3603,7 +3603,7 @@ class WebPageBlockEmbedded final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     caption.for_each_rich_text(recurse_text, callback);
   }
 
@@ -3707,7 +3707,7 @@ class WebPageBlockEmbeddedPost final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     for (auto &page_block : page_blocks) {
       page_block->for_each_rich_text(recurse_text, callback);
     }
@@ -3801,7 +3801,7 @@ class WebPageBlockCollage final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     for (auto &page_block : page_blocks) {
       page_block->for_each_rich_text(recurse_text, callback);
     }
@@ -3897,7 +3897,7 @@ class WebPageBlockSlideshow final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     for (auto &page_block : page_blocks) {
       page_block->for_each_rich_text(recurse_text, callback);
     }
@@ -3988,7 +3988,7 @@ class WebPageBlockChatLink final : public WebPageBlock {
   void add_dependencies(Dependencies &dependencies) const final {
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
   }
 
   int32 get_index_mask() const final {
@@ -4117,7 +4117,7 @@ class WebPageBlockAudio final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     caption.for_each_rich_text(recurse_text, callback);
   }
 
@@ -4243,7 +4243,7 @@ class WebPageBlockTable final : public WebPageBlock {
     }
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     title.for_each_rich_text(recurse_text, callback);
     for (auto &row : cells) {
       for (auto &cell : row) {
@@ -4359,7 +4359,7 @@ class WebPageBlockDetails final : public WebPageBlock {
     }
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     header.for_each_rich_text(recurse_text, callback);
     for (auto &page_block : page_blocks) {
       page_block->for_each_rich_text(recurse_text, callback);
@@ -4462,7 +4462,7 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     for (auto &page_block : page_blocks) {
       page_block->for_each_rich_text(recurse_text, callback);
     }
@@ -4557,7 +4557,7 @@ class WebPageBlockRelatedArticles final : public WebPageBlock {
     }
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     header.for_each_rich_text(recurse_text, callback);
     for (const auto &article : related_articles) {
       article.for_each_rich_text(recurse_text, callback);
@@ -4629,7 +4629,7 @@ class WebPageBlockMap final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     caption.for_each_rich_text(recurse_text, callback);
   }
 
@@ -4705,7 +4705,7 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     caption.for_each_rich_text(recurse_text, callback);
   }
 
@@ -4811,7 +4811,7 @@ class WebPageBlockDocument final : public WebPageBlock {
     caption.add_dependencies(dependencies);
   }
 
-  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText *text)> &callback) const final {
+  void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const final {
     caption.for_each_rich_text(recurse_text, callback);
   }
 
@@ -5323,17 +5323,17 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
 }  // namespace
 
 void WebPageBlock::for_each_text(const std::function<void(Slice text)> &callback) const {
-  for_each_rich_text(false, [&](const RichText *text) { callback(text->get_full_text()); });
+  for_each_rich_text(false, [&](const RichText &text) { callback(text.get_full_text()); });
 }
 
 void WebPageBlock::append_user_ids(vector<UserId> &user_ids) const {
-  for_each_rich_text(true, [&](const RichText *text) { text->append_user_ids(user_ids); });
+  for_each_rich_text(true, [&](const RichText &text) { text.append_user_ids(user_ids); });
 }
 
 bool WebPageBlock::has_bot_commands() const {
   bool result = false;
-  for_each_rich_text(true, [&](const RichText *text) {
-    if (text->is_bot_command()) {
+  for_each_rich_text(true, [&](const RichText &text) {
+    if (text.is_bot_command()) {
       result = true;
     }
   });
@@ -5342,9 +5342,9 @@ bool WebPageBlock::has_bot_commands() const {
 
 vector<string> WebPageBlock::get_hashtags() const {
   vector<string> result;
-  for_each_rich_text(true, [&](const RichText *text) {
-    if (text->is_hashtag()) {
-      auto hashtag = text->get_full_text();
+  for_each_rich_text(true, [&](const RichText &text) {
+    if (text.is_hashtag()) {
+      auto hashtag = text.get_full_text();
       if (!hashtag.empty()) {
         if (hashtag[0] == '#') {
           hashtag = hashtag.substr(1);
@@ -5360,7 +5360,7 @@ vector<string> WebPageBlock::get_hashtags() const {
 
 vector<CustomEmojiId> WebPageBlock::get_custom_emoji_ids() const {
   vector<CustomEmojiId> custom_emoji_ids;
-  for_each_rich_text(true, [&](const RichText *text) { text->append_custom_emoji_ids(custom_emoji_ids); });
+  for_each_rich_text(true, [&](const RichText &text) { text.append_custom_emoji_ids(custom_emoji_ids); });
   return custom_emoji_ids;
 }
 
