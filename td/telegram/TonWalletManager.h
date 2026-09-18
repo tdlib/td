@@ -73,6 +73,8 @@ class TonWalletManager final : public Actor {
 
   void get_currency_rates(Promise<td_api::object_ptr<td_api::currencyExchangeRates>> &&promise);
 
+  void get_ton_connect_sessions(Promise<td_api::object_ptr<td_api::tonConnectSessions>> &&promise);
+
   void create_ton_connect_session(const string &dapp_client_id, const string &manifest_url,
                                   Promise<td_api::object_ptr<td_api::tonConnectSession>> &&promise);
 
@@ -113,11 +115,12 @@ class TonWalletManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
+  class GetTonConnectSessionsQuery;
   class CreateTonConnectSessionQuery;
+  class RegisterTonConnectKeyQuery;
   class GetOnRampLimitsQuery;
   class GetOnRampQuoteQuery;
   class CreateOnRampSessionQuery;
-  class RegisterTonConnectKeyQuery;
 
   static constexpr size_t MAX_MNEMONIC_BACKUP_SIZE = 215u;
 

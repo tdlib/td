@@ -2376,6 +2376,9 @@ tonConnectSessionStateClosed = TonConnectSessionState;
 //@state Session state
 tonConnectSession id:int64 dapp_client_id:string wallet_client_id:string creation_date:int32 manifest:TonConnectManifest nonce:bytes state:TonConnectSessionState = TonConnectSession;
 
+//@description Contains a list of TON connect sessions @sessions The list of sessions
+tonConnectSessions sessions:vector<tonConnectSession> = TonConnectSessions;
+
 //@description Represents a TON Connect challenge
 //@challenge 104-byte challenge
 //@event_id Unique identifier of the first outgoing event
@@ -16060,6 +16063,9 @@ replaceTonWallet password:string address:string private_key:bytes = Ok;
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
 
+
+//@description Returns active TON Connect sessions
+getTonConnectSessions = TonConnectSessions;
 
 //@description Creates a TON Connect session
 //@dapp_client_id Hex-encoded public X25519 key of the dApp

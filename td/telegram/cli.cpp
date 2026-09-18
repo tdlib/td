@@ -8858,6 +8858,8 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::replaceTonWallet>(password, address, hex_decode(private_key).move_as_ok()));
     } else if (op == "gcer") {
       send_request(td_api::make_object<td_api::getCurrencyExchangeRates>());
+    } else if (op == "gtcs") {
+      send_request(td_api::make_object<td_api::getTonConnectSessions>());
     } else if (op == "ctwcs") {
       string dapp_client_id;
       string manifest_url;

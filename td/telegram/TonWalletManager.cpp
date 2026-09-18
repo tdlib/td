@@ -657,6 +657,37 @@ class GetCurrencyRatesQuery final : public Td::ResultHandler {
   }
 };
 
+class TonWalletManager::GetTonConnectSessionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonConnectSessions>> promise_;
+
+ public:
+  explicit GetTonConnectSessionsQuery(Promise<td_api::object_ptr<td_api::tonConnectSessions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_tonConnectGetSessions()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_tonConnectGetSessions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetTonConnectSessionsQuery: " << to_string(result);
+    auto sessions = transform(std::move(result->sessions_), [td = td_](auto &&session) {
+      return TonConnectSession(td, std::move(session)).get_ton_connect_session_object(td);
+    });
+    promise_.set_value(td_api::make_object<td_api::tonConnectSessions>(std::move(sessions)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class TonWalletManager::CreateTonConnectSessionQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::tonConnectSession>> promise_;
 
@@ -1804,6 +1835,10 @@ void TonWalletManager::on_get_currency_rates(
   for (auto &promise : promises) {
     promise.set_value(get_currency_exchange_rates_object());
   }
+}
+
+void TonWalletManager::get_ton_connect_sessions(Promise<td_api::object_ptr<td_api::tonConnectSessions>> &&promise) {
+  td_->create_handler<GetTonConnectSessionsQuery>(std::move(promise))->send();
 }
 
 void TonWalletManager::create_ton_connect_session(const string &dapp_client_id, const string &manifest_url,
