@@ -750,6 +750,37 @@ class TonWalletManager::RegisterTonConnectKeyQuery final : public Td::ResultHand
   }
 };
 
+class TonWalletManager::GetTonConnectPendingQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonConnectRequests>> promise_;
+
+ public:
+  explicit GetTonConnectPendingQuery(Promise<td_api::object_ptr<td_api::tonConnectRequests>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 session_id) {
+    int32 flags = 0;
+    flags |= telegram_api::wallet_tonConnectGetPending::SESSION_ID_MASK;
+    send_query(G()->net_query_creator().create(telegram_api::wallet_tonConnectGetPending(flags, string(), session_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_tonConnectGetPending>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetTonConnectPendingQuery: " << to_string(result);
+    auto requests = TonConnectRequests(td_, std::move(result));
+    promise_.set_value(requests.get_ton_connect_requests_object(td_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetOnRampProvidersQuery final : public Td::ResultHandler {
   Promise<vector<telegram_api::object_ptr<telegram_api::onrampProviderInfo>>> promise_;
 
@@ -1880,6 +1911,11 @@ void TonWalletManager::create_ton_connect_session(const string &dapp_client_id, 
 void TonWalletManager::register_ton_connect_key(int64 session_id, const string &client_id,
                                                 Promise<td_api::object_ptr<td_api::tonConnectChallenge>> &&promise) {
   td_->create_handler<RegisterTonConnectKeyQuery>(std::move(promise))->send(session_id, client_id);
+}
+
+void TonWalletManager::get_ton_connect_requests(int64 session_id,
+                                                Promise<td_api::object_ptr<td_api::tonConnectRequests>> &&promise) {
+  td_->create_handler<GetTonConnectPendingQuery>(std::move(promise))->send(session_id);
 }
 
 void TonWalletManager::get_on_ramp_providers(const string &cryptocurrency,

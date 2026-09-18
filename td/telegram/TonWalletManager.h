@@ -82,6 +82,8 @@ class TonWalletManager final : public Actor {
   void register_ton_connect_key(int64 session_id, const string &client_id,
                                 Promise<td_api::object_ptr<td_api::tonConnectChallenge>> &&promise);
 
+  void get_ton_connect_requests(int64 session_id, Promise<td_api::object_ptr<td_api::tonConnectRequests>> &&promise);
+
   void get_on_ramp_providers(const string &cryptocurrency,
                              Promise<td_api::object_ptr<td_api::onRampProviders>> &&promise);
 
@@ -119,6 +121,7 @@ class TonWalletManager final : public Actor {
   class GetTonConnectSessionsQuery;
   class CreateTonConnectSessionQuery;
   class RegisterTonConnectKeyQuery;
+  class GetTonConnectPendingQuery;
   class GetOnRampLimitsQuery;
   class GetOnRampQuoteQuery;
   class CreateOnRampSessionQuery;
