@@ -2379,6 +2379,15 @@ tonConnectSession id:int64 dapp_client_id:string wallet_client_id:string creatio
 //@description Contains a list of TON connect sessions @sessions The list of sessions
 tonConnectSessions sessions:vector<tonConnectSession> = TonConnectSessions;
 
+//@description Represents a pending TON Connect request
+//@session_id Unique identifier of the session
+//@message_id Unique identifier of the service message in the chat 777000 with the request
+//@body Body of the request
+//@expiration_date Point in time (Unix timestamp) when the request will expire; 0 if never
+//@topic Topic of the request; may be empty if none
+//@trace_id Identifier to trace the connection request; may be empty if none
+tonConnectRequest session_id:int64 message_id:int53 body:bytes expiration_date:int32 topic:string trace_id:string = TonConnectRequest;
+
 //@description Represents a TON Connect challenge
 //@challenge 104-byte challenge
 //@event_id Unique identifier of the first outgoing event

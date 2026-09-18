@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -193,6 +194,20 @@ class TonWalletManager final : public Actor {
     explicit TonConnectSession(Td *td, telegram_api::object_ptr<telegram_api::tonConnectSession> &&session);
 
     td_api::object_ptr<td_api::tonConnectSession> get_ton_connect_session_object(Td *td) const;
+  };
+
+  class TonConnectRequest {
+    int64 session_id_ = 0;
+    MessageId message_id_;
+    string body_;
+    int32 expire_date_;
+    string topic_;
+    string trace_id_;
+
+   public:
+    explicit TonConnectRequest(telegram_api::object_ptr<telegram_api::tonConnectRequest> &&request);
+
+    td_api::object_ptr<td_api::tonConnectRequest> get_ton_connect_request_object() const;
   };
 
   class TonConnectChallenge {
