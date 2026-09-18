@@ -210,6 +210,16 @@ class TonWalletManager final : public Actor {
     td_api::object_ptr<td_api::tonConnectRequest> get_ton_connect_request_object() const;
   };
 
+  class TonConnectRequests {
+    TonConnectSession session_;
+    vector<TonConnectRequest> requests_;
+
+   public:
+    explicit TonConnectRequests(Td *td, telegram_api::object_ptr<telegram_api::wallet_tonConnectPending> &&requests);
+
+    td_api::object_ptr<td_api::tonConnectRequests> get_ton_connect_requests_object(Td *td) const;
+  };
+
   class TonConnectChallenge {
     string challenge_;
     int64 event_id_ = 0;

@@ -1272,6 +1272,21 @@ td_api::object_ptr<td_api::tonConnectRequest> TonWalletManager::TonConnectReques
                                                         trace_id_);
 }
 
+TonWalletManager::TonConnectRequests::TonConnectRequests(
+    Td *td, telegram_api::object_ptr<telegram_api::wallet_tonConnectPending> &&requests)
+    : session_(td, std::move(requests->session_)) {
+  for (auto &request : requests->requests_) {
+    requests_.emplace_back(std::move(request));
+  }
+}
+
+td_api::object_ptr<td_api::tonConnectRequests> TonWalletManager::TonConnectRequests::get_ton_connect_requests_object(
+    Td *td) const {
+  return td_api::make_object<td_api::tonConnectRequests>(
+      session_.get_ton_connect_session_object(td),
+      transform(requests_, [](const TonConnectRequest &request) { return request.get_ton_connect_request_object(); }));
+}
+
 TonWalletManager::TonConnectChallenge::TonConnectChallenge(
     telegram_api::object_ptr<telegram_api::wallet_tonConnectChallenge> &&challenge)
     : challenge_(challenge->challenge_.as_slice().str()), event_id_(challenge->event_id_) {

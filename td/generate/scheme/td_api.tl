@@ -2388,6 +2388,11 @@ tonConnectSessions sessions:vector<tonConnectSession> = TonConnectSessions;
 //@trace_id Identifier to trace the connection request; may be empty if none
 tonConnectRequest session_id:int64 message_id:int53 body:bytes expiration_date:int32 topic:string trace_id:string = TonConnectRequest;
 
+//@description Represents a session with its pending TON Connect requests
+//@session The session
+//@requests The requests
+tonConnectRequests session:tonConnectSession requests:vector<tonConnectRequest> = TonConnectRequests;
+
 //@description Represents a TON Connect challenge
 //@challenge 104-byte challenge
 //@event_id Unique identifier of the first outgoing event
