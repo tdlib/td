@@ -62,10 +62,11 @@ class GetWalletStateQuery final : public Td::ResultHandler {
 };
 
 class GetExistingWalletBalanceQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::walletBotBalance>> promise_;
 
  public:
-  explicit GetExistingWalletBalanceQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetExistingWalletBalanceQuery(Promise<td_api::object_ptr<td_api::walletBotBalance>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send() {
@@ -80,10 +81,7 @@ class GetExistingWalletBalanceQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetExistingWalletBalanceQuery: " << to_string(result);
-    if (!result->has_balance_) {
-      return on_error(Status::Error(400, "Balance is empty"));
-    }
-    promise_.set_value(Unit());
+    promise_.set_value(td_api::make_object<td_api::walletBotBalance>(result->has_balance_, result->url_));
   }
 
   void on_error(Status status) final {
@@ -1462,7 +1460,7 @@ void TonWalletManager::on_update_wallet_ton_connect_session(
                    TonConnectSession(td_, std::move(session)).get_ton_connect_session_object(td_)));
 }
 
-void TonWalletManager::get_existing_wallet_balance(Promise<Unit> &&promise) {
+void TonWalletManager::get_existing_wallet_balance(Promise<td_api::object_ptr<td_api::walletBotBalance>> &&promise) {
   td_->create_handler<GetExistingWalletBalanceQuery>(std::move(promise))->send();
 }
 

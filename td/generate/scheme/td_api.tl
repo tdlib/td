@@ -2191,6 +2191,11 @@ tonWalletTransferReceiverAddress address:string = TonWalletTransferReceiver;
 //@description Contains an HTTP URL for TON Center Streaming API @url The URL @expires_in Time after which the URL expires
 tonCenterStreamingApiUrl url:string expires_in:int32 = TonCenterStreamingApiUrl;
 
+//@description Describes balance of the current user in the bot https://t.me/walt
+//@has_balance True, if the user has positive TON Gram balance
+//@url The URL to open to launch the bot; may be empty if none
+walletBotBalance has_balance:Bool url:string = WalletBotBalance;
+
 //@description Contains TON wallet address of a user
 //@user_id Identifier of the user
 //@wallet_address Address of the user's wallet in the TON blockchain
@@ -16032,8 +16037,8 @@ loadTonWalletState = Ok;
 //@description Loads or reloads the current state of gasless transfers for the current user
 loadTonWalletGaslessTransfersInfo = Ok;
 
-//@description Returns Ok if the current user has positive TON Gram balance in the bot https://t.me/wallet
-checkWalletBotBalance = Ok;
+//@description Returns information about balance of the current user in the bot https://t.me/walt
+checkWalletBotBalance = WalletBotBalance;
 
 //@description Returns TON wallet addresses of the specified users
 //@user_ids Identifiers of the users, which wallet addresses have to be returned. If a user has no TON wallet, it will be skipped in the result

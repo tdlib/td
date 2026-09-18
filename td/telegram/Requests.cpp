@@ -7957,7 +7957,7 @@ void Requests::on_request(uint64 id, const td_api::loadTonWalletGaslessTransfers
 
 void Requests::on_request(uint64 id, const td_api::checkWalletBotBalance &request) {
   CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
+  CREATE_REQUEST_PROMISE();
   td_->ton_wallet_manager_->get_existing_wallet_balance(std::move(promise));
 }
 
