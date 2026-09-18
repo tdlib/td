@@ -8054,6 +8054,14 @@ void Requests::on_request(uint64 id, td_api::setTonConnectSessionWalletClientId 
                                                      std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::sendTonConnectSessionConnectResult &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.trace_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->submit_ton_connect_result(request.session_id_, request.challenge_answer_, request.is_error_,
+                                                      request.body_, request.trace_id_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getTonConnectSessionPendingRequests &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

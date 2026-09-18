@@ -750,6 +750,33 @@ class TonWalletManager::RegisterTonConnectKeyQuery final : public Td::ResultHand
   }
 };
 
+class SubmitTonConnectResultQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SubmitTonConnectResultQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int64 session_id, const string &challenge_answer, bool is_error, const string &body,
+            const string &trace_id) {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_tonConnectSubmitConnectResult(
+        0, is_error, session_id, BufferSlice(challenge_answer), BufferSlice(body), trace_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_tonConnectSubmitConnectResult>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class TonWalletManager::GetTonConnectPendingQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::tonConnectRequests>> promise_;
 
@@ -1916,6 +1943,12 @@ void TonWalletManager::create_ton_connect_session(const string &dapp_client_id, 
 void TonWalletManager::register_ton_connect_key(int64 session_id, const string &client_id,
                                                 Promise<td_api::object_ptr<td_api::tonConnectChallenge>> &&promise) {
   td_->create_handler<RegisterTonConnectKeyQuery>(std::move(promise))->send(session_id, client_id);
+}
+
+void TonWalletManager::submit_ton_connect_result(int64 session_id, const string &challenge_answer, bool is_error,
+                                                 const string &body, const string &trace_id, Promise<Unit> &&promise) {
+  td_->create_handler<SubmitTonConnectResultQuery>(std::move(promise))
+      ->send(session_id, challenge_answer, is_error, body, trace_id);
 }
 
 void TonWalletManager::get_ton_connect_requests(bool by_dapp, int64 session_id, const string &dapp_client_id,

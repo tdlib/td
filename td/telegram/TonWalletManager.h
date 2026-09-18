@@ -82,6 +82,9 @@ class TonWalletManager final : public Actor {
   void register_ton_connect_key(int64 session_id, const string &client_id,
                                 Promise<td_api::object_ptr<td_api::tonConnectChallenge>> &&promise);
 
+  void submit_ton_connect_result(int64 session_id, const string &challenge_answer, bool is_error, const string &body,
+                                 const string &trace_id, Promise<Unit> &&promise);
+
   void get_ton_connect_requests(bool by_dapp, int64 session_id, const string &dapp_client_id,
                                 Promise<td_api::object_ptr<td_api::tonConnectRequests>> &&promise);
 

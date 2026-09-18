@@ -16086,10 +16086,18 @@ getTonConnectSessions = TonConnectSessions;
 //@manifest_url URL of the manifest of the dApp
 createTonConnectSession dapp_client_id:string manifest_url:string = TonConnectSession;
 
-//@description Sets wallet_client_id for a pending TON Connect session
+//@description Sets wallet_client_id for a pending TON Connect session. Then, sendTonConnectSessionConnectResult must be used to accept or reject the session
 //@session_id Unique identifier of the session
 //@wallet_client_id Hex-encoded public X25519 key of the current user's application calculated from the TON wallet private key and session parameters
 setTonConnectSessionWalletClientId session_id:int64 wallet_client_id:string = TonConnectChallenge;
+
+//@description Accepts or rejects a TON Connect session
+//@session_id Unique identifier of the session
+//@challenge_answer Answer to the challenge received from setTonConnectSessionWalletClientId
+//@is_error True, if the request is rejected
+//@body Body of the result
+//@trace_id Identifier to trace the connection request
+sendTonConnectSessionConnectResult session_id:int64 challenge_answer:bytes is_error:Bool body:bytes trace_id:string = Ok;
 
 //@description Returns pending requests in a TON Connect session @session_id Unique identifier of the session
 getTonConnectSessionPendingRequests session_id:int64 = TonConnectRequests;
