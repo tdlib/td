@@ -8075,6 +8075,15 @@ void Requests::on_request(uint64 id, td_api::getTonConnectDAppPendingRequests &r
   td_->ton_wallet_manager_->get_ton_connect_requests(true, 0, request.dapp_client_id_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::claimTonConnectRequest &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.dapp_request_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->claim_ton_connect_request(request.session_id_, MessageId(request.message_id_),
+                                                      request.dapp_request_id_, request.is_rejected_,
+                                                      std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getOnRampProviders &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.cryptocurrency_);

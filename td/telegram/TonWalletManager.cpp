@@ -811,6 +811,32 @@ class TonWalletManager::GetTonConnectPendingQuery final : public Td::ResultHandl
   }
 };
 
+class ClaimTonConnectRequestQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ClaimTonConnectRequestQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int64 session_id, MessageId message_id, const string &dapp_request_id, bool is_rejected) {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_tonConnectClaimRequest(
+        0, is_rejected, session_id, message_id.get_server_message_id().get(), dapp_request_id, BufferSlice())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_tonConnectClaimRequest>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetOnRampProvidersQuery final : public Td::ResultHandler {
   Promise<vector<telegram_api::object_ptr<telegram_api::onrampProviderInfo>>> promise_;
 
@@ -1952,6 +1978,15 @@ void TonWalletManager::submit_ton_connect_result(int64 session_id, const string 
 void TonWalletManager::get_ton_connect_requests(bool by_dapp, int64 session_id, const string &dapp_client_id,
                                                 Promise<td_api::object_ptr<td_api::tonConnectRequests>> &&promise) {
   td_->create_handler<GetTonConnectPendingQuery>(std::move(promise))->send(by_dapp, session_id, dapp_client_id);
+}
+
+void TonWalletManager::claim_ton_connect_request(int64 session_id, MessageId message_id, const string &dapp_request_id,
+                                                 bool is_rejected, Promise<Unit> &&promise) {
+  if (!message_id.is_server()) {
+    return promise.set_error(400, "Invalid message identifier specified");
+  }
+  td_->create_handler<ClaimTonConnectRequestQuery>(std::move(promise))
+      ->send(session_id, message_id, dapp_request_id, is_rejected);
 }
 
 void TonWalletManager::get_on_ramp_providers(const string &cryptocurrency,

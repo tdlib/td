@@ -16110,6 +16110,13 @@ getTonConnectSessionPendingRequests session_id:int64 = TonConnectRequests;
 //@description Returns pending requests with a dApp through TON Connect @dapp_client_id Hex-encoded public X25519 key of the dApp
 getTonConnectDAppPendingRequests dapp_client_id:string = TonConnectRequests;
 
+//@description Claims a request received through TON Connect for processing on this device
+//@session_id Unique identifier of the session
+//@message_id Identifier of the message with the request
+//@dapp_request_id Identifier of the request assigned by the dApp
+//@is_rejected Pass true to reject the request
+claimTonConnectRequest session_id:int64 message_id:int53 dapp_request_id:string is_rejected:Bool = Ok;
+
 
 //@description Returns available on-ramp providers @cryptocurrency Pass a cryptocurrency to receive only providers that support it; pass an empty string to receive all providers
 getOnRampProviders cryptocurrency:string = OnRampProviders;

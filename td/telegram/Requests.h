@@ -1744,6 +1744,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::getTonConnectDAppPendingRequests &request);
 
+  void on_request(uint64 id, td_api::claimTonConnectRequest &request);
+
   void on_request(uint64 id, td_api::getOnRampProviders &request);
 
   void on_request(uint64 id, td_api::getOnRampProviderBaseCurrencies &request);
