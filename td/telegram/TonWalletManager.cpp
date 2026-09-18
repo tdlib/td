@@ -758,10 +758,15 @@ class TonWalletManager::GetTonConnectPendingQuery final : public Td::ResultHandl
       : promise_(std::move(promise)) {
   }
 
-  void send(int64 session_id) {
+  void send(bool by_dapp, int64 session_id, const string &dapp_client_id) {
     int32 flags = 0;
-    flags |= telegram_api::wallet_tonConnectGetPending::SESSION_ID_MASK;
-    send_query(G()->net_query_creator().create(telegram_api::wallet_tonConnectGetPending(flags, string(), session_id)));
+    if (by_dapp) {
+      flags |= telegram_api::wallet_tonConnectGetPending::DAPP_CLIENT_ID_MASK;
+    } else {
+      flags |= telegram_api::wallet_tonConnectGetPending::SESSION_ID_MASK;
+    }
+    send_query(
+        G()->net_query_creator().create(telegram_api::wallet_tonConnectGetPending(flags, dapp_client_id, session_id)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1913,9 +1918,9 @@ void TonWalletManager::register_ton_connect_key(int64 session_id, const string &
   td_->create_handler<RegisterTonConnectKeyQuery>(std::move(promise))->send(session_id, client_id);
 }
 
-void TonWalletManager::get_ton_connect_requests(int64 session_id,
+void TonWalletManager::get_ton_connect_requests(bool by_dapp, int64 session_id, const string &dapp_client_id,
                                                 Promise<td_api::object_ptr<td_api::tonConnectRequests>> &&promise) {
-  td_->create_handler<GetTonConnectPendingQuery>(std::move(promise))->send(session_id);
+  td_->create_handler<GetTonConnectPendingQuery>(std::move(promise))->send(by_dapp, session_id, dapp_client_id);
 }
 
 void TonWalletManager::get_on_ramp_providers(const string &cryptocurrency,

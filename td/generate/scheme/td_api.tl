@@ -16094,6 +16094,9 @@ setTonConnectSessionWalletClientId session_id:int64 wallet_client_id:string = To
 //@description Returns pending requests in a TON Connect session @session_id Unique identifier of the session
 getTonConnectSessionPendingRequests session_id:int64 = TonConnectRequests;
 
+//@description Returns pending requests with a dApp through TON Connect @dapp_client_id Hex-encoded public X25519 key of the dApp
+getTonConnectDAppPendingRequests dapp_client_id:string = TonConnectRequests;
+
 
 //@description Returns available on-ramp providers @cryptocurrency Pass a cryptocurrency to receive only providers that support it; pass an empty string to receive all providers
 getOnRampProviders cryptocurrency:string = OnRampProviders;
