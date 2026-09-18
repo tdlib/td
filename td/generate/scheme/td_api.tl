@@ -2390,7 +2390,7 @@ tonConnectSessions sessions:vector<tonConnectSession> = TonConnectSessions;
 //@body Body of the request
 //@expiration_date Point in time (Unix timestamp) when the request will expire; 0 if never
 //@topic Topic of the request; may be empty if none
-//@trace_id Identifier to trace the connection request; may be empty if none
+//@trace_id Identifier to trace the request; may be empty if none
 tonConnectRequest session_id:int64 message_id:int53 body:bytes expiration_date:int32 topic:string trace_id:string = TonConnectRequest;
 
 //@description Represents a session with its pending TON Connect requests
@@ -5802,7 +5802,7 @@ messageTonWalletTransfer transaction_id:string peer_address:string amount:int53 
 //@session_id Unique identifier of the TON Connect session
 //@state State of the request
 //@topic Topic of the request; may be empty if none
-//@trace_id Identifier to trace the connection request; may be empty if none
+//@trace_id Identifier to trace the request; may be empty if none
 messageTonConnectRequest session_id:int64 state:TonConnectRequestState topic:string trace_id:string = MessageContent;
 
 //@description A regular gift was received or sent by the current user, or the current user was notified about a channel gift
@@ -16111,11 +16111,18 @@ getTonConnectSessionPendingRequests session_id:int64 = TonConnectRequests;
 getTonConnectDAppPendingRequests dapp_client_id:string = TonConnectRequests;
 
 //@description Claims a request received through TON Connect for processing on this device
-//@session_id Unique identifier of the session
+//@session_id Unique identifier of the TON Connect session
 //@message_id Identifier of the message with the request
 //@dapp_request_id Identifier of the request assigned by the dApp
 //@is_rejected Pass true to reject the request
 claimTonConnectRequest session_id:int64 message_id:int53 dapp_request_id:string is_rejected:Bool = Ok;
+
+//@description Sends an answer for a request received through TON Connect
+//@session_id Unique identifier of the TON Connect session
+//@message_id Identifier of the message with the request
+//@trace_id Identifier to trace the request
+//@body Body of the response
+answerTonConnectRequest session_id:int64 message_id:int53 trace_id:string body:bytes = Ok;
 
 
 //@description Returns available on-ramp providers @cryptocurrency Pass a cryptocurrency to receive only providers that support it; pass an empty string to receive all providers

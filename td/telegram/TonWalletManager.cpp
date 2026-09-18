@@ -837,6 +837,36 @@ class ClaimTonConnectRequestQuery final : public Td::ResultHandler {
   }
 };
 
+class SubmitTonConnectResponseQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SubmitTonConnectResponseQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int64 session_id, MessageId message_id, const string &trace_id, const string &body) {
+    int32 flags = 0;
+    if (!trace_id.empty()) {
+      flags |= telegram_api::wallet_tonConnectSubmitResponse::TRACE_ID_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::wallet_tonConnectSubmitResponse(
+        flags, session_id, message_id.get_server_message_id().get(), BufferSlice(body), trace_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_tonConnectSubmitResponse>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetOnRampProvidersQuery final : public Td::ResultHandler {
   Promise<vector<telegram_api::object_ptr<telegram_api::onrampProviderInfo>>> promise_;
 
@@ -1987,6 +2017,14 @@ void TonWalletManager::claim_ton_connect_request(int64 session_id, MessageId mes
   }
   td_->create_handler<ClaimTonConnectRequestQuery>(std::move(promise))
       ->send(session_id, message_id, dapp_request_id, is_rejected);
+}
+
+void TonWalletManager::submit_ton_connect_response(int64 session_id, MessageId message_id, const string &trace_id,
+                                                   const string &body, Promise<Unit> &&promise) {
+  if (!message_id.is_server()) {
+    return promise.set_error(400, "Invalid message identifier specified");
+  }
+  td_->create_handler<SubmitTonConnectResponseQuery>(std::move(promise))->send(session_id, message_id, trace_id, body);
 }
 
 void TonWalletManager::get_on_ramp_providers(const string &cryptocurrency,

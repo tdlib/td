@@ -8084,6 +8084,14 @@ void Requests::on_request(uint64 id, td_api::claimTonConnectRequest &request) {
                                                       std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::answerTonConnectRequest &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.trace_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->submit_ton_connect_response(request.session_id_, MessageId(request.message_id_),
+                                                        request.trace_id_, request.body_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getOnRampProviders &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.cryptocurrency_);
