@@ -119,14 +119,18 @@ jobs:
             -e SUPABASE_SECRET_KEY=ci-placeholder \
             -e HEARTBEAT_INTERVAL_SECONDS=1 \
             open-tgate-worker:test
-          trap 'docker rm -f open-tgate-worker-ci >/dev/null 2>&1 || true' EXIT
+          worker_log=$(mktemp)
+          trap 'docker rm -f open-tgate-worker-ci >/dev/null 2>&1 || true; rm -f "$worker_log"' EXIT
           for attempt in $(seq 1 20); do
-            if docker logs open-tgate-worker-ci 2>&1 | grep -q 'TDLib loaded'; then
-              exit 0
-            fi
-            if ! docker ps --format '{{.Names}}' | grep -qx open-tgate-worker-ci; then
-              docker logs open-tgate-worker-ci || true
+            # Read all log output before matching: grep -q can give docker
+            # SIGPIPE under pipefail when heartbeat tracebacks are large.
+            docker logs open-tgate-worker-ci >"$worker_log" 2>&1
+            if [ "$(docker inspect --format '{{.State.Running}}' open-tgate-worker-ci)" != true ]; then
+              cat "$worker_log"
               exit 1
+            fi
+            if grep -q 'TDLib loaded' "$worker_log"; then
+              exit 0
             fi
             sleep 1
           done
