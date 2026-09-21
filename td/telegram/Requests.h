@@ -1750,6 +1750,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getTonConnectSessionNextEventId &request);
 
+  void on_request(uint64 id, const td_api::disconnectTonConnectSession &request);
+
   void on_request(uint64 id, td_api::getOnRampProviders &request);
 
   void on_request(uint64 id, td_api::getOnRampProviderBaseCurrencies &request);

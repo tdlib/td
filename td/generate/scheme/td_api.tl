@@ -16133,6 +16133,11 @@ answerTonConnectRequest session_id:int64 message_id:int53 trace_id:string body:b
 //@description Returns the next event identifier for the given TON Connect session @session_id Unique identifier of the TON Connect session
 getTonConnectSessionNextEventId session_id:int64 = TonConnectSessionEventId;
 
+//@description Closes a TON Connect session
+//@session_id Unique identifier of the TON Connect session to close
+//@body Encrypted body of the disconnect event; may be empty if the session has already been closed. Use getTonConnectSessionNextEventId to get event identifier for the event
+disconnectTonConnectSession session_id:int64 body:bytes = Ok;
+
 
 //@description Returns available on-ramp providers @cryptocurrency Pass a cryptocurrency to receive only providers that support it; pass an empty string to receive all providers
 getOnRampProviders cryptocurrency:string = OnRampProviders;
