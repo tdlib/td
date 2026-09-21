@@ -10,3 +10,5 @@ open-tgate/.env
 open-tgate/**/__pycache__/
 open-tgate/.pytest_cache/
 open-tgate/.venv/
+open-tgate/dashboard/node_modules/
+open-tgate/dashboard/.wrangler/
