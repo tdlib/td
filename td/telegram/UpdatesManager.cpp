@@ -5143,6 +5143,14 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWalletTonConnec
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWalletTonConnectPendingDisconnect> update,
+                               Promise<Unit> &&promise) {
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateTonWalletTonConnectSessionDisconnectRequired>(std::move(update->session_ids_)));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueStatus> update, Promise<Unit> &&promise) {
   auto dialog_id = DialogId(update->peer_);
   switch (update->status_->current_balance_->get_id()) {
@@ -5181,11 +5189,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebBrowserExcep
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWalletTonConnectPendingDisconnect> update,
-                               Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 
