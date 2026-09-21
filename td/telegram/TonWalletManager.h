@@ -94,6 +94,9 @@ class TonWalletManager final : public Actor {
   void submit_ton_connect_response(int64 session_id, MessageId message_id, const string &trace_id, const string &body,
                                    Promise<Unit> &&promise);
 
+  void get_ton_connect_next_event_id(int64 session_id,
+                                     Promise<td_api::object_ptr<td_api::tonConnectSessionEventId>> &&promise);
+
   void get_on_ramp_providers(const string &cryptocurrency,
                              Promise<td_api::object_ptr<td_api::onRampProviders>> &&promise);
 

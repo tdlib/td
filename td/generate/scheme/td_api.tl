@@ -2403,6 +2403,9 @@ tonConnectRequests session:tonConnectSession requests:vector<tonConnectRequest> 
 //@event_id Unique identifier of the first outgoing event
 tonConnectChallenge challenge:bytes event_id:int64 = TonConnectChallenge;
 
+//@description Represents identifier of an event in a TON Connect session @event_id The event identifier
+tonConnectSessionEventId event_id:int64 = TonConnectSessionEventId;
+
 
 //@description Represents result of cryptocurrency transfer from the current user's TON wallet
 //@is_gasless True, if the transfer is gasless
@@ -16123,6 +16126,9 @@ claimTonConnectRequest session_id:int64 message_id:int53 dapp_request_id:string 
 //@trace_id Identifier to trace the request
 //@body Body of the response
 answerTonConnectRequest session_id:int64 message_id:int53 trace_id:string body:bytes = Ok;
+
+//@description Returns the next event identifier for the given TON Connect session @session_id Unique identifier of the TON Connect session
+getTonConnectSessionNextEventId session_id:int64 = TonConnectSessionEventId;
 
 
 //@description Returns available on-ramp providers @cryptocurrency Pass a cryptocurrency to receive only providers that support it; pass an empty string to receive all providers

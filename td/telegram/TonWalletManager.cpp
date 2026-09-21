@@ -867,6 +867,33 @@ class SubmitTonConnectResponseQuery final : public Td::ResultHandler {
   }
 };
 
+class GetTonConnectNextEventIdQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonConnectSessionEventId>> promise_;
+
+ public:
+  explicit GetTonConnectNextEventIdQuery(Promise<td_api::object_ptr<td_api::tonConnectSessionEventId>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 session_id) {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_tonConnectNextEventId(session_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_tonConnectNextEventId>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(td_api::make_object<td_api::tonConnectSessionEventId>(result->event_id_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetOnRampProvidersQuery final : public Td::ResultHandler {
   Promise<vector<telegram_api::object_ptr<telegram_api::onrampProviderInfo>>> promise_;
 
@@ -2003,6 +2030,11 @@ void TonWalletManager::submit_ton_connect_result(int64 session_id, const string 
                                                  const string &body, const string &trace_id, Promise<Unit> &&promise) {
   td_->create_handler<SubmitTonConnectResultQuery>(std::move(promise))
       ->send(session_id, challenge_answer, is_error, body, trace_id);
+}
+
+void TonWalletManager::get_ton_connect_next_event_id(
+    int64 session_id, Promise<td_api::object_ptr<td_api::tonConnectSessionEventId>> &&promise) {
+  td_->create_handler<GetTonConnectNextEventIdQuery>(std::move(promise))->send(session_id);
 }
 
 void TonWalletManager::get_ton_connect_requests(bool by_dapp, int64 session_id, const string &dapp_client_id,
