@@ -52,6 +52,8 @@ class TonWalletManager final : public Actor {
 
   void disable_ton_wallet_backup(const string &password, Promise<Unit> &&promise);
 
+  void disable_ton_wallet_backup_with_proof(const string &address, const string &private_key, Promise<Unit> &&promise);
+
   void get_ton_wallet_gasless_info(Promise<Unit> &&promise);
 
   void send_ton_wallet_transfer(const string &data_normal, const string &data_gasless,
@@ -248,6 +250,11 @@ class TonWalletManager final : public Actor {
     td_api::object_ptr<td_api::tonConnectChallenge> get_ton_connect_challenge_object() const;
   };
 
+  struct WalletOwnershipProof {
+    BufferSlice public_key_;
+    telegram_api::object_ptr<telegram_api::walletOwnershipProof> proof_;
+  };
+
   void timeout_expired() final;
 
   void tear_down() final;
@@ -283,13 +290,11 @@ class TonWalletManager final : public Actor {
   void do_disable_ton_wallet_backup(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                                     Promise<Unit> &&promise);
 
+  void do_disable_ton_wallet_backup_with_proof(WalletOwnershipProof &&proof, Promise<Unit> &&promise);
+
   void do_delete_ton_wallet(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                             Promise<Unit> &&promise);
 
-  struct WalletOwnershipProof {
-    BufferSlice public_key_;
-    telegram_api::object_ptr<telegram_api::walletOwnershipProof> proof_;
-  };
   void get_wallet_ownership_proof(const string &address, const string &private_key,
                                   Promise<WalletOwnershipProof> &&promise);
 
@@ -301,7 +306,7 @@ class TonWalletManager final : public Actor {
                              const string &address, const string &private_key, Promise<Unit> &&promise);
 
   void do_replace_ton_wallet_with_proof(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
-                                        WalletOwnershipProof &&prrof, const string &address, Promise<Unit> &&promise);
+                                        WalletOwnershipProof &&proof, Promise<Unit> &&promise);
 
   void do_get_ton_wallet_transactions(const string &offset, int32 limit,
                                       td_api::object_ptr<td_api::TransactionDirection> &&direction,

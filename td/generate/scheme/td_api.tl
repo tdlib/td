@@ -16069,6 +16069,11 @@ enableTonWalletBackup password:string secret_phrase:string = Ok;
 //@password Password of the current user; pass an empty string if the user has no password
 disableTonWalletBackup password:string = Ok;
 
+//@description Disables backup of the TON wallet of the user using proof of wallet ownership instead of the password. Works only if tonWalletState.is_backup_enabled is true
+//@address Normalized address of the TON wallet in the URL-safe base64 format
+//@private_key Private key of the TON wallet; the key will be used only to proof ownership of the address
+disableTonWalletBackupWithProof address:string private_key:bytes = Ok;
+
 //@description Sends a cryptocurrency from the user's TON wallet
 //@regular_transfer_data Serialized data for regular cryptocurrency transfer request. The minimum allowed transfer amount is getOption("ton_wallet_transfer_amount_min")
 //@gasless_transfer_data Serialized data for gasless cryptocurrency transfer request; pass an empty string to force a regular request.
