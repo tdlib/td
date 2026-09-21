@@ -8,6 +8,7 @@ from pathlib import Path
 import httpx
 
 from .config import get_settings
+from .observability import init_sentry
 
 log = logging.getLogger("open-tgate-worker")
 settings = get_settings()
@@ -23,7 +24,7 @@ def load_tdlib() -> ctypes.CDLL:
 async def publish_heartbeat() -> None:
     if not settings.supabase_url or not settings.supabase_secret_key:
         raise RuntimeError("Supabase server configuration is missing")
-    endpoint = f"{settings.supabase_url.rstrip('/')}/rest/v1/worker_heartbeats"
+    endpoint = f"{settings.supabase_url.rstrip('/')}/rest/v1/open_tgate_worker_heartbeats"
     payload = {
         "worker_id": settings.worker_id,
         "service": "tdlib-sync",
@@ -44,6 +45,7 @@ async def publish_heartbeat() -> None:
 
 async def main() -> None:
     logging.basicConfig(level=settings.log_level)
+    init_sentry(settings, component="worker")
     Path(settings.tdlib_database_directory).mkdir(parents=True, exist_ok=True)
     Path(settings.tdlib_files_directory).mkdir(parents=True, exist_ok=True)
     load_tdlib()

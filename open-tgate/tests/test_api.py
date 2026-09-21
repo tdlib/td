@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import app
+from app.observability import init_sentry
 
 
 client = TestClient(app)
@@ -26,6 +27,20 @@ def test_sending_is_disabled_by_default() -> None:
 def test_quoted_false_is_normalized() -> None:
     assert Settings(EXTERNAL_SEND_ENABLED='"false').external_send_enabled is False
     assert Settings(EXTERNAL_SEND_ENABLED="'false'").external_send_enabled is False
+
+
+def test_sentry_is_disabled_without_dsn() -> None:
+    settings = Settings(sentry_dsn="")
+    assert settings.sentry_enabled is False
+    assert init_sentry(settings, component="api") is False
+
+
+def test_sentry_placeholder_dsn_is_not_enabled() -> None:
+    assert Settings(sentry_dsn="REPLACE_WITH_SENTRY_DSN").sentry_enabled is False
+
+
+def test_sentry_enabled_with_real_dsn() -> None:
+    assert Settings(sentry_dsn="https://key@o0.ingest.sentry.io/1").sentry_enabled is True
 
 
 def test_placeholders_are_not_production_ready() -> None:

@@ -30,12 +30,22 @@ class Settings(BaseSettings):
     heartbeat_interval_seconds: int = 30
     external_send_enabled: bool = False
 
+    # Observability (Sentry). Disabled unless a DSN is configured.
+    sentry_dsn: str = Field(default="", repr=False)
+    sentry_environment: str = ""
+    sentry_release: str = ""
+    sentry_traces_sample_rate: float = 0.0
+
     @field_validator("external_send_enabled", mode="before")
     @classmethod
     def normalize_external_send_enabled(cls, value: object) -> object:
         if isinstance(value, str):
             return value.strip().strip("\"'")
         return value
+
+    @property
+    def sentry_enabled(self) -> bool:
+        return _is_configured(self.sentry_dsn)
 
     @property
     def production_ready(self) -> bool:

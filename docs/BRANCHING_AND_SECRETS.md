@@ -76,7 +76,15 @@ Prefer a scoped API token over the Global API Key.
 - `CLOUDFLARE_R2_SECRET_ACCESS_KEY`
 - `CLOUDFLARE_R2_ENDPOINT`
 
-### Railway
+### Zeabur (canonical runtime)
+- `ZEABUR_API_KEY` (deployment automation only)
+
+### Sentry (observability)
+- `SENTRY_DSN` (runtime reporting for api + worker)
+- `SENTRY_AUTH_TOKEN` (release/source-map upload only)
+
+### Railway (legacy — retained for migration reference only)
+Do not add new Railway configuration; Zeabur is the canonical runtime.
 - `RAILWAY_TOKEN`
 - `RAILWAY_PROJECT_ID`
 - `RAILWAY_ENVIRONMENT_ID`

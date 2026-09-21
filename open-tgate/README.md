@@ -34,8 +34,17 @@ See `docs/OPEN_TGATE_ARCHITECTURE.md` for the complete target architecture.
 - persistent TDLib worker bootstrap with Supabase heartbeat
 - separate API and worker container definitions
 - Cloudflare Worker operator status page
-- service-only Supabase heartbeat migration
+- service-only Supabase heartbeat migration (`public.open_tgate_worker_heartbeats`)
+- optional Sentry error/performance reporting (DSN-gated; no-op when unset)
 - unit, lint, container and Cloudflare dry-run checks in CI
+
+### Deployment
+
+Zeabur is the canonical always-on runtime. See
+[`deploy/zeabur/README.md`](../deploy/zeabur/README.md) for the api + worker
+service topology, required environment/secrets, health-check configuration, and
+rollback. Images are published to Docker Hub by
+`.github/workflows/release-dockerhub.yml` on semver tags.
 
 ### Local API
 

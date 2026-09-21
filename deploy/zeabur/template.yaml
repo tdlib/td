@@ -1,0 +1,72 @@
+# Open-TGate — Zeabur deployment template (starting scaffold).
+#
+# Zeabur is the canonical always-on runtime for Open-TGate. This template
+# describes the two persistent services that run the Telegram backend:
+#
+#   * api    — FastAPI health/readiness/system API (public HTTP)
+#   * worker — persistent TDLib sync worker (no public port, encrypted volume)
+#
+# IMPORTANT
+#   * Replace DOCKERHUB_USERNAME and pin an IMMUTABLE image tag or @sha256
+#     digest before production use. Never deploy the floating `latest` tag to
+#     production (rollbacks require an immutable reference).
+#   * Secrets (SUPABASE_SECRET_KEY, TELEGRAM_API_HASH, API_ADMIN_TOKEN,
+#     SENTRY_DSN, ...) are NOT declared here. Set them in the Zeabur service
+#     secret store per deploy/zeabur/README.md — never commit them.
+#   * Configure the API service health-check path to /healthz in the Zeabur
+#     dashboard (health-check path is a per-service dashboard setting).
+apiVersion: zeabur.com/v1
+kind: Template
+metadata:
+  name: Open-TGate
+spec:
+  description: Authorized private Telegram backend (TDLib sync worker + API)
+  tags:
+    - Telegram
+    - Backend
+  variables:
+    - key: PUBLIC_DOMAIN
+      type: DOMAIN
+      name: API Domain
+      description: Public domain for the Open-TGate API (fronted by Cloudflare).
+  services:
+    - name: api
+      template: PREBUILT
+      domainKey: PUBLIC_DOMAIN
+      spec:
+        source:
+          # Pin an immutable tag/digest, e.g. DOCKERHUB_USERNAME/open-tgate-api:1.0.0
+          image: DOCKERHUB_USERNAME/open-tgate-api:latest
+        ports:
+          - id: web
+            port: 8000
+            type: HTTP
+        env:
+          APP_ENV:
+            default: production
+          PORT:
+            default: "8000"
+          EXTERNAL_SEND_ENABLED:
+            default: "false"
+
+    - name: worker
+      template: PREBUILT
+      spec:
+        source:
+          # Pin an immutable tag/digest, e.g. DOCKERHUB_USERNAME/open-tgate-worker:1.0.0
+          image: DOCKERHUB_USERNAME/open-tgate-worker:latest
+        volumes:
+          # Encrypted TDLib session/database state MUST persist across redeploys.
+          - id: tdlib-state
+            dir: /data/tdlib
+        env:
+          APP_ENV:
+            default: production
+          EXTERNAL_SEND_ENABLED:
+            default: "false"
+          HEARTBEAT_INTERVAL_SECONDS:
+            default: "30"
+          TDLIB_DATABASE_DIRECTORY:
+            default: /data/tdlib/db
+          TDLIB_FILES_DIRECTORY:
+            default: /data/tdlib/files

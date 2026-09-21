@@ -4,5 +4,7 @@ compatibility_date = "2026-08-01"
 
 [vars]
 APP_NAME = "Open-TGate"
-API_BASE_URL = "https://open-tgate-api-production.up.railway.app"
+# Zeabur is the canonical runtime. Override with the Cloudflare-fronted API
+# domain once bound (see deploy/zeabur/README.md).
+API_BASE_URL = "https://open-tgate-api.zeabur.app"
 

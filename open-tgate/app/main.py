@@ -4,9 +4,11 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
+from .observability import init_sentry
 from .security import require_admin
 
 settings = get_settings()
+init_sentry(settings, component="api")
 app = FastAPI(title="Open-TGate API", version="0.1.0", docs_url=None if settings.app_env == "production" else "/docs")
 app.add_middleware(
     CORSMiddleware,

@@ -24,8 +24,25 @@ Configure these only in GitHub environment secrets and the Zeabur service secret
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
 - `ZEABUR_API_KEY` only for deployment automation that requires it
+- `SENTRY_DSN` runtime error/performance reporting for the api and worker services
 - `SENTRY_AUTH_TOKEN` only for release/source-map upload
 - Application-specific secrets
+
+## Runtime database objects
+
+The `20260829000100_open_tgate_runtime` migration is applied to `open-operations`.
+It is additive and isolated from the other apps sharing the project:
+
+- schema `open_tgate` — reserved canonical home for the Open-TGate domain model
+- table `public.open_tgate_worker_heartbeats` — service-only runtime liveness,
+  RLS enabled, written only with the Supabase secret (service_role) key
+
+## Scope
+
+The canonical stack is GitHub, Docker Hub, Cloudflare, Supabase, Zeabur, and
+Sentry. **Databricks is not part of this stack** and is not provisioned here; it
+would require an explicit approval and a stated technical requirement before any
+integration is added.
 
 Public client builds may use the Supabase URL and publishable key. Never expose the service-role key, database password, Docker Hub token, Zeabur key, or Sentry auth token in source code, build logs, Google Drive, or client bundles.
 

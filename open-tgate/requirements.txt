@@ -3,4 +3,5 @@ uvicorn[standard]==0.35.0
 httpx==0.28.1
 pydantic-settings==2.10.1
 supabase==2.18.1
+sentry-sdk[fastapi]==2.20.0
 
