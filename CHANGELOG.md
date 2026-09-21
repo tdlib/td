@@ -1,3 +1,18 @@
+# Changelog
+
+## 1.0.0 (2026-09-21)
+
+
+### Features
+
+* **backend:** make Telegram backend Zeabur-deployable with Sentry and applied DB runtime ([#24](https://github.com/hillstreet-ph/open-tgate/issues/24)) ([b47a371](https://github.com/hillstreet-ph/open-tgate/commit/b47a371b64b88780dd1d47363d45a542512b405e))
+
+
+### Bug Fixes
+
+* **ci:** avoid pipefail false negatives in worker smoke ([#22](https://github.com/hillstreet-ph/open-tgate/issues/22)) ([ad07c96](https://github.com/hillstreet-ph/open-tgate/commit/ad07c967462bfb273d92af622cae5daa1a8ce5c5))
+* **runtime:** harden Railway worker startup and CI gates ([#17](https://github.com/hillstreet-ph/open-tgate/issues/17)) ([6090376](https://github.com/hillstreet-ph/open-tgate/commit/6090376f1026cc77ccc44ff6a3566e977425c7f4))
+
 Changes in 1.8.0 (29 Dec 2021):
 
 * Changed the type of user, basic group and supergroup identifiers from `int32` to `int53`.
