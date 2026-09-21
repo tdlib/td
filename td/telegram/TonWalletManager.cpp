@@ -1867,6 +1867,52 @@ void TonWalletManager::do_delete_ton_wallet(
       ->send(telegram_api::make_object<telegram_api::inputWalletNew>(), std::move(input_password));
 }
 
+void TonWalletManager::get_wallet_ownership_proof(const string &address, const string &private_key,
+                                                  Promise<WalletOwnershipProof> &&promise) {
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), address, private_key, promise = std::move(promise)](
+          Result<telegram_api::object_ptr<telegram_api::wallet_proofChallenge>> r_challenge) mutable {
+        if (r_challenge.is_error()) {
+          return promise.set_error(r_challenge.move_as_error());
+        }
+        send_closure(actor_id, &TonWalletManager::get_wallet_ownership_proof_with_challenge, r_challenge.move_as_ok(),
+                     address, private_key, std::move(promise));
+      });
+  td_->create_handler<GetWalletProofChallengeQuery>(std::move(query_promise))->send();
+}
+
+void TonWalletManager::get_wallet_ownership_proof_with_challenge(
+    telegram_api::object_ptr<telegram_api::wallet_proofChallenge> &&challenge, const string &address,
+    const string &private_key, Promise<WalletOwnershipProof> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto key = Ed25519::PrivateKey(SecureString(private_key));
+  TRY_RESULT_PROMISE(promise, public_key, key.get_public_key());
+
+  auto raw_address = base64url_decode(address).move_as_ok();
+  int32 workchain_id = static_cast<int32>(static_cast<signed char>(raw_address[1]));
+  CHECK(raw_address.size() == 36);
+  raw_address = raw_address.substr(2, 32);
+  auto to_little_endian = [](int64 num, int32 size) {
+    string result(size, '\0');
+    for (int32 i = 0; i < size; i++) {
+      result[i] = static_cast<char>(static_cast<unsigned char>((num >> (8 * i)) & 255));
+    }
+    return result;
+  };
+  auto timestamp = G()->unix_time();
+  auto signed_data = sha256(
+      PSLICE() << "\xFF\xFFton-connect"
+               << sha256(PSLICE() << "ton-proof-item-v2/" << to_little_endian(workchain_id, 4) << raw_address
+                                  << to_little_endian(static_cast<int64>(challenge->domain_.size()), 4)
+                                  << challenge->domain_ << to_little_endian(timestamp, 8) << challenge->payload_));
+  TRY_RESULT_PROMISE(promise, signature, key.sign(signed_data));
+  WalletOwnershipProof result;
+  result.public_key_ = BufferSlice(public_key.as_octet_string().as_slice());
+  result.proof_ =
+      telegram_api::make_object<telegram_api::walletOwnershipProof>(timestamp, BufferSlice(signature.as_slice()));
+  promise.set_value(std::move(result));
+}
+
 void TonWalletManager::replace_ton_wallet(const string &password, const string &address, const string &private_key,
                                           Promise<Unit> &&promise) {
   if (address.size() != 48u || !is_base64url_characters(address)) {
@@ -1894,49 +1940,24 @@ void TonWalletManager::do_replace_ton_wallet(
     telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password, const string &address,
     const string &private_key, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), input_password = std::move(input_password), address, private_key,
-       promise = std::move(promise)](
-          Result<telegram_api::object_ptr<telegram_api::wallet_proofChallenge>> r_challenge) mutable {
-        if (r_challenge.is_error()) {
-          return promise.set_error(r_challenge.move_as_error());
+  get_wallet_ownership_proof(
+      address, private_key,
+      PromiseCreator::lambda([actor_id = actor_id(this), input_password = std::move(input_password), address,
+                              promise = std::move(promise)](Result<WalletOwnershipProof> r_proof) mutable {
+        if (r_proof.is_error()) {
+          return promise.set_error(r_proof.move_as_error());
         }
-        send_closure(actor_id, &TonWalletManager::do_replace_ton_wallet_with_challenge, std::move(input_password),
-                     r_challenge.move_as_ok(), address, private_key, std::move(promise));
-      });
-  td_->create_handler<GetWalletProofChallengeQuery>(std::move(query_promise))->send();
+        send_closure(actor_id, &TonWalletManager::do_replace_ton_wallet_with_proof, std::move(input_password),
+                     r_proof.move_as_ok(), address, std::move(promise));
+      }));
 }
 
-void TonWalletManager::do_replace_ton_wallet_with_challenge(
-    telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
-    telegram_api::object_ptr<telegram_api::wallet_proofChallenge> &&challenge, const string &address,
-    const string &private_key, Promise<Unit> &&promise) {
+void TonWalletManager::do_replace_ton_wallet_with_proof(
+    telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password, WalletOwnershipProof &&proof,
+    const string &address, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  auto key = Ed25519::PrivateKey(SecureString(private_key));
-  TRY_RESULT_PROMISE(promise, public_key, key.get_public_key());
-
-  auto raw_address = base64url_decode(address).move_as_ok();
-  int32 workchain_id = static_cast<int32>(static_cast<signed char>(raw_address[1]));
-  CHECK(raw_address.size() == 36);
-  raw_address = raw_address.substr(2, 32);
-  auto to_little_endian = [](int64 num, int32 size) {
-    string result(size, '\0');
-    for (int32 i = 0; i < size; i++) {
-      result[i] = static_cast<char>(static_cast<unsigned char>((num >> (8 * i)) & 255));
-    }
-    return result;
-  };
-  auto timestamp = G()->unix_time();
-  auto signed_data = sha256(
-      PSLICE() << "\xFF\xFFton-connect"
-               << sha256(PSLICE() << "ton-proof-item-v2/" << to_little_endian(workchain_id, 4) << raw_address
-                                  << to_little_endian(static_cast<int64>(challenge->domain_.size()), 4)
-                                  << challenge->domain_ << to_little_endian(timestamp, 8) << challenge->payload_));
-  TRY_RESULT_PROMISE(promise, signature, key.sign(signed_data));
-  auto proof =
-      telegram_api::make_object<telegram_api::walletOwnershipProof>(timestamp, BufferSlice(signature.as_slice()));
   auto input_wallet = telegram_api::make_object<telegram_api::inputWalletImported>(
-      0, BufferSlice(public_key.as_octet_string().as_slice()), BufferSlice(), std::move(proof));
+      0, std::move(proof.public_key_), BufferSlice(), std::move(proof.proof_));
   td_->create_handler<ReplaceWalletQuery>(std::move(promise))->send(std::move(input_wallet), std::move(input_password));
 }
 

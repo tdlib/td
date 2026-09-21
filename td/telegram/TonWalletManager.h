@@ -286,13 +286,22 @@ class TonWalletManager final : public Actor {
   void do_delete_ton_wallet(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                             Promise<Unit> &&promise);
 
+  struct WalletOwnershipProof {
+    BufferSlice public_key_;
+    telegram_api::object_ptr<telegram_api::walletOwnershipProof> proof_;
+  };
+  void get_wallet_ownership_proof(const string &address, const string &private_key,
+                                  Promise<WalletOwnershipProof> &&promise);
+
+  void get_wallet_ownership_proof_with_challenge(
+      telegram_api::object_ptr<telegram_api::wallet_proofChallenge> &&challenge, const string &address,
+      const string &private_key, Promise<WalletOwnershipProof> &&promise);
+
   void do_replace_ton_wallet(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                              const string &address, const string &private_key, Promise<Unit> &&promise);
 
-  void do_replace_ton_wallet_with_challenge(
-      telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
-      telegram_api::object_ptr<telegram_api::wallet_proofChallenge> &&challenge, const string &address,
-      const string &private_key, Promise<Unit> &&promise);
+  void do_replace_ton_wallet_with_proof(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
+                                        WalletOwnershipProof &&prrof, const string &address, Promise<Unit> &&promise);
 
   void do_get_ton_wallet_transactions(const string &offset, int32 limit,
                                       td_api::object_ptr<td_api::TransactionDirection> &&direction,
