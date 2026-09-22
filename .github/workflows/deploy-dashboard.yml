@@ -1,0 +1,85 @@
+name: Deploy Dashboard (Cloudflare)
+
+# Deploys the Open-TGate Cloudflare Worker landing page (open-tgate/dashboard).
+#
+# Two jobs, so a green run never implies a deploy that did not happen:
+#   * validate — always runs: installs and bundles the Worker (wrangler
+#     --dry-run, no credentials). This is the real signal on every push/PR.
+#   * deploy   — runs ONLY after provider configuration is explicitly
+#     confirmed by setting the repository variable DASHBOARD_DEPLOY_ENABLED
+#     to "true". Until then it is skipped (not a false-green success). Once
+#     enabled, it FAILS LOUDLY if the required secrets are missing.
+#
+# To enable real deploys: set repo variable DASHBOARD_DEPLOY_ENABLED=true and
+# add secrets CLOUDFLARE_API_TOKEN (scope: "Workers Scripts: Edit") and
+# CLOUDFLARE_ACCOUNT_ID. Never commit the token; it lives only in Actions.
+#
+# Third-party actions are pinned to immutable commit SHAs (supply-chain
+# hardening, matching the Docker release workflow). Node is the runner's
+# preinstalled version, so no setup-node action is needed.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "open-tgate/dashboard/**"
+      - ".github/workflows/deploy-dashboard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-dashboard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Worker build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: open-tgate/dashboard
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install dependencies
+        run: npm ci
+      - name: Bundle (dry-run, no credentials)
+        run: npx wrangler deploy --dry-run
+
+  deploy:
+    name: Deploy Cloudflare Worker
+    needs: validate
+    runs-on: ubuntu-latest
+    # Explicit opt-in gate: deployment is attempted only when the operator has
+    # confirmed provider configuration by setting this repository variable.
+    if: vars.DASHBOARD_DEPLOY_ENABLED == 'true'
+    defaults:
+      run:
+        working-directory: open-tgate/dashboard
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Require deploy secrets
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -z "${CLOUDFLARE_API_TOKEN}" ] && missing="${missing} CLOUDFLARE_API_TOKEN"
+          [ -z "${CLOUDFLARE_ACCOUNT_ID}" ] && missing="${missing} CLOUDFLARE_ACCOUNT_ID"
+          if [ -n "${missing}" ]; then
+            echo "::error title=Missing deploy configuration::DASHBOARD_DEPLOY_ENABLED is true but required secrets are missing:${missing}"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy Worker
+        run: npx wrangler deploy
