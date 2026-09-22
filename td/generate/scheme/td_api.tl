@@ -2385,7 +2385,7 @@ tonConnectConnectItemProof payload:string = TonConnectConnectItem;
 //@items Items requested from the wallet
 tonConnectConnectRequest manifest_url:string items:vector<TonConnectConnectItem> = TonConnectConnectRequest;
 
-//@description Represents a TON Connect session
+//@description Represents a TON Connect session. See https://github.com/ton-blockchain/ton-connect/tree/main/spec for full TON Connect protocol documentation
 //@id Unique identifier of the session
 //@dapp_client_id Hex-encoded public X25519 key of the dApp
 //@wallet_client_id Hex-encoded public X25519 key of the current user's application; may be empty if none
