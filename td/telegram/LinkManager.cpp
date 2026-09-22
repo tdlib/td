@@ -4091,8 +4091,96 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return PSTRING() << get_t_me_url() << "addtheme/" << url_encode(link->theme_name_);
       }
     }
-    case td_api::internalLinkTypeTonConnect::ID:
+    case td_api::internalLinkTypeTonConnect::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeTonConnect *>(type_ptr);
+      if (link->connect_request_ == nullptr) {
+        return Status::Error(400, "Connect request must be non-empty");
+      }
+      for (auto &item : link->connect_request_->items_) {
+        if (item == nullptr) {
+          return Status::Error(400, "Connect request item must be non-empty");
+        }
+        switch (item->get_id()) {
+          case td_api::tonConnectConnectItemAddress::ID: {
+            auto address = static_cast<const td_api::tonConnectConnectItemAddress *>(item.get());
+            if (!check_utf8(address->network_)) {
+              return Status::Error(400, "Network name must be encoded in UTF-8");
+            }
+            break;
+          }
+          case td_api::tonConnectConnectItemProof::ID: {
+            auto proof = static_cast<const td_api::tonConnectConnectItemProof *>(item.get());
+            if (!check_utf8(proof->payload_)) {
+              return Status::Error(400, "Payload must be encoded in UTF-8");
+            }
+            break;
+          }
+          default:
+            UNREACHABLE();
+        }
+      }
+      auto r = json_encode<std::string>(json_object([&](auto &o) {
+        o("manifestUrl", link->connect_request_->manifest_url_);
+        o("items", json_array(link->connect_request_->items_, [](auto &item) {
+            return json_object([&item](auto &o) {
+              switch (item->get_id()) {
+                case td_api::tonConnectConnectItemAddress::ID: {
+                  auto address = static_cast<const td_api::tonConnectConnectItemAddress *>(item.get());
+                  o("name", "ton_addr");
+                  if (!address->network_.empty()) {
+                    o("network", address->network_);
+                  }
+                  break;
+                }
+                case td_api::tonConnectConnectItemProof::ID: {
+                  auto proof = static_cast<const td_api::tonConnectConnectItemProof *>(item.get());
+                  o("name", "ton_addr");
+                  o("payload", proof->payload_);
+                  break;
+                }
+                default:
+                  UNREACHABLE();
+              }
+            });
+          }));
+      }));
+      auto query = PSTRING() << "v=" << to_string(link->version_) << "&id=" << url_encode(link->dapp_client_id_)
+                             << "&r=" << url_encode(r);
+      if (!link->return_strategy_.empty()) {
+        query += "&ret=";
+        query += url_encode(link->return_strategy_);
+      }
+      if (!link->rpc_request_.empty()) {
+        query += "&e=";
+        query += url_encode(link->rpc_request_);
+      }
+      if (!link->trace_id_.empty()) {
+        query += "&trace_id=";
+        query += url_encode(link->trace_id_);
+      }
+      if (is_internal) {
+        return PSTRING() << "tg://sendgrams?" << query;
+      } else {
+        string connect_query;
+        for (auto c : query) {
+          if (c == '-') {
+            connect_query += "--2D";
+          } else if (c == '_') {
+            connect_query += "--5F";
+          } else if (c == '=') {
+            connect_query += "__";
+          } else if (c == '%') {
+            connect_query += "--";
+          } else if (c == '&') {
+            connect_query += '-';
+          } else {
+            connect_query += c;
+          }
+        }
+        return PSTRING() << get_t_me_url() << "sendgrams?startapp=tonconnect-" << connect_query;
+      }
       return Status::Error(400, "HTTP link is unavailable for the link type");  // TON Connect links are unsupported
+    }
     case td_api::internalLinkTypeTonWalletTransfer::ID: {
       auto link = static_cast<const td_api::internalLinkTypeTonWalletTransfer *>(type_ptr);
       auto receiver = [&] {
