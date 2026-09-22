@@ -156,6 +156,7 @@ export const page = `<!doctype html>
     <div class="nav-right">
       <button class="icon-btn" id="theme" aria-label="Toggle color theme" title="Toggle theme">◐</button>
       <a class="btn ghost" href="https://github.com/hillstreet-ph/open-tgate" rel="noopener">GitHub</a>
+      <a class="btn primary" href="/app">Operator login</a>
     </div>
   </div>
 </header>

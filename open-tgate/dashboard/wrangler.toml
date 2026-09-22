@@ -8,3 +8,9 @@ APP_NAME = "Open-TGate"
 # domain once bound (see deploy/zeabur/README.md).
 API_BASE_URL = "https://open-tgate-api.zeabur.app"
 
+# Public Supabase config for the operator console (/app). The publishable key
+# and project URL are safe in client code by design. The SERVICE/secret key is
+# NEVER placed here — it lives only in the API/worker service secret store.
+SUPABASE_URL = "https://hoseohvgoiarxluxqwqv.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_VlMuLWtIfCd5TpYS3cNXLQ_19XzR6Tx"
+
