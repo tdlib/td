@@ -4134,7 +4134,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
                 }
                 case td_api::tonConnectConnectItemProof::ID: {
                   auto proof = static_cast<const td_api::tonConnectConnectItemProof *>(item.get());
-                  o("name", "ton_addr");
+                  o("name", "ton_proof");
                   o("payload", proof->payload_);
                   break;
                 }

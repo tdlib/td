@@ -1440,6 +1440,18 @@ TEST(Link, parse_internal_link_part3) {
           2, "c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65",
           ton_connect_connect_request("https://tonconnect-sdk-demo-dapp.vercel.app/tonconnect-manifest.json", "", ""),
           "none", "", "01a0b488-27a9-7419-89bc-169fc31ba6fd"));
+  parse_internal_link(
+      "https://t.me/"
+      "sendgrams?startapp=tonconnect-v__2-id__c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65-r__--7B-"
+      "-22manifestUrl--22--3A--22https--3A--2F--2Ftonconnect--2Dsdk--2Ddemo--2Ddapp.vercel.app--2Ftonconnect--"
+      "2Dmanifest.json--22--2C--22items--22--3A--5B--7B--22name--22--3A--22ton--5Faddr--22--2C--22network--22--3A--22--"
+      "2D239--22--7D--2C--7B--22name--22--3A--22ton--5Fproof--22--2C--22payload--22--3A--22abacaba--22--7D--5D--7D-ret_"
+      "_"
+      "none-e__--7B--22request--22--3A--22none--22--7D-trace--5Fid__01a0b488--2D27a9--2D7419--2D89bc--2D169fc31ba6fd",
+      ton_connect(2, "c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65",
+                  ton_connect_connect_request("https://tonconnect-sdk-demo-dapp.vercel.app/tonconnect-manifest.json",
+                                              "-239", "abacaba"),
+                  "none", "{\"request\":\"none\"}", "01a0b488-27a9-7419-89bc-169fc31ba6fd"));
 
   parse_internal_link(
       "tg:sendgrams?v=2&id=c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65&trace%5Fid=01a0b488%2D27a9%"
@@ -1449,6 +1461,16 @@ TEST(Link, parse_internal_link_part3) {
           2, "c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65",
           ton_connect_connect_request("https://tonconnect-sdk-demo-dapp.vercel.app/tonconnect-manifest.json", "", ""),
           "none", "", "01a0b488-27a9-7419-89bc-169fc31ba6fd"));
+  parse_internal_link(
+      "tg://"
+      "sendgrams?v=2&id=c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65&r=%7B%22manifestUrl%22%3A%"
+      "22https%3A%2F%2Ftonconnect-sdk-demo-dapp.vercel.app%2Ftonconnect-manifest.json%22%2C%22items%22%3A%5B%7B%22name%"
+      "22%3A%22ton_addr%22%2C%22network%22%3A%22-239%22%7D%2C%7B%22name%22%3A%22ton_proof%22%2C%22payload%22%3A%"
+      "22abacaba%22%7D%5D%7D&ret=none&e=%7B%22request%22%3A%22none%22%7D&trace_id=01a0b488-27a9-7419-89bc-169fc31ba6fd",
+      ton_connect(2, "c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65",
+                  ton_connect_connect_request("https://tonconnect-sdk-demo-dapp.vercel.app/tonconnect-manifest.json",
+                                              "-239", "abacaba"),
+                  "none", "{\"request\":\"none\"}", "01a0b488-27a9-7419-89bc-169fc31ba6fd"));
 
   parse_internal_link(
       "tc://"
