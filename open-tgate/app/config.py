@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     heartbeat_interval_seconds: int = 30
     external_send_enabled: bool = False
 
+    # Telegram account runtime (multi-account login + read-only auto-sync).
+    command_poll_seconds: int = 3
+    sync_pacing_seconds: float = 0.4
+    max_login_accounts: int = 25
+
     # Observability (Sentry). Disabled unless a DSN is configured.
     sentry_dsn: str = Field(default="", repr=False)
     sentry_environment: str = ""
@@ -46,6 +51,24 @@ class Settings(BaseSettings):
     @property
     def sentry_enabled(self) -> bool:
         return _is_configured(self.sentry_dsn)
+
+    @property
+    def telegram_enabled(self) -> bool:
+        """True when the worker has enough config to drive TDLib account login.
+
+        Requires Telegram API credentials plus Supabase (the command bus). When
+        false the worker still runs its heartbeat loop but the account manager
+        stays dormant — this keeps CI/local runs green without credentials.
+        """
+
+        return all(
+            (
+                _is_configured(self.telegram_api_id),
+                _is_configured(self.telegram_api_hash),
+                _is_configured(self.supabase_url),
+                _is_configured(self.supabase_secret_key),
+            )
+        )
 
     @property
     def production_ready(self) -> bool:

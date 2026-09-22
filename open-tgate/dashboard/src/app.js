@@ -57,9 +57,9 @@ export const appHtml = `<!doctype html>
   h2{font-size:18px;margin:0 0 2px}
   .sub{color:var(--muted);margin:0 0 20px}
   label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px;font-weight:600}
-  input[type=email],input[type=password]{width:100%;padding:12px 14px;border-radius:11px;border:1px solid var(--line);
-    background:var(--bg);color:var(--fg);font-size:15px}
-  input[type=email]:focus,input[type=password]:focus{outline:none;border-color:var(--brand)}
+  input[type=email],input[type=password],input[type=text],input[type=tel]{width:100%;padding:12px 14px;border-radius:11px;
+    border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:15px}
+  input:focus{outline:none;border-color:var(--brand)}
   .row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
   .msg{margin-top:14px;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid var(--line2);display:none}
   .msg.show{display:block}
@@ -83,6 +83,18 @@ export const appHtml = `<!doctype html>
   td.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
   .empty{color:var(--muted);padding:18px 12px;text-align:center}
   footer{color:var(--faint);font-size:12.5px;margin-top:18px}
+  .acct{border:1px solid var(--line2);border-radius:13px;padding:16px;margin-top:12px;background:var(--card2)}
+  .acct-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .acct-title{font-weight:700}
+  .status{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;border:1px solid var(--line);
+    background:var(--bg);padding:4px 10px;border-radius:999px}
+  .counts{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0 0;font-size:13px;color:var(--muted)}
+  .counts b{color:var(--fg)}
+  .step{margin-top:12px;border-top:1px solid var(--line2);padding-top:12px}
+  .qr{display:inline-block;background:#fff;padding:12px;border-radius:12px;margin-top:10px}
+  .qr img{display:block;width:200px;height:200px;image-rendering:pixelated}
+  .hint{font-size:13px;color:var(--muted);margin:6px 0 0}
+  .mini{font-size:13px;padding:8px 12px}
   @media(max-width:640px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -160,6 +172,22 @@ export const appHtml = `<!doctype html>
       <div class="tile"><div class="k">Live (≤2 min)</div><div class="v" id="stat-live">—</div></div>
       <div class="tile"><div class="k">Outbound send</div><div class="v" id="stat-send">disabled</div></div>
     </div>
+    <div class="card" id="tg-card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div><h2>Telegram accounts</h2><p class="sub" style="margin:0">Connect accounts by phone number or QR code. Sync is read-only and ban-safe.</p></div>
+        <button class="btn primary" id="tg-add" style="margin-left:auto">+ Connect account</button>
+      </div>
+      <div id="tg-add-form" class="hidden" style="margin-top:14px;border:1px solid var(--line2);border-radius:12px;padding:16px">
+        <label for="tg-label">Account label</label>
+        <input id="tg-label" type="text" placeholder="e.g. Support line" maxlength="80" autocomplete="off" />
+        <div class="row">
+          <button class="btn primary" id="tg-create" type="button" style="flex:1;justify-content:center">Create</button>
+          <button class="btn" id="tg-cancel" type="button" style="flex:1;justify-content:center">Cancel</button>
+        </div>
+      </div>
+      <div id="tg-list"><div class="empty" id="tg-empty">No Telegram accounts connected yet. Use “Connect account” to begin.</div></div>
+      <div class="msg" id="tg-msg"></div>
+    </div>
     <div class="card">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <div><h2>Worker heartbeats</h2><p class="sub" style="margin:0">Live from Supabase (RLS-restricted to operators).</p></div>
@@ -178,6 +206,7 @@ export const appHtml = `<!doctype html>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 (function(){
   var CFG = { url: "%SUPABASE_URL%", key: "%SUPABASE_KEY%" };
@@ -267,7 +296,7 @@ export const appHtml = `<!doctype html>
 
   document.getElementById("signout").addEventListener("click", doSignOut);
   document.getElementById("denied-signout").addEventListener("click", doSignOut);
-  async function doSignOut(){ await sb.auth.signOut(); location.replace("/app"); }
+  async function doSignOut(){ if(tgTimer){ clearInterval(tgTimer); tgTimer=null; } await sb.auth.signOut(); location.replace("/app"); }
 
   async function renderFor(session){
     if(recovering){ show("recovery"); return; }
@@ -289,6 +318,7 @@ export const appHtml = `<!doctype html>
     document.getElementById("signout").classList.remove("hidden");
     show("console");
     await loadHeartbeats();
+    startAccounts();
   }
 
   document.getElementById("refresh").addEventListener("click", loadHeartbeats);
@@ -320,6 +350,158 @@ export const appHtml = `<!doctype html>
   }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
     return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]; }); }
+
+  // ---- Telegram account login + sync -------------------------------------
+  var tgTimer = null, tgSig = {};
+  var STATUS_LABEL = {
+    pending:"Not connected", initializing:"Starting…", awaiting_phone:"Enter phone number",
+    awaiting_qr_scan:"Scan QR code", awaiting_code:"Enter login code",
+    awaiting_password:"Enter 2FA password", authorized:"Connected", logged_out:"Signed out", error:"Needs attention"
+  };
+  function tgMsg(t,k){ msg("tg-msg",t,k); } function tgClear(){ clearMsg("tg-msg"); }
+
+  document.getElementById("tg-add").addEventListener("click", function(){
+    document.getElementById("tg-add-form").classList.remove("hidden");
+    document.getElementById("tg-label").focus();
+  });
+  document.getElementById("tg-cancel").addEventListener("click", function(){
+    document.getElementById("tg-add-form").classList.add("hidden");
+    document.getElementById("tg-label").value="";
+  });
+  document.getElementById("tg-create").addEventListener("click", async function(){
+    var label = document.getElementById("tg-label").value.trim();
+    if(!label){ tgMsg("Enter a label for the account.","err"); return; }
+    tgClear();
+    var r = await sb.from("open_tgate_tg_accounts").insert({ label: label, status:"pending", created_via:"app" });
+    if(r.error){ tgMsg("Could not create account: "+r.error.message,"err"); return; }
+    document.getElementById("tg-add-form").classList.add("hidden");
+    document.getElementById("tg-label").value="";
+    refreshAccounts();
+  });
+
+  async function tgCommand(accountId, action, payload){
+    var row = { account_id: accountId, action: action, status:"pending" };
+    if(payload) row.payload = payload;
+    var r = await sb.from("open_tgate_login_commands").insert(row);
+    if(r.error){ tgMsg("Command failed: "+r.error.message,"err"); return false; }
+    tgClear(); return true;
+  }
+
+  async function entityCount(accountId){
+    var r = await sb.from("open_tgate_tg_entities")
+      .select("account_id",{ count:"exact", head:true }).eq("account_id", accountId);
+    return r.error ? null : (r.count||0);
+  }
+
+  function renderQr(link){
+    try{
+      var qr = window.qrcode(0, "M"); qr.addData(link); qr.make();
+      return '<div class="qr">'+qr.createImgTag(4,0)+'</div>';
+    }catch(e){ return '<p class="hint">QR ready — open Telegram → Settings → Devices → Link Desktop Device and scan the code (link unavailable to render).</p>'; }
+  }
+
+  function actionsFor(acc){
+    var s = acc.status;
+    if(s==="authorized"){
+      return '<div class="step"><button class="btn mini" data-act="logout" data-id="'+acc.id+'">Disconnect account</button></div>';
+    }
+    if(s==="awaiting_qr_scan"){
+      var body = acc.qr_link ? renderQr(acc.qr_link) : '<p class="hint">Generating QR code…</p>';
+      return '<div class="step">'+body+'<p class="hint">In Telegram: Settings → Devices → Link Desktop Device, then scan.</p></div>';
+    }
+    if(s==="awaiting_code"){
+      return '<div class="step"><label>Login code (sent in Telegram)</label>'+
+        '<input type="tel" inputmode="numeric" id="code-'+acc.id+'" placeholder="12345" autocomplete="off" />'+
+        '<div class="row"><button class="btn primary mini" data-act="code" data-id="'+acc.id+'">Submit code</button></div></div>';
+    }
+    if(s==="awaiting_password"){
+      return '<div class="step"><label>Two-step verification password</label>'+
+        '<input type="password" id="pw-'+acc.id+'" autocomplete="off" />'+
+        '<div class="row"><button class="btn primary mini" data-act="password" data-id="'+acc.id+'">Submit password</button></div></div>';
+    }
+    // pending / logged_out / error / initializing → offer login methods.
+    return '<div class="step" id="login-'+acc.id+'">'+
+      '<div class="row" style="margin-top:0">'+
+      '<button class="btn mini" data-act="phone-open" data-id="'+acc.id+'">Login by phone</button>'+
+      '<button class="btn mini" data-act="qr" data-id="'+acc.id+'">Login by QR code</button></div></div>';
+  }
+
+  function bindAccountActions(){
+    document.querySelectorAll("#tg-list [data-act]").forEach(function(btn){
+      if(btn._bound) return; btn._bound = true;
+      btn.addEventListener("click", async function(){
+        var id = btn.getAttribute("data-id"), act = btn.getAttribute("data-act");
+        if(act==="qr"){ if(await tgCommand(id,"start_qr",null)) tgMsg("Requesting QR code…","info"); }
+        else if(act==="logout"){ if(await tgCommand(id,"logout",null)) tgMsg("Disconnecting…","info"); }
+        else if(act==="phone-open"){
+          var host = document.getElementById("login-"+id);
+          host.innerHTML = '<label>Phone number (international format)</label>'+
+            '<input type="tel" id="phone-'+id+'" placeholder="+15551234567" autocomplete="off" />'+
+            '<div class="row"><button class="btn primary mini" data-act="phone-send" data-id="'+id+'">Send code</button></div>';
+          bindAccountActions(); document.getElementById("phone-"+id).focus();
+        }
+        else if(act==="phone-send"){
+          var phone=(document.getElementById("phone-"+id).value||"").trim();
+          if(!/^\\+\\d{7,15}$/.test(phone)){ tgMsg("Enter a valid number like +15551234567.","err"); return; }
+          if(await tgCommand(id,"start_phone",{ phone_number: phone })) tgMsg("Requesting login code…","info");
+        }
+        else if(act==="code"){
+          var code=(document.getElementById("code-"+id).value||"").trim();
+          if(!/^\\d{3,8}$/.test(code)){ tgMsg("Enter the numeric login code.","err"); return; }
+          if(await tgCommand(id,"submit_code",{ code: code })) tgMsg("Verifying code…","info");
+        }
+        else if(act==="password"){
+          var pw=document.getElementById("pw-"+id).value;
+          if(!pw){ tgMsg("Enter your two-step password.","err"); return; }
+          if(await tgCommand(id,"submit_password",{ password: pw })) tgMsg("Verifying password…","info");
+        }
+      });
+    });
+  }
+
+  async function refreshAccounts(){
+    var r = await sb.from("open_tgate_tg_accounts")
+      .select("id,label,status,needs,qr_link,last_error,phone_masked,updated_at")
+      .order("created_at",{ascending:true});
+    if(r.error){ tgMsg("Could not load accounts: "+r.error.message,"err"); return; }
+    var accounts = r.data || [];
+    var list = document.getElementById("tg-list");
+    if(accounts.length===0){
+      list.innerHTML = '<div class="empty">No Telegram accounts connected yet. Use “Connect account” to begin.</div>';
+      tgSig = {}; return;
+    }
+    for(var i=0;i<accounts.length;i++){
+      var acc = accounts[i];
+      var count = acc.status==="authorized" ? await entityCount(acc.id) : null;
+      var sig = acc.status+"|"+(acc.needs||"")+"|"+(acc.qr_link?"q":"")+"|"+(count==null?"":count)+"|"+(acc.last_error||"");
+      var card = document.getElementById("acct-"+acc.id);
+      if(card && tgSig[acc.id]===sig) continue; // avoid clobbering in-progress typing
+      tgSig[acc.id]=sig;
+      if(!card){ card=document.createElement("div"); card.className="acct"; card.id="acct-"+acc.id; list.appendChild(card); }
+      var dot = acc.status==="authorized"?"ok":(acc.status==="error"?"bad":"warn");
+      var counts = acc.status==="authorized"
+        ? '<div class="counts"><span>Synced entities: <b>'+(count==null?"…":count)+'</b></span>'+
+          '<span>contacts · groups · channels · bots · files</span></div>' : "";
+      var err = acc.last_error ? '<p class="hint" style="color:var(--bad)">'+esc(acc.last_error)+'</p>' : "";
+      card.innerHTML =
+        '<div class="acct-head"><span class="acct-title">'+esc(acc.label)+'</span>'+
+        '<span class="status"><span class="dot '+dot+'"></span>'+esc(STATUS_LABEL[acc.status]||acc.status)+'</span>'+
+        (acc.phone_masked?'<span class="pill">'+esc(acc.phone_masked)+'</span>':'')+'</div>'+
+        counts + err + actionsFor(acc);
+    }
+    // Remove cards for deleted accounts.
+    var ids = accounts.map(function(a){return "acct-"+a.id;});
+    Array.prototype.slice.call(list.querySelectorAll(".acct")).forEach(function(el){
+      if(ids.indexOf(el.id)===-1){ el.remove(); delete tgSig[el.id.slice(5)]; }
+    });
+    bindAccountActions();
+  }
+
+  function startAccounts(){
+    refreshAccounts();
+    if(tgTimer) clearInterval(tgTimer);
+    tgTimer = setInterval(refreshAccounts, 3000);
+  }
 
   // If this load is a password-recovery redirect, lock to the set-password
   // view synchronously — before the async initial render can replace it.

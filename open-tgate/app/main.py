@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .api_accounts import router as telegram_router
 from .config import get_settings
 from .observability import init_sentry
 from .security import require_admin
@@ -17,6 +18,8 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+app.include_router(telegram_router)
 
 
 @app.get("/healthz")
