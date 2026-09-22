@@ -1450,6 +1450,16 @@ TEST(Link, parse_internal_link_part3) {
           ton_connect_connect_request("https://tonconnect-sdk-demo-dapp.vercel.app/tonconnect-manifest.json", "", ""),
           "none", "", "01a0b488-27a9-7419-89bc-169fc31ba6fd"));
 
+  parse_internal_link(
+      "tc://"
+      "?v=2&id=c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65&trace%5Fid=01a0b488%2D27a9%2D7419%"
+      "2D89bc%2D169fc31ba6fd&r=%7B%22manifestUrl%22%3A%22https%3A%2F%2Ftonconnect%2Dsdk%2Ddemo%2Ddapp%2Evercel%2Eapp%"
+      "2Ftonconnect%2Dmanifest%2Ejson%22%2C%22items%22%3A%5B%7B%22name%22%3A%22ton%5Faddr%22%7D%5D%7D&ret=none",
+      ton_connect(
+          2, "c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65",
+          ton_connect_connect_request("https://tonconnect-sdk-demo-dapp.vercel.app/tonconnect-manifest.json", "", ""),
+          "none", "", "01a0b488-27a9-7419-89bc-169fc31ba6fd"));
+
   parse_internal_link("t.me/sendgrams?asdjlkass", ton_wallet_transfer(nullptr, 0));
   parse_internal_link("t.me/sendgrams", ton_wallet_transfer(nullptr, 0));
   parse_internal_link("t.me/sendgrams/", ton_wallet_transfer(nullptr, 0));

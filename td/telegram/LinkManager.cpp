@@ -2148,6 +2148,14 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
       link.remove_prefix(2);
     }
     is_tg = true;
+  } else if (tolower_begins_with(link, "tc:")) {
+    link.remove_prefix(3);
+    if (begins_with(link, "//")) {
+      link.remove_prefix(2);
+    }
+    result.type_ = LinkType::TonConnect;
+    result.query_ = link.str();
+    return result;
   }
 
   auto r_http_url = parse_url(link);
@@ -2257,6 +2265,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_internal_link(Slice lin
       return nullptr;
     case LinkType::Tg:
       return parse_tg_link_query(info.query_, is_trusted);
+    case LinkType::TonConnect:
+      return parse_ton_connect_link_query(info.query_);
     case LinkType::TMe:
       return parse_t_me_link_query(info.query_, is_trusted);
     case LinkType::Telegraph:
@@ -2610,7 +2620,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 1 && path[0] == "sendgrams") {
     // sendgrams?to=<receiver>&amount=<amount>
     // sendgrams?v=...
-    auto link = get_internal_link_ton_connect(query);
+    auto link = get_internal_link_ton_connect(query, false);
     if (link != nullptr) {
       return link;
     }
@@ -2728,6 +2738,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     return td::make_unique<InternalLinkUnknownDeepLink>(PSTRING() << "tg://" << query);
   }
   return nullptr;
+}
+
+unique_ptr<LinkManager::InternalLink> LinkManager::parse_ton_connect_link_query(Slice query) {
+  return get_internal_link_ton_connect(query, true);
 }
 
 unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice query, bool is_trusted) {
@@ -2886,7 +2900,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
           connect_query += startapp[i];
         }
       }
-      auto link = get_internal_link_ton_connect(connect_query);
+      auto link = get_internal_link_ton_connect(connect_query, true);
       if (link != nullptr) {
         return link;
       }
@@ -3140,8 +3154,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_message_dra
   return td::make_unique<InternalLinkMessageDraft>(std::move(full_text), contains_url);
 }
 
-unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_ton_connect(Slice query) {
+unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_ton_connect(Slice query, bool check_path) {
   const auto url_query = parse_url_query(query);
+  if (check_path && !url_query.path_.empty()) {
+    return nullptr;
+  }
   auto r_version = to_integer_safe<int32>(url_query.get_arg("v"));
   if (r_version.is_error()) {
     return nullptr;
@@ -3550,6 +3567,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       switch (info.type_) {
         case LinkType::External:
         case LinkType::Tg:
+        case LinkType::TonConnect:
           return Status::Error("Invalid instant view URL provided");
         case LinkType::Telegraph:
           if (fallback_info.type_ != LinkType::Telegraph ||

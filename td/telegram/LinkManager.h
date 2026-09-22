@@ -197,7 +197,7 @@ class LinkManager final : public Actor {
   class InternalLinkVideoChat;
   class InternalLinkWebApp;
 
-  enum class LinkType : int32 { External, TMe, Tg, Telegraph };
+  enum class LinkType : int32 { External, TMe, Tg, Telegraph, TonConnect };
 
   struct LinkInfo {
     LinkType type_ = LinkType::External;
@@ -208,6 +208,8 @@ class LinkManager final : public Actor {
 
   static unique_ptr<InternalLink> parse_tg_link_query(Slice query, bool is_trusted);
 
+  static unique_ptr<InternalLink> parse_ton_connect_link_query(Slice query);
+
   static unique_ptr<InternalLink> parse_t_me_link_query(Slice query, bool is_trusted);
 
   static unique_ptr<InternalLink> get_internal_link_passport(Slice query, const vector<std::pair<string, string>> &args,
@@ -215,7 +217,7 @@ class LinkManager final : public Actor {
 
   static unique_ptr<InternalLink> get_internal_link_message_draft(Slice url, Slice text);
 
-  static unique_ptr<InternalLink> get_internal_link_ton_connect(Slice query);
+  static unique_ptr<InternalLink> get_internal_link_ton_connect(Slice query, bool check_path);
 
   static Result<string> get_internal_link_impl(const td_api::InternalLinkType *type_ptr, bool is_internal);
 
