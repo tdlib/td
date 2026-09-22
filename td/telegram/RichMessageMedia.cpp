@@ -8,7 +8,7 @@
 
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
-#include "td/telegram/MessageContentDupType.h"
+#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/Td.h"
@@ -16,6 +16,13 @@
 #include "td/utils/base64.h"
 
 namespace td {
+
+RichMessageMedia::RichMessageMedia(RichMessageMedia &&) = default;
+RichMessageMedia &RichMessageMedia::operator=(RichMessageMedia &&) = default;
+RichMessageMedia::~RichMessageMedia() = default;
+
+RichMessageMedia::RichMessageMedia(unique_ptr<MessageContent> media) : media_(std::move(media)) {
+}
 
 Result<RichMessageMedia> RichMessageMedia::get_rich_message_media(
     Td *td, DialogId dialog_id, td_api::object_ptr<td_api::inputRichMessageMedia> &&media) {

@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
-#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -18,6 +17,7 @@
 namespace td {
 
 class FullRemoteFileLocation;
+class MessageContent;
 class Td;
 
 class RichMessageMedia {
@@ -28,9 +28,13 @@ class RichMessageMedia {
 
  public:
   RichMessageMedia() = default;
+  RichMessageMedia(const RichMessageMedia &) = delete;
+  RichMessageMedia &operator=(const RichMessageMedia &) = delete;
+  RichMessageMedia(RichMessageMedia &&);
+  RichMessageMedia &operator=(RichMessageMedia &&);
+  ~RichMessageMedia();
 
-  explicit RichMessageMedia(unique_ptr<MessageContent> media) : media_(std::move(media)) {
-  }
+  explicit RichMessageMedia(unique_ptr<MessageContent> media);
 
   static Result<RichMessageMedia> get_rich_message_media(Td *td, DialogId dialog_id,
                                                          td_api::object_ptr<td_api::inputRichMessageMedia> &&media);
