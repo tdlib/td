@@ -7,9 +7,9 @@
 #   * worker — persistent TDLib sync worker (no public port, encrypted volume)
 #
 # IMPORTANT
-#   * Replace DOCKERHUB_USERNAME and pin an IMMUTABLE image tag or @sha256
-#     digest before production use. Never deploy the floating `latest` tag to
-#     production (rollbacks require an immutable reference).
+#   * Images are pinned to the immutable v1.0.0 tags published to Docker Hub by
+#     .github/workflows/release-dockerhub.yml (namespace: hillstreet). Bump the
+#     tag on each backend release; never deploy the floating `latest` tag.
 #   * Secrets (SUPABASE_SECRET_KEY, TELEGRAM_API_HASH, API_ADMIN_TOKEN,
 #     SENTRY_DSN, ...) are NOT declared here. Set them in the Zeabur service
 #     secret store per deploy/zeabur/README.md — never commit them.
@@ -35,8 +35,7 @@ spec:
       domainKey: PUBLIC_DOMAIN
       spec:
         source:
-          # Pin an immutable tag/digest, e.g. DOCKERHUB_USERNAME/open-tgate-api:1.0.0
-          image: DOCKERHUB_USERNAME/open-tgate-api:latest
+          image: hillstreet/open-tgate-api:1.0.0
         ports:
           - id: web
             port: 8000
@@ -48,13 +47,16 @@ spec:
             default: "8000"
           EXTERNAL_SEND_ENABLED:
             default: "false"
+          # Non-secret. The service/secret key + admin token are secrets — set
+          # them in the Zeabur secret store, not here.
+          SUPABASE_URL:
+            default: https://hoseohvgoiarxluxqwqv.supabase.co
 
     - name: worker
       template: PREBUILT
       spec:
         source:
-          # Pin an immutable tag/digest, e.g. DOCKERHUB_USERNAME/open-tgate-worker:1.0.0
-          image: DOCKERHUB_USERNAME/open-tgate-worker:latest
+          image: hillstreet/open-tgate-worker:1.0.0
         volumes:
           # Encrypted TDLib session/database state MUST persist across redeploys.
           - id: tdlib-state
@@ -70,3 +72,7 @@ spec:
             default: /data/tdlib/db
           TDLIB_FILES_DIRECTORY:
             default: /data/tdlib/files
+          # Non-secret. TELEGRAM_API_HASH and SUPABASE_SECRET_KEY are secrets —
+          # set them in the Zeabur secret store, not here.
+          SUPABASE_URL:
+            default: https://hoseohvgoiarxluxqwqv.supabase.co
