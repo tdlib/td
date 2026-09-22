@@ -114,7 +114,7 @@ static jstring Function_toString(JNIEnv *env, jobject object) {
 }
 #endif
 
-static constexpr jint JAVA_VERSION = JNI_VERSION_1_6;
+static constexpr jint JAVA_VERSION = JNI_VERSION_1_8;
 static JavaVM *java_vm;
 static jobject log_message_handler;
 
