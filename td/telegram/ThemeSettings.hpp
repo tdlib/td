@@ -16,15 +16,14 @@ namespace td {
 
 template <class StorerT>
 void ThemeSettings::store(StorerT &storer) const {
-  bool has_message_accent_color = message_accent_color_ != accent_color_;
   bool has_background = background_info_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(animate_message_colors_);
-  STORE_FLAG(has_message_accent_color);
+  STORE_FLAG(has_message_accent_color_);
   STORE_FLAG(has_background);
   END_STORE_FLAGS();
   td::store(accent_color_, storer);
-  if (has_message_accent_color) {
+  if (has_message_accent_color_) {
     td::store(message_accent_color_, storer);
   }
   if (has_background) {
@@ -36,15 +35,14 @@ void ThemeSettings::store(StorerT &storer) const {
 
 template <class ParserT>
 void ThemeSettings::parse(ParserT &parser) {
-  bool has_message_accent_color;
   bool has_background;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(animate_message_colors_);
-  PARSE_FLAG(has_message_accent_color);
+  PARSE_FLAG(has_message_accent_color_);
   PARSE_FLAG(has_background);
   END_PARSE_FLAGS();
   td::parse(accent_color_, parser);
-  if (has_message_accent_color) {
+  if (has_message_accent_color_) {
     td::parse(message_accent_color_, parser);
   } else {
     message_accent_color_ = accent_color_;

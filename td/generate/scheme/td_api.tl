@@ -4263,8 +4263,9 @@ builtInThemeArctic = BuiltInTheme;
 //@background The background to be used in chats; may be null
 //@outgoing_message_fill The fill to be used as a background for outgoing messages; may be null if the fill from the base theme must be used instead
 //@animate_outgoing_message_fill If true, the freeform gradient fill needs to be animated on every sent message
-//@outgoing_message_accent_color Accent color of outgoing messages in ARGB format
-themeSettings base_theme:BuiltInTheme accent_color:int32 background:background outgoing_message_fill:BackgroundFill animate_outgoing_message_fill:Bool outgoing_message_accent_color:int32 = ThemeSettings;
+//@has_outgoing_message_accent_color True, if there is chosen accent color for outgoing messages; otherwise, the color must be deduced from other theme settings
+//@outgoing_message_accent_color Accent color of outgoing messages in ARGB format; must be ignored if has_outgoing_message_accent_color is false
+themeSettings base_theme:BuiltInTheme accent_color:int32 background:background outgoing_message_fill:BackgroundFill animate_outgoing_message_fill:Bool has_outgoing_message_accent_color:Bool outgoing_message_accent_color:int32 = ThemeSettings;
 
 
 //@description Represents a button inside a rich message

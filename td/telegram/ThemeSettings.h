@@ -24,6 +24,7 @@ class ThemeSettings {
   BaseTheme base_theme_ = BaseTheme::Classic;
   vector<int32> message_colors_;
   bool animate_message_colors_ = false;
+  bool has_message_accent_color_ = false;
 
   friend bool operator==(const ThemeSettings &lhs, const ThemeSettings &rhs);
 
