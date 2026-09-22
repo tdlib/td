@@ -1530,6 +1530,32 @@ class LinkManager::InternalLinkTheme final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkTonConnect final : public InternalLink {
+  int32 version_;
+  string dapp_client_id_;
+  string connect_request_;
+  string return_strategy_;
+  string rpc_request_;
+  string trace_id_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeTonConnect>(
+        version_, dapp_client_id_, get_ton_connect_connect_request_object(connect_request_).move_as_ok(),
+        return_strategy_, rpc_request_, trace_id_);
+  }
+
+ public:
+  InternalLinkTonConnect(int32 version, string &&dapp_client_id, string &&connect_request, string &&return_strategy,
+                         string &&rpc_request, string &&trace_id)
+      : version_(version)
+      , dapp_client_id_(std::move(dapp_client_id))
+      , connect_request_(std::move(connect_request))
+      , return_strategy_(std::move(return_strategy))
+      , rpc_request_(std::move(rpc_request))
+      , trace_id_(std::move(trace_id)) {
+  }
+};
+
 class LinkManager::InternalLinkUnknownDeepLink final : public InternalLink {
   string link_;
 
@@ -2583,6 +2609,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
   } else if (path.size() == 1 && path[0] == "sendgrams") {
     // sendgrams?to=<receiver>&amount=<amount>
+    // sendgrams?v=...
+    auto link = get_internal_link_ton_connect(query);
+    if (link != nullptr) {
+      return link;
+    }
     auto receiver = get_arg("to");
     auto amount = get_arg("amount");
     if (is_valid_gram_receiver(receiver) && is_valid_gram_amount(amount)) {
@@ -2838,6 +2869,28 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     }
   } else if (path[0] == "sendgrams") {
     // /sendgrams?to=<receiver>&amount=<amount>
+    // /sendgrams?startapp=tonconnect-...
+    auto startapp = get_arg("startapp");
+    if (begins_with(startapp, "tonconnect-")) {
+      string connect_query = "?";
+      for (size_t i = 11; i < startapp.size(); i++) {
+        if (startapp[i] == '_' && startapp[i + 1] == '_') {
+          i++;
+          connect_query += '=';
+        } else if (startapp[i] == '-' && startapp[i + 1] == '-') {
+          i++;
+          connect_query += '%';
+        } else if (startapp[i] == '-') {
+          connect_query += '&';
+        } else {
+          connect_query += startapp[i];
+        }
+      }
+      auto link = get_internal_link_ton_connect(connect_query);
+      if (link != nullptr) {
+        return link;
+      }
+    }
     auto receiver = get_arg("to");
     auto amount = get_arg("amount");
     if (is_valid_gram_receiver(receiver) && is_valid_gram_amount(amount)) {
@@ -3085,6 +3138,23 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_message_dra
     }
   }
   return td::make_unique<InternalLinkMessageDraft>(std::move(full_text), contains_url);
+}
+
+unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_ton_connect(Slice query) {
+  const auto url_query = parse_url_query(query);
+  auto r_version = to_integer_safe<int32>(url_query.get_arg("v"));
+  if (r_version.is_error()) {
+    return nullptr;
+  }
+  auto r = url_query.get_arg("r").str();
+  auto r_connect_request = get_ton_connect_connect_request_object(r);
+  if (r_connect_request.is_error()) {
+    LOG(INFO) << r_connect_request.error();
+    return nullptr;
+  }
+  return td::make_unique<InternalLinkTonConnect>(r_version.move_as_ok(), url_query.get_arg("id").str(), std::move(r),
+                                                 url_query.get_arg("ret").str(), url_query.get_arg("e").str(),
+                                                 url_query.get_arg("trace_id").str());
 }
 
 unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
@@ -4003,6 +4073,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return PSTRING() << get_t_me_url() << "addtheme/" << url_encode(link->theme_name_);
       }
     }
+    case td_api::internalLinkTypeTonConnect::ID:
+      return Status::Error(400, "HTTP link is unavailable for the link type");  // TON Connect links are unsupported
     case td_api::internalLinkTypeTonWalletTransfer::ID: {
       auto link = static_cast<const td_api::internalLinkTypeTonWalletTransfer *>(type_ptr);
       auto receiver = [&] {

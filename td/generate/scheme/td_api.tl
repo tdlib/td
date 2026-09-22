@@ -9903,6 +9903,15 @@ internalLinkTypeTextCompositionStyle style_name:string = InternalLinkType;
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @theme_name Name of the theme
 internalLinkTypeTheme theme_name:string = InternalLinkType;
 
+//@description The link is a universal TON Connect link
+//@version TON Connect version
+//@dapp_client_id Hex-encoded public X25519 key of the dApp
+//@connect_request TON Connect connect request
+//@return_strategy Request return strategy; one of "back", "none", or a URL to open
+//@rpc_request Embedded RPC request represented as base64url-encoded JSON
+//@trace_id Identifier to trace the connection request
+internalLinkTypeTonConnect version:int32 dapp_client_id:string connect_request:tonConnectConnectRequest return_strategy:string rpc_request:string trace_id:string = InternalLinkType;
+
 //@description The link is a link for sending Grams from the user's TON Wallet
 //@receiver Chosen receiver of the transfer; may be null if none
 //@gram_amount The pre-filled amount of TON Grams to send; in the smallest units of the cryptocurrency

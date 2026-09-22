@@ -269,6 +269,17 @@ static auto target_chat_chosen(bool allow_users, bool allow_bots, bool allow_gro
       td::td_api::make_object<td::td_api::targetChatTypes>(allow_users, allow_bots, allow_groups, allow_channels));
 }
 
+static td::td_api::object_ptr<td::td_api::tonConnectConnectRequest> ton_connect_connect_request(td::string manifest_url,
+                                                                                                td::string network,
+                                                                                                td::string payload) {
+  td::vector<td::td_api::object_ptr<td::td_api::TonConnectConnectItem>> items;
+  items.push_back(td::td_api::make_object<td::td_api::tonConnectConnectItemAddress>(network));
+  if (!payload.empty()) {
+    items.push_back(td::td_api::make_object<td::td_api::tonConnectConnectItemProof>(payload));
+  }
+  return td::td_api::make_object<td::td_api::tonConnectConnectRequest>(manifest_url, std::move(items));
+}
+
 static td::td_api::object_ptr<td::td_api::WebAppOpenMode> web_app_open_mode(bool is_compact, bool is_full_screen) {
   if (is_compact) {
     return td::td_api::make_object<td::td_api::webAppOpenModeCompact>();
@@ -508,6 +519,13 @@ static auto text_composition_style(const td::string &style_name) {
 
 static auto theme(const td::string &theme_name) {
   return td::td_api::make_object<td::td_api::internalLinkTypeTheme>(theme_name);
+}
+
+static auto ton_connect(td::int32 version, td::string dapp_client_id,
+                        td::td_api::object_ptr<td::td_api::tonConnectConnectRequest> &&request,
+                        td::string return_strategy, td::string rpc_request, td::string trace_id) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeTonConnect>(version, dapp_client_id, std::move(request),
+                                                                         return_strategy, rpc_request, trace_id);
 }
 
 static auto ton_wallet_transfer(td::td_api::object_ptr<td::td_api::TonWalletTransferReceiver> &&receiver,
@@ -1411,6 +1429,26 @@ TEST(Link, parse_internal_link_part3) {
   parse_internal_link("tg:proxy", unsupported_proxy());
   parse_internal_link("tg:proxy?server=&port=80&secret=1234567890abcdef1234567890ABCDEF", unsupported_proxy());
   parse_internal_link("tg:proxy?server=%FF&port=80&secret=1234567890abcdef1234567890ABCDEF", unsupported_proxy());
+
+  parse_internal_link(
+      "t.me/"
+      "sendgrams?startapp=tonconnect-v__2-id__c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65-trace--"
+      "5Fid__01a0b488--2D27a9--2D7419--2D89bc--2D169fc31ba6fd-r__--7B--22manifestUrl--22--3A--22https--3A--2F--"
+      "2Ftonconnect--2Dsdk--2Ddemo--2Ddapp--2Evercel--2Eapp--2Ftonconnect--2Dmanifest--2Ejson--22--2C--22items--22--3A-"
+      "-5B--7B--22name--22--3A--22ton--5Faddr--22--7D--5D--7D-ret__none",
+      ton_connect(
+          2, "c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65",
+          ton_connect_connect_request("https://tonconnect-sdk-demo-dapp.vercel.app/tonconnect-manifest.json", "", ""),
+          "none", "", "01a0b488-27a9-7419-89bc-169fc31ba6fd"));
+
+  parse_internal_link(
+      "tg:sendgrams?v=2&id=c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65&trace%5Fid=01a0b488%2D27a9%"
+      "2D7419%2D89bc%2D169fc31ba6fd&r=%7B%22manifestUrl%22%3A%22https%3A%2F%2Ftonconnect%2Dsdk%2Ddemo%2Ddapp%2Evercel%"
+      "2Eapp%2Ftonconnect%2Dmanifest%2Ejson%22%2C%22items%22%3A%5B%7B%22name%22%3A%22ton%5Faddr%22%7D%5D%7D&ret=none",
+      ton_connect(
+          2, "c745acd825f83bf7ef88d671ea69c90fd1c7e71f78b1079ec8ad3c231fed7a65",
+          ton_connect_connect_request("https://tonconnect-sdk-demo-dapp.vercel.app/tonconnect-manifest.json", "", ""),
+          "none", "", "01a0b488-27a9-7419-89bc-169fc31ba6fd"));
 
   parse_internal_link("t.me/sendgrams?asdjlkass", ton_wallet_transfer(nullptr, 0));
   parse_internal_link("t.me/sendgrams", ton_wallet_transfer(nullptr, 0));

@@ -189,6 +189,7 @@ class LinkManager final : public Actor {
   class InternalLinkStoryAlbum;
   class InternalLinkTextCompositionStyle;
   class InternalLinkTheme;
+  class InternalLinkTonConnect;
   class InternalLinkUnknownDeepLink;
   class InternalLinkUpgradedGift;
   class InternalLinkUserPhoneNumber;
@@ -213,6 +214,8 @@ class LinkManager final : public Actor {
                                                              bool allow_unknown);
 
   static unique_ptr<InternalLink> get_internal_link_message_draft(Slice url, Slice text);
+
+  static unique_ptr<InternalLink> get_internal_link_ton_connect(Slice query);
 
   static Result<string> get_internal_link_impl(const td_api::InternalLinkType *type_ptr, bool is_internal);
 
