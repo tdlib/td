@@ -42,6 +42,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/HttpUrl.h"
+#include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
@@ -613,6 +614,37 @@ static td_api::object_ptr<td_api::WebAppOpenMode> get_web_app_open_mode_object(c
     return td_api::make_object<td_api::webAppOpenModeFullScreen>();
   }
   return td_api::make_object<td_api::webAppOpenModeFullSize>();
+}
+
+static Result<td_api::object_ptr<td_api::tonConnectConnectRequest>> get_ton_connect_connect_request_object(string r) {
+  TRY_RESULT(value, json_decode(r));
+  if (value.type() != td::JsonValue::Type::Object) {
+    return td::Status::Error(400, "Request must be an Object");
+  }
+  auto &request = value.get_object();
+  TRY_RESULT(manifest_url, request.get_required_string_field("manifestUrl"));
+  TRY_RESULT(checked_manifest_url, LinkManager::check_link(manifest_url));
+  vector<td_api::object_ptr<td_api::TonConnectConnectItem>> connect_items;
+  TRY_RESULT(items, request.extract_optional_field("items", td::JsonValue::Type::Array));
+  if (items.type() == td::JsonValue::Type::Array) {
+    for (auto &item_value : items.get_array()) {
+      if (item_value.type() != td::JsonValue::Type::Object) {
+        return td::Status::Error(400, "Item must be an Object");
+      }
+      auto &item = item_value.get_object();
+      TRY_RESULT(item_name, item.get_required_string_field("name"));
+      if (item_name == "ton_addr") {
+        TRY_RESULT(network, item.get_optional_string_field("network"));
+        connect_items.push_back(td_api::make_object<td_api::tonConnectConnectItemAddress>(network));
+      } else if (item_name == "ton_proof") {
+        TRY_RESULT(payload, item.get_required_string_field("payload"));
+        connect_items.push_back(td_api::make_object<td_api::tonConnectConnectItemProof>(payload));
+      } else {
+        return Status::Error(400, "Invalid connect item");
+      }
+    }
+  }
+  return td_api::make_object<td_api::tonConnectConnectRequest>(checked_manifest_url, std::move(connect_items));
 }
 
 class LinkManager::InternalLinkAttachMenuBot final : public InternalLink {

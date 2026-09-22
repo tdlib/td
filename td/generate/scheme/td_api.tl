@@ -2371,6 +2371,20 @@ tonConnectSessionStateClosing = TonConnectSessionState;
 tonConnectSessionStateClosed = TonConnectSessionState;
 
 
+//@class TonConnectConnectItem @description Represents a data item to share with a dApp
+
+//@description Address of the wallet @network Stringified TON network global_id (e.g. "-239" for mainnet); may be empty
+tonConnectConnectItemAddress network:string = TonConnectConnectItem;
+
+//@description Proof of the wallet ownership @payload Payload to be used for the proof (e.g. nonce + expiration timestamp)
+tonConnectConnectItemProof payload:string = TonConnectConnectItem;
+
+
+//@description Contains information about a request to connect the user's TON Wallet to a dApp using TON Connect
+//@manifest_url URL of the manifest of the dApp
+//@items Items requested from the wallet
+tonConnectConnectRequest manifest_url:string items:vector<TonConnectConnectItem> = TonConnectConnectRequest;
+
 //@description Represents a TON Connect session
 //@id Unique identifier of the session
 //@dapp_client_id Hex-encoded public X25519 key of the dApp
