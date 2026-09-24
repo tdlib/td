@@ -4339,6 +4339,9 @@ richTextCashtag text:RichText cashtag:string = RichText;
 //@description A bank card number @text Text @bank_card_number The number of the bank card
 richTextBankCardNumber text:RichText bank_card_number:string = RichText;
 
+//@description An address in the TON blockchain @text Text @address The address
+richTextTonAddress text:RichText address:string = RichText;
+
 //@description A bot command @text Text @bot_command The bot command
 richTextBotCommand text:RichText bot_command:string = RichText;
 
