@@ -287,6 +287,12 @@ string GroupCallMessage::encode_to_json() const {
                 case MessageEntity::Type::ExpandableBlockQuote:
                   o("_", "messageEntityBlockquote");
                   break;
+                case MessageEntity::Type::FormattedDate:
+                  o("_", "messageEntityUnknown");
+                  break;
+                case MessageEntity::Type::TonAddress:
+                  o("_", "messageEntityUnknown");
+                  break;
                 default:
                   UNREACHABLE();
               }

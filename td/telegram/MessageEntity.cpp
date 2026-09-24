@@ -58,7 +58,8 @@ int MessageEntity::get_type_priority(Type type) {
                                    94 /*Spoiler*/,
                                    99 /*CustomEmoji*/,
                                    0 /*ExpandableBlockQuote*/,
-                                   30 /*FormattedDate*/};
+                                   30 /*FormattedDate*/,
+                                   50 /*TonAddress*/};
   static_assert(sizeof(priorities) / sizeof(priorities[0]) == static_cast<size_t>(MessageEntity::Type::Size));
   return priorities[static_cast<int32>(type)];
 }
@@ -111,6 +112,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Ty
       return string_builder << "ExpandableBlockQuote";
     case MessageEntity::Type::FormattedDate:
       return string_builder << "Date";
+    case MessageEntity::Type::TonAddress:
+      return string_builder << "TonAddress";
     default:
       UNREACHABLE();
       return string_builder << "Impossible";
@@ -191,6 +194,8 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
     case MessageEntity::Type::FormattedDate:
       return make_tl_object<td_api::textEntityTypeDateTime>(date.get_date(),
                                                             date.get_date_time_formatting_type_object());
+    case MessageEntity::Type::TonAddress:
+      return make_tl_object<td_api::textEntityTypeTonAddress>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -1508,7 +1513,7 @@ static constexpr int32 get_continuous_entities_mask() {
          get_entity_type_mask(MessageEntity::Type::PhoneNumber) |
          get_entity_type_mask(MessageEntity::Type::BankCardNumber) |
          get_entity_type_mask(MessageEntity::Type::MediaTimestamp) |
-         get_entity_type_mask(MessageEntity::Type::CustomEmoji);
+         get_entity_type_mask(MessageEntity::Type::CustomEmoji) | get_entity_type_mask(MessageEntity::Type::TonAddress);
 }
 
 static constexpr int32 get_pre_entities_mask() {
@@ -1729,6 +1734,7 @@ bool is_found_entity_type(MessageEntity::Type type, bool skip_bot_commands, bool
     case MessageEntity::Type::BankCardNumber:
     case MessageEntity::Type::Url:
     case MessageEntity::Type::EmailAddress:
+    case MessageEntity::Type::TonAddress:
       return true;
     case MessageEntity::Type::BotCommand:
       return !skip_bot_commands;
@@ -1895,6 +1901,8 @@ Slice get_first_url(const FormattedText &text) {
       case MessageEntity::Type::ExpandableBlockQuote:
         break;
       case MessageEntity::Type::FormattedDate:
+        break;
+      case MessageEntity::Type::TonAddress:
         break;
       default:
         UNREACHABLE();
@@ -2628,7 +2636,8 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
     unallowed_boundaries.insert(entity.offset + entity.length + 1);
     if (entity.type == MessageEntity::Type::Mention || entity.type == MessageEntity::Type::Hashtag ||
         entity.type == MessageEntity::Type::BotCommand || entity.type == MessageEntity::Type::Cashtag ||
-        entity.type == MessageEntity::Type::PhoneNumber || entity.type == MessageEntity::Type::BankCardNumber) {
+        entity.type == MessageEntity::Type::PhoneNumber || entity.type == MessageEntity::Type::BankCardNumber ||
+        entity.type == MessageEntity::Type::TonAddress) {
       for (int32 i = 1; i < entity.length; i++) {
         unallowed_boundaries.insert(entity.offset + i + 1);
       }
@@ -3687,6 +3696,8 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         break;
       case MessageEntity::Type::FormattedDate:
         break;
+      case MessageEntity::Type::TonAddress:
+        break;
       default:
         UNREACHABLE();
     }
@@ -3819,6 +3830,9 @@ Result<vector<MessageEntity>> get_message_entities(const UserManager *user_manag
         entities.emplace_back(MessageEntity::Type::FormattedDate, offset, length, std::move(date));
         break;
       }
+      case td_api::textEntityTypeTonAddress::ID:
+        entities.emplace_back(MessageEntity::Type::TonAddress, offset, length);
+        break;
       default:
         UNREACHABLE();
     }
@@ -3971,7 +3985,7 @@ vector<MessageEntity> get_message_entities(const UserManager *user_manager,
       }
       case telegram_api::messageEntityTonAddress::ID: {
         auto entity = static_cast<const telegram_api::messageEntityTonAddress *>(server_entity.get());
-        entities.emplace_back(MessageEntity::Type::BankCardNumber, entity->offset_, entity->length_);
+        entities.emplace_back(MessageEntity::Type::TonAddress, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityDiffInsert::ID:

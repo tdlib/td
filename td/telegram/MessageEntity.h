@@ -56,6 +56,7 @@ class MessageEntity {
     CustomEmoji,
     ExpandableBlockQuote,
     FormattedDate,
+    TonAddress,
     Size
   };
   Type type = Type::Size;

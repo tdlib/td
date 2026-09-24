@@ -850,7 +850,7 @@ botVerificationParameters icon_custom_emoji_id:int64 organization_name:string de
 //@description Describes verification status provided by a bot
 //@bot_user_id Identifier of the bot that provided the verification
 //@icon_custom_emoji_id Identifier of the custom emoji that is used as the verification sign
-//@custom_description Custom description of verification reason set by the bot. Can contain only Mention, Hashtag, Cashtag, PhoneNumber, BankCardNumber, Url, and EmailAddress entities
+//@custom_description Custom description of verification reason set by the bot. Can contain only Mention, Hashtag, Cashtag, PhoneNumber, BankCardNumber, TonAddress, Url, and EmailAddress entities
 botVerification bot_user_id:int53 icon_custom_emoji_id:int64 custom_description:formattedText = BotVerification;
 
 //@description Contains information about verification status of a chat or a user
@@ -6018,6 +6018,9 @@ textEntityTypePhoneNumber = TextEntityType;
 
 //@description A bank card number. The getBankCardInfo method can be used to get information about the bank card
 textEntityTypeBankCardNumber = TextEntityType;
+
+//@description An address in the TON blockchain
+textEntityTypeTonAddress = TextEntityType;
 
 //@description A bold text
 textEntityTypeBold = TextEntityType;
