@@ -14,6 +14,7 @@
 #include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TonWalletManager.h"
 #include "td/telegram/UserManager.h"
 
 #include "td/actor/MultiPromise.h"
@@ -634,6 +635,39 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
     }
 
     result.emplace_back(card_number_begin, card_number_end);
+  }
+  return result;
+}
+
+static bool is_base64any_character(char c) {
+  return is_alnum(c) || c == '-' || c == '_' || c == '/' || c == '+';
+}
+
+static vector<Slice> match_ton_addresses(Slice str) {
+  vector<Slice> result;
+  const unsigned char *begin = str.ubegin();
+  const unsigned char *end = str.uend();
+  const unsigned char *ptr = begin;
+
+  // '/(?<![A-Za-z0-9_\-+\/])[EUk0][A-Za-z0-9_\-+\/]{47}(?![A-Za-z0-9_\-+\/])/'
+
+  while (true) {
+    while (ptr != end && !is_base64any_character(*ptr)) {
+      ptr++;
+    }
+    if (ptr == end) {
+      break;
+    }
+    auto ton_address_begin = ptr;
+    while (ptr != end && is_base64any_character(*ptr)) {
+      ptr++;
+    }
+
+    auto ton_address = Slice(ton_address_begin, ptr);
+    if (TonWalletManager::check_ton_address(ton_address).is_error()) {
+      continue;
+    }
+    result.push_back(ton_address);
   }
   return result;
 }
@@ -1389,6 +1423,10 @@ vector<Slice> find_bank_card_numbers(Slice str) {
   return result;
 }
 
+vector<Slice> find_ton_addresses(Slice str) {
+  return match_ton_addresses(str);
+}
+
 vector<Slice> find_tg_urls(Slice str) {
   return match_tg_urls(str);
 }
@@ -1764,6 +1802,7 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool ski
   add_entities(MessageEntity::Type::Cashtag, find_cashtags);
   // TODO find_phone_numbers
   add_entities(MessageEntity::Type::BankCardNumber, find_bank_card_numbers);
+  add_entities(MessageEntity::Type::TonAddress, find_ton_addresses);
   add_entities(MessageEntity::Type::Url, find_tg_urls);
   auto urls = find_urls(text);
   for (auto &url : urls) {

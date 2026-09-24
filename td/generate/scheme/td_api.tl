@@ -13191,7 +13191,7 @@ getMessageEffect effect_id:int64 = MessageEffect;
 //@quote_position Approximate quote position in UTF-16 code units
 searchQuote text:formattedText quote:formattedText quote_position:int32 = FoundPosition;
 
-//@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) found in the text. Can be called synchronously @text The text in which to look for entities
+//@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, TON addresses, URLs, and email addresses) found in the text. Can be called synchronously @text The text in which to look for entities
 getTextEntities text:string = TextEntities;
 
 //@description Parses Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, BlockQuote, ExpandableBlockQuote, Code, Pre, PreCode, TextUrl,
