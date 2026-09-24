@@ -8650,7 +8650,8 @@ telegramPaymentPurposePremiumGiveaway parameters:giveawayParameters currency:str
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 //@star_count Number of bought Telegram Stars
-//@chat_id Identifier of the chat that is supposed to receive the Telegram Stars; pass 0 if none
+//@chat_id Identifier of the chat that is supposed to receive the Telegram Stars; pass 0 if none. If non-zero and getOption("star_top_up_disabled"),
+//-then the payment isn't allowed and the user can't buy Telegram Stars in this place
 telegramPaymentPurposeStars currency:string amount:int53 star_count:int53 chat_id:int53 = TelegramPaymentPurpose;
 
 //@description The user buying Telegram Stars for other users
