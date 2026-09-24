@@ -293,6 +293,38 @@ TEST(MessageEntities, bank_card_number) {
   check_bank_card_number("+1234567890128", {});
 }
 
+static void check_ton_address(const td::string &str, const td::vector<td::string> &expected) {
+  auto result_slice = td::find_ton_addresses(str);
+  td::vector<td::string> result;
+  for (auto &it : result_slice) {
+    result.push_back(it.str());
+  }
+  if (result != expected) {
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", result) << td::tag("expected", expected);
+  }
+}
+
+TEST(MessageEntities, ton_address) {
+  check_ton_address("", {});
+  check_ton_address("EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N",
+                    {"EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N"});
+  check_ton_address("UQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqEBI",
+                    {"UQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqEBI"});
+  check_ton_address("UQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqEBJ", {});
+  check_ton_address("UQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqEB", {});
+  check_ton_address("UQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqEBIA", {});
+  check_ton_address("UQDqgkqefbZu_fZ7-8eib6h3vLubZxQfu-KRi829HBBUGzWm",
+                    {"UQDqgkqefbZu_fZ7-8eib6h3vLubZxQfu-KRi829HBBUGzWm"});
+  check_ton_address("UQDqgkqefbZu/fZ7+8eib6h3vLubZxQfu+KRi829HBBUGzWm",
+                    {"UQDqgkqefbZu/fZ7+8eib6h3vLubZxQfu+KRi829HBBUGzWm"});
+  check_ton_address("UQDqgkqefbZu_fZ7+8eib6h3vLubZxQfu+KRi829HBBUGzWm", {});
+  check_ton_address("====UQDqgkqefbZu/fZ7+8eib6h3vLubZxQfu+KRi829HBBUGzWm.",
+                    {"UQDqgkqefbZu/fZ7+8eib6h3vLubZxQfu+KRi829HBBUGzWm"});
+  check_ton_address(
+      "#UQDqgkqefbZu/fZ7+8eib6h3vLubZxQfu+KRi829HBBUGzWm EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N",
+      {"UQDqgkqefbZu/fZ7+8eib6h3vLubZxQfu+KRi829HBBUGzWm", "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N"});
+}
+
 static void check_tg_url(const td::string &str, const td::vector<td::string> &expected) {
   auto result_slice = td::find_tg_urls(str);
   td::vector<td::string> result;
