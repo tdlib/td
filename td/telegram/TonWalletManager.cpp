@@ -443,6 +443,7 @@ static td_api::object_ptr<td_api::tonWalletTransaction> get_ton_wallet_transacti
   string peer_address;
   UserId peer_user_id;
   string peer_domain;
+  string peer_provider_name;
   switch (transaction->peer_->get_id()) {
     case telegram_api::walletTransactionPeerUser::ID: {
       auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerUser>(transaction->peer_);
@@ -461,8 +462,13 @@ static td_api::object_ptr<td_api::tonWalletTransaction> get_ton_wallet_transacti
       peer_domain = std::move(peer->domain_);
       break;
     }
-    case telegram_api::walletTransactionPeerOnramp::ID:
+    case telegram_api::walletTransactionPeerOnramp::ID: {
+      auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerOnramp>(transaction->peer_);
+      peer_address = std::move(peer->address_);
+      peer_domain = std::move(peer->domain_);
+      peer_provider_name = std::move(peer->provider_name_);
       break;
+    }
     case telegram_api::walletTransactionPeerUnsupported::ID:
       break;
     default:
@@ -479,6 +485,10 @@ static td_api::object_ptr<td_api::tonWalletTransaction> get_ton_wallet_transacti
     return td_api::make_object<td_api::tonWalletTransactionStateSucceeded>(transaction->tx_hash_);
   }();
   auto type = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionType> {
+    if (!peer_provider_name.empty()) {
+      return td_api::make_object<td_api::tonWalletTransactionTypeOnRampDeposit>(amount, transaction->fee_,
+                                                                                peer_provider_name);
+    }
     if (transaction->key_change_) {
       peer_user_id = td->user_manager_->get_my_id();
       return td_api::make_object<td_api::tonWalletTransactionTypeKeyChange>(transaction->fee_);

@@ -2295,6 +2295,12 @@ tonWalletTransactionStateFailed = TonWalletTransactionState;
 
 //@class TonWalletTransactionType @description Describes type of a transaction with a TON wallet
 
+//@description The transaction is a deposit from an on-ramp provider
+//@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency
+//@fee_amount The fee amount paid for the transaction, in the smallest units of the cryptocurrency
+//@provider_name Name of the on-ramp provider
+tonWalletTransactionTypeOnRampDeposit amount:int53 fee_amount:int53 provider_name:string = TonWalletTransactionType;
+
 //@description A transfer of TON Grams to or from the wallet
 //@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
 //@fee_amount The fee amount paid for the transaction, in the smallest units of the cryptocurrency
