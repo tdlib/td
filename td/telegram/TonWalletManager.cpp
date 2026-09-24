@@ -1498,6 +1498,30 @@ void TonWalletManager::tear_down() {
   parent_.reset();
 }
 
+Status TonWalletManager::check_ton_address(Slice address) {
+  if (address.size() != 48u) {
+    return Status::Error(400, "Invalid address length");
+  }
+  auto r_decoded = base64url_decode(address);
+  if (r_decoded.is_error()) {
+    r_decoded = base64_decode(address);
+  }
+  if (r_decoded.is_error()) {
+    return Status::Error(400, "Invalid address format");
+  }
+  auto buffer = r_decoded.move_as_ok();
+  CHECK(buffer.size() == 36u);
+  auto actual_crc = crc16(Slice(buffer).substr(0, 34));
+  auto expected_crc = (static_cast<unsigned char>(buffer[34]) << 8) | static_cast<unsigned char>(buffer[35]);
+  if (actual_crc != expected_crc) {
+    return Status::Error(400, "Invalid address checksum");
+  }
+  if ((static_cast<unsigned char>(buffer[0]) & 0x3F) != 0x11) {
+    return Status::Error(400, "Invalid address first byte");
+  }
+  return Status::OK();
+}
+
 void TonWalletManager::on_update_wallet_state(telegram_api::object_ptr<telegram_api::WalletState> &&wallet_state) {
   LOG(INFO) << "Receive " << to_string(wallet_state);
   if (td_->auth_manager_->is_bot()) {
@@ -1894,9 +1918,7 @@ void TonWalletManager::do_delete_ton_wallet(
 
 void TonWalletManager::get_wallet_ownership_proof(const string &address, const string &private_key,
                                                   Promise<WalletOwnershipProof> &&promise) {
-  if (address.size() != 48u || !is_base64url_characters(address)) {
-    return promise.set_error(400, "Invalid address specified");
-  }
+  TRY_STATUS_PROMISE(promise, check_ton_address(address));
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), address, private_key, promise = std::move(promise)](
           Result<telegram_api::object_ptr<telegram_api::wallet_proofChallenge>> r_challenge) mutable {

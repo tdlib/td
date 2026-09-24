@@ -19,6 +19,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 
@@ -27,6 +28,8 @@ class Td;
 class TonWalletManager final : public Actor {
  public:
   TonWalletManager(Td *td, ActorShared<> parent);
+
+  static Status check_ton_address(Slice address);
 
   void on_update_wallet_state(telegram_api::object_ptr<telegram_api::WalletState> &&wallet_state);
 
