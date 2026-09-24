@@ -1857,16 +1857,18 @@ class MessageWalletTonConnectRequest final : public MessageContent {
   int32 expire_date = 0;
   string topic;
   string trace_id;
+  string dapp_name;
   bool is_accepted = false;
   bool is_declined = false;
 
   MessageWalletTonConnectRequest() = default;
-  MessageWalletTonConnectRequest(int64 session_id, int32 expire_date, string topic, string trace_id, bool is_accepted,
-                                 bool is_declined)
+  MessageWalletTonConnectRequest(int64 session_id, int32 expire_date, string topic, string trace_id, string dapp_name,
+                                 bool is_accepted, bool is_declined)
       : session_id(session_id)
       , expire_date(expire_date)
       , topic(std::move(topic))
       , trace_id(std::move(trace_id))
+      , dapp_name(std::move(dapp_name))
       , is_accepted(is_accepted)
       , is_declined(is_declined) {
   }
@@ -3080,11 +3082,13 @@ static void store(const MessageContent *content, StorerT &storer) {
       const auto *m = static_cast<const MessageWalletTonConnectRequest *>(content);
       bool has_topic = !m->topic.empty();
       bool has_trace_id = !m->trace_id.empty();
+      bool has_dapp_name = !m->dapp_name.empty();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_topic);
       STORE_FLAG(has_trace_id);
       STORE_FLAG(m->is_accepted);
       STORE_FLAG(m->is_declined);
+      STORE_FLAG(has_dapp_name);
       END_STORE_FLAGS();
       store(m->session_id, storer);
       store(m->expire_date, storer);
@@ -3093,6 +3097,9 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       if (has_trace_id) {
         store(m->trace_id, storer);
+      }
+      if (has_dapp_name) {
+        store(m->dapp_name, storer);
       }
       break;
     }
@@ -4590,11 +4597,13 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       auto m = make_unique<MessageWalletTonConnectRequest>();
       bool has_topic;
       bool has_trace_id;
+      bool has_dapp_name;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_topic);
       PARSE_FLAG(has_trace_id);
       PARSE_FLAG(m->is_accepted);
       PARSE_FLAG(m->is_declined);
+      PARSE_FLAG(has_dapp_name);
       END_PARSE_FLAGS();
       parse(m->session_id, parser);
       parse(m->expire_date, parser);
@@ -4603,6 +4612,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       }
       if (has_trace_id) {
         parse(m->trace_id, parser);
+      }
+      if (has_dapp_name) {
+        parse(m->dapp_name, parser);
       }
       content = std::move(m);
       break;
@@ -8944,7 +8956,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *lhs = static_cast<const MessageWalletTonConnectRequest *>(old_content);
       const auto *rhs = static_cast<const MessageWalletTonConnectRequest *>(new_content);
       if (lhs->session_id != rhs->session_id || lhs->expire_date != rhs->expire_date || lhs->topic != rhs->topic ||
-          lhs->trace_id != rhs->trace_id || lhs->is_accepted != rhs->is_accepted ||
+          lhs->trace_id != rhs->trace_id || lhs->dapp_name != rhs->dapp_name || lhs->is_accepted != rhs->is_accepted ||
           lhs->is_declined != rhs->is_declined) {
         need_update = true;
       }
@@ -11500,9 +11512,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionWalletTonConnectRequest::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionWalletTonConnectRequest>(action_ptr);
-      return td::make_unique<MessageWalletTonConnectRequest>(action->session_id_, action->expires_,
-                                                             std::move(action->topic_), std::move(action->trace_id_),
-                                                             action->accepted_, action->declined_);
+      return td::make_unique<MessageWalletTonConnectRequest>(
+          action->session_id_, action->expires_, std::move(action->topic_), std::move(action->trace_id_),
+          std::move(action->dapp_name_), action->accepted_, action->declined_);
     }
     default:
       UNREACHABLE();
@@ -12321,8 +12333,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
         }
         return td_api::make_object<td_api::tonConnectRequestStatePending>(m->expire_date);
       }();
-      return td_api::make_object<td_api::messageTonConnectRequest>(m->session_id, std::move(state), m->topic,
-                                                                   m->trace_id);
+      return td_api::make_object<td_api::messageTonConnectRequest>(m->session_id, std::move(state), m->dapp_name,
+                                                                   m->topic, m->trace_id);
     }
     default:
       UNREACHABLE();

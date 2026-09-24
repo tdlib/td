@@ -5822,9 +5822,10 @@ messageTonWalletTransfer transaction_id:string peer_address:string amount:int53 
 //@description A request from a dApp was received thriugh TON Connect
 //@session_id Unique identifier of the TON Connect session
 //@state State of the request
+//@dapp_name Name of the dApp
 //@topic Topic of the request; may be empty if none
 //@trace_id Identifier to trace the request; may be empty if none
-messageTonConnectRequest session_id:int64 state:TonConnectRequestState topic:string trace_id:string = MessageContent;
+messageTonConnectRequest session_id:int64 state:TonConnectRequestState dapp_name:string topic:string trace_id:string = MessageContent;
 
 //@description A regular gift was received or sent by the current user, or the current user was notified about a channel gift
 //@gift The gift
