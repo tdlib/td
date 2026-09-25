@@ -1885,6 +1885,20 @@ TEST(MessageEntities, parse_markdown_v3) {
                           {{td::MessageEntity::Type::TextUrl, 0, 1, "http://t.me/"},
                            {td::MessageEntity::Type::Italic, 2, 5},
                            {td::MessageEntity::Type::Italic, 11, 4}});
+  check_parse_markdown_v3("https://test.com/__whatever__", "https://test.com/__whatever__", {});
+  check_parse_markdown_v3("test.com/a__b__c__", "test.com/a__b__c__", {});
+  check_parse_markdown_v3("**test.com/**x", "**test.com/**x", {});
+  check_parse_markdown_v3("https://test.com/a__ b__", "https://test.com/a__ b__", {});
+  check_parse_markdown_v3("a__b__c@test.com", "a__b__c@test.com", {});
+  check_parse_markdown_v3("__https://test.com/whatever__", "https://test.com/whatever",
+                          {{td::MessageEntity::Type::Italic, 0, 25}});
+  check_parse_markdown_v3("__see https://test.com/__whatever__", "see https://test.com/__whatever",
+                          {{td::MessageEntity::Type::Italic, 0, 31}});
+  check_parse_markdown_v3("~~test.com/a~~", "test.com/a", {{td::MessageEntity::Type::Strikethrough, 0, 10}});
+  check_parse_markdown_v3("||test.com/a||", "test.com/a", {{td::MessageEntity::Type::Spoiler, 0, 10}});
+  check_parse_markdown_v3("**a@test.com**", "a@test.com", {{td::MessageEntity::Type::Bold, 0, 10}});
+  check_parse_markdown_v3("🏟 https://a.com/__b__ 🏟 a__b__c@test.com __c.com/d__",
+                          "🏟 https://a.com/__b__ 🏟 a__b__c@test.com c.com/d", {{td::MessageEntity::Type::Italic, 43, 7}});
   check_parse_markdown_v3("__**~~__gh**~~", "gh",
                           {{td::MessageEntity::Type::Bold, 0, 2}, {td::MessageEntity::Type::Strikethrough, 0, 2}});
   check_parse_markdown_v3("__ab**cd~~ef__gh**ij~~", "abcdefghij",
