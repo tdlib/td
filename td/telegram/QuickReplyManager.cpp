@@ -2585,6 +2585,7 @@ void QuickReplyManager::on_reload_quick_reply_messages(
       td_->chat_manager_->on_get_chats(std::move(messages->chats_), "on_reload_quick_reply_messages");
 
       vector<unique_ptr<QuickReplyMessage>> quick_reply_messages;
+      FlatHashSet<MessageId, MessageIdHash> added_message_ids;
       for (auto &server_message : messages->messages_) {
         auto message = create_message(std::move(server_message), "on_reload_quick_reply_messages");
         if (message == nullptr) {
@@ -2592,6 +2593,11 @@ void QuickReplyManager::on_reload_quick_reply_messages(
         }
         if (message->shortcut_id != shortcut_id) {
           LOG(ERROR) << "Receive message from " << message->shortcut_id << " instead of " << shortcut_id;
+          continue;
+        }
+        CHECK(message->message_id.is_server());
+        if (!added_message_ids.insert(message->message_id).second) {
+          LOG(ERROR) << "Receive again " << message->message_id << " in " << message->shortcut_id;
           continue;
         }
 
