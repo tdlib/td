@@ -1701,7 +1701,6 @@ void SavedMessagesManager::process_saved_messages_topics(
       total_count--;
       continue;
     }
-    added_saved_messages_topic_ids.push_back(saved_messages_topic_id);
 
     auto last_topic_message_id = topic_info.last_topic_message_id_;
     auto message_date = 0;
@@ -1740,6 +1739,7 @@ void SavedMessagesManager::process_saved_messages_topics(
       total_count--;
       continue;
     }
+    added_saved_messages_topic_ids.push_back(saved_messages_topic_id);
 
     auto *topic = add_topic(topic_list, saved_messages_topic_id, true);
     if (last_topic_message_id.is_valid() && !topic->ordered_messages_.has_message(last_topic_message_id)) {
