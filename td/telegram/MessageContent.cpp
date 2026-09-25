@@ -7015,6 +7015,24 @@ std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const Mess
   return {m->input_group_call_id, m->duration >= 0};
 }
 
+vector<CustomEmojiId> get_message_content_custom_emoji_ids(const MessageContent *content) {
+  vector<CustomEmojiId> custom_emoji_ids;
+  const auto *text = get_message_content_text(content);
+  if (text != nullptr) {
+    for (auto &entity : text->entities) {
+      if (entity.type == MessageEntity::Type::CustomEmoji) {
+        custom_emoji_ids.push_back(entity.custom_emoji_id);
+      }
+    }
+  } else {
+    const auto *rich_message = get_message_content_rich_message(content);
+    if (rich_message != nullptr) {
+      custom_emoji_ids = rich_message->get_custom_emoji_ids();
+    }
+  }
+  return custom_emoji_ids;
+}
+
 static vector<UserId> get_formatted_text_user_ids(const FormattedText *formatted_text) {
   vector<UserId> user_ids;
   if (formatted_text != nullptr) {
@@ -13963,20 +13981,7 @@ void move_message_content_sticker_set_to_top(Td *td, const MessageContent *conte
     return;
   }
 
-  vector<CustomEmojiId> custom_emoji_ids;
-  auto text = get_message_content_text(content);
-  if (text != nullptr) {
-    for (auto &entity : text->entities) {
-      if (entity.type == MessageEntity::Type::CustomEmoji) {
-        custom_emoji_ids.push_back(entity.custom_emoji_id);
-      }
-    }
-  } else {
-    const auto *rich_message = get_message_content_rich_message(content);
-    if (rich_message != nullptr) {
-      custom_emoji_ids = rich_message->get_custom_emoji_ids();
-    }
-  }
+  auto custom_emoji_ids = get_message_content_custom_emoji_ids(content);
   if (!custom_emoji_ids.empty()) {
     td->stickers_manager_->move_sticker_set_to_top_by_custom_emoji_ids(custom_emoji_ids);
   }

@@ -9,6 +9,7 @@
 #include "td/telegram/BackgroundInfo.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatTheme.h"
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/EncryptedFile.h"
 #include "td/telegram/EphemeralMessageFullId.h"
@@ -191,6 +192,8 @@ ChatTheme get_message_content_chat_theme(const MessageContent *content);
 MessageFullId get_message_content_replied_message_full_id(DialogId dialog_id, const MessageContent *content);
 
 std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const MessageContent *content);
+
+vector<CustomEmojiId> get_message_content_custom_emoji_ids(const MessageContent *content);
 
 vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageContent *message_content);
 
