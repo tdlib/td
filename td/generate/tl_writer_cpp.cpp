@@ -417,22 +417,27 @@ std::string TD_TL_writer_cpp::gen_type_store(const std::string &field_name, cons
 
   assert(!(t->flags & tl::FLAG_DEFAULT_CONSTRUCTOR));  // Not supported yet
 
-  if (name == "#" || name == "Int" || name == "Long" || name == "Int32" || name == "Int53" || name == "Int64" ||
-      name == "Double" || name == "Bool" || name == "String" || name == "SecureString" || name == "Int128" ||
-      name == "Int256" || name == "Int512") {
-    return "s.store_field(\"" + get_pretty_field_name(field_name) + "\", " + field_name + ");";
+  auto pretty_field_name = get_pretty_field_name(field_name);
+  if (pretty_field_name == "private_key" || pretty_field_name == "secret_phrase" ||
+      pretty_field_name == "new_encryption_key" || pretty_field_name == "database_encryption_key" ||
+      pretty_field_name == "encryption_key") {
+    return "s.store_field(\"" + pretty_field_name + "\", \"[REDACTED]\");";
+  } else if (name == "#" || name == "Int" || name == "Long" || name == "Int32" || name == "Int53" || name == "Int64" ||
+             name == "Double" || name == "Bool" || name == "String" || name == "SecureString" || name == "Int128" ||
+             name == "Int256" || name == "Int512") {
+    return "s.store_field(\"" + pretty_field_name + "\", " + field_name + ");";
   } else if (name == "True") {
     // currently nothing to do
     return "";
   } else if (name == "Bytes" || name == "SecureBytes") {
-    return "s.store_bytes_field(\"" + get_pretty_field_name(field_name) + "\", " + field_name + ");";
+    return "s.store_bytes_field(\"" + pretty_field_name + "\", " + field_name + ");";
   } else if (name == "Vector") {
     const tl::tl_tree_type *child = static_cast<const tl::tl_tree_type *>(tree_type->children[0]);
     return gen_vector_store(field_name, child, vars, storer_type);
   } else {
     assert(tree_type->children.empty());
-    return "s.store_object_field(\"" + get_pretty_field_name(field_name) + "\", static_cast<const BaseObject *>(" +
-           field_name + ".get()));";
+    return "s.store_object_field(\"" + pretty_field_name + "\", static_cast<const BaseObject *>(" + field_name +
+           ".get()));";
   }
 }
 

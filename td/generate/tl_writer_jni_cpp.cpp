@@ -305,6 +305,15 @@ std::string TD_TL_writer_jni_cpp::gen_type_store(const std::string &field_name, 
     assert(is_type_bare(t));
   }
 
+  if (storer_type == 1) {
+    auto pretty_field_name = get_pretty_field_name(field_name);
+    if (pretty_field_name == "privateKey" || pretty_field_name == "secretPhrase" ||
+        pretty_field_name == "newEncryptionKey" || pretty_field_name == "databaseEncryptionKey" ||
+        pretty_field_name == "encryptionKey") {
+      return "s.store_field(\"" + pretty_field_name + "\", \"[REDACTED]\");";
+    }
+  }
+
   std::string res;
   if (name == "Int32" || name == "Int53" || name == "Int64" || name == "Double" || name == "Bool" || name == "String") {
     if (storer_type == 1) {
