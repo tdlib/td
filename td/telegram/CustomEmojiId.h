@@ -50,6 +50,15 @@ class CustomEmojiId {
     return custom_emoji_ids;
   }
 
+  static vector<int64> get_custom_emoji_ids_object(const vector<CustomEmojiId> &custom_emoji_ids) {
+    vector<int64> result;
+    result.reserve(custom_emoji_ids.size());
+    for (const auto &custom_emoji_id : custom_emoji_ids) {
+      result.emplace_back(custom_emoji_id.get());
+    }
+    return result;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     storer.store_long(id);

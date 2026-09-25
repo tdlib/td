@@ -15462,6 +15462,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
       td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_administrator() &&
       can_report_message(message_id).is_ok();
   auto can_set_fact_check = can_set_message_fact_check(dialog_id, m);
+  auto custom_emoji_ids = get_message_content_custom_emoji_ids(get_message_actual_content(m));
   auto has_protected_content_by_current_user =
       !can_be_saved && !ephemeral_message_id.is_valid() && dialog_id.get_type() == DialogType::User &&
       td_->user_manager_->get_user_has_protected_content_force_by_me(dialog_id.get_user_id());
@@ -15477,7 +15478,8 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
       can_get_link, can_get_media_timestamp_links, can_get_message_thread, can_get_poll_vote_statistics,
       can_get_read_date, can_get_statistics, can_get_video_advertisements, can_get_viewers, can_mark_tasks_as_done,
       can_recognize_speech, can_report_chat, can_report_reactions, can_report_supergroup_spam, can_set_fact_check,
-      has_protected_content_by_current_user, has_protected_content_by_other_user, need_show_statistics));
+      CustomEmojiId::get_custom_emoji_ids_object(custom_emoji_ids), has_protected_content_by_current_user,
+      has_protected_content_by_other_user, need_show_statistics));
 }
 
 void MessagesManager::get_poll_option_properties(DialogId dialog_id, MessageId message_id, const string &option_id,
