@@ -40,7 +40,8 @@ struct SuggestedAction {
     Custom,
     SetupLoginEmail,
     SetupLoginEmailNoskip,
-    SetupPasskey
+    SetupPasskey,
+    WalletFirstIncomingTransfer
   };
   Type type_ = Type::Empty;
   DialogId dialog_id_;

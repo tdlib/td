@@ -10322,6 +10322,9 @@ suggestedActionCheckPhoneNumber = SuggestedAction;
 //@description Suggests the user to view a hint about the meaning of one and two check marks on sent messages
 suggestedActionViewChecksHint = SuggestedAction;
 
+//@description Suggests the user to view a hint about receiving of the first TON Wallet transfer
+suggestedActionViewFirstTonWalletTransferHint = SuggestedAction;
+
 //@description Suggests the user to convert specified supergroup to a broadcast group @supergroup_id Supergroup identifier
 suggestedActionConvertToBroadcastGroup supergroup_id:int53 = SuggestedAction;
 
