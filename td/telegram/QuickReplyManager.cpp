@@ -3097,7 +3097,7 @@ void QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
       }
     }
     if (it == old_shortcut->messages_.end() || (*it)->message_id != new_first_message_id) {
-      register_new_message(new_shortcut->messages_[0].get(), "update_shortcut_from");
+      register_new_message(new_shortcut->messages_[0].get(), "update_shortcut_from 1");
       old_shortcut->messages_.insert(it, std::move(new_shortcut->messages_[0]));
     } else {
       update_quick_reply_message(*it, std::move(new_shortcut->messages_[0]));
@@ -3123,16 +3123,19 @@ void QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
       new_shortcut->messages_ = std::move(old_shortcut->messages_);
     } else {
       *are_messages_changed = true;
+      FlatHashSet<MessageId, MessageIdHash> old_message_ids;
       for (auto &old_message : old_shortcut->messages_) {
         CHECK(old_message != nullptr);
         if (!old_message->message_id.is_server()) {
           new_shortcut->messages_.push_back(std::move(old_message));
+          new_shortcut->local_total_count_++;
         } else {
           bool is_deleted = true;
           for (auto &new_message : new_shortcut->messages_) {
             if (new_message->message_id == old_message->message_id) {
               update_quick_reply_message(old_message, std::move(new_message));
               new_message = std::move(old_message);
+              old_message_ids.insert(new_message->message_id);
               is_deleted = false;
               break;
             }
@@ -3140,6 +3143,11 @@ void QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
           if (is_deleted) {
             delete_message_files(old_message.get());
           }
+        }
+      }
+      for (auto &message : new_shortcut->messages_) {
+        if (message->message_id.is_server() && old_message_ids.count(message->message_id) == 0) {
+          register_new_message(message.get(), "update_shortcut_from 2");
         }
       }
       sort_quick_reply_messages(new_shortcut->messages_);
