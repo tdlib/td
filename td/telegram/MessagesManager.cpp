@@ -4921,11 +4921,11 @@ bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const Mes
   }
 
   auto linked_channel_id =
-      td_->chat_manager_->get_channel_linked_channel_id(channel_id, false, "is_active_message_reply_info");
+      td_->chat_manager_->get_channel_linked_channel_id(channel_id, false, "is_active_message_reply_info 1");
   if (!linked_channel_id.is_valid()) {
     // keep the comment button while linked channel is unknown
     send_closure_later(G()->chat_manager(), &ChatManager::load_channel_full, channel_id, false, Promise<Unit>(),
-                       "is_active_message_reply_info");
+                       "is_active_message_reply_info 2");
     return true;
   }
 

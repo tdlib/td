@@ -7756,7 +7756,8 @@ void ChatManager::on_channel_status_changed(Channel *c, ChannelId channel_id, co
   bool need_drop_welcome_messages = old_status.can_change_info_and_settings_as_administrator() &&
                                     !new_status.can_change_info_and_settings_as_administrator();
   if (need_drop_welcome_messages) {
-    td_->welcome_message_manager_->drop_welcome_messages(DialogId(channel_id), false);
+    send_closure_later(G()->welcome_message_manager(), &WelcomeMessageManager::drop_welcome_messages,
+                       DialogId(channel_id), false);
   }
 
   if (old_status.is_creator() != new_status.is_creator()) {
