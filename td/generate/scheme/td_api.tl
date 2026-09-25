@@ -16019,7 +16019,7 @@ getDefaultMessageAutoDeleteTime = MessageAutoDeleteTime;
 //@description Removes a chat action bar without any other action @chat_id Chat identifier
 removeChatActionBar chat_id:int53 = Ok;
 
-//@description Reports a chat to the Telegram moderators. A chat can be reported only from the chat action bar, or if chat.can_be_reported
+//@description Reports a chat to the Telegram moderators. A chat can be reported only from the chat action bar, if chat.can_be_reported, or if messageProperties.can_report_chat
 //@chat_id Chat identifier
 //@option_id Option identifier chosen by the user; leave empty for the initial request
 //@message_ids Identifiers of reported messages. Use messageProperties.can_report_chat to check whether the message can be reported
