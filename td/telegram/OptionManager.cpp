@@ -923,6 +923,9 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       if (!is_bot && set_boolean_option("disable_animated_emoji")) {
         return;
       }
+      if (set_boolean_option("disable_automatic_last_message_loading")) {
+        return;
+      }
       if (!is_bot && set_boolean_option("disable_contact_registered_notifications")) {
         return;
       }
