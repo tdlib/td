@@ -889,6 +889,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/GroupCallVideoPayload.h
   td/telegram/HashtagHints.h
   td/telegram/InlineKeyboardButton.h
+  td/telegram/InlineMessageContent.h
   td/telegram/InlineMessageManager.h
   td/telegram/InlineQueriesManager.h
   td/telegram/InputBusinessChatLink.h

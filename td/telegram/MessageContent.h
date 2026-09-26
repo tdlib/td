@@ -15,6 +15,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/ForumTopicId.h"
+#include "td/telegram/InlineMessageContent.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/InputMedia.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -90,13 +91,6 @@ struct InputMessageContent {
       , via_bot_user_id(via_bot_user_id)
       , emoji(std::move(emoji)) {
   }
-};
-
-struct InlineMessageContent {
-  unique_ptr<MessageContent> message_content;
-  unique_ptr<ReplyMarkup> message_reply_markup;
-  bool disable_web_page_preview = false;
-  bool invert_media = false;
 };
 
 void store_message_content(const MessageContent *content, LogEventStorerCalcLength &storer);

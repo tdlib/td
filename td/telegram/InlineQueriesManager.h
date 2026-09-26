@@ -8,8 +8,8 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/InlineMessageContent.h"
 #include "td/telegram/Location.h"
-#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Photo.h"

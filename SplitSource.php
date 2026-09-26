@@ -373,6 +373,7 @@ function split_file($file, $chunks, $undo) {
             'GroupCallMessage[^A-Z]' => 'GroupCallMessage',
             'GroupCallMessageLimit' => 'GroupCallMessageLimit',
             'hashtag_hints[_(-](?![.]get[(][)])|HashtagHints' => 'HashtagHints',
+            'InlineMessageContent' => 'InlineMessageContent',
             'inline_message_manager[_(-](?![.]get[(][)])|InlineMessageManager' => 'InlineMessageManager',
             'inline_queries_manager[_(-](?![.]get[(][)])|InlineQueriesManager' => 'InlineQueriesManager',
             'InputBusinessChatLink' => 'InputBusinessChatLink',

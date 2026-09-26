@@ -46,6 +46,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/InlineKeyboardButton.h"
+#include "td/telegram/InlineMessageContent.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/InputMessageText.h"
