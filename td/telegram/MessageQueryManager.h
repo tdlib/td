@@ -17,7 +17,6 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/ForumTopicId.h"
-#include "td/telegram/InputMedia.h"
 #include "td/telegram/MessageContentUploadId.h"
 #include "td/telegram/MessageCover.h"
 #include "td/telegram/MessageFullId.h"
@@ -49,6 +48,7 @@ namespace td {
 
 struct BinlogEvent;
 struct FormattedText;
+struct InputMedia;
 class MessageContent;
 struct MessageSearchOffset;
 struct ReplyMarkup;

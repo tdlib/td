@@ -17,7 +17,6 @@
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/InlineMessageContent.h"
 #include "td/telegram/InputGroupCallId.h"
-#include "td/telegram/InputMedia.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/MessageContentType.h"
@@ -52,6 +51,7 @@ namespace td {
 
 class Dependencies;
 class Game;
+struct InputMedia;
 class MultiPromiseActor;
 struct Photo;
 class RepliedMessageInfo;

@@ -121,6 +121,7 @@ class DialogActionBar;
 class DialogFilter;
 class DraftMessage;
 class FactCheck;
+struct InputMedia;
 struct InputMessageContent;
 class MessageContent;
 class MessageForwardInfo;

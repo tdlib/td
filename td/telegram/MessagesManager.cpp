@@ -49,6 +49,7 @@
 #include "td/telegram/InlineMessageContent.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/InputDialogId.h"
+#include "td/telegram/InputMedia.h"
 #include "td/telegram/InputMessageText.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/Location.h"

@@ -17,6 +17,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/InlineMessageContent.h"
 #include "td/telegram/InlineQueriesManager.h"
+#include "td/telegram/InputMedia.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContent.h"

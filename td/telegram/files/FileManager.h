@@ -19,7 +19,6 @@
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/files/FileUploadManager.h"
-#include "td/telegram/InputMedia.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/td_api.h"
@@ -54,6 +53,7 @@ extern int VERBOSITY_NAME(update_file);
 
 class FileData;
 class FileDbInterface;
+struct InputMedia;
 
 enum class FileLocationSource : int8 { None, FromUser, FromBinlog, FromDatabase, FromServer };
 
