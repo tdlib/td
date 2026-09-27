@@ -13127,8 +13127,8 @@ checkWebAppFileDownload bot_user_id:int53 file_name:string url:string = Ok;
 
 //@description Sets the result of a chat join query; for bots only
 //@query_id Identifier of the query
-//@result The result
-//@url URL of the Web App to open
+//@result The result; may be null if a URL is passed
+//@url If non-empty, URL of the Web App to open
 answerChatJoinRequestQuery query_id:int64 result:ChatJoinRequestResult url:string = Ok;
 
 
