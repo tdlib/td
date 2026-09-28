@@ -13,6 +13,7 @@
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/StateManager.h"

@@ -18,7 +18,9 @@
 namespace td {
 
 RichMessageMedia::RichMessageMedia(RichMessageMedia &&) = default;
+
 RichMessageMedia &RichMessageMedia::operator=(RichMessageMedia &&) = default;
+
 RichMessageMedia::~RichMessageMedia() = default;
 
 RichMessageMedia::RichMessageMedia(unique_ptr<MessageContent> media) : media_(std::move(media)) {

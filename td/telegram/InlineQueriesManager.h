@@ -38,6 +38,11 @@ class WebAppOpenParameters;
 class InlineQueriesManager final : public Actor {
  public:
   InlineQueriesManager(Td *td, ActorShared<> parent);
+  InlineQueriesManager(const InlineQueriesManager &) = delete;
+  InlineQueriesManager &operator=(const InlineQueriesManager &) = delete;
+  InlineQueriesManager(InlineQueriesManager &&) = delete;
+  InlineQueriesManager &operator=(InlineQueriesManager &&) = delete;
+  ~InlineQueriesManager() final;
 
   void after_get_difference();
 

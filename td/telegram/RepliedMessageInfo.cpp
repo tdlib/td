@@ -44,6 +44,12 @@ static bool has_qts_messages(const Td *td, DialogId dialog_id) {
   }
 }
 
+RepliedMessageInfo::RepliedMessageInfo() = default;
+
+RepliedMessageInfo::RepliedMessageInfo(RepliedMessageInfo &&) = default;
+
+RepliedMessageInfo &RepliedMessageInfo::operator=(RepliedMessageInfo &&) = default;
+
 RepliedMessageInfo::~RepliedMessageInfo() = default;
 
 RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messageReplyHeader> &&reply_header,
@@ -197,6 +203,13 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
       }
     }
   }
+}
+
+RepliedMessageInfo RepliedMessageInfo::legacy(MessageId reply_to_message_id, DialogId reply_in_dialog_id) {
+  RepliedMessageInfo result;
+  result.message_id_ = reply_to_message_id;
+  result.dialog_id_ = reply_in_dialog_id;
+  return result;
 }
 
 RepliedMessageInfo RepliedMessageInfo::clone(Td *td) const {

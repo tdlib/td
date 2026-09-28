@@ -349,6 +349,8 @@ WelcomeMessageManager::WelcomeMessageManager(Td *td, ActorShared<> parent) : td_
   upload_welcome_message_content_callback_ = std::make_shared<UploadWelcomeMessageContentCallback>(this);
 }
 
+WelcomeMessageManager::~WelcomeMessageManager() = default;
+
 void WelcomeMessageManager::tear_down() {
   parent_.reset();
 }

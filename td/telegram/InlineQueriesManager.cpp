@@ -464,6 +464,8 @@ InlineQueriesManager::InlineQueriesManager(Td *td, ActorShared<> parent) : td_(t
   next_inline_query_time_ = Time::now();
 }
 
+InlineQueriesManager::~InlineQueriesManager() = default;
+
 void InlineQueriesManager::tear_down() {
   parent_.reset();
 }

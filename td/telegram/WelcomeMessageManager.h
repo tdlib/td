@@ -33,6 +33,11 @@ class Td;
 class WelcomeMessageManager final : public Actor {
  public:
   WelcomeMessageManager(Td *td, ActorShared<> parent);
+  WelcomeMessageManager(const WelcomeMessageManager &) = delete;
+  WelcomeMessageManager &operator=(const WelcomeMessageManager &) = delete;
+  WelcomeMessageManager(WelcomeMessageManager &&) = delete;
+  WelcomeMessageManager &operator=(WelcomeMessageManager &&) = delete;
+  ~WelcomeMessageManager() final;
 
   void on_external_update_message_content(EphemeralMessageFullId message_full_id, const char *source,
                                           bool expect_no_message = false) const;

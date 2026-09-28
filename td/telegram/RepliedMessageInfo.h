@@ -9,7 +9,6 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
-#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
@@ -27,6 +26,7 @@
 namespace td {
 
 class Dependencies;
+class MessageContent;
 class MessageTopic;
 class Td;
 
@@ -45,19 +45,14 @@ class RepliedMessageInfo {
   friend StringBuilder &operator<<(StringBuilder &string_builder, const RepliedMessageInfo &info);
 
  public:
-  RepliedMessageInfo() = default;
+  RepliedMessageInfo();
   RepliedMessageInfo(const RepliedMessageInfo &) = delete;
   RepliedMessageInfo &operator=(const RepliedMessageInfo &) = delete;
-  RepliedMessageInfo(RepliedMessageInfo &&) = default;
-  RepliedMessageInfo &operator=(RepliedMessageInfo &&) = default;
+  RepliedMessageInfo(RepliedMessageInfo &&);
+  RepliedMessageInfo &operator=(RepliedMessageInfo &&);
   ~RepliedMessageInfo();
 
-  static RepliedMessageInfo legacy(MessageId reply_to_message_id, DialogId reply_in_dialog_id = DialogId()) {
-    RepliedMessageInfo result;
-    result.message_id_ = reply_to_message_id;
-    result.dialog_id_ = reply_in_dialog_id;
-    return result;
-  }
+  static RepliedMessageInfo legacy(MessageId reply_to_message_id, DialogId reply_in_dialog_id = DialogId());
 
   RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messageReplyHeader> &&reply_header, DialogId dialog_id,
                      MessageId message_id, int32 date);
