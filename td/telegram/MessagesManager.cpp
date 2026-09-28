@@ -5690,8 +5690,10 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
         return;
       }
 
-      d = add_dialog(dialog_id, "add_pending_channel_update 4");
-      CHECK(d != nullptr);
+      bool need_update_dialog_pos = false;
+      d = add_dialog_for_new_message(dialog_id,
+                                     pts < new_pts && update->get_id() == telegram_api::updateNewChannelMessage::ID,
+                                     &need_update_dialog_pos, "add_pending_channel_update 4");
       CHECK(d->pts == pts);
       update_dialog_pos(d, "add_pending_channel_update 5");
     }
