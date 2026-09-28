@@ -27358,6 +27358,9 @@ void MessagesManager::send_update_unread_chat_count(DialogList &list, DialogId d
 }
 
 void MessagesManager::save_unread_chat_count(const DialogList &list) {
+  if (!G()->use_message_database()) {
+    return;
+  }
   LOG(INFO) << "Save unread chat count in " << list.dialog_list_id;
   G()->td_db()->get_binlog_pmc()->set(
       PSTRING() << "unread_dialog_count" << list.dialog_list_id.get(),
