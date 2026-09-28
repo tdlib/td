@@ -879,6 +879,8 @@ QuickReplyManager::QuickReplyManager(Td *td, ActorShared<> parent) : td_(td), pa
   upload_message_content_callback_ = std::make_shared<UploadMessageContentCallback>(this);
 }
 
+QuickReplyManager::~QuickReplyManager() = default;
+
 void QuickReplyManager::tear_down() {
   parent_.reset();
 }

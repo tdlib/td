@@ -72,6 +72,12 @@ Result<PollOption> PollOption::get_poll_option(Td *td, DialogId dialog_id,
   return PollOption(std::move(text), std::move(media));
 }
 
+PollOption::PollOption(PollOption &&) = default;
+
+PollOption &PollOption::operator=(PollOption &&) = default;
+
+PollOption::~PollOption() = default;
+
 Result<vector<PollOption>> PollOption::get_poll_options(
     Td *td, DialogId dialog_id, vector<td_api::object_ptr<td_api::inputPollOption>> &&input_poll_options) {
   if (input_poll_options.empty()) {

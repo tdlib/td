@@ -46,6 +46,12 @@ class PollOption {
   PollOption(Td *td, telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr,
              vector<std::pair<ChannelId, MinChannel>> &min_channels);
 
+  PollOption(const PollOption &) = delete;
+  PollOption &operator=(const PollOption &) = delete;
+  PollOption(PollOption &&);
+  PollOption &operator=(PollOption &&);
+  ~PollOption();
+
   static Result<PollOption> get_poll_option(Td *td, DialogId dialog_id,
                                             td_api::object_ptr<td_api::inputPollOption> &&input_poll_option);
 
