@@ -2681,8 +2681,7 @@ static vector<MessageEntity> find_splittable_entities_v3(Slice text, const vecto
     if (is_utf8_character_first_code_unit(c)) {
       utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogate pair
     }
-    if ((c == '_' || c == '*' || c == '~' || c == '|') && text[i] == text[i + 1] &&
-        unallowed_boundaries.count(utf16_offset + 1) == 0) {
+    if (is_markup_character(c) && text[i] == text[i + 1] && unallowed_boundaries.count(utf16_offset + 1) == 0) {
       auto j = i + 2;
       while (j != text.size() && text[j] == text[i] &&
              unallowed_boundaries.count(utf16_offset + static_cast<int32>(j - i)) == 0) {
