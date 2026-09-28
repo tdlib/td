@@ -7130,18 +7130,8 @@ void MessagesManager::after_get_difference() {
     schedule_restore_missing_messages_after_get_difference();
   }
 
-  if (!td_->auth_manager_->is_bot()) {
+  if (!td_->auth_manager_->is_bot() && td_->auth_manager_->is_authorized()) {
     td_->dialog_manager_->load_dialog_marks_as_unread();
-
-    auto dialog_list_id = DialogListId(FolderId::archive());
-    auto *list = get_dialog_list(dialog_list_id);
-    CHECK(list != nullptr);
-    if (!list->is_dialog_unread_count_inited_) {
-      int32 limit = list->are_pinned_dialogs_inited_ ? static_cast<int32>(list->pinned_dialogs_.size())
-                                                     : get_pinned_dialogs_limit(dialog_list_id);
-      LOG(INFO) << "Loading chat list in " << dialog_list_id << " to init total unread count";
-      get_dialogs_from_list(dialog_list_id, limit + 2, Auto());
-    }
   }
 }
 
