@@ -4667,19 +4667,10 @@ void MessagesManager::on_update_channel_too_long(tl_object_ptr<telegram_api::upd
 
   DialogId dialog_id = DialogId(channel_id);
   auto d = get_dialog_force(dialog_id, "on_update_channel_too_long 4");
-  if (d == nullptr) {
-    auto pts = load_channel_pts(dialog_id);
-    if (pts > 0) {
-      d = add_dialog(dialog_id, "on_update_channel_too_long 5");
-      CHECK(d != nullptr);
-      CHECK(d->pts == pts);
-      update_dialog_pos(d, "on_update_channel_too_long 6");
-    }
-  }
-
-  if (d != nullptr) {
-    if (update->pts_ == 0 || update->pts_ > d->pts) {
-      get_channel_difference(dialog_id, d->pts, update->pts_, MessageId(), true, "on_update_channel_too_long 1");
+  auto pts = d != nullptr ? d->pts : load_channel_pts(dialog_id);
+  if (pts != 0) {
+    if (update->pts_ == 0 || update->pts_ > pts) {
+      get_channel_difference(dialog_id, pts, update->pts_, MessageId(), true, "on_update_channel_too_long 1");
     }
   } else {
     if (force_apply) {
