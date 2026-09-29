@@ -58,6 +58,22 @@ DocumentsManager::~DocumentsManager() {
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), documents_);
 }
 
+vector<telegram_api::object_ptr<telegram_api::DocumentAttribute>> DocumentsManager::extract_web_document_attributes(
+    telegram_api::WebDocument *web_document) {
+  if (web_document == nullptr) {
+    return {};
+  }
+  switch (web_document->get_id()) {
+    case telegram_api::webDocument::ID:
+      return std::move(static_cast<telegram_api::webDocument *>(web_document)->attributes_);
+    case telegram_api::webDocumentNoProxy::ID:
+      return std::move(static_cast<telegram_api::webDocumentNoProxy *>(web_document)->attributes_);
+    default:
+      UNREACHABLE();
+      return {};
+  }
+}
+
 tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId file_id,
                                                                       PhotoFormat thumbnail_format) const {
   if (!file_id.is_valid()) {

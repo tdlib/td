@@ -2159,18 +2159,7 @@ td_api::object_ptr<td_api::InlineQueryResult> InlineQueriesManager::get_inline_q
         break;
       }
 
-      auto attributes = [content = result->content_.get()] {
-        switch (content->get_id()) {
-          case telegram_api::webDocument::ID:
-            return std::move(static_cast<telegram_api::webDocument *>(content)->attributes_);
-          case telegram_api::webDocumentNoProxy::ID:
-            return std::move(static_cast<telegram_api::webDocumentNoProxy *>(content)->attributes_);
-          default:
-            UNREACHABLE();
-            return vector<telegram_api::object_ptr<telegram_api::DocumentAttribute>>();
-        }
-      }();
-
+      auto attributes = DocumentsManager::extract_web_document_attributes(result->content_.get());
       bool is_animation = result->type_ == "gif" && (content_type == "image/gif" || content_type == "video/mp4");
       if (is_animation) {
         attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeAnimated>());

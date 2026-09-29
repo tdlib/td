@@ -82,6 +82,9 @@ class DocumentsManager {
     }
   };
 
+  static vector<telegram_api::object_ptr<telegram_api::DocumentAttribute>> extract_web_document_attributes(
+      telegram_api::WebDocument *web_document);
+
   tl_object_ptr<td_api::document> get_document_object(FileId file_id, PhotoFormat thumbnail_format) const;
 
   td_api::object_ptr<td_api::videoStoryboard> get_video_storyboard_object(FileId file_id,
