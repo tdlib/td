@@ -74,9 +74,9 @@ Result<PollOption> PollOption::get_poll_option(Td *td, DialogId dialog_id,
   return PollOption(std::move(text), std::move(media));
 }
 
-PollOption::PollOption(PollOption &&) = default;
+PollOption::PollOption(PollOption &&) noexcept = default;
 
-PollOption &PollOption::operator=(PollOption &&) = default;
+PollOption &PollOption::operator=(PollOption &&) noexcept = default;
 
 PollOption::~PollOption() = default;
 

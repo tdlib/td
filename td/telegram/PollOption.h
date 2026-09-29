@@ -48,8 +48,8 @@ class PollOption {
 
   PollOption(const PollOption &) = delete;
   PollOption &operator=(const PollOption &) = delete;
-  PollOption(PollOption &&);
-  PollOption &operator=(PollOption &&);
+  PollOption(PollOption &&) noexcept;
+  PollOption &operator=(PollOption &&) noexcept;
   ~PollOption();
 
   static Result<PollOption> get_poll_option(Td *td, DialogId dialog_id,

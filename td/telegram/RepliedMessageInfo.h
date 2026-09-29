@@ -48,8 +48,8 @@ class RepliedMessageInfo {
   RepliedMessageInfo();
   RepliedMessageInfo(const RepliedMessageInfo &) = delete;
   RepliedMessageInfo &operator=(const RepliedMessageInfo &) = delete;
-  RepliedMessageInfo(RepliedMessageInfo &&);
-  RepliedMessageInfo &operator=(RepliedMessageInfo &&);
+  RepliedMessageInfo(RepliedMessageInfo &&) noexcept;
+  RepliedMessageInfo &operator=(RepliedMessageInfo &&) noexcept;
   ~RepliedMessageInfo();
 
   static RepliedMessageInfo legacy(MessageId reply_to_message_id, DialogId reply_in_dialog_id = DialogId());

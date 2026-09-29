@@ -46,9 +46,9 @@ static bool has_qts_messages(const Td *td, DialogId dialog_id) {
 
 RepliedMessageInfo::RepliedMessageInfo() = default;
 
-RepliedMessageInfo::RepliedMessageInfo(RepliedMessageInfo &&) = default;
+RepliedMessageInfo::RepliedMessageInfo(RepliedMessageInfo &&) noexcept = default;
 
-RepliedMessageInfo &RepliedMessageInfo::operator=(RepliedMessageInfo &&) = default;
+RepliedMessageInfo &RepliedMessageInfo::operator=(RepliedMessageInfo &&) noexcept = default;
 
 RepliedMessageInfo::~RepliedMessageInfo() = default;
 

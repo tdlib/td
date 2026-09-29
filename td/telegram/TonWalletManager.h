@@ -257,7 +257,7 @@ class TonWalletManager final : public Actor {
     bool is_closed_ = false;
 
    public:
-    explicit TonConnectSession(Td *td, telegram_api::object_ptr<telegram_api::tonConnectSession> &&session);
+    TonConnectSession(Td *td, telegram_api::object_ptr<telegram_api::tonConnectSession> &&session);
 
     td_api::object_ptr<td_api::tonConnectSession> get_ton_connect_session_object(Td *td) const;
   };
@@ -281,7 +281,7 @@ class TonWalletManager final : public Actor {
     vector<TonConnectRequest> requests_;
 
    public:
-    explicit TonConnectRequests(Td *td, telegram_api::object_ptr<telegram_api::wallet_tonConnectPending> &&requests);
+    TonConnectRequests(Td *td, telegram_api::object_ptr<telegram_api::wallet_tonConnectPending> &&requests);
 
     td_api::object_ptr<td_api::tonConnectRequests> get_ton_connect_requests_object(Td *td) const;
   };

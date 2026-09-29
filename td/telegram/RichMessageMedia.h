@@ -30,8 +30,8 @@ class RichMessageMedia {
   RichMessageMedia() = default;
   RichMessageMedia(const RichMessageMedia &) = delete;
   RichMessageMedia &operator=(const RichMessageMedia &) = delete;
-  RichMessageMedia(RichMessageMedia &&);
-  RichMessageMedia &operator=(RichMessageMedia &&);
+  RichMessageMedia(RichMessageMedia &&) noexcept;
+  RichMessageMedia &operator=(RichMessageMedia &&) noexcept;
   ~RichMessageMedia();
 
   explicit RichMessageMedia(unique_ptr<MessageContent> media);

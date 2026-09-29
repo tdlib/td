@@ -161,7 +161,7 @@ class CreateUserWalletAddressQuery final : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for CreateUserWalletAddressQuery: " << to_string(result);
 
-    td_->user_manager_->on_get_users(std::move(result->users_), "GetUserWalletAddressesQuery");
+    td_->user_manager_->on_get_users(std::move(result->users_), "CreateUserWalletAddressQuery");
 
     if (result->addresses_.size() != 1u) {
       return on_error(Status::Error(400, "Failed to create TON wallet address"));
@@ -202,7 +202,7 @@ class GetAddressWalletQuery final : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetAddressWalletQuery: " << to_string(result);
 
-    td_->user_manager_->on_get_users(std::move(result->users_), "GetUserWalletAddressesQuery");
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetAddressWalletQuery");
 
     if (result->addresses_.size() != 1u) {
       return on_error(Status::Error(400, "Address not found"));
@@ -235,7 +235,7 @@ class ExportWalletSecretPhraseQuery final : public Td::ResultHandler {
   void send(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password) {
     int32 flags = 0;
     if (input_password != nullptr) {
-      flags = telegram_api::wallet_exportSecretPhrase::PASSWORD_MASK;
+      flags |= telegram_api::wallet_exportSecretPhrase::PASSWORD_MASK;
     }
     send_query(
         G()->net_query_creator().create(telegram_api::wallet_exportSecretPhrase(flags, std::move(input_password))));

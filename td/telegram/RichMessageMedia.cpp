@@ -17,9 +17,9 @@
 
 namespace td {
 
-RichMessageMedia::RichMessageMedia(RichMessageMedia &&) = default;
+RichMessageMedia::RichMessageMedia(RichMessageMedia &&) noexcept = default;
 
-RichMessageMedia &RichMessageMedia::operator=(RichMessageMedia &&) = default;
+RichMessageMedia &RichMessageMedia::operator=(RichMessageMedia &&) noexcept = default;
 
 RichMessageMedia::~RichMessageMedia() = default;
 

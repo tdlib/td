@@ -2247,7 +2247,7 @@ currencies currencies:vector<string> = Currencies;
 
 //@description Describes a payment method of an on-ramp provider
 //@name Name of the method
-//@is_available True, if the method is available for the user
+//@is_available True, if the method is available to the user
 onRampPaymentMethod name:string is_available:Bool = OnRampPaymentMethod;
 
 //@description Describes availability of cryptocurrency purchase through an on-ramp provider
@@ -2270,7 +2270,7 @@ onRampPaymentLimits payment_method:string base_currency_min_amount:string base_c
 //@payment_method The payment method to be used
 //@expiration_date Point in time (Unix timestamp) when the quote will expire
 //@base_currency_amount Paid amount of the base currency
-//@cryptocurrency_amount Received amount of the cryptocurrency
+//@cryptocurrency_amount Purchased amount of the cryptocurrency
 //@cryptocurrency_price The price of the cryptocurrency
 //@fee_amount Fee amount
 //@extra_fee_amount Extra fee amount
@@ -2329,7 +2329,7 @@ tonWalletTransactionStateSucceeded tx_hash:string = TonWalletTransactionState;
 tonWalletTransactionStateFailed = TonWalletTransactionState;
 
 
-//@class TonWalletTransactionType @description Describes type of a transaction with a TON wallet
+//@class TonWalletTransactionType @description Describes type of transaction with a TON wallet
 
 //@description The transaction is a deposit from an on-ramp provider
 //@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency
@@ -2353,7 +2353,7 @@ tonWalletTransactionTypeKeyChange fee_amount:int53 = TonWalletTransactionType;
 //@description Represents a transaction with the TON wallet of the current user
 //@id Unique identifier of the transaction
 //@peer_address Address in the TON blockchain of the transaction peer; may be empty if the transaction isn't a wallet transfer
-//@peer_user_id Identifier of the other user that participated in the transaction; 0 if unknown
+//@peer_user_id Identifier of the other user who participated in the transaction; 0 if unknown
 //@peer_domain Identifier of the domain assigned to the peer address; may be empty if none
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@state State of the transaction
@@ -13239,8 +13239,8 @@ getMessageEffect effect_id:int64 = MessageEffect;
 //@quote_position Approximate quote position in UTF-16 code units
 searchQuote text:formattedText quote:formattedText quote_position:int32 = FoundPosition;
 
-//@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, TON blockchain addresses, URLs, and email addresses) found in the text.
-//-Can be called synchronously @text The text in which to look for entities
+//@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, TON blockchain addresses, URLs, and email addresses) found in the text. Can be called synchronously
+//@text The text in which to look for entities
 getTextEntities text:string = TextEntities;
 
 //@description Parses Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, BlockQuote, ExpandableBlockQuote, Code, Pre, PreCode, TextUrl,
@@ -16126,7 +16126,7 @@ loadTonWalletGaslessTransfersInfo = Ok;
 checkWalletBotBalance = WalletBotBalance;
 
 //@description Returns TON wallet addresses of the specified users
-//@user_ids Identifiers of the users, which wallet addresses have to be returned. If a user has no TON wallet, it will be skipped in the result
+//@user_ids Identifiers of the users whose wallet addresses have to be returned. If a user has no TON wallet, it will be skipped in the result
 getUserTonWalletAddresses user_ids:vector<int53> = UserTonWalletAddresses;
 
 //@description Creates a TON wallet for the specified regular user. The current user must have positive TON wallet balance @user_id Identifier of the user
@@ -16136,7 +16136,7 @@ createUserTonWallet user_id:int53 = UserTonWalletAddress;
 getAddressTonWallet address:string = UserTonWalletAddress;
 
 //@description Returns the secret phrase of the user's TON wallet as a space separated list of words. Works only if tonWalletState.can_export_phrase is true
-//@password Password of the current user; pass an empty string unless receive an error PASSWORD_MISSING for a passwordless request
+//@password Password of the current user; pass an empty string unless receive an error with a message "PASSWORD_MISSING" for a passwordless request
 getTonWalletSecretPhrase password:string = Text;
 
 //@description Returns a challenge which may be used to proof ownership of a TON wallet
@@ -16196,7 +16196,7 @@ setTonConnectSessionWalletClientId session_id:int64 wallet_client_id:string = To
 //@description Accepts or rejects a TON Connect session
 //@session_id Unique identifier of the session
 //@challenge_answer Answer to the challenge received from setTonConnectSessionWalletClientId
-//@is_error True, if the request is rejected
+//@is_error Pass true to reject the request; pass false to accept it
 //@body Body of the result
 //@trace_id Identifier to trace the connection request
 sendTonConnectSessionConnectResult session_id:int64 challenge_answer:bytes is_error:Bool body:bytes trace_id:string = Ok;
