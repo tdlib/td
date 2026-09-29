@@ -26,6 +26,7 @@ bool is_base64url(Slice input);
 
 bool is_base64_characters(Slice input);
 bool is_base64url_characters(Slice input);
+bool is_base64any_character(char c);
 
 string base64_filter(Slice input);
 

@@ -20,6 +20,7 @@
 #include "td/actor/MultiPromise.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/base64.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -637,10 +638,6 @@ static vector<Slice> match_bank_card_numbers(Slice str) {
     result.emplace_back(card_number_begin, card_number_end);
   }
   return result;
-}
-
-static bool is_base64any_character(char c) {
-  return is_alnum(c) || c == '-' || c == '_' || c == '/' || c == '+';
 }
 
 static vector<Slice> match_ton_addresses(Slice str) {

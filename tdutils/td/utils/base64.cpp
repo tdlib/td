@@ -227,6 +227,11 @@ bool is_base64url_characters(Slice input) {
   return is_base64_characters_impl<true>(input);
 }
 
+bool is_base64any_character(char c) {
+  auto index = static_cast<unsigned char>(c);
+  return get_character_table<false>()[index] != 64 || get_character_table<true>()[index] != 64;
+}
+
 string base64_filter(Slice input) {
   auto table = get_character_table<false>();
   string res;

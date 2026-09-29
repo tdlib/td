@@ -14,8 +14,6 @@
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideosManager.h"
 
-#include "td/utils/algorithm.h"
-
 namespace td {
 
 vector<FileId> Document::get_file_ids(const Td *td) const {
