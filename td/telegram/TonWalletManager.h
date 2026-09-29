@@ -302,13 +302,6 @@ class TonWalletManager final : public Actor {
   void do_delete_ton_wallet(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                             Promise<Unit> &&promise);
 
-  void get_wallet_ownership_proof(const string &address, const string &private_key,
-                                  Promise<WalletOwnershipProof> &&promise);
-
-  void get_wallet_ownership_proof_with_challenge(
-      telegram_api::object_ptr<telegram_api::wallet_proofChallenge> &&challenge, const string &address,
-      const string &private_key, Promise<WalletOwnershipProof> &&promise);
-
   void do_replace_ton_wallet_with_proof(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                                         WalletOwnershipProof &&proof, Promise<Unit> &&promise);
 
