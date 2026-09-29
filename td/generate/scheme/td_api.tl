@@ -16139,10 +16139,11 @@ sendTonWalletTransfer regular_transfer_data:bytes gasless_transfer_data:bytes = 
 //@password Password of the current user; pass an empty string if the user has no password
 deleteTonWallet password:string = Ok;
 
-//@description Replaces private key of the current TON wallet
+//@description Replaces the current TON wallet with another existing v6r2 wallet or changes private key of the current TON wallet
 //@password Password of the current user; pass an empty string if the user has no password
+//@anchor_public_key Original public key of the new TON wallet
 //@proof Proof of ownership of the new private key of the TON wallet; use getTonWalletOwnershipProofChallenge to get a challenge for the proof
-replaceTonWallet password:string proof:tonWalletOwnershipProof = Ok;
+replaceTonWallet password:string anchor_public_key:bytes proof:tonWalletOwnershipProof = Ok;
 
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
