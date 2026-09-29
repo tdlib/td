@@ -13,7 +13,6 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
-#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InputMedia.h"

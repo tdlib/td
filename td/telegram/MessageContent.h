@@ -30,7 +30,6 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/QuickReplyMessageFullId.h"
-#include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/StickerType.h"

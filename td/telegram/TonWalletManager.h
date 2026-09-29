@@ -18,9 +18,12 @@
 
 #include "td/e2e/e2e_api.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Status.h"
 
 namespace td {
 

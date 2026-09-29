@@ -80,6 +80,7 @@
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PollOption.h"
 #include "td/telegram/RepliedMessageInfo.h"
+#include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/RichMessage.h"
 #include "td/telegram/RichMessage.hpp"
 #include "td/telegram/secret_api.hpp"

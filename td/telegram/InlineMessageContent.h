@@ -6,12 +6,13 @@
 //
 #pragma once
 
+#include "td/telegram/ReplyMarkup.h"
+
 #include "td/utils/common.h"
 
 namespace td {
 
 class MessageContent;
-struct ReplyMarkup;
 
 struct InlineMessageContent {
   unique_ptr<MessageContent> message_content;

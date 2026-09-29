@@ -14,6 +14,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/ChatReactions.h"
+#include "td/telegram/CommunityId.h"
 #include "td/telegram/CommunityManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/FileReferenceManager.h"
