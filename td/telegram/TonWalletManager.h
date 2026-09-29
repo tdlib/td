@@ -196,6 +196,16 @@ class TonWalletManager final : public Actor {
 
   friend bool operator==(const WalletGaslessInfo &lhs, const WalletGaslessInfo &rhs);
 
+  class NftAttribute {
+    string trait_type_;
+    string value_;
+
+   public:
+    explicit NftAttribute(telegram_api::object_ptr<telegram_api::wallet_nftAttribute> &&attribute);
+
+    td_api::object_ptr<td_api::tonNftAttribute> get_ton_nft_attribute_object() const;
+  };
+
   class TonConnectManifest {
     string url_;
     string name_;

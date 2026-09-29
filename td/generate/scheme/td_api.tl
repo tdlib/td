@@ -2294,6 +2294,11 @@ onRampPaymentSession session_id:string expiration_date:int32 url:string = OnRamp
 //@can_export_phrase True, if the wallet key can be exported using getTonWalletSecretPhrase
 tonWalletState address:string public_key:bytes gram_amount:int53 is_being_created:Bool is_backup_enabled:Bool can_enable_backup:Bool can_export_phrase:Bool = TonWalletState;
 
+//@description Represents an attribute of an NFT in the TON Blockchain
+//@trait_type Trait type
+//@value Value of the attribute
+tonNftAttribute trait_type:string value:string = TonNftAttribute;
+
 
 //@class TonWalletTransactionState @description Describes state of a transaction with a TON wallet
 

@@ -1384,6 +1384,14 @@ td_api::object_ptr<td_api::onRampPaymentSession> TonWalletManager::OnRampSession
   return td_api::make_object<td_api::onRampPaymentSession>(session_id_, expires_date_, url_);
 }
 
+TonWalletManager::NftAttribute::NftAttribute(telegram_api::object_ptr<telegram_api::wallet_nftAttribute> &&attribute)
+    : trait_type_(std::move(attribute->trait_type_)), value_(std::move(attribute->value_)) {
+}
+
+td_api::object_ptr<td_api::tonNftAttribute> TonWalletManager::NftAttribute::get_ton_nft_attribute_object() const {
+  return td_api::make_object<td_api::tonNftAttribute>(trait_type_, value_);
+}
+
 TonWalletManager::TonConnectManifest::TonConnectManifest(
     Td *td, telegram_api::object_ptr<telegram_api::tonConnectManifest> &&manifest)
     : url_(std::move(manifest->url_)), name_(std::move(manifest->name_)) {
