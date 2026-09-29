@@ -8848,6 +8848,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteTonWallet>(password));
     } else if (op == "gcer") {
       send_request(td_api::make_object<td_api::getCurrencyExchangeRates>());
+    } else if (op == "gtwn") {
+      string limit;
+      string offset;
+      get_args(args, limit, offset);
+      send_request(td_api::make_object<td_api::getTonWalletNfts>(offset, as_limit(limit)));
     } else if (op == "gtcs") {
       send_request(td_api::make_object<td_api::getTonConnectSessions>());
     } else if (op == "ctwcs") {

@@ -86,6 +86,8 @@ class TonWalletManager final : public Actor {
 
   void get_currency_rates(Promise<td_api::object_ptr<td_api::currencyExchangeRates>> &&promise);
 
+  void get_nfts(const string &offset, int32 limit, Promise<td_api::object_ptr<td_api::tonNfts>> &&promise);
+
   void get_ton_connect_sessions(Promise<td_api::object_ptr<td_api::tonConnectSessions>> &&promise);
 
   void create_ton_connect_session(const string &dapp_client_id, const string &manifest_url,
@@ -145,6 +147,7 @@ class TonWalletManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
+  class GetTonNftsQuery;
   class GetTonConnectSessionsQuery;
   class CreateTonConnectSessionQuery;
   class RegisterTonConnectKeyQuery;

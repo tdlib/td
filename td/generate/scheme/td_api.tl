@@ -2314,6 +2314,11 @@ tonNftAttribute trait_type:string value:string = TonNftAttribute;
 //@extra Additional data about the NFT; may be null if none
 tonNft collection_address:string address:string owner_address:string index:string name:string description:string image:photoSize thumbnail:photoSize content:document sticker:sticker attributes:vector<tonNftAttribute> extra:JsonValue = TonNft;
 
+//@description Represents a list of TON NFTs
+//@nfts List of NFTs
+//@next_offset The offset for the next request. If empty, then there are no more results
+tonNfts nfts:vector<tonNft> next_offset:string = TonNfts;
+
 
 //@class TonWalletTransactionState @description Describes state of a transaction with a TON wallet
 
@@ -16167,6 +16172,11 @@ replaceTonWallet password:string anchor_public_key:bytes proof:tonWalletOwnershi
 
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
+
+//@description Returns NFTs stored on the TON wallet of the user
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of NFTs to be returned; must be positive and can't be greater than 20
+getTonWalletNfts offset:string limit:int32 = TonNfts;
 
 
 //@description Returns active TON Connect sessions

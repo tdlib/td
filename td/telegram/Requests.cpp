@@ -8042,6 +8042,13 @@ void Requests::on_request(uint64 id, const td_api::getCurrencyExchangeRates &req
   td_->ton_wallet_manager_->get_currency_rates(std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getTonWalletNfts &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->get_nfts(request.offset_, request.limit_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getTonConnectSessions &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

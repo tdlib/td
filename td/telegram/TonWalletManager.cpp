@@ -676,6 +676,35 @@ class GetCurrencyRatesQuery final : public Td::ResultHandler {
   }
 };
 
+class TonWalletManager::GetTonNftsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonNfts>> promise_;
+
+ public:
+  explicit GetTonNftsQuery(Promise<td_api::object_ptr<td_api::tonNfts>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &offset, int32 limit) {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_getNfts(offset, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_getNfts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetTonNftsQuery: " << to_string(result);
+    auto nfts = transform(std::move(result->items_),
+                          [td = td_](auto &&item) { return Nft(td, std::move(item)).get_ton_nft_object(td); });
+    promise_.set_value(td_api::make_object<td_api::tonNfts>(std::move(nfts), result->next_offset_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class TonWalletManager::GetTonConnectSessionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::tonConnectSessions>> promise_;
 
@@ -2112,6 +2141,11 @@ void TonWalletManager::on_get_currency_rates(
   for (auto &promise : promises) {
     promise.set_value(get_currency_exchange_rates_object());
   }
+}
+
+void TonWalletManager::get_nfts(const string &offset, int32 limit,
+                                Promise<td_api::object_ptr<td_api::tonNfts>> &&promise) {
+  td_->create_handler<GetTonNftsQuery>(std::move(promise))->send(offset, limit);
 }
 
 void TonWalletManager::get_ton_connect_sessions(Promise<td_api::object_ptr<td_api::tonConnectSessions>> &&promise) {
