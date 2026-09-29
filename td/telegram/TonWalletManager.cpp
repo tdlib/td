@@ -11,8 +11,10 @@
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/JsonValue.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PasswordManager.h"
+#include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
@@ -1390,6 +1392,50 @@ TonWalletManager::NftAttribute::NftAttribute(telegram_api::object_ptr<telegram_a
 
 td_api::object_ptr<td_api::tonNftAttribute> TonWalletManager::NftAttribute::get_ton_nft_attribute_object() const {
   return td_api::make_object<td_api::tonNftAttribute>(trait_type_, value_);
+}
+
+TonWalletManager::Nft::Nft(Td *td, telegram_api::object_ptr<telegram_api::wallet_nftItem> &&item)
+    : collection_address_(std::move(item->collection_address_))
+    , address_(std::move(item->address_))
+    , owner_address_(std::move(item->owner_address_))
+    , index_(std::move(item->index_))
+    , name_(std::move(item->name_))
+    , description_(std::move(item->description_))
+    , image_(get_web_document_photo_size(td->file_manager_.get(), FileType::Photo, DialogId(), std::move(item->image_)))
+    , image_small_(get_web_document_photo_size(td->file_manager_.get(), FileType::Photo, DialogId(),
+                                               std::move(item->image_small_)))
+    , attributes_(transform(std::move(item->attributes_),
+                            [](auto &&attribute) { return NftAttribute(std::move(attribute)); })) {
+  if (item->content_url_ != nullptr) {
+    auto parsed_document = td->documents_manager_->on_get_document({std::move(item->content_url_)}, DialogId(), false,
+                                                                   false, nullptr, Document::Type::General);
+    if (parsed_document.file_id.is_valid() && parsed_document.type == Document::Type::General) {
+      content_url_file_id_ = parsed_document.file_id;
+    }
+  }
+  if (item->lottie_ != nullptr) {
+    auto parsed_document = td->documents_manager_->on_get_document({std::move(item->lottie_)}, DialogId(), false, false,
+                                                                   nullptr, Document::Type::Sticker);
+    if (parsed_document.file_id.is_valid() && parsed_document.type == Document::Type::Sticker) {
+      lottie_file_id_ = parsed_document.file_id;
+    }
+  }
+  if (item->extra_ != nullptr) {
+    extra_ = std::move(item->extra_->data_);
+  }
+}
+
+td_api::object_ptr<td_api::tonNft> TonWalletManager::Nft::get_ton_nft_object(Td *td) const {
+  string extra = extra_;
+  auto r_json_value = get_json_value(extra);
+  return td_api::make_object<td_api::tonNft>(
+      collection_address_, address_, owner_address_, index_, name_, description_,
+      get_photo_size_object(td->file_manager_.get(), &image_),
+      get_photo_size_object(td->file_manager_.get(), &image_small_),
+      td->documents_manager_->get_document_object(content_url_file_id_, PhotoFormat::Jpeg),
+      td->stickers_manager_->get_sticker_object(lottie_file_id_),
+      transform(attributes_, [](const auto &attribute) { return attribute.get_ton_nft_attribute_object(); }),
+      r_json_value.is_ok() ? r_json_value.move_as_ok() : nullptr);
 }
 
 TonWalletManager::TonConnectManifest::TonConnectManifest(

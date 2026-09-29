@@ -2299,6 +2299,21 @@ tonWalletState address:string public_key:bytes gram_amount:int53 is_being_create
 //@value Value of the attribute
 tonNftAttribute trait_type:string value:string = TonNftAttribute;
 
+//@description Represents an NFT in the TON Blockchain
+//@collection_address Address of the collection to which the NFT belongs; may be empty if unknown
+//@address Address of the NFT
+//@owner_address Address of the owner of the NFT
+//@index Index of the NFT among all NFTs from the collection as a decimal number
+//@name Name of the NFT
+//@param_description Description of the NFT
+//@image Image of the NFT; may be null if none
+//@thumbnail Thumbnail of the NFT; may be null if none
+//@content Content of the NFT; may be null if none
+//@sticker Sticker of the NFT; may be null if none
+//@attributes Attributes of the NFT
+//@extra Additional data about the NFT; may be null if none
+tonNft collection_address:string address:string owner_address:string index:string name:string description:string image:photoSize thumbnail:photoSize content:document sticker:sticker attributes:vector<tonNftAttribute> extra:JsonValue = TonNft;
+
 
 //@class TonWalletTransactionState @description Describes state of a transaction with a TON wallet
 
