@@ -286,9 +286,11 @@ class EnableWalletBackupQuery final : public Td::ResultHandler {
   explicit EnableWalletBackupQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(vector<BufferSlice> parts, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password) {
-    send_query(G()->net_query_creator().create(
-        telegram_api::wallet_enableBackup(0, std::move(parts), BufferSlice(), nullptr)));
+  void send(vector<BufferSlice> parts, BufferSlice public_key,
+            telegram_api::object_ptr<telegram_api::walletOwnershipProof> proof) {
+    send_query(G()->net_query_creator().create(telegram_api::wallet_enableBackup(
+        telegram_api::wallet_enableBackup::NEW_PUBLIC_KEY_MASK | telegram_api::wallet_enableBackup::PROOF_MASK,
+        std::move(parts), std::move(public_key), std::move(proof))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1827,37 +1829,22 @@ void TonWalletManager::get_ton_wallet_proof_challenge(
   td_->create_handler<GetWalletProofChallengeQuery>(std::move(query_promise))->send();
 }
 
-void TonWalletManager::enable_ton_wallet_backup(const string &password, const string &secret_phrase,
+void TonWalletManager::enable_ton_wallet_backup(const string &secret_phrase,
+                                                td_api::object_ptr<td_api::tonWalletOwnershipProof> &&ownership_proof,
                                                 Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   if (backup_holder_dcs_.dcs_.empty()) {
-    return load_backup_holder_dcs(PromiseCreator::lambda([actor_id = actor_id(this), password, secret_phrase,
-                                                          promise = std::move(promise)](Result<Unit> result) mutable {
-      if (result.is_error()) {
-        return promise.set_error(result.move_as_error());
-      }
-      send_closure(actor_id, &TonWalletManager::enable_ton_wallet_backup, password, secret_phrase, std::move(promise));
-    }));
+    return load_backup_holder_dcs(
+        PromiseCreator::lambda([actor_id = actor_id(this), secret_phrase, ownership_proof = std::move(ownership_proof),
+                                promise = std::move(promise)](Result<Unit> result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+          send_closure(actor_id, &TonWalletManager::enable_ton_wallet_backup, secret_phrase, std::move(ownership_proof),
+                       std::move(promise));
+        }));
   }
-  if (password.empty()) {
-    return do_enable_ton_wallet_backup(nullptr, secret_phrase, std::move(promise));
-  }
-  send_closure(G()->password_manager(), &PasswordManager::get_input_check_password_srp, password,
-               PromiseCreator::lambda(
-                   [actor_id = actor_id(this), secret_phrase, promise = std::move(promise)](
-                       Result<telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP>> r_input_password) mutable {
-                     if (r_input_password.is_error()) {
-                       return promise.set_error(r_input_password.move_as_error());
-                     }
-                     send_closure(actor_id, &TonWalletManager::do_enable_ton_wallet_backup,
-                                  r_input_password.move_as_ok(), secret_phrase, std::move(promise));
-                   }));
-}
-
-void TonWalletManager::do_enable_ton_wallet_backup(
-    telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password, const string &secret_phrase,
-    Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, proof, WalletOwnershipProof::get_wallet_ownership_proof(std::move(ownership_proof)));
   if (secret_phrase.size() > MAX_MNEMONIC_BACKUP_SIZE) {
     return promise.set_error(400, "Invalid secret phrase specified");
   }
@@ -1866,6 +1853,7 @@ void TonWalletManager::do_enable_ton_wallet_backup(
       return promise.set_error(400, "Receive invalid secret phrase");
     }
   }
+
   string a(MAX_MNEMONIC_BACKUP_SIZE, '\0');
   string b(MAX_MNEMONIC_BACKUP_SIZE, '\0');
   string c = rpad(secret_phrase, MAX_MNEMONIC_BACKUP_SIZE, ' ');
@@ -1883,7 +1871,8 @@ void TonWalletManager::do_enable_ton_wallet_backup(
   parts.push_back(std::move(part_a));
   parts.push_back(std::move(part_b));
   parts.push_back(std::move(part_c));
-  td_->create_handler<EnableWalletBackupQuery>(std::move(promise))->send(std::move(parts), std::move(input_password));
+  td_->create_handler<EnableWalletBackupQuery>(std::move(promise))
+      ->send(std::move(parts), std::move(proof.public_key_), std::move(proof.proof_));
 }
 
 void TonWalletManager::disable_ton_wallet_backup(const string &password, Promise<Unit> &&promise) {

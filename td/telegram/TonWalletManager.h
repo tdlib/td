@@ -53,7 +53,9 @@ class TonWalletManager final : public Actor {
 
   void get_ton_wallet_proof_challenge(Promise<td_api::object_ptr<td_api::tonWalletOwnershipProofChallenge>> &&promise);
 
-  void enable_ton_wallet_backup(const string &password, const string &secret_phrase, Promise<Unit> &&promise);
+  void enable_ton_wallet_backup(const string &secret_phrase,
+                                td_api::object_ptr<td_api::tonWalletOwnershipProof> &&ownership_proof,
+                                Promise<Unit> &&promise);
 
   void disable_ton_wallet_backup(const string &password, Promise<Unit> &&promise);
 
@@ -293,9 +295,6 @@ class TonWalletManager final : public Actor {
   void on_get_ton_wallet_secret_phrase_part(
       Result<telegram_api::object_ptr<telegram_api::wallet_encryptedSecretPhrasePart>> r_part, uint64 query_id,
       tde2e_api::PrivateKeyId private_key_id);
-
-  void do_enable_ton_wallet_backup(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
-                                   const string &secret_phrase, Promise<Unit> &&promise);
 
   void do_disable_ton_wallet_backup(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                                     Promise<Unit> &&promise);
