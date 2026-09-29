@@ -8841,12 +8841,6 @@ class CliClient final : public Actor {
       string password;
       get_args(args, password);
       send_request(td_api::make_object<td_api::disableTonWalletBackup>(password));
-    } else if (op == "dtwbwp") {
-      string address;
-      string private_key;
-      get_args(args, address, private_key);
-      send_request(
-          td_api::make_object<td_api::disableTonWalletBackupWithProof>(address, hex_decode(private_key).move_as_ok()));
     } else if (op == "stwt") {
       string regular_transfer_data;
       string gasless_transfer_data;

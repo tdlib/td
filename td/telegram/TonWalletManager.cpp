@@ -1908,20 +1908,9 @@ void TonWalletManager::do_disable_ton_wallet_backup(
   td_->create_handler<DisableWalletBackupQuery>(std::move(promise))->send(std::move(input_password));
 }
 
-void TonWalletManager::disable_ton_wallet_backup_with_proof(const string &address, const string &private_key,
-                                                            Promise<Unit> &&promise) {
-  get_wallet_ownership_proof(address, private_key,
-                             PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
-                                                        Result<WalletOwnershipProof> r_proof) mutable {
-                               if (r_proof.is_error()) {
-                                 return promise.set_error(r_proof.move_as_error());
-                               }
-                               send_closure(actor_id, &TonWalletManager::do_disable_ton_wallet_backup_with_proof,
-                                            r_proof.move_as_ok(), std::move(promise));
-                             }));
-}
-
-void TonWalletManager::do_disable_ton_wallet_backup_with_proof(WalletOwnershipProof &&proof, Promise<Unit> &&promise) {
+void TonWalletManager::disable_ton_wallet_backup_with_proof(
+    td_api::object_ptr<td_api::tonWalletOwnershipProof> &&ownership_proof, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, proof, WalletOwnershipProof::get_wallet_ownership_proof(std::move(ownership_proof)));
   td_->create_handler<DisableWalletBackupQuery>(std::move(promise))
       ->send(std::move(proof.public_key_), std::move(proof.proof_));
 }

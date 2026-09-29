@@ -57,7 +57,8 @@ class TonWalletManager final : public Actor {
 
   void disable_ton_wallet_backup(const string &password, Promise<Unit> &&promise);
 
-  void disable_ton_wallet_backup_with_proof(const string &address, const string &private_key, Promise<Unit> &&promise);
+  void disable_ton_wallet_backup_with_proof(td_api::object_ptr<td_api::tonWalletOwnershipProof> &&ownership_proof,
+                                            Promise<Unit> &&promise);
 
   void get_ton_wallet_gasless_info(Promise<Unit> &&promise);
 
@@ -297,8 +298,6 @@ class TonWalletManager final : public Actor {
 
   void do_disable_ton_wallet_backup(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                                     Promise<Unit> &&promise);
-
-  void do_disable_ton_wallet_backup_with_proof(WalletOwnershipProof &&proof, Promise<Unit> &&promise);
 
   void do_delete_ton_wallet(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                             Promise<Unit> &&promise);

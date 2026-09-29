@@ -8010,10 +8010,8 @@ void Requests::on_request(uint64 id, td_api::disableTonWalletBackup &request) {
 
 void Requests::on_request(uint64 id, td_api::disableTonWalletBackupWithProof &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.address_);
   CREATE_OK_REQUEST_PROMISE();
-  td_->ton_wallet_manager_->disable_ton_wallet_backup_with_proof(request.address_, request.private_key_,
-                                                                 std::move(promise));
+  td_->ton_wallet_manager_->disable_ton_wallet_backup_with_proof(std::move(request.proof_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::sendTonWalletTransfer &request) {
