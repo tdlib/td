@@ -1488,6 +1488,24 @@ TonWalletManager::TonConnectChallenge::get_ton_connect_challenge_object() const 
   return td_api::make_object<td_api::tonConnectChallenge>(challenge_, event_id_);
 }
 
+Result<TonWalletManager::WalletOwnershipProof> TonWalletManager::WalletOwnershipProof::get_wallet_ownership_proof(
+    td_api::object_ptr<td_api::tonWalletOwnershipProof> &&proof) {
+  if (proof == nullptr) {
+    return Status::Error(400, "Proof must be non-empty");
+  }
+  if (proof->public_key_.size() != 32u) {
+    return Status::Error(400, "Invalid public key specified");
+  }
+  if (proof->signature_.size() != 64u) {
+    return Status::Error(400, "Invalid signature specified");
+  }
+  WalletOwnershipProof result;
+  result.public_key_ = BufferSlice(proof->public_key_);
+  result.proof_ =
+      telegram_api::make_object<telegram_api::walletOwnershipProof>(proof->timestamp_, BufferSlice(proof->signature_));
+  return std::move(result);
+}
+
 TonWalletManager::TonWalletManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 

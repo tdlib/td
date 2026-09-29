@@ -2210,6 +2210,12 @@ userTonWalletAddresses addresses:vector<userTonWalletAddress> = UserTonWalletAdd
 //@domain Domain of the proof requester
 tonWalletOwnershipProofChallenge payload:string domain:string = TonWalletOwnershipProofChallenge;
 
+//@description Represents a proof of TON wallet ownership
+//@public_key Public key of the wallet
+//@timestamp The current UNIX timestamp which was used to create the proof
+//@signature The signature prooving the ownership
+tonWalletOwnershipProof public_key:bytes timestamp:int32 signature:bytes = TonWalletOwnershipProof;
+
 //@description Represents state of gasless transfers for the current user
 //@left_count Number of left gasless transfers. The daily available number of gasless transfers is available as getOption("ton_wallet_gasless_transfer_daily_count_max")
 //@reset_date Point in time (Unix timestamp) when the number of left transfers will be reset; 0 if never

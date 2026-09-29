@@ -258,6 +258,9 @@ class TonWalletManager final : public Actor {
   struct WalletOwnershipProof {
     BufferSlice public_key_;
     telegram_api::object_ptr<telegram_api::walletOwnershipProof> proof_;
+
+    static Result<WalletOwnershipProof> get_wallet_ownership_proof(
+        td_api::object_ptr<td_api::tonWalletOwnershipProof> &&proof);
   };
 
   void timeout_expired() final;
