@@ -2205,6 +2205,11 @@ userTonWalletAddress user_id:int53 wallet_address:string public_key:bytes = User
 //@description Represents a list of TON wallet addresses of users @addresses A list of TON wallet addresses
 userTonWalletAddresses addresses:vector<userTonWalletAddress> = UserTonWalletAddresses;
 
+//@description Represents a challenge for TON wallet ownership proof
+//@payload Payload of the challenge
+//@domain Domain of the proof requester
+tonWalletOwnershipProofChallenge payload:string domain:string = TonWalletOwnershipProofChallenge;
+
 //@description Represents state of gasless transfers for the current user
 //@left_count Number of left gasless transfers. The daily available number of gasless transfers is available as getOption("ton_wallet_gasless_transfer_daily_count_max")
 //@reset_date Point in time (Unix timestamp) when the number of left transfers will be reset; 0 if never
@@ -16101,6 +16106,9 @@ getAddressTonWallet address:string = UserTonWalletAddress;
 //@description Returns the secret phrase of the user's TON wallet as a space separated list of words. Works only if tonWalletState.can_export_phrase is true
 //@password Password of the current user; pass an empty string unless receive an error PASSWORD_MISSING for a passwordless request
 getTonWalletSecretPhrase password:string = Text;
+
+//@description Returns a challenge which may be used to proof ownership of a TON wallet
+getTonWalletOwnershipProofChallenge = TonWalletOwnershipProofChallenge;
 
 //@description Enables backup of the TON wallet of the user. Works only if tonWalletState.can_enable_backup is true
 //@password Password of the current user; pass an empty string if the user has no password

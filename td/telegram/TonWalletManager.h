@@ -51,6 +51,8 @@ class TonWalletManager final : public Actor {
 
   void get_ton_wallet_secret_phrase(const string &password, Promise<string> &&promise);
 
+  void get_ton_wallet_proof_challenge(Promise<td_api::object_ptr<td_api::tonWalletOwnershipProofChallenge>> &&promise);
+
   void enable_ton_wallet_backup(const string &password, const string &secret_phrase, Promise<Unit> &&promise);
 
   void disable_ton_wallet_backup(const string &password, Promise<Unit> &&promise);

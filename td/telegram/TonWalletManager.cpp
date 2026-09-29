@@ -1794,6 +1794,21 @@ void TonWalletManager::on_get_ton_wallet_secret_phrase_part(
   }
 }
 
+void TonWalletManager::get_ton_wallet_proof_challenge(
+    Promise<td_api::object_ptr<td_api::tonWalletOwnershipProofChallenge>> &&promise) {
+  auto query_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](
+          Result<telegram_api::object_ptr<telegram_api::wallet_proofChallenge>> r_challenge) mutable {
+        if (r_challenge.is_error()) {
+          return promise.set_error(r_challenge.move_as_error());
+        }
+        auto challenge = r_challenge.move_as_ok();
+        promise.set_value(
+            td_api::make_object<td_api::tonWalletOwnershipProofChallenge>(challenge->payload_, challenge->domain_));
+      });
+  td_->create_handler<GetWalletProofChallengeQuery>(std::move(query_promise))->send();
+}
+
 void TonWalletManager::enable_ton_wallet_backup(const string &password, const string &secret_phrase,
                                                 Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());

@@ -8830,6 +8830,8 @@ class CliClient final : public Actor {
       string password;
       get_args(args, password);
       send_request(td_api::make_object<td_api::getTonWalletSecretPhrase>(password));
+    } else if (op == "gtwopc") {
+      send_request(td_api::make_object<td_api::getTonWalletOwnershipProofChallenge>());
     } else if (op == "etwb") {
       string password;
       string secret_phrase;
