@@ -2178,13 +2178,13 @@ tonCenterApiRequestTypeGet query:string = TonCenterApiRequestType;
 tonCenterApiRequestTypePost payload:string = TonCenterApiRequestType;
 
 
-//@class TonWalletTransferReceiver @description Represents expected receiver of a TON Wallet transfer
+//@class TonWalletTransferReceiver @description Represents expected receiver of a TON wallet transfer
 
 //@description The receiver is specified by its username @username Username of the user. Use searchPublicChat to find the user, check that it is a regular user,
-//-and then use createUserTonWallet to get information about the user's TON Wallet
+//-and then use createUserTonWallet to get information about the user's TON wallet
 tonWalletTransferReceiverUser username:string = TonWalletTransferReceiver;
 
-//@description The receiver is specified by its address @address Address of the receiver. Use getAddressTonWallet to get information about the user's TON Wallet
+//@description The receiver is specified by its address @address Address of the receiver. Use getAddressTonWallet to get information about the user's TON wallet
 tonWalletTransferReceiverAddress address:string = TonWalletTransferReceiver;
 
 
@@ -2284,7 +2284,7 @@ onRampPaymentQuote payment_method:string expiration_date:int32 base_currency_amo
 //@url HTTPS URL to be opened in a WebView to complete the purchase
 onRampPaymentSession session_id:string expiration_date:int32 url:string = OnRampPaymentSession;
 
-//@description Describes state of the wallet of the current user in the TON Blockchain
+//@description Describes state of the wallet of the current user in the TON blockchain
 //@address Address of the wallet; may be empty if none
 //@public_key Public key of the wallet; may be empty if none
 //@gram_amount The total amount of owned TON Grams, in the smallest units of the cryptocurrency
@@ -2294,12 +2294,12 @@ onRampPaymentSession session_id:string expiration_date:int32 url:string = OnRamp
 //@can_export_phrase True, if the wallet key can be exported using getTonWalletSecretPhrase
 tonWalletState address:string public_key:bytes gram_amount:int53 is_being_created:Bool is_backup_enabled:Bool can_enable_backup:Bool can_export_phrase:Bool = TonWalletState;
 
-//@description Represents an attribute of an NFT in the TON Blockchain
+//@description Represents an attribute of an NFT in the TON blockchain
 //@trait_type Trait type
 //@value Value of the attribute
 tonNftAttribute trait_type:string value:string = TonNftAttribute;
 
-//@description Represents an NFT in the TON Blockchain
+//@description Represents an NFT in the TON blockchain
 //@collection_address Address of the collection to which the NFT belongs; may be empty if unknown
 //@address Address of the NFT
 //@owner_address Address of the owner of the NFT
@@ -2422,7 +2422,7 @@ tonConnectConnectItemAddress network:string = TonConnectConnectItem;
 tonConnectConnectItemProof payload:string = TonConnectConnectItem;
 
 
-//@description Contains information about a request to connect the user's TON Wallet to a dApp using TON Connect
+//@description Contains information about a request to connect the user's TON wallet to a dApp using TON Connect
 //@manifest_url URL of the manifest of the dApp
 //@items Items requested from the wallet
 tonConnectConnectRequest manifest_url:string items:vector<TonConnectConnectItem> = TonConnectConnectRequest;
@@ -2437,7 +2437,7 @@ tonConnectConnectRequest manifest_url:string items:vector<TonConnectConnectItem>
 //@state Session state
 tonConnectSession id:int64 dapp_client_id:string wallet_client_id:string creation_date:int32 manifest:TonConnectManifest nonce:bytes state:TonConnectSessionState = TonConnectSession;
 
-//@description Contains a list of TON connect sessions @sessions The list of sessions
+//@description Contains a list of TON Connect sessions @sessions The list of sessions
 tonConnectSessions sessions:vector<tonConnectSession> = TonConnectSessions;
 
 //@description Represents a pending TON Connect request
@@ -9963,7 +9963,7 @@ internalLinkTypeTheme theme_name:string = InternalLinkType;
 //@trace_id Identifier to trace the connection request
 internalLinkTypeTonConnect version:int32 dapp_client_id:string connect_request:tonConnectConnectRequest return_strategy:string rpc_request:string trace_id:string = InternalLinkType;
 
-//@description The link is a link for sending Grams from the user's TON Wallet
+//@description The link is a link for sending Grams from the user's TON wallet
 //@receiver Chosen receiver of the transfer; may be null if none
 //@gram_amount The pre-filled amount of TON Grams to send; in the smallest units of the cryptocurrency
 internalLinkTypeTonWalletTransfer receiver:TonWalletTransferReceiver gram_amount:int53 = InternalLinkType;
@@ -10359,7 +10359,7 @@ suggestedActionCheckPhoneNumber = SuggestedAction;
 //@description Suggests the user to view a hint about the meaning of one and two check marks on sent messages
 suggestedActionViewChecksHint = SuggestedAction;
 
-//@description Suggests the user to view a hint about receiving of the first TON Wallet transfer
+//@description Suggests the user to view a hint about receiving of the first TON wallet transfer
 suggestedActionViewFirstTonWalletTransferHint = SuggestedAction;
 
 //@description Suggests the user to convert specified supergroup to a broadcast group @supergroup_id Supergroup identifier
@@ -13239,7 +13239,8 @@ getMessageEffect effect_id:int64 = MessageEffect;
 //@quote_position Approximate quote position in UTF-16 code units
 searchQuote text:formattedText quote:formattedText quote_position:int32 = FoundPosition;
 
-//@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, TON addresses, URLs, and email addresses) found in the text. Can be called synchronously @text The text in which to look for entities
+//@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, TON blockchain addresses, URLs, and email addresses) found in the text.
+//-Can be called synchronously @text The text in which to look for entities
 getTextEntities text:string = TextEntities;
 
 //@description Parses Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, BlockQuote, ExpandableBlockQuote, Code, Pre, PreCode, TextUrl,
