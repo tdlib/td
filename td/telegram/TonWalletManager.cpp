@@ -1396,10 +1396,8 @@ TonWalletManager::TonConnectManifest::TonConnectManifest(
     Td *td, telegram_api::object_ptr<telegram_api::tonConnectManifest> &&manifest)
     : url_(std::move(manifest->url_)), name_(std::move(manifest->name_)) {
   if (manifest->icon_ != nullptr) {
-    auto attributes = DocumentsManager::extract_web_document_attributes(manifest->icon_.get());
-    auto parsed_document =
-        td->documents_manager_->on_get_document({std::move(manifest->icon_), PhotoSize(), std::move(attributes)},
-                                                DialogId(), false, false, nullptr, Document::Type::General);
+    auto parsed_document = td->documents_manager_->on_get_document({std::move(manifest->icon_)}, DialogId(), false,
+                                                                   false, nullptr, Document::Type::General);
     if (parsed_document.file_id.is_valid() && parsed_document.type == Document::Type::General) {
       icon_file_id_ = parsed_document.file_id;
     }
