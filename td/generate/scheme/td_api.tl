@@ -16103,7 +16103,7 @@ getChatRevenueTransactions chat_id:int53 offset:string limit:int32 = ChatRevenue
 //@limit The maximum number of transactions to return
 getTonTransactions direction:TransactionDirection offset:string limit:int32 = TonTransactions;
 
-//@description Returns the list of TON wallet transactions of the current user
+//@description Returns the list of TON wallet transactions of the current user; can be used only if getOption("can_use_ton_wallet")
 //@direction Direction of the transactions to receive; pass null to get all transactions
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of transactions to return
@@ -16116,30 +16116,30 @@ getTonWalletTransaction transaction_id:string = TonWalletTransaction;
 getTonWalletTransactionByMsgHash msg_hash:string = TonWalletTransaction;
 
 
-//@description Loads state of the TON wallet of the current user
+//@description Loads state of the TON wallet of the current user; can be used only if getOption("can_use_ton_wallet")
 loadTonWalletState = Ok;
 
-//@description Loads or reloads the current state of gasless transfers for the current user
+//@description Loads or reloads the current state of gasless transfers for the current user; can be used only if getOption("can_use_ton_wallet")
 loadTonWalletGaslessTransfersInfo = Ok;
 
-//@description Returns information about balance of the current user in the bot https://t.me/walt
+//@description Returns information about balance of the current user in the bot https://t.me/walt; can be used only if getOption("can_use_ton_wallet")
 checkWalletBotBalance = WalletBotBalance;
 
-//@description Returns TON wallet addresses of the specified users
+//@description Returns TON wallet addresses of the specified users; can be used only if getOption("can_use_ton_wallet")
 //@user_ids Identifiers of the users whose wallet addresses have to be returned. If a user has no TON wallet, it will be skipped in the result
 getUserTonWalletAddresses user_ids:vector<int53> = UserTonWalletAddresses;
 
-//@description Creates a TON wallet for the specified regular user. The current user must have positive TON wallet balance @user_id Identifier of the user
+//@description Creates a TON wallet for the specified regular user; can be used only if getOption("can_use_ton_wallet"). The current user must have positive TON wallet balance @user_id Identifier of the user
 createUserTonWallet user_id:int53 = UserTonWalletAddress;
 
-//@description Returns information about a TON wallet with the given address @address Address in the TON blockchain
+//@description Returns information about a TON wallet with the given address; can be used only if getOption("can_use_ton_wallet") @address Address in the TON blockchain
 getAddressTonWallet address:string = UserTonWalletAddress;
 
 //@description Returns the secret phrase of the user's TON wallet as a space separated list of words. Works only if tonWalletState.can_export_phrase is true
 //@password Password of the current user; pass an empty string unless receive an error with a message "PASSWORD_MISSING" for a passwordless request
 getTonWalletSecretPhrase password:string = Text;
 
-//@description Returns a challenge which may be used to proof ownership of a TON wallet
+//@description Returns a challenge which may be used to proof ownership of a TON wallet; can be used only if getOption("can_use_ton_wallet")
 getTonWalletOwnershipProofChallenge = TonWalletOwnershipProofChallenge;
 
 //@description Enables backup of the TON wallet of the user. Works only if tonWalletState.can_enable_backup is true
@@ -16155,17 +16155,17 @@ disableTonWalletBackup password:string = Ok;
 //@proof Proof of the TON wallet ownership; use getTonWalletOwnershipProofChallenge to get a challenge for the proof
 disableTonWalletBackupWithProof proof:tonWalletOwnershipProof = Ok;
 
-//@description Sends a cryptocurrency from the user's TON wallet
+//@description Sends a cryptocurrency from the user's TON wallet; can be used only if getOption("can_use_ton_wallet")
 //@regular_transfer_data Serialized data for regular cryptocurrency transfer request. The minimum allowed transfer amount is getOption("ton_wallet_transfer_amount_min")
 //@gasless_transfer_data Serialized data for gasless cryptocurrency transfer request; pass an empty string to force a regular request.
 //-The minimum allowed transfer amount for a gassless transfer is getOption("ton_wallet_gasless_transfer_amount_min")
 sendTonWalletTransfer regular_transfer_data:bytes gasless_transfer_data:bytes = TonWalletTransferResult;
 
-//@description Deletes the current TON wallet of the user and creates a new one
+//@description Deletes the current TON wallet of the user and creates a new one; can be used only if getOption("can_use_ton_wallet")
 //@password Password of the current user; pass an empty string if the user has no password
 deleteTonWallet password:string = Ok;
 
-//@description Replaces the current TON wallet with another existing v6r2 wallet or changes private key of the current TON wallet
+//@description Replaces the current TON wallet with another existing v6r2 wallet or changes private key of the current TON wallet; can be used only if getOption("can_use_ton_wallet")
 //@password Password of the current user; pass an empty string if the user has no password
 //@anchor_public_key Original public key of the new TON wallet
 //@proof Proof of ownership of the new private key of the TON wallet; use getTonWalletOwnershipProofChallenge to get a challenge for the proof
@@ -16174,16 +16174,16 @@ replaceTonWallet password:string anchor_public_key:bytes proof:tonWalletOwnershi
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
 
-//@description Returns NFTs stored on the TON wallet of the user
+//@description Returns NFTs stored on the TON wallet of the user; can be used only if getOption("can_use_ton_wallet")
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of NFTs to be returned; must be positive and can't be greater than 20
 getTonWalletNfts offset:string limit:int32 = TonNfts;
 
 
-//@description Returns active TON Connect sessions
+//@description Returns active TON Connect sessions; can be used only if getOption("can_use_ton_wallet")
 getTonConnectSessions = TonConnectSessions;
 
-//@description Creates a TON Connect session
+//@description Creates a TON Connect session; can be used only if getOption("can_use_ton_wallet")
 //@dapp_client_id Hex-encoded public X25519 key of the dApp
 //@manifest_url URL of the manifest of the dApp
 createTonConnectSession dapp_client_id:string manifest_url:string = TonConnectSession;

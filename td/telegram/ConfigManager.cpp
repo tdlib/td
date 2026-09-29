@@ -1373,7 +1373,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"stars_paid_messages_available", "can_enable_paid_messages"},
       {"stars_spend_topup_invoice_disabled", "star_top_up_disabled"},
       {"story_weather_preload", "can_preload_weather"},
-      {"video_ignore_alt_documents", ""}};
+      {"video_ignore_alt_documents", ""},
+      {"wallet_available", "can_use_ton_wallet"}};
 
   static const FlatHashMap<Slice, Slice, SliceHash> integer_keys = {
       {"aicompose_tone_examples_num", "text_composition_style_example_count"},
