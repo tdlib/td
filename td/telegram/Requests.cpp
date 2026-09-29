@@ -8031,10 +8031,8 @@ void Requests::on_request(uint64 id, td_api::deleteTonWallet &request) {
 void Requests::on_request(uint64 id, td_api::replaceTonWallet &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
-  CLEAN_INPUT_STRING(request.address_);
   CREATE_OK_REQUEST_PROMISE();
-  td_->ton_wallet_manager_->replace_ton_wallet(request.password_, request.address_, request.private_key_,
-                                               std::move(promise));
+  td_->ton_wallet_manager_->replace_ton_wallet(request.password_, std::move(request.proof_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getCurrencyExchangeRates &request) {

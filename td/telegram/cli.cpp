@@ -8851,13 +8851,6 @@ class CliClient final : public Actor {
       string password;
       get_args(args, password);
       send_request(td_api::make_object<td_api::deleteTonWallet>(password));
-    } else if (op == "replaceTonWallet") {
-      string password;
-      string address;
-      string private_key;
-      get_args(args, password, address, private_key);
-      send_request(
-          td_api::make_object<td_api::replaceTonWallet>(password, address, hex_decode(private_key).move_as_ok()));
     } else if (op == "gcer") {
       send_request(td_api::make_object<td_api::getCurrencyExchangeRates>());
     } else if (op == "gtcs") {

@@ -16126,7 +16126,7 @@ enableTonWalletBackup password:string secret_phrase:string = Ok;
 disableTonWalletBackup password:string = Ok;
 
 //@description Disables backup of the TON wallet of the user using proof of wallet ownership instead of the password. Works only if tonWalletState.is_backup_enabled is true
-//@proof Proof of the TON wallet ownership; use getTonWalletOwnershipProofChallenge to get challenge for the proof
+//@proof Proof of the TON wallet ownership; use getTonWalletOwnershipProofChallenge to get a challenge for the proof
 disableTonWalletBackupWithProof proof:tonWalletOwnershipProof = Ok;
 
 //@description Sends a cryptocurrency from the user's TON wallet
@@ -16139,11 +16139,10 @@ sendTonWalletTransfer regular_transfer_data:bytes gasless_transfer_data:bytes = 
 //@password Password of the current user; pass an empty string if the user has no password
 deleteTonWallet password:string = Ok;
 
-//@description Replaces the current TON wallet with another existing v6r2 wallet
+//@description Replaces private key of the current TON wallet
 //@password Password of the current user; pass an empty string if the user has no password
-//@address Normalized address of the new TON wallet in the URL-safe base64 format
-//@private_key Private key of the TON wallet; the key will be used only to proof ownership of the address
-replaceTonWallet password:string address:string private_key:bytes = Ok;
+//@proof Proof of ownership of the new private key of the TON wallet; use getTonWalletOwnershipProofChallenge to get a challenge for the proof
+replaceTonWallet password:string proof:tonWalletOwnershipProof = Ok;
 
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
