@@ -451,6 +451,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "animation_search_provider",
                                                               "authorization_autoconfirm_period",
                                                               "base_language_pack_version",
+                                                              "bot_allowed_suffixes",
                                                               "bots_create_limit_default",
                                                               "bots_create_limit_premium",
                                                               "business_features",
@@ -570,6 +571,10 @@ bool OptionManager::is_internal_option(Slice name) {
 }
 
 td_api::object_ptr<td_api::Update> OptionManager::get_internal_option_update(Slice name) const {
+  if (name == "bot_allowed_suffixes") {
+    return td_api::make_object<td_api::updateAllowedBotUsernamePremiumSuffixes>(
+        full_split(get_option_string(name), ' '));
+  }
   if (name == "default_reaction") {
     return ReactionType(get_option_string(name)).get_update_default_reaction_type();
   }

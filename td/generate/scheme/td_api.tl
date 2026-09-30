@@ -11263,6 +11263,10 @@ updateStoryListChatCount story_list:StoryList chat_count:int32 = Update;
 //@cooldown_until_date Point in time (Unix timestamp) when stealth mode can be enabled again; 0 if there is no active cooldown
 updateStoryStealthMode active_until_date:int32 cooldown_until_date:int32 = Update;
 
+//@description Lists of suffixes allowed in Premium bot usernames, which can be added additionally to the main username if the bot's owner has a Telegram Premium subscription
+//@suffixes The list of allowed suffixes
+updateAllowedBotUsernamePremiumSuffixes suffixes:vector<string> = Update;
+
 //@description Lists of bots which Mini Apps must be allowed to read text from clipboard and must be opened without a warning
 //@bot_user_ids List of user identifiers of the bots; the corresponding users may not be sent using updateUser updates and may not be accessible
 updateTrustedMiniAppBots bot_user_ids:vector<int53> = Update;

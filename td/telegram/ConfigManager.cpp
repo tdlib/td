@@ -1359,6 +1359,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string ton_stakedice_stake_suggested_amounts;
   string gift_craft_probabilities;
   int32 wallet_gasless_daily_transfers = 0;
+  vector<string> bot_allowed_suffixes;
 
   // {"stories_all_hidden", "archive_all_stories"}
   static const FlatHashMap<Slice, Slice, SliceHash> bool_keys = {
@@ -2045,6 +2046,23 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         wallet_gasless_daily_transfers = get_json_value_int(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "bot_allowed_suffixes") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto suffixes = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &suffix : suffixes) {
+            auto suffix_text = get_json_value_string(std::move(suffix), key);
+            to_lower_inplace(suffix_text);
+            if (!suffix_text.empty() && suffix_text.find(' ') == string::npos) {
+              bot_allowed_suffixes.push_back(suffix_text);
+            } else {
+              LOG(ERROR) << "Receive an invalid bot suffix";
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected bot_allowed_suffixes " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2112,6 +2130,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     options.set_option_string("starref_start_param_prefixes", implode(starref_start_param_prefixes, ' '));
   }
+
+  options.set_option_string("bot_allowed_suffixes", implode(bot_allowed_suffixes, ' '));
 
   options.set_option_string("emoji_sounds", implode(emoji_sounds, ','));
 
