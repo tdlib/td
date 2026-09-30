@@ -1220,9 +1220,17 @@ class LinkManager::InternalLinkRequestManagedBot final : public InternalLink {
   string bot_name_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    auto size = bot_username_.size();
-    if (size < 3u || to_lower(bot_username_[size - 3]) != 'b' || to_lower(bot_username_[size - 2]) != 'o' ||
-        to_lower(bot_username_[size - 1]) != 't') {
+    auto username = to_lower(bot_username_);
+    bool is_found = ends_with(username, "bot");
+    if (!is_found && Scheduler::context() != nullptr) {  // for tests only
+      auto suffixes = full_split(G()->get_option_string("bot_allowed_suffixes"), ' ');
+      for (const auto &suffix : suffixes) {
+        if (ends_with(username, suffix)) {
+          is_found = true;
+        }
+      }
+    }
+    if (!is_found) {
       return td_api::make_object<td_api::internalLinkTypeRequestManagedBot>(
           manager_bot_username_, PSTRING() << bot_username_ << "bot", bot_name_);
     }

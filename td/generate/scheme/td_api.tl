@@ -9908,7 +9908,7 @@ internalLinkTypeQrCodeAuthentication = InternalLinkType;
 //-If the chat is found, the chat is a chat with a bot and the bot has can_manage_bots == true, then show bot creation confirmation dialog
 //-with the given suggested_bot_username and suggested_bot_name. If user agrees, call createBot with via_link == true to create the bot
 //@manager_bot_username Username of the bot which will manage the new bot
-//@suggested_bot_username Suggested username for the bot; always ends with "bot" case-insensitive
+//@suggested_bot_username Suggested username for the bot; always ends with "bot" or a string from updateAllowedBotUsernamePremiumSuffixes case-insensitive
 //@suggested_bot_name Suggested name for the bot; may be empty if not specified
 internalLinkTypeRequestManagedBot manager_bot_username:string suggested_bot_username:string suggested_bot_name:string = InternalLinkType;
 
