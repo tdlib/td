@@ -445,72 +445,6 @@ class ReplaceWalletQuery final : public Td::ResultHandler {
   }
 };
 
-static td_api::object_ptr<td_api::tonWalletTransaction> get_ton_wallet_transaction_object(
-    const Td *td, telegram_api::object_ptr<telegram_api::walletTransaction> &&transaction) {
-  if (transaction == nullptr) {
-    return nullptr;
-  }
-  string peer_address;
-  UserId peer_user_id;
-  string peer_domain;
-  string peer_provider_name;
-  switch (transaction->peer_->get_id()) {
-    case telegram_api::walletTransactionPeerUser::ID: {
-      auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerUser>(transaction->peer_);
-      peer_user_id = UserId(peer->user_id_);
-      if (!peer_user_id.is_valid()) {
-        LOG(ERROR) << "Receive " << peer_user_id;
-        peer_user_id = UserId();
-      }
-      peer_address = std::move(peer->address_);
-      peer_domain = std::move(peer->domain_);
-      break;
-    }
-    case telegram_api::walletTransactionPeerAddress::ID: {
-      auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerAddress>(transaction->peer_);
-      peer_address = std::move(peer->address_);
-      peer_domain = std::move(peer->domain_);
-      break;
-    }
-    case telegram_api::walletTransactionPeerOnramp::ID: {
-      auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerOnramp>(transaction->peer_);
-      peer_address = std::move(peer->address_);
-      peer_domain = std::move(peer->domain_);
-      peer_provider_name = std::move(peer->provider_name_);
-      break;
-    }
-    case telegram_api::walletTransactionPeerUnsupported::ID:
-      break;
-    default:
-      UNREACHABLE();
-  }
-  auto amount = transaction->amount_;
-  if (!transaction->incoming_ && amount > 0) {
-    amount = -amount;
-  }
-  auto state = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionState> {
-    if (transaction->failed_) {
-      return td_api::make_object<td_api::tonWalletTransactionStateFailed>();
-    }
-    return td_api::make_object<td_api::tonWalletTransactionStateSucceeded>(transaction->tx_hash_);
-  }();
-  auto type = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionType> {
-    if (!peer_provider_name.empty()) {
-      return td_api::make_object<td_api::tonWalletTransactionTypeOnRampDeposit>(amount, transaction->fee_,
-                                                                                peer_provider_name);
-    }
-    if (transaction->key_change_) {
-      peer_user_id = td->user_manager_->get_my_id();
-      return td_api::make_object<td_api::tonWalletTransactionTypeKeyChange>(transaction->fee_);
-    }
-    return td_api::make_object<td_api::tonWalletTransactionTypeTransfer>(
-        amount, transaction->fee_, transaction->gasless_, transaction->comment_, transaction->comment_encrypted_);
-  }();
-  return td_api::make_object<td_api::tonWalletTransaction>(
-      transaction->id_, peer_address, td->user_manager_->get_user_id_object(peer_user_id, "tonWalletTransaction"),
-      peer_domain, transaction->date_, std::move(state), std::move(type));
-}
-
 class GetTonWalletTransactionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::tonWalletTransactions>> promise_;
 
@@ -552,7 +486,7 @@ class GetTonWalletTransactionsQuery final : public Td::ResultHandler {
 
     vector<td_api::object_ptr<td_api::tonWalletTransaction>> transactions;
     for (auto &transaction : result->transactions_) {
-      transactions.push_back(get_ton_wallet_transaction_object(td_, std::move(transaction)));
+      transactions.push_back(TonWalletManager::get_ton_wallet_transaction_object(td_, std::move(transaction)));
     }
     promise_.set_value(td_api::make_object<td_api::tonWalletTransactions>(result->balance_, std::move(transactions),
                                                                           result->next_offset_));
@@ -602,7 +536,7 @@ class GetTonWalletTransactionQuery final : public Td::ResultHandler {
       return on_error(Status::Error(500, "Receive invalid respomse"));
     }
 
-    promise_.set_value(get_ton_wallet_transaction_object(td_, std::move(result->transactions_[0])));
+    promise_.set_value(TonWalletManager::get_ton_wallet_transaction_object(td_, std::move(result->transactions_[0])));
   }
 
   void on_error(Status status) final {
@@ -643,7 +577,7 @@ class SendWalletTransferQuery final : public Td::ResultHandler {
     }
     auto transfer_result = td_api::make_object<td_api::tonWalletTransferResult>(
         sent_wallet_transaction->gasless_, sent_wallet_transaction->msg_hash_,
-        get_ton_wallet_transaction_object(td_, std::move(sent_wallet_transaction->transaction_)));
+        TonWalletManager::get_ton_wallet_transaction_object(td_, std::move(sent_wallet_transaction->transaction_)));
     td_->updates_manager_->on_get_updates(
         std::move(result),
         PromiseCreator::lambda([transfer_result = std::move(transfer_result), promise = std::move(promise_)](
@@ -2391,6 +2325,77 @@ void TonWalletManager::on_get_backup_holder_dcs(
   CHECK(backup_holder_dcs_.dcs_.empty());
   backup_holder_dcs_.dcs_ = std::move(holder_dcs);
   set_promises(promises);
+}
+
+td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_wallet_transaction_object(
+    Td *td, telegram_api::object_ptr<telegram_api::walletTransaction> &&transaction) {
+  if (transaction == nullptr) {
+    return nullptr;
+  }
+  string peer_address;
+  UserId peer_user_id;
+  string peer_domain;
+  string peer_provider_name;
+  switch (transaction->peer_->get_id()) {
+    case telegram_api::walletTransactionPeerUser::ID: {
+      auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerUser>(transaction->peer_);
+      peer_user_id = UserId(peer->user_id_);
+      if (!peer_user_id.is_valid()) {
+        LOG(ERROR) << "Receive " << peer_user_id;
+        peer_user_id = UserId();
+      }
+      peer_address = std::move(peer->address_);
+      peer_domain = std::move(peer->domain_);
+      break;
+    }
+    case telegram_api::walletTransactionPeerAddress::ID: {
+      auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerAddress>(transaction->peer_);
+      peer_address = std::move(peer->address_);
+      peer_domain = std::move(peer->domain_);
+      break;
+    }
+    case telegram_api::walletTransactionPeerOnramp::ID: {
+      auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerOnramp>(transaction->peer_);
+      peer_address = std::move(peer->address_);
+      peer_domain = std::move(peer->domain_);
+      peer_provider_name = std::move(peer->provider_name_);
+      break;
+    }
+    case telegram_api::walletTransactionPeerUnsupported::ID:
+      break;
+    default:
+      UNREACHABLE();
+  }
+  auto amount = transaction->amount_;
+  if (!transaction->incoming_ && amount > 0) {
+    amount = -amount;
+  }
+  auto state = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionState> {
+    if (transaction->failed_) {
+      return td_api::make_object<td_api::tonWalletTransactionStateFailed>();
+    }
+    return td_api::make_object<td_api::tonWalletTransactionStateSucceeded>(transaction->tx_hash_);
+  }();
+  auto type = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionType> {
+    if (transaction->nft_ != nullptr) {
+      return td_api::make_object<td_api::tonWalletTransactionTypeNftTransfer>(
+          Nft(td, std::move(transaction->nft_)).get_ton_nft_object(td), transaction->fee_, transaction->comment_,
+          transaction->comment_encrypted_);
+    }
+    if (!peer_provider_name.empty()) {
+      return td_api::make_object<td_api::tonWalletTransactionTypeOnRampDeposit>(amount, transaction->fee_,
+                                                                                peer_provider_name);
+    }
+    if (transaction->key_change_) {
+      peer_user_id = td->user_manager_->get_my_id();
+      return td_api::make_object<td_api::tonWalletTransactionTypeKeyChange>(transaction->fee_);
+    }
+    return td_api::make_object<td_api::tonWalletTransactionTypeTransfer>(
+        amount, transaction->fee_, transaction->gasless_, transaction->comment_, transaction->comment_encrypted_);
+  }();
+  return td_api::make_object<td_api::tonWalletTransaction>(
+      transaction->id_, peer_address, td->user_manager_->get_user_id_object(peer_user_id, "tonWalletTransaction"),
+      peer_domain, transaction->date_, std::move(state), std::move(type));
 }
 
 td_api::object_ptr<td_api::TonConnectManifest> TonWalletManager::get_ton_connect_manifest_object(

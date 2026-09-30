@@ -2345,6 +2345,13 @@ tonWalletTransactionTypeOnRampDeposit amount:int53 fee_amount:int53 provider_nam
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
 tonWalletTransactionTypeTransfer amount:int53 fee_amount:int53 is_gasless:Bool comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
 
+//@description A transfer of a TON NFT to or from the wallet
+//@nft The transferred NFT
+//@fee_amount The fee amount paid for the transaction, in the smallest units of the cryptocurrency
+//@comment Comment added to the transaction
+//@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
+tonWalletTransactionTypeNftTransfer nft:tonNft fee_amount:int53 comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
+
 //@description Change of the wallet key
 //@fee_amount The fee amount paid for the transaction in TON Grams, in the smallest units of the cryptocurrency
 tonWalletTransactionTypeKeyChange fee_amount:int53 = TonWalletTransactionType;

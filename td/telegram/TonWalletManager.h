@@ -147,6 +147,9 @@ class TonWalletManager final : public Actor {
 
   void get_ton_center_streaming_api_url(Promise<td_api::object_ptr<td_api::tonCenterStreamingApiUrl>> &&promise);
 
+  static td_api::object_ptr<td_api::tonWalletTransaction> get_ton_wallet_transaction_object(
+      Td *td, telegram_api::object_ptr<telegram_api::walletTransaction> &&transaction);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
