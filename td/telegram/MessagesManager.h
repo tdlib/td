@@ -2206,7 +2206,7 @@ class MessagesManager final : public Actor {
 
   void preload_older_messages(const Dialog *d, MessageId min_message_id);
 
-  void load_last_dialog_message_later(DialogId dialog_id);
+  void load_last_dialog_message_later(DialogId dialog_id, bool only_if_last_message_is_unknown);
 
   void load_last_dialog_message(const Dialog *d, const char *source);
 

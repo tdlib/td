@@ -13630,7 +13630,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   d->being_deleted_message_id = MessageId();
 
   if (need_get_history) {
-    send_closure_later(actor_id(this), &MessagesManager::load_last_dialog_message_later, d->dialog_id);
+    send_closure_later(actor_id(this), &MessagesManager::load_last_dialog_message_later, d->dialog_id, false);
   }
 
   on_message_deleted(d, result.get(), is_permanently_deleted, source);
@@ -19807,18 +19807,25 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   promise.set_value(Unit());
 }
 
-void MessagesManager::load_last_dialog_message_later(DialogId dialog_id) {
+void MessagesManager::load_last_dialog_message_later(DialogId dialog_id, bool only_if_last_message_is_unknown) {
   if (G()->close_flag()) {
     return;
   }
-  load_last_dialog_message(get_dialog(dialog_id), "load_last_dialog_message");
+  auto *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  if (only_if_last_message_is_unknown && d->last_message_id != MessageId()) {
+    return;
+  }
+  load_last_dialog_message(d, "load_last_dialog_message_later");
 }
 
 void MessagesManager::load_last_dialog_message(const Dialog *d, const char *source) {
-  if (td_->auth_manager_->is_bot() || d->dialog_id == being_added_dialog_id_ ||
-      d->dialog_id == being_added_by_new_message_dialog_id_ || (d->order == DEFAULT_ORDER && !is_dialog_sponsored(d)) ||
-      being_added_dialog_ids_.count(d->dialog_id) > 0) {
+  if (td_->auth_manager_->is_bot() || (d->order == DEFAULT_ORDER && !is_dialog_sponsored(d))) {
     return;
+  }
+  if (d->dialog_id == being_added_dialog_id_ || d->dialog_id == being_added_by_new_message_dialog_id_ ||
+      being_added_dialog_ids_.count(d->dialog_id) > 0) {
+    return send_closure_later(actor_id(this), &MessagesManager::load_last_dialog_message_later, d->dialog_id, true);
   }
   get_history_impl(d, MessageId::max(), 0, -1, true, false, Promise<Unit>(), source);
 }
@@ -31057,9 +31064,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
     send_update_chat_last_message(d, source);
     *need_update_dialog_pos = false;
 
-    on_dialog_updated(dialog_id, "do delete last message");
-
-    send_closure_later(actor_id(this), &MessagesManager::load_last_dialog_message_later, dialog_id);
+    send_closure_later(actor_id(this), &MessagesManager::load_last_dialog_message_later, dialog_id, true);
   }
 
   d->ordered_messages.insert(message_id, from_update, old_last_message_id, source);
