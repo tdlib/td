@@ -1244,7 +1244,6 @@ class AddBotUsernameQuery final : public Td::ResultHandler {
     bool result = result_ptr.ok();
     LOG(DEBUG) << "Receive result for AddBotUsernameQuery: " << result;
     promise_.set_value(Unit());
-    td_->user_manager_->reload_user(bot_user_id_, Promise<Unit>(), "AddBotUsernameQuery");
   }
 
   void on_error(Status status) final {
@@ -1252,6 +1251,44 @@ class AddBotUsernameQuery final : public Td::ResultHandler {
       return;
     }
     td_->user_manager_->reload_user(bot_user_id_, Promise<Unit>(), "AddBotUsernameQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class RemoveBotUsernameQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  UserId bot_user_id_;
+
+ public:
+  explicit RemoveBotUsernameQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id, const string &username) {
+    bot_user_id_ = bot_user_id;
+    auto r_input_user = td_->user_manager_->get_input_user(bot_user_id_);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    send_query(G()->net_query_creator().create(telegram_api::bots_removeUsername(r_input_user.move_as_ok(), username),
+                                               {{bot_user_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_removeUsername>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG(DEBUG) << "Receive result for RemoveBotUsernameQuery: " << result;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "USERNAME_NOT_MODIFIED") {
+      return;
+    }
+    td_->user_manager_->reload_user(bot_user_id_, Promise<Unit>(), "RemoveBotUsernameQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -6678,6 +6715,9 @@ void UserManager::add_bot_username(UserId bot_user_id, string &&username, Promis
   if (!bot_data.can_be_edited) {
     return promise.set_error(400, "The bot can't be edited");
   }
+  if (!td_->option_manager_->get_option_boolean("is_premium")) {
+    return promise.set_error(400, "The method is available only to Telegram Premium users");
+  }
   User *u = get_user(bot_user_id);
   CHECK(u != nullptr);
   if (!u->usernames.can_add_secondary(username)) {
@@ -6686,6 +6726,26 @@ void UserManager::add_bot_username(UserId bot_user_id, string &&username, Promis
   on_update_user_usernames(u, bot_user_id, u->usernames.add_secondary(username));
   update_user(u, bot_user_id);
   td_->create_handler<AddBotUsernameQuery>(std::move(promise))->send(bot_user_id, username);
+}
+
+void UserManager::delete_bot_username(UserId bot_user_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, bot_data, get_bot_data(bot_user_id));
+  if (!bot_data.can_be_edited) {
+    return promise.set_error(400, "The bot can't be edited");
+  }
+  User *u = get_user(bot_user_id);
+  CHECK(u != nullptr);
+  const auto &deletable_usernames = u->usernames.get_deletable_usernames();
+  if (deletable_usernames.empty()) {
+    return promise.set_value(Unit());
+  }
+  auto username = deletable_usernames[0];
+  if (!u->usernames.can_delete_secondary(username)) {
+    return promise.set_error(400, "Can't delete secondary username");
+  }
+  on_update_user_usernames(u, bot_user_id, u->usernames.delete_secondary(username));
+  update_user(u, bot_user_id);
+  td_->create_handler<RemoveBotUsernameQuery>(std::move(promise))->send(bot_user_id, username);
 }
 
 void UserManager::toggle_bot_username_is_active(UserId bot_user_id, string &&username, bool is_active,

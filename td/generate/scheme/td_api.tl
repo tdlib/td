@@ -15445,6 +15445,10 @@ setBotProfilePhoto bot_user_id:int53 photo:InputChatPhoto = Ok;
 //@username The new secondary username; must be non-empty. Use checkBotUsername to check username validness
 addBotSecondaryUsername bot_user_id:int53 username:string = Ok;
 
+//@description Removes a secondary username from a bot. Can be called only if userTypeBot.can_be_edited == true and the bot has a secondary username
+//@bot_user_id Identifier of the target bot
+deleteBotSecondaryUsername bot_user_id:int53 = Ok;
+
 //@description Changes active state for a username of a bot. The editable username can be disabled only if there are other active usernames.
 //-May return an error with a message "USERNAMES_ACTIVE_TOO_MUCH" if the maximum number of active usernames has been reached. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot

@@ -8481,6 +8481,10 @@ class CliClient final : public Actor {
       string username;
       get_args(args, bot_user_id, username);
       send_request(td_api::make_object<td_api::addBotSecondaryUsername>(bot_user_id, username));
+    } else if (op == "dbsun") {
+      UserId bot_user_id;
+      get_args(args, bot_user_id);
+      send_request(td_api::make_object<td_api::deleteBotSecondaryUsername>(bot_user_id));
     } else if (op == "tbunia") {
       UserId bot_user_id;
       string username;

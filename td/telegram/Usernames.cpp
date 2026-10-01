@@ -373,7 +373,7 @@ void Usernames::check_validness() {
 
 bool operator==(const Usernames &lhs, const Usernames &rhs) {
   return lhs.active_usernames_ == rhs.active_usernames_ && lhs.disabled_usernames_ == rhs.disabled_usernames_ &&
-         lhs.editable_username_pos_ == rhs.editable_username_pos_ &&
+         lhs.editable_username_pos_ == rhs.editable_username_pos_ && lhs.is_editable_username_disabled_ == rhs.is_editable_username_disabled_ &&
          lhs.other_editable_usernames_ == rhs.other_editable_usernames_ &&
          lhs.deletable_usernames_ == rhs.deletable_usernames_ && lhs.expired_usernames_ == rhs.expired_usernames_;
 }

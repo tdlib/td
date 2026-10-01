@@ -69,6 +69,10 @@ class Usernames {
     return active_usernames_;
   }
 
+  const vector<string> &get_deletable_usernames() const {
+    return deletable_usernames_;
+  }
+
   Usernames change_editable_username(string &&new_username) const;
 
   bool can_toggle(bool for_bot, const string &username) const;

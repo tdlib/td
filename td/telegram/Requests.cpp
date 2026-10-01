@@ -7051,6 +7051,12 @@ void Requests::on_request(uint64 id, td_api::addBotSecondaryUsername &request) {
   td_->user_manager_->add_bot_username(UserId(request.bot_user_id_), std::move(request.username_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::deleteBotSecondaryUsername &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->delete_bot_username(UserId(request.bot_user_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::toggleBotUsernameIsActive &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);
