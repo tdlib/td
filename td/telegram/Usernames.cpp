@@ -237,6 +237,44 @@ Usernames Usernames::add_secondary(const string &username) const {
   if (result.has_editable_username() && !result.is_editable_username_disabled_) {
     result.editable_username_pos_++;
   }
+  result.check_validness();
+  return result;
+}
+
+bool Usernames::can_delete_secondary(const string &username) const {
+  return td::contains(deletable_usernames_, username) && get_editable_username() != username;
+}
+
+Usernames Usernames::delete_secondary(const string &username) const {
+  Usernames result = *this;
+  if (!can_delete_secondary(username)) {
+    return result;
+  }
+  td::remove(result.deletable_usernames_, username);
+  for (size_t i = 0; i < active_usernames_.size(); i++) {
+    if (active_usernames_[i] == username) {
+      result.active_usernames_.erase(result.active_usernames_.begin() + i);
+      if (has_editable_username() && !is_editable_username_disabled_ &&
+          i <= static_cast<size_t>(result.editable_username_pos_)) {
+        CHECK(i < static_cast<size_t>(result.editable_username_pos_));
+        result.editable_username_pos_--;
+      }
+    }
+  }
+  for (size_t i = 0; i < disabled_usernames_.size(); i++) {
+    if (disabled_usernames_[i] == username) {
+      result.disabled_usernames_.erase(result.disabled_usernames_.begin() + i);
+      if (has_editable_username() && is_editable_username_disabled_ &&
+          i <= static_cast<size_t>(result.editable_username_pos_)) {
+        CHECK(i < static_cast<size_t>(result.editable_username_pos_));
+        result.editable_username_pos_--;
+      }
+    }
+  }
+  result.check_validness();
+  if (result.active_usernames_.empty() && result.has_editable_username()) {
+    result = result.toggle(true, result.get_editable_username().str(), true);
+  }
   return result;
 }
 

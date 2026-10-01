@@ -79,6 +79,10 @@ class Usernames {
 
   Usernames add_secondary(const string &username) const;
 
+  bool can_delete_secondary(const string &username) const;
+
+  Usernames delete_secondary(const string &username) const;
+
   Usernames deactivate_all() const;
 
   bool can_reorder_to(const vector<string> &new_username_order) const;
