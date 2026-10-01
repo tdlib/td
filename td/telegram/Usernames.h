@@ -22,6 +22,8 @@ class Usernames {
   int32 editable_username_pos_ = -1;
   bool is_editable_username_disabled_ = false;
   vector<string> other_editable_usernames_;
+  vector<string> deletable_usernames_;
+  vector<string> expired_usernames_;
 
   friend bool operator==(const Usernames &lhs, const Usernames &rhs);
 
@@ -87,6 +89,8 @@ class Usernames {
     bool has_editable_username = editable_username_pos_ != -1;
     bool has_active_usernames = !active_usernames_.empty();
     bool has_other_editable_usernames = !other_editable_usernames_.empty();
+    bool has_deletable_usernames = !deletable_usernames_.empty();
+    bool has_expired_usernames = !expired_usernames_.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_many_active_usernames);
     STORE_FLAG(has_disabled_usernames);
@@ -94,6 +98,8 @@ class Usernames {
     STORE_FLAG(has_active_usernames);
     STORE_FLAG(is_editable_username_disabled_);
     STORE_FLAG(has_other_editable_usernames);
+    STORE_FLAG(has_deletable_usernames);
+    STORE_FLAG(has_expired_usernames);
     END_STORE_FLAGS();
     if (is_editable_username_disabled_) {
       CHECK(has_editable_username);
@@ -117,6 +123,12 @@ class Usernames {
     if (has_other_editable_usernames) {
       td::store(other_editable_usernames_, storer);
     }
+    if (has_deletable_usernames) {
+      td::store(deletable_usernames_, storer);
+    }
+    if (has_expired_usernames) {
+      td::store(expired_usernames_, storer);
+    }
   }
 
   template <class ParserT>
@@ -127,6 +139,8 @@ class Usernames {
     bool has_editable_username;
     bool has_active_usernames;
     bool has_other_editable_usernames;
+    bool has_deletable_usernames;
+    bool has_expired_usernames;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_many_active_usernames);
     PARSE_FLAG(has_disabled_usernames);
@@ -134,6 +148,8 @@ class Usernames {
     PARSE_FLAG(has_active_usernames);
     PARSE_FLAG(is_editable_username_disabled_);
     PARSE_FLAG(has_other_editable_usernames);
+    PARSE_FLAG(has_deletable_usernames);
+    PARSE_FLAG(has_expired_usernames);
     END_PARSE_FLAGS();
     if (is_editable_username_disabled_) {
       if (has_active_usernames) {
@@ -159,6 +175,12 @@ class Usernames {
     }
     if (has_other_editable_usernames) {
       td::parse(other_editable_usernames_, parser);
+    }
+    if (has_deletable_usernames) {
+      td::parse(deletable_usernames_, parser);
+    }
+    if (has_expired_usernames) {
+      td::parse(expired_usernames_, parser);
     }
     check_validness();
   }
