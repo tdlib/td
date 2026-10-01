@@ -8476,6 +8476,11 @@ class CliClient final : public Actor {
       InputChatPhoto input_chat_photo;
       get_args(args, bot_user_id, input_chat_photo);
       send_request(td_api::make_object<td_api::setBotProfilePhoto>(bot_user_id, input_chat_photo));
+    } else if (op == "absun") {
+      UserId bot_user_id;
+      string username;
+      get_args(args, bot_user_id, username);
+      send_request(td_api::make_object<td_api::addBotSecondaryUsername>(bot_user_id, username));
     } else if (op == "tbunia") {
       UserId bot_user_id;
       string username;

@@ -419,6 +419,8 @@ class UserManager final : public Actor {
 
   void reorder_usernames(vector<string> &&usernames, Promise<Unit> &&promise);
 
+  void add_bot_username(UserId bot_user_id, string &&username, Promise<Unit> &&promise);
+
   void toggle_bot_username_is_active(UserId bot_user_id, string &&username, bool is_active, Promise<Unit> &&promise);
 
   void reorder_bot_usernames(UserId bot_user_id, vector<string> &&usernames, Promise<Unit> &&promise);

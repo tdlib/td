@@ -233,7 +233,10 @@ Usernames Usernames::add_secondary(const string &username) const {
     return result;
   }
   result.deletable_usernames_.push_back(username);
-  result.active_usernames_.push_back(username);
+  result.active_usernames_.insert(result.active_usernames_.begin(), username);
+  if (result.has_editable_username() && !result.is_editable_username_disabled_) {
+    result.editable_username_pos_++;
+  }
   return result;
 }
 
