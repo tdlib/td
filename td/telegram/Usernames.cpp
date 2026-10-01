@@ -214,6 +214,29 @@ Usernames Usernames::toggle(bool for_bot, const string &username, bool is_active
   return result;
 }
 
+bool Usernames::can_add_secondary(const string &username) const {
+  if (!deletable_usernames_.empty()) {
+    return false;
+  }
+  if (username.empty()) {
+    return false;
+  }
+  if (td::contains(active_usernames_, username) || td::contains(disabled_usernames_, username)) {
+    return false;
+  }
+  return true;
+}
+
+Usernames Usernames::add_secondary(const string &username) const {
+  Usernames result = *this;
+  if (!can_add_secondary(username)) {
+    return result;
+  }
+  result.deletable_usernames_.push_back(username);
+  result.active_usernames_.push_back(username);
+  return result;
+}
+
 Usernames Usernames::deactivate_all() const {
   Usernames result;
   for (size_t i = 0; i < active_usernames_.size(); i++) {

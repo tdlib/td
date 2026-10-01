@@ -75,6 +75,10 @@ class Usernames {
 
   Usernames toggle(bool for_bot, const string &username, bool is_active) const;
 
+  bool can_add_secondary(const string &username) const;
+
+  Usernames add_secondary(const string &username) const;
+
   Usernames deactivate_all() const;
 
   bool can_reorder_to(const vector<string> &new_username_order) const;
