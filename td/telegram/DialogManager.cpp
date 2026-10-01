@@ -93,10 +93,11 @@ class CheckChannelUsernameQuery final : public Td::ResultHandler {
   explicit CheckChannelUsernameQuery(Promise<bool> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, const string &username, bool is_bot) {
+  void send(ChannelId channel_id, const string &username, bool is_bot, bool is_additional) {
     if (is_bot) {
       CHECK(channel_id == ChannelId());
-      send_query(G()->net_query_creator().create(telegram_api::bots_checkUsername(0, false, username), {{"me"}}));
+      send_query(
+          G()->net_query_creator().create(telegram_api::bots_checkUsername(0, is_additional, username), {{"me"}}));
       return;
     }
     channel_id_ = channel_id;
@@ -3044,7 +3045,7 @@ void DialogManager::on_dialog_usernames_received(DialogId dialog_id, const Usern
   }
 }
 
-void DialogManager::check_dialog_username(DialogId dialog_id, const string &username, bool is_bot,
+void DialogManager::check_dialog_username(DialogId dialog_id, const string &username, bool is_bot, bool is_additional,
                                           Promise<CheckDialogUsernameResult> &&promise) {
   if (dialog_id != DialogId() && dialog_id.get_type() != DialogType::User &&
       !have_dialog_force(dialog_id, "check_dialog_username")) {
@@ -3082,7 +3083,8 @@ void DialogManager::check_dialog_username(DialogId dialog_id, const string &user
   }
 
   if (username.empty()) {
-    return promise.set_value(is_bot ? CheckDialogUsernameResult::Invalid : CheckDialogUsernameResult::Ok);
+    return promise.set_value(is_bot && !is_additional ? CheckDialogUsernameResult::Invalid
+                                                      : CheckDialogUsernameResult::Ok);
   }
 
   if (!is_allowed_username(username) && username.size() != 4) {
@@ -3118,10 +3120,10 @@ void DialogManager::check_dialog_username(DialogId dialog_id, const string &user
       return td_->create_handler<CheckUsernameQuery>(std::move(request_promise))->send(username);
     case DialogType::Channel:
       return td_->create_handler<CheckChannelUsernameQuery>(std::move(request_promise))
-          ->send(dialog_id.get_channel_id(), username, is_bot);
+          ->send(dialog_id.get_channel_id(), username, is_bot, is_additional);
     case DialogType::None:
       return td_->create_handler<CheckChannelUsernameQuery>(std::move(request_promise))
-          ->send(ChannelId(), username, is_bot);
+          ->send(ChannelId(), username, is_bot, is_additional);
     case DialogType::Chat:
     case DialogType::SecretChat:
     default:

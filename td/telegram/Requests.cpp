@@ -3489,7 +3489,7 @@ void Requests::on_request(uint64 id, td_api::checkChatUsername &request) {
           promise.set_value(DialogManager::get_check_chat_username_result_object(result.ok()));
         }
       });
-  td_->dialog_manager_->check_dialog_username(DialogId(request.chat_id_), request.username_, false,
+  td_->dialog_manager_->check_dialog_username(DialogId(request.chat_id_), request.username_, false, false,
                                               std::move(query_promise));
 }
 
@@ -6995,7 +6995,8 @@ void Requests::on_request(uint64 id, td_api::checkBotUsername &request) {
           promise.set_value(DialogManager::get_check_chat_username_result_object(result.ok()));
         }
       });
-  td_->dialog_manager_->check_dialog_username(DialogId(), request.username_, true, std::move(query_promise));
+  td_->dialog_manager_->check_dialog_username(DialogId(), request.username_, true, request.is_secondary_,
+                                              std::move(query_promise));
 }
 
 void Requests::on_request(uint64 id, td_api::createBot &request) {

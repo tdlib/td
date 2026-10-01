@@ -11270,7 +11270,7 @@ updateStoryListChatCount story_list:StoryList chat_count:int32 = Update;
 //@cooldown_until_date Point in time (Unix timestamp) when stealth mode can be enabled again; 0 if there is no active cooldown
 updateStoryStealthMode active_until_date:int32 cooldown_until_date:int32 = Update;
 
-//@description Lists of suffixes allowed in Premium bot usernames, which can be added additionally to the main username if the bot's owner has a Telegram Premium subscription
+//@description Lists of suffixes allowed in secondary bot usernames, which can be added additionally to the main username if the bot's owner has a Telegram Premium subscription
 //@suffixes The list of allowed suffixes
 updateAllowedBotUsernamePremiumSuffixes suffixes:vector<string> = Update;
 
@@ -15398,17 +15398,18 @@ reorderBotMediaPreviews bot_user_id:int53 language_code:string file_ids:vector<i
 deleteBotMediaPreviews bot_user_id:int53 language_code:string file_ids:vector<int32> = Ok;
 
 
-//@description Checks whether a username can be set for a new bot. Use checkChatUsername to check username for other chat types
+//@description Checks whether a username can be set for a new bot or assigned as a secondary username to an existing bot. Use checkChatUsername to check username for other chat types
 //@username Username to be checked
-checkBotUsername username:string = CheckChatUsernameResult;
+//@is_secondary Pass true to check whether the username is suitable as a secondary username for an existing bot; pass false to check whether the username is suitable for createBot
+checkBotUsername username:string is_secondary:Bool = CheckChatUsernameResult;
 
 //@description Creates a bot which will be managed by another bot. Returns the created bot. May return an error with a message "BOT_CREATE_LIMIT_EXCEEDED"
 //-if the user already owns the maximum allowed number of bots as per getOption("owned_bot_count_max"). An internal link "https://t.me/BotFather?start=deletebot" can be processed to handle the error
 //@manager_bot_user_id Identifier of the bot that will manage the created bot
 //@name Name of the bot; 1-64 characters
 //@username Username of the bot. The username must end with "bot" or a string from updateAllowedBotUsernamePremiumSuffixes case-insensitive.
-//-Use checkBotUsername to find whether the name is suitable. If the username doesn't end with "bot", then the current user must have Telegram Premium subscription
-//-and an additional regular username ending with "bot" will be automatically assigned to the created bot
+//-Use checkBotUsername to find whether the name is suitable. If the username doesn't end with "bot", then the current user must have Telegram Premium subscription,
+//-the chosen username will be assigened as secondary and an additional regular username ending with "bot" will be automatically assigned to the created bot
 //@via_link Pass true if the bot is created from an internalLinkTypeRequestManagedBot link
 createBot manager_bot_user_id:int53 name:string username:string via_link:Bool = User;
 

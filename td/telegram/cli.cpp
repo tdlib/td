@@ -8432,10 +8432,10 @@ class CliClient final : public Actor {
       get_args(args, bot_user_id, language_code, file_ids);
       send_request(
           td_api::make_object<td_api::deleteBotMediaPreviews>(bot_user_id, language_code, as_file_ids(file_ids)));
-    } else if (op == "cbun") {
+    } else if (op == "cbun" || op == "cbun2") {
       string username;
       get_args(args, username);
-      send_request(td_api::make_object<td_api::checkBotUsername>(username));
+      send_request(td_api::make_object<td_api::checkBotUsername>(username, op == "cbun2"));
     } else if (op == "cb" || op == "cbl") {
       UserId manager_bot_user_id;
       string name;
