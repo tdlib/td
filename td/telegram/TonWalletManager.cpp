@@ -2379,23 +2379,22 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
   auto type = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionType> {
     if (transaction->nft_ != nullptr) {
       return td_api::make_object<td_api::tonWalletTransactionTypeNftTransfer>(
-          Nft(td, std::move(transaction->nft_)).get_ton_nft_object(td), transaction->fee_, transaction->comment_,
+          Nft(td, std::move(transaction->nft_)).get_ton_nft_object(td), transaction->comment_,
           transaction->comment_encrypted_);
     }
     if (!peer_provider_name.empty()) {
-      return td_api::make_object<td_api::tonWalletTransactionTypeOnRampDeposit>(amount, transaction->fee_,
-                                                                                peer_provider_name);
+      return td_api::make_object<td_api::tonWalletTransactionTypeOnRampDeposit>(amount, peer_provider_name);
     }
     if (transaction->key_change_) {
       peer_user_id = td->user_manager_->get_my_id();
-      return td_api::make_object<td_api::tonWalletTransactionTypeKeyChange>(transaction->fee_);
+      return td_api::make_object<td_api::tonWalletTransactionTypeKeyChange>();
     }
     return td_api::make_object<td_api::tonWalletTransactionTypeTransfer>(
-        amount, transaction->fee_, transaction->gasless_, transaction->comment_, transaction->comment_encrypted_);
+        amount, transaction->gasless_, transaction->comment_, transaction->comment_encrypted_);
   }();
   return td_api::make_object<td_api::tonWalletTransaction>(
       transaction->id_, peer_address, td->user_manager_->get_user_id_object(peer_user_id, "tonWalletTransaction"),
-      peer_domain, transaction->date_, std::move(state), std::move(type));
+      peer_domain, transaction->date_, transaction->fee_, std::move(state), std::move(type));
 }
 
 td_api::object_ptr<td_api::TonConnectManifest> TonWalletManager::get_ton_connect_manifest_object(

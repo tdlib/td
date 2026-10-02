@@ -2333,28 +2333,24 @@ tonWalletTransactionStateFailed = TonWalletTransactionState;
 
 //@description The transaction is a deposit from an on-ramp provider
 //@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency
-//@fee_amount The fee amount paid for the transaction, in the smallest units of the cryptocurrency
 //@provider_name Name of the on-ramp provider
-tonWalletTransactionTypeOnRampDeposit amount:int53 fee_amount:int53 provider_name:string = TonWalletTransactionType;
+tonWalletTransactionTypeOnRampDeposit amount:int53 provider_name:string = TonWalletTransactionType;
 
 //@description A transfer of TON Grams to or from the wallet
 //@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
-//@fee_amount The fee amount paid for the transaction, in the smallest units of the cryptocurrency
 //@is_gasless True, if the fee was paid by Telegram
 //@comment Comment added to the transaction
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
-tonWalletTransactionTypeTransfer amount:int53 fee_amount:int53 is_gasless:Bool comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
+tonWalletTransactionTypeTransfer amount:int53 is_gasless:Bool comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
 
 //@description A transfer of a TON NFT to or from the wallet
 //@nft The transferred NFT
-//@fee_amount The fee amount paid for the transaction, in the smallest units of the cryptocurrency
 //@comment Comment added to the transaction
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
-tonWalletTransactionTypeNftTransfer nft:tonNft fee_amount:int53 comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
+tonWalletTransactionTypeNftTransfer nft:tonNft comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
 
 //@description Change of the wallet key
-//@fee_amount The fee amount paid for the transaction in TON Grams, in the smallest units of the cryptocurrency
-tonWalletTransactionTypeKeyChange fee_amount:int53 = TonWalletTransactionType;
+tonWalletTransactionTypeKeyChange = TonWalletTransactionType;
 
 
 //@description Represents a transaction with the TON wallet of the current user
@@ -2363,9 +2359,10 @@ tonWalletTransactionTypeKeyChange fee_amount:int53 = TonWalletTransactionType;
 //@peer_user_id Identifier of the other user who participated in the transaction; 0 if unknown
 //@peer_domain Identifier of the domain assigned to the peer address; may be empty if none
 //@date Point in time (Unix timestamp) when the transaction was completed
+//@fee_amount The fee amount paid for the transaction in TON Grams, in the smallest units of the cryptocurrency
 //@state State of the transaction
 //@type Type of the transaction
-tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domain:string date:int32 state:TonWalletTransactionState type:TonWalletTransactionType = TonWalletTransaction;
+tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domain:string date:int32 fee_amount:int53 state:TonWalletTransactionState type:TonWalletTransactionType = TonWalletTransaction;
 
 //@description Represents a list of TON Gram transactions
 //@gram_amount The total amount of owned TON Grams, in the smallest units of the cryptocurrency
