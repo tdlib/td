@@ -2379,7 +2379,7 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
   auto type = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionType> {
     if (transaction->nft_ != nullptr) {
       return td_api::make_object<td_api::tonWalletTransactionTypeNftTransfer>(
-          Nft(td, std::move(transaction->nft_)).get_ton_nft_object(td), transaction->comment_,
+          Nft(td, std::move(transaction->nft_)).get_ton_nft_object(td), !transaction->incoming_, transaction->comment_,
           transaction->comment_encrypted_);
     }
     if (!peer_provider_name.empty()) {

@@ -2345,9 +2345,10 @@ tonWalletTransactionTypeTransfer amount:int53 is_gasless:Bool comment:string is_
 
 //@description A transfer of a TON NFT to or from the wallet
 //@nft The transferred NFT
+//@is_outgoing True, if the transfer is outgoing
 //@comment Comment added to the transaction
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
-tonWalletTransactionTypeNftTransfer nft:tonNft comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
+tonWalletTransactionTypeNftTransfer nft:tonNft is_outgoing:Bool comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
 
 //@description Change of the wallet key
 tonWalletTransactionTypeKeyChange = TonWalletTransactionType;
