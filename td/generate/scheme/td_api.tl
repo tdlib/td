@@ -9030,6 +9030,11 @@ pushMessageContentPremiumGiftCode month_count:int32 = PushMessageContent;
 //@is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentGiveaway winner_count:int32 prize:GiveawayPrize is_pinned:Bool = PushMessageContent;
 
+//@description A message with a TON wallet transfer
+//@amount String representation of the received amount
+//@comment Comment added to the transaction if it is public
+pushMessageContentTonWalletTransfer amount:string comment:string = PushMessageContent;
+
 //@description A message with a gift
 //@star_count Number of Telegram Stars that sender paid for the gift
 //@is_prepaid_upgrade True, if the message is about prepaid upgrade of the gift by another user instead of actual receiving of a new gift

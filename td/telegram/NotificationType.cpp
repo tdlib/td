@@ -307,6 +307,12 @@ class NotificationTypePushMessage final : public NotificationType {
           return td_api::make_object<td_api::pushMessageContentGiveaway>(
               user_count, is_pinned ? nullptr : td_api::make_object<td_api::giveawayPrizeStars>(star_count), is_pinned);
         }
+        if (key == "MESSAGE_GRAM_TRANSFER") {
+          string amount;
+          string comment;
+          std::tie(amount, comment) = split(arg, '\xFF');
+          return td_api::make_object<td_api::pushMessageContentTonWalletTransfer>(amount, comment);
+        }
         break;
       case 'I':
         if (key == "MESSAGE_INVOICE") {

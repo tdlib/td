@@ -2852,6 +2852,8 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       {"MESSAGE_GIFT_THEME", "MESSAGE_CHAT_CHANGE_THEME"},
       {"MESSAGE_GIVEAWAY", "MESSAGE_GIVEAWAY"},
       {"MESSAGE_GIVEAWAY_STARS", "MESSAGE_GIVEAWAY_STARS"},
+      {"MESSAGE_GRAM_TRANSFER", "MESSAGE_GRAM_TRANSFER"},
+      {"MESSAGE_GRAM_TRANSFER_COMMENT", "MESSAGE_GRAM_TRANSFER"},
       {"MESSAGE_INVOICE", "MESSAGE_INVOICE"},
       {"MESSAGE_NOTEXT", "MESSAGE"},
       {"MESSAGE_NOTHEME", "MESSAGE_CHAT_CHANGE_THEME"},
@@ -3388,6 +3390,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     return Status::Error(406, "Story notifications are unsupported");
   }
 
+  auto original_loc_key = loc_key;
   loc_key = convert_loc_key(loc_key);
   if (loc_key.empty()) {
     return Status::Error("Push type is unknown");
@@ -3445,6 +3448,21 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     }
     TRY_RESULT(star_count, to_integer_safe<int64>(loc_args[1]));
     arg = PSTRING() << user_count << ' ' << StarManager::get_star_count(star_count);
+    loc_args.clear();
+  }
+  if (loc_key == "MESSAGE_GRAM_TRANSFER") {
+    string comment;
+    if (original_loc_key == "MESSAGE_GRAM_TRANSFER_COMMENT") {
+      if (loc_args.size() != 2) {
+        return Status::Error("Expected 2 arguments for MESSAGE_GRAM_TRANSFER_COMMENT");
+      }
+      comment = std::move(loc_args[1]);
+      loc_args.pop_back();
+    }
+    if (loc_args.size() != 1) {
+      return Status::Error("Expected 1 argument for MESSAGE_GRAM_TRANSFER");
+    }
+    arg = PSTRING() << loc_args[0] << '\xFF' << comment;
     loc_args.clear();
   }
   if (loc_key == "MESSAGE_PAID_MEDIA") {
