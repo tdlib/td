@@ -1384,6 +1384,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"authorization_autoconfirm_period", ""},
       {"boosts_channel_level_max", "chat_boost_level_max"},
       {"boosts_per_sent_gift", "premium_gift_boost_count"},
+      {"bot_additional_usernames_limit", "secondary_bot_username_count_max"},
       {"bot_preview_medias_max", "bot_media_preview_count_max"},
       {"bot_verification_description_length_limit", "bot_verification_custom_description_length_max"},
       {"business_chat_links_limit", "business_chat_link_count_max"},

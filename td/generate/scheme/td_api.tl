@@ -15447,7 +15447,8 @@ getBotName bot_user_id:int53 language_code:string = Text;
 //@description Changes a profile photo for a bot @bot_user_id Identifier of the target bot @photo Profile photo to set; pass null to delete the chat photo
 setBotProfilePhoto bot_user_id:int53 photo:InputChatPhoto = Ok;
 
-//@description Adds a secondary username to a bot. Can be called only if userTypeBot.can_be_edited == true, the bot has no secondary username and the current user has Telegram Premium subscription
+//@description Adds a secondary username to a bot. Can be called only if userTypeBot.can_be_edited == true, the bot has no secondary username and the current user has Telegram Premium subscription.
+//-May return an error with a message "OWNER_USERNAMES_LIMIT_EXCEEDED" if the current user already owns at least getOption("secondary_bot_username_count_max") bots with a secondary username
 //@bot_user_id Identifier of the target bot
 //@username The new secondary username; must be non-empty. Use checkBotUsername to check username validness
 addBotSecondaryUsername bot_user_id:int53 username:string = Ok;

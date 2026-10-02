@@ -227,6 +227,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("ton_wallet_transfer_amount_min", 100000000);
   set_default_integer_option("ton_wallet_gasless_transfer_amount_min", 100000000);
   set_default_integer_option("ton_wallet_gasless_transfer_daily_count_max", 0);
+  set_default_integer_option("secondary_bot_username_count_max", 2);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
