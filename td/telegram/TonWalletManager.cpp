@@ -124,6 +124,10 @@ class GetUserWalletAddressesQuery final : public Td::ResultHandler {
     vector<td_api::object_ptr<td_api::userTonWalletAddress>> addresses;
     for (auto &address : result->addresses_) {
       auto user_id = UserId(address->user_id_);
+      if (!user_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << user_id;
+        continue;
+      }
       td_->user_manager_->on_update_user_gram_address(user_id, address->address_);
       addresses.push_back(td_api::make_object<td_api::userTonWalletAddress>(
           td_->user_manager_->get_user_id_object(user_id, "userTonWalletAddress"), address->address_,
@@ -139,13 +143,15 @@ class GetUserWalletAddressesQuery final : public Td::ResultHandler {
 
 class CreateUserWalletAddressQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::userTonWalletAddress>> promise_;
+  UserId user_id_;
 
  public:
   explicit CreateUserWalletAddressQuery(Promise<td_api::object_ptr<td_api::userTonWalletAddress>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
+  void send(UserId user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
+    user_id_ = user_id;
     vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
     input_users.push_back(std::move(input_user));
     send_query(G()->net_query_creator().create(
@@ -168,10 +174,9 @@ class CreateUserWalletAddressQuery final : public Td::ResultHandler {
     }
 
     auto address = std::move(result->addresses_[0]);
-    auto user_id = UserId(address->user_id_);
-    td_->user_manager_->on_update_user_gram_address(user_id, address->address_);
+    td_->user_manager_->on_update_user_gram_address(user_id_, address->address_);
     promise_.set_value(td_api::make_object<td_api::userTonWalletAddress>(
-        td_->user_manager_->get_user_id_object(user_id, "userTonWalletAddress"), address->address_,
+        td_->user_manager_->get_user_id_object(user_id_, "userTonWalletAddress"), address->address_,
         address->public_key_.as_slice().str()));
   }
 
@@ -212,6 +217,8 @@ class GetAddressWalletQuery final : public Td::ResultHandler {
     auto user_id = UserId(address->user_id_);
     if (user_id.is_valid()) {
       td_->user_manager_->on_update_user_gram_address(user_id, address->address_);
+    } else {
+      user_id = UserId();
     }
     promise_.set_value(td_api::make_object<td_api::userTonWalletAddress>(
         td_->user_manager_->get_user_id_object(user_id, "userTonWalletAddress"), address->address_,
@@ -1662,7 +1669,7 @@ void TonWalletManager::get_user_addresses(vector<UserId> user_ids,
 void TonWalletManager::create_user_ton_wallet(UserId user_id,
                                               Promise<td_api::object_ptr<td_api::userTonWalletAddress>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
-  td_->create_handler<CreateUserWalletAddressQuery>(std::move(promise))->send(std::move(input_user));
+  td_->create_handler<CreateUserWalletAddressQuery>(std::move(promise))->send(user_id, std::move(input_user));
 }
 
 void TonWalletManager::get_address_ton_wallet(const string &address,
