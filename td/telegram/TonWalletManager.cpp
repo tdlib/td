@@ -1399,8 +1399,8 @@ td_api::object_ptr<td_api::tonNft> TonWalletManager::Nft::get_ton_nft_object(Td 
   auto r_json_value = get_json_value(extra);
   return td_api::make_object<td_api::tonNft>(
       collection_address_, address_, owner_address_, index_, name_, description_,
-      get_photo_size_object(td->file_manager_.get(), &image_),
-      get_photo_size_object(td->file_manager_.get(), &image_small_),
+      image_.file_id.is_valid() ? get_photo_size_object(td->file_manager_.get(), &image_) : nullptr,
+      image_small_.file_id.is_valid() ? get_photo_size_object(td->file_manager_.get(), &image_small_) : nullptr,
       td->documents_manager_->get_document_object(content_url_file_id_, PhotoFormat::Jpeg),
       td->stickers_manager_->get_sticker_object(lottie_file_id_),
       transform(attributes_, [](const auto &attribute) { return attribute.get_ton_nft_attribute_object(); }),
