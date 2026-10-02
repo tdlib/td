@@ -5870,10 +5870,10 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the receiver's or sender's private key
 messageTonWalletTransfer transaction_id:string peer_address:string amount:int53 comment:string is_comment_encrypted:Bool = MessageContent;
 
-//@description A request from a dApp was received thriugh TON Connect
+//@description A request from a dApp was received through TON Connect
 //@session_id Unique identifier of the TON Connect session
 //@state State of the request
-//@dapp_name Name of the dApp
+//@dapp_name Name of the dApp; may be empty if unknown
 //@topic Topic of the request; may be empty if none
 //@trace_id Identifier to trace the request; may be empty if none
 messageTonConnectRequest session_id:int64 state:TonConnectRequestState dapp_name:string topic:string trace_id:string = MessageContent;
@@ -9034,6 +9034,10 @@ pushMessageContentGiveaway winner_count:int32 prize:GiveawayPrize is_pinned:Bool
 //@amount String representation of the received amount
 //@comment Comment added to the transaction if it is public
 pushMessageContentTonWalletTransfer amount:string comment:string = PushMessageContent;
+
+//@description A message with a request from a dApp was received through TON Connect
+//@dapp_name Name of the dApp; may be empty if unknown
+pushMessageContentTonConnectRequest dapp_name:string = PushMessageContent;
 
 //@description A message with a gift
 //@star_count Number of Telegram Stars that sender paid for the gift

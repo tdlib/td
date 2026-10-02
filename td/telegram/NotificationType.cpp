@@ -443,6 +443,9 @@ class NotificationTypePushMessage final : public NotificationType {
         }
         break;
       case 'W':
+        if (key == "MESSAGE_WALLET_TONCONNECT_REQUEST") {
+          return td_api::make_object<td_api::pushMessageContentTonConnectRequest>(arg);
+        }
         if (key == "MESSAGE_WALLPAPER") {
           return td_api::make_object<td_api::pushMessageContentChatSetBackground>(false);
         }
