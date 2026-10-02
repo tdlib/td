@@ -128,7 +128,6 @@ class GetUserWalletAddressesQuery final : public Td::ResultHandler {
         LOG(ERROR) << "Receive invalid " << user_id;
         continue;
       }
-      td_->user_manager_->on_update_user_gram_address(user_id, address->address_);
       addresses.push_back(td_api::make_object<td_api::userTonWalletAddress>(
           td_->user_manager_->get_user_id_object(user_id, "userTonWalletAddress"), address->address_,
           address->public_key_.as_slice().str()));
@@ -174,7 +173,6 @@ class CreateUserWalletAddressQuery final : public Td::ResultHandler {
     }
 
     auto address = std::move(result->addresses_[0]);
-    td_->user_manager_->on_update_user_gram_address(user_id_, address->address_);
     promise_.set_value(td_api::make_object<td_api::userTonWalletAddress>(
         td_->user_manager_->get_user_id_object(user_id_, "userTonWalletAddress"), address->address_,
         address->public_key_.as_slice().str()));
@@ -215,9 +213,7 @@ class GetAddressWalletQuery final : public Td::ResultHandler {
 
     auto address = std::move(result->addresses_[0]);
     auto user_id = UserId(address->user_id_);
-    if (user_id.is_valid()) {
-      td_->user_manager_->on_update_user_gram_address(user_id, address->address_);
-    } else {
+    if (!user_id.is_valid()) {
       user_id = UserId();
     }
     promise_.set_value(td_api::make_object<td_api::userTonWalletAddress>(

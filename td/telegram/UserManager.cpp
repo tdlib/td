@@ -4438,9 +4438,6 @@ void UserManager::on_update_user_full_intro(UserFull *user_full, BusinessIntro &
   }
 }
 
-void UserManager::on_update_user_gram_address(UserId user_id, const string &gram_address) {
-}
-
 void UserManager::on_update_user_commands(UserId user_id,
                                           vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands) {
   UserFull *user_full = get_user_full_force(user_id, "on_update_user_commands");
