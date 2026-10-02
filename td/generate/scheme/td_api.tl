@@ -2197,7 +2197,7 @@ tonCenterStreamingApiUrl url:string expires_in:int32 = TonCenterStreamingApiUrl;
 walletBotBalance has_balance:Bool url:string = WalletBotBalance;
 
 //@description Contains TON wallet address of a user
-//@user_id Identifier of the user
+//@user_id Identifier of the user; 0 if unknown
 //@wallet_address Address of the user's wallet in the TON blockchain
 //@public_key Public key of the user
 userTonWalletAddress user_id:int53 wallet_address:string public_key:bytes = UserTonWalletAddress;
