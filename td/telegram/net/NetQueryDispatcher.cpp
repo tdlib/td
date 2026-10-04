@@ -409,7 +409,7 @@ void NetQueryDispatcher::try_fix_migrate(NetQueryPtr &net_query) {
       auto new_main_dc_id = to_integer<int32>(error_message.substr(prefix.size()));
       set_main_dc_id(new_main_dc_id);
 
-      if (!net_query->dc_id().is_main()) {
+      if (!net_query->dc_id().is_main() && DcId::is_valid(new_main_dc_id)) {
         LOG(ERROR) << "Receive " << error_message << " for query to non-main DC" << net_query->dc_id();
         net_query->resend(DcId::internal(new_main_dc_id));
       } else {
