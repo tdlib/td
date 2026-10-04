@@ -83,6 +83,9 @@ Result<bool> FileDownloader::should_restart_part(Part part, const NetQueryPtr &n
         if (cdn_file_token_ == new_cdn_file_token) {
           return true;
         }
+        if (!DcId::is_valid(file->dc_id_)) {
+          return Status::Error("Wrong CDN DC identifier");
+        }
 
         use_cdn_ = true;
         need_check_ = true;
@@ -93,7 +96,7 @@ Result<bool> FileDownloader::should_restart_part(Part part, const NetQueryPtr &n
         cdn_encryption_iv_ = file->encryption_iv_.as_slice().str();
         add_hash_info(file->file_hashes_);
         if (cdn_encryption_iv_.size() != 16 || cdn_encryption_key_.size() != 32) {
-          return Status::Error("Wrong ctr key or iv size");
+          return Status::Error("Wrong CTR key or IV size");
         }
 
         return true;
