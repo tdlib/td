@@ -2854,6 +2854,8 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       {"MESSAGE_GIVEAWAY_STARS", "MESSAGE_GIVEAWAY_STARS"},
       {"MESSAGE_GRAM_TRANSFER", "MESSAGE_GRAM_TRANSFER"},
       {"MESSAGE_GRAM_TRANSFER_COMMENT", "MESSAGE_GRAM_TRANSFER"},
+      {"MESSAGE_GRAM_TRANSFER_UNKNOWN", "MESSAGE_GRAM_TRANSFER"},
+      {"MESSAGE_GRAM_TRANSFER_UNKNOWN_COMMENT", "MESSAGE_GRAM_TRANSFER"},
       {"MESSAGE_INVOICE", "MESSAGE_INVOICE"},
       {"MESSAGE_NOTEXT", "MESSAGE"},
       {"MESSAGE_NOTHEME", "MESSAGE_CHAT_CHANGE_THEME"},
@@ -3454,7 +3456,8 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   }
   if (loc_key == "MESSAGE_GRAM_TRANSFER") {
     string comment;
-    if (original_loc_key == "MESSAGE_GRAM_TRANSFER_COMMENT") {
+    if (original_loc_key == "MESSAGE_GRAM_TRANSFER_COMMENT" ||
+        original_loc_key == "MESSAGE_GRAM_TRANSFER_UNKNOWN_COMMENT") {
       if (loc_args.size() != 2) {
         return Status::Error("Expected 2 arguments for MESSAGE_GRAM_TRANSFER_COMMENT");
       }
