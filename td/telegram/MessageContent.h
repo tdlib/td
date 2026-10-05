@@ -126,6 +126,10 @@ unique_ptr<MessageContent> create_voice_note_message_content(FileId voice_note_f
 
 unique_ptr<MessageContent> create_contact_registered_message_content();
 
+unique_ptr<MessageContent> create_gram_transfer_message_content(int64 amount, const string &peer_address,
+                                                                const string &transaction_id, const string &comment,
+                                                                bool is_comment_encrypted);
+
 unique_ptr<MessageContent> create_screenshot_taken_message_content();
 
 unique_ptr<MessageContent> create_chat_set_ttl_message_content(int32 ttl, UserId from_user_id);

@@ -4818,6 +4818,12 @@ unique_ptr<MessageContent> create_contact_registered_message_content() {
   return make_unique<MessageContactRegistered>();
 }
 
+unique_ptr<MessageContent> create_gram_transfer_message_content(int64 amount, const string &peer_address,
+                                                                const string &transaction_id, const string &comment,
+                                                                bool is_comment_encrypted) {
+  return td::make_unique<MessageGramTransfer>(amount, peer_address, transaction_id, comment, is_comment_encrypted);
+}
+
 unique_ptr<MessageContent> create_screenshot_taken_message_content() {
   return make_unique<MessageScreenshotTaken>();
 }
