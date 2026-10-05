@@ -16196,10 +16196,11 @@ disableTonWalletBackupWithProof proof:tonWalletOwnershipProof = Ok;
 //@amount The amount of the sent cryptocurrency, in the smallest units of the cryptocurrency
 //@comment Comment added to the transaction
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the receiver's or sender's private key
+//@sending_id Non-persistent identifier, which will be returned back in messageSendingStatePending object and can be used to match sent messages and corresponding updateNewMessage updates
 //@regular_transfer_data Serialized data for regular cryptocurrency transfer request. The minimum allowed transfer amount is getOption("ton_wallet_transfer_amount_min")
 //@gasless_transfer_data Serialized data for gasless cryptocurrency transfer request; pass an empty string to force a regular request.
 //-The minimum allowed transfer amount for a gassless transfer is getOption("ton_wallet_gasless_transfer_amount_min")
-sendTonWalletTransfer user_id:int53 address:string amount:int53 comment:string is_comment_encrypted:Bool regular_transfer_data:bytes gasless_transfer_data:bytes = TonWalletTransferResult;
+sendTonWalletTransfer user_id:int53 address:string amount:int53 comment:string is_comment_encrypted:Bool sending_id:int32 regular_transfer_data:bytes gasless_transfer_data:bytes = TonWalletTransferResult;
 
 //@description Deletes the current TON wallet of the user and creates a new one; can be used only if getOption("can_use_ton_wallet")
 //@password Password of the current user; pass an empty string if the user has no password

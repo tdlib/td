@@ -25160,7 +25160,7 @@ void MessagesManager::send_send_quick_reply_messages_query(DialogId dialog_id, Q
 }
 
 int64 MessagesManager::send_ton_wallet_transfer(UserId peer_user_id, const string &peer_address, int64 amount,
-                                                const string &comment, bool is_comment_encrypted) {
+                                                const string &comment, bool is_comment_encrypted, int32 sending_id) {
   if (!peer_user_id.is_valid() || td_->user_manager_->is_user_deleted(peer_user_id)) {
     return Random::secure_int64();
   }
@@ -25173,8 +25173,10 @@ int64 MessagesManager::send_ton_wallet_transfer(UserId peer_user_id, const strin
   }
 
   bool need_update_dialog_pos = false;
+  MessageSendOptions message_send_options;
+  message_send_options.sending_id = sending_id;
   const Message *m = get_message_to_send(
-      d, MessageTopic(), MessageInputReplyTo(), MessageSendOptions(),
+      d, MessageTopic(), MessageInputReplyTo(), message_send_options,
       create_gram_transfer_message_content(amount, peer_address, string(), comment, is_comment_encrypted), false,
       &need_update_dialog_pos);
   int64 random_id = begin_send_message(dialog_id, m);

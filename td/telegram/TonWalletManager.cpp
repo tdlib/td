@@ -1930,7 +1930,7 @@ void TonWalletManager::get_ton_wallet_gasless_info(Promise<Unit> &&promise) {
 
 void TonWalletManager::send_ton_wallet_transfer(
     const string &data_normal, const string &data_gasless, UserId peer_user_id, const string &peer_address,
-    int64 amount, const string &comment, bool is_comment_encrypted,
+    int64 amount, const string &comment, bool is_comment_encrypted, int32 sending_id,
     Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise) {
   TRY_STATUS_PROMISE(promise, check_ton_address(peer_address));
   if (amount <= 0 || amount < td_->option_manager_->get_option_integer("ton_wallet_transfer_amount_min")) {
@@ -1940,19 +1940,19 @@ void TonWalletManager::send_ton_wallet_transfer(
     TRY_STATUS_PROMISE(promise, td_->user_manager_->get_input_user(peer_user_id));
   }
   td_->user_manager_->get_me([actor_id = actor_id(this), data_normal, data_gasless, peer_user_id, peer_address, amount,
-                              comment, is_comment_encrypted, promise = std::move(promise)](Unit) mutable {
+                              comment, is_comment_encrypted, sending_id, promise = std::move(promise)](Unit) mutable {
     send_closure(actor_id, &TonWalletManager::do_send_ton_wallet_transfer, data_normal, data_gasless, peer_user_id,
-                 peer_address, amount, comment, is_comment_encrypted, std::move(promise));
+                 peer_address, amount, comment, is_comment_encrypted, sending_id, std::move(promise));
   });
 }
 
 void TonWalletManager::do_send_ton_wallet_transfer(
     const string &data_normal, const string &data_gasless, UserId peer_user_id, const string &peer_address,
-    int64 amount, const string &comment, bool is_comment_encrypted,
+    int64 amount, const string &comment, bool is_comment_encrypted, int32 sending_id,
     Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   auto random_id = td_->messages_manager_->send_ton_wallet_transfer(peer_user_id, peer_address, amount, comment,
-                                                                    is_comment_encrypted);
+                                                                    is_comment_encrypted, sending_id);
   td_->create_handler<SendWalletTransferQuery>(std::move(promise))->send(data_normal, data_gasless, random_id);
 }
 

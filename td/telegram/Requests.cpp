@@ -8035,7 +8035,7 @@ void Requests::on_request(uint64 id, td_api::sendTonWalletTransfer &request) {
   CREATE_REQUEST_PROMISE();
   td_->ton_wallet_manager_->send_ton_wallet_transfer(
       request.regular_transfer_data_, request.gasless_transfer_data_, UserId(request.user_id_), request.address_,
-      request.amount_, request.comment_, request.is_comment_encrypted_, std::move(promise));
+      request.amount_, request.comment_, request.is_comment_encrypted_, request.sending_id_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::deleteTonWallet &request) {
