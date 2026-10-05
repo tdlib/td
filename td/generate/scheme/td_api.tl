@@ -9030,9 +9030,10 @@ pushMessageContentPremiumGiftCode month_count:int32 = PushMessageContent;
 pushMessageContentGiveaway winner_count:int32 prize:GiveawayPrize is_pinned:Bool = PushMessageContent;
 
 //@description A message with a TON wallet transfer
+//@sender_user_id Sender of the transfer; 0 if unknown
 //@amount String representation of the received amount
 //@comment Comment added to the transaction if it is public
-pushMessageContentTonWalletTransfer amount:string comment:string = PushMessageContent;
+pushMessageContentTonWalletTransfer sender_user_id:int53 amount:string comment:string = PushMessageContent;
 
 //@description A message with a request from a dApp was received through TON Connect
 //@dapp_name Name of the dApp; may be empty if unknown

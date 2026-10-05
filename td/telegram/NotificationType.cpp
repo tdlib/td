@@ -14,6 +14,7 @@
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VoiceNotesManager.h"
@@ -148,10 +149,8 @@ class NotificationTypePushMessage final : public NotificationType {
     return photo_get_file_ids(photo_);
   }
 
-  static td_api::object_ptr<td_api::PushMessageContent> get_push_message_content_object(Td *td, Slice key,
-                                                                                        const string &arg,
-                                                                                        const Photo &photo,
-                                                                                        const Document &document) {
+  static td_api::object_ptr<td_api::PushMessageContent> get_push_message_content_object(
+      Td *td, Slice key, const string &arg, UserId sender_user_id, const Photo &photo, const Document &document) {
     bool is_pinned = false;
     if (begins_with(key, "PINNED_")) {
       is_pinned = true;
@@ -311,7 +310,11 @@ class NotificationTypePushMessage final : public NotificationType {
           string amount;
           string comment;
           std::tie(amount, comment) = split(arg, '\xFF');
-          return td_api::make_object<td_api::pushMessageContentTonWalletTransfer>(amount, comment);
+          if (sender_user_id == UserManager::get_service_notifications_user_id()) {
+            sender_user_id = UserId();
+          }
+          return td_api::make_object<td_api::pushMessageContentTonWalletTransfer>(sender_user_id.get(), amount,
+                                                                                  comment);
         }
         break;
       case 'I':
@@ -461,7 +464,7 @@ class NotificationTypePushMessage final : public NotificationType {
     auto sender = get_message_sender_object(td, sender_user_id_, sender_dialog_id_, "get_notification_type_object");
     return td_api::make_object<td_api::notificationTypeNewPushMessage>(
         message_id_.get(), std::move(sender), sender_name_, is_outgoing_,
-        get_push_message_content_object(td, key_, arg_, photo_, document_));
+        get_push_message_content_object(td, key_, arg_, sender_user_id_, photo_, document_));
   }
 
   StringBuilder &to_string_builder(StringBuilder &string_builder) const final {
