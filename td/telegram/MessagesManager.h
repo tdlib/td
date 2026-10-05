@@ -492,6 +492,9 @@ class MessagesManager final : public Actor {
   Result<td_api::object_ptr<td_api::messages>> send_quick_reply_shortcut_messages(
       DialogId dialog_id, QuickReplyShortcutId shortcut_id, int32 sending_id) TD_WARN_UNUSED_RESULT;
 
+  int64 send_ton_wallet_transfer(UserId peer_user_id, const string &peer_address, int64 amount, const string &comment,
+                                 bool is_comment_encrypted);
+
   Result<vector<MessageId>> resend_messages(DialogId dialog_id, vector<MessageId> message_ids,
                                             td_api::object_ptr<td_api::inputTextQuote> &&quote,
                                             int64 paid_message_star_count) TD_WARN_UNUSED_RESULT;

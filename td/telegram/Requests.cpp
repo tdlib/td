@@ -8028,11 +8028,14 @@ void Requests::on_request(uint64 id, td_api::disableTonWalletBackupWithProof &re
   td_->ton_wallet_manager_->disable_ton_wallet_backup_with_proof(std::move(request.proof_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::sendTonWalletTransfer &request) {
+void Requests::on_request(uint64 id, td_api::sendTonWalletTransfer &request) {
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.address_);
+  CLEAN_INPUT_STRING(request.comment_);
   CREATE_REQUEST_PROMISE();
-  td_->ton_wallet_manager_->send_ton_wallet_transfer(request.regular_transfer_data_, request.gasless_transfer_data_,
-                                                     std::move(promise));
+  td_->ton_wallet_manager_->send_ton_wallet_transfer(
+      request.regular_transfer_data_, request.gasless_transfer_data_, UserId(request.user_id_), request.address_,
+      request.amount_, request.comment_, request.is_comment_encrypted_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::deleteTonWallet &request) {

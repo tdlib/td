@@ -8846,11 +8846,18 @@ class CliClient final : public Actor {
       get_args(args, password);
       send_request(td_api::make_object<td_api::disableTonWalletBackup>(password));
     } else if (op == "stwt") {
+      UserId peer_user_id;
+      string peer_address;
+      int64 amount;
+      string comment;
+      bool is_comment_encrypted;
       string regular_transfer_data;
       string gasless_transfer_data;
-      get_args(args, regular_transfer_data, gasless_transfer_data);
-      send_request(td_api::make_object<td_api::sendTonWalletTransfer>(hex_decode(regular_transfer_data).move_as_ok(),
-                                                                      hex_decode(gasless_transfer_data).move_as_ok()));
+      get_args(args, peer_user_id, peer_address, amount, comment, is_comment_encrypted, regular_transfer_data,
+               gasless_transfer_data);
+      send_request(td_api::make_object<td_api::sendTonWalletTransfer>(
+          peer_user_id, peer_address, amount, comment, is_comment_encrypted,
+          hex_decode(regular_transfer_data).move_as_ok(), hex_decode(gasless_transfer_data).move_as_ok()));
     } else if (op == "deleteTonWallet") {
       string password;
       get_args(args, password);

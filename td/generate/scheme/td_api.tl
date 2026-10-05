@@ -5862,7 +5862,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 
 //@description Represents a transfer with the TON wallet of the current user
 //@sender_user_id Sender of the transfer; 0 if unknown
-//@transaction_id Unique identifier of the transaction; use getTonWalletTransaction to get additional information about the transaction
+//@transaction_id Unique identifier of the transaction; may be empty if the transfer isn't send yet. Use getTonWalletTransaction to get additional information about the transaction
 //@peer_address Address in the TON blockchain of the transaction peer
 //@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
 //@comment Comment added to the transaction
@@ -16191,10 +16191,15 @@ disableTonWalletBackup password:string = Ok;
 disableTonWalletBackupWithProof proof:tonWalletOwnershipProof = Ok;
 
 //@description Sends a cryptocurrency from the user's TON wallet; can be used only if getOption("can_use_ton_wallet")
+//@user_id Identifier of the user which wull receive the transfer; pass 0 if unknown
+//@address Address in the TON blockchain of the transaction peer
+//@amount The amount of the sent cryptocurrency, in the smallest units of the cryptocurrency
+//@comment Comment added to the transaction
+//@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the receiver's or sender's private key
 //@regular_transfer_data Serialized data for regular cryptocurrency transfer request. The minimum allowed transfer amount is getOption("ton_wallet_transfer_amount_min")
 //@gasless_transfer_data Serialized data for gasless cryptocurrency transfer request; pass an empty string to force a regular request.
 //-The minimum allowed transfer amount for a gassless transfer is getOption("ton_wallet_gasless_transfer_amount_min")
-sendTonWalletTransfer regular_transfer_data:bytes gasless_transfer_data:bytes = TonWalletTransferResult;
+sendTonWalletTransfer user_id:int53 address:string amount:int53 comment:string is_comment_encrypted:Bool regular_transfer_data:bytes gasless_transfer_data:bytes = TonWalletTransferResult;
 
 //@description Deletes the current TON wallet of the user and creates a new one; can be used only if getOption("can_use_ton_wallet")
 //@password Password of the current user; pass an empty string if the user has no password

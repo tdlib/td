@@ -68,7 +68,9 @@ class TonWalletManager final : public Actor {
 
   void get_ton_wallet_gasless_info(Promise<Unit> &&promise);
 
-  void send_ton_wallet_transfer(const string &data_normal, const string &data_gasless,
+  void send_ton_wallet_transfer(const string &data_normal, const string &data_gasless, UserId peer_user_id,
+                                const string &peer_address, int64 amount, const string &comment,
+                                bool is_comment_encrypted,
                                 Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise);
 
   void delete_ton_wallet(const string &password, Promise<Unit> &&promise);
@@ -321,6 +323,11 @@ class TonWalletManager final : public Actor {
       const;
 
   void send_update_ton_wallet_gasless_transfers_info() const;
+
+  void do_send_ton_wallet_transfer(const string &data_normal, const string &data_gasless, UserId peer_user_id,
+                                   const string &peer_address, int64 amount, const string &comment,
+                                   bool is_comment_encrypted,
+                                   Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise);
 
   void do_get_ton_wallet_secret_phrase(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
                                        Promise<string> &&promise);

@@ -25159,6 +25159,32 @@ void MessagesManager::send_send_quick_reply_messages_query(DialogId dialog_id, Q
       ->send(dialog_id, shortcut_id, std::move(message_ids), std::move(random_ids));
 }
 
+int64 MessagesManager::send_ton_wallet_transfer(UserId peer_user_id, const string &peer_address, int64 amount,
+                                                const string &comment, bool is_comment_encrypted) {
+  if (!peer_user_id.is_valid() || td_->user_manager_->is_user_deleted(peer_user_id)) {
+    return Random::secure_int64();
+  }
+
+  auto dialog_id = DialogId(peer_user_id);
+  force_create_dialog(dialog_id, "send_ton_wallet_transfer");
+  Dialog *d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    return Random::secure_int64();
+  }
+
+  bool need_update_dialog_pos = false;
+  const Message *m = get_message_to_send(
+      d, MessageTopic(), MessageInputReplyTo(), MessageSendOptions(),
+      create_gram_transfer_message_content(amount, peer_address, string(), comment, is_comment_encrypted), false,
+      &need_update_dialog_pos);
+  int64 random_id = begin_send_message(dialog_id, m);
+  send_update_new_message(d, m);
+  if (need_update_dialog_pos) {
+    send_update_chat_last_message(d, "send_ton_wallet_transfer");
+  }
+  return random_id;
+}
+
 Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, vector<MessageId> message_ids,
                                                            td_api::object_ptr<td_api::inputTextQuote> &&quote,
                                                            int64 paid_message_star_count) {
