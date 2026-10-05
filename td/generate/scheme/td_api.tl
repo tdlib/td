@@ -5861,12 +5861,13 @@ messageGiftedGrams gifter_user_id:int53 receiver_user_id:int53 gram_amount:int53
 messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id:int53 giveaway_message_id:int53 is_unclaimed:Bool sticker:sticker = MessageContent;
 
 //@description Represents a transfer with the TON wallet of the current user
+//@sender_user_id Sender of the transfer; 0 if unknown
 //@transaction_id Unique identifier of the transaction; use getTonWalletTransaction to get additional information about the transaction
 //@peer_address Address in the TON blockchain of the transaction peer
 //@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
 //@comment Comment added to the transaction
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the receiver's or sender's private key
-messageTonWalletTransfer transaction_id:string peer_address:string amount:int53 comment:string is_comment_encrypted:Bool = MessageContent;
+messageTonWalletTransfer sender_user_id:int53 transaction_id:string peer_address:string amount:int53 comment:string is_comment_encrypted:Bool = MessageContent;
 
 //@description A request from a dApp was received through TON Connect
 //@session_id Unique identifier of the TON Connect session
