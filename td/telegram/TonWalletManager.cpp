@@ -558,15 +558,17 @@ class SendWalletTransferQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(const string &data_normal, const string &data_gasless, int64 random_id) {
+  void send(const string &data_normal, const string &data_gasless, UserId user_id, int64 random_id) {
     random_id_ = random_id;
     int32 flags = 0;
     if (!data_gasless.empty()) {
       flags |= telegram_api::wallet_sendTransfer::DATA_GASLESS_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::wallet_sendTransfer(flags, BufferSlice(data_normal), BufferSlice(data_gasless),
-                                          telegram_api::make_object<telegram_api::inputUserEmpty>(), random_id)));
+    auto r_input_user = td_->user_manager_->get_input_user(user_id);
+    send_query(G()->net_query_creator().create(telegram_api::wallet_sendTransfer(
+        flags, BufferSlice(data_normal), BufferSlice(data_gasless),
+        r_input_user.is_ok() ? r_input_user.move_as_ok() : telegram_api::make_object<telegram_api::inputUserEmpty>(),
+        random_id)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1953,7 +1955,8 @@ void TonWalletManager::do_send_ton_wallet_transfer(
   TRY_STATUS_PROMISE(promise, G()->close_status());
   auto random_id = td_->messages_manager_->send_ton_wallet_transfer(peer_user_id, peer_address, amount, comment,
                                                                     is_comment_encrypted, sending_id);
-  td_->create_handler<SendWalletTransferQuery>(std::move(promise))->send(data_normal, data_gasless, random_id);
+  td_->create_handler<SendWalletTransferQuery>(std::move(promise))
+      ->send(data_normal, data_gasless, peer_user_id, random_id);
 }
 
 void TonWalletManager::delete_ton_wallet(const string &password, Promise<Unit> &&promise) {
