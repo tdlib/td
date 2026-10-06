@@ -292,7 +292,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getMessageProperties &request);
 
-  void on_request(uint64 id, const td_api::getPollOptionProperties &request);
+  void on_request(uint64 id, td_api::getPollOptionProperties &request);
 
   void on_request(uint64 id, const td_api::getChatSponsoredMessages &request);
 
@@ -316,7 +316,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::reportVideoMessageAdvertisement &request);
 
-  void on_request(uint64 id, const td_api::getMessageLink &request);
+  void on_request(uint64 id, td_api::getMessageLink &request);
 
   void on_request(uint64 id, const td_api::getMessageEmbeddingCode &request);
 
@@ -772,7 +772,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request);
 
-  void on_request(uint64 id, const td_api::setQuickReplyShortcutName &request);
+  void on_request(uint64 id, td_api::setQuickReplyShortcutName &request);
 
   void on_request(uint64 id, const td_api::deleteQuickReplyShortcut &request);
 
