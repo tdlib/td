@@ -145,6 +145,11 @@ function(td_set_up_compiler)
   #  add_cxx_compiler_flag("-Wzero-as-null-pointer-constant")
   endif()
 
+  if (ANDROID OR IOS)
+    add_cxx_compiler_flag("-fno-unwind-tables")
+    add_cxx_compiler_flag("-fno-asynchronous-unwind-tables")
+  endif()
+
   if (GCC)
     add_cxx_compiler_flag("-Wno-maybe-uninitialized")  # too many false positives
   endif()
