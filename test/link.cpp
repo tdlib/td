@@ -1980,6 +1980,18 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("t.me/telegrampassport?bot_id=12345&public_key=key&scope=asd&payload=nonce%FF",
                       public_chat("telegrampassport"));
 
+  parse_internal_link("t.me/GetPremium?ref=a", premium_features_page("tme_getpremium_a"));
+  parse_internal_link("t.me/GetPremium?ref=abcdef", premium_features_page("tme_getpremium_abcdef"));
+  parse_internal_link("t.me/GetPremium?ref=abcdeF", premium_features_page("tme_getpremium_abcdef"));
+  parse_internal_link("t.me/GetPremium/12/21312/312/312/3/123/12/312?ref=abcdef&ad=asd#123",
+                      premium_features_page("tme_getpremium_abcdef"));
+  parse_internal_link("t.me/getPREMIUM?ref=__abcdeZ0__9_", premium_features_page("tme_getpremium___abcdez0__9_"));
+  parse_internal_link("t.me/getPREMIUM?ref=abcdefghiJKLmnopqrstuvwxyz012345",
+                      premium_features_page("tme_getpremium_abcdefghijklmnopqrstuvwxyz012345"));
+  parse_internal_link("t.me/getPREMIUM?ref=abcdefghijklmnopqrstuvwxyz0123456", premium_features_page("tme_getpremium"));
+  parse_internal_link("t.me/getPREMIUM?ref=", premium_features_page("tme_getpremium"));
+  parse_internal_link("t.me/getPREMIUM?ref=!@", premium_features_page("tme_getpremium"));
+
   parse_internal_link("tg:premium_offer?ref=abcdef", premium_features_page("abcdef"));
   parse_internal_link("tg:premium_offer?ref=abc%30ef", premium_features_page("abc0ef"));
   parse_internal_link("tg:premium_offer?ref=abcde%ff", unknown_deep_link("tg://premium_offer?ref=abcde%ff"));

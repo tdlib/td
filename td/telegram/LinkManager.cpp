@@ -2965,6 +2965,24 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       // /invoice/<name>
       return td::make_unique<InternalLinkInvoice>(path[1]);
     }
+  } else if (to_lower(path[0]) == "getpremium") {
+    // /GetPremium?ref=<ref>
+    auto ref = to_lower(get_arg("ref"));
+    if (!is_valid_premium_referrer(ref) || ref.size() > 32u) {
+      ref.clear();
+    }
+    for (auto c : ref) {
+      if (!('a' <= c && c <= 'z') && !('0' <= c && c <= '9') && c != '_') {
+        ref.clear();
+        break;
+      }
+    }
+    if (!ref.empty()) {
+      ref = PSTRING() << "tme_getpremium_" << ref;
+    } else {
+      ref = "tme_getpremium";
+    }
+    return td::make_unique<InternalLinkPremiumFeatures>(std::move(ref));
   } else if (path[0] == "giftcode") {
     if (path.size() >= 2 && is_valid_gift_code(path[1])) {
       // /giftcode/<code>
@@ -3791,11 +3809,34 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypePremiumFeaturesPage::ID: {
       auto link = static_cast<const td_api::internalLinkTypePremiumFeaturesPage *>(type_ptr);
-      if (!is_internal) {
-        return Status::Error("HTTP link is unavailable for the link type");
-      }
       if (!is_valid_premium_referrer(link->referrer_)) {
         return Status::Error("Invalid referrer specified");
+      }
+      if (!is_internal) {
+        string ref;
+        bool is_valid = true;
+        if (link->referrer_ != "tme_getpremium") {  // ok
+          is_valid = begins_with(link->referrer_, "tme_getpremium_");
+          if (is_valid) {
+            auto referrer = Slice(link->referrer_).substr(15);
+            if (referrer.empty() || referrer.size() > 32u) {
+              is_valid = false;
+            }
+            for (auto c : referrer) {
+              if (!('a' <= c && c <= 'z') && !('0' <= c && c <= '9') && c != '_') {
+                is_valid = false;
+                break;
+              }
+            }
+            if (is_valid) {
+              ref = PSTRING() << "?ref=" << referrer;
+            }
+          }
+        }
+        if (!is_valid) {
+          return Status::Error("HTTP link is unavailable for the link type");
+        }
+        return PSTRING() << get_t_me_url() << "GetPremium" << ref;
       }
       return PSTRING() << "tg://premium_offer?ref=" << url_encode(link->referrer_);
     }
