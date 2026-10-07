@@ -16183,7 +16183,7 @@ getTonWalletOwnershipProofChallenge = TonWalletOwnershipProofChallenge;
 enableTonWalletBackup secret_phrase:string proof:tonWalletOwnershipProof = Ok;
 
 //@description Disables backup of the TON wallet of the user. Works only if tonWalletState.is_backup_enabled is true
-//@password Password of the current user; pass an empty string if the user has no password
+//@password Password of the current user; pass an empty string unless receive an error with a message "PASSWORD_MISSING" for a passwordless request
 disableTonWalletBackup password:string = Ok;
 
 //@description Disables backup of the TON wallet of the user using proof of wallet ownership instead of the password. Works only if tonWalletState.is_backup_enabled is true
@@ -16203,11 +16203,11 @@ disableTonWalletBackupWithProof proof:tonWalletOwnershipProof = Ok;
 sendTonWalletTransfer user_id:int53 address:string amount:int53 comment:string is_comment_encrypted:Bool sending_id:int32 regular_transfer_data:bytes gasless_transfer_data:bytes = TonWalletTransferResult;
 
 //@description Deletes the current TON wallet of the user and creates a new one; can be used only if getOption("can_use_ton_wallet")
-//@password Password of the current user; pass an empty string if the user has no password
+//@password Password of the current user; pass an empty string unless receive an error with a message "PASSWORD_MISSING" for a passwordless request
 deleteTonWallet password:string = Ok;
 
 //@description Replaces the current TON wallet with another existing v6r2 wallet or changes private key of the current TON wallet; can be used only if getOption("can_use_ton_wallet")
-//@password Password of the current user; pass an empty string if the user has no password
+//@password Password of the current user; pass an empty string unless receive an error with a message "PASSWORD_MISSING" for a passwordless request
 //@anchor_public_key Original public key of the new TON wallet
 //@proof Proof of ownership of the new private key of the TON wallet; use getTonWalletOwnershipProofChallenge to get a challenge for the proof
 replaceTonWallet password:string anchor_public_key:bytes proof:tonWalletOwnershipProof = Ok;
