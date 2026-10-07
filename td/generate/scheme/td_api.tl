@@ -16310,10 +16310,10 @@ getOnRampPaymentQuote provider_id:string cryptocurrency:string base_currency:str
 //@cryptocurrency_amount The amount of the cryptocurrency to buy; pass an empty string if the user selected base_currency_amount
 //@base_currency_amount The amount of the base currency to spend; pass an empty string if the user selected cryptocurrency_amount
 //@memo Memo for the query; pass an empty string if none
-//@theme Preferred theme for the WebView; pass null to use the default theme
+//@theme Preferred theme for the WebView; pass "light" for a light theme, "dark" for a dark theme, or leave empty for a default theme
 //@success_return_url The URL opened on successful payment; pass an empty string if none
 //@fail_return_url The URL opened on failed payment; pass an empty string if none
-createOnRampPaymentSession provider_id:string cryptocurrency:string address:string payment_method_name:string base_currency:string cryptocurrency_amount:string base_currency_amount:string memo:string theme:themeParameters success_return_url:string fail_return_url:string = OnRampPaymentSession;
+createOnRampPaymentSession provider_id:string cryptocurrency:string address:string payment_method_name:string base_currency:string cryptocurrency_amount:string base_currency_amount:string memo:string theme:string success_return_url:string fail_return_url:string = OnRampPaymentSession;
 
 //@description Sends a request to TON Center API and returns its response in JSON format
 //@endpoint The path of the requested endpoint. See https://toncenter.com/api/v3/index.html for the list of supported endpoints

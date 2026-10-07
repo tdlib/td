@@ -139,8 +139,8 @@ class TonWalletManager final : public Actor {
   void create_on_ramp_session(const string &provider, const string &cryptocurrency, const string &address,
                               const string &payment_method, const string &base_currency,
                               const string &cryptocurrency_amount, const string &base_currency_amount,
-                              const string &memo, td_api::object_ptr<td_api::themeParameters> theme,
-                              const string &success_return_url, const string &fail_return_url,
+                              const string &memo, const string &theme, const string &success_return_url,
+                              const string &fail_return_url,
                               Promise<td_api::object_ptr<td_api::onRampPaymentSession>> &&promise);
 
   void perform_ton_center_api_request(const string &endpoint,

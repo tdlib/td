@@ -8205,13 +8205,14 @@ void Requests::on_request(uint64 id, td_api::createOnRampPaymentSession &request
   CLEAN_INPUT_STRING(request.cryptocurrency_amount_);
   CLEAN_INPUT_STRING(request.base_currency_amount_);
   CLEAN_INPUT_STRING(request.memo_);
+  CLEAN_INPUT_STRING(request.theme_);
   CLEAN_INPUT_STRING(request.success_return_url_);
   CLEAN_INPUT_STRING(request.fail_return_url_);
   CREATE_REQUEST_PROMISE();
   td_->ton_wallet_manager_->create_on_ramp_session(
       request.provider_id_, request.cryptocurrency_, request.address_, request.payment_method_name_,
       request.base_currency_, request.cryptocurrency_amount_, request.base_currency_amount_, request.memo_,
-      std::move(request.theme_), request.success_return_url_, request.fail_return_url_, std::move(promise));
+      request.theme_, request.success_return_url_, request.fail_return_url_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::sendTonCenterApiRequest &request) {
