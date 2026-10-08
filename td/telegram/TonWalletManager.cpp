@@ -594,6 +594,9 @@ class SendWalletTransferQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "WALLET_KEY_MISMATCH") {
+      td_->ton_wallet_manager_->reload_wallet_state(Promise<Unit>());
+    }
     td_->messages_manager_->on_send_message_fail(random_id_, status.clone());
     promise_.set_error(std::move(status));
   }
@@ -1604,6 +1607,10 @@ void TonWalletManager::get_wallet_state(Promise<Unit> &&promise) {
       return;
     }
   }
+  reload_wallet_state(std::move(promise));
+}
+
+void TonWalletManager::reload_wallet_state(Promise<Unit> &&promise) {
   get_wallet_state_queries_.push_back(std::move(promise));
   if (get_wallet_state_queries_.size() == 1u) {
     auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<Unit> result) {

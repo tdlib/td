@@ -43,6 +43,8 @@ class TonWalletManager final : public Actor {
 
   void get_wallet_state(Promise<Unit> &&promise);
 
+  void reload_wallet_state(Promise<Unit> &&promise);
+
   void get_existing_wallet_balance(Promise<td_api::object_ptr<td_api::walletBotBalance>> &&promise);
 
   void get_user_addresses(vector<UserId> user_ids,
