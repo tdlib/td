@@ -6,6 +6,7 @@ OPENSSL_INSTALL_DIR=${3:-third-party/openssl}
 ANDROID_STL=${4:-c++_static}
 TDLIB_INTERFACE=${5:-Java}
 ANDROID_API_LEVEL=${6:-16}
+ABIS=${7:-"arm64-v8a armeabi-v7a x86_64 x86"}
 
 if [ "$ANDROID_STL" != "c++_static" ] && [ "$ANDROID_STL" != "c++_shared" ] ; then
   echo 'Error: ANDROID_STL must be either "c++_static" or "c++_shared".'
@@ -70,7 +71,7 @@ if [ "$TDLIB_INTERFACE" == "JSONJava" ] ; then
   cp -p {..,tdlib}/java/org/drinkless/tdlib/JsonClient.java || exit 1
 fi
 
-for ABI in arm64-v8a armeabi-v7a x86_64 x86 ; do
+for ABI in $ABIS ; do
   mkdir -p "tdlib/libs/$ABI/" || exit 1
 
   echo "Building TDLib for $ABI at API level $ANDROID_API_LEVEL with NDK $ANDROID_NDK_VERSION..."

@@ -29,6 +29,8 @@ You can also build TDLib with [JSON interface](https://github.com/tdlib/td#using
 
 You can build TDLib for a specific minimal Android API level by passing it as the sixth parameter to the script `./build-tdlib.sh`. Passing a newer version can reduce total application size.
 
+You can build TDLib for a specific ABIs by passing space-separated list of ABIs as the seventh parameter to the script `./build-tdlib.sh`.
+
 You can pass an empty string instead of any script parameter to use its default value. For example, you can use the command `./build-tdlib.sh '' '' '' '' 'JSON'` to build TDLib with [JSON interface](https://github.com/tdlib/td#using-json) using default values for other parameters.
 
 Alternatively, you can use Docker to build TDLib for Android. Use `docker build --output tdlib .` to build the latest TDLib commit from Github, or `docker build --build-arg COMMIT_HASH=<commit-hash> --output tdlib .` to build specific commit. The output archives will be placed in the directory "tdlib" as specified. Additionally, you can specify build arguments "TDLIB_INTERFACE", "ANDROID_NDK_VERSION", "OPENSSL_VERSION", "BUILD_SHARED_OPENSSL_LIBS", and "ANDROID_STL" to the provided Dockerfile. For example, use `docker build --build-arg TDLIB_INTERFACE=JSON --output tdlib .` to build the latest TDLib with JSON interface.
