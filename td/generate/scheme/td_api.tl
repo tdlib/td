@@ -2676,7 +2676,7 @@ emojiStatusCustomEmojis custom_emoji_ids:vector<int64> = EmojiStatusCustomEmojis
 //@disabled_usernames List of currently disabled usernames; the username can be activated with toggleUsernameIsActive, toggleBotUsernameIsActive, or toggleSupergroupUsernameIsActive
 //@editable_username Active or disabled username, which may be changed with setUsername or setSupergroupUsername
 //@collectible_usernames Collectible usernames that were purchased at https://fragment.com and can be passed to getCollectibleItemInfo for more details
-//@secondary_username Secondary non-collectible username; for bots only. Can't be used in toggleBotUsernameIsActive; use addBotSecondaryUsername or removeBotSecondaryUsername to edit it
+//@secondary_username Secondary non-collectible username; for bots only. Can't be used in toggleBotUsernameIsActive; use addBotSecondaryUsername or deleteBotSecondaryUsername to edit it.
 //-If the username is disabled, then Telegram Premium subscription is required to re-enable it
 usernames active_usernames:vector<string> disabled_usernames:vector<string> editable_username:string collectible_usernames:vector<string> secondary_username:string = Usernames;
 
@@ -15420,7 +15420,7 @@ checkBotUsername username:string is_secondary:Bool = CheckChatUsernameResult;
 //@name Name of the bot; 1-64 characters
 //@username Username of the bot. The username must end with "bot" or a string from updateAllowedBotUsernamePremiumSuffixes case-insensitive.
 //-Use checkBotUsername to find whether the name is suitable. If the username doesn't end with "bot", then the current user must have Telegram Premium subscription,
-//-the chosen username will be assigened as secondary and an additional regular username ending with "bot" will be automatically assigned to the created bot
+//-the chosen username will be assigned as secondary and an additional regular username ending with "bot" will be automatically assigned to the created bot
 //@via_link Pass true if the bot is created from an internalLinkTypeRequestManagedBot link
 createBot manager_bot_user_id:int53 name:string username:string via_link:Bool = User;
 
@@ -15449,7 +15449,7 @@ getBotName bot_user_id:int53 language_code:string = Text;
 //@description Changes a profile photo for a bot @bot_user_id Identifier of the target bot @photo Profile photo to set; pass null to delete the chat photo
 setBotProfilePhoto bot_user_id:int53 photo:InputChatPhoto = Ok;
 
-//@description Adds a secondary username to a bot. Can be called only if userTypeBot.can_be_edited == true, the bot has no secondary username and the current user has Telegram Premium subscription.
+//@description Adds a secondary username to a bot. Can be called only if userTypeBot.can_be_edited, the bot has no secondary username and the current user has Telegram Premium subscription.
 //-May return an error with a message "OWNER_USERNAMES_LIMIT_EXCEEDED" if the current user already owns at least getOption("secondary_bot_username_count_max") bots with a secondary username
 //@bot_user_id Identifier of the target bot
 //@username The new secondary username; must be non-empty. Use checkBotUsername to check username validness
@@ -16191,11 +16191,11 @@ disableTonWalletBackup password:string = Ok;
 disableTonWalletBackupWithProof proof:tonWalletOwnershipProof = Ok;
 
 //@description Sends a cryptocurrency from the user's TON wallet; can be used only if getOption("can_use_ton_wallet")
-//@user_id Identifier of the user which wull receive the transfer; pass 0 if unknown
+//@user_id Identifier of the user who will receive the transfer; pass 0 if unknown
 //@address Address in the TON blockchain of the transaction peer
 //@amount The amount of the sent cryptocurrency, in the smallest units of the cryptocurrency
 //@comment Comment added to the transaction
-//@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the receiver's or sender's private key
+//@is_comment_encrypted Pass true if the comment is encrypted and must be decrypted using the receiver's or sender's private key
 //@sending_id Non-persistent identifier, which will be returned back in messageSendingStatePending object and can be used to match sent messages and corresponding updateNewMessage updates
 //@regular_transfer_data Serialized data for regular cryptocurrency transfer request. The minimum allowed transfer amount is getOption("ton_wallet_transfer_amount_min")
 //@gasless_transfer_data Serialized data for gasless cryptocurrency transfer request; pass an empty string to force a regular request.

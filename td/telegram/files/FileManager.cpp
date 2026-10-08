@@ -1597,7 +1597,7 @@ bool FileManager::try_fix_partial_local_location(FileNodePtr node) {
   auto partial = node->local_.partial();
   if (!partial.iv_.empty()) {
     // can't recalc iv_
-    LOG(INFO) << "   failed - partial location has nonempty iv";
+    LOG(INFO) << "   failed - partial location has non-empty IV";
     return false;
   }
   if (partial.part_size_ >= 512 * (1 << 10) || (partial.part_size_ & (partial.part_size_ - 1)) != 0) {

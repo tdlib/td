@@ -16,7 +16,7 @@ namespace td {
 
 FileEncryptionKey::FileEncryptionKey(Slice key, Slice iv) : key_iv_(key.size() + iv.size(), '\0'), type_(Type::Secret) {
   if (key.size() != 32 || iv.size() != 32) {
-    LOG(INFO) << "Wrong key/iv sizes: " << key.size() << ' ' << iv.size();
+    LOG(INFO) << "Wrong key/IV sizes: " << key.size() << ' ' << iv.size();
     type_ = Type::None;
     key_iv_.clear();
     return;
