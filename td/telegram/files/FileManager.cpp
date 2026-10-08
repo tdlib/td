@@ -2407,7 +2407,6 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
     context_->on_merge_files(node->main_file_id_, other_node->main_file_id_);
   }
 
-  bool send_updates_flag = false;
   auto other_pmc_id = other_node->pmc_id_;
   append(node->file_ids_, other_node->file_ids_);
 
@@ -2418,11 +2417,9 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
   }
   other_node = {};
 
-  if (send_updates_flag) {
-    // node might not changed, but other_node might changed, so we need to send update anyway
-    VLOG(update_file) << "File " << node->main_file_id_ << " has been merged";
-    node->on_info_changed();
-  }
+  // node might not changed, but other_node might changed, so we need to send update anyway
+  VLOG(update_file) << "File " << node->main_file_id_ << " has been merged";
+  node->on_info_changed();
 
   if (node->file_ids_.size() > (static_cast<size_t>(1) << file_node_size_warning_exp_)) {
     LOG(WARNING) << "File of type " << file_view.get_type() << " has " << node->file_ids_.size() << " file identifiers";
