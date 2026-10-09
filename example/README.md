@@ -116,8 +116,6 @@ See also [td-ktx](https://github.com/tdlibx/td-ktx) - Kotlin coroutines wrapper 
 
 You can also use [ktd](https://github.com/whyoleg/ktd) library with Kotlin-specific bindings.
 
-Also, see [Monogram](https://github.com/monogram-android/monogram), which is an unofficial Telegram client for Android built with Jetpack Compose and Material Design 3.
-
 <a name="csharp"></a>
 ## Using TDLib in C# projects
 
