@@ -1852,6 +1852,7 @@ class GetCraftStarGiftsQuery final : public Td::ResultHandler {
 
 class GetUniqueStarGiftQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::upgradedGift>> promise_;
+  string name_;
 
  public:
   explicit GetUniqueStarGiftQuery(Promise<td_api::object_ptr<td_api::upgradedGift>> &&promise)
@@ -1859,6 +1860,7 @@ class GetUniqueStarGiftQuery final : public Td::ResultHandler {
   }
 
   void send(const string &name) {
+    name_ = name;
     send_query(G()->net_query_creator().create(telegram_api::payments_getUniqueStarGift(name)));
   }
 
@@ -1876,7 +1878,7 @@ class GetUniqueStarGiftQuery final : public Td::ResultHandler {
 
     StarGift star_gift(td_, std::move(ptr->gift_), true);
     if (!star_gift.is_valid() || !star_gift.is_unique()) {
-      LOG(ERROR) << "Receive invalid user gift";
+      LOG(ERROR) << "Receive invalid user gift for " << name_;
       return promise_.set_error(400, "Gift not found");
     }
     promise_.set_value(star_gift.get_upgraded_gift_object(td_));
