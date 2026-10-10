@@ -2068,6 +2068,7 @@ void Requests::on_request(uint64 id, td_api::checkAuthenticationPremiumPurchase 
 }
 
 void Requests::on_request(uint64 id, td_api::setAuthenticationPremiumPurchaseTransaction &request) {
+  CLEAN_INPUT_STRING(request.currency_);
   send_closure(td_->auth_manager_actor_, &AuthManager::set_premium_purchase_transaction, id,
                std::move(request.transaction_), request.is_restore_, request.premium_day_count_,
                std::move(request.currency_), request.amount_);
@@ -2124,7 +2125,6 @@ void Requests::on_request(uint64 id, const td_api::getAuthenticationPasskeyParam
 void Requests::on_request(uint64 id, td_api::checkAuthenticationPasskey &request) {
   CLEAN_INPUT_STRING(request.credential_id_);
   CLEAN_INPUT_STRING(request.client_data_);
-  CLEAN_INPUT_STRING(request.user_handle_);
   send_closure(td_->auth_manager_actor_, &AuthManager::finish_passkey_login, id, request.credential_id_,
                request.client_data_, request.authenticator_data_, request.signature_, request.user_handle_);
 }
@@ -8424,8 +8424,9 @@ void Requests::on_request(uint64 id, td_api::addPollOption &request) {
                                       std::move(request.option_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::deletePollOption &request) {
+void Requests::on_request(uint64 id, td_api::deletePollOption &request) {
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.option_id_);
   CREATE_OK_REQUEST_PROMISE();
   td_->poll_manager_->delete_poll_option({DialogId(request.chat_id_), MessageId(request.message_id_)},
                                          request.option_id_, std::move(promise));
@@ -9830,6 +9831,7 @@ void Requests::on_request(uint64 id, const td_api::testSquareInt &request) {
 }
 
 void Requests::on_request(uint64 id, td_api::testCallString &request) {
+  CLEAN_INPUT_STRING(request.x_);
   send_closure(td_actor_, &Td::send_result, id, td_api::make_object<td_api::testString>(std::move(request.x_)));
 }
 

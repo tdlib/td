@@ -1820,7 +1820,7 @@ class Requests {
 
   void on_request(uint64 id, td_api::addPollOption &request);
 
-  void on_request(uint64 id, const td_api::deletePollOption &request);
+  void on_request(uint64 id, td_api::deletePollOption &request);
 
   void on_request(uint64 id, td_api::setPollAnswer &request);
 
