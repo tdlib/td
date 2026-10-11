@@ -87,6 +87,9 @@ class InlineQueriesManager final : public Actor {
 
   const InlineMessageContent *get_inline_message_content(int64 query_id, const string &result_id);
 
+  void get_inline_query_result_message(int64 query_id, const string &result_id,
+                                       Promise<td_api::object_ptr<td_api::inlineQueryResultMessage>> &&promise) const;
+
   UserId get_inline_bot_user_id(int64 query_id) const;
 
   void on_get_inline_query_results(DialogId dialog_id, UserId bot_user_id, uint64 query_hash,

@@ -1858,6 +1858,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::getPreparedInlineMessage &request);
 
+  void on_request(uint64 id, td_api::getInlineQueryResultMessage &request);
+
   void on_request(uint64 id, td_api::savePreparedKeyboardButton &request);
 
   void on_request(uint64 id, td_api::getPreparedKeyboardButton &request);

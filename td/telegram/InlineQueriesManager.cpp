@@ -63,6 +63,8 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 
+#include <limits>
+
 namespace td {
 
 class GetInlineBotResultsQuery final : public Td::ResultHandler {
@@ -685,6 +687,28 @@ const InlineMessageContent *InlineQueriesManager::get_inline_message_content(int
     save_recently_used_bots();
   }
   return &result_it->second;
+}
+
+void InlineQueriesManager::get_inline_query_result_message(
+    int64 query_id, const string &result_id,
+    Promise<td_api::object_ptr<td_api::inlineQueryResultMessage>> &&promise) const {
+  const auto query = inline_message_contents_.find(query_id);
+  if (query == inline_message_contents_.end()) {
+    return promise.set_error(400, "Inline query result not found");
+  }
+  const auto result = query->second.find(result_id);
+  if (result == query->second.end()) {
+    return promise.set_error(400, "Inline query result not found");
+  }
+  const auto &message = result->second;
+  // A live location hasn't been sent yet, so preview its full live period.
+  auto preview_date = G()->unix_time();
+  auto content = get_message_content_object(message.message_content.get(), td_, DialogId(), MessageId(), DialogId(),
+                                            false, true, false, DialogId(), preview_date, preview_date, false, false,
+                                            std::numeric_limits<int32>::max(), message.invert_media,
+                                            message.disable_web_page_preview, "get_inline_query_result_message");
+  promise.set_value(td_api::make_object<td_api::inlineQueryResultMessage>(
+      std::move(content), get_reply_markup_object(td_->user_manager_.get(), message.message_reply_markup)));
 }
 
 UserId InlineQueriesManager::get_inline_bot_user_id(int64 query_id) const {

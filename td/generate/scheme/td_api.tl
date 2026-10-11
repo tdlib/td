@@ -8065,6 +8065,11 @@ preparedInlineMessageId id:string expiration_date:int32 = PreparedInlineMessageI
 //@chat_types Types of the chats to which the message can be sent
 preparedInlineMessage inline_query_id:int64 result:InlineQueryResult chat_types:targetChatTypes = PreparedInlineMessage;
 
+//@description The actual message represented by a cached inline query result; for preview only
+//@content Content of the message, including its text, entities, media and caption
+//@reply_markup Reply markup attached to the message; may be null. The markup is for display only; callbacks require a sent message
+inlineQueryResultMessage content:MessageContent reply_markup:ReplyMarkup = InlineQueryResultMessage;
+
 
 //@class CallbackQueryPayload @description Represents a payload of a callback query
 
@@ -13436,6 +13441,11 @@ savePreparedInlineMessage user_id:int53 result:InputInlineQueryResult chat_types
 //@bot_user_id Identifier of the bot that created the message
 //@prepared_message_id Identifier of the prepared message
 getPreparedInlineMessage bot_user_id:int53 prepared_message_id:string = PreparedInlineMessage;
+
+//@description Returns the actual message represented by a previously received inline query result without sending it. Returns an error if the result is no longer cached; for users only
+//@inline_query_id Identifier of the inline query, obtained from getInlineQueryResults or getPreparedInlineMessage
+//@result_id Identifier of the inline query result
+getInlineQueryResultMessage inline_query_id:int64 result_id:string = InlineQueryResultMessage;
 
 //@description Saves a keyboard button to be shown to the given user; for bots only
 //@user_id Identifier of the user

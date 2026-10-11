@@ -8565,6 +8565,14 @@ void Requests::on_request(uint64 id, td_api::getPreparedInlineMessage &request) 
                                                             std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getInlineQueryResultMessage &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.result_id_);
+  CREATE_REQUEST_PROMISE();
+  td_->inline_queries_manager_->get_inline_query_result_message(request.inline_query_id_, request.result_id_,
+                                                                std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::savePreparedKeyboardButton &request) {
   CHECK_IS_BOT();
   CREATE_TEXT_REQUEST_PROMISE();
