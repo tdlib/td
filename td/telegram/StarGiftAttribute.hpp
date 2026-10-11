@@ -80,7 +80,7 @@ template <class StorerT>
 void StarGiftAttributeOriginalDetails::store(StorerT &storer) const {
   CHECK(is_valid());
   bool has_sender_user_id = sender_dialog_id_.get_type() == DialogType::User;
-  bool has_message = !message_.text.empty();
+  bool has_message = !message_.is_empty();
   bool has_sender_dialog_id = sender_dialog_id_ != DialogId() && !has_sender_user_id;
   bool has_receiver_dialog_id = receiver_dialog_id_.get_type() != DialogType::User;
   BEGIN_STORE_FLAGS();

@@ -2296,7 +2296,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_pending_star_rating = pending_star_rating != nullptr;
   bool has_main_profile_tab = main_profile_tab != ProfileTab::Default;
   bool has_first_saved_music_file_id = first_saved_music_file_id != FileId();
-  bool has_note = !note.text.empty();
+  bool has_note = !note.is_empty();
   bool has_manager_bot_user_id = bot_info != nullptr && bot_info->manager_bot_user_id != UserId();
   bool has_linked_community_id = linked_community_id.is_valid();
   BEGIN_STORE_FLAGS();
@@ -10064,7 +10064,7 @@ void UserManager::update_user(User *u, UserId user_id, bool from_binlog, bool fr
 
     auto user_full = get_user_full(user_id);
     if (user_full != nullptr) {
-      if (!user_full->note.text.empty()) {
+      if (!user_full->note.is_empty()) {
         user_full->is_changed = true;
       }
       if (user_full->need_phone_number_privacy_exception && is_user_contact(u, user_id, false)) {
@@ -10600,7 +10600,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
   auto pending_user_rating =
       user_full->pending_star_rating == nullptr ? nullptr : user_full->pending_star_rating->get_user_rating_object();
   td_api::object_ptr<td_api::formattedText> note;
-  if (is_contact && !user_full->note.text.empty()) {
+  if (is_contact && !user_full->note.is_empty()) {
     auto user_note = user_full->note;
     if (fix_formatted_text(user_note.text, user_note.entities, false, false, false, true, true, false).is_ok()) {
       note = get_formatted_text_object(this, user_note, true, -1);

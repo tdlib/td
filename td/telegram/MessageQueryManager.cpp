@@ -446,7 +446,7 @@ class EditMessageFactCheckQuery final : public Td::ResultHandler {
     CHECK(input_peer != nullptr);
     CHECK(message_id.is_server());
     auto server_message_id = message_id.get_server_message_id().get();
-    if (text.text.empty()) {
+    if (text.is_empty()) {
       send_query(G()->net_query_creator().create(
           telegram_api::messages_deleteFactCheck(std::move(input_peer), server_message_id)));
     } else {
@@ -1468,7 +1468,7 @@ class EditEphemeralMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::ephemeral_editMessage::REPLY_MARKUP_MASK;
     }
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
-    if (force_edit_text || (text != nullptr && !text->text.empty())) {
+    if (force_edit_text || (text != nullptr && !text->is_empty())) {
       flags |= telegram_api::ephemeral_editMessage::MESSAGE_MASK;
 
       entities = get_input_message_entities(td_->user_manager_.get(), text, "EditEphemeralMessageQuery");

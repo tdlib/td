@@ -18,7 +18,7 @@ bool MessageCopyOptions::is_supported_server_side(const Td *td, const MessageTop
   if (!send_copy) {
     return true;
   }
-  if ((replace_caption && !new_caption.text.empty()) || reply_markup != nullptr) {
+  if ((replace_caption && !new_caption.is_empty()) || reply_markup != nullptr) {
     return false;
   }
   if (input_reply_to.is_valid() &&

@@ -16,7 +16,7 @@ TermsOfService::TermsOfService(telegram_api::object_ptr<telegram_api::help_terms
   id_ = std::move(terms->id_->data_);
   text_ =
       get_formatted_text(nullptr, std::move(terms->text_), std::move(terms->entities_), true, false, "TermsOfService");
-  if (text_.text.empty()) {
+  if (text_.is_empty()) {
     id_.clear();
   }
   min_user_age_ = terms->min_age_confirm_;

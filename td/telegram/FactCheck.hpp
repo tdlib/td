@@ -16,7 +16,7 @@ template <class StorerT>
 void FactCheck::store(StorerT &storer) const {
   CHECK(!is_empty());
   bool has_country_code = !country_code_.empty();
-  bool has_text = !text_.text.empty();
+  bool has_text = !text_.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(need_check_);
   STORE_FLAG(has_country_code);

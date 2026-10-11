@@ -54,7 +54,7 @@ class MessageQuote {
   static int32 search_quote(FormattedText &&text, FormattedText &&quote, int32 quote_position);
 
   bool is_empty() const {
-    return text_.text.empty();
+    return text_.is_empty();
   }
 
   MessageQuote clone(bool ignore_is_manual = false) const;

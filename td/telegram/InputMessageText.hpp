@@ -17,7 +17,7 @@ namespace td {
 template <class StorerT>
 void store(const InputMessageText &input_message_text, StorerT &storer) {
   bool has_web_page_url = !input_message_text.web_page_url.empty();
-  bool has_empty_text = input_message_text.text.text.empty();
+  bool has_empty_text = input_message_text.text.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(input_message_text.disable_web_page_preview);
   STORE_FLAG(input_message_text.clear_draft);

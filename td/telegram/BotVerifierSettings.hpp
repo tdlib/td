@@ -16,7 +16,7 @@ namespace td {
 
 template <class StorerT>
 void BotVerifierSettings::store(StorerT &storer) const {
-  bool has_description = !description_.text.empty();
+  bool has_description = !description_.is_empty();
   bool has_description_entities = !description_.entities.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);

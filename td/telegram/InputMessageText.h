@@ -45,7 +45,7 @@ class InputMessageText {
   }
 
   bool is_empty() const {
-    return text.text.empty() && web_page_url.empty();
+    return text.is_empty() && web_page_url.empty();
   }
 
   void add_dependencies(Dependencies &dependencies) const;

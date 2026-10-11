@@ -15118,7 +15118,7 @@ void MessagesManager::translate_message_text(MessageFullId message_full_id, cons
   }
 
   auto text = get_message_content_text(get_message_actual_content(m));
-  if (text == nullptr || text->text.empty()) {
+  if (text == nullptr || text->is_empty()) {
     return promise.set_value(td_api::make_object<td_api::formattedText>());
   }
 

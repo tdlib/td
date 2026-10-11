@@ -25,7 +25,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   bool is_public = !is_anonymous_;
   bool has_open_period = open_period_ != 0;
   bool has_close_date = close_date_ != 0;
-  bool has_explanation = !explanation_.text.empty();
+  bool has_explanation = !explanation_.is_empty();
   bool has_recent_voter_dialog_ids = !recent_voter_dialog_ids_.empty();
   bool has_recent_voter_min_channels = !recent_voter_min_channels_.empty();
   bool has_question_entities = !question_.entities.empty();
@@ -230,7 +230,7 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     CHECK(poll != nullptr);
     bool has_open_period = poll->open_period_ != 0;
     bool has_close_date = poll->close_date_ != 0;
-    bool has_explanation = !poll->explanation_.text.empty();
+    bool has_explanation = !poll->explanation_.is_empty();
     bool has_question_entities = !poll->question_.entities.empty();
     bool has_multiple_correct_option_ids = poll->correct_option_ids_.size() > 1u;
     bool know_revoting_disabled = true;

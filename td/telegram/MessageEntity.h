@@ -133,6 +133,10 @@ struct FormattedText {
   string text;
   vector<MessageEntity> entities;
 
+  bool is_empty() const {
+    return text.empty();
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

@@ -566,7 +566,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
       if (!entities.empty()) {
         flags |= telegram_api::inputBotInlineMessageMediaWebPage::ENTITIES_MASK;
       }
-      bool is_optional = !input_message_text.text.text.empty();
+      bool is_optional = !input_message_text.text.is_empty();
       return make_tl_object<telegram_api::inputBotInlineMessageMediaWebPage>(
           flags, input_message_text.show_above_text, input_message_text.force_large_media,
           input_message_text.force_small_media, is_optional, std::move(input_message_text.text.text),

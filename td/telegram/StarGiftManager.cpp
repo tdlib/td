@@ -2475,7 +2475,7 @@ void StarGiftManager::send_gift(int64 gift_id, DialogId dialog_id, td_api::objec
       0, is_private, pay_for_upgrade, std::move(input_peer), gift_id, nullptr);
   auto send_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGift>(
       0, is_private, pay_for_upgrade, std::move(send_input_peer), gift_id, nullptr);
-  if (!message.text.empty()) {
+  if (!message.is_empty()) {
     input_invoice->flags_ |= telegram_api::inputInvoiceStarGift::MESSAGE_MASK;
     input_invoice->message_ = get_input_text_with_entities(td_->user_manager_.get(), message, "send_gift");
 
@@ -2810,7 +2810,7 @@ void StarGiftManager::do_place_gift_auction_bid(int64 gift_id, int64 star_count,
       flags, is_private, old_star_count != 0, std::move(input_peer), gift_id, star_count, nullptr);
   auto send_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftAuctionBid>(
       flags, is_private, old_star_count != 0, std::move(send_input_peer), gift_id, star_count, nullptr);
-  if (!message.text.empty()) {
+  if (!message.is_empty()) {
     input_invoice->flags_ |= telegram_api::inputInvoiceStarGiftAuctionBid::MESSAGE_MASK;
     input_invoice->message_ =
         get_input_text_with_entities(td_->user_manager_.get(), message, "do_place_gift_auction_bid");
@@ -3099,7 +3099,7 @@ void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receive
       0, price.is_ton(), !is_private, gift_name, std::move(input_peer), nullptr);
   auto resale_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftResale>(
       0, price.is_ton(), !is_private, gift_name, std::move(resale_input_peer), nullptr);
-  if (!message.text.empty()) {
+  if (!message.is_empty()) {
     input_invoice->flags_ |= telegram_api::inputInvoiceStarGiftResale::MESSAGE_MASK;
     input_invoice->message_ = get_input_text_with_entities(td_->user_manager_.get(), message, "send_resold_gift");
 

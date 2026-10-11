@@ -58,7 +58,7 @@ MessageQuote::MessageQuote(Td *td, td_api::object_ptr<td_api::inputTextQuote> qu
   int32 ltrim_count = 0;
   auto r_text = get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(quote->text_),
                                    td->auth_manager_->is_bot(), true, true, false, &ltrim_count);
-  if (!r_text.is_ok() || r_text.ok().text.empty()) {
+  if (!r_text.is_ok() || r_text.ok().is_empty()) {
     return;
   }
   text_ = r_text.move_as_ok();

@@ -46,7 +46,7 @@ class GroupCallMessage {
   }
 
   bool is_reaction() const {
-    return text_.text.empty();
+    return text_.is_empty();
   }
 
   bool is_from_admin() const {

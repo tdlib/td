@@ -26,7 +26,7 @@ class AiComposeToneExample {
   explicit AiComposeToneExample(telegram_api::object_ptr<telegram_api::aiComposeToneExample> &&example);
 
   bool is_empty() const {
-    return from_text_.text.empty() && to_text_.text.empty();
+    return from_text_.is_empty() && to_text_.is_empty();
   }
 
   td_api::object_ptr<td_api::textCompositionStyleExample> get_text_composition_style_example_object() const;

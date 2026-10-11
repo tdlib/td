@@ -99,7 +99,7 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_editInlineBotMessage::REPLY_MARKUP_MASK;
     }
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
-    if (force_edit_text || (text != nullptr && !text->text.empty())) {
+    if (force_edit_text || (text != nullptr && !text->is_empty())) {
       flags |= telegram_api::messages_editInlineBotMessage::MESSAGE_MASK;
 
       entities = get_input_message_entities(td_->user_manager_.get(), text, "EditInlineMessageQuery");

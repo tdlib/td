@@ -2094,7 +2094,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> PollManager::get_input_media(
       correct_answers.push_back(correct_option_id);
     }
 
-    if (!poll->explanation_.text.empty()) {
+    if (!poll->explanation_.is_empty()) {
       flags |= telegram_api::inputMediaPoll::SOLUTION_MASK;
     }
     if (input_media[1] != nullptr) {
@@ -2472,7 +2472,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         }
       }
       if (poll->explanation_ != explanation) {
-        if (explanation.text.empty() && !poll->explanation_.text.empty() && poll->has_revoting_disabled_) {
+        if (explanation.is_empty() && !poll->explanation_.is_empty() && poll->has_revoting_disabled_) {
           LOG(ERROR) << "Can't change known " << poll_id << " explanation to empty from " << source;
         } else {
           poll->explanation_ = std::move(explanation);
@@ -2507,7 +2507,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     if (!correct_option_ids.empty()) {
       LOG(ERROR) << "Receive correct option " << correct_option_ids << " in non-quiz " << poll_id << " from " << source;
     }
-    if (!explanation.text.empty() || poll_results->solution_media_ != nullptr) {
+    if (!explanation.is_empty() || poll_results->solution_media_ != nullptr) {
       LOG(ERROR) << "Receive explanation " << explanation << " in non-quiz " << poll_id << " from " << source;
     }
   }

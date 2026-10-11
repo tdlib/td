@@ -1371,7 +1371,7 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     auto privacy_rules = story->privacy_rules_.get_input_privacy_rules(td_);
     auto period = story->expire_date_ - story->date_;
     int32 flags = 0;
-    if (!caption.text.empty()) {
+    if (!caption.is_empty()) {
       flags |= telegram_api::stories_sendStory::CAPTION_MASK;
     }
     if (!entities.empty()) {
@@ -1751,7 +1751,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   bool has_interaction_info = !interaction_info_.is_empty();
   bool has_privacy_rules = privacy_rules_ != UserPrivacySettingRules();
   bool has_content = content_ != nullptr;
-  bool has_caption = !caption_.text.empty();
+  bool has_caption = !caption_.is_empty();
   bool has_areas = !areas_.empty();
   bool has_chosen_reaction_type = !chosen_reaction_type_.is_empty();
   bool has_forward_info = forward_info_ != nullptr;
@@ -6247,7 +6247,7 @@ class StoryManager::EditStoryLogEvent {
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    bool has_caption = edit_caption_ && !caption_.text.empty();
+    bool has_caption = edit_caption_ && !caption_.is_empty();
     bool has_media_areas = edit_media_areas_ && !areas_.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(edit_caption_);

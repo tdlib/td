@@ -128,7 +128,7 @@ Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, Dial
                                        false, false, true, false));
   constexpr size_t MAX_TITLE_LENGTH = 12;  // server-side limit for dialog filter title
   title.text = clean_name(title.text, MAX_TITLE_LENGTH);
-  if (title.text.empty()) {
+  if (title.is_empty()) {
     return Status::Error(400, "Name must be non-empty");
   }
   keep_only_custom_emoji(title);

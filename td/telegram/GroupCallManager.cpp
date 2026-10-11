@@ -1097,7 +1097,7 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::phone_sendGroupCallMessage::SEND_AS_MASK;
     }
     if (paid_message_star_count > 0) {
-      if (!text.text.empty()) {
+      if (!text.is_empty()) {
         td_->star_manager_->add_pending_owned_star_count(-paid_message_star_count, false);
       }
       flags |= telegram_api::phone_sendGroupCallMessage::ALLOW_PAID_STARS_MASK;
@@ -5971,7 +5971,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
     td_->create_handler<SendGroupCallEncryptedMessageQuery>(std::move(promise))
         ->send(input_group_call_id, r_data.value());
   } else {
-    CHECK(is_reaction == message.text.empty());
+    CHECK(is_reaction == message.is_empty());
     td_->create_handler<SendGroupCallMessageQuery>(std::move(promise))
         ->send(input_group_call_id, message_id, message, group_call->is_live_story ? as_dialog_id : DialogId(),
                paid_message_star_count, group_call->is_live_story);

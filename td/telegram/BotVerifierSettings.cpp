@@ -44,7 +44,7 @@ td_api::object_ptr<td_api::botVerificationParameters> BotVerifierSettings::get_b
     return nullptr;
   }
   td_api::object_ptr<td_api::formattedText> description;
-  if (!description_.text.empty() || can_modify_custom_description_) {
+  if (!description_.is_empty() || can_modify_custom_description_) {
     description = get_formatted_text_object(td->user_manager_.get(), description_, true, -1);
   }
   return td_api::make_object<td_api::botVerificationParameters>(icon_.get(), company_, std::move(description),

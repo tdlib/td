@@ -76,7 +76,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> InputMessageText::get_input_m
   if (web_page_url.empty()) {
     return nullptr;
   }
-  auto is_optional = !text.text.empty();
+  auto is_optional = !text.is_empty();
   return telegram_api::make_object<telegram_api::inputMediaWebPage>(0, force_large_media, force_small_media,
                                                                     is_optional, web_page_url);
 }

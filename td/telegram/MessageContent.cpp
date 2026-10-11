@@ -2231,7 +2231,7 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
-      auto has_caption = !m->caption.text.empty();
+      auto has_caption = !m->caption.is_empty();
       bool has_attached_media = m->attached_media != nullptr;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_caption);
@@ -2324,7 +2324,7 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::GiftPremium: {
       const auto *m = static_cast<const MessageGiftPremium *>(content);
       bool has_crypto_amount = !m->crypto_currency.empty();
-      bool has_text = !m->text.text.empty();
+      bool has_text = !m->text.is_empty();
       bool has_days = true;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_crypto_amount);
@@ -2413,7 +2413,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_amount = m->amount > 0;
       bool has_crypto_currency = !m->crypto_currency.empty();
       bool has_crypto_amount = m->crypto_amount > 0;
-      bool has_text = !m->text.text.empty();
+      bool has_text = !m->text.is_empty();
       bool has_days = true;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->via_giveaway);
@@ -2574,7 +2574,7 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::PaidMedia: {
       const auto *m = static_cast<const MessagePaidMedia *>(content);
-      bool has_caption = !m->caption.text.empty();
+      bool has_caption = !m->caption.is_empty();
       bool has_payload = !m->payload.empty();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_caption);
@@ -2639,7 +2639,7 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::StarGift: {
       const auto *m = static_cast<const MessageStarGift *>(content);
-      bool has_text = !m->text.text.empty();
+      bool has_text = !m->text.is_empty();
       bool has_upgrade_star_count = m->upgrade_star_count != 0;
       bool has_upgrade_message_id = m->upgrade_message_id.is_valid();
       bool has_owner_dialog_id = m->owner_dialog_id.is_valid();
@@ -2717,7 +2717,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_resale_price = !m->resale_price.is_empty();
       bool has_drop_original_details_star_count = m->drop_original_details_star_count != 0;
       bool has_can_craft_at = m->can_craft_at != 0;
-      bool has_text = !m->text.text.empty();
+      bool has_text = !m->text.is_empty();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_transfer_star_count);
       STORE_FLAG(has_can_export_at);
@@ -6163,7 +6163,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
   if (text->web_page_url.empty()) {
     return nullptr;
   }
-  bool is_optional = !text->text.text.empty();
+  bool is_optional = !text->text.is_empty();
   return telegram_api::make_object<telegram_api::inputMediaWebPage>(0, text->force_large_media, text->force_small_media,
                                                                     is_optional, text->web_page_url);
 }
@@ -9983,12 +9983,12 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
   switch (media_ptr == nullptr ? telegram_api::messageMediaEmpty::ID : media_ptr->get_id()) {
     case telegram_api::messageMediaEmpty::ID:
       if (rich_message != nullptr) {
-        if (!message.text.empty()) {
+        if (!message.is_empty()) {
           LOG(ERROR) << "Receive both text and rich text in a message from " << owner_dialog_id;
         }
         return td::make_unique<MessageRichText>(RichMessage(td, std::move(rich_message), owner_dialog_id));
       }
-      if (message.text.empty()) {
+      if (message.is_empty()) {
         LOG(ERROR) << "Receive empty message text and media from " << source;
       }
       if (disable_web_page_preview != nullptr && !get_first_url(message).empty()) {
@@ -14016,7 +14016,7 @@ void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date) 
 
 void update_used_hashtags(Td *td, const MessageContent *content) {
   const FormattedText *text = get_message_content_text(content);
-  if (text == nullptr || text->text.empty()) {
+  if (text == nullptr || text->is_empty()) {
     const auto *rich_message = get_message_content_rich_message(content);
     if (rich_message != nullptr) {
       for (const auto &hashtag : rich_message->get_hashtags()) {

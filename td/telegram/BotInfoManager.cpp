@@ -733,7 +733,7 @@ class SetCustomVerificationQuery final : public Td::ResultHandler {
       flags |= telegram_api::bots_setCustomVerification::BOT_MASK;
     }
     telegram_api::object_ptr<telegram_api::textWithEntities> description;
-    if (!custom_description.text.empty()) {
+    if (!custom_description.is_empty()) {
       description =
           get_input_text_with_entities(td_->user_manager_.get(), custom_description, "SetCustomVerificationQuery");
       flags |= telegram_api::bots_setCustomVerification::CUSTOM_DESCRIPTION_MASK;

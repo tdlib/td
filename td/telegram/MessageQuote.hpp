@@ -15,7 +15,7 @@ namespace td {
 
 template <class StorerT>
 void MessageQuote::store(StorerT &storer) const {
-  bool has_text = !text_.text.empty();
+  bool has_text = !text_.is_empty();
   bool has_position = position_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_text);
