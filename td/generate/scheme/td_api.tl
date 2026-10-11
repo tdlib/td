@@ -1593,7 +1593,7 @@ upgradedGiftColors id:int64 model_custom_emoji_id:int64 symbol_custom_emoji_id:i
 //-If the date is in the future, then call canSendGift to get the reason, why the gift can't be sent now
 //@user_limits Number of times the gift can be purchased by the current user; may be null if not limited
 //@overall_limits Number of times the gift can be purchased by all users; may be null if not limited
-//@background Background of the gift
+//@background Background of the gift; may be null if the gift has no background
 //@first_send_date Point in time (Unix timestamp) when the gift was sent for the first time; for sold out gifts only
 //@last_send_date Point in time (Unix timestamp) when the gift was sent for the last time; for sold out gifts only
 gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 upgrade_variant_count:int32 has_colors:Bool is_for_birthday:Bool is_premium:Bool auction_info:giftAuction next_send_date:int32 user_limits:giftPurchaseLimits overall_limits:giftPurchaseLimits background:giftBackground first_send_date:int32 last_send_date:int32 = Gift;
@@ -1976,13 +1976,13 @@ starTransactionTypeBotInvoiceSale user_id:int53 product_info:productInfo invoice
 //@description The transaction is a purchase of a subscription from a bot or a business account by the current user; relevant for regular users only
 //@user_id Identifier of the bot or the business account user who created the subscription link
 //@subscription_period The number of seconds between consecutive Telegram Star debitings
-//@product_info Information about the bought subscription
+//@product_info Information about the bought subscription; may be null if no information about the subscription is available
 starTransactionTypeBotSubscriptionPurchase user_id:int53 subscription_period:int32 product_info:productInfo = StarTransactionType;
 
 //@description The transaction is a sale of a subscription by the bot; relevant for bots only
 //@user_id Identifier of the user who bought the subscription
 //@subscription_period The number of seconds between consecutive Telegram Star debitings
-//@product_info Information about the bought subscription
+//@product_info Information about the bought subscription; may be null if no information about the subscription is available
 //@invoice_payload Invoice payload
 //@affiliate Information about the affiliate which received commission from the transaction; may be null if none
 starTransactionTypeBotSubscriptionSale user_id:int53 subscription_period:int32 product_info:productInfo invoice_payload:bytes affiliate:affiliateInfo = StarTransactionType;
@@ -5366,7 +5366,7 @@ encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 //@description Contains information about an encrypted Telegram Passport element; for bots only
 //@type Type of Telegram Passport element
 //@data Encrypted JSON-encoded data about the user
-//@front_side The front side of an identity document
+//@front_side The front side of an identity document; may be null if the element isn't an identity document
 //@reverse_side The reverse side of an identity document; may be null
 //@selfie Selfie with the document; may be null
 //@translation List of files containing a certified English translation of the document
