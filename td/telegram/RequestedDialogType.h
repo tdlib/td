@@ -70,6 +70,8 @@ class RequestedDialogType {
 
   Status check_shared_dialog(Td *td, DialogId dialog_id) const;
 
+  Status check_shared_user(bool is_bot, bool is_premium) const;
+
   Status check_shared_dialog_count(size_t count) const;
 
   template <class StorerT>

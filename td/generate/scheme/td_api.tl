@@ -13387,7 +13387,7 @@ getLoginUrlInfo chat_id:int53 message_id:int53 button_id:int53 = LoginUrlInfo;
 getLoginUrl chat_id:int53 message_id:int53 button_id:int53 allow_write_access:Bool = HttpUrl;
 
 
-//@description Shares users after pressing a keyboardButtonTypeRequestUsers button with the bot
+//@description Shares users after pressing a keyboardButtonTypeRequestUsers or keyboardButtonTypeRequestManagedBot button with the bot
 //@source Source of the button
 //@button_id Identifier of the button
 //@shared_user_ids Identifiers of the shared users
