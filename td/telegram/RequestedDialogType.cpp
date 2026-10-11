@@ -230,16 +230,9 @@ int32 RequestedDialogType::get_button_id() const {
 Status RequestedDialogType::check_shared_dialog(Td *td, DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {
-      if (type_ != Type::User) {
-        return Status::Error(400, "Wrong chat type");
-      }
       auto user_id = dialog_id.get_user_id();
-      if (restrict_is_bot_ && td->user_manager_->is_user_bot(user_id) != is_bot_) {
-        return Status::Error(400, "Wrong is_bot value");
-      }
-      if (restrict_is_premium_ && td->user_manager_->is_user_premium(user_id) != is_premium_) {
-        return Status::Error(400, "Wrong is_premium value");
-      }
+      TRY_STATUS(
+          check_shared_user(td->user_manager_->is_user_bot(user_id), td->user_manager_->is_user_premium(user_id)));
       break;
     }
     case DialogType::Chat: {
@@ -324,11 +317,26 @@ Status RequestedDialogType::check_shared_dialog(Td *td, DialogId dialog_id) cons
   return Status::OK();
 }
 
+Status RequestedDialogType::check_shared_user(bool is_bot, bool is_premium) const {
+  if (type_ != Type::User && type_ != Type::CreateBot) {
+    return Status::Error(400, "Wrong chat type");
+  }
+  // The server verifies ownership and the manager of a newly created bot.
+  // Locally, never accept an ordinary user for a managed-bot request.
+  if ((type_ == Type::CreateBot && !is_bot) || (restrict_is_bot_ && is_bot != is_bot_)) {
+    return Status::Error(400, "Wrong is_bot value");
+  }
+  if (restrict_is_premium_ && is_premium != is_premium_) {
+    return Status::Error(400, "Wrong is_premium value");
+  }
+  return Status::OK();
+}
+
 Status RequestedDialogType::check_shared_dialog_count(size_t count) const {
   if (count == 0) {
     return Status::Error(400, "Too few chats are chosen");
   }
-  if (count > static_cast<size_t>(max_quantity_)) {
+  if (count > static_cast<size_t>(type_ == Type::CreateBot ? 1 : max_quantity_)) {
     return Status::Error(400, "Too many chats are chosen");
   }
   return Status::OK();
