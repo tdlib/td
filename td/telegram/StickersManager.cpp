@@ -1565,9 +1565,8 @@ class SendAnimatedEmojiClicksQuery final : public Td::ResultHandler {
     CHECK(action != nullptr);
     emoji_ = action->emoticon_;
 
-    int32 flags = 0;
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_setTyping(flags, std::move(input_peer), 0, std::move(action))));
+        telegram_api::messages_setTyping(0, std::move(input_peer), 0, std::move(action))));
   }
 
   void on_result(BufferSlice packet) final {

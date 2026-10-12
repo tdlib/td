@@ -1756,9 +1756,8 @@ class UploadMediaQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Have no write access to the chat"));
     }
 
-    int32 flags = 0;
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_uploadMedia(flags, string(), std::move(input_peer), std::move(input_media))));
+        telegram_api::messages_uploadMedia(0, string(), std::move(input_peer), std::move(input_media))));
   }
 
   void on_result(BufferSlice packet) final {
