@@ -464,10 +464,10 @@ class ComposeRichMessageWithAiQuery final : public Td::ResultHandler {
 
     int32 flags = 0;
     if (!translate_to_language_code.empty()) {
-      flags |= telegram_api::messages_composeMessageWithAI::TRANSLATE_TO_LANG_MASK;
+      flags |= telegram_api::messages_composeRichMessageWithAI::TRANSLATE_TO_LANG_MASK;
     }
     if (input_tone != nullptr) {
-      flags |= telegram_api::messages_composeMessageWithAI::TONE_MASK;
+      flags |= telegram_api::messages_composeRichMessageWithAI::TONE_MASK;
     }
     telegram_api::object_ptr<telegram_api::InputRichMessage> input_rich_message;
     if (has_message) {
