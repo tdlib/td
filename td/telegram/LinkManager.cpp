@@ -32,6 +32,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TonWalletOwnershipProof.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
 
@@ -1972,7 +1973,8 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
   }
 
   void send(string url, MessageFullId message_full_id, int32 button_id, bool allow_write_access,
-            bool allow_phone_number_access, const string &match_code) {
+            bool allow_phone_number_access, const string &match_code,
+            telegram_api::object_ptr<telegram_api::inputTonConnectOauthSession> session) {
     url_ = std::move(url);
     int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
@@ -1988,7 +1990,8 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_acceptUrlAuth(
         flags, allow_write_access, allow_phone_number_access, std::move(input_peer),
-        message_full_id.get_message_id().get_server_message_id().get(), button_id, url_, match_code, nullptr)));
+        message_full_id.get_message_id().get_server_message_id().get(), button_id, url_, match_code,
+        std::move(session))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -4565,12 +4568,13 @@ void LinkManager::get_login_url(MessageFullId message_full_id, int64 button_id, 
                                 Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, url, td_->messages_manager_->get_login_button_url(message_full_id, button_id));
   td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
-      ->send(std::move(url), message_full_id, narrow_cast<int32>(button_id), allow_write_access, false, string());
+      ->send(std::move(url), message_full_id, narrow_cast<int32>(button_id), allow_write_access, false, string(),
+             nullptr);
 }
 
 void LinkManager::get_link_login_url(const string &url, bool allow_write_access, Promise<string> &&promise) {
   td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
-      ->send(url, MessageFullId(), 0, allow_write_access, false, string());
+      ->send(url, MessageFullId(), 0, allow_write_access, false, string(), nullptr);
 }
 
 void LinkManager::check_oauth_request_match_code(const string &url, const string &match_code, Promise<Unit> &&promise) {
@@ -4578,9 +4582,19 @@ void LinkManager::check_oauth_request_match_code(const string &url, const string
 }
 
 void LinkManager::accept_oauth_request(const string &url, const string &match_code, bool allow_write_access,
-                                       bool allow_phone_number_access, Promise<string> &&promise) {
+                                       bool allow_phone_number_access,
+                                       td_api::object_ptr<td_api::tonConnectConnectData> &&connect_data,
+                                       Promise<string> &&promise) {
+  telegram_api::object_ptr<telegram_api::inputTonConnectOauthSession> session;
+  if (connect_data != nullptr) {
+    TRY_RESULT_PROMISE(promise, proof,
+                       TonWalletOwnershipProof::get_ton_wallet_ownership_proof(std::move(connect_data->proof_)));
+    session = telegram_api::make_object<telegram_api::inputTonConnectOauthSession>(
+        connect_data->session_id_, BufferSlice(connect_data->challenge_answer_), BufferSlice(connect_data->body_),
+        std::move(proof.proof_));
+  }
   td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
-      ->send(url, MessageFullId(), 0, allow_write_access, allow_phone_number_access, match_code);
+      ->send(url, MessageFullId(), 0, allow_write_access, allow_phone_number_access, match_code, std::move(session));
 }
 
 void LinkManager::decline_oauth_request(const string &url, Promise<Unit> &&promise) {

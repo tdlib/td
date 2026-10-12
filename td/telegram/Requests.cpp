@@ -3654,7 +3654,8 @@ void Requests::on_request(uint64 id, td_api::acceptOauthRequest &request) {
   CLEAN_INPUT_STRING(request.match_code_);
   CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->link_manager_->accept_oauth_request(request.url_, request.match_code_, request.allow_write_access_,
-                                           request.allow_phone_number_access_, std::move(promise));
+                                           request.allow_phone_number_access_,
+                                           std::move(request.ton_connect_connect_data_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::declineOauthRequest &request) {

@@ -2432,6 +2432,13 @@ tonConnectConnectItemProof payload:string = TonConnectConnectItem;
 //@items Items requested from the wallet
 tonConnectConnectRequest manifest_url:string items:vector<TonConnectConnectItem> = TonConnectConnectRequest;
 
+//@description Data required to accept a TON Connect session
+//@session_id Unique identifier of the session
+//@challenge_answer Answer to the challenge received from setTonConnectSessionWalletClientId
+//@body Body of the result
+//@proof Proof of the TON wallet ownership
+tonConnectConnectData session_id:int64 challenge_answer:bytes body:bytes proof:tonWalletOwnershipProof = TonConnectConnectData;
+
 //@description Represents a TON Connect session. See https://github.com/ton-blockchain/ton-connect/tree/main/spec for full TON Connect protocol documentation
 //@id Unique identifier of the session
 //@dapp_client_id Hex-encoded public X25519 key of the dApp
@@ -4189,7 +4196,8 @@ loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 reque
 //@request_write_access True, if the user must be asked for the permission to the bot to send them messages
 //@request_phone_number_access True, if the user must be asked for the permission to share their phone number
 //@request_ton_wallet_access True, if access to the user's TON wallet is requested by the app. If true and user agrees to give the access,
-//-then use createTonConnectSession to create the TON Connect session, then setTonConnectSessionWalletClientId, and then pass all data to acceptOauthRequest
+//-then use createTonConnectSession to create the TON Connect session, then setTonConnectSessionWalletClientId, then create a TON Proof with payload ton_proof_payload,
+//-and then pass all data to acceptOauthRequest in the parameter ton_connect_connect_data
 //@dapp_client_id Hex-encoded public X25519 key of the dApp; may be empty if TON wallet access wasn't requested
 //@ton_connect_manifest_url URL of the TON Connect manifest of the dApp; may be empty if TON wallet access wasn't requested
 //@ton_proof_payload Payload for TON wallet ownership proof; may be empty if TON wallet access wasn't requested
@@ -13690,7 +13698,8 @@ checkOauthRequestMatchCode url:string match_code:string = Ok;
 //@match_code The matching code chosen by the user
 //@allow_write_access Pass true if the current user allowed the bot that was returned in getOauthLinkInfo, to send them messages
 //@allow_phone_number_access Pass true if the current user allowed the bot that was returned in getOauthLinkInfo, to access their phone number
-acceptOauthRequest url:string match_code:string allow_write_access:Bool allow_phone_number_access:Bool = HttpUrl;
+//@ton_connect_connect_data Pass data required to access the user's TON wallet via TON Connect if the current user allowed this; pass null if the access wasn't requested or the user declined access
+acceptOauthRequest url:string match_code:string allow_write_access:Bool allow_phone_number_access:Bool ton_connect_connect_data:tonConnectConnectData = HttpUrl;
 
 //@description Declines an OAuth authorization request
 //@url URL of the OAuth deep link

@@ -8609,7 +8609,8 @@ class CliClient final : public Actor {
       string link;
       string match_code;
       get_args(args, link, match_code);
-      send_request(td_api::make_object<td_api::acceptOauthRequest>(link, match_code, op == "aorw", op == "aorp"));
+      send_request(
+          td_api::make_object<td_api::acceptOauthRequest>(link, match_code, op == "aorw", op == "aorp", nullptr));
     } else if (op == "dor") {
       const string &link = args;
       send_request(td_api::make_object<td_api::declineOauthRequest>(link));
