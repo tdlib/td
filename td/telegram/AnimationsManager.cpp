@@ -324,9 +324,6 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
       flags |= telegram_api::inputMediaUploadedDocument::STICKERS_MASK;
       added_stickers = td_->file_manager_->get_input_documents(animation->sticker_file_ids);
     }
-    if (input_thumbnail != nullptr) {
-      flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
-    }
     return telegram_api::make_object<telegram_api::inputMediaUploadedDocument>(
         flags, false, false, has_spoiler, std::move(input_file), std::move(input_thumbnail), mime_type,
         std::move(attributes), std::move(added_stickers), nullptr, 0, 0);

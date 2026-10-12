@@ -192,6 +192,9 @@ bool TD_TL_writer_h::need_arg_mask(const tl::arg &a, bool can_be_stored) const {
   if (name == "True") {
     return false;
   }
+  if (!is_built_in_simple_type(name) && !is_built_in_complex_type(name)) {
+    return false;
+  }
   if (can_be_stored) {
     return true;
   }

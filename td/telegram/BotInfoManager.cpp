@@ -621,7 +621,6 @@ class SetBotInfoQuery final : public Td::ResultHandler {
       return on_error(r_input_user.move_as_error());
     }
     if (r_input_user.ok() != nullptr) {
-      flags |= telegram_api::bots_setBotInfo::BOT_MASK;
       bot_user_id_ = bot_user_id;
     } else {
       bot_user_id_ = td_->user_manager_->get_my_id();
@@ -675,16 +674,12 @@ class GetBotInfoQuery final : public Td::ResultHandler {
   }
 
   void send(UserId bot_user_id, const string &language_code) {
-    int32 flags = 0;
     auto r_input_user = get_bot_input_user(td_, bot_user_id);
     if (r_input_user.is_error()) {
       return on_error(r_input_user.move_as_error());
     }
-    if (r_input_user.ok() != nullptr) {
-      flags |= telegram_api::bots_getBotInfo::BOT_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::bots_getBotInfo(flags, r_input_user.move_as_ok(), language_code), {{bot_user_id}}));
+        telegram_api::bots_getBotInfo(0, r_input_user.move_as_ok(), language_code), {{bot_user_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -728,18 +723,13 @@ class SetCustomVerificationQuery final : public Td::ResultHandler {
         td_->dialog_manager_->get_input_peer(dialog_id, is_verified ? AccessRights::Read : AccessRights::Know);
     CHECK(input_peer != nullptr);
 
-    int32 flags = 0;
-    if (input_user != nullptr) {
-      flags |= telegram_api::bots_setCustomVerification::BOT_MASK;
-    }
     telegram_api::object_ptr<telegram_api::textWithEntities> description;
     if (!custom_description.is_empty()) {
       description =
           get_input_text_with_entities(td_->user_manager_.get(), custom_description, "SetCustomVerificationQuery");
-      flags |= telegram_api::bots_setCustomVerification::CUSTOM_DESCRIPTION_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::bots_setCustomVerification(flags, is_verified, std::move(input_user), std::move(input_peer),
+        telegram_api::bots_setCustomVerification(0, is_verified, std::move(input_user), std::move(input_peer),
                                                  std::move(description)),
         {{dialog_id}}));
   }

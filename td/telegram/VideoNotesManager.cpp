@@ -236,9 +236,6 @@ tl_object_ptr<telegram_api::InputMedia> VideoNotesManager::get_input_media(
     if (ttl != 0) {
       flags |= telegram_api::inputMediaUploadedDocument::TTL_SECONDS_MASK;
     }
-    if (input_thumbnail != nullptr) {
-      flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
-    }
     return telegram_api::make_object<telegram_api::inputMediaUploadedDocument>(
         flags, true, false, false, std::move(input_file), std::move(input_thumbnail), "video/mp4",
         std::move(attributes), vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), nullptr, 0, ttl);

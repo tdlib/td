@@ -310,7 +310,6 @@ telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_are
   CHECK(is_valid());
   switch (type_) {
     case Type::Location: {
-      int32 flags = 0;
       telegram_api::object_ptr<telegram_api::geoPointAddress> address;
       if (!address_.is_empty()) {
         int32 address_flags = 0;
@@ -325,11 +324,10 @@ telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_are
         }
         address = telegram_api::make_object<telegram_api::geoPointAddress>(
             address_flags, address_.country_iso2_, address_.state_, address_.city_, address_.street_);
-        flags |= telegram_api::mediaAreaGeoPoint::ADDRESS_MASK;
       }
 
       return telegram_api::make_object<telegram_api::mediaAreaGeoPoint>(
-          flags, coordinates_.get_input_media_area_coordinates(), location_.get_fake_geo_point(), std::move(address));
+          0, coordinates_.get_input_media_area_coordinates(), location_.get_fake_geo_point(), std::move(address));
     }
     case Type::Venue:
       if (input_query_id_ != 0) {

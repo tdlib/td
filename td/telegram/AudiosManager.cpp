@@ -285,12 +285,8 @@ tl_object_ptr<telegram_api::InputMedia> AudiosManager::get_input_media(
     if (!begins_with(mime_type, "audio/")) {
       mime_type = "audio/mpeg";
     }
-    int32 flags = 0;
-    if (input_thumbnail != nullptr) {
-      flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
-    }
     return telegram_api::make_object<telegram_api::inputMediaUploadedDocument>(
-        flags, false, false, false, std::move(input_file), std::move(input_thumbnail), mime_type, std::move(attributes),
+        0, false, false, false, std::move(input_file), std::move(input_thumbnail), mime_type, std::move(attributes),
         vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), nullptr, 0, 0);
   } else {
     CHECK(main_remote_location == nullptr);

@@ -83,13 +83,8 @@ class GetInlineBotResultsQuery final : public Td::ResultHandler {
     bot_user_id_ = bot_user_id;
     dialog_id_ = dialog_id;
     query_hash_ = query_hash;
-    int32 flags = 0;
-    if (!user_location.empty()) {
-      flags |= telegram_api::messages_getInlineBotResults::GEO_POINT_MASK;
-    }
-
     auto net_query = G()->net_query_creator().create(telegram_api::messages_getInlineBotResults(
-        flags, std::move(bot_input_user), std::move(input_peer),
+        0, std::move(bot_input_user), std::move(input_peer),
         user_location.empty() ? nullptr : user_location.get_input_geo_point(), query, offset));
     auto result = net_query.get_weak();
     net_query->need_resend_on_503_ = false;
@@ -135,12 +130,6 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
     int32 flags = 0;
     if (!next_offset.empty()) {
       flags |= telegram_api::messages_setInlineBotResults::NEXT_OFFSET_MASK;
-    }
-    if (switch_pm != nullptr) {
-      flags |= telegram_api::messages_setInlineBotResults::SWITCH_PM_MASK;
-    }
-    if (web_view != nullptr) {
-      flags |= telegram_api::messages_setInlineBotResults::SWITCH_WEBVIEW_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_setInlineBotResults(
         flags, is_gallery, is_personal, inline_query_id, std::move(results), cache_time, next_offset,
@@ -346,10 +335,6 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
 
   void send(tl_object_ptr<telegram_api::InputUser> &&input_user, string url, const WebAppOpenParameters &parameters) {
     int32 flags = 0;
-    auto theme_parameters = parameters.get_input_theme_parameters();
-    if (theme_parameters != nullptr) {
-      flags |= telegram_api::messages_requestSimpleWebView::THEME_PARAMS_MASK;
-    }
     string start_parameter;
     bool from_switch_webview = false;
     bool from_side_menu = false;
@@ -375,7 +360,8 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_requestSimpleWebView(
         flags, from_switch_webview, from_side_menu, parameters.is_compact(), parameters.is_full_screen(),
-        std::move(input_user), url, start_parameter, std::move(theme_parameters), parameters.get_application_name())));
+        std::move(input_user), url, start_parameter, parameters.get_input_theme_parameters(),
+        parameters.get_application_name())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -560,9 +546,6 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
         get_input_message_entities(td_->user_manager_.get(), input_message_text.text.entities, "get_inline_message");
     if (!input_message_text.web_page_url.empty()) {
       int32 flags = 0;
-      if (input_reply_markup != nullptr) {
-        flags |= telegram_api::inputBotInlineMessageMediaWebPage::REPLY_MARKUP_MASK;
-      }
       if (!entities.empty()) {
         flags |= telegram_api::inputBotInlineMessageMediaWebPage::ENTITIES_MASK;
       }
@@ -573,9 +556,6 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
           std::move(entities), input_message_text.web_page_url, std::move(input_reply_markup));
     }
     int32 flags = 0;
-    if (input_reply_markup != nullptr) {
-      flags |= telegram_api::inputBotInlineMessageText::REPLY_MARKUP_MASK;
-    }
     if (!entities.empty()) {
       flags |= telegram_api::inputBotInlineMessageText::ENTITIES_MASK;
     }
@@ -593,12 +573,8 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     if (input_rich_message == nullptr) {
       return Status::Error(400, "Invalid inline message content specified");
     }
-    int32 flags = 0;
-    if (input_reply_markup != nullptr) {
-      flags |= telegram_api::inputBotInlineMessageRichMessage::REPLY_MARKUP_MASK;
-    }
-    return telegram_api::make_object<telegram_api::inputBotInlineMessageRichMessage>(
-        flags, std::move(input_reply_markup), std::move(input_rich_message));
+    return telegram_api::make_object<telegram_api::inputBotInlineMessageRichMessage>(0, std::move(input_reply_markup),
+                                                                                     std::move(input_rich_message));
   }
   if (constructor_id == td_api::inputMessageContact::ID) {
     TRY_RESULT(contact, process_input_message_contact(td_, std::move(input_message_content)));
@@ -612,9 +588,6 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
   if (constructor_id == td_api::inputMessageLocation::ID || constructor_id == td_api::inputMessageLiveLocation::ID) {
     TRY_RESULT(location, process_input_message_location(std::move(input_message_content)));
     int32 flags = 0;
-    if (input_reply_markup != nullptr) {
-      flags |= telegram_api::inputBotInlineMessageMediaGeo::REPLY_MARKUP_MASK;
-    }
     if (location.heading != 0) {
       flags |= telegram_api::inputBotInlineMessageMediaGeo::HEADING_MASK;
     }
@@ -634,9 +607,6 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     TRY_RESULT(caption, get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(),
                                            extract_input_caption(input_message_content), true, true, true, false));
     int32 flags = 0;
-    if (input_reply_markup != nullptr) {
-      flags |= telegram_api::inputBotInlineMessageMediaAuto::REPLY_MARKUP_MASK;
-    }
     auto entities = get_input_message_entities(td_->user_manager_.get(), caption.entities, "get_inline_message");
     if (!entities.empty()) {
       flags |= telegram_api::inputBotInlineMessageMediaAuto::ENTITIES_MASK;
@@ -1038,13 +1008,9 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
       }
 
       auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), r_reply_markup.ok());
-      int32 flags = 0;
-      if (input_reply_markup != nullptr) {
-        flags |= telegram_api::inputBotInlineMessageGame::REPLY_MARKUP_MASK;
-      }
       return make_tl_object<telegram_api::inputBotInlineResultGame>(
           game->id_, game->game_short_name_,
-          make_tl_object<telegram_api::inputBotInlineMessageGame>(flags, std::move(input_reply_markup)));
+          make_tl_object<telegram_api::inputBotInlineMessageGame>(0, std::move(input_reply_markup)));
     }
     case td_api::inputInlineQueryResultLocation::ID: {
       auto location = move_tl_object_as<td_api::inputInlineQueryResultLocation>(result);
@@ -1231,7 +1197,6 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
   }
   tl_object_ptr<telegram_api::inputWebDocument> thumbnail;
   if (!thumbnail_url.empty()) {
-    flags |= telegram_api::inputBotInlineResult::THUMB_MASK;
     if (!clean_input_string(thumbnail_url)) {
       return Status::Error(400, "Strings must be encoded in UTF-8");
     }
@@ -1244,7 +1209,6 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
   }
   tl_object_ptr<telegram_api::inputWebDocument> content;
   if (!content_url.empty() || !content_type.empty()) {
-    flags |= telegram_api::inputBotInlineResult::CONTENT_MASK;
     if (!clean_input_string(content_url)) {
       return Status::Error(400, "Strings must be encoded in UTF-8");
     }

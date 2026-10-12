@@ -46,29 +46,29 @@ class GetBotCallbackAnswerQuery final : public Td::ResultHandler {
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
-    int32 flags = 0;
     BufferSlice data;
     bool is_game = false;
     CHECK(payload != nullptr);
     switch (payload->get_id()) {
       case td_api::callbackQueryPayloadData::ID:
         data = BufferSlice(static_cast<const td_api::callbackQueryPayloadData *>(payload.get())->data_);
+        password = nullptr;
         break;
       case td_api::callbackQueryPayloadDataWithPassword::ID:
         CHECK(password != nullptr);
-        flags |= telegram_api::messages_getBotCallbackAnswer::PASSWORD_MASK;
         data = BufferSlice(static_cast<const td_api::callbackQueryPayloadDataWithPassword *>(payload.get())->data_);
         break;
       case td_api::callbackQueryPayloadGame::ID:
+        password = nullptr;
         is_game = true;
         break;
       default:
         UNREACHABLE();
     }
+    int32 flags = 0;
     if (!is_game) {
       flags |= telegram_api::messages_getBotCallbackAnswer::DATA_MASK;
     }
-
     auto net_query = G()->net_query_creator().create(telegram_api::messages_getBotCallbackAnswer(
         flags, is_game, std::move(input_peer), message_id.get_server_message_id().get(), std::move(data),
         std::move(password)));

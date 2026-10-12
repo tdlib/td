@@ -150,10 +150,6 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
     if (!title.empty()) {
       flags |= telegram_api::messages_exportChatInvite::TITLE_MASK;
     }
-    if (!subscription_pricing.is_empty()) {
-      flags |= telegram_api::messages_exportChatInvite::SUBSCRIPTION_PRICING_MASK;
-    }
-
     send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(
         flags, is_permanent, creates_join_request, std::move(input_peer), expire_date, usage_limit, title,
         subscription_pricing.get_input_stars_subscription_pricing())));

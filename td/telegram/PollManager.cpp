@@ -291,12 +291,7 @@ class StopPollQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    int32 flags = telegram_api::messages_editMessage::MEDIA_MASK;
     auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), reply_markup);
-    if (input_reply_markup != nullptr) {
-      flags |= telegram_api::messages_editMessage::REPLY_MARKUP_MASK;
-    }
-
     auto message_id = message_full_id.get_message_id().get_server_message_id().get();
     auto poll = telegram_api::make_object<telegram_api::poll>(
         poll_id.get(), 0, true, false, false, false, false, false, false, false, true, false,
@@ -304,7 +299,7 @@ class StopPollQuery final : public Td::ResultHandler {
     auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(0, std::move(poll), vector<int32>(),
                                                                                nullptr, string(), Auto(), nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_editMessage(flags, false, false, std::move(input_peer), message_id, string(),
+        telegram_api::messages_editMessage(0, false, false, std::move(input_peer), message_id, string(),
                                            std::move(input_media), std::move(input_reply_markup),
                                            vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0, 0, 0, nullptr),
         {{poll_id}, {dialog_id_}}));
@@ -2097,12 +2092,8 @@ telegram_api::object_ptr<telegram_api::InputMedia> PollManager::get_input_media(
     if (!poll->explanation_.is_empty()) {
       flags |= telegram_api::inputMediaPoll::SOLUTION_MASK;
     }
-    if (input_media[1] != nullptr) {
-      flags |= telegram_api::inputMediaPoll::SOLUTION_MEDIA_MASK;
-    }
-  }
-  if (input_media[0] != nullptr) {
-    flags |= telegram_api::inputMediaPoll::ATTACHED_MEDIA_MASK;
+  } else {
+    input_media[1] = nullptr;  // just in case
   }
   vector<telegram_api::object_ptr<telegram_api::PollAnswer>> answers;
   for (size_t i = 0; i < poll->options_.size(); i++) {

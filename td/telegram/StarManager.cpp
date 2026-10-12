@@ -89,12 +89,7 @@ class GetStarsGiftOptionsQuery final : public Td::ResultHandler {
   }
 
   void send(telegram_api::object_ptr<telegram_api::InputUser> input_user) {
-    int32 flags = 0;
-    if (input_user != nullptr) {
-      flags |= telegram_api::payments_getStarsGiftOptions::USER_ID_MASK;
-    }
-    send_query(
-        G()->net_query_creator().create(telegram_api::payments_getStarsGiftOptions(flags, std::move(input_user))));
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarsGiftOptions(0, std::move(input_user))));
   }
 
   void on_result(BufferSlice packet) final {

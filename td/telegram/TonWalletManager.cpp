@@ -237,12 +237,7 @@ class ExportWalletSecretPhraseQuery final : public Td::ResultHandler {
   }
 
   void send(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password) {
-    int32 flags = 0;
-    if (input_password != nullptr) {
-      flags |= telegram_api::wallet_exportSecretPhrase::PASSWORD_MASK;
-    }
-    send_query(
-        G()->net_query_creator().create(telegram_api::wallet_exportSecretPhrase(flags, std::move(input_password))));
+    send_query(G()->net_query_creator().create(telegram_api::wallet_exportSecretPhrase(0, std::move(input_password))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -300,9 +295,9 @@ class EnableWalletBackupQuery final : public Td::ResultHandler {
 
   void send(vector<BufferSlice> parts, BufferSlice public_key,
             telegram_api::object_ptr<telegram_api::walletOwnershipProof> proof) {
-    send_query(G()->net_query_creator().create(telegram_api::wallet_enableBackup(
-        telegram_api::wallet_enableBackup::NEW_PUBLIC_KEY_MASK | telegram_api::wallet_enableBackup::PROOF_MASK,
-        std::move(parts), std::move(public_key), std::move(proof))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::wallet_enableBackup(telegram_api::wallet_enableBackup::NEW_PUBLIC_KEY_MASK, std::move(parts),
+                                          std::move(public_key), std::move(proof))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -329,17 +324,12 @@ class DisableWalletBackupQuery final : public Td::ResultHandler {
   }
 
   void send(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password) {
-    int32 flags = 0;
-    if (input_password != nullptr) {
-      flags |= telegram_api::wallet_disableBackup::PASSWORD_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::wallet_disableBackup(flags, std::move(input_password), BufferSlice(), nullptr)));
+        telegram_api::wallet_disableBackup(0, std::move(input_password), BufferSlice(), nullptr)));
   }
 
   void send(BufferSlice public_key, telegram_api::object_ptr<telegram_api::walletOwnershipProof> &&proof) {
-    int32 flags =
-        telegram_api::wallet_disableBackup::NEW_PUBLIC_KEY_MASK | telegram_api::wallet_disableBackup::PROOF_MASK;
+    int32 flags = telegram_api::wallet_disableBackup::NEW_PUBLIC_KEY_MASK;
     send_query(G()->net_query_creator().create(
         telegram_api::wallet_disableBackup(flags, nullptr, std::move(public_key), std::move(proof))));
   }
@@ -425,12 +415,8 @@ class ReplaceWalletQuery final : public Td::ResultHandler {
 
   void send(telegram_api::object_ptr<telegram_api::InputWalletReplacement> &&new_wallet,
             telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password) {
-    int32 flags = 0;
-    if (input_password != nullptr) {
-      flags |= telegram_api::wallet_replaceWallet::PASSWORD_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::wallet_replaceWallet(flags, std::move(new_wallet), std::move(input_password))));
+        telegram_api::wallet_replaceWallet(0, std::move(new_wallet), std::move(input_password))));
   }
 
   void on_result(BufferSlice packet) final {

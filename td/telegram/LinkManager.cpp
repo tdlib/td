@@ -1810,7 +1810,6 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
       dialog_id_ = message_full_id.get_dialog_id();
       input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
       CHECK(input_peer != nullptr);
-      flags |= telegram_api::messages_requestUrlAuth::PEER_MASK;
     } else {
       flags |= telegram_api::messages_requestUrlAuth::URL_MASK;
     }
@@ -1974,7 +1973,6 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
       dialog_id_ = message_full_id.get_dialog_id();
       input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
       CHECK(input_peer != nullptr);
-      flags |= telegram_api::messages_acceptUrlAuth::PEER_MASK;
     } else {
       flags |= telegram_api::messages_acceptUrlAuth::URL_MASK;
     }

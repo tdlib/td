@@ -205,12 +205,8 @@ telegram_api::object_ptr<telegram_api::keyboardButton> KeyboardButton::get_input
         return nullptr;
     }
   }();
-  int32 flags = 0;
-  auto style = style_.get_input_keyboard_button_style();
-  if (style != nullptr) {
-    flags |= 1 << 10;
-  }
-  return telegram_api::make_object<telegram_api::keyboardButton>(flags, std::move(style), text_, std::move(type));
+  return telegram_api::make_object<telegram_api::keyboardButton>(0, style_.get_input_keyboard_button_style(), text_,
+                                                                 std::move(type));
 }
 
 td_api::object_ptr<td_api::keyboardButton> KeyboardButton::get_keyboard_button_object() const {

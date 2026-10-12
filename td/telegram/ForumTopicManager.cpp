@@ -69,7 +69,6 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
     if (as_dialog_id.is_valid()) {
       as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Write);
       if (as_input_peer != nullptr) {
-        flags |= telegram_api::messages_createForumTopic::SEND_AS_MASK;
         creator_dialog_id_ = as_dialog_id;
       }
     }

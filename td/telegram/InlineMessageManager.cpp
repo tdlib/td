@@ -95,9 +95,6 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
 
     int32 flags = 0;
     auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), reply_markup);
-    if (input_reply_markup != nullptr) {
-      flags |= telegram_api::messages_editInlineBotMessage::REPLY_MARKUP_MASK;
-    }
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
     if (force_edit_text || (text != nullptr && !text->is_empty())) {
       flags |= telegram_api::messages_editInlineBotMessage::MESSAGE_MASK;
@@ -106,12 +103,6 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
       if (!entities.empty()) {
         flags |= telegram_api::messages_editInlineBotMessage::ENTITIES_MASK;
       }
-    }
-    if (input_media.media_ != nullptr) {
-      flags |= telegram_api::messages_editInlineBotMessage::MEDIA_MASK;
-    }
-    if (input_media.rich_message_ != nullptr) {
-      flags |= telegram_api::messages_editInlineBotMessage::RICH_MESSAGE_MASK;
     }
 
     auto dc_id = DcId::internal(get_inline_message_dc_id(input_bot_inline_message_id));

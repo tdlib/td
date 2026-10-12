@@ -248,11 +248,8 @@ class QuickReplyManager::SendQuickReplyMessageQuery final : public Td::ResultHan
     random_id_ = m->random_id;
     shortcut_id_ = m->shortcut_id;
 
-    int32 flags = telegram_api::messages_sendMessage::QUICK_REPLY_SHORTCUT_MASK;
+    int32 flags = 0;
     auto reply_to = MessageInputReplyTo::regular(m->reply_to_message_id).get_input_reply_to(td_, MessageTopic());
-    if (reply_to != nullptr) {
-      flags |= telegram_api::messages_sendMessage::REPLY_TO_MASK;
-    }
     CHECK(m->edited_content == nullptr);
     const FormattedText *message_text = get_message_content_text(m->content.get());
     CHECK(message_text != nullptr);
@@ -260,7 +257,6 @@ class QuickReplyManager::SendQuickReplyMessageQuery final : public Td::ResultHan
     if (!entities.empty()) {
       flags |= telegram_api::messages_sendMessage::ENTITIES_MASK;
     }
-
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendMessage(
             flags, m->disable_web_page_preview, false, false, false, false, false, m->invert_media, false,
@@ -300,15 +296,10 @@ class QuickReplyManager::SendQuickReplyInlineMessageQuery final : public Td::Res
     random_id_ = m->random_id;
     shortcut_id_ = m->shortcut_id;
 
-    int32 flags = telegram_api::messages_sendInlineBotResult::QUICK_REPLY_SHORTCUT_MASK;
     auto reply_to = MessageInputReplyTo::regular(m->reply_to_message_id).get_input_reply_to(td_, MessageTopic());
-    if (reply_to != nullptr) {
-      flags |= telegram_api::messages_sendInlineBotResult::REPLY_TO_MASK;
-    }
-
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendInlineBotResult(
-            flags, false, false, false, m->hide_via_bot, telegram_api::make_object<telegram_api::inputPeerSelf>(),
+            0, false, false, false, m->hide_via_bot, telegram_api::make_object<telegram_api::inputPeerSelf>(),
             std::move(reply_to), m->random_id, m->inline_query_id, m->inline_result_id, 0, nullptr,
             td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0),
         {{"me"}}));
@@ -353,15 +344,9 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
     CHECK(m->edited_content == nullptr);
 
     if (input_media.rich_message_ != nullptr) {
-      int32 flags = telegram_api::messages_sendMessage::QUICK_REPLY_SHORTCUT_MASK |
-                    telegram_api::messages_sendMessage::RICH_MESSAGE_MASK;
-      if (reply_to != nullptr) {
-        flags |= telegram_api::messages_sendMessage::REPLY_TO_MASK;
-      }
-
       send_query(G()->net_query_creator().create(
           telegram_api::messages_sendMessage(
-              flags, m->disable_web_page_preview, false, false, false, false, false, m->invert_media, false,
+              0, m->disable_web_page_preview, false, false, false, false, false, m->invert_media, false,
               telegram_api::make_object<telegram_api::inputPeerSelf>(), std::move(reply_to), string(), m->random_id,
               nullptr, Auto(), 0, 0, nullptr, td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id),
               0, 0, nullptr, std::move(input_media.rich_message_)),
@@ -369,10 +354,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
       return;
     }
 
-    int32 flags = telegram_api::messages_sendMedia::QUICK_REPLY_SHORTCUT_MASK;
-    if (reply_to != nullptr) {
-      flags |= telegram_api::messages_sendMedia::REPLY_TO_MASK;
-    }
+    int32 flags = 0;
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
     const FormattedText *message_text = get_message_content_text(m->content.get());
     if (message_text != nullptr) {
@@ -381,7 +363,6 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
         flags |= telegram_api::messages_sendMedia::ENTITIES_MASK;
       }
     }
-
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendMedia(
             flags, false, false, false, false, false, m->invert_media, false,
@@ -438,14 +419,9 @@ class QuickReplyManager::SendQuickReplyMultiMediaQuery final : public Td::Result
     random_ids_ = std::move(random_ids);
     CHECK(file_ids_.size() == random_ids_.size());
 
-    int32 flags = telegram_api::messages_sendMultiMedia::QUICK_REPLY_SHORTCUT_MASK;
     auto reply_to = MessageInputReplyTo::regular(reply_to_message_id).get_input_reply_to(td_, MessageTopic());
-    if (reply_to != nullptr) {
-      flags |= telegram_api::messages_sendMultiMedia::REPLY_TO_MASK;
-    }
-
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendMultiMedia(flags, false, false, false, false, false, invert_media, false,
+        telegram_api::messages_sendMultiMedia(0, false, false, false, false, false, invert_media, false,
                                               telegram_api::make_object<telegram_api::inputPeerSelf>(),
                                               std::move(reply_to), std::move(input_single_media), 0, nullptr,
                                               td_->quick_reply_manager_->get_input_quick_reply_shortcut(shortcut_id_),
@@ -507,13 +483,6 @@ class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHan
       }
       flags |= telegram_api::messages_editMessage::MESSAGE_MASK;
     }
-    if (input_media.media_ != nullptr) {
-      flags |= telegram_api::messages_editMessage::MEDIA_MASK;
-    }
-    if (input_media.rich_message_ != nullptr) {
-      flags |= telegram_api::messages_editMessage::RICH_MESSAGE_MASK;
-    }
-
     CHECK(m->shortcut_id.is_server());
     send_query(G()->net_query_creator().create(
         telegram_api::messages_editMessage(

@@ -44,15 +44,11 @@ Result<unique_ptr<SuggestedPost>> SuggestedPost::get_suggested_post(
 
 telegram_api::object_ptr<telegram_api::suggestedPost> SuggestedPost::get_input_suggested_post() const {
   int32 flags = 0;
-  auto price = price_.get_input_stars_amount();
-  if (price != nullptr) {
-    flags |= telegram_api::suggestedPost::PRICE_MASK;
-  }
   if (schedule_date_ != 0) {
     flags |= telegram_api::suggestedPost::SCHEDULE_DATE_MASK;
   }
-  return telegram_api::make_object<telegram_api::suggestedPost>(flags, is_accepted_, is_rejected_, std::move(price),
-                                                                schedule_date_);
+  return telegram_api::make_object<telegram_api::suggestedPost>(flags, is_accepted_, is_rejected_,
+                                                                price_.get_input_stars_amount(), schedule_date_);
 }
 
 td_api::object_ptr<td_api::SuggestedPostState> SuggestedPost::get_suggested_post_state_object() const {

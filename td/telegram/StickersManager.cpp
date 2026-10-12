@@ -1161,10 +1161,10 @@ class SetStickerSetThumbnailQuery final : public Td::ResultHandler {
   }
 
   void send(const string &short_name, tl_object_ptr<telegram_api::InputDocument> &&input_document) {
-    int32 flags = telegram_api::stickers_setStickerSetThumb::THUMB_MASK;
+    CHECK(input_document != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::stickers_setStickerSetThumb(
-            flags, make_tl_object<telegram_api::inputStickerSetShortName>(short_name), std::move(input_document), 0),
+        telegram_api::stickers_setStickerSetThumb(0, make_tl_object<telegram_api::inputStickerSetShortName>(short_name),
+                                                  std::move(input_document), 0),
         {{short_name}}));
   }
 
@@ -1370,17 +1370,13 @@ class ChangeStickerQuery final : public Td::ResultHandler {
     if (edit_emojis) {
       flags |= telegram_api::stickers_changeSticker::EMOJI_MASK;
     }
-    auto mask_coords = mask_position.get_input_mask_coords();
-    if (mask_coords != nullptr) {
-      flags |= telegram_api::stickers_changeSticker::MASK_COORDS_MASK;
-    }
     if (edit_keywords) {
       flags |= telegram_api::stickers_changeSticker::KEYWORDS_MASK;
     }
-    send_query(
-        G()->net_query_creator().create(telegram_api::stickers_changeSticker(flags, std::move(input_document), emojis,
-                                                                             std::move(mask_coords), keywords),
-                                        std::move(chain_ids)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::stickers_changeSticker(flags, std::move(input_document), emojis,
+                                             mask_position.get_input_mask_coords(), keywords),
+        std::move(chain_ids)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3550,14 +3546,9 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
     }
     attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeSticker>(
         0, false, emoji.empty() ? s->alt_ : emoji, make_tl_object<telegram_api::inputStickerSetEmpty>(), nullptr));
-
-    int32 flags = 0;
-    if (input_thumbnail != nullptr) {
-      flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
-    }
     auto mime_type = get_sticker_format_mime_type(s->format_);
     return telegram_api::make_object<telegram_api::inputMediaUploadedDocument>(
-        flags, false, false, false, std::move(input_file), std::move(input_thumbnail), mime_type, std::move(attributes),
+        0, false, false, false, std::move(input_file), std::move(input_thumbnail), mime_type, std::move(attributes),
         vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), nullptr, 0, 0);
   } else {
     CHECK(main_remote_location == nullptr);
@@ -8072,19 +8063,14 @@ Result<telegram_api::object_ptr<telegram_api::inputStickerSetItem>> StickersMana
   auto input_document = main_remote_location->as_input_document();
 
   int32 flags = 0;
-
-  auto mask_coords = StickerMaskPosition(sticker->mask_position_).get_input_mask_coords();
-  if (mask_coords != nullptr) {
-    flags |= telegram_api::inputStickerSetItem::MASK_COORDS_MASK;
-  }
-
   string keywords = implode(sticker->keywords_, ',');
   if (!keywords.empty()) {
     flags |= telegram_api::inputStickerSetItem::KEYWORDS_MASK;
   }
 
-  return make_tl_object<telegram_api::inputStickerSetItem>(flags, std::move(input_document), sticker->emojis_,
-                                                           std::move(mask_coords), keywords);
+  return make_tl_object<telegram_api::inputStickerSetItem>(
+      flags, std::move(input_document), sticker->emojis_,
+      StickerMaskPosition(sticker->mask_position_).get_input_mask_coords(), keywords);
 }
 
 void StickersManager::get_suggested_sticker_set_name(string title, Promise<string> &&promise) {

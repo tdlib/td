@@ -1111,7 +1111,6 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
     saved_messages_topic_id_ = saved_messages_topic_id;
     is_marked_as_unread_ = is_marked_as_unread;
 
-    int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputPeer> parent_input_peer;
     telegram_api::object_ptr<telegram_api::InputDialogPeer> input_peer;
     if (saved_messages_topic_id.is_valid()) {
@@ -1119,7 +1118,6 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
       if (parent_input_peer == nullptr) {
         return on_error(Status::Error(400, "Can't access the chat"));
       }
-      flags |= telegram_api::messages_markDialogUnread::PARENT_PEER_MASK;
       input_peer = saved_messages_topic_id.get_input_dialog_peer(td_);
       if (input_peer == nullptr) {
         return on_error(Status::Error(400, "Can't access the topic"));
@@ -1132,7 +1130,7 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_markDialogUnread(flags, is_marked_as_unread, std::move(parent_input_peer),
+        telegram_api::messages_markDialogUnread(0, is_marked_as_unread, std::move(parent_input_peer),
                                                 std::move(input_peer)),
         {{dialog_id}}));
   }
@@ -2472,9 +2470,8 @@ void DialogManager::do_set_dialog_photo(DialogId dialog_id, DialogId owner_dialo
         auto photo = static_cast<const td_api::inputChatPhotoSticker *>(input_photo.get());
         TRY_RESULT_PROMISE(promise, sticker_photo_size, StickerPhotoSize::get_sticker_photo_size(td_, photo->sticker_));
 
-        int32 flags = telegram_api::inputChatUploadedPhoto::VIDEO_EMOJI_MARKUP_MASK;
         auto input_chat_photo = telegram_api::make_object<telegram_api::inputChatUploadedPhoto>(
-            flags, nullptr, nullptr, 0.0, sticker_photo_size->get_input_video_size_object(td_));
+            0, nullptr, nullptr, 0.0, sticker_photo_size->get_input_video_size_object(td_));
         return send_edit_dialog_photo_query(dialog_id, FileUploadId(), std::move(input_chat_photo), std::move(promise));
       }
       default:
@@ -2579,14 +2576,12 @@ void DialogManager::on_upload_dialog_photo(FileUploadId file_upload_id,
   telegram_api::object_ptr<telegram_api::InputFile> photo_input_file;
   telegram_api::object_ptr<telegram_api::InputFile> video_input_file;
   if (is_animation) {
-    flags |= telegram_api::inputChatUploadedPhoto::VIDEO_MASK;
     video_input_file = std::move(input_file);
 
     if (main_frame_timestamp != 0.0) {
       flags |= telegram_api::inputChatUploadedPhoto::VIDEO_START_TS_MASK;
     }
   } else {
-    flags |= telegram_api::inputChatUploadedPhoto::FILE_MASK;
     photo_input_file = std::move(input_file);
   }
 

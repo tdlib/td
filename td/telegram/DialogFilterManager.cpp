@@ -76,12 +76,8 @@ class UpdateDialogFilterQuery final : public Td::ResultHandler {
   }
 
   void send(DialogFilterId dialog_filter_id, telegram_api::object_ptr<telegram_api::DialogFilter> filter) {
-    int32 flags = 0;
-    if (filter != nullptr) {
-      flags |= telegram_api::messages_updateDialogFilter::FILTER_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_updateDialogFilter(flags, dialog_filter_id.get(), std::move(filter))));
+        telegram_api::messages_updateDialogFilter(0, dialog_filter_id.get(), std::move(filter))));
   }
 
   void on_result(BufferSlice packet) final {

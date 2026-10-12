@@ -235,13 +235,8 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       input_users.push_back(std::move(input_user));
       TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
       TRY_RESULT(text, get_premium_gift_text(td, std::move(p->text_)));
-
-      int32 flags = 0;
-      if (text != nullptr) {
-        flags |= telegram_api::inputStorePaymentPremiumGiftCode::MESSAGE_MASK;
-      }
       return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
-          flags, std::move(input_users), nullptr, p->currency_, p->amount_, std::move(text));
+          0, std::move(input_users), nullptr, p->currency_, p->amount_, std::move(text));
     }
     case td_api::storePaymentPurposePremiumGiftCodes::ID: {
       auto p = static_cast<td_api::storePaymentPurposePremiumGiftCodes *>(purpose.get());
@@ -254,13 +249,8 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       DialogId boosted_dialog_id(p->boosted_chat_id_);
       TRY_RESULT(boost_input_peer, get_boost_input_peer(td, boosted_dialog_id));
       TRY_RESULT(text, get_premium_gift_text(td, std::move(p->text_)));
-
-      int32 flags = telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
-      if (text != nullptr) {
-        flags |= telegram_api::inputStorePaymentPremiumGiftCode::MESSAGE_MASK;
-      }
       return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
-          flags, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_, std::move(text));
+          0, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_, std::move(text));
     }
     case td_api::storePaymentPurposePremiumGiveaway::ID: {
       auto p = static_cast<td_api::storePaymentPurposePremiumGiveaway *>(purpose.get());
@@ -280,7 +270,6 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
     }
     case td_api::storePaymentPurposeStars::ID: {
       auto p = static_cast<td_api::storePaymentPurposeStars *>(purpose.get());
-      int32 flags = 0;
       telegram_api::object_ptr<telegram_api::InputPeer> spend_purpose_input_peer;
       DialogId spend_dialog_id(p->chat_id_);
       if (spend_dialog_id != DialogId()) {
@@ -288,12 +277,11 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
                                                             "storePaymentPurposeStars"));
         spend_purpose_input_peer = td->dialog_manager_->get_input_peer(spend_dialog_id, AccessRights::Read);
         CHECK(spend_purpose_input_peer != nullptr);
-        flags |= telegram_api::inputStorePaymentStarsTopup::SPEND_PURPOSE_PEER_MASK;
       }
       TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
       dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::StarsSubscriptionLowBalance}, Promise<Unit>());
       return telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(
-          flags, p->star_count_, p->currency_, p->amount_, std::move(spend_purpose_input_peer));
+          0, p->star_count_, p->currency_, p->amount_, std::move(spend_purpose_input_peer));
     }
     case td_api::storePaymentPurposeGiftedStars::ID: {
       auto p = static_cast<td_api::storePaymentPurposeGiftedStars *>(purpose.get());
@@ -469,11 +457,8 @@ class GetPremiumGiveawayOptionsQuery final : public Td::ResultHandler {
     if (r_boost_input_peer.is_error()) {
       return on_error(r_boost_input_peer.move_as_error());
     }
-    auto boost_input_peer = r_boost_input_peer.move_as_ok();
-
-    int32 flags = telegram_api::payments_getPremiumGiftCodeOptions::BOOST_PEER_MASK;
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_getPremiumGiftCodeOptions(flags, std::move(boost_input_peer))));
+        telegram_api::payments_getPremiumGiftCodeOptions(0, r_boost_input_peer.move_as_ok())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1413,14 +1398,10 @@ void gift_premium_with_stars(Td *td, UserId user_id, int64 star_count, int32 mon
   TRY_STATUS_PROMISE(promise, check_payment_amount(currency, star_count));
   TRY_RESULT_PROMISE(promise, message, get_premium_gift_text(td, std::move(text)));
 
-  int32 flags = 0;
-  if (message != nullptr) {
-    flags |= telegram_api::inputInvoicePremiumGiftStars::MESSAGE_MASK;
-  }
   auto input_invoice = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftStars>(0, std::move(input_user),
                                                                                              month_count, nullptr);
   auto send_input_invoice = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftStars>(
-      flags, td->user_manager_->get_input_user(user_id).move_as_ok(), month_count, std::move(message));
+      0, td->user_manager_->get_input_user(user_id).move_as_ok(), month_count, std::move(message));
 
   td->create_handler<GetPremiumGiftPaymentFormQuery>(std::move(promise))
       ->send(std::move(input_invoice), std::move(send_input_invoice), star_count);

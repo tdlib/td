@@ -92,19 +92,12 @@ class AddWelcomeMessageQuery final : public Td::ResultHandler {
     }
     td_->message_query_manager_->on_start_sending_message_content(upload_id_, input_media);
 
-    int32 flags = telegram_api::ephemeral_sendMessage::PEER_MASK;
+    int32 flags = 0;
     auto *text = get_message_content_text(content);
     auto entities = get_input_message_entities(td_->user_manager_.get(), text, "SendMediaQuery");
     if (!entities.empty()) {
       flags |= telegram_api::ephemeral_sendMessage::ENTITIES_MASK;
     }
-    if (input_media.rich_message_ != nullptr) {
-      flags |= telegram_api::ephemeral_sendMessage::RICH_MESSAGE_MASK;
-    }
-    if (input_media.media_ != nullptr) {
-      flags |= telegram_api::ephemeral_sendMessage::MEDIA_MASK;
-    }
-
     send_query(G()->net_query_creator().create(
         telegram_api::ephemeral_sendMessage(flags, invert_media, true, false, false, std::move(input_peer),
                                             telegram_api::make_object<telegram_api::inputUserEmpty>(), 0,
@@ -147,7 +140,7 @@ class EditWelcomeMessageQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
-    int32 flags = telegram_api::ephemeral_editMessage::MESSAGE_MASK | telegram_api::ephemeral_editMessage::PEER_MASK;
+    int32 flags = telegram_api::ephemeral_editMessage::MESSAGE_MASK;
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
     auto *text = get_message_content_text(content);
     if (text != nullptr) {
@@ -155,12 +148,6 @@ class EditWelcomeMessageQuery final : public Td::ResultHandler {
       if (!entities.empty()) {
         flags |= telegram_api::ephemeral_editMessage::ENTITIES_MASK;
       }
-    }
-    if (input_media.media_ != nullptr) {
-      flags |= telegram_api::ephemeral_editMessage::MEDIA_MASK;
-    }
-    if (input_media.rich_message_ != nullptr) {
-      flags |= telegram_api::ephemeral_editMessage::RICH_MESSAGE_MASK;
     }
     td_->message_query_manager_->on_start_sending_message_content(upload_id_, input_media);
     send_query(G()->net_query_creator().create(telegram_api::ephemeral_editMessage(

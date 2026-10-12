@@ -89,23 +89,17 @@ SecretInputMedia Contact::get_secret_input_media_contact() const {
 
 tl_object_ptr<telegram_api::inputPhoneContact> Contact::get_input_phone_contact(const UserManager *user_manager,
                                                                                 int64 client_id) const {
-  int32 flags = 0;
   telegram_api::object_ptr<telegram_api::textWithEntities> input_note;
   if (edit_note_) {
-    flags |= telegram_api::inputPhoneContact::NOTE_MASK;
     input_note = get_input_text_with_entities(user_manager, note_, "inputPhoneContact");
   }
-  return make_tl_object<telegram_api::inputPhoneContact>(flags, client_id, phone_number_, first_name_, last_name_,
+  return make_tl_object<telegram_api::inputPhoneContact>(0, client_id, phone_number_, first_name_, last_name_,
                                                          std::move(input_note));
 }
 
 tl_object_ptr<telegram_api::inputBotInlineMessageMediaContact> Contact::get_input_bot_inline_message_media_contact(
     tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const {
-  int32 flags = 0;
-  if (reply_markup != nullptr) {
-    flags |= telegram_api::inputBotInlineMessageMediaContact::REPLY_MARKUP_MASK;
-  }
-  return make_tl_object<telegram_api::inputBotInlineMessageMediaContact>(flags, phone_number_, first_name_, last_name_,
+  return make_tl_object<telegram_api::inputBotInlineMessageMediaContact>(0, phone_number_, first_name_, last_name_,
                                                                          vcard_, std::move(reply_markup));
 }
 

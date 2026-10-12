@@ -42,21 +42,9 @@ ReactionNotificationSettings::get_reaction_notification_settings_object() const 
 
 telegram_api::object_ptr<telegram_api::reactionsNotifySettings>
 ReactionNotificationSettings::get_input_reactions_notify_settings() const {
-  int32 flags = 0;
-  auto messages_notify_from = message_reactions_.get_input_reaction_notifications_from();
-  if (messages_notify_from != nullptr) {
-    flags |= telegram_api::reactionsNotifySettings::MESSAGES_NOTIFY_FROM_MASK;
-  }
-  auto stories_notify_from = story_reactions_.get_input_reaction_notifications_from();
-  if (stories_notify_from != nullptr) {
-    flags |= telegram_api::reactionsNotifySettings::STORIES_NOTIFY_FROM_MASK;
-  }
-  auto poll_votes_notify_from = poll_votes_.get_input_reaction_notifications_from();
-  if (poll_votes_notify_from != nullptr) {
-    flags |= telegram_api::reactionsNotifySettings::POLL_VOTES_NOTIFY_FROM_MASK;
-  }
   return telegram_api::make_object<telegram_api::reactionsNotifySettings>(
-      flags, std::move(messages_notify_from), std::move(stories_notify_from), std::move(poll_votes_notify_from),
+      0, message_reactions_.get_input_reaction_notifications_from(),
+      story_reactions_.get_input_reaction_notifications_from(), poll_votes_.get_input_reaction_notifications_from(),
       get_input_notification_sound(sound_, true), show_preview_);
 }
 

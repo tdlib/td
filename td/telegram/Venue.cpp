@@ -68,12 +68,8 @@ SecretInputMedia Venue::get_secret_input_media_venue() const {
 
 tl_object_ptr<telegram_api::inputBotInlineMessageMediaVenue> Venue::get_input_bot_inline_message_media_venue(
     tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const {
-  int32 flags = 0;
-  if (reply_markup != nullptr) {
-    flags |= telegram_api::inputBotInlineMessageMediaVenue::REPLY_MARKUP_MASK;
-  }
   return make_tl_object<telegram_api::inputBotInlineMessageMediaVenue>(
-      flags, location_.get_input_geo_point(), title_, address_, provider_, id_, type_, std::move(reply_markup));
+      0, location_.get_input_geo_point(), title_, address_, provider_, id_, type_, std::move(reply_markup));
 }
 
 telegram_api::object_ptr<telegram_api::mediaAreaVenue> Venue::get_input_media_area_venue(

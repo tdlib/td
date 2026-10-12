@@ -121,14 +121,11 @@ class CreateChannelQuery final : public Td::ResultHandler {
   void send(const string &title, bool is_forum, bool is_megagroup, const string &about, const DialogLocation &location,
             bool for_import, MessageTtl message_ttl) {
     int32 flags = telegram_api::channels_createChannel::TTL_PERIOD_MASK;
-    if (!location.empty()) {
-      flags |= telegram_api::channels_createChannel::GEO_POINT_MASK;
-    }
-
     auto is_broadcast = !is_forum && !is_megagroup;
-    send_query(G()->net_query_creator().create(telegram_api::channels_createChannel(
-        flags, is_broadcast, is_megagroup && !is_forum, is_forum, for_import, title, about,
-        location.get_input_geo_point(), location.get_address(), message_ttl.get_input_ttl_period())));
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_createChannel(flags, is_broadcast, is_megagroup && !is_forum, is_forum, for_import,
+                                             title, about, location.empty() ? nullptr : location.get_input_geo_point(),
+                                             location.get_address(), message_ttl.get_input_ttl_period())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -688,13 +685,11 @@ class ToggleChannelJoinRequestQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    int32 flags = 0;
     if (input_user != nullptr) {
-      flags |= telegram_api::channels_toggleJoinRequest::GUARD_BOT_MASK;
       guard_bot_user_id_ = guard_bot_user_id;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_toggleJoinRequest(flags, apply_to_invite_links, std::move(input_channel), join_request,
+        telegram_api::channels_toggleJoinRequest(0, apply_to_invite_links, std::move(input_channel), join_request,
                                                  std::move(input_user)),
         {{channel_id}}));
   }

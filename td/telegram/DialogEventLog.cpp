@@ -566,9 +566,6 @@ class GetChannelAdminLogQuery final : public Td::ResultHandler {
     CHECK(input_channel != nullptr);
 
     int32 flags = 0;
-    if (filter != nullptr) {
-      flags |= telegram_api::channels_getAdminLog::EVENTS_FILTER_MASK;
-    }
     if (!input_users.empty()) {
       flags |= telegram_api::channels_getAdminLog::ADMINS_MASK;
     }
@@ -585,8 +582,8 @@ class GetChannelAdminLogQuery final : public Td::ResultHandler {
 
     auto events = result_ptr.move_as_ok();
     LOG(INFO) << "Receive in " << channel_id_ << ' ' << to_string(events);
-    td_->user_manager_->on_get_users(std::move(events->users_), "on_get_event_log");
-    td_->chat_manager_->on_get_chats(std::move(events->chats_), "on_get_event_log");
+    td_->user_manager_->on_get_users(std::move(events->users_), "GetChannelAdminLogQuery");
+    td_->chat_manager_->on_get_chats(std::move(events->chats_), "GetChannelAdminLogQuery");
 
     auto anti_spam_user_id = UserId(G()->get_option_integer("anti_spam_bot_user_id"));
     auto result = td_api::make_object<td_api::chatEvents>();

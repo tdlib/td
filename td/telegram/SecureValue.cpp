@@ -609,23 +609,17 @@ telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_
     } else {
       plain_data = make_tl_object<telegram_api::securePlainEmail>(value.data.data);
     }
-    flags |= telegram_api::inputSecureValue::PLAIN_DATA_MASK;
-  } else {
-    flags |= telegram_api::inputSecureValue::DATA_MASK;
   }
   if (!value.files.empty()) {
     flags |= telegram_api::inputSecureValue::FILES_MASK;
   }
   if (has_front_side) {
-    flags |= telegram_api::inputSecureValue::FRONT_SIDE_MASK;
     CHECK(front_side);
   }
   if (has_reverse_side) {
-    flags |= telegram_api::inputSecureValue::REVERSE_SIDE_MASK;
     CHECK(reverse_side);
   }
   if (has_selfie) {
-    flags |= telegram_api::inputSecureValue::SELFIE_MASK;
     CHECK(selfie);
   }
   if (!value.translations.empty()) {

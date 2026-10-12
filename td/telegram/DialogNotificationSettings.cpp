@@ -18,17 +18,11 @@ DialogNotificationSettings::get_input_peer_notify_settings() const {
   if (!use_default_mute_until) {
     flags |= telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK;
   }
-  if (sound != nullptr) {
-    flags |= telegram_api::inputPeerNotifySettings::SOUND_MASK;
-  }
   if (!use_default_show_preview) {
     flags |= telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK;
   }
   if (!use_default_mute_stories) {
     flags |= telegram_api::inputPeerNotifySettings::STORIES_MUTED_MASK;
-  }
-  if (story_sound != nullptr) {
-    flags |= telegram_api::inputPeerNotifySettings::STORIES_SOUND_MASK;
   }
   if (!use_default_hide_story_sender) {
     flags |= telegram_api::inputPeerNotifySettings::STORIES_HIDE_SENDER_MASK;

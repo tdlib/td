@@ -848,14 +848,10 @@ class RichText {
         return telegram_api::make_object<telegram_api::textDiff>(texts_[0].get_input_rich_text(context),
                                                                  texts_[1].get_input_rich_text(context));
       case Type::Button: {
-        int32 flags = 0;
         auto style = button_style_.get_input_rich_button_style();
-        if (style != nullptr) {
-          flags |= telegram_api::textButton::STYLE_MASK;
-        }
         CHECK(button_ != nullptr);
         auto input_button = button_->get_input_keyboard_inline_button(context.td_->user_manager_.get());
-        return telegram_api::make_object<telegram_api::textButton>(flags, texts_[0].get_input_rich_text(context),
+        return telegram_api::make_object<telegram_api::textButton>(0, texts_[0].get_input_rich_text(context),
                                                                    std::move(input_button->type_), std::move(style));
       }
       case Type::TonAddress:
@@ -1258,9 +1254,6 @@ class WebPageBlockTableCell {
     }
     if (rowspan != 1) {
       flags |= telegram_api::pageTableCell::ROWSPAN_MASK;
-    }
-    if (!text.empty()) {
-      flags |= telegram_api::pageTableCell::TEXT_MASK;
     }
     return telegram_api::make_object<telegram_api::pageTableCell>(
         flags, is_header, align_center, align_right, valign_middle, valign_bottom,
@@ -2809,14 +2802,9 @@ class WebPageBlockButtonRow final : public WebPageBlock {
     }
 
     telegram_api::object_ptr<telegram_api::pageButton> get_input_page_button(InputContext &context) const {
-      int32 flags = 0;
-      auto input_style = style.get_input_rich_button_style();
-      if (input_style != nullptr) {
-        flags |= telegram_api::textButton::STYLE_MASK;
-      }
       auto input_button = button.get_input_keyboard_inline_button(context.td_->user_manager_.get());
       return telegram_api::make_object<telegram_api::pageButton>(
-          flags, text.get_input_rich_text(context), std::move(input_button->type_), std::move(input_style));
+          0, text.get_input_rich_text(context), std::move(input_button->type_), style.get_input_rich_button_style());
     }
 
     td_api::object_ptr<td_api::inlineButton> get_inline_button_object(Context *context) const {

@@ -109,8 +109,7 @@ class UpdateConnectedBotQuery final : public Td::ResultHandler {
   void send(const BusinessConnectedBot &bot, telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
     auto rights = bot.get_rights().get_input_business_bot_rights();
     send_query(G()->net_query_creator().create(
-        telegram_api::account_updateConnectedBot(telegram_api::account_updateConnectedBot::RIGHTS_MASK, false,
-                                                 std::move(rights), std::move(input_user),
+        telegram_api::account_updateConnectedBot(0, false, std::move(rights), std::move(input_user),
                                                  bot.get_recipients().get_input_business_bot_recipients(td_)),
         {{"me"}}));
   }
@@ -388,14 +387,12 @@ class UpdateBusinessLocationQuery final : public Td::ResultHandler {
   void send(DialogLocation &&location) {
     location_ = std::move(location);
     int32 flags = 0;
-    if (!location_.empty()) {
-      flags |= telegram_api::account_updateBusinessLocation::GEO_POINT_MASK;
-    }
     if (!location_.get_address().empty()) {
       flags |= telegram_api::account_updateBusinessLocation::ADDRESS_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::account_updateBusinessLocation(flags, location_.get_input_geo_point(), location_.get_address()),
+        telegram_api::account_updateBusinessLocation(
+            flags, location_.empty() ? nullptr : location_.get_input_geo_point(), location_.get_address()),
         {{"me"}}));
   }
 
@@ -425,12 +422,10 @@ class UpdateBusinessWorkHoursQuery final : public Td::ResultHandler {
 
   void send(BusinessWorkHours &&work_hours) {
     work_hours_ = std::move(work_hours);
-    int32 flags = 0;
-    if (!work_hours_.is_empty()) {
-      flags |= telegram_api::account_updateBusinessWorkHours::BUSINESS_WORK_HOURS_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::account_updateBusinessWorkHours(flags, work_hours_.get_input_business_work_hours()), {{"me"}}));
+        telegram_api::account_updateBusinessWorkHours(
+            0, work_hours_.is_empty() ? nullptr : work_hours_.get_input_business_work_hours()),
+        {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -459,13 +454,10 @@ class UpdateBusinessGreetingMessageQuery final : public Td::ResultHandler {
 
   void send(BusinessGreetingMessage &&greeting_message) {
     greeting_message_ = std::move(greeting_message);
-    int32 flags = 0;
-    if (!greeting_message_.is_empty()) {
-      flags |= telegram_api::account_updateBusinessGreetingMessage::MESSAGE_MASK;
-    }
-    send_query(G()->net_query_creator().create(telegram_api::account_updateBusinessGreetingMessage(
-                                                   flags, greeting_message_.get_input_business_greeting_message(td_)),
-                                               {{"me"}}));
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_updateBusinessGreetingMessage(
+            0, greeting_message_.is_empty() ? nullptr : greeting_message_.get_input_business_greeting_message(td_)),
+        {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -494,12 +486,9 @@ class UpdateBusinessAwayMessageQuery final : public Td::ResultHandler {
 
   void send(BusinessAwayMessage &&away_message) {
     away_message_ = std::move(away_message);
-    int32 flags = 0;
-    if (!away_message_.is_empty()) {
-      flags |= telegram_api::account_updateBusinessAwayMessage::MESSAGE_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::account_updateBusinessAwayMessage(flags, away_message_.get_input_business_away_message(td_)),
+        telegram_api::account_updateBusinessAwayMessage(
+            0, away_message_.is_empty() ? nullptr : away_message_.get_input_business_away_message(td_)),
         {{"me"}}));
   }
 
@@ -529,13 +518,10 @@ class UpdateBusinessIntroQuery final : public Td::ResultHandler {
 
   void send(BusinessIntro &&intro) {
     intro_ = std::move(intro);
-    int32 flags = 0;
-    if (!intro_.is_empty()) {
-      flags |= telegram_api::account_updateBusinessIntro::INTRO_MASK;
-    }
-
-    send_query(G()->net_query_creator().create(
-        telegram_api::account_updateBusinessIntro(flags, intro_.get_input_business_intro(td_)), {{"me"}}));
+    send_query(
+        G()->net_query_creator().create(telegram_api::account_updateBusinessIntro(
+                                            0, intro_.is_empty() ? nullptr : intro_.get_input_business_intro(td_)),
+                                        {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {

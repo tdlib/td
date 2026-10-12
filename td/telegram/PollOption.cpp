@@ -152,12 +152,8 @@ td_api::object_ptr<td_api::pollOption> PollOption::get_poll_option_object(Td *td
 
 telegram_api::object_ptr<telegram_api::PollAnswer> PollOption::get_input_poll_answer(
     telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) const {
-  int32 flags = 0;
-  if (input_media != nullptr) {
-    flags |= telegram_api::inputPollAnswer::MEDIA_MASK;
-  }
   return telegram_api::make_object<telegram_api::inputPollAnswer>(
-      flags, get_input_text_with_entities(nullptr, text_, "get_input_poll_answer"), std::move(input_media));
+      0, get_input_text_with_entities(nullptr, text_, "get_input_poll_answer"), std::move(input_media));
 }
 
 vector<PollOption> PollOption::get_poll_options(

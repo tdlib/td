@@ -167,12 +167,6 @@ telegram_api::object_ptr<telegram_api::RequestPeerType> RequestedDialogType::get
       if (restrict_has_username_) {
         flags |= telegram_api::requestPeerTypeChat::HAS_USERNAME_MASK;
       }
-      if (restrict_user_administrator_rights_) {
-        flags |= telegram_api::requestPeerTypeChat::USER_ADMIN_RIGHTS_MASK;
-      }
-      if (restrict_bot_administrator_rights_) {
-        flags |= telegram_api::requestPeerTypeChat::BOT_ADMIN_RIGHTS_MASK;
-      }
       auto user_admin_rights =
           restrict_user_administrator_rights_ ? user_administrator_rights_.get_chat_admin_rights() : nullptr;
       auto bot_admin_rights =
@@ -185,12 +179,6 @@ telegram_api::object_ptr<telegram_api::RequestPeerType> RequestedDialogType::get
       int32 flags = 0;
       if (restrict_has_username_) {
         flags |= telegram_api::requestPeerTypeBroadcast::HAS_USERNAME_MASK;
-      }
-      if (restrict_user_administrator_rights_) {
-        flags |= telegram_api::requestPeerTypeBroadcast::USER_ADMIN_RIGHTS_MASK;
-      }
-      if (restrict_bot_administrator_rights_) {
-        flags |= telegram_api::requestPeerTypeBroadcast::BOT_ADMIN_RIGHTS_MASK;
       }
       auto user_admin_rights =
           restrict_user_administrator_rights_ ? user_administrator_rights_.get_chat_admin_rights() : nullptr;

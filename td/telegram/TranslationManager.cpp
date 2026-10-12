@@ -47,7 +47,6 @@ class TranslateTextQuery final : public Td::ResultHandler {
     }
     if (message_full_id.get_message_id().is_valid()) {
       CHECK(texts.size() == 1u);
-      flags |= telegram_api::messages_translateText::PEER_MASK;
       auto input_peer = td_->dialog_manager_->get_input_peer(message_full_id.get_dialog_id(), AccessRights::Read);
       CHECK(input_peer != nullptr);
       auto message_ids = {message_full_id.get_message_id().get_server_message_id().get()};
@@ -105,7 +104,6 @@ class TranslateRichMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_translateRichMessage::TONE_MASK;
     }
     if (message_full_id.get_message_id().is_valid()) {
-      flags |= telegram_api::messages_translateRichMessage::PEER_MASK;
       auto input_peer = td_->dialog_manager_->get_input_peer(message_full_id.get_dialog_id(), AccessRights::Read);
       CHECK(input_peer != nullptr);
       auto message_ids = {message_full_id.get_message_id().get_server_message_id().get()};
@@ -413,9 +411,6 @@ class ComposeMessageWithAiQuery final : public Td::ResultHandler {
     if (!translate_to_language_code.empty()) {
       flags |= telegram_api::messages_composeMessageWithAI::TRANSLATE_TO_LANG_MASK;
     }
-    if (input_tone != nullptr) {
-      flags |= telegram_api::messages_composeMessageWithAI::TONE_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::messages_composeMessageWithAI(
         flags, false, emojify,
         get_input_text_with_entities(td_->user_manager_.get(), text.text_, "ComposeMessageWithAiQuery"),
@@ -466,12 +461,8 @@ class ComposeRichMessageWithAiQuery final : public Td::ResultHandler {
     if (!translate_to_language_code.empty()) {
       flags |= telegram_api::messages_composeRichMessageWithAI::TRANSLATE_TO_LANG_MASK;
     }
-    if (input_tone != nullptr) {
-      flags |= telegram_api::messages_composeRichMessageWithAI::TONE_MASK;
-    }
     telegram_api::object_ptr<telegram_api::InputRichMessage> input_rich_message;
     if (has_message) {
-      flags |= telegram_api::messages_composeRichMessageWithAI::TEXT_MASK;
       input_rich_message = input_rich_message_.message_.get_input_rich_message(td_);
       if (input_rich_message == nullptr) {
         return on_error(Status::Error(400, "Invalid rich message specified"));

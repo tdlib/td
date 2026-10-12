@@ -804,8 +804,7 @@ void AuthManager::resend_authentication_code(uint64 query_id, td_api::object_ptr
 
 void AuthManager::send_auth_sign_in_query() {
   bool is_email = !email_code_.is_empty();
-  int32 flags =
-      is_email ? telegram_api::auth_signIn::EMAIL_VERIFICATION_MASK : telegram_api::auth_signIn::PHONE_CODE_MASK;
+  int32 flags = is_email ? 0 : telegram_api::auth_signIn::PHONE_CODE_MASK;
   start_net_query(NetQueryType::SignIn,
                   G()->net_query_creator().create_unauth(telegram_api::auth_signIn(
                       flags, send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash(), code_,
@@ -988,9 +987,8 @@ void AuthManager::do_delete_account(uint64 query_id, string reason,
 
   on_new_query(query_id);
   LOG(INFO) << "Deleting account with password";
-  int32 flags = telegram_api::account_deleteAccount::PASSWORD_MASK;
   start_net_query(NetQueryType::DeleteAccount, G()->net_query_creator().create(telegram_api::account_deleteAccount(
-                                                   flags, reason, r_input_password.move_as_ok())));
+                                                   0, reason, r_input_password.move_as_ok())));
 }
 
 void AuthManager::on_closing(bool destroy_flag) {
@@ -1349,10 +1347,9 @@ void AuthManager::on_get_password_result(NetQueryPtr &&net_query) {
         return on_current_query_error(r_new_settings.move_as_error());
       }
 
-      int32 flags = telegram_api::auth_recoverPassword::NEW_SETTINGS_MASK;
       start_net_query(NetQueryType::RecoverPassword,
                       G()->net_query_creator().create_unauth(
-                          telegram_api::auth_recoverPassword(flags, recovery_code_, r_new_settings.move_as_ok())));
+                          telegram_api::auth_recoverPassword(0, recovery_code_, r_new_settings.move_as_ok())));
       return;
     }
     LOG(INFO) << "Have SRP ID " << wait_password_state_.srp_id_;

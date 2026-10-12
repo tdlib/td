@@ -109,15 +109,13 @@ class SendPaidReactionQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    int32 flags = 0;
     telegram_api::object_ptr<telegram_api::PaidReactionPrivacy> privacy;
     if (!use_default_paid_reaction_type) {
-      flags |= telegram_api::messages_sendPaidReaction::PRIVATE_MASK;
       privacy = paid_reaction_type.get_input_paid_reaction_privacy(td_);
       CHECK(privacy != nullptr);
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendPaidReaction(flags, std::move(input_peer),
+        telegram_api::messages_sendPaidReaction(0, std::move(input_peer),
                                                 message_full_id.get_message_id().get_server_message_id().get(),
                                                 star_count, random_id, std::move(privacy)),
         {{dialog_id_}, {message_full_id}}));
@@ -232,17 +230,14 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
     }
 
     int32 flags = 0;
-    if (!reaction_type_.is_empty()) {
-      flags |= telegram_api::messages_getMessageReactionsList::REACTION_MASK;
-    }
     if (!offset_.empty()) {
       flags |= telegram_api::messages_getMessageReactionsList::OFFSET_MASK;
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getMessageReactionsList(flags, std::move(input_peer),
-                                                       message_id_.get_server_message_id().get(),
-                                                       reaction_type_.get_input_reaction(), offset_, limit),
+        telegram_api::messages_getMessageReactionsList(
+            flags, std::move(input_peer), message_id_.get_server_message_id().get(),
+            reaction_type_.is_empty() ? nullptr : reaction_type_.get_input_reaction(), offset_, limit),
         {{message_full_id}}));
   }
 

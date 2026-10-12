@@ -727,12 +727,8 @@ tl_object_ptr<telegram_api::InputMedia> DocumentsManager::get_input_media(
     if (!document->file_name.empty()) {
       attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeFilename>(document->file_name));
     }
-    int32 flags = 0;
-    if (input_thumbnail != nullptr) {
-      flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
-    }
     return telegram_api::make_object<telegram_api::inputMediaUploadedDocument>(
-        flags, false, file_view.get_type() == FileType::DocumentAsFile, false, std::move(input_file),
+        0, false, file_view.get_type() == FileType::DocumentAsFile, false, std::move(input_file),
         std::move(input_thumbnail), document->mime_type, std::move(attributes),
         vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), nullptr, 0, 0);
   } else {

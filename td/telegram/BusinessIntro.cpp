@@ -63,17 +63,14 @@ td_api::object_ptr<td_api::businessStartPage> BusinessIntro::get_business_start_
 }
 
 telegram_api::object_ptr<telegram_api::inputBusinessIntro> BusinessIntro::get_input_business_intro(Td *td) const {
-  int32 flags = 0;
   telegram_api::object_ptr<telegram_api::InputDocument> input_document;
   if (sticker_file_id_.is_valid()) {
     auto file_view = td->file_manager_->get_file_view(sticker_file_id_);
     const auto *main_remote_location = file_view.get_main_remote_location();
     CHECK(main_remote_location != nullptr);
     input_document = main_remote_location->as_input_document();
-    flags |= telegram_api::inputBusinessIntro::STICKER_MASK;
   }
-
-  return telegram_api::make_object<telegram_api::inputBusinessIntro>(flags, title_, description_,
+  return telegram_api::make_object<telegram_api::inputBusinessIntro>(0, title_, description_,
                                                                      std::move(input_document));
 }
 

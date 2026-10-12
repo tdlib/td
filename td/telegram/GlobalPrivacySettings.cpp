@@ -144,9 +144,6 @@ telegram_api::object_ptr<telegram_api::globalPrivacySettings> GlobalPrivacySetti
     flags |= telegram_api::globalPrivacySettings::NONCONTACT_PEERS_PAID_STARS_MASK;
   }
   auto gifts_settings = gift_settings_.get_disallowed_gifts().get_input_disallowed_gifts_settings();
-  if (gifts_settings != nullptr) {
-    flags |= telegram_api::globalPrivacySettings::DISALLOWED_GIFTS_MASK;
-  }
   return telegram_api::make_object<telegram_api::globalPrivacySettings>(
       flags, archive_and_mute_new_noncontact_peers_, keep_archived_unmuted_, keep_archived_folders_, hide_read_marks_,
       new_noncontact_peers_require_premium_, gift_settings_.get_display_gifts_button(),

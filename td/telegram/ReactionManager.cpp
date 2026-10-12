@@ -189,15 +189,13 @@ class GetSavedReactionTagsQuery final : public Td::ResultHandler {
   }
 
   void send(SavedMessagesTopicId saved_messages_topic_id, int64 hash) {
-    int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputPeer> saved_input_peer;
     if (saved_messages_topic_id.is_valid()) {
-      flags |= telegram_api::messages_getSavedReactionTags::PEER_MASK;
       saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
       CHECK(saved_input_peer != nullptr);
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getSavedReactionTags(flags, std::move(saved_input_peer), hash),
+        telegram_api::messages_getSavedReactionTags(0, std::move(saved_input_peer), hash),
         {td_->dialog_manager_->get_my_dialog_id()}));
   }
 

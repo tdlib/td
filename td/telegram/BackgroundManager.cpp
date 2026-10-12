@@ -129,12 +129,6 @@ class SetChatWallPaperQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
-    if (input_wallpaper != nullptr) {
-      flags |= telegram_api::messages_setChatWallPaper::WALLPAPER_MASK;
-    }
-    if (settings != nullptr) {
-      flags |= telegram_api::messages_setChatWallPaper::SETTINGS_MASK;
-    }
     if (old_message_id.is_valid()) {
       flags |= telegram_api::messages_setChatWallPaper::ID_MASK;
     }

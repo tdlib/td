@@ -136,9 +136,6 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
     flags |= telegram_api::inputReplyToMessage::TOP_MSG_ID_MASK;
   }
   auto saved_input_peer = message_topic.get_saved_input_peer(td);
-  if (saved_input_peer != nullptr) {
-    flags |= telegram_api::inputReplyToMessage::MONOFORUM_PEER_ID_MASK;
-  }
   telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
   if (dialog_id_ != DialogId()) {
     input_peer = td->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
@@ -146,7 +143,6 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
       LOG(INFO) << "Failed to get input peer for " << dialog_id_;
       return nullptr;
     }
-    flags |= telegram_api::inputReplyToMessage::REPLY_TO_PEER_ID_MASK;
   }
   if (todo_item_id_ != 0) {
     flags |= telegram_api::inputReplyToMessage::TODO_ITEM_ID_MASK;

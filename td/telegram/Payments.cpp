@@ -93,26 +93,18 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           TRY_RESULT(text, get_premium_gift_text(td, std::move(p->text_)));
 
           if (p->currency_ == "XTR") {
-            int32 flags = 0;
-            if (text != nullptr) {
-              flags |= telegram_api::inputInvoicePremiumGiftStars::MESSAGE_MASK;
-            }
             result.star_count_ = max(p->amount_, static_cast<int64>(0));
             result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftStars>(
-                flags, std::move(input_user), p->month_count_, std::move(text));
+                0, std::move(input_user), p->month_count_, std::move(text));
             break;
           }
 
-          int32 flags = 0;
-          if (text != nullptr) {
-            flags |= telegram_api::inputStorePaymentPremiumGiftCode::MESSAGE_MASK;
-          }
           auto option = telegram_api::make_object<telegram_api::premiumGiftCodeOption>(0, 1, p->month_count_, string(),
                                                                                        0, p->currency_, p->amount_);
           vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
           input_users.push_back(std::move(input_user));
           auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
-              flags, std::move(input_users), nullptr, p->currency_, p->amount_, std::move(text));
+              0, std::move(input_users), nullptr, p->currency_, p->amount_, std::move(text));
 
           result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftCode>(
               std::move(purpose), std::move(option));
@@ -126,14 +118,10 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           TRY_RESULT(boost_input_peer, get_boost_input_peer(td, boosted_dialog_id));
           TRY_RESULT(text, get_premium_gift_text(td, std::move(p->text_)));
 
-          int32 flags = telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
-          if (text != nullptr) {
-            flags |= telegram_api::inputStorePaymentPremiumGiftCode::MESSAGE_MASK;
-          }
           auto option = telegram_api::make_object<telegram_api::premiumGiftCodeOption>(
               0, static_cast<int32>(input_users.size()), p->month_count_, string(), 0, p->currency_, p->amount_);
           auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
-              flags, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_, std::move(text));
+              0, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_, std::move(text));
 
           result.dialog_id_ = boosted_dialog_id;
           result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftCode>(
@@ -152,7 +140,6 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
         }
         case td_api::telegramPaymentPurposeStars::ID: {
           auto p = static_cast<td_api::telegramPaymentPurposeStars *>(invoice->purpose_.get());
-          int32 flags = 0;
           telegram_api::object_ptr<telegram_api::InputPeer> spend_purpose_input_peer;
           DialogId spend_dialog_id(p->chat_id_);
           if (spend_dialog_id != DialogId()) {
@@ -160,13 +147,12 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
                                                                 "telegramPaymentPurposeStars"));
             spend_purpose_input_peer = td->dialog_manager_->get_input_peer(spend_dialog_id, AccessRights::Read);
             CHECK(spend_purpose_input_peer != nullptr);
-            flags |= telegram_api::inputStorePaymentStarsTopup::SPEND_PURPOSE_PEER_MASK;
           }
           TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
           dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::StarsSubscriptionLowBalance},
                                    Promise<Unit>());
           auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(
-              flags, p->star_count_, p->currency_, p->amount_, std::move(spend_purpose_input_peer));
+              0, p->star_count_, p->currency_, p->amount_, std::move(spend_purpose_input_peer));
           result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoiceStars>(std::move(purpose));
           break;
         }
@@ -473,9 +459,6 @@ static tl_object_ptr<telegram_api::paymentRequestedInfo> convert_order_info(
   if (!order_info->email_address_.empty()) {
     flags |= telegram_api::paymentRequestedInfo::EMAIL_MASK;
   }
-  if (order_info->shipping_address_ != nullptr) {
-    flags |= telegram_api::paymentRequestedInfo::SHIPPING_ADDRESS_MASK;
-  }
   return make_tl_object<telegram_api::paymentRequestedInfo>(
       flags, std::move(order_info->name_), std::move(order_info->phone_number_), std::move(order_info->email_address_),
       convert_address(std::move(order_info->shipping_address_)));
@@ -500,12 +483,8 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
   void send(InputInvoiceInfo &&input_invoice_info, tl_object_ptr<telegram_api::dataJSON> &&theme_parameters) {
     dialog_id_ = input_invoice_info.dialog_id_;
 
-    int32 flags = 0;
-    if (theme_parameters != nullptr) {
-      flags |= telegram_api::payments_getPaymentForm::THEME_PARAMS_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::payments_getPaymentForm(
-        flags, std::move(input_invoice_info.input_invoice_), std::move(theme_parameters))));
+        0, std::move(input_invoice_info.input_invoice_), std::move(theme_parameters))));
   }
 
   void on_result(BufferSlice packet) final {

@@ -490,14 +490,8 @@ class RequestChatJoinWebViewQuery final : public Td::ResultHandler {
   }
 
   void send(int64 query_id, const WebAppOpenParameters &parameters) {
-    int32 flags = 0;
-    auto theme_parameters = parameters.get_input_theme_parameters();
-    if (theme_parameters != nullptr) {
-      flags |= telegram_api::messages_requestChatJoinWebView::THEME_PARAMS_MASK;
-    }
-
     send_query(G()->net_query_creator().create(telegram_api::messages_requestChatJoinWebView(
-        flags, query_id, std::move(theme_parameters), parameters.get_application_name())));
+        0, query_id, parameters.get_input_theme_parameters(), parameters.get_application_name())));
   }
 
   void on_result(BufferSlice packet) final {

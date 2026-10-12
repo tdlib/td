@@ -17,12 +17,6 @@ ScopeNotificationSettings::get_input_peer_notify_settings() const {
   int32 flags = telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK |
                 telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK |
                 telegram_api::inputPeerNotifySettings::STORIES_HIDE_SENDER_MASK;
-  if (sound != nullptr) {
-    flags |= telegram_api::inputPeerNotifySettings::SOUND_MASK;
-  }
-  if (story_sound != nullptr) {
-    flags |= telegram_api::inputPeerNotifySettings::STORIES_SOUND_MASK;
-  }
   if (!use_default_mute_stories) {
     flags |= telegram_api::inputPeerNotifySettings::STORIES_MUTED_MASK;
   }

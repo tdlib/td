@@ -512,8 +512,12 @@ std::string TD_TL_writer_cpp::gen_field_store(const tl::arg &a, const std::vecto
           continue;
         }
         const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(other_arg.type);
-        if (tree_type->type->name == "True") {
-          field_name += " | (" + gen_field_name(other_arg.name) + " << " + int_to_string(other_arg.exist_var_bit) + ")";
+        const std::string &type_name = tree_type->type->name;
+        if (type_name == "True") {
+          field_name += " | (" + gen_field_name(other_arg.name) + " << " + int_to_string(other_arg.exist_var_bit) + ')';
+        } else if (!is_built_in_simple_type(type_name) && !is_built_in_complex_type(type_name)) {
+          field_name += " | ((" + gen_field_name(other_arg.name) + " != nullptr) << " +
+                        int_to_string(other_arg.exist_var_bit) + ')';
         }
       }
       field_name += ")";

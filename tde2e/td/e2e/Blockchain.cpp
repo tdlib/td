@@ -297,19 +297,16 @@ StateProof StateProof::from_tl(const td::e2e_api::e2e_chain_stateProof &proof) {
 }
 
 e2e::object_ptr<e2e::e2e_chain_stateProof> StateProof::to_tl() const {
-  td::int32 flags{};
   e2e::object_ptr<e2e::e2e_chain_groupState> o_group_state_tl;
   if (o_group_state) {
     o_group_state_tl = o_group_state.value()->to_tl();
-    flags |= td::e2e_api::e2e_chain_stateProof::GROUP_STATE_MASK;
   }
   e2e::object_ptr<e2e::e2e_chain_sharedKey> o_shared_key_tl;
   if (o_shared_key) {
     o_shared_key_tl = o_shared_key.value()->to_tl();
-    flags |= td::e2e_api::e2e_chain_stateProof::SHARED_KEY_MASK;
   }
 
-  return e2e::make_object<e2e::e2e_chain_stateProof>(flags, kv_hash.hash, std::move(o_group_state_tl),
+  return e2e::make_object<e2e::e2e_chain_stateProof>(0, kv_hash.hash, std::move(o_group_state_tl),
                                                      std::move(o_shared_key_tl));
 }
 

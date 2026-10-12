@@ -427,7 +427,6 @@ telegram_api::object_ptr<telegram_api::keyboardInlineButton> InlineKeyboardButto
             LOG(ERROR) << "Failed to get InputUser for " << bot_user_id << ": " << r_input_user.error();
             return telegram_api::make_object<telegram_api::inlineButtonTypeUrl>(data_);
           }
-          flags |= telegram_api::inputInlineButtonTypeUrlAuth::BOT_MASK;
           input_user = r_input_user.move_as_ok();
         }
         return telegram_api::make_object<telegram_api::inputInlineButtonTypeUrlAuth>(
@@ -455,12 +454,8 @@ telegram_api::object_ptr<telegram_api::keyboardInlineButton> InlineKeyboardButto
         return nullptr;
     }
   }();
-  int32 flags = 0;
-  auto style = style_.get_input_keyboard_button_style();
-  if (style != nullptr) {
-    flags |= 1 << 10;
-  }
-  return telegram_api::make_object<telegram_api::keyboardInlineButton>(flags, std::move(style), text_, std::move(type));
+  return telegram_api::make_object<telegram_api::keyboardInlineButton>(0, style_.get_input_keyboard_button_style(),
+                                                                       text_, std::move(type));
 }
 
 td_api::object_ptr<td_api::inlineKeyboardButton> InlineKeyboardButton::get_inline_keyboard_button_object(

@@ -545,17 +545,13 @@ void PasswordManager::recover_password(string code, string new_password, string 
 }
 
 void PasswordManager::do_recover_password(string code, PasswordInputSettings &&new_settings, Promise<State> &&promise) {
-  int32 flags = 0;
-  if (new_settings != nullptr) {
-    flags |= telegram_api::auth_recoverPassword::NEW_SETTINGS_MASK;
-  }
-  send_with_promise(G()->net_query_creator().create(
-                        telegram_api::auth_recoverPassword(flags, std::move(code), std::move(new_settings))),
-                    PromiseCreator::lambda([actor_id = actor_id(this),
-                                            promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-                      TRY_STATUS_PROMISE(promise, fetch_result<telegram_api::auth_recoverPassword>(std::move(r_query)));
-                      send_closure(actor_id, &PasswordManager::get_state, std::move(promise));
-                    }));
+  send_with_promise(
+      G()->net_query_creator().create(telegram_api::auth_recoverPassword(0, std::move(code), std::move(new_settings))),
+      PromiseCreator::lambda(
+          [actor_id = actor_id(this), promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+            TRY_STATUS_PROMISE(promise, fetch_result<telegram_api::auth_recoverPassword>(std::move(r_query)));
+            send_closure(actor_id, &PasswordManager::get_state, std::move(promise));
+          }));
 }
 
 void PasswordManager::reset_password(Promise<ResetPasswordResult> promise) {
@@ -656,11 +652,10 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
   auto update_secure_secret = update_settings.update_secure_secret;
   int32 flags = 0;
   BufferSlice new_password_hash;
-  tl_object_ptr<telegram_api::PasswordKdfAlgo> new_algo;
+  telegram_api::object_ptr<telegram_api::PasswordKdfAlgo> new_algo;
   string new_hint;
   if (update_settings.update_password) {
     flags |= telegram_api::account_passwordInputSettings::NEW_PASSWORD_HASH_MASK;
-    flags |= telegram_api::account_passwordInputSettings::NEW_ALGO_MASK;
     flags |= telegram_api::account_passwordInputSettings::HINT_MASK;
     if (!update_settings.new_password.empty()) {
       auto new_client_salt = create_salt(state.client_salt);
@@ -692,7 +687,7 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
     update_secure_secret = false;
   }
 
-  tl_object_ptr<telegram_api::secureSecretSettings> new_secure_settings;
+  telegram_api::object_ptr<telegram_api::secureSecretSettings> new_secure_settings;
   if (update_secure_secret) {
     auto secret = have_secret ? private_state->secret.value() : secure_storage::Secret::create_new();
     auto algorithm =
@@ -700,8 +695,6 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
     auto encrypted_secret = secret.encrypt(
         update_settings.update_password ? update_settings.new_password : update_settings.current_password,
         algorithm->salt_.as_slice(), secure_storage::EnryptionAlgorithm::Pbkdf2);
-
-    flags |= telegram_api::account_passwordInputSettings::NEW_SECURE_SETTINGS_MASK;
     new_secure_settings = make_tl_object<telegram_api::secureSecretSettings>(
         std::move(algorithm), BufferSlice(encrypted_secret.as_slice()), secret.get_hash());
   }

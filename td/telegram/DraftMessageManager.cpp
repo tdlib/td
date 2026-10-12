@@ -70,7 +70,6 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
       input_reply_to = draft_message->message_input_reply_to_.get_input_reply_to(td_, message_topic, true);
       if (draft_message->rich_message_content_ != nullptr) {
         CHECK(input_media.rich_message_ != nullptr);
-        flags |= telegram_api::messages_saveDraft::RICH_MESSAGE_MASK;
       } else {
         CHECK(upload_id == MessageContentUploadId());
         CHECK(input_media.rich_message_ == nullptr);
@@ -85,24 +84,18 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
           flags |= telegram_api::messages_saveDraft::ENTITIES_MASK;
         }
         media = draft_message->input_message_text_.get_input_media_web_page();
-        if (media != nullptr) {
-          flags |= telegram_api::messages_saveDraft::MEDIA_MASK;
-        }
       }
       if (draft_message->message_effect_id_.is_valid()) {
         flags |= telegram_api::messages_saveDraft::EFFECT_MASK;
         message_effect_id = draft_message->message_effect_id_.get();
       }
       if (draft_message->suggested_post_ != nullptr) {
-        flags |= telegram_api::messages_saveDraft::SUGGESTED_POST_MASK;
         suggested_post = draft_message->suggested_post_->get_input_suggested_post();
       }
     } else {
       CHECK(upload_id == MessageContentUploadId());
+      input_media.rich_message_ = nullptr;
       input_reply_to = MessageInputReplyTo().get_input_reply_to(td_, message_topic, true);
-    }
-    if (input_reply_to != nullptr) {
-      flags |= telegram_api::messages_saveDraft::REPLY_TO_MASK;
     }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_saveDraft(

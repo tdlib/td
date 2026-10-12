@@ -217,14 +217,12 @@ class AddContactQuery final : public Td::ResultHandler {
   void send(UserId user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user, const Contact &contact,
             bool share_phone_number) {
     user_id_ = user_id;
-    int32 flags = 0;
     telegram_api::object_ptr<telegram_api::textWithEntities> input_note;
     if (contact.get_edit_note()) {
-      flags |= telegram_api::contacts_addContact::NOTE_MASK;
       input_note = get_input_text_with_entities(td_->user_manager_.get(), contact.get_note(), "AddContactQuery");
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::contacts_addContact(flags, share_phone_number, std::move(input_user), contact.get_first_name(),
+        telegram_api::contacts_addContact(0, share_phone_number, std::move(input_user), contact.get_first_name(),
                                           contact.get_last_name(), contact.get_phone_number(), std::move(input_note)),
         {{DialogId(user_id)}}));
   }
@@ -549,25 +547,19 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
     is_fallback_ = is_fallback;
     only_suggest_ = only_suggest;
 
-    static_assert(static_cast<int32>(telegram_api::photos_uploadProfilePhoto::VIDEO_MASK) ==
-                  static_cast<int32>(telegram_api::photos_uploadContactProfilePhoto::VIDEO_MASK));
     static_assert(static_cast<int32>(telegram_api::photos_uploadProfilePhoto::VIDEO_START_TS_MASK) ==
                   static_cast<int32>(telegram_api::photos_uploadContactProfilePhoto::VIDEO_START_TS_MASK));
-    static_assert(static_cast<int32>(telegram_api::photos_uploadProfilePhoto::FILE_MASK) ==
-                  static_cast<int32>(telegram_api::photos_uploadContactProfilePhoto::FILE_MASK));
 
     int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputFile> photo_input_file;
     telegram_api::object_ptr<telegram_api::InputFile> video_input_file;
     if (is_animation) {
-      flags |= telegram_api::photos_uploadProfilePhoto::VIDEO_MASK;
       video_input_file = std::move(input_file);
 
       if (main_frame_timestamp != 0.0) {
         flags |= telegram_api::photos_uploadProfilePhoto::VIDEO_START_TS_MASK;
       }
     } else {
-      flags |= telegram_api::photos_uploadProfilePhoto::FILE_MASK;
       photo_input_file = std::move(input_file);
     }
     bool is_me = user_id == td_->user_manager_->get_my_id();
@@ -580,9 +572,6 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       input_user = r_input_user.move_as_ok();
     }
     if (td_->user_manager_->is_user_bot(user_id) != td_->auth_manager_->is_bot() || is_me) {
-      if (input_user != nullptr) {
-        flags |= telegram_api::photos_uploadProfilePhoto::BOT_MASK;
-      }
       send_query(G()->net_query_creator().create(
           telegram_api::photos_uploadProfilePhoto(flags, is_fallback, std::move(input_user),
                                                   std::move(photo_input_file), std::move(video_input_file),
@@ -614,19 +603,14 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       input_user = r_input_user.move_as_ok();
     }
     if (td_->user_manager_->is_user_bot(user_id) != td_->auth_manager_->is_bot() || is_me) {
-      int32 flags = telegram_api::photos_uploadProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
-      if (input_user != nullptr) {
-        flags |= telegram_api::photos_uploadProfilePhoto::BOT_MASK;
-      }
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_uploadProfilePhoto(flags, is_fallback, std::move(input_user), nullptr, nullptr, 0.0,
+          telegram_api::photos_uploadProfilePhoto(0, is_fallback, std::move(input_user), nullptr, nullptr, 0.0,
                                                   sticker_photo_size->get_input_video_size_object(td_)),
           {{user_id}}));
     } else {
-      int32 flags = telegram_api::photos_uploadContactProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_uploadContactProfilePhoto(flags, only_suggest, !only_suggest, std::move(input_user),
-                                                         nullptr, nullptr, 0.0,
+          telegram_api::photos_uploadContactProfilePhoto(0, only_suggest, !only_suggest, std::move(input_user), nullptr,
+                                                         nullptr, 0.0,
                                                          sticker_photo_size->get_input_video_size_object(td_)),
           {{user_id}}));
     }
@@ -685,8 +669,7 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
         return on_error(r_input_user.move_as_error());
       }
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_updateProfilePhoto(telegram_api::photos_updateProfilePhoto::BOT_MASK, is_fallback,
-                                                  r_input_user.move_as_ok(), std::move(input_photo)),
+          telegram_api::photos_updateProfilePhoto(0, is_fallback, r_input_user.move_as_ok(), std::move(input_photo)),
           {{user_id}}));
     } else {
       send_query(G()->net_query_creator().create(
@@ -901,11 +884,8 @@ class UpdateColorQuery final : public Td::ResultHandler {
     for_profile_ = for_profile;
     accent_color_id_ = accent_color_id;
     background_custom_emoji_id_ = background_custom_emoji_id;
-    int32 flags = 0;
     telegram_api::object_ptr<telegram_api::PeerColor> color;
     if (accent_color_id.is_valid()) {
-      flags |= telegram_api::account_updateColor::COLOR_MASK;
-
       int32 color_flags = telegram_api::peerColor::COLOR_MASK;
       if (background_custom_emoji_id.is_valid()) {
         color_flags |= telegram_api::peerColor::BACKGROUND_EMOJI_ID_MASK;
@@ -913,8 +893,8 @@ class UpdateColorQuery final : public Td::ResultHandler {
       color = telegram_api::make_object<telegram_api::peerColor>(color_flags, accent_color_id.get(),
                                                                  background_custom_emoji_id.get());
     }
-    send_query(G()->net_query_creator().create(telegram_api::account_updateColor(flags, for_profile, std::move(color)),
-                                               {{"me"}}));
+    send_query(
+        G()->net_query_creator().create(telegram_api::account_updateColor(0, for_profile, std::move(color)), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -941,10 +921,9 @@ class UpdateColorCollectibleQuery final : public Td::ResultHandler {
   }
 
   void send(int64 collectible_id) {
-    int32 flags = telegram_api::account_updateColor::COLOR_MASK;
     send_query(G()->net_query_creator().create(
         telegram_api::account_updateColor(
-            flags, false, telegram_api::make_object<telegram_api::inputPeerColorCollectible>(collectible_id)),
+            0, false, telegram_api::make_object<telegram_api::inputPeerColorCollectible>(collectible_id)),
         {{"me"}}));
   }
 
@@ -1345,12 +1324,9 @@ class UpdateBirthdayQuery final : public Td::ResultHandler {
   }
 
   void send(const Birthdate &birthdate) {
-    int32 flags = 0;
-    if (!birthdate.is_empty()) {
-      flags |= telegram_api::account_updateBirthday::BIRTHDAY_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::account_updateBirthday(flags, birthdate.get_input_birthday()), {{"me"}}));
+        telegram_api::account_updateBirthday(0, birthdate.is_empty() ? nullptr : birthdate.get_input_birthday()),
+        {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1630,12 +1606,8 @@ class SaveMusicQuery final : public Td::ResultHandler {
     file_id_ = file_id;
     after_file_id_ = after_file_id;
     file_reference_ = FileManager::extract_file_reference(input_document);
-    int32 flags = 0;
-    if (after_input_document != nullptr) {
-      flags |= telegram_api::account_saveMusic::AFTER_ID_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::account_saveMusic(flags, false, std::move(input_document), std::move(after_input_document)),
+        telegram_api::account_saveMusic(0, false, std::move(input_document), std::move(after_input_document)),
         {{"me"}}));
   }
 
