@@ -22926,7 +22926,8 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_r
       UNREACHABLE();
   }
 
-  const InlineMessageContent *content = td_->inline_queries_manager_->get_inline_message_content(query_id, result_id);
+  const InlineMessageContent *content =
+      td_->inline_queries_manager_->get_inline_message_content(query_id, result_id, !message_send_options.only_preview);
   if (content == nullptr) {
     return Status::Error(400, "Inline query result not found");
   }

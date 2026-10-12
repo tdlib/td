@@ -85,7 +85,8 @@ class InlineQueriesManager final : public Actor {
 
   void remove_recent_inline_bot(UserId bot_user_id, Promise<Unit> &&promise);
 
-  const InlineMessageContent *get_inline_message_content(int64 query_id, const string &result_id);
+  const InlineMessageContent *get_inline_message_content(int64 query_id, const string &result_id,
+                                                         bool update_recent_bots = true);
 
   UserId get_inline_bot_user_id(int64 query_id) const;
 

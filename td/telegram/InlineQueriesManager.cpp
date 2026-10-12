@@ -624,7 +624,8 @@ bool InlineQueriesManager::register_inline_message_content(
   return false;
 }
 
-const InlineMessageContent *InlineQueriesManager::get_inline_message_content(int64 query_id, const string &result_id) {
+const InlineMessageContent *InlineQueriesManager::get_inline_message_content(int64 query_id, const string &result_id,
+                                                                             bool update_recent_bots) {
   auto it = inline_message_contents_.find(query_id);
   if (it == inline_message_contents_.end()) {
     return nullptr;
@@ -635,7 +636,7 @@ const InlineMessageContent *InlineQueriesManager::get_inline_message_content(int
     return nullptr;
   }
 
-  if (update_bot_usage(get_inline_bot_user_id(query_id))) {
+  if (update_recent_bots && update_bot_usage(get_inline_bot_user_id(query_id))) {
     save_recently_used_bots();
   }
   return &result_it->second;
