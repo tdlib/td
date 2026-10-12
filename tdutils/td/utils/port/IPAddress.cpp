@@ -8,6 +8,7 @@
 
 #include "td/utils/port/IPAddress.h"
 
+#include "td/utils/as.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -193,6 +194,20 @@ static CSlice get_ip_str(int family, const void *addr) {
   }
 }
 
+static bool begins_with_bits(const unsigned char addr[16], const unsigned char *prefix, size_t bit_count) {
+  auto byte_count = bit_count >> 3;
+  if (std::memcmp(addr, prefix, byte_count) != 0) {
+    return false;
+  }
+
+  auto remaining_bit_count = bit_count & 7;
+  if (remaining_bit_count > 0) {
+    unsigned char mask = (0xff << (8 - remaining_bit_count)) & 0xff;
+    return ((addr[byte_count] ^ prefix[byte_count]) & mask) == 0;
+  }
+  return true;
+}
+
 IPAddress::IPAddress() : is_valid_(false) {
 }
 
@@ -203,12 +218,90 @@ bool IPAddress::is_valid() const {
 bool IPAddress::is_reserved() const {
   CHECK(is_valid());
 
+  uint32 ip = 0;
   if (is_ipv6()) {
-    // TODO proper check for reserved IPv6 addresses
-    return true;
+    // https://www.iana.org/assignments/iana-ipv6-special-registry
+    const auto &addr = ipv6_addr_.sin6_addr.s6_addr;
+
+    const unsigned char empty_address[16] = {0};
+    if (begins_with_bits(addr, empty_address, 127)) {
+      return true;
+    }
+
+    uint8_t translate_prefix[12] = {0x00, 0x64, 0xff, 0x9b};
+    if (begins_with_bits(addr, translate_prefix, 96)) {
+      return true;
+    }
+
+    uint8_t translate2_prefix[6] = {0x00, 0x64, 0xff, 0x9b, 0x00, 0x01};
+    if (begins_with_bits(addr, translate2_prefix, 48)) {
+      return true;
+    }
+
+    uint8_t discard_prefix[8] = {0x01};
+    if (begins_with_bits(addr, discard_prefix, 64)) {
+      return true;
+    }
+
+    uint8_t dummy_prefix[8] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
+    if (begins_with_bits(addr, dummy_prefix, 64)) {
+      return true;
+    }
+
+    const unsigned char ietf_prefix[3] = {0x20, 0x01};
+    if (begins_with_bits(addr, ietf_prefix, 23)) {
+      return true;
+    }
+
+    const unsigned char doc_prefix[4] = {0x20, 0x01, 0x0d, 0xb8};
+    if (begins_with_bits(addr, doc_prefix, 32)) {
+      return true;
+    }
+
+    const unsigned char v6to4_prefix[2] = {0x20, 0x02};
+    if (begins_with_bits(addr, v6to4_prefix, 16)) {
+      return true;
+    }
+
+    const unsigned char delegation_prefix[6] = {0x26, 0x20, 0x00, 0x4f, 0x80};
+    if (begins_with_bits(addr, delegation_prefix, 48)) {
+      return true;
+    }
+
+    const unsigned char doc2_prefix[3] = {0x3f, 0xff};
+    if (begins_with_bits(addr, doc2_prefix, 20)) {
+      return true;
+    }
+
+    const unsigned char segment_prefix[2] = {0x5f};
+    if (begins_with_bits(addr, segment_prefix, 16)) {
+      return true;
+    }
+
+    const unsigned char ula_prefix[1] = {0xfc};
+    if (begins_with_bits(addr, ula_prefix, 7)) {
+      return true;
+    }
+
+    const unsigned char link_local_prefix[2] = {0xfe, 0x80};
+    if (begins_with_bits(addr, link_local_prefix, 10)) {
+      return true;
+    }
+
+    if (addr[0] == 0xff) {
+      return true;
+    }
+
+    const unsigned char ipv4_prefix[12] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff};
+    if (!begins_with_bits(addr, ipv4_prefix, 96)) {
+      return false;
+    }
+
+    ip = ntohl(as<uint32>(addr + 12));
+  } else {
+    ip = get_ipv4();
   }
 
-  uint32 ip = get_ipv4();
   struct IpBlock {
     CSlice ip;
     int mask;
