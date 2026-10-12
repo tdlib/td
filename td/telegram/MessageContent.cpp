@@ -10675,6 +10675,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionChangeCreator::ID:
       case telegram_api::messageActionChatJoinedViaCommunity::ID:
       case telegram_api::messageActionWalletTonConnectRequest::ID:
+      case telegram_api::messageActionNoPaidMessagesTokenUsed::ID:
         LOG(ERROR) << "Receive business " << to_string(action_ptr);
         break;
       case telegram_api::messageActionHistoryClear::ID:
@@ -11541,6 +11542,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           action->session_id_, action->expires_, std::move(action->topic_), std::move(action->trace_id_),
           std::move(action->dapp_name_), action->accepted_, action->declined_);
     }
+    case telegram_api::messageActionNoPaidMessagesTokenUsed::ID:
+      return td::make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

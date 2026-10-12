@@ -1003,6 +1003,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionManagedBotCreated::ID:
         case telegram_api::messageActionGramTransfer::ID:
         case telegram_api::messageActionWalletTonConnectRequest::ID:
+        case telegram_api::messageActionNoPaidMessagesTokenUsed::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto action = static_cast<const telegram_api::messageActionChatCreate *>(action_ptr);

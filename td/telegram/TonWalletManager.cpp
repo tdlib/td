@@ -2362,6 +2362,10 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
       peer_provider_name = std::move(peer->provider_name_);
       break;
     }
+    case telegram_api::walletTransactionPeerChannel::ID:
+      break;
+    case telegram_api::walletTransactionPeerTelegramGift::ID:
+      break;
     case telegram_api::walletTransactionPeerUnsupported::ID:
       break;
     default:

@@ -1937,7 +1937,7 @@ class GetStarGiftWithdrawalUrlQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_getStarGiftWithdrawalUrl(std::move(input_gift), std::move(input_check_password))));
+        telegram_api::payments_getStarGiftWithdrawalUrl(0, std::move(input_gift), BufferSlice())));
   }
 
   void on_result(BufferSlice packet) final {

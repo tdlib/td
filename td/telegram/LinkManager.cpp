@@ -1981,7 +1981,7 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_acceptUrlAuth(
         flags, allow_write_access, allow_phone_number_access, std::move(input_peer),
-        message_full_id.get_message_id().get_server_message_id().get(), button_id, url_, match_code)));
+        message_full_id.get_message_id().get_server_message_id().get(), button_id, url_, match_code, nullptr)));
   }
 
   void on_result(BufferSlice packet) final {
