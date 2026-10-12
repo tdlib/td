@@ -358,7 +358,7 @@ bool IPAddress::is_ipv6() const {
 uint32 IPAddress::get_ipv4() const {
   CHECK(is_valid());
   CHECK(is_ipv4());
-  return htonl(ipv4_addr_.sin_addr.s_addr);
+  return ntohl(ipv4_addr_.sin_addr.s_addr);
 }
 
 string IPAddress::get_ipv6() const {
@@ -643,7 +643,7 @@ void IPAddress::clear_ipv6_interface() {
 }
 
 string IPAddress::ipv4_to_str(uint32 ipv4) {
-  ipv4 = ntohl(ipv4);
+  ipv4 = htonl(ipv4);
   return ::td::get_ip_str(AF_INET, &ipv4).str();
 }
 

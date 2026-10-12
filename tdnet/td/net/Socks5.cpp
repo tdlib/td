@@ -104,7 +104,7 @@ void Socks5::send_ip_address() {
   request += '\x00';
   if (ip_address_.is_ipv4()) {
     request += '\x01';
-    auto ipv4 = ntohl(ip_address_.get_ipv4());
+    auto ipv4 = htonl(ip_address_.get_ipv4());
     request += static_cast<char>(ipv4 & 255);
     request += static_cast<char>((ipv4 >> 8) & 255);
     request += static_cast<char>((ipv4 >> 16) & 255);
