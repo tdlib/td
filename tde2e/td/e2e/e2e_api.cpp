@@ -223,7 +223,7 @@ class KeyChain {
     api::EncryptedMessageForMany res;
     for (auto &secret : secrets) {
       TRY_RESULT(new_encrypted_header,
-                 MessageEncryption::encrypt_header(header, secret->as_slice(), encrypted_message));
+                 MessageEncryption::encrypt_header(header, encrypted_message, secret->as_slice()));
       res.encrypted_headers.emplace_back(new_encrypted_header.as_slice().str());
     }
     return res;
