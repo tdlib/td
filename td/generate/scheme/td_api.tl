@@ -4188,13 +4188,18 @@ loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 reque
 //@bot_user_id User identifier of a bot linked with the website
 //@request_write_access True, if the user must be asked for the permission to the bot to send them messages
 //@request_phone_number_access True, if the user must be asked for the permission to share their phone number
+//@request_ton_wallet_access True, if access to the user's TON wallet is requested by the app. If true and user agrees to give the access,
+//-then use createTonConnectSession to create the TON Connect session, then setTonConnectSessionWalletClientId, and then pass all data to acceptOauthRequest
+//@dapp_client_id Hex-encoded public X25519 key of the dApp; may be empty if TON wallet access wasn't requested
+//@ton_connect_manifest_url URL of the TON Connect manifest of the dApp; may be empty if TON wallet access wasn't requested
+//@ton_proof_payload Payload for TON wallet ownership proof; may be empty if TON wallet access wasn't requested
 //@browser The version of a browser used for the authorization
 //@platform Operating system the browser is running on
 //@ip_address IP address from which the authorization is performed, in human-readable format
 //@location Human-readable description of a country and a region from which the authorization is performed, based on the IP address
 //@match_code_first True, if code matching dialog must be shown first and checkOauthRequestMatchCode must be called before acceptOauthRequest. Otherwise, checkOauthRequestMatchCode must not be called
 //@match_codes The list of codes to match; may be empty if irrelevant
-oauthLinkInfo user_id:int53 url:string domain:string from_app:Bool verified_app_name:string bot_user_id:int53 request_write_access:Bool request_phone_number_access:Bool browser:string platform:string ip_address:string location:string match_code_first:Bool match_codes:vector<string> = OauthLinkInfo;
+oauthLinkInfo user_id:int53 url:string domain:string from_app:Bool verified_app_name:string bot_user_id:int53 request_write_access:Bool request_phone_number_access:Bool request_ton_wallet_access:Bool dapp_client_id:string ton_connect_manifest_url:string ton_proof_payload:string browser:string platform:string ip_address:string location:string match_code_first:Bool match_codes:vector<string> = OauthLinkInfo;
 
 
 //@description Contains information about a message thread

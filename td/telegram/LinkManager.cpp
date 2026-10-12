@@ -1834,7 +1834,8 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
           return on_error(Status::Error(500, "Receive invalid bot_user_id"));
         }
         if (request->request_phone_number_ || !request->browser_.empty() || !request->platform_.empty() ||
-            !request->ip_.empty() || !request->region_.empty() || !request->match_codes_.empty()) {
+            !request->ip_.empty() || !request->region_.empty() || !request->match_codes_.empty() ||
+            request->request_wallet_ || request->tc_session_id_ || !request->tc_client_id_.empty()) {
           LOG(ERROR) << "Receive invalid login URL details: " << to_string(request);
         }
         promise_.set_value(td_api::make_object<td_api::loginUrlInfoRequestConfirmation>(
@@ -1909,8 +1910,14 @@ class RequestUrlOauthQuery final : public Td::ResultHandler {
         promise_.set_value(td_api::make_object<td_api::oauthLinkInfo>(
             user_id.get(), url_, request->domain_, request->is_app_, request->verified_app_name_,
             td_->user_manager_->get_user_id_object(bot_user_id, "oauthLinkInfo"), request->request_write_access_,
-            request->request_phone_number_, request->browser_, request->platform_, request->ip_, request->region_,
-            request->match_codes_first_, std::move(request->match_codes_)));
+            request->request_phone_number_, request->request_wallet_, request->tc_client_id_,
+            request->request_wallet_ ? PSTRING() << "https://" << request->domain_ << "/tonconnect-manifest.json"
+                                     : string(),
+            request->request_wallet_ ? PSTRING() << "tc-login:" << bot_user_id.get() << ':' << request->tc_client_id_
+                                                 << ':' << request->tc_session_id_
+                                     : string(),
+            request->browser_, request->platform_, request->ip_, request->region_, request->match_codes_first_,
+            std::move(request->match_codes_)));
         break;
       }
       case telegram_api::urlAuthResultAccepted::ID:
