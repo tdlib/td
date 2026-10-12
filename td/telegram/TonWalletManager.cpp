@@ -23,6 +23,7 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TonWalletOwnershipProof.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
 
@@ -1499,24 +1500,6 @@ TonWalletManager::TonConnectChallenge::get_ton_connect_challenge_object() const 
   return td_api::make_object<td_api::tonConnectChallenge>(challenge_, event_id_);
 }
 
-Result<TonWalletManager::WalletOwnershipProof> TonWalletManager::WalletOwnershipProof::get_wallet_ownership_proof(
-    td_api::object_ptr<td_api::tonWalletOwnershipProof> &&proof) {
-  if (proof == nullptr) {
-    return Status::Error(400, "Proof must be non-empty");
-  }
-  if (proof->public_key_.size() != Ed25519::PrivateKey::LENGTH) {
-    return Status::Error(400, "Invalid public key specified");
-  }
-  if (proof->signature_.size() != 64u) {
-    return Status::Error(400, "Invalid signature specified");
-  }
-  WalletOwnershipProof result;
-  result.public_key_ = BufferSlice(proof->public_key_);
-  result.proof_ =
-      telegram_api::make_object<telegram_api::walletOwnershipProof>(proof->timestamp_, BufferSlice(proof->signature_));
-  return std::move(result);
-}
-
 TonWalletManager::TonWalletManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -1858,7 +1841,8 @@ void TonWalletManager::enable_ton_wallet_backup(const string &secret_phrase,
                        std::move(promise));
         }));
   }
-  TRY_RESULT_PROMISE(promise, proof, WalletOwnershipProof::get_wallet_ownership_proof(std::move(ownership_proof)));
+  TRY_RESULT_PROMISE(promise, proof,
+                     TonWalletOwnershipProof::get_ton_wallet_ownership_proof(std::move(ownership_proof)));
   if (secret_phrase.size() > MAX_MNEMONIC_BACKUP_SIZE) {
     return promise.set_error(400, "Invalid secret phrase specified");
   }
@@ -1913,7 +1897,8 @@ void TonWalletManager::do_disable_ton_wallet_backup(
 
 void TonWalletManager::disable_ton_wallet_backup_with_proof(
     td_api::object_ptr<td_api::tonWalletOwnershipProof> &&ownership_proof, Promise<Unit> &&promise) {
-  TRY_RESULT_PROMISE(promise, proof, WalletOwnershipProof::get_wallet_ownership_proof(std::move(ownership_proof)));
+  TRY_RESULT_PROMISE(promise, proof,
+                     TonWalletOwnershipProof::get_ton_wallet_ownership_proof(std::move(ownership_proof)));
   td_->create_handler<DisableWalletBackupQuery>(std::move(promise))
       ->send(std::move(proof.public_key_), std::move(proof.proof_));
 }
@@ -1977,7 +1962,8 @@ void TonWalletManager::do_delete_ton_wallet(
 void TonWalletManager::replace_ton_wallet(const string &password, const string &anchor_public_key,
                                           td_api::object_ptr<td_api::tonWalletOwnershipProof> &&ownership_proof,
                                           Promise<Unit> &&promise) {
-  TRY_RESULT_PROMISE(promise, proof, WalletOwnershipProof::get_wallet_ownership_proof(std::move(ownership_proof)));
+  TRY_RESULT_PROMISE(promise, proof,
+                     TonWalletOwnershipProof::get_ton_wallet_ownership_proof(std::move(ownership_proof)));
   if (password.empty()) {
     return do_replace_ton_wallet_with_proof(nullptr, anchor_public_key, std::move(proof), std::move(promise));
   }
@@ -1996,7 +1982,7 @@ void TonWalletManager::replace_ton_wallet(const string &password, const string &
 
 void TonWalletManager::do_replace_ton_wallet_with_proof(
     telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password, const string &anchor_public_key,
-    WalletOwnershipProof &&proof, Promise<Unit> &&promise) {
+    TonWalletOwnershipProof &&proof, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   int32 flags = 0;
   if (!anchor_public_key.empty()) {

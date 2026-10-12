@@ -28,6 +28,7 @@
 namespace td {
 
 class Td;
+struct TonWalletOwnershipProof;
 
 class TonWalletManager final : public Actor {
  public:
@@ -303,14 +304,6 @@ class TonWalletManager final : public Actor {
     td_api::object_ptr<td_api::tonConnectChallenge> get_ton_connect_challenge_object() const;
   };
 
-  struct WalletOwnershipProof {
-    BufferSlice public_key_;
-    telegram_api::object_ptr<telegram_api::walletOwnershipProof> proof_;
-
-    static Result<WalletOwnershipProof> get_wallet_ownership_proof(
-        td_api::object_ptr<td_api::tonWalletOwnershipProof> &&proof);
-  };
-
   void timeout_expired() final;
 
   void tear_down() final;
@@ -352,7 +345,7 @@ class TonWalletManager final : public Actor {
                             Promise<Unit> &&promise);
 
   void do_replace_ton_wallet_with_proof(telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password,
-                                        const string &anchor_public_key, WalletOwnershipProof &&proof,
+                                        const string &anchor_public_key, TonWalletOwnershipProof &&proof,
                                         Promise<Unit> &&promise);
 
   void do_get_ton_wallet_transactions(const string &offset, int32 limit,
