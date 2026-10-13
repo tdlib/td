@@ -23,9 +23,17 @@ class TonNftAttribute {
   string value_;
 
  public:
+  TonNftAttribute() = default;
+
   explicit TonNftAttribute(telegram_api::object_ptr<telegram_api::wallet_nftAttribute> &&attribute);
 
   td_api::object_ptr<td_api::tonNftAttribute> get_ton_nft_attribute_object() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 class TonNft {
@@ -44,9 +52,17 @@ class TonNft {
   StarGift gift_;
 
  public:
+  TonNft() = default;
+
   TonNft(Td *td, telegram_api::object_ptr<telegram_api::wallet_nftItem> &&item);
 
   td_api::object_ptr<td_api::tonNft> get_ton_nft_object(Td *td) const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 }  // namespace td

@@ -23,12 +23,16 @@ namespace td {
 
 template <class StorerT>
 void TonNftAttribute::store(StorerT &storer) const {
+  BEGIN_STORE_FLAGS();
+  END_STORE_FLAGS();
   td::store(trait_type_, storer);
   td::store(value_, storer);
 }
 
 template <class ParserT>
 void TonNftAttribute::parse(ParserT &parser) {
+  BEGIN_PARSE_FLAGS();
+  END_PARSE_FLAGS();
   td::parse(trait_type_, parser);
   td::parse(value_, parser);
 }

@@ -1297,6 +1297,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ToDoItem.hpp
   td/telegram/ToDoList.hpp
   td/telegram/TonAmount.hpp
+  td/telegram/TonNft.hpp
   td/telegram/TranscriptionInfo.hpp
   td/telegram/VideoNotesManager.hpp
   td/telegram/VideosManager.hpp
