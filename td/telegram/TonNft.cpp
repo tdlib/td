@@ -16,6 +16,7 @@
 #include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/logging.h"
 
 namespace td {
 
@@ -56,6 +57,14 @@ TonNft::TonNft(Td *td, telegram_api::object_ptr<telegram_api::wallet_nftItem> &&
   if (item->extra_ != nullptr) {
     extra_ = std::move(item->extra_->data_);
   }
+  if (item->gift_ != nullptr) {
+    StarGift gift(td, std::move(item->gift_), true);
+    if (gift.is_valid() && gift.is_unique()) {
+      gift_ = std::move(gift);
+    } else {
+      LOG(ERROR) << "Receive invalid gift for NFT " << address_;
+    }
+  }
 }
 
 td_api::object_ptr<td_api::tonNft> TonNft::get_ton_nft_object(Td *td) const {
@@ -68,7 +77,8 @@ td_api::object_ptr<td_api::tonNft> TonNft::get_ton_nft_object(Td *td) const {
       td->documents_manager_->get_document_object(content_url_file_id_, PhotoFormat::Jpeg),
       td->stickers_manager_->get_sticker_object(lottie_file_id_),
       transform(attributes_, [](const auto &attribute) { return attribute.get_ton_nft_attribute_object(); }),
-      r_json_value.is_ok() ? r_json_value.move_as_ok() : nullptr);
+      r_json_value.is_ok() ? r_json_value.move_as_ok() : nullptr,
+      gift_.is_valid() ? gift_.get_upgraded_gift_object(td) : nullptr);
 }
 
 }  // namespace td

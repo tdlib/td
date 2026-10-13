@@ -2312,7 +2312,9 @@ tonNftAttribute trait_type:string value:string = TonNftAttribute;
 //@sticker Sticker of the NFT; may be null if none
 //@attributes Attributes of the NFT
 //@extra Additional data about the NFT; may be null if none
-tonNft collection_address:string address:string owner_address:string index:string name:string description:string image:photoSize thumbnail:photoSize content:document sticker:sticker attributes:vector<tonNftAttribute> extra:JsonValue = TonNft;
+//@gift The upgraded gift corresponding to the NFT; may be null if the NFT doesn't belong to a Telegram gift collection. Information about the owner of the gift isn't available.
+//-Original details of the gift are available only to participants of the original gift sending
+tonNft collection_address:string address:string owner_address:string index:string name:string description:string image:photoSize thumbnail:photoSize content:document sticker:sticker attributes:vector<tonNftAttribute> extra:JsonValue gift:upgradedGift = TonNft;
 
 //@description Represents a list of TON NFTs
 //@nfts List of NFTs

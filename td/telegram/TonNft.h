@@ -8,6 +8,7 @@
 
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/PhotoSize.h"
+#include "td/telegram/StarGift.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -40,6 +41,7 @@ class TonNft {
   FileId lottie_file_id_;
   vector<TonNftAttribute> attributes_;
   string extra_;
+  StarGift gift_;
 
  public:
   TonNft(Td *td, telegram_api::object_ptr<telegram_api::wallet_nftItem> &&item);
