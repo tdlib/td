@@ -12,6 +12,7 @@
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MediaAreaCoordinates.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
@@ -21,6 +22,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TonNft.h"
+#include "td/telegram/TonWalletCard.h"
 #include "td/telegram/TonWalletOwnershipProof.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
@@ -425,6 +427,46 @@ class ReplaceWalletQuery final : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     td_->ton_wallet_manager_->on_update_wallet_state(std::move(result));
     promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SetWalletCardStickersQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonWalletCard>> promise_;
+
+ public:
+  explicit SetWalletCardStickersQuery(Promise<td_api::object_ptr<td_api::tonWalletCard>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(vector<telegram_api::object_ptr<telegram_api::inputWalletCardSticker>> &&stickers,
+            const string &background_nft_address) {
+    int32 flags = 0;
+    if (!background_nft_address.empty()) {
+      flags |= telegram_api::wallet_setCardStickers::BG_NFT_ADDRESS_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::wallet_setCardStickers(flags, std::move(stickers), background_nft_address)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::wallet_setCardStickers>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SetWalletCardStickersQuery: " << to_string(result);
+    auto card = TonWalletCard::get_ton_wallet_card(td_, std::move(result));
+    if (card == nullptr) {
+      return on_error(Status::Error(500, "Receive invalid TON wallet card"));
+    }
+    auto card_object = card->get_ton_wallet_card_object(td_);
+    td_->user_manager_->on_update_my_ton_wallet_card(std::move(card));
+    promise_.set_value(std::move(card_object));
   }
 
   void on_error(Status status) final {
@@ -2034,6 +2076,34 @@ void TonWalletManager::on_get_currency_rates(
 void TonWalletManager::get_nfts(const string &offset, int32 limit,
                                 Promise<td_api::object_ptr<td_api::tonNfts>> &&promise) {
   td_->create_handler<GetTonNftsQuery>(std::move(promise))->send(offset, limit);
+}
+
+void TonWalletManager::set_ton_wallet_card_stickers(
+    vector<td_api::object_ptr<td_api::inputTonWalletCardSticker>> &&stickers, const string &background_nft_address,
+    Promise<td_api::object_ptr<td_api::tonWalletCard>> &&promise) {
+  vector<string> nft_addresses;
+  vector<telegram_api::object_ptr<telegram_api::inputWalletCardSticker>> input_stickers;
+  for (auto &sticker : stickers) {
+    if (sticker == nullptr) {
+      return promise.set_error(400, "Sticker must be non-empty");
+    }
+    MediaAreaCoordinates coordinates(sticker->position_);
+    if (!coordinates.is_valid()) {
+      return promise.set_error(400, "Invalid sticker position specified");
+    }
+    TRY_STATUS_PROMISE(promise, check_ton_address(sticker->nft_address_));
+    if (td::contains(nft_addresses, sticker->nft_address_)) {
+      return promise.set_error(400, "The same NFT can't be used twice");
+    }
+    nft_addresses.push_back(sticker->nft_address_);
+    input_stickers.push_back(telegram_api::make_object<telegram_api::inputWalletCardSticker>(
+        coordinates.get_input_media_area_coordinates(), sticker->nft_address_));
+  }
+  if (!background_nft_address.empty() && !td::contains(nft_addresses, background_nft_address)) {
+    return promise.set_error(400, "Background NFT must be one of the stickers");
+  }
+  td_->create_handler<SetWalletCardStickersQuery>(std::move(promise))
+      ->send(std::move(input_stickers), background_nft_address);
 }
 
 void TonWalletManager::get_ton_connect_sessions(Promise<td_api::object_ptr<td_api::tonConnectSessions>> &&promise) {

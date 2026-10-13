@@ -8072,6 +8072,19 @@ void Requests::on_request(uint64 id, td_api::getTonWalletNfts &request) {
   td_->ton_wallet_manager_->get_nfts(request.offset_, request.limit_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::setTonWalletCardStickers &request) {
+  CHECK_IS_USER();
+  for (auto &sticker : request.stickers_) {
+    if (sticker != nullptr) {
+      CLEAN_INPUT_STRING(sticker->nft_address_);
+    }
+  }
+  CLEAN_INPUT_STRING(request.background_nft_address_);
+  CREATE_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->set_ton_wallet_card_stickers(std::move(request.stickers_), request.background_nft_address_,
+                                                         std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getTonConnectSessions &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

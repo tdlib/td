@@ -95,6 +95,10 @@ class TonWalletManager final : public Actor {
 
   void get_nfts(const string &offset, int32 limit, Promise<td_api::object_ptr<td_api::tonNfts>> &&promise);
 
+  void set_ton_wallet_card_stickers(vector<td_api::object_ptr<td_api::inputTonWalletCardSticker>> &&stickers,
+                                    const string &background_nft_address,
+                                    Promise<td_api::object_ptr<td_api::tonWalletCard>> &&promise);
+
   void get_ton_connect_sessions(Promise<td_api::object_ptr<td_api::tonConnectSessions>> &&promise);
 
   void create_ton_connect_session(const string &dapp_client_id, const string &manifest_url,

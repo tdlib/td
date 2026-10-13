@@ -4763,6 +4763,16 @@ void UserManager::on_update_user_full_ton_wallet_card(UserFull *user_full,
   }
 }
 
+void UserManager::on_update_my_ton_wallet_card(unique_ptr<TonWalletCard> &&ton_wallet_card) {
+  auto my_id = get_my_id();
+  UserFull *user_full = get_user_full_force(my_id, "on_update_my_ton_wallet_card");
+  if (user_full == nullptr) {
+    return;
+  }
+  on_update_user_full_ton_wallet_card(user_full, std::move(ton_wallet_card));
+  update_user_full(user_full, my_id, "on_update_my_ton_wallet_card");
+}
+
 std::pair<int64, int64> UserManager::get_saved_music_document_id(FileId saved_music_file_id, bool from_server) const {
   auto file_view = td_->file_manager_->get_file_view(saved_music_file_id);
   if (file_view.empty() || file_view.get_type() != FileType::Audio) {

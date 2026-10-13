@@ -214,6 +214,8 @@ class UserManager final : public Actor {
 
   void invalidate_user_full(UserId user_id);
 
+  void on_update_my_ton_wallet_card(unique_ptr<TonWalletCard> &&ton_wallet_card);
+
   bool have_accessible_user(UserId user_id) const;
 
   bool have_min_user(UserId user_id) const;

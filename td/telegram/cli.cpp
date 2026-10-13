@@ -8871,6 +8871,20 @@ class CliClient final : public Actor {
       string offset;
       get_args(args, limit, offset);
       send_request(td_api::make_object<td_api::getTonWalletNfts>(offset, as_limit(limit)));
+    } else if (op == "stwcs") {
+      string nft_addresses;
+      string background_nft_address;
+      get_args(args, nft_addresses, background_nft_address);
+      send_request(td_api::make_object<td_api::setTonWalletCardStickers>(
+          transform(autosplit_str(nft_addresses),
+                    [](const string &nft_address) {
+                      return td_api::make_object<td_api::inputTonWalletCardSticker>(
+                          td_api::make_object<td_api::areaPosition>(Random::fast(10, 90), Random::fast(10, 90),
+                                                                    Random::fast(5, 20), Random::fast(5, 20),
+                                                                    Random::fast(0, 360), 0.0),
+                          nft_address);
+                    }),
+          background_nft_address));
     } else if (op == "gtcs") {
       send_request(td_api::make_object<td_api::getTonConnectSessions>());
     } else if (op == "ctwcs") {
