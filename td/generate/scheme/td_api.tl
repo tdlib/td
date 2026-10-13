@@ -9953,7 +9953,8 @@ internalLinkTypeProxy proxy:proxy = InternalLinkType;
 //@chat_username Username of the chat
 //@draft_text Draft text for message to send in the chat
 //@open_profile True, if chat profile information screen must be opened; otherwise, the chat itself must be opened
-internalLinkTypePublicChat chat_username:string draft_text:string open_profile:Bool = InternalLinkType;
+//@unpaid_messages_token Token, which allows the current user to send unpaid messages to the user; may be empty if none
+internalLinkTypePublicChat chat_username:string draft_text:string open_profile:Bool unpaid_messages_token:string = InternalLinkType;
 
 //@description The link can be used to login the current user on another device, but it must be scanned from QR-code using in-app camera. An alert similar to
 //-"This code can be used to allow someone to log in to your Telegram account. To confirm Telegram login, please go to Settings > Devices > Scan QR and scan the code" needs to be shown
@@ -10034,7 +10035,8 @@ internalLinkTypeUpgradedGift name:string = InternalLinkType;
 //@phone_number Phone number of the user
 //@draft_text Draft text for message to send in the chat
 //@open_profile True, if user's profile information screen must be opened; otherwise, the chat itself must be opened
-internalLinkTypeUserPhoneNumber phone_number:string draft_text:string open_profile:Bool = InternalLinkType;
+//@unpaid_messages_token Token, which allows the current user to send unpaid messages to the user; may be empty if none
+internalLinkTypeUserPhoneNumber phone_number:string draft_text:string open_profile:Bool unpaid_messages_token:string = InternalLinkType;
 
 //@description The link is a link to a user by a temporary token. Call searchUserByToken with the given token to process the link.
 //-If the user is found, then call createPrivateChat and open the chat

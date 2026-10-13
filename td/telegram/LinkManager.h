@@ -120,7 +120,8 @@ class LinkManager final : public Actor {
 
   static string get_instant_view_link(Slice url, Slice rhash);
 
-  static string get_public_dialog_link(Slice username, Slice draft_text, bool open_profile, bool is_internal);
+  static string get_public_dialog_link(Slice username, Slice draft_text, bool open_profile, Slice unpaid_messages_token,
+                                       bool is_internal);
 
   static UserId get_link_user_id(Slice url);
 

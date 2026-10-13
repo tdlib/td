@@ -1246,8 +1246,8 @@ void AccountManager::get_user_link_impl(Promise<td_api::object_ptr<td_api::userL
   TRY_STATUS_PROMISE(promise, G()->close_status());
   auto username = td_->user_manager_->get_user_first_username(td_->user_manager_->get_my_id());
   if (!username.empty()) {
-    return promise.set_value(
-        td_api::make_object<td_api::userLink>(LinkManager::get_public_dialog_link(username, Slice(), false, false), 0));
+    return promise.set_value(td_api::make_object<td_api::userLink>(
+        LinkManager::get_public_dialog_link(username, Slice(), false, Slice(), false), 0));
   }
   td_->create_handler<ExportContactTokenQuery>(std::move(promise))->send();
 }
