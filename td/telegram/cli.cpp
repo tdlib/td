@@ -3698,6 +3698,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getUserLink>());
     } else if (op == "subt") {
       send_request(td_api::make_object<td_api::searchUserByToken>(args));
+    } else if (op == "aumt") {
+      UserId user_id;
+      string token;
+      get_args(args, user_id, token);
+      send_request(td_api::make_object<td_api::applyUnpaidMessagesToken>(user_id, token));
     } else if (op == "aco" || op == "acon") {
       UserId user_id;
       string first_name;

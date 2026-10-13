@@ -625,6 +625,43 @@ class ImportContactTokenQuery final : public Td::ResultHandler {
   }
 };
 
+class ImportNoPaidMessagesTokenQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  UserId user_id_;
+
+ public:
+  explicit ImportNoPaidMessagesTokenQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user, const string &token) {
+    user_id_ = user_id;
+    send_query(G()->net_query_creator().create(
+        telegram_api::contacts_importNoPaidMessagesToken(std::move(input_user), token)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::contacts_importNoPaidMessagesToken>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto user = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ImportNoPaidMessagesTokenQuery: " << to_string(user);
+
+    td_->user_manager_->on_get_user(std::move(user), "ImportNoPaidMessagesTokenQuery");
+    // the number of Telegram Stars needed to send a message to the user has changed;
+    // the token has already been applied, so errors during the reload are ignored
+    td_->user_manager_->reload_user_full(
+        user_id_,
+        PromiseCreator::lambda([promise = std::move(promise_)](Result<Unit> &&) mutable { promise.set_value(Unit()); }),
+        "ImportNoPaidMessagesTokenQuery");
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class InvalidateSignInCodesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1254,6 +1291,14 @@ void AccountManager::get_user_link_impl(Promise<td_api::object_ptr<td_api::userL
 
 void AccountManager::import_contact_token(const string &token, Promise<td_api::object_ptr<td_api::user>> &&promise) {
   td_->create_handler<ImportContactTokenQuery>(std::move(promise))->send(token);
+}
+
+void AccountManager::apply_unpaid_messages_token(UserId user_id, const string &token, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+  if (token.empty()) {
+    return promise.set_error(400, "Token must be non-empty");
+  }
+  td_->create_handler<ImportNoPaidMessagesTokenQuery>(std::move(promise))->send(user_id, std::move(input_user), token);
 }
 
 class AccountManager::InvalidateSignInCodesOnServerLogEvent {

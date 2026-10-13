@@ -9953,7 +9953,8 @@ internalLinkTypeProxy proxy:proxy = InternalLinkType;
 //@chat_username Username of the chat
 //@draft_text Draft text for message to send in the chat
 //@open_profile True, if chat profile information screen must be opened; otherwise, the chat itself must be opened
-//@unpaid_messages_token Token, which allows the current user to send unpaid messages to the user; may be empty if none
+//@unpaid_messages_token Token, which allows the current user to send unpaid messages to the user; may be empty if none.
+//-If the token isn't empty and the chat is a private chat with a regular user, then call applyUnpaidMessagesToken with the user and the token
 internalLinkTypePublicChat chat_username:string draft_text:string open_profile:Bool unpaid_messages_token:string = InternalLinkType;
 
 //@description The link can be used to login the current user on another device, but it must be scanned from QR-code using in-app camera. An alert similar to
@@ -10035,7 +10036,8 @@ internalLinkTypeUpgradedGift name:string = InternalLinkType;
 //@phone_number Phone number of the user
 //@draft_text Draft text for message to send in the chat
 //@open_profile True, if user's profile information screen must be opened; otherwise, the chat itself must be opened
-//@unpaid_messages_token Token, which allows the current user to send unpaid messages to the user; may be empty if none
+//@unpaid_messages_token Token, which allows the current user to send unpaid messages to the user; may be empty if none.
+//-If the token isn't empty and the user is found, then call applyUnpaidMessagesToken with the user and the token
 internalLinkTypeUserPhoneNumber phone_number:string draft_text:string open_profile:Bool unpaid_messages_token:string = InternalLinkType;
 
 //@description The link is a link to a user by a temporary token. Call searchUserByToken with the given token to process the link.
@@ -15368,6 +15370,13 @@ getUserLink = UserLink;
 
 //@description Searches a user by a token from the user's link @token Token to search for
 searchUserByToken token:string = User;
+
+//@description Allows the current user to send unpaid messages to the given user, which requires payment for incoming messages, using a token from an internal link
+//-of the type internalLinkTypePublicChat or internalLinkTypeUserPhoneNumber. The first message sent to the user will be preceded by a messageUnpaidMessagesAllowedByLink message.
+//-Repeated calls and calls for the current user have no effect
+//@user_id Identifier of the user
+//@token Token from the link
+applyUnpaidMessagesToken user_id:int53 token:string = Ok;
 
 
 //@description Sets the list of commands supported by the bot for the given user scope and language; for bots only

@@ -230,6 +230,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::searchUserByToken &request);
 
+  void on_request(uint64 id, td_api::applyUnpaidMessagesToken &request);
+
   void on_request(uint64 id, const td_api::getActiveSessions &request);
 
   void on_request(uint64 id, const td_api::terminateSession &request);

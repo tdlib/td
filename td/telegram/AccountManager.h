@@ -68,6 +68,8 @@ class AccountManager final : public Actor {
 
   void import_contact_token(const string &token, Promise<td_api::object_ptr<td_api::user>> &&promise);
 
+  void apply_unpaid_messages_token(UserId user_id, const string &token, Promise<Unit> &&promise);
+
   void invalidate_authentication_codes(vector<string> &&authentication_codes);
 
   void update_unconfirmed_authorization_timeout(bool is_external);

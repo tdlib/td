@@ -2529,6 +2529,13 @@ void Requests::on_request(uint64 id, td_api::searchUserByToken &request) {
   td_->account_manager_->import_contact_token(std::move(request.token_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::applyUnpaidMessagesToken &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.token_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->account_manager_->apply_unpaid_messages_token(UserId(request.user_id_), request.token_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getActiveSessions &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
