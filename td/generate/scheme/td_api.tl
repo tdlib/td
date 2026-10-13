@@ -1152,6 +1152,16 @@ mainWebApp url:webAppUrl mode:WebAppOpenMode = MainWebApp;
 webAppOpenParameters theme:themeParameters application_name:string mode:WebAppOpenMode = WebAppOpenParameters;
 
 
+//@description Describes position of a clickable rectangle area on a story media or a TON wallet card
+//@x_percentage The abscissa of the rectangle's center, as a percentage of the media width
+//@y_percentage The ordinate of the rectangle's center, as a percentage of the media height
+//@width_percentage The width of the rectangle, as a percentage of the media width
+//@height_percentage The height of the rectangle, as a percentage of the media height
+//@rotation_angle Clockwise rotation angle of the rectangle, in degrees; 0-360
+//@corner_radius_percentage The radius of the rectangle corner rounding, as a percentage of the media width
+storyAreaPosition x_percentage:double y_percentage:double width_percentage:double height_percentage:double rotation_angle:double corner_radius_percentage:double = StoryAreaPosition;
+
+
 //@class GiftResalePrice @description Describes price of a resold gift
 
 //@description Describes price of a resold gift in Telegram Stars
@@ -2320,6 +2330,11 @@ tonNft collection_address:string address:string owner_address:string index:strin
 //@nfts List of NFTs
 //@next_offset The offset for the next request. If empty, then there are no more results
 tonNfts nfts:vector<tonNft> next_offset:string = TonNfts;
+
+//@description Describes a sticker on a TON wallet card
+//@position Position of the sticker on the card
+//@nft The NFT shown as the sticker. If nft.gift is non-null, then it is enough to draw the sticker and there is no need to download the media of the NFT
+tonWalletCardSticker position:storyAreaPosition nft:tonNft = TonWalletCardSticker;
 
 
 //@class TonWalletTransactionState @description Describes state of a transaction with a TON wallet
@@ -6868,16 +6883,6 @@ emojiCategoryTypeChatPhoto = EmojiCategoryType;
 //@temperature Temperature, in degree Celsius
 //@emoji Emoji representing the weather
 currentWeather temperature:double emoji:string = CurrentWeather;
-
-
-//@description Describes position of a clickable rectangle area on a story media
-//@x_percentage The abscissa of the rectangle's center, as a percentage of the media width
-//@y_percentage The ordinate of the rectangle's center, as a percentage of the media height
-//@width_percentage The width of the rectangle, as a percentage of the media width
-//@height_percentage The height of the rectangle, as a percentage of the media height
-//@rotation_angle Clockwise rotation angle of the rectangle, in degrees; 0-360
-//@corner_radius_percentage The radius of the rectangle corner rounding, as a percentage of the media width
-storyAreaPosition x_percentage:double y_percentage:double width_percentage:double height_percentage:double rotation_angle:double corner_radius_percentage:double = StoryAreaPosition;
 
 
 //@class StoryAreaType @description Describes type of clickable area on a story media
