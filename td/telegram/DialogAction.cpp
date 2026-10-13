@@ -544,6 +544,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::ChatJoinedViaCommunity:
     case MessageContentType::GramTransfer:
     case MessageContentType::WalletTonConnectRequest:
+    case MessageContentType::UnpaidMessagesAllowedByLink:
       return false;
     default:
       UNREACHABLE();

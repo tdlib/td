@@ -5995,6 +5995,9 @@ messagePaidMessagePriceChanged paid_message_star_count:int53 = MessageContent;
 //-0 if the direct messages group was disabled or the messages are free
 messageDirectMessagePriceChanged is_enabled:Bool paid_message_star_count:int53 = MessageContent;
 
+//@description The sender of the message used a link of the other user, which allows to send unpaid messages to the user
+messageUnpaidMessagesAllowedByLink = MessageContent;
+
 //@description Some tasks from a checklist were marked as done or not done
 //@checklist_message_id Identifier of the message with the checklist; may be 0 or an identifier of a deleted message
 //@marked_as_done_task_ids Identifiers of tasks that were marked as done
