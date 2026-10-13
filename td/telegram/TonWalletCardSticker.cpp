@@ -14,7 +14,7 @@ TonWalletCardSticker::TonWalletCardSticker(Td *td, telegram_api::object_ptr<tele
 
 td_api::object_ptr<td_api::tonWalletCardSticker> TonWalletCardSticker::get_ton_wallet_card_sticker_object(
     Td *td) const {
-  return td_api::make_object<td_api::tonWalletCardSticker>(coordinates_.get_story_area_position_object(),
+  return td_api::make_object<td_api::tonWalletCardSticker>(coordinates_.get_area_position_object(),
                                                            nft_.get_ton_nft_object(td));
 }
 

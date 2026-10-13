@@ -303,7 +303,7 @@ td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object(
     default:
       UNREACHABLE();
   }
-  return td_api::make_object<td_api::storyArea>(coordinates_.get_story_area_position_object(), std::move(type));
+  return td_api::make_object<td_api::storyArea>(coordinates_.get_area_position_object(), std::move(type));
 }
 
 telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_area(const Td *td) const {

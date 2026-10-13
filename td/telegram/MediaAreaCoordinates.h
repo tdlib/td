@@ -33,9 +33,9 @@ class MediaAreaCoordinates {
 
   explicit MediaAreaCoordinates(const telegram_api::object_ptr<telegram_api::mediaAreaCoordinates> &coordinates);
 
-  explicit MediaAreaCoordinates(const td_api::object_ptr<td_api::storyAreaPosition> &position);
+  explicit MediaAreaCoordinates(const td_api::object_ptr<td_api::areaPosition> &position);
 
-  td_api::object_ptr<td_api::storyAreaPosition> get_story_area_position_object() const;
+  td_api::object_ptr<td_api::areaPosition> get_area_position_object() const;
 
   telegram_api::object_ptr<telegram_api::mediaAreaCoordinates> get_input_media_area_coordinates() const;
 

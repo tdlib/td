@@ -40,7 +40,7 @@ MediaAreaCoordinates::MediaAreaCoordinates(
        coordinates->radius_);
 }
 
-MediaAreaCoordinates::MediaAreaCoordinates(const td_api::object_ptr<td_api::storyAreaPosition> &position) {
+MediaAreaCoordinates::MediaAreaCoordinates(const td_api::object_ptr<td_api::areaPosition> &position) {
   if (position == nullptr) {
     return;
   }
@@ -49,9 +49,9 @@ MediaAreaCoordinates::MediaAreaCoordinates(const td_api::object_ptr<td_api::stor
        position->rotation_angle_, position->corner_radius_percentage_);
 }
 
-td_api::object_ptr<td_api::storyAreaPosition> MediaAreaCoordinates::get_story_area_position_object() const {
+td_api::object_ptr<td_api::areaPosition> MediaAreaCoordinates::get_area_position_object() const {
   CHECK(is_valid());
-  return td_api::make_object<td_api::storyAreaPosition>(x_, y_, width_, height_, rotation_angle_, radius_);
+  return td_api::make_object<td_api::areaPosition>(x_, y_, width_, height_, rotation_angle_, radius_);
 }
 
 telegram_api::object_ptr<telegram_api::mediaAreaCoordinates> MediaAreaCoordinates::get_input_media_area_coordinates()
@@ -76,9 +76,9 @@ bool operator!=(const MediaAreaCoordinates &lhs, const MediaAreaCoordinates &rhs
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MediaAreaCoordinates &coordinates) {
-  return string_builder << "StoryAreaPosition[" << coordinates.x_ << ", " << coordinates.y_ << ", "
-                        << coordinates.width_ << ", " << coordinates.height_ << ", " << coordinates.rotation_angle_
-                        << ", " << coordinates.radius_ << ']';
+  return string_builder << "AreaPosition[" << coordinates.x_ << ", " << coordinates.y_ << ", " << coordinates.width_
+                        << ", " << coordinates.height_ << ", " << coordinates.rotation_angle_ << ", "
+                        << coordinates.radius_ << ']';
 }
 
 }  // namespace td

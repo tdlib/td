@@ -1159,7 +1159,7 @@ webAppOpenParameters theme:themeParameters application_name:string mode:WebAppOp
 //@height_percentage The height of the rectangle, as a percentage of the media height
 //@rotation_angle Clockwise rotation angle of the rectangle, in degrees; 0-360
 //@corner_radius_percentage The radius of the rectangle corner rounding, as a percentage of the media width
-storyAreaPosition x_percentage:double y_percentage:double width_percentage:double height_percentage:double rotation_angle:double corner_radius_percentage:double = StoryAreaPosition;
+areaPosition x_percentage:double y_percentage:double width_percentage:double height_percentage:double rotation_angle:double corner_radius_percentage:double = AreaPosition;
 
 
 //@class GiftResalePrice @description Describes price of a resold gift
@@ -2334,7 +2334,7 @@ tonNfts nfts:vector<tonNft> next_offset:string = TonNfts;
 //@description Describes a sticker on a TON wallet card
 //@position Position of the sticker on the card
 //@nft The NFT shown as the sticker. If nft.gift is non-null, then it is enough to draw the sticker and there is no need to download the media of the NFT
-tonWalletCardSticker position:storyAreaPosition nft:tonNft = TonWalletCardSticker;
+tonWalletCardSticker position:areaPosition nft:tonNft = TonWalletCardSticker;
 
 
 //@class TonWalletTransactionState @description Describes state of a transaction with a TON wallet
@@ -6918,7 +6918,7 @@ storyAreaTypeUpgradedGift gift_name:string = StoryAreaType;
 
 
 //@description Describes a clickable rectangle area on a story media @position Position of the area @type Type of the area
-storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
+storyArea position:areaPosition type:StoryAreaType = StoryArea;
 
 
 //@class InputStoryAreaType @description Describes type of clickable area on a story media to be added
@@ -6962,7 +6962,7 @@ inputStoryAreaTypeUpgradedGift gift_name:string = InputStoryAreaType;
 
 
 //@description Describes a clickable rectangle area on a story media to be added @position Position of the area @type Type of the area
-inputStoryArea position:storyAreaPosition type:InputStoryAreaType = InputStoryArea;
+inputStoryArea position:areaPosition type:InputStoryAreaType = InputStoryArea;
 
 //@description Contains a list of story areas to be added @areas List of input story areas. Currently, a story can have
 //-up to 10 inputStoryAreaTypeLocation, inputStoryAreaTypeFoundVenue, and inputStoryAreaTypePreviousVenue areas,
