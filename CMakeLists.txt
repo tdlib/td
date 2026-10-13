@@ -37,6 +37,7 @@ option(TD_E2E_ONLY "Use \"ON\" to build and install tde2e instead of TDLib.")
 include(CTest)
 
 option(TD_ENABLE_LTO "Use \"ON\" to enable Link Time Optimization.")
+option(TD_ENABLE_PCH "Use \"ON\" to enable precompiled headers to speed up compilation. Requires CMake 3.16 or newer.")
 
 if (TD_ENABLE_LTO)
   include(CheckIPOSupported)
@@ -1396,6 +1397,27 @@ else()
   target_link_libraries(tdcore PUBLIC tdapi tdnet tddb tdactor tde2e tdutils PRIVATE tdmtproto)
 
   set(TD_CORE_PART_TARGETS)
+endif()
+
+if (TD_ENABLE_PCH)
+  if (CMAKE_VERSION VERSION_LESS 3.16)
+    message(WARNING "Precompiled headers require CMake 3.16 or newer")
+  else()
+    if (TD_CORE_PART_TARGETS)
+      set(TD_CORE_PCH_TARGETS ${TD_CORE_PART_TARGETS})
+    else()
+      set(TD_CORE_PCH_TARGETS tdcore)
+    endif()
+    foreach (TD_CORE_PCH_TARGET ${TD_CORE_PCH_TARGETS})
+      target_precompile_headers(${TD_CORE_PCH_TARGET} PRIVATE
+        "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/tdactor/td/actor/actor.h>"
+        "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/tdutils/td/utils/Promise.h>"
+        "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/tdutils/td/utils/Status.h>"
+        "$<$<COMPILE_LANGUAGE:CXX>:${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.h>"
+        "$<$<COMPILE_LANGUAGE:CXX>:${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/telegram_api.h>"
+      )
+    endforeach()
+  endif()
 endif()
 
 if (NOT CMAKE_CROSSCOMPILING)
