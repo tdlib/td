@@ -2336,6 +2336,13 @@ tonNfts nfts:vector<tonNft> next_offset:string = TonNfts;
 //@nft The NFT shown as the sticker. If nft.gift is non-null, then it is enough to draw the sticker and there is no need to download the media of the NFT
 tonWalletCardSticker position:areaPosition nft:tonNft = TonWalletCardSticker;
 
+//@description Describes a TON wallet card, which is shown on the profile page of a user to everyone
+//@address Address of the wallet
+//@gram_amount Balance of the wallet, in the smallest units of the cryptocurrency; may be slightly outdated
+//@stickers Stickers placed on the card
+//@background_nft_address Address of the NFT from stickers, which colors must be used for the card background; may be empty if the default background must be used
+tonWalletCard address:string gram_amount:int53 stickers:vector<tonWalletCardSticker> background_nft_address:string = TonWalletCard;
+
 //@description Describes a sticker to be placed on the TON wallet card of the current user
 //@position Position of the sticker on the card
 //@nft_address Address of an NFT from a Telegram gift collection owned by the wallet; use getTonWalletNfts to get the list of owned NFTs.
