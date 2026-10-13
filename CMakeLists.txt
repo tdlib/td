@@ -688,6 +688,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ToDoItem.cpp
   td/telegram/ToDoList.cpp
   td/telegram/TonAmount.cpp
+  td/telegram/TonNft.cpp
   td/telegram/TonWalletManager.cpp
   td/telegram/TonWalletOwnershipProof.cpp
   td/telegram/TopDialogCategory.cpp
@@ -1142,6 +1143,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ToDoItem.h
   td/telegram/ToDoList.h
   td/telegram/TonAmount.h
+  td/telegram/TonNft.h
   td/telegram/TonWalletManager.h
   td/telegram/TonWalletOwnershipProof.h
   td/telegram/TopDialogCategory.h
