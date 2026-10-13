@@ -426,6 +426,8 @@ class ReplaceWalletQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     td_->ton_wallet_manager_->on_update_wallet_state(std::move(result));
+    // the TON wallet card has changed
+    td_->user_manager_->invalidate_user_full(td_->user_manager_->get_my_id());
     promise_.set_value(Unit());
   }
 
