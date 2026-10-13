@@ -213,9 +213,6 @@ class SetBotShippingAnswerQuery final : public Td::ResultHandler {
     if (!error_message.empty()) {
       flags |= telegram_api::messages_setBotShippingResults::ERROR_MASK;
     }
-    if (!shipping_options.empty()) {
-      flags |= telegram_api::messages_setBotShippingResults::SHIPPING_OPTIONS_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::messages_setBotShippingResults(
         flags, shipping_query_id, error_message, std::move(shipping_options))));
   }

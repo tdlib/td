@@ -1462,9 +1462,6 @@ class EditEphemeralMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::ephemeral_editMessage::MESSAGE_MASK;
 
       entities = get_input_message_entities(td_->user_manager_.get(), text, "EditEphemeralMessageQuery");
-      if (!entities.empty()) {
-        flags |= telegram_api::ephemeral_editMessage::ENTITIES_MASK;
-      }
     }
     if (upload_id != MessageContentUploadId()) {
       td_->message_query_manager_->on_start_sending_message_content(upload_id_, input_media);
@@ -1511,9 +1508,6 @@ class EditCallbackQueryMessageQuery final : public Td::ResultHandler {
     upload_id_ = upload_id;
     int32 flags = telegram_api::ephemeral_sendMessage::QUERY_ID_MASK;
     auto entities = get_input_message_entities(td_->user_manager_.get(), text, "SendMediaQuery");
-    if (!entities.empty()) {
-      flags |= telegram_api::ephemeral_sendMessage::ENTITIES_MASK;
-    }
     auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), reply_markup);
     td_->message_query_manager_->on_start_sending_message_content(upload_id_, input_media);
     send_query(G()->net_query_creator().create(telegram_api::ephemeral_sendMessage(

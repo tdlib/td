@@ -80,9 +80,6 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
         }
         input_message_entities = get_input_message_entities(
             td_->user_manager_.get(), draft_message->input_message_text_.text.entities, "SaveDraftMessageQuery");
-        if (!input_message_entities.empty()) {
-          flags |= telegram_api::messages_saveDraft::ENTITIES_MASK;
-        }
         media = draft_message->input_message_text_.get_input_media_web_page();
       }
       if (draft_message->message_effect_id_.is_valid()) {

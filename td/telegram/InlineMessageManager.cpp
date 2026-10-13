@@ -100,9 +100,6 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_editInlineBotMessage::MESSAGE_MASK;
 
       entities = get_input_message_entities(td_->user_manager_.get(), text, "EditInlineMessageQuery");
-      if (!entities.empty()) {
-        flags |= telegram_api::messages_editInlineBotMessage::ENTITIES_MASK;
-      }
     }
 
     auto dc_id = DcId::internal(get_inline_message_dc_id(input_bot_inline_message_id));

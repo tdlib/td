@@ -58,13 +58,8 @@ class SendReactionQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    int32 flags = 0;
-    if (!reaction_types.empty()) {
-      flags |= telegram_api::messages_sendReaction::REACTION_MASK;
-    }
-
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendReaction(flags, is_big, add_to_recent, std::move(input_peer),
+        telegram_api::messages_sendReaction(0, is_big, add_to_recent, std::move(input_peer),
                                             message_full_id.get_message_id().get_server_message_id().get(),
                                             ReactionType::get_input_reactions(reaction_types)),
         {{dialog_id_}, {message_full_id}}));

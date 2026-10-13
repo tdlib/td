@@ -144,12 +144,8 @@ class EditAccessSettingsQuery final : public Td::ResultHandler {
       return on_error(r_input_user.move_as_error());
     }
 
-    int32 flags = 0;
-    if (!input_users.empty()) {
-      flags |= telegram_api::bots_editAccessSettings::ADD_USERS_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::bots_editAccessSettings(
-        flags, settings.is_restricted(), r_input_user.move_as_ok(), std::move(input_users))));
+        0, settings.is_restricted(), r_input_user.move_as_ok(), std::move(input_users))));
   }
 
   void on_result(BufferSlice packet) final {

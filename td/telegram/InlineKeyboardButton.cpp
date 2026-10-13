@@ -395,12 +395,8 @@ telegram_api::object_ptr<telegram_api::keyboardInlineButton> InlineKeyboardButto
       case Type::CallbackGame:
         return telegram_api::make_object<telegram_api::inlineButtonTypeGame>();
       case Type::SwitchInline: {
-        int32 flags = 0;
         auto peer_types = TargetDialogTypes(id_).get_input_peer_types();
-        if (!peer_types.empty()) {
-          flags |= telegram_api::inlineButtonTypeSwitchInline::PEER_TYPES_MASK;
-        }
-        return telegram_api::make_object<telegram_api::inlineButtonTypeSwitchInline>(flags, false, data_,
+        return telegram_api::make_object<telegram_api::inlineButtonTypeSwitchInline>(0, false, data_,
                                                                                      std::move(peer_types));
       }
       case Type::SwitchInlineCurrentDialog:

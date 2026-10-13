@@ -98,9 +98,6 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
         }
       }
     }
-    if (!logout_tokens.empty()) {
-      flags |= telegram_api::codeSettings::LOGOUT_TOKENS_MASK;
-    }
   }
   return telegram_api::make_object<telegram_api::codeSettings>(flags, allow_flashcall, current_number, allow_app_hash,
                                                                allow_missed_call, allow_firebase, unknown_number,

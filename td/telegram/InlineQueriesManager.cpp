@@ -194,13 +194,9 @@ class SavePreparedInlineMessageQuery final : public Td::ResultHandler {
 
   void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
             telegram_api::object_ptr<telegram_api::InputBotInlineResult> &&result, TargetDialogTypes types) {
-    int32 flags = 0;
     auto peer_types = types.get_input_peer_types();
-    if (!peer_types.empty()) {
-      flags |= telegram_api::messages_savePreparedInlineMessage::PEER_TYPES_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::messages_savePreparedInlineMessage(
-        flags, std::move(result), std::move(input_user), std::move(peer_types))));
+        0, std::move(result), std::move(input_user), std::move(peer_types))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -545,22 +541,14 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     auto entities =
         get_input_message_entities(td_->user_manager_.get(), input_message_text.text.entities, "get_inline_message");
     if (!input_message_text.web_page_url.empty()) {
-      int32 flags = 0;
-      if (!entities.empty()) {
-        flags |= telegram_api::inputBotInlineMessageMediaWebPage::ENTITIES_MASK;
-      }
       bool is_optional = !input_message_text.text.is_empty();
       return make_tl_object<telegram_api::inputBotInlineMessageMediaWebPage>(
-          flags, input_message_text.show_above_text, input_message_text.force_large_media,
+          0, input_message_text.show_above_text, input_message_text.force_large_media,
           input_message_text.force_small_media, is_optional, std::move(input_message_text.text.text),
           std::move(entities), input_message_text.web_page_url, std::move(input_reply_markup));
     }
-    int32 flags = 0;
-    if (!entities.empty()) {
-      flags |= telegram_api::inputBotInlineMessageText::ENTITIES_MASK;
-    }
     return make_tl_object<telegram_api::inputBotInlineMessageText>(
-        flags, input_message_text.disable_web_page_preview, input_message_text.show_above_text,
+        0, input_message_text.disable_web_page_preview, input_message_text.show_above_text,
         std::move(input_message_text.text.text), std::move(entities), std::move(input_reply_markup));
   }
   if (constructor_id == td_api::inputMessageRichMessage::ID) {
@@ -606,14 +594,10 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
   if (constructor_id == allowed_media_content_id) {
     TRY_RESULT(caption, get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(),
                                            extract_input_caption(input_message_content), true, true, true, false));
-    int32 flags = 0;
     auto entities = get_input_message_entities(td_->user_manager_.get(), caption.entities, "get_inline_message");
-    if (!entities.empty()) {
-      flags |= telegram_api::inputBotInlineMessageMediaAuto::ENTITIES_MASK;
-    }
     bool invert_media = extract_input_invert_media(input_message_content);
     return make_tl_object<telegram_api::inputBotInlineMessageMediaAuto>(
-        flags, invert_media, caption.text, std::move(entities), std::move(input_reply_markup));
+        0, invert_media, caption.text, std::move(entities), std::move(input_reply_markup));
   }
   return Status::Error(400, "Unallowed inline message content type");
 }

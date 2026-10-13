@@ -136,7 +136,6 @@ class MessagesManager final : public Actor {
  public:
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW = 1 << 1;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_REPLY_MARKUP = 1 << 2;
-  static constexpr int32 SEND_MESSAGE_FLAG_HAS_ENTITIES = 1 << 3;
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_NOTIFICATION = 1 << 5;
   static constexpr int32 SEND_MESSAGE_FLAG_FROM_BACKGROUND = 1 << 6;
   static constexpr int32 SEND_MESSAGE_FLAG_CLEAR_DRAFT = 1 << 7;

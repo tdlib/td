@@ -915,7 +915,6 @@ class SearchMessagesQuery final : public Td::ResultHandler {
       }
       vector<telegram_api::object_ptr<telegram_api::Reaction>> saved_reactions;
       if (!tag.is_empty()) {
-        flags |= telegram_api::messages_search::SAVED_REACTION_MASK;
         saved_reactions.push_back(tag.get_input_reaction());
       }
       if (top_msg_id != 0) {
@@ -1194,9 +1193,6 @@ class SendMessageQuery final : public Td::ResultHandler {
 
     auto reply_to = input_reply_to.get_input_reply_to(td_, message_topic, false, dialog_id, flags);
     auto entities = get_input_message_entities(td_->user_manager_.get(), text.entities, "SendMessageQuery");
-    if (!entities.empty()) {
-      flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_ENTITIES;
-    }
     telegram_api::object_ptr<telegram_api::suggestedPost> post;
     if (suggested_post != nullptr) {
       post = suggested_post->get_input_suggested_post();
@@ -1525,9 +1521,6 @@ class SendMediaQuery final : public Td::ResultHandler {
       bool noforwards = (flags & MessagesManager::SEND_MESSAGE_FLAG_NOFORWARDS) != 0;
       flags = 0;
       auto entities = get_input_message_entities(td_->user_manager_.get(), text, "SendMediaQuery");
-      if (!entities.empty()) {
-        flags |= telegram_api::ephemeral_sendMessage::ENTITIES_MASK;
-      }
       auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), reply_markup);
       if (send_callback_query_id != 0) {
         flags |= telegram_api::ephemeral_sendMessage::QUERY_ID_MASK;
@@ -1566,9 +1559,6 @@ class SendMediaQuery final : public Td::ResultHandler {
     CHECK(input_media.media_ != nullptr);
 
     auto entities = get_input_message_entities(td_->user_manager_.get(), text, "SendMediaQuery");
-    if (!entities.empty()) {
-      flags |= telegram_api::messages_sendMedia::ENTITIES_MASK;
-    }
     telegram_api::object_ptr<telegram_api::suggestedPost> post;
     if (suggested_post != nullptr) {
       post = suggested_post->get_input_suggested_post();
@@ -1821,9 +1811,6 @@ class EditMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_editMessage::MESSAGE_MASK;
 
       entities = get_input_message_entities(td_->user_manager_.get(), text, "EditMessageQuery");
-      if (!entities.empty()) {
-        flags |= telegram_api::messages_editMessage::ENTITIES_MASK;
-      }
     }
     if (schedule_date != 0) {
       flags |= telegram_api::messages_editMessage::SCHEDULE_DATE_MASK;
@@ -22250,9 +22237,6 @@ void MessagesManager::send_secret_message(DialogId dialog_id, const Message *m, 
   if (m->via_bot_user_id.is_valid()) {
     flags |= secret_api::decryptedMessage::VIA_BOT_NAME_MASK;
   }
-  if (!entities.empty()) {
-    flags |= secret_api::decryptedMessage::ENTITIES_MASK;
-  }
   if (m->media_album_id != 0) {
     CHECK(m->media_album_id < 0);
     flags |= secret_api::decryptedMessage::GROUPED_ID_MASK;
@@ -22554,14 +22538,9 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
                  << " " << file_view.has_url() << " " << to_string(get_message_message_content_object(dialog_id, m));
     }
     auto entities = get_input_message_entities(td_->user_manager_.get(), caption, "do_send_message_group");
-    int32 input_single_media_flags = 0;
-    if (!entities.empty()) {
-      input_single_media_flags |= telegram_api::inputSingleMedia::ENTITIES_MASK;
-    }
 
     input_single_media.push_back(telegram_api::make_object<telegram_api::inputSingleMedia>(
-        input_single_media_flags, std::move(input_media), random_ids.back(), caption == nullptr ? "" : caption->text,
-        std::move(entities)));
+        0, std::move(input_media), random_ids.back(), caption == nullptr ? "" : caption->text, std::move(entities)));
   }
 
   if (!success) {

@@ -53,7 +53,6 @@ class TranslateTextQuery final : public Td::ResultHandler {
       send_query(G()->net_query_creator().create(telegram_api::messages_translateText(
           flags, std::move(input_peer), std::move(message_ids), Auto(), to_language_code, tone)));
     } else {
-      flags |= telegram_api::messages_translateText::TEXT_MASK;
       auto input_texts = transform(std::move(texts), [user_manager = td_->user_manager_.get()](FormattedText &&text) {
         return get_input_text_with_entities(user_manager, std::move(text), "TranslateTextQuery");
       });
@@ -125,7 +124,6 @@ class TranslateRichMessageQuery final : public Td::ResultHandler {
 
       vector<telegram_api::object_ptr<telegram_api::InputRichMessage>> input_rich_messages;
       input_rich_messages.push_back(std::move(input_rich_message));
-      flags |= telegram_api::messages_translateRichMessage::TEXT_MASK;
       send_query(G()->net_query_creator().create(telegram_api::messages_translateRichMessage(
           flags, nullptr, vector<int32>{}, std::move(input_rich_messages), to_language_code_, tone_)));
     }

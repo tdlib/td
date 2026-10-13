@@ -2000,9 +2000,6 @@ class GetResaleStarGiftsQuery final : public Td::ResultHandler {
     int32 flags = 0;
     auto order_id = order->get_id();
     auto attributes = StarGiftAttributeId::get_input_star_gift_attribute_ids_object(attribute_ids);
-    if (!attributes.empty()) {
-      flags |= telegram_api::payments_getResaleStarGifts::ATTRIBUTES_MASK;
-    }
     if (offset.empty() && attributes.empty()) {
       flags |= telegram_api::payments_getResaleStarGifts::ATTRIBUTES_HASH_MASK;
     }
@@ -2298,15 +2295,6 @@ class UpdateStarGiftCollectionQuery final : public Td::ResultHandler {
     int32 flags = 0;
     if (!title.empty()) {
       flags |= telegram_api::payments_updateStarGiftCollection::TITLE_MASK;
-    }
-    if (!deleted_star_gift_ids.empty()) {
-      flags |= telegram_api::payments_updateStarGiftCollection::DELETE_STARGIFT_MASK;
-    }
-    if (!added_star_gift_ids.empty()) {
-      flags |= telegram_api::payments_updateStarGiftCollection::ADD_STARGIFT_MASK;
-    }
-    if (!ordered_star_gift_ids.empty()) {
-      flags |= telegram_api::payments_updateStarGiftCollection::ORDER_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_updateStarGiftCollection(
                                                    flags, std::move(input_peer), collection_id.get(), title,

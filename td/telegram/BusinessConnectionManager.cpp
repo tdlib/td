@@ -180,9 +180,6 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
     const FormattedText *message_text = get_message_content_text(message_->content_.get());
     CHECK(message_text != nullptr || input_rich_message != nullptr);
     auto entities = get_input_message_entities(td_->user_manager_.get(), message_text, "SendBusinessMessageQuery");
-    if (!entities.empty()) {
-      flags |= telegram_api::messages_sendMessage::ENTITIES_MASK;
-    }
     send_query(G()->net_query_creator().create_with_prefix(
         message_->business_connection_id_.get_invoke_prefix(),
         telegram_api::messages_sendMessage(
@@ -237,9 +234,6 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
     auto reply_to = message_->input_reply_to_.get_input_reply_to(td_, MessageTopic());
     const FormattedText *message_text = get_message_content_text(message_->content_.get());
     auto entities = get_input_message_entities(td_->user_manager_.get(), message_text, "SendBusinessMediaQuery");
-    if (!entities.empty()) {
-      flags |= telegram_api::messages_sendMedia::ENTITIES_MASK;
-    }
     send_query(G()->net_query_creator().create_with_prefix(
         message_->business_connection_id_.get_invoke_prefix(),
         telegram_api::messages_sendMedia(
@@ -414,9 +408,6 @@ class BusinessConnectionManager::EditBusinessMessageQuery final : public Td::Res
       flags |= telegram_api::messages_editMessage::MESSAGE_MASK;
 
       entities = get_input_message_entities(td_->user_manager_.get(), text, "EditBusinessMessageQuery");
-      if (!entities.empty()) {
-        flags |= telegram_api::messages_editMessage::ENTITIES_MASK;
-      }
     }
     int32 server_message_id = message_id.get_server_message_id().get();
     send_query(G()->net_query_creator().create_with_prefix(
@@ -1633,15 +1624,11 @@ void BusinessConnectionManager::on_upload_message_album_media(int64 request_id, 
   for (auto &r_upload_result : upload_results) {
     auto upload_result = r_upload_result.move_as_ok();
     auto message = std::move(upload_result.message_);
-    int32 flags = 0;
     const FormattedText *caption = get_message_content_text(message->content_.get());
     auto entities = get_input_message_entities(td_->user_manager_.get(), caption, "on_upload_message_album_media");
-    if (!entities.empty()) {
-      flags |= telegram_api::inputSingleMedia::ENTITIES_MASK;
-    }
     input_single_media.push_back(telegram_api::make_object<telegram_api::inputSingleMedia>(
-        flags, std::move(upload_result.input_media_), message->random_id_,
-        caption == nullptr ? string() : caption->text, std::move(entities)));
+        0, std::move(upload_result.input_media_), message->random_id_, caption == nullptr ? string() : caption->text,
+        std::move(entities)));
     messages.push_back(std::move(message));
   }
 

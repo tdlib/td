@@ -92,14 +92,10 @@ class AddWelcomeMessageQuery final : public Td::ResultHandler {
     }
     td_->message_query_manager_->on_start_sending_message_content(upload_id_, input_media);
 
-    int32 flags = 0;
     auto *text = get_message_content_text(content);
     auto entities = get_input_message_entities(td_->user_manager_.get(), text, "SendMediaQuery");
-    if (!entities.empty()) {
-      flags |= telegram_api::ephemeral_sendMessage::ENTITIES_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::ephemeral_sendMessage(flags, invert_media, true, false, false, std::move(input_peer),
+        telegram_api::ephemeral_sendMessage(0, invert_media, true, false, false, std::move(input_peer),
                                             telegram_api::make_object<telegram_api::inputUserEmpty>(), 0,
                                             text == nullptr ? string() : text->text, std::move(entities),
                                             std::move(input_media.media_), nullptr,
@@ -145,9 +141,6 @@ class EditWelcomeMessageQuery final : public Td::ResultHandler {
     auto *text = get_message_content_text(content);
     if (text != nullptr) {
       entities = get_input_message_entities(td_->user_manager_.get(), text, "EditWelcomeMessageQuery");
-      if (!entities.empty()) {
-        flags |= telegram_api::ephemeral_editMessage::ENTITIES_MASK;
-      }
     }
     td_->message_query_manager_->on_start_sending_message_content(upload_id_, input_media);
     send_query(G()->net_query_creator().create(telegram_api::ephemeral_editMessage(

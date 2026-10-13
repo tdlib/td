@@ -116,9 +116,6 @@ void MessageQuote::update_input_reply_to_message(Td *td,
   input_reply_to_message->quote_text_ = text_.text;
   input_reply_to_message->quote_entities_ =
       get_input_message_entities(td->user_manager_.get(), text_.entities, "update_input_reply_to_message");
-  if (!input_reply_to_message->quote_entities_.empty()) {
-    input_reply_to_message->flags_ |= telegram_api::inputReplyToMessage::QUOTE_ENTITIES_MASK;
-  }
   if (position_ != 0) {
     input_reply_to_message->flags_ |= telegram_api::inputReplyToMessage::QUOTE_OFFSET_MASK;
     input_reply_to_message->quote_offset_ = position_;

@@ -104,12 +104,6 @@ GiveawayParameters::get_input_store_payment_premium_giveaway(Td *td, const strin
   }
 
   int32 flags = 0;
-  if (!additional_input_peers.empty()) {
-    flags |= telegram_api::inputStorePaymentPremiumGiveaway::ADDITIONAL_PEERS_MASK;
-  }
-  if (!country_codes_.empty()) {
-    flags |= telegram_api::inputStorePaymentPremiumGiveaway::COUNTRIES_ISO2_MASK;
-  }
   if (!prize_description_.empty()) {
     flags |= telegram_api::inputStorePaymentPremiumGiveaway::PRIZE_DESCRIPTION_MASK;
   }
@@ -138,12 +132,6 @@ GiveawayParameters::get_input_store_payment_stars_giveaway(Td *td, const string 
   }
 
   int32 flags = 0;
-  if (!additional_input_peers.empty()) {
-    flags |= telegram_api::inputStorePaymentStarsGiveaway::ADDITIONAL_PEERS_MASK;
-  }
-  if (!country_codes_.empty()) {
-    flags |= telegram_api::inputStorePaymentStarsGiveaway::COUNTRIES_ISO2_MASK;
-  }
   if (!prize_description_.empty()) {
     flags |= telegram_api::inputStorePaymentStarsGiveaway::PRIZE_DESCRIPTION_MASK;
   }

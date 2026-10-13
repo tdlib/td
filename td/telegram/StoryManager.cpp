@@ -1152,15 +1152,6 @@ class UpdateStoryAlbumQuery final : public Td::ResultHandler {
     if (!title.empty()) {
       flags |= telegram_api::stories_updateAlbum::TITLE_MASK;
     }
-    if (!deleted_story_ids.empty()) {
-      flags |= telegram_api::stories_updateAlbum::DELETE_STORIES_MASK;
-    }
-    if (!added_story_ids.empty()) {
-      flags |= telegram_api::stories_updateAlbum::ADD_STORIES_MASK;
-    }
-    if (!ordered_story_ids.empty()) {
-      flags |= telegram_api::stories_updateAlbum::ORDER_MASK;
-    }
     send_query(G()->net_query_creator().create(
         telegram_api::stories_updateAlbum(
             flags, std::move(input_peer), story_album_id.get(), title, StoryId::get_input_story_ids(deleted_story_ids),
@@ -1366,19 +1357,10 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     if (!caption.is_empty()) {
       flags |= telegram_api::stories_sendStory::CAPTION_MASK;
     }
-    if (!entities.empty()) {
-      flags |= telegram_api::stories_sendStory::ENTITIES_MASK;
-    }
     if (period != 86400) {
       flags |= telegram_api::stories_sendStory::PERIOD_MASK;
     }
     auto input_media_areas = MediaArea::get_input_media_areas(td_, story->areas_);
-    if (!input_media_areas.empty()) {
-      flags |= telegram_api::stories_sendStory::MEDIA_AREAS_MASK;
-    }
-    if (!story->album_ids_.empty()) {
-      flags |= telegram_api::stories_sendStory::ALBUMS_MASK;
-    }
 
     send_query(G()->net_query_creator().create(
         telegram_api::stories_sendStory(flags, pending_story_->story_->is_pinned_, story->noforwards_,
@@ -1588,7 +1570,6 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
     if (edited_story->edit_caption_) {
       flags |= telegram_api::stories_editStory::CAPTION_MASK;
       if (td_->option_manager_->get_option_boolean("can_use_text_entities_in_story_caption")) {
-        flags |= telegram_api::stories_editStory::ENTITIES_MASK;
         entities = get_input_message_entities(td_->user_manager_.get(), &edited_story->caption_, "EditStoryQuery");
       }
     }
@@ -1655,7 +1636,7 @@ class StoryManager::EditBusinessStoryQuery final : public Td::ResultHandler {
     }
 
     int32 flags = telegram_api::stories_editStory::MEDIA_AREAS_MASK | telegram_api::stories_editStory::CAPTION_MASK |
-                  telegram_api::stories_editStory::ENTITIES_MASK | telegram_api::stories_editStory::PRIVACY_RULES_MASK;
+                  telegram_api::stories_editStory::PRIVACY_RULES_MASK;
     const StoryContent *content = edited_story->content_.get();
     CHECK(input_file != nullptr);
     auto input_media = get_story_content_input_media(td_, content, std::move(input_file));

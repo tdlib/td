@@ -34,9 +34,6 @@ telegram_api::object_ptr<telegram_api::inputBusinessChatLink> InputBusinessChatL
     const UserManager *user_manager) const {
   int32 flags = 0;
   auto entities = get_input_message_entities(user_manager, &text_, "get_input_business_chat_link");
-  if (!entities.empty()) {
-    flags |= telegram_api::inputBusinessChatLink::ENTITIES_MASK;
-  }
   if (!title_.empty()) {
     flags |= telegram_api::inputBusinessChatLink::TITLE_MASK;
   }

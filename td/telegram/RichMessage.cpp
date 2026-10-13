@@ -237,7 +237,6 @@ telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_
   }
   switch (input_type_) {
     case InputType::None: {
-      int32 flags = 0;
       vector<telegram_api::object_ptr<telegram_api::PageBlock>> blocks;
       GetInputPageBlockContext context;
       context.td_ = td;
@@ -272,44 +271,26 @@ telegram_api::object_ptr<telegram_api::InputRichMessage> RichMessage::get_input_
         CHECK(!with_input_media);
         return nullptr;
       }
-      if (!photos.empty()) {
-        flags |= telegram_api::inputRichMessage::PHOTOS_MASK;
-      }
-      if (!documents.empty()) {
-        flags |= telegram_api::inputRichMessage::DOCUMENTS_MASK;
-      }
       auto input_users = td->user_manager_->get_input_users_force(get_user_ids());
-      if (!input_users.empty()) {
-        flags |= telegram_api::inputRichMessage::USERS_MASK;
-      }
-      return telegram_api::make_object<telegram_api::inputRichMessage>(flags, is_rtl_, noautolink_, std::move(blocks),
-                                                                       std::move(photos), std::move(documents),
-                                                                       std::move(input_users));
+      return telegram_api::make_object<telegram_api::inputRichMessage>(
+          0, is_rtl_, noautolink_, std::move(blocks), std::move(photos), std::move(documents), std::move(input_users));
     }
     case InputType::Markdown: {
-      int32 flags = 0;
       auto files = get_input_rich_files(td, with_input_media, std::move(input_media));
       if (files.size() != media_.size()) {
         CHECK(!with_input_media);
         return nullptr;
       }
-      if (!files.empty()) {
-        flags |= telegram_api::inputRichMessageMarkdown::FILES_MASK;
-      }
-      return telegram_api::make_object<telegram_api::inputRichMessageMarkdown>(flags, is_rtl_, noautolink_, source_,
+      return telegram_api::make_object<telegram_api::inputRichMessageMarkdown>(0, is_rtl_, noautolink_, source_,
                                                                                std::move(files));
     }
     case InputType::Html: {
-      int32 flags = 0;
       auto files = get_input_rich_files(td, with_input_media, std::move(input_media));
       if (files.size() != media_.size()) {
         CHECK(!with_input_media);
         return nullptr;
       }
-      if (!files.empty()) {
-        flags |= telegram_api::inputRichMessageHTML::FILES_MASK;
-      }
-      return telegram_api::make_object<telegram_api::inputRichMessageHTML>(flags, is_rtl_, noautolink_, source_,
+      return telegram_api::make_object<telegram_api::inputRichMessageHTML>(0, is_rtl_, noautolink_, source_,
                                                                            std::move(files));
     }
     default:

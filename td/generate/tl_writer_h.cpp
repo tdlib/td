@@ -178,7 +178,7 @@ std::string TD_TL_writer_h::gen_function_vars(const tl::tl_combinator *t,
   return res;
 }
 
-bool TD_TL_writer_h::need_arg_mask(const tl::arg &a, bool can_be_stored) const {
+bool TD_TL_writer_h::need_arg_mask(const tl::tl_combinator *t, const tl::arg &a) const {
   if (a.exist_var_num == -1) {
     return false;
   }
@@ -192,14 +192,13 @@ bool TD_TL_writer_h::need_arg_mask(const tl::arg &a, bool can_be_stored) const {
   if (name == "True") {
     return false;
   }
-  if (!is_built_in_simple_type(name) && !is_built_in_complex_type(name)) {
-    return false;
-  }
-  if (can_be_stored) {
-    return true;
-  }
-  if (a.name == "albums") {
-    return true;
+  if (is_built_in_complex_type(name)) {
+    // flags for non-empty vectors are set automatically; masks are needed only to send or check empty vectors
+    const std::string &type_name = t->name;
+    return (type_name == "stories.editStory" && (a.name == "media_areas" || a.name == "privacy_rules")) ||
+           ((type_name == "inputMediaUploadedDocument" || type_name == "inputMediaUploadedPhoto") &&
+            a.name == "stickers") ||
+           (type_name == "peerColorCollectible" && a.name == "dark_colors");
   }
   if (!is_built_in_simple_type(name)) {
     return false;
@@ -214,7 +213,7 @@ std::string TD_TL_writer_h::gen_flags_definitions(const tl::tl_combinator *t, bo
   for (std::size_t i = 0; i < t->args.size(); i++) {
     const tl::arg &a = t->args[i];
 
-    if (need_arg_mask(a, can_be_stored)) {
+    if (need_arg_mask(t, a)) {
       auto name = a.name;
       for (auto &c : name) {
         c = to_upper(c);

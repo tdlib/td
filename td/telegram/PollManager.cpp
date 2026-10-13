@@ -2075,14 +2075,10 @@ telegram_api::object_ptr<telegram_api::InputMedia> PollManager::get_input_media(
     poll_flags |= telegram_api::poll::CLOSE_DATE_MASK;
   }
   auto country_codes = poll->country_codes_;
-  if (!country_codes.empty()) {
-    poll_flags |= telegram_api::poll::COUNTRIES_ISO2_MASK;
-  }
 
   int32 flags = 0;
   vector<int32> correct_answers;
   if (poll->is_quiz_) {
-    flags |= telegram_api::inputMediaPoll::CORRECT_ANSWERS_MASK;
     CHECK(!poll->correct_option_ids_.empty());
     for (auto correct_option_id : poll->correct_option_ids_) {
       CHECK(static_cast<size_t>(correct_option_id) < poll->options_.size());

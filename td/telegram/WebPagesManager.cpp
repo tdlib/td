@@ -86,13 +86,9 @@ class GetWebPagePreviewQuery final : public Td::ResultHandler {
   void send(const FormattedText &text, unique_ptr<WebPagesManager::GetWebPagePreviewOptions> &&options) {
     options_ = std::move(options);
 
-    int32 flags = 0;
     auto entities = get_input_message_entities(td_->user_manager_.get(), text.entities, "GetWebPagePreviewQuery");
-    if (!entities.empty()) {
-      flags |= telegram_api::messages_getWebPagePreview::ENTITIES_MASK;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_getWebPagePreview(flags, text.text, std::move(entities))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_getWebPagePreview(0, text.text, std::move(entities))));
   }
 
   void on_result(BufferSlice packet) final {

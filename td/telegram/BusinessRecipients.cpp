@@ -86,28 +86,17 @@ td_api::object_ptr<td_api::businessRecipients> BusinessRecipients::get_business_
 
 telegram_api::object_ptr<telegram_api::inputBusinessRecipients> BusinessRecipients::get_input_business_recipients(
     Td *td) const {
-  int32 flags = 0;
   auto input_users = td->user_manager_->get_input_users_force(user_ids_);
-  if (!input_users.empty()) {
-    flags |= telegram_api::inputBusinessRecipients::USERS_MASK;
-  }
   return telegram_api::make_object<telegram_api::inputBusinessRecipients>(
-      flags, existing_chats_, new_chats_, contacts_, non_contacts_, exclude_selected_, std::move(input_users));
+      0, existing_chats_, new_chats_, contacts_, non_contacts_, exclude_selected_, std::move(input_users));
 }
 
 telegram_api::object_ptr<telegram_api::inputBusinessBotRecipients>
 BusinessRecipients::get_input_business_bot_recipients(Td *td) const {
-  int32 flags = 0;
   auto input_users = td->user_manager_->get_input_users_force(user_ids_);
-  if (!input_users.empty()) {
-    flags |= telegram_api::inputBusinessBotRecipients::USERS_MASK;
-  }
   auto excluded_input_users = td->user_manager_->get_input_users_force(excluded_user_ids_);
-  if (!excluded_input_users.empty()) {
-    flags |= telegram_api::inputBusinessBotRecipients::EXCLUDE_USERS_MASK;
-  }
   return telegram_api::make_object<telegram_api::inputBusinessBotRecipients>(
-      flags, existing_chats_, new_chats_, contacts_, non_contacts_, exclude_selected_, std::move(input_users),
+      0, existing_chats_, new_chats_, contacts_, non_contacts_, exclude_selected_, std::move(input_users),
       std::move(excluded_input_users));
 }
 

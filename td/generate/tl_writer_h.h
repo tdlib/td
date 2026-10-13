@@ -20,7 +20,7 @@ class TD_TL_writer_h : public TD_TL_writer {
 
   static std::string forward_declaration(std::string type);
 
-  bool need_arg_mask(const tl::arg &a, bool can_be_stored) const;
+  bool need_arg_mask(const tl::tl_combinator *t, const tl::arg &a) const;
 
  public:
   TD_TL_writer_h(const std::string &tl_name, const std::string &string_type, const std::string &bytes_type,

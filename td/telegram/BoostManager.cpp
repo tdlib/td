@@ -238,10 +238,8 @@ class ApplyBoostQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    send_query(
-        G()->net_query_creator().create(telegram_api::premium_applyBoost(telegram_api::premium_applyBoost::SLOTS_MASK,
-                                                                         std::move(slot_ids), std::move(input_peer)),
-                                        {{dialog_id}, {"me"}}));
+    send_query(G()->net_query_creator().create(
+        telegram_api::premium_applyBoost(0, std::move(slot_ids), std::move(input_peer)), {{dialog_id}, {"me"}}));
   }
 
   void on_result(BufferSlice packet) final {

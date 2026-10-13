@@ -233,8 +233,7 @@ class EditExportedChatlistInviteQuery final : public Td::ResultHandler {
 
   void send(DialogFilterId dialog_filter_id, const string &slug, const string &title,
             vector<tl_object_ptr<telegram_api::InputPeer>> &&input_peers) {
-    int32 flags =
-        telegram_api::chatlists_editExportedInvite::TITLE_MASK | telegram_api::chatlists_editExportedInvite::PEERS_MASK;
+    int32 flags = telegram_api::chatlists_editExportedInvite::TITLE_MASK;
     send_query(G()->net_query_creator().create(telegram_api::chatlists_editExportedInvite(
         flags, dialog_filter_id.get_input_chatlist(), slug, title, std::move(input_peers))));
   }
