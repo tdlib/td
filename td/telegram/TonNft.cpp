@@ -6,6 +6,7 @@
 //
 #include "td/telegram/TonNft.h"
 
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
@@ -26,6 +27,14 @@ TonNftAttribute::TonNftAttribute(telegram_api::object_ptr<telegram_api::wallet_n
 
 td_api::object_ptr<td_api::tonNftAttribute> TonNftAttribute::get_ton_nft_attribute_object() const {
   return td_api::make_object<td_api::tonNftAttribute>(trait_type_, value_);
+}
+
+bool operator==(const TonNftAttribute &lhs, const TonNftAttribute &rhs) {
+  return lhs.trait_type_ == rhs.trait_type_ && lhs.value_ == rhs.value_;
+}
+
+bool operator!=(const TonNftAttribute &lhs, const TonNftAttribute &rhs) {
+  return !(lhs == rhs);
 }
 
 TonNft::TonNft(Td *td, telegram_api::object_ptr<telegram_api::wallet_nftItem> &&item)
@@ -79,6 +88,24 @@ td_api::object_ptr<td_api::tonNft> TonNft::get_ton_nft_object(Td *td) const {
       transform(attributes_, [](const auto &attribute) { return attribute.get_ton_nft_attribute_object(); }),
       r_json_value.is_ok() ? r_json_value.move_as_ok() : nullptr,
       gift_.is_valid() ? gift_.get_upgraded_gift_object(td) : nullptr);
+}
+
+void TonNft::add_dependencies(Dependencies &dependencies) const {
+  if (gift_.is_valid()) {
+    gift_.add_dependencies(dependencies);
+  }
+}
+
+bool operator==(const TonNft &lhs, const TonNft &rhs) {
+  return lhs.collection_address_ == rhs.collection_address_ && lhs.address_ == rhs.address_ &&
+         lhs.owner_address_ == rhs.owner_address_ && lhs.index_ == rhs.index_ && lhs.name_ == rhs.name_ &&
+         lhs.description_ == rhs.description_ && lhs.image_ == rhs.image_ && lhs.image_small_ == rhs.image_small_ &&
+         lhs.content_url_file_id_ == rhs.content_url_file_id_ && lhs.lottie_file_id_ == rhs.lottie_file_id_ &&
+         lhs.attributes_ == rhs.attributes_ && lhs.extra_ == rhs.extra_ && lhs.gift_ == rhs.gift_;
+}
+
+bool operator!=(const TonNft &lhs, const TonNft &rhs) {
+  return !(lhs == rhs);
 }
 
 }  // namespace td

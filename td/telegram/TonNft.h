@@ -16,11 +16,14 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class TonNftAttribute {
   string trait_type_;
   string value_;
+
+  friend bool operator==(const TonNftAttribute &lhs, const TonNftAttribute &rhs);
 
  public:
   TonNftAttribute() = default;
@@ -35,6 +38,9 @@ class TonNftAttribute {
   template <class ParserT>
   void parse(ParserT &parser);
 };
+
+bool operator==(const TonNftAttribute &lhs, const TonNftAttribute &rhs);
+bool operator!=(const TonNftAttribute &lhs, const TonNftAttribute &rhs);
 
 class TonNft {
   string collection_address_;
@@ -51,12 +57,24 @@ class TonNft {
   string extra_;
   StarGift gift_;
 
+  friend bool operator==(const TonNft &lhs, const TonNft &rhs);
+
  public:
   TonNft() = default;
 
   TonNft(Td *td, telegram_api::object_ptr<telegram_api::wallet_nftItem> &&item);
 
+  bool is_valid() const {
+    return !address_.empty();
+  }
+
+  const string &get_address() const {
+    return address_;
+  }
+
   td_api::object_ptr<td_api::tonNft> get_ton_nft_object(Td *td) const;
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
@@ -64,5 +82,8 @@ class TonNft {
   template <class ParserT>
   void parse(ParserT &parser);
 };
+
+bool operator==(const TonNft &lhs, const TonNft &rhs);
+bool operator!=(const TonNft &lhs, const TonNft &rhs);
 
 }  // namespace td
