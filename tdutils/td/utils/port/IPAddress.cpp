@@ -215,110 +215,96 @@ bool IPAddress::is_valid() const {
   return is_valid_;
 }
 
-bool IPAddress::is_reserved() const {
-  CHECK(is_valid());
-
-  uint32 ip = 0;
-  if (is_ipv6()) {
-    // https://www.iana.org/assignments/iana-ipv6-special-registry
-    const auto &addr = ipv6_addr_.sin6_addr.s6_addr;
-
-    const unsigned char empty_address[16] = {0};
-    if (begins_with_bits(addr, empty_address, 127)) {
-      return true;
-    }
-
-    uint8_t translate_prefix[12] = {0x00, 0x64, 0xff, 0x9b};
-    if (begins_with_bits(addr, translate_prefix, 96)) {
-      return true;
-    }
-
-    uint8_t translate2_prefix[6] = {0x00, 0x64, 0xff, 0x9b, 0x00, 0x01};
-    if (begins_with_bits(addr, translate2_prefix, 48)) {
-      return true;
-    }
-
-    uint8_t discard_prefix[8] = {0x01};
-    if (begins_with_bits(addr, discard_prefix, 64)) {
-      return true;
-    }
-
-    uint8_t dummy_prefix[8] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
-    if (begins_with_bits(addr, dummy_prefix, 64)) {
-      return true;
-    }
-
-    const unsigned char ietf_prefix[3] = {0x20, 0x01};
-    if (begins_with_bits(addr, ietf_prefix, 23)) {
-      return true;
-    }
-
-    const unsigned char doc_prefix[4] = {0x20, 0x01, 0x0d, 0xb8};
-    if (begins_with_bits(addr, doc_prefix, 32)) {
-      return true;
-    }
-
-    const unsigned char v6to4_prefix[2] = {0x20, 0x02};
-    if (begins_with_bits(addr, v6to4_prefix, 16)) {
-      return true;
-    }
-
-    const unsigned char delegation_prefix[6] = {0x26, 0x20, 0x00, 0x4f, 0x80};
-    if (begins_with_bits(addr, delegation_prefix, 48)) {
-      return true;
-    }
-
-    const unsigned char doc2_prefix[3] = {0x3f, 0xff};
-    if (begins_with_bits(addr, doc2_prefix, 20)) {
-      return true;
-    }
-
-    const unsigned char segment_prefix[2] = {0x5f};
-    if (begins_with_bits(addr, segment_prefix, 16)) {
-      return true;
-    }
-
-    const unsigned char ula_prefix[1] = {0xfc};
-    if (begins_with_bits(addr, ula_prefix, 7)) {
-      return true;
-    }
-
-    const unsigned char link_local_prefix[2] = {0xfe, 0x80};
-    if (begins_with_bits(addr, link_local_prefix, 10)) {
-      return true;
-    }
-
-    if (addr[0] == 0xff) {
-      return true;
-    }
-
-    const unsigned char ipv4_prefix[12] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff};
-    if (!begins_with_bits(addr, ipv4_prefix, 96)) {
-      return false;
-    }
-
-    ip = ntohl(as<uint32>(addr + 12));
-  } else {
-    ip = get_ipv4();
-  }
-
+static bool is_reserved_ipv4(uint32 ip) {
+  // https://www.iana.org/assignments/iana-ipv4-special-registry
   struct IpBlock {
     CSlice ip;
     int mask;
     IpBlock(CSlice ip, int mask) : ip(ip), mask(mask) {
     }
   };
-  static const IpBlock blocks[] = {{"0.0.0.0", 8},      {"10.0.0.0", 8},     {"100.64.0.0", 10}, {"127.0.0.0", 8},
-                                   {"169.254.0.0", 16}, {"172.16.0.0", 12},  {"192.0.0.0", 24},  {"192.0.2.0", 24},
-                                   {"192.88.99.0", 24}, {"192.168.0.0", 16}, {"198.18.0.0", 15}, {"198.51.100.0", 24},
-                                   {"203.0.113.0", 24}, {"224.0.0.0", 3}};
-  for (auto &block : blocks) {
+  auto is_in_block = [ip](const IpBlock &block) {
     IPAddress block_ip_address;
     block_ip_address.init_ipv4_port(block.ip, 80).ensure();
     uint32 range = block_ip_address.get_ipv4();
     CHECK(block.mask != 0);
     uint32 mask = std::numeric_limits<uint32>::max() >> (32 - block.mask) << (32 - block.mask);
-    if ((ip & mask) == (range & mask)) {
+    return (ip & mask) == (range & mask);
+  };
+
+  // globally reachable addresses from reserved blocks
+  static const IpBlock global_blocks[] = {{"192.0.0.9", 32}, {"192.0.0.10", 32}};
+  for (auto &block : global_blocks) {
+    if (is_in_block(block)) {
+      return false;
+    }
+  }
+
+  static const IpBlock blocks[] = {{"0.0.0.0", 8},      {"10.0.0.0", 8},     {"100.64.0.0", 10}, {"127.0.0.0", 8},
+                                   {"169.254.0.0", 16}, {"172.16.0.0", 12},  {"192.0.0.0", 24},  {"192.0.2.0", 24},
+                                   {"192.88.99.0", 24}, {"192.168.0.0", 16}, {"198.18.0.0", 15}, {"198.51.100.0", 24},
+                                   {"203.0.113.0", 24}, {"224.0.0.0", 3}};
+  for (auto &block : blocks) {
+    if (is_in_block(block)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool IPAddress::is_reserved() const {
+  CHECK(is_valid());
+
+  if (is_ipv4()) {
+    return is_reserved_ipv4(get_ipv4());
+  }
+
+  // https://www.iana.org/assignments/iana-ipv6-special-registry
+  const auto &addr = ipv6_addr_.sin6_addr.s6_addr;
+
+  // IPv4-mapped addresses
+  const unsigned char ipv4_prefix[12] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff};
+  if (begins_with_bits(addr, ipv4_prefix, 96)) {
+    return is_reserved_ipv4(ntohl(as<uint32>(addr + 12)));
+  }
+
+  // IPv4-IPv6 translation addresses are globally reachable if the embedded IPv4 address is
+  const unsigned char translate_prefix[12] = {0x00, 0x64, 0xff, 0x9b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  if (begins_with_bits(addr, translate_prefix, 96)) {
+    return is_reserved_ipv4(ntohl(as<uint32>(addr + 12)));
+  }
+
+  // all addresses outside of 2000::/3 aren't global unicast addresses;
+  // this includes ::/128, ::1/128, 64:ff9b:1::/48, 100::/64, 100:0:0:1::/64, 5f00::/16, fc00::/7, fe80::/10 and ff00::/8
+  const unsigned char global_unicast_prefix[1] = {0x20};
+  if (!begins_with_bits(addr, global_unicast_prefix, 3)) {
+    return true;
+  }
+
+  struct Ipv6Block {
+    unsigned char prefix[16];
+    size_t bit_count;
+  };
+
+  // globally reachable addresses from reserved blocks
+  static const Ipv6Block global_blocks[] = {
+      {{0x20, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, 128},
+      {{0x20, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02}, 128},
+      {{0x20, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03}, 128},
+      {{0x20, 0x01, 0x00, 0x03}, 32},
+      {{0x20, 0x01, 0x00, 0x04, 0x01, 0x12}, 48},
+      {{0x20, 0x01, 0x00, 0x20}, 28},
+      {{0x20, 0x01, 0x00, 0x30}, 28}};
+  for (auto &block : global_blocks) {
+    if (begins_with_bits(addr, block.prefix, block.bit_count)) {
+      return false;
+    }
+  }
+
+  static const Ipv6Block blocks[] = {
+      {{0x20, 0x01, 0x00}, 23}, {{0x20, 0x01, 0x0d, 0xb8}, 32}, {{0x20, 0x02}, 16}, {{0x3f, 0xff, 0x00}, 20}};
+  for (auto &block : blocks) {
+    if (begins_with_bits(addr, block.prefix, block.bit_count)) {
       return true;
     }
   }
