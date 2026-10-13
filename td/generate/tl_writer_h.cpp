@@ -207,7 +207,7 @@ bool TD_TL_writer_h::need_arg_mask(const tl::tl_combinator *t, const tl::arg &a)
   return true;
 }
 
-std::string TD_TL_writer_h::gen_flags_definitions(const tl::tl_combinator *t, bool can_be_stored) const {
+std::string TD_TL_writer_h::gen_flags_definitions(const tl::tl_combinator *t) const {
   std::vector<std::pair<std::string, std::int32_t>> flags;
 
   for (std::size_t i = 0; i < t->args.size(); i++) {

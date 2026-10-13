@@ -43,7 +43,7 @@ class TD_TL_writer_h : public TD_TL_writer {
   std::string gen_field_definition(const std::string &class_name, const std::string &type_name,
                                    const std::string &field_name) const override;
 
-  std::string gen_flags_definitions(const tl::tl_combinator *t, bool can_be_stored) const override;
+  std::string gen_flags_definitions(const tl::tl_combinator *t) const override;
   std::string gen_vars(const tl::tl_combinator *t, const tl::tl_tree_type *result_type,
                        std::vector<tl::var_description> &vars) const override;
   std::string gen_function_vars(const tl::tl_combinator *t, std::vector<tl::var_description> &vars) const override;
