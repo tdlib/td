@@ -81,6 +81,8 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/TonWalletCard.h"
+#include "td/telegram/TonWalletCard.hpp"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/VerificationStatus.h"
 #include "td/telegram/Version.h"
@@ -2271,6 +2273,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_note = !note.is_empty();
   bool has_manager_bot_user_id = bot_info != nullptr && bot_info->manager_bot_user_id != UserId();
   bool has_linked_community_id = linked_community_id.is_valid();
+  bool has_ton_wallet_card = ton_wallet_card != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -2330,7 +2333,8 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(noforwards_peer_enabled);
     STORE_FLAG(has_manager_bot_user_id);
     STORE_FLAG(unofficial_security_risk);
-    STORE_FLAG(has_linked_community_id);
+    STORE_FLAG(has_linked_community_id);  // 25
+    STORE_FLAG(has_ton_wallet_card);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -2442,6 +2446,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_linked_community_id) {
     store(linked_community_id, storer);
   }
+  if (has_ton_wallet_card) {
+    store(ton_wallet_card, storer);
+  }
 }
 
 template <class ParserT>
@@ -2486,6 +2493,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_note = false;
   bool has_manager_bot_user_id = false;
   bool has_linked_community_id = false;
+  bool has_ton_wallet_card = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -2546,6 +2554,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_manager_bot_user_id);
     PARSE_FLAG(unofficial_security_risk);
     PARSE_FLAG(has_linked_community_id);
+    PARSE_FLAG(has_ton_wallet_card);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -2660,6 +2669,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_linked_community_id) {
     parse(linked_community_id, parser);
+  }
+  if (has_ton_wallet_card) {
+    parse(ton_wallet_card, parser);
   }
 }
 
@@ -4738,6 +4750,15 @@ void UserManager::on_update_user_full_note(UserFull *user_full, FormattedText &&
   CHECK(user_full != nullptr);
   if (user_full->note != note) {
     user_full->note = std::move(note);
+    user_full->is_changed = true;
+  }
+}
+
+void UserManager::on_update_user_full_ton_wallet_card(UserFull *user_full,
+                                                      unique_ptr<TonWalletCard> &&ton_wallet_card) {
+  CHECK(user_full != nullptr);
+  if (user_full->ton_wallet_card != ton_wallet_card) {
+    user_full->ton_wallet_card = std::move(ton_wallet_card);
     user_full->is_changed = true;
   }
 }
@@ -9159,6 +9180,8 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
                                  user->noforwards_peer_enabled_);
   on_update_user_full_note(user_full,
                            get_formatted_text(this, std::move(user->note_), true, false, "on_get_user_full note"));
+  on_update_user_full_ton_wallet_card(user_full,
+                                      TonWalletCard::get_ton_wallet_card(td_, std::move(user->wallet_card_)));
 
   bool can_pin_messages = user->can_pin_message_;
   bool can_be_called = user->phone_calls_available_ && !user->phone_calls_private_;
@@ -9518,6 +9541,9 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
   if (user_full->bot_verification != nullptr) {
     user_full->bot_verification->add_dependencies(dependencies);
   }
+  if (user_full->ton_wallet_card != nullptr) {
+    user_full->ton_wallet_card->add_dependencies(dependencies);
+  }
   if (user_full->bot_info != nullptr) {
     dependencies.add(user_full->bot_info->manager_bot_user_id);
   }
@@ -9717,6 +9743,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->linked_community_id = CommunityId();
   user_full->business_info = nullptr;
   user_full->bot_verification = nullptr;
+  user_full->ton_wallet_card = nullptr;
   user_full->star_rating = nullptr;
   user_full->pending_star_rating = nullptr;
   user_full->pending_star_rating_date = 0;
@@ -10593,8 +10620,9 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       user_full->gift_settings.get_gift_settings_object(), std::move(bot_verification),
       get_profile_tab_object(user_full->main_profile_tab),
       td_->audios_manager_->get_audio_object(user_full->first_saved_music_file_id), std::move(user_rating),
-      std::move(pending_user_rating), user_full->pending_star_rating_date, std::move(note), std::move(business_info),
-      std::move(bot_info));
+      std::move(pending_user_rating), user_full->pending_star_rating_date, std::move(note),
+      user_full->ton_wallet_card == nullptr ? nullptr : user_full->ton_wallet_card->get_ton_wallet_card_object(td_),
+      std::move(business_info), std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateContactCloseBirthdays> UserManager::get_update_contact_close_birthdays() const {
