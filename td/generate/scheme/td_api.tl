@@ -2848,7 +2848,6 @@ chatAdministrators administrators:vector<chatAdministrator> = ChatAdministrators
 //@is_member True, if the user is a member of the chat
 chatMemberStatusCreator is_anonymous:Bool is_member:Bool = ChatMemberStatus;
 
-
 //@description The user is a member of the chat and has some additional privileges. In basic groups, administrators have all applicable rights.
 //-In supergroups and channels, any subset of the rights can be chosen for an administrator
 //@can_be_edited True, if the current user can edit the administrator privileges for the called user
@@ -15933,6 +15932,11 @@ withdrawUpgradedGift received_gift_id:string keep_on_profile:Bool = Ok;
 //@name Unique name of the upgraded gift
 //@hide_sender Pass true to hide the sender of the gift in the message received by the new owner
 getUpgradedGiftDepositInfo owner_id:MessageSender name:string hide_sender:Bool = UpgradedGiftDepositInfo;
+
+//@description Shows an upgraded gift from the TON wallet of the current user on a profile page or hides it from all profile pages; the gift remains in the wallet
+//@owner_id Identifier of the current user or a channel chat owned by the current user on which profile page the gift will be shown; pass null to hide the gift from all profile pages
+//@name Unique name of the upgraded gift
+displayUpgradedGift owner_id:MessageSender name:string = Ok;
 
 //@description Returns promotional animation for upgraded gifts
 getUpgradedGiftsPromotionalAnimation = Animation;

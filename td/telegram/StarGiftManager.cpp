@@ -1985,6 +1985,31 @@ class DepositStarGiftQuery final : public Td::ResultHandler {
   }
 };
 
+class DisplayStarGiftQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DisplayStarGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputPeer> &&input_peer, const string &name) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_displayStarGift(0, std::move(input_peer), name)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_displayStarGift>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class WithdrawStarGiftQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -3271,6 +3296,20 @@ void StarGiftManager::get_upgraded_gift_deposit_info(
     return promise.set_error(400, "Invalid gift name specified");
   }
   td_->create_handler<DepositStarGiftQuery>(std::move(promise))->send(std::move(input_peer), name, hide_sender);
+}
+
+void StarGiftManager::display_upgraded_gift(DialogId owner_dialog_id, const string &name, Promise<Unit> &&promise) {
+  telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
+  if (owner_dialog_id.is_valid()) {
+    TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Write,
+                                                                          "display_upgraded_gift"));
+    input_peer = td_->dialog_manager_->get_input_peer(owner_dialog_id, AccessRights::Write);
+    CHECK(input_peer != nullptr);
+  }
+  if (name.empty()) {
+    return promise.set_error(400, "Invalid gift name specified");
+  }
+  td_->create_handler<DisplayStarGiftQuery>(std::move(promise))->send(std::move(input_peer), name);
 }
 
 void StarGiftManager::withdraw_star_gift(StarGiftId star_gift_id, bool keep_on_profile, Promise<Unit> &&promise) {

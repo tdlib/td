@@ -9032,6 +9032,14 @@ void Requests::on_request(uint64 id, td_api::getUpgradedGiftDepositInfo &request
                                                           std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::displayUpgradedGift &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.name_);
+  CREATE_OK_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, true));
+  td_->star_gift_manager_->display_upgraded_gift(owner_dialog_id, request.name_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getUpgradedGiftsPromotionalAnimation &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

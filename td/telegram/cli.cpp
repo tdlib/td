@@ -3599,6 +3599,12 @@ class CliClient final : public Actor {
       get_args(args, owner_id, name, hide_sender);
       send_request(
           td_api::make_object<td_api::getUpgradedGiftDepositInfo>(as_message_sender(owner_id), name, hide_sender));
+    } else if (op == "dug") {
+      string owner_id;
+      string name;
+      get_args(args, owner_id, name);
+      send_request(td_api::make_object<td_api::displayUpgradedGift>(
+          owner_id.empty() ? nullptr : as_message_sender(owner_id), name));
     } else if (op == "gugpa") {
       send_request(td_api::make_object<td_api::getUpgradedGiftsPromotionalAnimation>());
     } else if (op == "sgfr" || op == "sgfrd" || op == "sgfrn" || op == "spfrc") {
