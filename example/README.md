@@ -11,6 +11,7 @@ Choose your preferred programming language to see examples of usage and a detail
 
 - [Python](#python)
 - [JavaScript](#javascript)
+- [TypeScript](#typescript)
 - [Go](#go)
 - [Java](#java)
 - [Kotlin](#kotlin)
@@ -84,6 +85,11 @@ See [nativescript-tglib](https://github.com/arpit2438735/nativescript-tglib) as 
 
 TDLib can also be used from React Native on iOS and Android.
 See [react-native-tdlib](https://github.com/vladlenskiy/react-native-tdlib) as an example of a React Native library for building Telegram clients.
+
+<a name="typescript"></a>
+## Using TDLib in TypeScript projects
+
+TDLib can be used from the TypeScript programming language through the [LevlamClaw](https://github.com/isopen/ton-ai-core/tree/master/agents/levlamclaw).
 
 <a name="go"></a>
 ## Using TDLib in Go projects
