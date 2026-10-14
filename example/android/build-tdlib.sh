@@ -78,7 +78,7 @@ for ABI in $ABIS ; do
 
   mkdir -p "build-$ANDROID_API_LEVEL-$ABI-$TDLIB_INTERFACE" || exit 1
   cd "build-$ANDROID_API_LEVEL-$ABI-$TDLIB_INTERFACE"
-  cmake -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" -DOPENSSL_ROOT_DIR="$OPENSSL_INSTALL_DIR/$ABI" -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja -DANDROID_ABI="$ABI" -DANDROID_STL="$ANDROID_STL" -DANDROID_PLATFORM="android-$ANDROID_API_LEVEL" "$TDLIB_INTERFACE_OPTION" .. || exit 1
+  cmake -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" -DOPENSSL_ROOT_DIR="$OPENSSL_INSTALL_DIR/$ABI" -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja -DANDROID_ABI="$ABI" -DANDROID_STL="$ANDROID_STL" -DANDROID_PLATFORM="android-$ANDROID_API_LEVEL" -DTD_ENABLE_PCH:BOOL=ON "$TDLIB_INTERFACE_OPTION" .. || exit 1
   if [ "$TDLIB_INTERFACE" == "Java" ] || [ "$TDLIB_INTERFACE" == "JSONJava" ] ; then
     cmake --build . --target tdjni || exit 1
     cp -p libtd*.so* "../tdlib/libs/$ABI/" || exit 1
