@@ -276,7 +276,9 @@ passwordState has_password:Bool password_hint:string has_recovery_email_address:
 recoveryEmailAddress recovery_email_address:string = RecoveryEmailAddress;
 
 
-//@description Returns information about the availability of a temporary password, which can be used for payments @has_password True, if a temporary password is available @valid_for Time left before the temporary password expires, in seconds
+//@description Returns information about the availability of a temporary password, which can be used for payments and withdrawal of upgraded gifts
+//@has_password True, if a temporary password is available
+//@valid_for Time left before the temporary password expires, in seconds
 temporaryPasswordState has_password:Bool valid_for:int32 = TemporaryPasswordState;
 
 
@@ -11904,7 +11906,9 @@ resetPassword = ResetPasswordResult;
 //@description Cancels reset of 2-step verification password. The method can be called if passwordState.pending_reset_date > 0
 cancelPasswordReset = Ok;
 
-//@description Creates a new temporary password for processing payments @password The 2-step verification password of the current user @valid_for Time during which the temporary password will be valid, in seconds; must be between 60 and 86400
+//@description Creates a new temporary password for processing payments and withdrawal of upgraded gifts
+//@password The 2-step verification password of the current user
+//@valid_for Time during which the temporary password will be valid, in seconds; must be between 60 and 86400
 createTemporaryPassword password:string valid_for:int32 = TemporaryPasswordState;
 
 //@description Returns information about the current temporary password
@@ -15908,6 +15912,13 @@ getUpgradedGiftValueInfo name:string = UpgradedGiftValueInfo;
 //@received_gift_id Identifier of the gift
 //@password The 2-step verification password of the current user
 getUpgradedGiftWithdrawalUrl received_gift_id:string password:string = HttpUrl;
+
+//@description Withdraws an upgraded gift to the TON blockchain as an NFT directly to the TON wallet of the current user, which is created automatically if the user has no wallet yet;
+//-requires owner privileges for gifts owned by a chat. The user must have a valid temporary password; see createTemporaryPassword.
+//-The gift will be received by the wallet in a few seconds after the request succeeds
+//@received_gift_id Identifier of the gift
+//@keep_on_profile Pass true to keep the gift displayed on the user's or the chat's profile page after withdrawal
+withdrawUpgradedGift received_gift_id:string keep_on_profile:Bool = Ok;
 
 //@description Returns promotional animation for upgraded gifts
 getUpgradedGiftsPromotionalAnimation = Animation;

@@ -9016,6 +9016,13 @@ void Requests::on_request(uint64 id, td_api::getUpgradedGiftWithdrawalUrl &reque
                                                         std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::withdrawUpgradedGift &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->star_gift_manager_->withdraw_star_gift(StarGiftId(request.received_gift_id_), request.keep_on_profile_,
+                                              std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getUpgradedGiftsPromotionalAnimation &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

@@ -32,6 +32,7 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TempPasswordState.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
 #include "td/telegram/UserStarGift.h"
@@ -1954,6 +1955,41 @@ class GetStarGiftWithdrawalUrlQuery final : public Td::ResultHandler {
   }
 };
 
+class WithdrawStarGiftQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit WithdrawStarGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(StarGiftId star_gift_id, bool keep_on_profile, const string &temp_password) {
+    auto input_gift = star_gift_id.get_input_saved_star_gift(td_);
+    if (input_gift == nullptr) {
+      return on_error(Status::Error(400, "Gift not found"));
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::payments_withdrawStarGift(
+        0, keep_on_profile, std::move(input_gift), BufferSlice(temp_password))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_withdrawStarGift>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    if (!result) {
+      return on_error(Status::Error(500, "Internal Server Error: failed to withdraw the gift"));
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateStarGiftPriceQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -3192,6 +3228,18 @@ void StarGiftManager::send_get_star_gift_withdrawal_url_query(
 
   td_->create_handler<GetStarGiftWithdrawalUrlQuery>(std::move(promise))
       ->send(star_gift_id, std::move(input_check_password));
+}
+
+void StarGiftManager::withdraw_star_gift(StarGiftId star_gift_id, bool keep_on_profile, Promise<Unit> &&promise) {
+  if (!star_gift_id.is_valid()) {
+    return promise.set_error(400, "Invalid gift identifier specified");
+  }
+  auto temp_password_state = PasswordManager::get_temp_password_state_sync();
+  if (!temp_password_state.has_temp_password) {
+    return promise.set_error(400, "Temporary password required to withdraw the gift");
+  }
+  td_->create_handler<WithdrawStarGiftQuery>(std::move(promise))
+      ->send(star_gift_id, keep_on_profile, temp_password_state.temp_password);
 }
 
 void StarGiftManager::set_star_gift_price(StarGiftId star_gift_id, StarGiftResalePrice price, Promise<Unit> &&promise) {
