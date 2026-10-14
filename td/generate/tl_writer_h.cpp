@@ -189,7 +189,7 @@ bool TD_TL_writer_h::need_arg_mask(const tl::tl_combinator *t, const tl::arg &a)
   const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(a.type);
   const std::string &name = tree_type->type->name;
 
-  if (name == "True") {
+  if (name == "True" || name == "Bytes") {
     return false;
   }
   if (is_built_in_complex_type(name)) {

@@ -126,7 +126,7 @@ class GetPollVotersQuery final : public Td::ResultHandler {
     }
 
     CHECK(!option.empty());
-    int32 flags = telegram_api::messages_getPollVotes::OPTION_MASK;
+    int32 flags = 0;
     if (!offset.empty()) {
       flags |= telegram_api::messages_getPollVotes::OFFSET_MASK;
     }

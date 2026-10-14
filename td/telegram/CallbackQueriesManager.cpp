@@ -66,8 +66,8 @@ class GetBotCallbackAnswerQuery final : public Td::ResultHandler {
         UNREACHABLE();
     }
     int32 flags = 0;
-    if (!is_game) {
-      flags |= telegram_api::messages_getBotCallbackAnswer::DATA_MASK;
+    if (!is_game && data.empty()) {
+      return on_error(Status::Error(400, "Payload data must be non-empty"));
     }
     auto net_query = G()->net_query_creator().create(telegram_api::messages_getBotCallbackAnswer(
         flags, is_game, std::move(input_peer), message_id.get_server_message_id().get(), std::move(data),
@@ -114,9 +114,8 @@ class GetEphemeralCallbackAnswerQuery final : public Td::ResultHandler {
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
-    int32 flags = telegram_api::ephemeral_getCallbackAnswer::DATA_MASK;
     auto net_query = G()->net_query_creator().create(telegram_api::ephemeral_getCallbackAnswer(
-        flags, std::move(input_peer), ephemeral_message_id.get(), BufferSlice(data)));
+        0, std::move(input_peer), ephemeral_message_id.get(), BufferSlice(data)));
     net_query->need_resend_on_503_ = false;
     send_query(std::move(net_query));
   }
@@ -352,8 +351,12 @@ void CallbackQueriesManager::send_callback_query(MessageFullId message_full_id,
   }
   auto ephemeral_message_id = td_->messages_manager_->get_ephemeral_message_id_of_message_id(message_full_id);
   if (ephemeral_message_id.is_valid() && payload->get_id() == td_api::callbackQueryPayloadData::ID) {
+    const string &data = static_cast<td_api::callbackQueryPayloadData *>(payload.get())->data_;
+    if (data.empty()) {
+      return promise.set_error(400, "Payload data must be non-empty");
+    }
     td_->create_handler<GetEphemeralCallbackAnswerQuery>(std::move(promise))
-        ->send(dialog_id, ephemeral_message_id, static_cast<td_api::callbackQueryPayloadData *>(payload.get())->data_);
+        ->send(dialog_id, ephemeral_message_id, data);
     return;
   }
   if (!message_id.is_server()) {

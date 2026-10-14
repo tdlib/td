@@ -158,8 +158,7 @@ SecretInputMedia VoiceNotesManager::get_secret_input_media(
   CHECK(voice_note != nullptr);
   vector<secret_api::object_ptr<secret_api::DocumentAttribute>> attributes;
   attributes.push_back(secret_api::make_object<secret_api::documentAttributeAudio>(
-      secret_api::documentAttributeAudio::WAVEFORM_MASK, true, voice_note->duration, "", "",
-      BufferSlice(voice_note->waveform)));
+      0, true, voice_note->duration, string(), string(), BufferSlice(voice_note->waveform)));
 
   return {std::move(input_file), BufferSlice(), Dimensions(), voice_note->mime_type, file_view,
           std::move(attributes), caption,       layer};
@@ -194,14 +193,8 @@ tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(
     CHECK(voice_note != nullptr);
 
     vector<telegram_api::object_ptr<telegram_api::DocumentAttribute>> attributes;
-    {
-      int32 flags = 0;
-      if (!voice_note->waveform.empty()) {
-        flags |= telegram_api::documentAttributeAudio::WAVEFORM_MASK;
-      }
-      attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeAudio>(
-          flags, true, voice_note->duration, "", "", BufferSlice(voice_note->waveform)));
-    }
+    attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeAudio>(
+        0, true, voice_note->duration, string(), string(), BufferSlice(voice_note->waveform)));
     string mime_type = voice_note->mime_type;
     if (mime_type != "audio/ogg" && mime_type != "audio/mpeg" && mime_type != "audio/mp4") {
       mime_type = "audio/ogg";

@@ -813,7 +813,7 @@ class JoinGroupCallQuery final : public Td::ResultHandler {
     CHECK(public_key_string.size() == public_key.as_slice().size());
     public_key.as_mutable_slice().copy_from(public_key_string);
 
-    int32 flags = telegram_api::phone_joinGroupCall::PUBLIC_KEY_MASK | telegram_api::phone_joinGroupCall::BLOCK_MASK;
+    int32 flags = telegram_api::phone_joinGroupCall::PUBLIC_KEY_MASK;
     send_query(G()->net_query_creator().create(telegram_api::phone_joinGroupCall(
         flags, parameters.is_muted_, !parameters.is_my_video_enabled_, input_group_call.get_input_group_call(),
         telegram_api::make_object<telegram_api::inputPeerSelf>(), string(), public_key, std::move(block),

@@ -297,8 +297,7 @@ class EnableWalletBackupQuery final : public Td::ResultHandler {
   void send(vector<BufferSlice> parts, BufferSlice public_key,
             telegram_api::object_ptr<telegram_api::walletOwnershipProof> proof) {
     send_query(G()->net_query_creator().create(
-        telegram_api::wallet_enableBackup(telegram_api::wallet_enableBackup::NEW_PUBLIC_KEY_MASK, std::move(parts),
-                                          std::move(public_key), std::move(proof))));
+        telegram_api::wallet_enableBackup(0, std::move(parts), std::move(public_key), std::move(proof))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -330,9 +329,8 @@ class DisableWalletBackupQuery final : public Td::ResultHandler {
   }
 
   void send(BufferSlice public_key, telegram_api::object_ptr<telegram_api::walletOwnershipProof> &&proof) {
-    int32 flags = telegram_api::wallet_disableBackup::NEW_PUBLIC_KEY_MASK;
     send_query(G()->net_query_creator().create(
-        telegram_api::wallet_disableBackup(flags, nullptr, std::move(public_key), std::move(proof))));
+        telegram_api::wallet_disableBackup(0, nullptr, std::move(public_key), std::move(proof))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -546,13 +544,9 @@ class SendWalletTransferQuery final : public Td::ResultHandler {
 
   void send(const string &data_normal, const string &data_gasless, UserId user_id, int64 random_id) {
     random_id_ = random_id;
-    int32 flags = 0;
-    if (!data_gasless.empty()) {
-      flags |= telegram_api::wallet_sendTransfer::DATA_GASLESS_MASK;
-    }
     auto r_input_user = td_->user_manager_->get_input_user(user_id);
     send_query(G()->net_query_creator().create(telegram_api::wallet_sendTransfer(
-        flags, BufferSlice(data_normal), BufferSlice(data_gasless),
+        0, BufferSlice(data_normal), BufferSlice(data_gasless),
         r_input_user.is_ok() ? r_input_user.move_as_ok() : telegram_api::make_object<telegram_api::inputUserEmpty>(),
         random_id)));
   }
@@ -891,12 +885,8 @@ class CloseTonConnectSessionQuery final : public Td::ResultHandler {
   }
 
   void send(int64 session_id, const string &body) {
-    int32 flags = 0;
-    if (!body.empty()) {
-      flags |= telegram_api::wallet_tonConnectCloseSession::BODY_MASK;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::wallet_tonConnectCloseSession(flags, session_id, BufferSlice(body))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::wallet_tonConnectCloseSession(0, session_id, BufferSlice(body))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1984,12 +1974,8 @@ void TonWalletManager::do_replace_ton_wallet_with_proof(
     telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> &&input_password, const string &anchor_public_key,
     TonWalletOwnershipProof &&proof, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  int32 flags = 0;
-  if (!anchor_public_key.empty()) {
-    flags |= telegram_api::inputWalletImported::ANCHOR_PUBLIC_KEY_MASK;
-  }
   auto input_wallet = telegram_api::make_object<telegram_api::inputWalletImported>(
-      flags, std::move(proof.public_key_), BufferSlice(anchor_public_key), std::move(proof.proof_));
+      0, std::move(proof.public_key_), BufferSlice(anchor_public_key), std::move(proof.proof_));
   td_->create_handler<ReplaceWalletQuery>(std::move(promise))->send(std::move(input_wallet), std::move(input_password));
 }
 

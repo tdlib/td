@@ -147,9 +147,6 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   if (todo_item_id_ != 0) {
     flags |= telegram_api::inputReplyToMessage::TODO_ITEM_ID_MASK;
   }
-  if (!poll_option_id_.empty()) {
-    flags |= telegram_api::inputReplyToMessage::POLL_OPTION_MASK;
-  }
   if (reply_to_message_id != MessageId() && !reply_to_message_id.is_server()) {
     LOG(FATAL) << *this << " in " << message_topic << " in " << for_dialog_id << " for "
                << (for_draft ? "draft" : "message") << " with flags " << with_flags << " from "

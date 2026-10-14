@@ -216,17 +216,17 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_sent_authentication_c
     case telegram_api::auth_sentCodeTypeFirebaseSms::ID: {
       auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeFirebaseSms>(sent_code_type_ptr);
 #if TD_ANDROID
-      if ((code_type->flags_ & telegram_api::auth_sentCodeTypeFirebaseSms::NONCE_MASK) != 0) {
+      if (!code_type->nonce_.empty()) {
         return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FirebaseAndroidSafetyNet, code_type->length_,
                                       code_type->nonce_.as_slice().str()};
       }
-      if ((code_type->flags_ & telegram_api::auth_sentCodeTypeFirebaseSms::PLAY_INTEGRITY_NONCE_MASK) != 0) {
+      if (!code_type->play_integrity_nonce_.empty()) {
         return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FirebaseAndroidPlayIntegrity, code_type->length_,
                                       code_type->play_integrity_nonce_.as_slice().str(), 0,
                                       code_type->play_integrity_project_id_};
       }
 #elif TD_DARWIN
-      if ((code_type->flags_ & telegram_api::auth_sentCodeTypeFirebaseSms::RECEIPT_MASK) != 0) {
+      if (!code_type->receipt_.empty()) {
         return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FirebaseIos, code_type->length_,
                                       std::move(code_type->receipt_), code_type->push_timeout_};
       }
