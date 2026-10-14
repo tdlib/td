@@ -1510,9 +1510,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"channel_color_level_min", "default_emoji_statuses_stickerset_id", "dialog_filters_enabled",
        "dialog_filters_tooltip", "forum_upgrade_participants_min", "getfile_experimental_params",
        "giveaway_gifts_purchase_available", "groupcall_video_participants_max", "ios_display_passkeys",
-       "message_animated_emoji_max", "qr_login_camera", "qr_login_code", "stargifts_blocked", "starref_connect_allowed",
-       "starref_program_allowed", "stars_purchase_blocked", "stars_rating_learnmore_url", "stickers_emoji_cache_time",
-       "stories_export_nopublic_link", "stories_posting", "story_expire_period", "test", "upload_max_fileparts_default",
+       "message_animated_emoji_max", "qr_login_camera", "qr_login_code", "round_video_recorder_2_allowed",
+       "stargifts_blocked", "starref_connect_allowed", "starref_program_allowed", "stars_purchase_blocked",
+       "stars_rating_learnmore_url", "stickers_emoji_cache_time", "stories_export_nopublic_link", "stories_posting",
+       "story_expire_period", "test", "upload_max_fileparts_default",
        //
        "upload_max_fileparts_premium"});
   if (config->get_id() == telegram_api::jsonObject::ID) {
