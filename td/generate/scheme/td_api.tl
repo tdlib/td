@@ -1659,6 +1659,13 @@ upgradedGift id:int64 regular_gift_id:int64 publisher_chat_id:int53 title:string
 //@fragment_url The HTTPS link to the Fragment for the gift; may be empty if there are no such gifts being sold on Fragment
 upgradedGiftValueInfo currency:string value:int53 is_value_average:Bool initial_sale_date:int32 initial_sale_star_count:int53 initial_sale_price:int53 last_sale_date:int32 last_sale_price:int53 is_last_sale_on_fragment:Bool minimum_price:int53 average_sale_price:int53 telegram_listed_gift_count:int32 fragment_listed_gift_count:int32 fragment_url:string = UpgradedGiftValueInfo;
 
+//@description Contains information needed to deposit an upgraded gift from the TON wallet of the current user to a Telegram account.
+//-The gift must be transferred by an internal message from the wallet to nft_address with gram_amount attached and with payload as the message body
+//@nft_address Address in TON blockchain to which the message must be sent
+//@payload Body of the NFT transfer message
+//@gram_amount The amount of nanograms that must be attached to the message to cover fees; excess amount will be returned to the wallet
+upgradedGiftDepositInfo nft_address:string payload:bytes gram_amount:int53 = UpgradedGiftDepositInfo;
+
 //@description Contains result of gift upgrading
 //@gift The upgraded gift
 //@received_gift_id Unique identifier of the received gift for the current user
@@ -15919,6 +15926,13 @@ getUpgradedGiftWithdrawalUrl received_gift_id:string password:string = HttpUrl;
 //@received_gift_id Identifier of the gift
 //@keep_on_profile Pass true to keep the gift displayed on the user's or the chat's profile page after withdrawal
 withdrawUpgradedGift received_gift_id:string keep_on_profile:Bool = Ok;
+
+//@description Returns information needed to deposit an upgraded gift from the TON wallet of the current user to a Telegram account. Use sendTonWalletTransfer to complete transfer of the gift.
+//-The gift will be received by the new owner with a message about the gift after the transfer is confirmed in the blockchain
+//@owner_id Identifier of the user or the channel chat that will receive the gift
+//@name Unique name of the upgraded gift
+//@hide_sender Pass true to hide the sender of the gift in the message received by the new owner
+getUpgradedGiftDepositInfo owner_id:MessageSender name:string hide_sender:Bool = UpgradedGiftDepositInfo;
 
 //@description Returns promotional animation for upgraded gifts
 getUpgradedGiftsPromotionalAnimation = Animation;

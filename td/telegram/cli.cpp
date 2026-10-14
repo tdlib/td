@@ -3592,6 +3592,13 @@ class CliClient final : public Actor {
       bool keep_on_profile;
       get_args(args, received_gift_id, keep_on_profile);
       send_request(td_api::make_object<td_api::withdrawUpgradedGift>(received_gift_id, keep_on_profile));
+    } else if (op == "gugdi") {
+      string owner_id;
+      string name;
+      bool hide_sender;
+      get_args(args, owner_id, name, hide_sender);
+      send_request(
+          td_api::make_object<td_api::getUpgradedGiftDepositInfo>(as_message_sender(owner_id), name, hide_sender));
     } else if (op == "gugpa") {
       send_request(td_api::make_object<td_api::getUpgradedGiftsPromotionalAnimation>());
     } else if (op == "sgfr" || op == "sgfrd" || op == "sgfrn" || op == "spfrc") {

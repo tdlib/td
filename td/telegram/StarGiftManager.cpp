@@ -1955,6 +1955,36 @@ class GetStarGiftWithdrawalUrlQuery final : public Td::ResultHandler {
   }
 };
 
+class DepositStarGiftQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::upgradedGiftDepositInfo>> promise_;
+
+ public:
+  explicit DepositStarGiftQuery(Promise<td_api::object_ptr<td_api::upgradedGiftDepositInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputPeer> &&input_peer, const string &name, bool hide_sender) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_depositStarGift(0, hide_sender, std::move(input_peer), name)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_depositStarGift>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DepositStarGiftQuery: " << to_string(ptr);
+    promise_.set_value(td_api::make_object<td_api::upgradedGiftDepositInfo>(
+        std::move(ptr->nft_address_), ptr->payload_.as_slice().str(), ptr->amount_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class WithdrawStarGiftQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -3228,6 +3258,19 @@ void StarGiftManager::send_get_star_gift_withdrawal_url_query(
 
   td_->create_handler<GetStarGiftWithdrawalUrlQuery>(std::move(promise))
       ->send(star_gift_id, std::move(input_check_password));
+}
+
+void StarGiftManager::get_upgraded_gift_deposit_info(
+    DialogId owner_dialog_id, const string &name, bool hide_sender,
+    Promise<td_api::object_ptr<td_api::upgradedGiftDepositInfo>> &&promise) {
+  auto input_peer = td_->dialog_manager_->get_input_peer(owner_dialog_id, AccessRights::Read);
+  if (input_peer == nullptr) {
+    return promise.set_error(400, "Have no access to the new gift owner");
+  }
+  if (name.empty()) {
+    return promise.set_error(400, "Invalid gift name specified");
+  }
+  td_->create_handler<DepositStarGiftQuery>(std::move(promise))->send(std::move(input_peer), name, hide_sender);
 }
 
 void StarGiftManager::withdraw_star_gift(StarGiftId star_gift_id, bool keep_on_profile, Promise<Unit> &&promise) {

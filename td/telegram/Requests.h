@@ -1978,6 +1978,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::withdrawUpgradedGift &request);
 
+  void on_request(uint64 id, td_api::getUpgradedGiftDepositInfo &request);
+
   void on_request(uint64 id, const td_api::getUpgradedGiftsPromotionalAnimation &request);
 
   void on_request(uint64 id, td_api::setGiftResalePrice &request);

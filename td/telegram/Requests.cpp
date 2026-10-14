@@ -9023,6 +9023,15 @@ void Requests::on_request(uint64 id, const td_api::withdrawUpgradedGift &request
                                               std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getUpgradedGiftDepositInfo &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.name_);
+  CREATE_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
+  td_->star_gift_manager_->get_upgraded_gift_deposit_info(owner_dialog_id, request.name_, request.hide_sender_,
+                                                          std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getUpgradedGiftsPromotionalAnimation &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

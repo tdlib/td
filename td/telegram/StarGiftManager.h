@@ -132,6 +132,9 @@ class StarGiftManager final : public Actor {
 
   void get_star_gift_withdrawal_url(StarGiftId star_gift_id, const string &password, Promise<string> &&promise);
 
+  void get_upgraded_gift_deposit_info(DialogId owner_dialog_id, const string &name, bool hide_sender,
+                                      Promise<td_api::object_ptr<td_api::upgradedGiftDepositInfo>> &&promise);
+
   void withdraw_star_gift(StarGiftId star_gift_id, bool keep_on_profile, Promise<Unit> &&promise);
 
   void set_star_gift_price(StarGiftId star_gift_id, StarGiftResalePrice price, Promise<Unit> &&promise);
