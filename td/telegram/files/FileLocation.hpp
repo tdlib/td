@@ -209,6 +209,9 @@ void FullRemoteFileLocation::parse(ParserT &parser) {
   int32 dc_id_value;
   parse(dc_id_value, parser);
   dc_id_ = DcId::from_value(dc_id_value);
+  if (file_type_ == FileType::EncryptedThumbnail && dc_id_ != DcId::invalid()) {
+    return parser.set_error("Invalid DcId for file type");
+  }
 
   if (has_file_reference) {
     parse(file_reference_, parser);
