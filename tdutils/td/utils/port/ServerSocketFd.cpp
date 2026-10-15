@@ -315,7 +315,7 @@ bool ServerSocketFd::empty() const {
 }
 
 Result<ServerSocketFd> ServerSocketFd::open(int32 port, CSlice addr) {
-  if (port <= 0 || port >= (1 << 16)) {
+  if (port < 0 || port >= (1 << 16)) {
     return Status::Error(PSLICE() << "Invalid server port " << port << " specified");
   }
 
@@ -334,7 +334,9 @@ Result<ServerSocketFd> ServerSocketFd::open(int32 port, CSlice addr) {
 #if TD_PORT_POSIX
   int flags = 1;
 #ifdef SO_REUSEPORT
-  setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<const char *>(&flags), sizeof(flags));
+  if (port != 0) {
+    setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<const char *>(&flags), sizeof(flags));
+  }
 #endif
 #elif TD_PORT_WINDOWS
   BOOL flags = FALSE;
@@ -343,7 +345,15 @@ Result<ServerSocketFd> ServerSocketFd::open(int32 port, CSlice addr) {
   }
   flags = TRUE;
 #endif
-  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&flags), sizeof(flags));
+  if (port != 0) {
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&flags), sizeof(flags));
+  } else {
+    // an ephemeral port is used only by its owner; SO_REUSEPORT, or SO_REUSEADDR on Windows,
+    // would let another process bind it too and receive a share of the incoming connections
+#if TD_PORT_WINDOWS
+    setsockopt(sock, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, reinterpret_cast<const char *>(&flags), sizeof(flags));
+#endif
+  }
   setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<const char *>(&flags), sizeof(flags));
   setsockopt(sock, SOL_SOCKET, SO_LINGER, reinterpret_cast<const char *>(&ling), sizeof(ling));
   setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&flags), sizeof(flags));

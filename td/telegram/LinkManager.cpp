@@ -1178,6 +1178,10 @@ class LinkManager::InternalLinkProxy final : public InternalLink {
           auto type_mtproto = static_cast<const td_api::proxyTypeMtproto *>(type);
           return td_api::make_object<td_api::proxyTypeMtproto>(type_mtproto->secret_);
         }
+        case td_api::proxyTypeWeb::ID: {
+          auto type_web = static_cast<const td_api::proxyTypeWeb *>(type);
+          return td_api::make_object<td_api::proxyTypeWeb>(type_web->path_, type_web->secret_);
+        }
         default:
           UNREACHABLE();
           return nullptr;
@@ -2195,7 +2199,7 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
       static const FlatHashSet<Slice, SliceHash> disallowed_subdomains(
           {"addemoji",     "addlist", "addstickers", "addstyle", "addtheme", "auction", "auth", "boost", "call",
            "confirmphone", "contact", "giftcode",    "invoice",  "joinchat", "login",   "m",    "nft",   "proxy",
-           "setlanguage",  "share",   "socks",       "web",      "a",        "k",       "z"});
+           "setlanguage",  "share",   "socks",       "web",      "webproxy", "a",       "k",    "z"});
       if (is_valid_username(subdomain) && disallowed_subdomains.count(subdomain) == 0) {
         result.type_ = LinkType::TMe;
         result.query_ = PSTRING() << '/' << subdomain << http_url.query_;
@@ -2663,6 +2667,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     } else {
       return td::make_unique<InternalLinkProxy>(string(), 0, nullptr);
     }
+  } else if (path.size() == 1 && path[0] == "webproxy") {
+    // webproxy?server=<host>[%2F<path>]&secret=<secret>
+    return get_internal_link_web_proxy(url_query.get_arg("server"), url_query.get_arg("secret"));
   } else if (path.size() == 1 && path[0] == "privatepost") {
     // privatepost?channel=123456789&post=12345&single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
     if (has_arg("channel") && has_arg("post")) {
@@ -2944,6 +2951,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     } else {
       return td::make_unique<InternalLinkProxy>(string(), 0, nullptr);
     }
+  } else if (path[0] == "webproxy") {
+    // /webproxy?server=<host>[%2F<path>]&secret=<secret>
+    return get_internal_link_web_proxy(url_query.get_arg("server"), url_query.get_arg("secret"));
   } else if (path[0] == "bg") {
     if (path.size() >= 2 && !path[1].empty()) {
       // /bg/<hex_color>
@@ -3176,6 +3186,22 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_message_dra
     }
   }
   return td::make_unique<InternalLinkMessageDraft>(std::move(full_text), contains_url);
+}
+
+unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_web_proxy(Slice address, Slice secret) {
+  // a port parameter is ignored, because web proxies always use 443
+  auto r_address = Proxy::parse_web_proxy_address(address);
+  if (r_address.is_ok()) {
+    auto host = std::move(r_address.ok_ref().first);
+    auto path = std::move(r_address.ok_ref().second);
+    auto r_secret = Proxy::get_web_proxy_link_secret(secret, !path.empty());
+    if (r_secret.is_ok()) {
+      return td::make_unique<InternalLinkProxy>(
+          std::move(host), Proxy::WEB_PROXY_PORT,
+          td_api::make_object<td_api::proxyTypeWeb>(std::move(path), r_secret.ok().get_encoded_secret()));
+    }
+  }
+  return td::make_unique<InternalLinkProxy>(string(), 0, nullptr);
 }
 
 unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_ton_connect(Slice query, bool check_path) {
@@ -4777,6 +4803,10 @@ Result<string> LinkManager::get_proxy_link(const Proxy &proxy, bool is_internal)
     case Proxy::Type::Mtproto:
       url += "proxy";
       break;
+    case Proxy::Type::Web:
+      // the port is always 443, and the path travels in the server parameter
+      return PSTRING() << url << "webproxy?server=" << url_encode(proxy.get_web_proxy_address())
+                       << "&secret=" << url_encode(proxy.get_web_proxy_link_secret());
     default:
       UNREACHABLE();
   }

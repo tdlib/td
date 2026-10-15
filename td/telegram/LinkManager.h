@@ -219,6 +219,8 @@ class LinkManager final : public Actor {
 
   static unique_ptr<InternalLink> get_internal_link_ton_connect(Slice query, bool check_path);
 
+  static unique_ptr<InternalLink> get_internal_link_web_proxy(Slice address, Slice secret);
+
   static Result<string> get_internal_link_impl(const td_api::InternalLinkType *type_ptr, bool is_internal);
 
   static Result<string> check_link_impl(Slice link, bool http_only, bool https_only);

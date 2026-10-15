@@ -21,6 +21,7 @@ namespace td {
 
 Result<string> idn_to_ascii(CSlice host);
 
+class ServerSocketFd;
 class SocketFd;
 
 class IPAddress {
@@ -61,6 +62,7 @@ class IPAddress {
   Status init_host_port(CSlice host, CSlice port, bool prefer_ipv6 = false) TD_WARN_UNUSED_RESULT;
   Status init_host_port(CSlice host_port) TD_WARN_UNUSED_RESULT;
   Status init_socket_address(const SocketFd &socket_fd) TD_WARN_UNUSED_RESULT;
+  Status init_socket_address(const ServerSocketFd &server_socket_fd) TD_WARN_UNUSED_RESULT;
   Status init_peer_address(const SocketFd &socket_fd) TD_WARN_UNUSED_RESULT;
 
   void clear_ipv6_interface();

@@ -10471,6 +10471,13 @@ proxyTypeHttp username:string password:string http_only:Bool = ProxyType;
 //@description An MTProto proxy server @secret The proxy's secret in hexadecimal encoding
 proxyTypeMtproto secret:string = ProxyType;
 
+//@description A web proxy server. MTProto traffic goes through an HTTPS relay page hosted by the application in a hidden web view; see updateWebProxyCarrierOpened.
+//-The proxy server must be a domain name and the port must be 443
+//@path Base path of the relay on the server, without leading and trailing slashes; may be empty. Consists of 0-128 characters;
+//-each "/"-separated segment must match [A-Za-z0-9][A-Za-z0-9_-]*
+//@secret The MTProto proxy secret in hexadecimal encoding; must be 16 bytes long, optionally prefixed with the byte 0xdd
+proxyTypeWeb path:string secret:string = ProxyType;
+
 
 //@description Contains information about a proxy server added to the list of proxies
 //@id Unique identifier of the proxy
@@ -10482,6 +10489,50 @@ addedProxy id:int32 last_used_date:int32 is_enabled:Bool comment:string proxy:pr
 
 //@description Represents a list of added proxy servers @proxies List of proxy servers
 addedProxies proxies:vector<addedProxy> = AddedProxies;
+
+
+//@description Describes a web proxy carrier: an HTTPS relay page, which carries traffic of a web proxy and must be loaded by the application as the top-level document of a hidden web view.
+//-Before loading the page, the application must arrange for an object named carrier.bridge_object_name to be defined in the top-level document whenever its origin is exactly carrier.origin,
+//-and in no other document or frame. The object must be read-only and must have two members:
+//-a method postMessage(value), which passes an ArrayBuffer or a typed array to processWebProxyCarrierMessage as webProxyCarrierMessageBinary, passes a string as webProxyCarrierMessageText,
+//-and rejects any other value; and a property onmessage, which the page sets to a function. The application delivers data to the page by calling that function with an object {data: value},
+//-where value is an ArrayBuffer for binary data and a string for text. Each carrier needs its own web view
+//@id Unique identifier of the carrier
+//@proxy_id Identifier of the added proxy that uses the carrier; 0 if the carrier is used by pingProxy or testProxy
+//@url The HTTPS URL to load. The URL contains the capability for the proxy and a fragment, which must be kept; the URL must never be logged or shown to the user
+//@origin Origin of the relay page, for example, "https://proxy.example.com". The web view must not be allowed to navigate to another origin
+//@path_prefix The only path prefix on carrier.origin, from which the page may load resources or to which it may send requests, for example, "/" or "/relay/"
+//@bridge_object_name Name of the object to define in the top-level document; currently, always "TelegramWebProxy"
+//@is_temporary True, if the carrier is needed only to test the proxy and will be closed after the test.
+//-The application may refuse to open such carriers, for example, to avoid creating a web view for every saved proxy
+webProxyCarrier id:int32 proxy_id:int32 url:string origin:string path_prefix:string bridge_object_name:string is_temporary:Bool = WebProxyCarrier;
+
+
+//@class WebProxyCarrierMessage @description Describes a message passed by the page of a web proxy carrier to postMessage of the bridge object
+
+//@description A string message @text The string
+webProxyCarrierMessageText text:string = WebProxyCarrierMessage;
+
+//@description A binary message, passed as an ArrayBuffer or a typed array @data Data of the message
+webProxyCarrierMessageBinary data:bytes = WebProxyCarrierMessage;
+
+
+//@class WebProxyCarrierError @description Describes the reason why a web proxy carrier failed
+
+//@description The application can't open the carrier, because the platform can't create hidden web views or define the bridge object; TDLib will not retry until the proxy is enabled again
+webProxyCarrierErrorUnsupported = WebProxyCarrierError;
+
+//@description The application can't open the carrier now, for example, because it is in the background; TDLib will request it again after the next call to setNetworkType or after a delay
+webProxyCarrierErrorPaused = WebProxyCarrierError;
+
+//@description The page failed to load: a network, TLS or HTTP error, or a forbidden navigation @message Description of the error for logging; must not contain the URL
+webProxyCarrierErrorLoadFailed message:string = WebProxyCarrierError;
+
+//@description The web view or its renderer process was terminated, or passing data between the application and the page failed
+webProxyCarrierErrorTerminated = WebProxyCarrierError;
+
+//@description The application refused to open a temporary carrier
+webProxyCarrierErrorRefused = WebProxyCarrierError;
 
 
 //@description A sticker to be added to a sticker set
@@ -11338,6 +11389,22 @@ updateLanguagePackStrings localization_target:string language_pack_id:string str
 
 //@description The connection state has changed. This update must be used only to show a human-readable description of the connection state @state The new connection state
 updateConnectionState state:ConnectionState = Update;
+
+//@description A web proxy carrier must be opened as described in webProxyCarrier. Messages passed by the page to the bridge object must be passed to processWebProxyCarrierMessage.
+//-Failures of the carrier must be reported with reportWebProxyCarrierError
+//@carrier The carrier
+updateWebProxyCarrierOpened carrier:webProxyCarrier = Update;
+
+//@description Data must be delivered as an ArrayBuffer to the page of a web proxy carrier through the onmessage function of the bridge object, in the order of the updates
+//@carrier_id Identifier of the carrier
+//@data The data to deliver
+updateWebProxyCarrierData carrier_id:int32 data:bytes = Update;
+
+//@description A web proxy carrier must be closed. If the page has passed any message to the bridge object, then the application must deliver the string {"t":"close"} to the page,
+//-so that it can end its relay session, and destroy the web view shortly after, for example, in 200 milliseconds; otherwise, the web view must be destroyed immediately.
+//-Messages from the carrier received after this update must be ignored
+//@carrier_id Identifier of the carrier
+updateWebProxyCarrierClosed carrier_id:int32 = Update;
 
 //@description The freeze state of the current user's account has changed
 //@is_frozen True, if the account is frozen
@@ -16823,6 +16890,17 @@ getProxies = AddedProxies;
 //@description Computes time needed to receive a response from a Telegram server through a proxy. Can be called before authorization
 //@proxy The proxy to test; pass null to ping a Telegram server without a proxy
 pingProxy proxy:proxy = Seconds;
+
+//@description Passes a message, which the page of a web proxy carrier passed to postMessage of the bridge object, to TDLib. Must be called in the order in which the messages were passed.
+//-Can be called before authorization
+//@carrier_id Identifier of the carrier
+//@message The received message
+processWebProxyCarrierMessage carrier_id:int32 message:WebProxyCarrierMessage = Ok;
+
+//@description Reports that a web proxy carrier failed. TDLib closes the carrier and decides whether and when to request a new one. Can be called before authorization
+//@carrier_id Identifier of the carrier
+//@error The error
+reportWebProxyCarrierError carrier_id:int32 error:WebProxyCarrierError = Ok;
 
 
 //@description Sets new log stream for internal logging of TDLib. Can be called synchronously @log_stream New log stream

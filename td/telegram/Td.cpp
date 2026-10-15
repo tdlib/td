@@ -64,6 +64,7 @@
 #include "td/telegram/net/Proxy.h"
 #include "td/telegram/net/ProxyChecker.h"
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
+#include "td/telegram/net/WebProxyManager.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/OnlineManager.h"
@@ -200,6 +201,8 @@ bool Td::is_preinitialization_request(int32 id) {
     case td_api::testCallVectorString::ID:
     case td_api::testCallVectorStringObject::ID:
     case td_api::testProxy::ID:
+    case td_api::processWebProxyCarrierMessage::ID:
+    case td_api::reportWebProxyCarrierError::ID:
       return true;
     default:
       return false;
@@ -287,7 +290,12 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
     return callback_->on_error(id, make_error(400, "Request is empty"));
   }
 
-  VLOG(td_requests) << "Receive request " << id << ": " << to_string(function);
+  if (function->get_id() == td_api::processWebProxyCarrierMessage::ID) {
+    // the page messages carry relay traffic, which must never be logged
+    VLOG(td_requests) << "Receive request " << id << ": processWebProxyCarrierMessage";
+  } else {
+    VLOG(td_requests) << "Receive request " << id << ": " << to_string(function);
+  }
   request_set_.emplace(id, function->get_id());
   if (SynchronousRequests::is_synchronous_request(function.get())) {
     // send response synchronously
@@ -454,6 +462,9 @@ void Td::start_up() {
 
   alarm_manager_ = create_actor<AlarmManager>("AlarmManager", create_reference());
   proxy_checker_ = create_actor<ProxyChecker>("ProxyChecker", create_reference());
+  // testProxy can be used before setTdlibParameters, so web proxies must be available from the start
+  web_proxy_manager_ = create_actor<WebProxyManager>("WebProxyManager", create_reference());
+  G()->set_web_proxy_manager(web_proxy_manager_.get());
 
   CHECK(state_ == State::WaitParameters);
   for (auto &update : get_fake_current_state()) {
@@ -688,6 +699,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(secure_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(secret_chats_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(storage_manager_)));
+  reset_actor(ActorOwn<Actor>(std::move(web_proxy_manager_)));
 
   G()->set_connection_creator(ActorOwn<ConnectionCreator>());
   LOG(DEBUG) << "ConnectionCreator was cleared" << timer;
@@ -790,6 +802,7 @@ void Td::close_impl(bool destroy_flag) {
     clear_requests();
     alarm_manager_.reset();
     proxy_checker_.reset();
+    web_proxy_manager_.reset();
     send_update(td_api::make_object<td_api::updateAuthorizationState>(
         td_api::make_object<td_api::authorizationStateClosing>()));
 
@@ -1394,6 +1407,15 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
       break;
     case td_api::updateDefaultReactionType::ID / 2:
       LOG(ERROR) << "Sending update: " << oneline(to_string(object));
+      break;
+    case td_api::updateWebProxyCarrierOpened::ID:
+      // the carrier URL contains the proxy capability, and the data is relay traffic
+      VLOG(td_requests) << "Sending update: updateWebProxyCarrierOpened "
+                        << static_cast<const td_api::updateWebProxyCarrierOpened *>(object.get())->carrier_->id_;
+      break;
+    case td_api::updateWebProxyCarrierData::ID:
+      VLOG(td_requests) << "Sending update: updateWebProxyCarrierData "
+                        << static_cast<const td_api::updateWebProxyCarrierData *>(object.get())->carrier_id_;
       break;
     default:
       VLOG(td_requests) << "Sending update: " << to_string(object);
