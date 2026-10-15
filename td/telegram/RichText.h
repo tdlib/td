@@ -75,6 +75,8 @@ class RichText {
   RichButtonStyle button_style_;
   unique_ptr<InlineKeyboardButton> button_;
 
+  RichText get_quote_fragment_impl(size_t &pos, size_t begin, size_t end) const;
+
  public:
   RichText() = default;
   RichText(const RichText &) = delete;
@@ -105,6 +107,9 @@ class RichText {
   // returns text of the rich text as used in quotes
   string get_quote_text() const;
 
+  // returns part of the rich text between begin and end UTF-8 characters of its quote text, which can be used in a quote
+  RichText get_quote_fragment(size_t begin, size_t end) const;
+
   int32 get_index_mask() const;
 
   void append_user_ids(vector<UserId> &user_ids) const;
@@ -115,7 +120,7 @@ class RichText {
 
   bool is_hashtag() const;
 
-  RichText clone(CloneWebPageBlockContext &context) const;
+  RichText clone(CloneWebPageBlockContext &context, bool skip_texts = false) const;
 
   telegram_api::object_ptr<telegram_api::RichText> get_input_rich_text(GetInputPageBlockContext &context) const;
 

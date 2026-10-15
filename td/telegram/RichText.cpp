@@ -24,7 +24,9 @@
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 
@@ -621,6 +623,89 @@ string RichText::get_quote_text() const {
   }
 }
 
+RichText RichText::get_quote_fragment(size_t begin, size_t end) const {
+  size_t pos = 0;
+  return get_quote_fragment_impl(pos, begin, end);
+}
+
+RichText RichText::get_quote_fragment_impl(size_t &pos, size_t begin, size_t end) const {
+  switch (type_) {
+    case Type::Plain: {
+      auto size = utf8_length(content_);
+      auto from = max(begin, pos);
+      auto to = min(end, pos + size);
+      RichText result;
+      if (from < to) {
+        result.content_ = utf8_substr(Slice(content_), from - pos, to - from).str();
+      }
+      pos += size;
+      return result;
+    }
+    case Type::Math:
+    case Type::CustomEmoji: {
+      auto size = utf8_length(content_);
+      auto is_included = begin <= pos && pos + size <= end;
+      pos += size;
+      if (!is_included) {
+        return {};
+      }
+      CloneWebPageBlockContext context;
+      return clone(context);
+    }
+    case Type::Icon:
+      // icons can't be quoted
+      return {};
+    case Type::Concatenation: {
+      vector<RichText> texts;
+      for (auto &text : texts_) {
+        auto fragment = text.get_quote_fragment_impl(pos, begin, end);
+        if (!fragment.empty()) {
+          texts.push_back(std::move(fragment));
+        }
+      }
+      if (texts.empty()) {
+        return {};
+      }
+      RichText result;
+      result.type_ = Type::Concatenation;
+      result.texts_ = std::move(texts);
+      return result;
+    }
+    case Type::Button: {
+      // buttons are quoted as plain text
+      CHECK(!texts_.empty());
+      auto fragment = texts_[0].get_quote_fragment_impl(pos, begin, end);
+      if (fragment.empty()) {
+        return {};
+      }
+      return create_plain(fragment.get_quote_text());
+    }
+    case Type::Diff:
+      // only the new text can be quoted
+      CHECK(!texts_.empty());
+      return texts_[0].get_quote_fragment_impl(pos, begin, end);
+    default: {
+      if (texts_.size() != 1u) {
+        LOG(ERROR) << "Receive rich text of type " << static_cast<int32>(type_) << " with " << texts_.size()
+                   << " texts";
+        for (auto &text : texts_) {
+          pos += utf8_length(text.get_quote_text());
+        }
+        return {};
+      }
+      auto fragment = texts_[0].get_quote_fragment_impl(pos, begin, end);
+      if (fragment.empty()) {
+        return {};
+      }
+      CloneWebPageBlockContext context;
+      auto result = clone(context, true);
+      result.texts_.clear();
+      result.texts_.push_back(std::move(fragment));
+      return result;
+    }
+  }
+}
+
 int32 RichText::get_index_mask() const {
   switch (type_) {
     case Type::Url:
@@ -663,12 +748,14 @@ bool RichText::is_hashtag() const {
   return type_ == Type::Hashtag;
 }
 
-RichText RichText::clone(CloneWebPageBlockContext &context) const {
+RichText RichText::clone(CloneWebPageBlockContext &context, bool skip_texts) const {
   RichText result;
   result.type_ = type_;
   result.content_ = content_;
-  for (auto &text : texts_) {
-    result.texts_.push_back(text.clone(context));
+  if (!skip_texts) {
+    for (auto &text : texts_) {
+      result.texts_.push_back(text.clone(context));
+    }
   }
   result.document_file_id_ = document_file_id_;
   result.custom_emoji_id_ = custom_emoji_id_;
