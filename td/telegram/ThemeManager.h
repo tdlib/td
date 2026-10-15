@@ -136,6 +136,20 @@ class ThemeManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  class ShareThemeBackdrop {
+    int32 id_ = 0;
+    string name_;
+    int32 center_color_ = 0;
+    int32 edge_color_ = 0;
+    int32 pattern_color_ = 0;
+    int32 text_color_ = 0;
+
+   public:
+    explicit ShareThemeBackdrop(telegram_api::object_ptr<telegram_api::shareThemeBackdropOption> &&backdrop);
+
+    td_api::object_ptr<td_api::profileShareThemeBackdrop> get_profile_share_theme_backdrop_object() const;
+  };
+
   void start_up() final;
 
   void tear_down() final;
@@ -164,6 +178,12 @@ class ThemeManager final : public Actor {
       telegram_api::object_ptr<telegram_api::help_PeerColorSet> &&color_set) const;
 
   void on_get_profile_accent_colors(Result<telegram_api::object_ptr<telegram_api::help_PeerColors>> result);
+
+  void reload_share_theme_backdrops();
+
+  void on_get_share_theme_backdrops(Result<telegram_api::object_ptr<telegram_api::ShareThemeBackdrops>> result);
+
+  td_api::object_ptr<td_api::profileShareThemeBackdrops> get_profile_share_theme_backdrops_object() const;
 
   td_api::object_ptr<td_api::emojiChatTheme> get_emoji_chat_theme_object(const EmojiChatTheme &theme) const;
 
@@ -196,6 +216,12 @@ class ThemeManager final : public Actor {
   AccentColors accent_colors_;
 
   ProfileAccentColors profile_accent_colors_;
+
+  vector<ShareThemeBackdrop> share_theme_backdrops_;
+  int32 share_theme_backdrops_hash_ = 0;
+  double next_share_theme_backdrops_reload_time_ = 0.0;
+  bool is_share_theme_backdrops_being_reloaded_ = false;
+  vector<Promise<td_api::object_ptr<td_api::profileShareThemeBackdrops>>> get_share_theme_backdrops_queries_;
 
   Td *td_;
   ActorShared<> parent_;

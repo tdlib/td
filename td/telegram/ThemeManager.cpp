@@ -25,6 +25,7 @@
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
@@ -170,15 +171,15 @@ class GetUniqueGiftChatThemesQuery final : public Td::ResultHandler {
 };
 
 class GetShareThemeBackdropsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::profileShareThemeBackdrops>> promise_;
+  Promise<telegram_api::object_ptr<telegram_api::ShareThemeBackdrops>> promise_;
 
  public:
-  explicit GetShareThemeBackdropsQuery(Promise<td_api::object_ptr<td_api::profileShareThemeBackdrops>> &&promise)
+  explicit GetShareThemeBackdropsQuery(Promise<telegram_api::object_ptr<telegram_api::ShareThemeBackdrops>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send() {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getShareThemeBackdrops(0)));
+  void send(int32 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getShareThemeBackdrops(hash)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -189,24 +190,30 @@ class GetShareThemeBackdropsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetShareThemeBackdropsQuery: " << to_string(ptr);
-    if (ptr->get_id() != telegram_api::shareThemeBackdrops::ID) {
-      return on_error(Status::Error(500, "Receive unexpected response"));
-    }
-    auto backdrops = telegram_api::move_object_as<telegram_api::shareThemeBackdrops>(ptr);
-    auto result = td_api::make_object<td_api::profileShareThemeBackdrops>();
-    for (auto &backdrop : backdrops->backdrops_) {
-      result->backdrops_.push_back(td_api::make_object<td_api::profileShareThemeBackdrop>(
-          backdrop->backdrop_id_, backdrop->name_,
-          td_api::make_object<td_api::upgradedGiftBackdropColors>(backdrop->center_color_, backdrop->edge_color_,
-                                                                  backdrop->pattern_color_, backdrop->text_color_)));
-    }
-    promise_.set_value(std::move(result));
+    promise_.set_value(std::move(ptr));
   }
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
+
+ThemeManager::ShareThemeBackdrop::ShareThemeBackdrop(
+    telegram_api::object_ptr<telegram_api::shareThemeBackdropOption> &&backdrop)
+    : id_(backdrop->backdrop_id_)
+    , name_(std::move(backdrop->name_))
+    , center_color_(backdrop->center_color_)
+    , edge_color_(backdrop->edge_color_)
+    , pattern_color_(backdrop->pattern_color_)
+    , text_color_(backdrop->text_color_) {
+}
+
+td_api::object_ptr<td_api::profileShareThemeBackdrop>
+ThemeManager::ShareThemeBackdrop::get_profile_share_theme_backdrop_object() const {
+  return td_api::make_object<td_api::profileShareThemeBackdrop>(
+      id_, name_,
+      td_api::make_object<td_api::upgradedGiftBackdropColors>(center_color_, edge_color_, pattern_color_, text_color_));
+}
 
 bool operator==(const ThemeManager::ProfileAccentColor &lhs, const ThemeManager::ProfileAccentColor &rhs) {
   return lhs.palette_colors_ == rhs.palette_colors_ && lhs.background_colors_ == rhs.background_colors_ &&
@@ -1070,7 +1077,69 @@ void ThemeManager::get_unique_gift_chat_themes(const string &offset, int32 limit
 
 void ThemeManager::get_profile_share_theme_backdrops(
     Promise<td_api::object_ptr<td_api::profileShareThemeBackdrops>> &&promise) {
-  td_->create_handler<GetShareThemeBackdropsQuery>(std::move(promise))->send();
+  if (next_share_theme_backdrops_reload_time_ != 0.0) {
+    // the backdrops were loaded; return them immediately and reload them in background if needed
+    promise.set_value(get_profile_share_theme_backdrops_object());
+    if (Time::now() >= next_share_theme_backdrops_reload_time_) {
+      reload_share_theme_backdrops();
+    }
+    return;
+  }
+
+  get_share_theme_backdrops_queries_.push_back(std::move(promise));
+  reload_share_theme_backdrops();
+}
+
+void ThemeManager::reload_share_theme_backdrops() {
+  if (is_share_theme_backdrops_being_reloaded_) {
+    return;
+  }
+  is_share_theme_backdrops_being_reloaded_ = true;
+
+  auto request_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::ShareThemeBackdrops>> result) {
+        send_closure(actor_id, &ThemeManager::on_get_share_theme_backdrops, std::move(result));
+      });
+  td_->create_handler<GetShareThemeBackdropsQuery>(std::move(request_promise))->send(share_theme_backdrops_hash_);
+}
+
+void ThemeManager::on_get_share_theme_backdrops(
+    Result<telegram_api::object_ptr<telegram_api::ShareThemeBackdrops>> result) {
+  CHECK(is_share_theme_backdrops_being_reloaded_);
+  is_share_theme_backdrops_being_reloaded_ = false;
+
+  auto promises = std::move(get_share_theme_backdrops_queries_);
+  reset_to_empty(get_share_theme_backdrops_queries_);
+  if (result.is_error()) {
+    // if the backdrops were loaded before, then there are no pending queries
+    return fail_promises(promises, result.move_as_error());
+  }
+  next_share_theme_backdrops_reload_time_ = Time::now() + 3600;
+
+  auto backdrops_ptr = result.move_as_ok();
+  switch (backdrops_ptr->get_id()) {
+    case telegram_api::shareThemeBackdropsNotModified::ID:
+      break;
+    case telegram_api::shareThemeBackdrops::ID: {
+      auto backdrops = telegram_api::move_object_as<telegram_api::shareThemeBackdrops>(backdrops_ptr);
+      share_theme_backdrops_hash_ = backdrops->hash_;
+      share_theme_backdrops_ = transform(std::move(backdrops->backdrops_),
+                                         [](auto &&backdrop) { return ShareThemeBackdrop(std::move(backdrop)); });
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+
+  for (auto &promise : promises) {
+    promise.set_value(get_profile_share_theme_backdrops_object());
+  }
+}
+
+td_api::object_ptr<td_api::profileShareThemeBackdrops> ThemeManager::get_profile_share_theme_backdrops_object() const {
+  return td_api::make_object<td_api::profileShareThemeBackdrops>(
+      transform(share_theme_backdrops_,
+                [](const ShareThemeBackdrop &backdrop) { return backdrop.get_profile_share_theme_backdrop_object(); }));
 }
 
 void ThemeManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
