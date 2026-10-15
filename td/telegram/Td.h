@@ -118,6 +118,7 @@ class VoiceNotesManager;
 class WebAppManager;
 class WebBrowserManager;
 class WebPagesManager;
+class WebProxyManager;
 class WelcomeMessageManager;
 
 extern int VERBOSITY_NAME(td_init);
@@ -321,6 +322,7 @@ class Td final : public Actor {
   ActorOwn<SecureManager> secure_manager_;
   ActorOwn<StateManager> state_manager_;
   ActorOwn<StorageManager> storage_manager_;
+  ActorOwn<WebProxyManager> web_proxy_manager_;
 
   class ResultHandler : public std::enable_shared_from_this<ResultHandler> {
    public:

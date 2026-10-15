@@ -113,6 +113,7 @@
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/net/Proxy.h"
 #include "td/telegram/net/ProxyChecker.h"
+#include "td/telegram/net/WebProxyManager.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationManager.h"
@@ -9739,6 +9740,18 @@ void Requests::on_request(uint64 id, td_api::pingProxy &request) {
   });
   send_closure(G()->connection_creator(), &ConnectionCreator::ping_proxy, std::move(request.proxy_),
                std::move(query_promise));
+}
+
+void Requests::on_request(uint64 id, td_api::processWebProxyCarrierMessage &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(G()->web_proxy_manager(), &WebProxyManager::process_carrier_message, request.carrier_id_,
+               std::move(request.message_), std::move(promise));
+}
+
+void Requests::on_request(uint64 id, td_api::reportWebProxyCarrierError &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(G()->web_proxy_manager(), &WebProxyManager::report_carrier_error, request.carrier_id_,
+               std::move(request.error_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getUserSupportInfo &request) {

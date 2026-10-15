@@ -99,6 +99,7 @@ class UserManager;
 class WebAppManager;
 class WebBrowserManager;
 class WebPagesManager;
+class WebProxyManager;
 class WelcomeMessageManager;
 
 class Global final : public ActorContext {
@@ -638,6 +639,13 @@ class Global final : public ActorContext {
     web_pages_manager_ = web_pages_manager;
   }
 
+  ActorId<WebProxyManager> web_proxy_manager() const {
+    return web_proxy_manager_;
+  }
+  void set_web_proxy_manager(ActorId<WebProxyManager> web_proxy_manager) {
+    web_proxy_manager_ = web_proxy_manager;
+  }
+
   ActorId<WelcomeMessageManager> welcome_message_manager() const {
     return welcome_message_manager_;
   }
@@ -835,6 +843,7 @@ class Global final : public ActorContext {
   ActorId<WebAppManager> web_app_manager_;
   ActorId<WebBrowserManager> web_browser_manager_;
   ActorId<WebPagesManager> web_pages_manager_;
+  ActorId<WebProxyManager> web_proxy_manager_;
   ActorId<WelcomeMessageManager> welcome_message_manager_;
   ActorOwn<ConnectionCreator> connection_creator_;
   ActorOwn<TempAuthKeyWatchdog> temp_auth_key_watchdog_;
