@@ -1976,6 +1976,9 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
     } else {
       flags |= telegram_api::messages_acceptUrlAuth::URL_MASK;
     }
+    if (!match_code.empty()) {
+      flags |= telegram_api::messages_acceptUrlAuth::MATCH_CODE_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::messages_acceptUrlAuth(
         flags, allow_write_access, allow_phone_number_access, std::move(input_peer),
         message_full_id.get_message_id().get_server_message_id().get(), button_id, url_, match_code)));

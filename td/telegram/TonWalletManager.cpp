@@ -740,8 +740,12 @@ class SubmitTonConnectResultQuery final : public Td::ResultHandler {
 
   void send(int64 session_id, const string &challenge_answer, bool is_error, const string &body,
             const string &trace_id) {
+    int32 flags = 0;
+    if (!trace_id.empty()) {
+      flags |= telegram_api::wallet_tonConnectSubmitConnectResult::TRACE_ID_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::wallet_tonConnectSubmitConnectResult(
-        0, is_error, session_id, BufferSlice(challenge_answer), BufferSlice(body), trace_id)));
+        flags, is_error, session_id, BufferSlice(challenge_answer), BufferSlice(body), trace_id)));
   }
 
   void on_result(BufferSlice packet) final {
