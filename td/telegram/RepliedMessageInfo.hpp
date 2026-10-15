@@ -117,7 +117,7 @@ void RepliedMessageInfo::parse(ParserT &parser) {
   if (has_quote) {
     td::parse(quote_, parser);
   } else if (has_quote_legacy) {
-    quote_ = MessageQuote(std::move(quote_legacy), quote_position_legacy, is_quote_manual_legacy);
+    quote_ = MessageQuote(std::move(quote_legacy), Auto(), quote_position_legacy, is_quote_manual_legacy);
   }
   if (has_todo_item_id) {
     td::parse(todo_item_id_, parser);

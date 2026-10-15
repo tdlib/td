@@ -1560,9 +1560,9 @@ void BusinessConnectionManager::do_send_message_album(int64 request_id, Business
 
   for (size_t media_pos = 0; media_pos < message_contents.size(); media_pos++) {
     auto &message_content = message_contents[media_pos];
-    auto message =
-        create_business_message_to_send(business_connection_id, dialog_id, input_reply_to.clone(), disable_notification,
-                                        protect_content, effect_id, nullptr, std::move(message_content), true);
+    auto message = create_business_message_to_send(
+        business_connection_id, dialog_id, input_reply_to.clone(td_, dialog_id), disable_notification, protect_content,
+        effect_id, nullptr, std::move(message_content), true);
     auto input_media = std::move(get_message_content_input_media(message->content_.get(), td_, message->ttl_,
                                                                  message->send_emoji_, td_->auth_manager_->is_bot(), -1)
                                      .media_);

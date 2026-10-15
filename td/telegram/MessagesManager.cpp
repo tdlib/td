@@ -21824,12 +21824,12 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
     unique_ptr<Message> message;
     Message *m;
     if (message_send_options.only_preview) {
-      message = create_message_to_send(d, message_topic, input_reply_to.clone(), message_send_options,
+      message = create_message_to_send(d, message_topic, input_reply_to.clone(td_, dialog_id), message_send_options,
                                        std::move(message_content.content), message_content.invert_media, i != 0,
                                        nullptr, DialogId(), false, DialogId(), false);
       m = message.get();
     } else {
-      m = get_message_to_send(d, message_topic, input_reply_to.clone(), message_send_options,
+      m = get_message_to_send(d, message_topic, input_reply_to.clone(td_, dialog_id), message_send_options,
                               dup_message_content(td_, dialog_id, message_content.content.get(),
                                                   MessageContentDupType::Send, false, MessageCopyOptions()),
                               message_content.invert_media, &need_update_dialog_pos, i != 0);
@@ -24319,10 +24319,10 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   vector<int64> random_ids =
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
   send_closure_later(actor_id(this), &MessagesManager::send_forward_message_query, flags, to_dialog_id,
-                     get_send_message_topic(to_dialog_id, messages[0]), messages[0]->input_reply_to.clone(),
-                     from_dialog_id, std::move(as_input_peer), ids, is_ephemeral, single_message_id,
-                     std::move(random_ids), schedule_date, schedule_repeat_period, messages[0]->effect_id,
-                     messages[0]->new_video_start_timestamp,
+                     get_send_message_topic(to_dialog_id, messages[0]),
+                     messages[0]->input_reply_to.clone(td_, to_dialog_id), from_dialog_id, std::move(as_input_peer),
+                     ids, is_ephemeral, single_message_id, std::move(random_ids), schedule_date, schedule_repeat_period,
+                     messages[0]->effect_id, messages[0]->new_video_start_timestamp,
                      messages[0]->paid_message_star_count * static_cast<int32>(messages.size()),
                      SuggestedPost::clone(messages[0]->suggested_post), get_erase_log_event_promise(log_event_id));
 }
@@ -24767,7 +24767,7 @@ Result<vector<td_api::object_ptr<td_api::message>>> MessagesManager::forward_mes
         auto it = forwarded_message_id_to_new_message_id.find(original_reply_to_message_id);
         if (it != forwarded_message_id_to_new_message_id.end()) {
           // keep replies in forwarded messages
-          input_reply_to = forwarded_message->replied_message_info.get_message_input_reply_to();
+          input_reply_to = forwarded_message->replied_message_info.get_message_input_reply_to(td_);
           input_reply_to.set_message_id(it->second, "forward_messages_impl");
         }
       }

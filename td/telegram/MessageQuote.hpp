@@ -8,6 +8,7 @@
 
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageQuote.h"
+#include "td/telegram/RichText.hpp"
 
 #include "td/utils/tl_helpers.h"
 
@@ -17,10 +18,12 @@ template <class StorerT>
 void MessageQuote::store(StorerT &storer) const {
   bool has_text = !text_.is_empty();
   bool has_position = position_ != 0;
+  bool has_rich_texts = !rich_texts_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_text);
   STORE_FLAG(has_position);
   STORE_FLAG(is_manual_);
+  STORE_FLAG(has_rich_texts);
   END_STORE_FLAGS();
   if (has_text) {
     td::store(text_, storer);
@@ -28,16 +31,21 @@ void MessageQuote::store(StorerT &storer) const {
   if (has_position) {
     td::store(position_, storer);
   }
+  if (has_rich_texts) {
+    td::store(rich_texts_, storer);
+  }
 }
 
 template <class ParserT>
 void MessageQuote::parse(ParserT &parser) {
   bool has_text;
   bool has_position;
+  bool has_rich_texts;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_text);
   PARSE_FLAG(has_position);
   PARSE_FLAG(is_manual_);
+  PARSE_FLAG(has_rich_texts);
   END_PARSE_FLAGS();
   if (has_text) {
     td::parse(text_, parser);
@@ -45,6 +53,9 @@ void MessageQuote::parse(ParserT &parser) {
   }
   if (has_position) {
     td::parse(position_, parser);
+  }
+  if (has_rich_texts) {
+    td::parse(rich_texts_, parser);
   }
 }
 

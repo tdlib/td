@@ -3401,10 +3401,12 @@ messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool ne
 
 
 //@description Describes manually or automatically chosen quote from another message
-//@text Text of the quote. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, and DateTime entities can be present in the text
+//@text Text of the quote. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, and DateTime entities can be present in the text.
+//-May be empty if the quote was chosen from a rich message
+//@rich_texts Rich text of the quote if it was chosen from a rich message; empty if the quote wasn't chosen from a rich message
 //@position Approximate quote position in the original message in UTF-16 code units as specified by the message sender
 //@is_manual True, if the quote was manually chosen by the message sender
-textQuote text:formattedText position:int32 is_manual:Bool = TextQuote;
+textQuote text:formattedText rich_texts:vector<RichText> position:int32 is_manual:Bool = TextQuote;
 
 //@description Describes manually chosen quote from another message
 //@text Text of the quote; 0-getOption("message_reply_quote_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, and DateTime entities are allowed to be kept and must be kept in the quote

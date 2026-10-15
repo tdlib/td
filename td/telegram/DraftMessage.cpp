@@ -267,7 +267,7 @@ unique_ptr<DraftMessage> DraftMessage::clone(Td *td, const unique_ptr<DraftMessa
   }
   auto result = make_unique<DraftMessage>();
   result->date_ = draft_message->date_;
-  result->message_input_reply_to_ = draft_message->message_input_reply_to_.clone();
+  result->message_input_reply_to_ = draft_message->message_input_reply_to_.clone(td, dialog_id);
   result->input_message_text_ = draft_message->input_message_text_;
   if (draft_message->rich_message_content_ != nullptr) {
     result->rich_message_content_ = dup_message_content(td, dialog_id, draft_message->rich_message_content_.get(),

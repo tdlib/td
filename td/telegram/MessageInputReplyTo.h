@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/EphemeralMessageId.h"
+#include "td/telegram/MessageContentDupType.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageQuote.h"
@@ -98,12 +99,13 @@ class MessageInputReplyTo {
     return story_full_id_;
   }
 
-  MessageInputReplyTo clone() const {
+  MessageInputReplyTo clone(Td *td, DialogId dialog_id) const {
     if (story_full_id_.is_valid()) {
       return MessageInputReplyTo(story_full_id_);
     }
-    return MessageInputReplyTo(message_id_, ephemeral_message_id_, dialog_id_, quote_.clone(), todo_item_id_,
-                               poll_option_id_, debug_source_);
+    return MessageInputReplyTo(message_id_, ephemeral_message_id_, dialog_id_,
+                               quote_.clone(td, dialog_id, MessageContentDupType::Send), todo_item_id_, poll_option_id_,
+                               debug_source_);
   }
 
   void add_dependencies(Dependencies &dependencies) const;
