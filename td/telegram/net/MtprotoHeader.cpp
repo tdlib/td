@@ -34,7 +34,7 @@ class HeaderStorer {
     // initConnection
     store(static_cast<int32>(0xc1cd5ea9), storer);
     int32 flags = 0;
-    bool have_proxy = !is_anonymous && options.proxy.type() == Proxy::Type::Mtproto;
+    bool have_proxy = !is_anonymous && options.proxy.use_mtproto_transport_proxy();
     if (have_proxy) {
       flags |= 1 << 0;
     }

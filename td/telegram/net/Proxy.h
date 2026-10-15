@@ -86,6 +86,8 @@ class Proxy {
     return proxy;
   }
 
+  static Result<mtproto::ProxySecret> get_web_proxy_secret(Slice encoded_secret);
+
   CSlice server() const {
     return server_;
   }
@@ -95,6 +97,8 @@ class Proxy {
   }
 
   string get_web_proxy_address() const;
+
+  string get_web_proxy_link_secret() const;
 
   string get_web_proxy_bridge_capability() const;
 
@@ -136,6 +140,10 @@ class Proxy {
   }
   bool use_web_proxy() const {
     return type() == Proxy::Type::Web;
+  }
+  // an MTProto proxy, which is reached directly or through a web proxy relay
+  bool use_mtproto_transport_proxy() const {
+    return type() == Proxy::Type::Mtproto || type() == Proxy::Type::Web;
   }
 
   td_api::object_ptr<td_api::proxy> get_proxy_object() const;
@@ -196,6 +204,10 @@ class Proxy {
   mtproto::ProxySecret secret_;
 
   static Result<Proxy> create_proxy(string server, int port, const td_api::ProxyType *proxy_type);
+
+  static Result<string> normalize_web_proxy_host(Slice host);
+
+  static bool is_valid_web_proxy_path(Slice path);
 };
 
 inline bool operator==(const Proxy &lhs, const Proxy &rhs) {

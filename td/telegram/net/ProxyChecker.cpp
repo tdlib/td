@@ -6,7 +6,9 @@
 //
 #include "td/telegram/net/ProxyChecker.h"
 
+#include "td/telegram/Global.h"
 #include "td/telegram/net/PublicRsaKeySharedMain.h"
+#include "td/telegram/net/WebProxyManager.h"
 
 #include "td/mtproto/DhCallback.h"
 #include "td/mtproto/HandshakeActor.h"
@@ -29,14 +31,50 @@ ProxyChecker::ProxyChecker(ActorShared<> parent) : parent_(std::move(parent)) {
 void ProxyChecker::test_proxy(Proxy &&proxy, int32 dc_id, double timeout, Promise<Unit> &&promise) {
   auto start_time = Time::now();
 
+  if (proxy.use_web_proxy()) {
+    send_closure(G()->web_proxy_manager(), &WebProxyManager::open_temporary_carrier, proxy,
+                 PromiseCreator::lambda([actor_id = actor_id(this), proxy, dc_id, timeout, start_time,
+                                         promise = std::move(promise)](
+                                            Result<WebProxyManager::TemporaryCarrier> r_carrier) mutable {
+                   if (r_carrier.is_error()) {
+                     return promise.set_error(r_carrier.move_as_error());
+                   }
+                   auto carrier = r_carrier.move_as_ok();
+                   auto test_promise = PromiseCreator::lambda(
+                       [endpoint_id = carrier.endpoint_id, promise = std::move(promise)](Result<Unit> result) mutable {
+                         send_closure(G()->web_proxy_manager(), &WebProxyManager::close_temporary_carrier,
+                                      endpoint_id);
+                         promise.set_result(std::move(result));
+                       });
+                   send_closure(actor_id, &ProxyChecker::test_proxy_address, std::move(proxy),
+                                std::move(carrier.ip_address), dc_id, timeout + start_time - Time::now(),
+                                std::move(test_promise));
+                 }));
+    return;
+  }
+
   IPAddress ip_address;
   auto status = ip_address.init_host_port(proxy.server(), proxy.port());
   if (status.is_error()) {
     return promise.set_error(400, status.public_message());
   }
+  test_proxy_address(std::move(proxy), std::move(ip_address), dc_id, timeout + start_time - Time::now(),
+                     std::move(promise));
+}
+
+void ProxyChecker::test_proxy_address(Proxy &&proxy, IPAddress ip_address, int32 dc_id, double timeout,
+                                      Promise<Unit> &&promise) {
+  auto start_time = Time::now();
+  if (timeout <= 0) {
+    return promise.set_error(400, "Timeout expired");
+  }
+
   auto r_socket_fd = SocketFd::open(ip_address);
   if (r_socket_fd.is_error()) {
     return promise.set_error(400, r_socket_fd.error().public_message());
+  }
+  if (proxy.use_web_proxy()) {
+    WebProxyManager::register_connection(r_socket_fd.ok());
   }
 
   auto dc_options = ConnectionCreator::get_default_dc_options(false);
