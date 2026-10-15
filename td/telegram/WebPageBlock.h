@@ -24,11 +24,11 @@
 #include "td/utils/Status.h"
 
 #include <functional>
+#include <unordered_map>
 
 namespace td {
 
 class Dependencies;
-struct GetWebPageBlockObjectContext;
 class RichText;
 class Td;
 
@@ -45,6 +45,18 @@ struct CloneWebPageBlockContext {
   DialogId dialog_id_;
   MessageContentDupType dup_type_ = MessageContentDupType::Send;
   bool is_via_bot_ = false;
+};
+
+struct GetWebPageBlockObjectContext {
+  Td *td_ = nullptr;
+  Slice base_url_;
+  string real_url_host_;
+  string real_url_rhash_;
+  bool skip_bot_commands_ = false;
+
+  bool is_first_pass_ = true;
+  bool has_anchor_urls_ = false;
+  std::unordered_map<Slice, const RichText *, SliceHash> anchors_;  // anchor -> text
 };
 
 class WebPageBlock {

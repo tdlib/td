@@ -614,6 +614,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/RichButtonStyle.cpp
   td/telegram/RichMessage.cpp
   td/telegram/RichMessageMedia.cpp
+  td/telegram/RichText.cpp
   td/telegram/SavedMessagesManager.cpp
   td/telegram/SavedMessagesTopicId.cpp
   td/telegram/ScopeNotificationSettings.cpp
@@ -1054,6 +1055,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/RichButtonStyle.h
   td/telegram/RichMessage.h
   td/telegram/RichMessageMedia.h
+  td/telegram/RichText.h
   td/telegram/SavedMessagesManager.h
   td/telegram/SavedMessagesTopicId.h
   td/telegram/ScheduledServerMessageId.h
@@ -1262,6 +1264,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/RichButtonStyle.hpp
   td/telegram/RichMessage.hpp
   td/telegram/RichMessageMedia.hpp
+  td/telegram/RichText.hpp
   td/telegram/ScopeNotificationSettings.hpp
   td/telegram/SecureValue.hpp
   td/telegram/SendCodeHelper.hpp
