@@ -3409,9 +3409,14 @@ messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool ne
 textQuote text:formattedText rich_texts:vector<RichText> position:int32 is_manual:Bool = TextQuote;
 
 //@description Describes manually chosen quote from another message
-//@text Text of the quote; 0-getOption("message_reply_quote_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, and DateTime entities are allowed to be kept and must be kept in the quote
-//@position Quote position in the original message in UTF-16 code units
-inputTextQuote text:formattedText position:int32 = InputTextQuote;
+//@text Text of the quote; 0-getOption("message_reply_quote_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, and DateTime entities are allowed to be kept and must be kept in the quote.
+//-Ignored if rich_texts are non-empty
+//@rich_texts Quote from a rich message; pass an empty array if the quote isn't chosen from a rich message. Must contain one element for each quoted text of the message in the order of their appearance.
+//-The first and the last elements can contain only a part of the corresponding text; all other elements must contain the whole text. Formatting of the quoted parts must be kept.
+//-Mathematical expressions must be quoted entirely. Buttons in pageBlockButtonRow, anchors and dividers can't be quoted.
+//-There can be up to 32 quoted texts with total length up to getOption("message_reply_quote_length_max") characters
+//@position Quote position in the original message in UTF-16 code units. For quotes from rich messages, position in the text formed by joining plain texts of all quoted texts of the message, separated by line feeds
+inputTextQuote text:formattedText rich_texts:vector<RichText> position:int32 = InputTextQuote;
 
 
 //@class MessageReplyTo @description Contains information about the message or the story a message is replying to

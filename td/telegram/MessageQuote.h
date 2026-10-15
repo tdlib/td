@@ -30,6 +30,8 @@ class MessageQuote {
   int32 position_ = 0;
   bool is_manual_ = true;
 
+  vector<td_api::object_ptr<td_api::RichText>> get_rich_texts_object(Td *td) const;
+
   friend bool operator==(const MessageQuote &lhs, const MessageQuote &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageQuote &quote);
@@ -71,7 +73,7 @@ class MessageQuote {
 
   void update_input_reply_to_message(Td *td, telegram_api::inputReplyToMessage *input_reply_to_message) const;
 
-  td_api::object_ptr<td_api::inputTextQuote> get_input_text_quote_object(const UserManager *user_manager) const;
+  td_api::object_ptr<td_api::inputTextQuote> get_input_text_quote_object(Td *td) const;
 
   td_api::object_ptr<td_api::textQuote> get_text_quote_object(Td *td) const;
 

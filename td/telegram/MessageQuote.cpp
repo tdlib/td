@@ -25,10 +25,23 @@ namespace td {
 
 MessageQuote::~MessageQuote() = default;
 
+static vector<RichText> get_quote_rich_texts(
+    vector<telegram_api::object_ptr<telegram_api::RichText>> &&rich_text_ptrs) {
+  vector<RichText> result;
+  for (auto &rich_text_ptr : rich_text_ptrs) {
+    RichText rich_text(std::move(rich_text_ptr), FlatHashMap<int64, FileId>());
+    if (!rich_text.empty()) {
+      result.push_back(std::move(rich_text));
+    }
+  }
+  return result;
+}
+
 MessageQuote::MessageQuote(Td *td,
                            telegram_api::object_ptr<telegram_api::inputReplyToMessage> &input_reply_to_message) {
   CHECK(input_reply_to_message != nullptr);
-  if (input_reply_to_message->quote_text_.empty()) {
+  rich_texts_ = get_quote_rich_texts(std::move(input_reply_to_message->quote_rich_));
+  if (input_reply_to_message->quote_text_.empty() && rich_texts_.empty()) {
     return;
   }
   text_ = get_formatted_text(td->user_manager_.get(), std::move(input_reply_to_message->quote_text_),
@@ -41,12 +54,7 @@ MessageQuote::MessageQuote(Td *td,
 
 MessageQuote::MessageQuote(Td *td, telegram_api::object_ptr<telegram_api::messageReplyHeader> &reply_header) {
   CHECK(reply_header != nullptr);
-  for (auto &rich_text_ptr : reply_header->quote_rich_) {
-    RichText rich_text(std::move(rich_text_ptr), FlatHashMap<int64, FileId>());
-    if (!rich_text.empty()) {
-      rich_texts_.push_back(std::move(rich_text));
-    }
-  }
+  rich_texts_ = get_quote_rich_texts(std::move(reply_header->quote_rich_));
   if (reply_header->quote_text_.empty() && rich_texts_.empty()) {
     return;
   }
@@ -63,6 +71,29 @@ MessageQuote::MessageQuote(Td *td, td_api::object_ptr<td_api::inputTextQuote> qu
   if (quote == nullptr) {
     return;
   }
+  if (!quote->rich_texts_.empty()) {
+    for (auto &rich_text_object : quote->rich_texts_) {
+      auto r_rich_text = RichText::get_rich_text(td, std::move(rich_text_object));
+      if (r_rich_text.is_error()) {
+        rich_texts_.clear();
+        return;
+      }
+      auto rich_text = r_rich_text.move_as_ok();
+      rich_text = rich_text.get_quote_fragment(0, 1000000000);
+      if (!rich_text.empty()) {
+        rich_texts_.push_back(std::move(rich_text));
+      }
+    }
+    if (rich_texts_.empty()) {
+      return;
+    }
+    position_ = quote->position_;
+    if (position_ < 0 || position_ > 1000000) {  // some unreasonably big bound
+      position_ = 0;
+    }
+    return;
+  }
+
   int32 ltrim_count = 0;
   auto r_text = get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(quote->text_),
                                    td->auth_manager_->is_bot(), true, true, false, &ltrim_count);
@@ -162,13 +193,12 @@ void MessageQuote::update_input_reply_to_message(Td *td,
     return;
   }
   CHECK(is_manual_);
-  if (!text_.is_empty()) {
+  if (rich_texts_.empty()) {
     input_reply_to_message->flags_ |= telegram_api::inputReplyToMessage::QUOTE_TEXT_MASK;
     input_reply_to_message->quote_text_ = text_.text;
     input_reply_to_message->quote_entities_ =
         get_input_message_entities(td->user_manager_.get(), text_.entities, "update_input_reply_to_message");
-  }
-  if (!rich_texts_.empty()) {
+  } else {
     GetInputPageBlockContext context;
     context.td_ = td;
     input_reply_to_message->quote_rich_ = transform(
@@ -181,27 +211,29 @@ void MessageQuote::update_input_reply_to_message(Td *td,
 }
 
 // only for draft messages
-td_api::object_ptr<td_api::inputTextQuote> MessageQuote::get_input_text_quote_object(
-    const UserManager *user_manager) const {
-  if (text_.is_empty()) {
+td_api::object_ptr<td_api::inputTextQuote> MessageQuote::get_input_text_quote_object(Td *td) const {
+  if (is_empty()) {
     return nullptr;
   }
   CHECK(is_manual_);
-  return td_api::make_object<td_api::inputTextQuote>(get_formatted_text_object(user_manager, text_, true, -1),
-                                                     position_);
+  return td_api::make_object<td_api::inputTextQuote>(
+      get_formatted_text_object(td->user_manager_.get(), text_, true, -1), get_rich_texts_object(td), position_);
 }
 
 td_api::object_ptr<td_api::textQuote> MessageQuote::get_text_quote_object(Td *td) const {
   if (is_empty()) {
     return nullptr;
   }
+  return td_api::make_object<td_api::textQuote>(get_formatted_text_object(td->user_manager_.get(), text_, true, -1),
+                                                get_rich_texts_object(td), position_, is_manual_);
+}
+
+vector<td_api::object_ptr<td_api::RichText>> MessageQuote::get_rich_texts_object(Td *td) const {
   GetWebPageBlockObjectContext context;
   context.td_ = td;
   context.skip_bot_commands_ = true;
-  auto rich_texts = transform(
-      rich_texts_, [&context](const RichText &rich_text) { return rich_text.get_rich_text_object(&context); });
-  return td_api::make_object<td_api::textQuote>(get_formatted_text_object(td->user_manager_.get(), text_, true, -1),
-                                                std::move(rich_texts), position_, is_manual_);
+  return transform(rich_texts_,
+                   [&context](const RichText &rich_text) { return rich_text.get_rich_text_object(&context); });
 }
 
 bool operator==(const MessageQuote &lhs, const MessageQuote &rhs) {

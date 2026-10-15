@@ -1205,7 +1205,8 @@ class CliClient final : public Actor {
     if (reply_message_id_ != 0) {
       td_api::object_ptr<td_api::inputTextQuote> quote;
       if (!reply_quote_.empty()) {
-        quote = td_api::make_object<td_api::inputTextQuote>(as_formatted_text(reply_quote_), reply_quote_position_);
+        quote =
+            td_api::make_object<td_api::inputTextQuote>(as_formatted_text(reply_quote_), Auto(), reply_quote_position_);
       }
       if (reply_chat_id_ == 0) {
         return td_api::make_object<td_api::inputMessageReplyToMessage>(reply_message_id_, std::move(quote),
@@ -5536,7 +5537,7 @@ class CliClient final : public Actor {
       if (quick_reply_shortcut_name_.empty()) {
         send_request(td_api::make_object<td_api::resendMessages>(
             chat_id, as_message_ids(message_ids),
-            td_api::make_object<td_api::inputTextQuote>(as_formatted_text(quote), quote_position),
+            td_api::make_object<td_api::inputTextQuote>(as_formatted_text(quote), Auto(), quote_position),
             paid_message_star_count_));
       } else {
         send_request(td_api::make_object<td_api::readdQuickReplyShortcutMessages>(quick_reply_shortcut_name_,

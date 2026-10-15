@@ -173,10 +173,10 @@ td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_m
   if (dialog_id_ != DialogId()) {
     return td_api::make_object<td_api::inputMessageReplyToExternalMessage>(
         td->dialog_manager_->get_chat_id_object(dialog_id_, "inputMessageReplyToExternalMessage"), message_id_.get(),
-        quote_.get_input_text_quote_object(td->user_manager_.get()), todo_item_id_, poll_option_id_);
+        quote_.get_input_text_quote_object(td), todo_item_id_, poll_option_id_);
   }
   return td_api::make_object<td_api::inputMessageReplyToMessage>(
-      message_id_.get(), quote_.get_input_text_quote_object(td->user_manager_.get()), todo_item_id_, poll_option_id_);
+      message_id_.get(), quote_.get_input_text_quote_object(td), todo_item_id_, poll_option_id_);
 }
 
 MessageId MessageInputReplyTo::get_same_chat_reply_to_message_id() const {
