@@ -145,9 +145,28 @@ class ThemeManager final : public Actor {
     int32 text_color_ = 0;
 
    public:
+    ShareThemeBackdrop() = default;
+
     explicit ShareThemeBackdrop(telegram_api::object_ptr<telegram_api::shareThemeBackdropOption> &&backdrop);
 
     td_api::object_ptr<td_api::profileShareThemeBackdrop> get_profile_share_theme_backdrop_object() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  struct ShareThemeBackdrops {
+    vector<ShareThemeBackdrop> backdrops_;
+    int32 hash_ = 0;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   void start_up() final;
@@ -159,6 +178,8 @@ class ThemeManager final : public Actor {
   void load_accent_colors();
 
   void load_profile_accent_colors();
+
+  void load_share_theme_backdrops();
 
   void on_get_chat_themes(Result<telegram_api::object_ptr<telegram_api::account_Themes>> result);
 
@@ -195,11 +216,15 @@ class ThemeManager final : public Actor {
 
   string get_profile_accent_colors_database_key();
 
+  static string get_share_theme_backdrops_database_key();
+
   void save_chat_themes();
 
   void save_accent_colors();
 
   void save_profile_accent_colors();
+
+  void save_share_theme_backdrops();
 
   void send_update_chat_themes() const;
 
@@ -217,8 +242,7 @@ class ThemeManager final : public Actor {
 
   ProfileAccentColors profile_accent_colors_;
 
-  vector<ShareThemeBackdrop> share_theme_backdrops_;
-  int32 share_theme_backdrops_hash_ = 0;
+  ShareThemeBackdrops share_theme_backdrops_;
   double next_share_theme_backdrops_reload_time_ = 0.0;
   bool is_share_theme_backdrops_being_reloaded_ = false;
   vector<Promise<td_api::object_ptr<td_api::profileShareThemeBackdrops>>> get_share_theme_backdrops_queries_;

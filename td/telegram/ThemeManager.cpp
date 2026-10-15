@@ -422,9 +422,42 @@ void ThemeManager::ProfileAccentColors::parse(ParserT &parser) {
   }
 }
 
+template <class StorerT>
+void ThemeManager::ShareThemeBackdrop::store(StorerT &storer) const {
+  td::store(id_, storer);
+  td::store(name_, storer);
+  td::store(center_color_, storer);
+  td::store(edge_color_, storer);
+  td::store(pattern_color_, storer);
+  td::store(text_color_, storer);
+}
+
+template <class ParserT>
+void ThemeManager::ShareThemeBackdrop::parse(ParserT &parser) {
+  td::parse(id_, parser);
+  td::parse(name_, parser);
+  td::parse(center_color_, parser);
+  td::parse(edge_color_, parser);
+  td::parse(pattern_color_, parser);
+  td::parse(text_color_, parser);
+}
+
+template <class StorerT>
+void ThemeManager::ShareThemeBackdrops::store(StorerT &storer) const {
+  td::store(backdrops_, storer);
+  td::store(hash_, storer);
+}
+
+template <class ParserT>
+void ThemeManager::ShareThemeBackdrops::parse(ParserT &parser) {
+  td::parse(backdrops_, parser);
+  td::parse(hash_, parser);
+}
+
 ThemeManager::ThemeManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   load_accent_colors();
   load_profile_accent_colors();
+  load_share_theme_backdrops();
 }
 
 void ThemeManager::start_up() {
@@ -478,6 +511,24 @@ void ThemeManager::load_profile_accent_colors() {
     } else {
       LOG(ERROR) << "Failed to parse profile accent colors from binlog: " << status;
       profile_accent_colors_ = ProfileAccentColors();
+    }
+  }
+}
+
+void ThemeManager::load_share_theme_backdrops() {
+  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto log_event_string = G()->td_db()->get_binlog_pmc()->get(get_share_theme_backdrops_database_key());
+  if (!log_event_string.empty()) {
+    auto status = log_event_parse(share_theme_backdrops_, log_event_string);
+    if (status.is_ok()) {
+      // the backdrops can be returned immediately, but must be reloaded on the first request
+      next_share_theme_backdrops_reload_time_ = Time::now();
+    } else {
+      LOG(ERROR) << "Failed to parse share theme backdrops from binlog: " << status;
+      share_theme_backdrops_ = ShareThemeBackdrops();
     }
   }
 }
@@ -823,6 +874,15 @@ void ThemeManager::save_chat_themes() {
   G()->td_db()->get_binlog_pmc()->set(get_chat_themes_database_key(), log_event_store(chat_themes_).as_slice().str());
 }
 
+string ThemeManager::get_share_theme_backdrops_database_key() {
+  return "share_theme_backdrops";
+}
+
+void ThemeManager::save_share_theme_backdrops() {
+  G()->td_db()->get_binlog_pmc()->set(get_share_theme_backdrops_database_key(),
+                                      log_event_store(share_theme_backdrops_).as_slice().str());
+}
+
 void ThemeManager::save_accent_colors() {
   G()->td_db()->get_binlog_pmc()->set(get_accent_colors_database_key(),
                                       log_event_store(accent_colors_).as_slice().str());
@@ -1100,7 +1160,7 @@ void ThemeManager::reload_share_theme_backdrops() {
       [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::ShareThemeBackdrops>> result) {
         send_closure(actor_id, &ThemeManager::on_get_share_theme_backdrops, std::move(result));
       });
-  td_->create_handler<GetShareThemeBackdropsQuery>(std::move(request_promise))->send(share_theme_backdrops_hash_);
+  td_->create_handler<GetShareThemeBackdropsQuery>(std::move(request_promise))->send(share_theme_backdrops_.hash_);
 }
 
 void ThemeManager::on_get_share_theme_backdrops(
@@ -1122,9 +1182,10 @@ void ThemeManager::on_get_share_theme_backdrops(
       break;
     case telegram_api::shareThemeBackdrops::ID: {
       auto backdrops = telegram_api::move_object_as<telegram_api::shareThemeBackdrops>(backdrops_ptr);
-      share_theme_backdrops_hash_ = backdrops->hash_;
-      share_theme_backdrops_ = transform(std::move(backdrops->backdrops_),
-                                         [](auto &&backdrop) { return ShareThemeBackdrop(std::move(backdrop)); });
+      share_theme_backdrops_.backdrops_ = transform(
+          std::move(backdrops->backdrops_), [](auto &&backdrop) { return ShareThemeBackdrop(std::move(backdrop)); });
+      share_theme_backdrops_.hash_ = backdrops->hash_;
+      save_share_theme_backdrops();
       break;
     }
     default:
@@ -1138,7 +1199,7 @@ void ThemeManager::on_get_share_theme_backdrops(
 
 td_api::object_ptr<td_api::profileShareThemeBackdrops> ThemeManager::get_profile_share_theme_backdrops_object() const {
   return td_api::make_object<td_api::profileShareThemeBackdrops>(
-      transform(share_theme_backdrops_,
+      transform(share_theme_backdrops_.backdrops_,
                 [](const ShareThemeBackdrop &backdrop) { return backdrop.get_profile_share_theme_backdrop_object(); }));
 }
 
