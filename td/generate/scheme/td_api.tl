@@ -10845,6 +10845,13 @@ proxyTypeHttp username:string password:string http_only:Bool = ProxyType;
 //@description An MTProto proxy server @secret The proxy's secret in hexadecimal encoding
 proxyTypeMtproto secret:string = ProxyType;
 
+//@description A web proxy server. MTProto traffic goes through an HTTPS relay page hosted by the application in a hidden web view; see updateWebProxyCarrierOpened.
+//-The proxy server must be a domain name and the port must be 443
+//@path Base path of the relay on the server, without leading and trailing slashes; may be empty. Consists of 0-128 characters;
+//-each "/"-separated segment must match [A-Za-z0-9][A-Za-z0-9_-]*
+//@secret The MTProto proxy secret in hexadecimal encoding; must be 16 bytes long, optionally prefixed with the byte 0xdd
+proxyTypeWeb path:string secret:string = ProxyType;
+
 
 //@description Contains information about a proxy server added to the list of proxies
 //@id Unique identifier of the proxy

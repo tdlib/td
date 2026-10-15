@@ -4880,6 +4880,10 @@ Result<string> LinkManager::get_proxy_link(const Proxy &proxy, bool is_internal)
     case Proxy::Type::Mtproto:
       url += "proxy";
       break;
+    case Proxy::Type::Web:
+      // the port is always 443, and the path travels in the server parameter
+      return PSTRING() << url << "webproxy?server=" << url_encode(proxy.get_web_proxy_address())
+                       << "&secret=" << url_encode(proxy.get_web_proxy_link_secret());
     default:
       UNREACHABLE();
   }

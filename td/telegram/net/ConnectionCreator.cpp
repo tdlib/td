@@ -12,6 +12,7 @@
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/NetType.h"
+#include "td/telegram/net/WebProxyManager.h"
 #include "td/telegram/PromoDataManager.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdDb.h"
@@ -322,6 +323,25 @@ void ConnectionCreator::ping_proxy(td_api::object_ptr<td_api::proxy> input_proxy
   }
 
   TRY_RESULT_PROMISE(promise, proxy, Proxy::create_proxy(input_proxy.get()));
+  if (proxy.use_web_proxy()) {
+    send_closure(
+        G()->web_proxy_manager(), &WebProxyManager::open_temporary_carrier, proxy,
+        PromiseCreator::lambda([actor_id = actor_id(this), proxy, promise = std::move(promise)](
+                                   Result<WebProxyManager::TemporaryCarrier> r_carrier) mutable {
+          if (r_carrier.is_error()) {
+            return promise.set_error(r_carrier.move_as_error());
+          }
+          auto carrier = r_carrier.move_as_ok();
+          auto ping_promise = PromiseCreator::lambda(
+              [endpoint_id = carrier.endpoint_id, promise = std::move(promise)](Result<double> result) mutable {
+                send_closure(G()->web_proxy_manager(), &WebProxyManager::close_temporary_carrier, endpoint_id);
+                promise.set_result(std::move(result));
+              });
+          send_closure(actor_id, &ConnectionCreator::ping_proxy_resolved, std::move(proxy),
+                       std::move(carrier.ip_address), std::move(ping_promise));
+        }));
+    return;
+  }
   bool prefer_ipv6 = G()->get_option_boolean("prefer_ipv6");
   send_closure(get_dns_resolver(), &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
                PromiseCreator::lambda(
@@ -406,8 +426,8 @@ void ConnectionCreator::enable_proxy_impl(int32 proxy_id) {
     return;
   }
 
-  if ((active_proxy_id_ != 0 && proxies_[active_proxy_id_].first.type() == Proxy::Type::Mtproto) ||
-      proxies_[proxy_id].first.type() == Proxy::Type::Mtproto) {
+  if ((active_proxy_id_ != 0 && proxies_[active_proxy_id_].first.use_mtproto_transport_proxy()) ||
+      proxies_[proxy_id].first.use_mtproto_transport_proxy()) {
     update_mtproto_header(proxies_[proxy_id].first);
   }
   save_proxy_last_used_date(0);
@@ -425,7 +445,7 @@ void ConnectionCreator::disable_proxy_impl() {
   }
   CHECK(proxies_.count(active_proxy_id_) == 1);
 
-  if (proxies_[active_proxy_id_].first.type() == Proxy::Type::Mtproto) {
+  if (proxies_[active_proxy_id_].first.use_mtproto_transport_proxy()) {
     update_mtproto_header(Proxy());
   }
 
@@ -438,6 +458,10 @@ void ConnectionCreator::on_proxy_changed(bool from_db) {
   send_closure(G()->state_manager(), &StateManager::on_proxy,
                active_proxy_id_ != 0 && proxies_[active_proxy_id_].first.type() != Proxy::Type::Mtproto &&
                    proxies_[active_proxy_id_].first.type() != Proxy::Type::HttpCaching);
+
+  // the manager opens a carrier as soon as a web proxy is enabled, and closes it when the proxy changes
+  send_closure(G()->web_proxy_manager(), &WebProxyManager::set_active_proxy, active_proxy_id_,
+               active_proxy_id_ == 0 ? Proxy() : proxies_[active_proxy_id_].first);
 
   if (!from_db) {
     for (auto &child : children_) {
@@ -506,6 +530,7 @@ td_api::object_ptr<td_api::addedProxy> ConnectionCreator::get_added_proxy_object
 
 void ConnectionCreator::on_network(bool network_flag, uint32 network_generation) {
   VLOG(connections) << "Receive network flag " << network_flag << " with generation " << network_generation;
+  send_closure(G()->web_proxy_manager(), &WebProxyManager::on_network, network_flag);
   network_flag_ = network_flag;
   auto old_generation = network_generation_;
   network_generation_ = network_generation;
@@ -633,7 +658,7 @@ Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy
   }
   auto raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -int_dc_id : int_dc_id);
 
-  if (proxy.use_mtproto_proxy()) {
+  if (proxy.use_mtproto_transport_proxy()) {
     return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, raw_dc_id, proxy.secret()};
   }
   if (proxy.use_http_caching_proxy()) {
@@ -675,6 +700,15 @@ Result<SocketFd> ConnectionCreator::find_connection(const Proxy &proxy, const IP
 
     VLOG(connections) << "Create: " << extra.debug_str;
     return SocketFd::open(proxy_ip_address);
+  }
+  if (proxy.use_web_proxy()) {
+    // proxy_ip_address is the local endpoint of WebProxyManager, which relays the connection through the carrier
+    extra.debug_str = PSTRING() << "Web " << proxy.server() << extra.debug_str;
+
+    VLOG(connections) << "Create: " << extra.debug_str;
+    TRY_RESULT(socket_fd, SocketFd::open(proxy_ip_address));
+    WebProxyManager::register_connection(socket_fd);
+    return std::move(socket_fd);
   }
 
   extra.check_mode |= info.should_check;
@@ -1186,7 +1220,7 @@ void ConnectionCreator::init_proxies() {
   }
 
   if (active_proxy_id_ != 0) {
-    if (proxies_[active_proxy_id_].first.type() == Proxy::Type::Mtproto) {
+    if (proxies_[active_proxy_id_].first.use_mtproto_transport_proxy()) {
       update_mtproto_header(proxies_[active_proxy_id_].first);
     }
 
@@ -1297,13 +1331,20 @@ void ConnectionCreator::loop() {
       if (resolve_proxy_query_token_ == 0) {
         resolve_proxy_query_token_ = next_token();
         const Proxy &proxy = proxies_[active_proxy_id_].first;
-        bool prefer_ipv6 = G()->get_option_boolean("prefer_ipv6");
-        VLOG(connections) << "Resolve IP address " << resolve_proxy_query_token_ << " of " << proxy.server();
-        send_closure(
-            get_dns_resolver(), &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
+        auto promise =
             PromiseCreator::lambda([actor_id = create_reference(resolve_proxy_query_token_)](Result<IPAddress> result) {
               send_closure(actor_id, &ConnectionCreator::on_proxy_resolved, std::move(result), false);
-            }));
+            });
+        if (proxy.use_web_proxy()) {
+          // the web view resolves the relay host, and MTProto connects to the local endpoint of the carrier
+          VLOG(connections) << "Get local address " << resolve_proxy_query_token_ << " of " << proxy;
+          send_closure(G()->web_proxy_manager(), &WebProxyManager::get_active_proxy_address, std::move(promise));
+        } else {
+          bool prefer_ipv6 = G()->get_option_boolean("prefer_ipv6");
+          VLOG(connections) << "Resolve IP address " << resolve_proxy_query_token_ << " of " << proxy.server();
+          send_closure(get_dns_resolver(), &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
+                       std::move(promise));
+        }
       }
     } else {
       CHECK(resolve_proxy_query_token_ == 0);
