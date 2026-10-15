@@ -83,6 +83,8 @@ class ConnectionCreator final : public NetQueryCallback {
 
   void ping_proxy(td_api::object_ptr<td_api::proxy> input_proxy, Promise<double> promise);
 
+  void on_web_proxy_address_closed(IPAddress ip_address);
+
  private:
   friend class ProxyChecker;
 

@@ -1316,6 +1316,18 @@ void ConnectionCreator::loop() {
   }
 }
 
+void ConnectionCreator::on_web_proxy_address_closed(IPAddress ip_address) {
+  if (active_proxy_id_ == 0 || !proxies_[active_proxy_id_].first.use_web_proxy() ||
+      !(proxy_ip_address_ == ip_address)) {
+    return;
+  }
+  VLOG(connections) << "Drop closed web proxy address " << proxy_ip_address_;
+  resolve_proxy_query_token_ = 0;
+  resolve_proxy_timestamp_ = Timestamp();
+  proxy_ip_address_ = IPAddress();
+  loop();
+}
+
 void ConnectionCreator::on_proxy_resolved(Result<IPAddress> r_ip_address, bool dummy) {
   SCOPE_EXIT {
     loop();

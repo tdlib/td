@@ -560,6 +560,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/net/Session.cpp
   td/telegram/net/SessionMultiProxy.cpp
   td/telegram/net/SessionProxy.cpp
+  td/telegram/net/WebProxyManager.cpp
   td/telegram/NewPasswordState.cpp
   td/telegram/NotificationGroupInfo.cpp
   td/telegram/NotificationGroupType.cpp
@@ -982,6 +983,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/net/SessionMultiProxy.h
   td/telegram/net/SessionProxy.h
   td/telegram/net/TempAuthKeyWatchdog.h
+  td/telegram/net/WebProxyManager.h
   td/telegram/NewPasswordState.h
   td/telegram/Notification.h
   td/telegram/NotificationGroupFromDatabase.h
