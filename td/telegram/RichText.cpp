@@ -699,7 +699,6 @@ RichText RichText::get_quote_fragment_impl(size_t &pos, size_t begin, size_t end
       }
       CloneWebPageBlockContext context;
       auto result = clone(context, true);
-      result.texts_.clear();
       result.texts_.push_back(std::move(fragment));
       return result;
     }

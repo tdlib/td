@@ -187,6 +187,11 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
         }
       }
     } else if (content_->get_type() == MessageContentType::RichText) {
+      if (quote_.is_empty()) {
+        const auto *rich_message = get_message_content_rich_message(content_.get());
+        CHECK(rich_message != nullptr);
+        quote_ = MessageQuote::create_automatic_quote(td, *rich_message);
+      }
       content_ = nullptr;
     }
     auto origin_message_full_id = origin_.get_message_full_id();

@@ -10,6 +10,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/RichMessage.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/WebPageBlock.h"
@@ -91,6 +92,39 @@ MessageQuote MessageQuote::create_automatic_quote(Td *td, FormattedText &&text) 
   truncate_formatted_text(
       text, static_cast<size_t>(td->option_manager_->get_option_integer("message_reply_quote_length_max")));
   return MessageQuote(std::move(text), {}, 0, false);
+}
+
+MessageQuote MessageQuote::create_automatic_quote(Td *td, const RichMessage &rich_message) {
+  constexpr size_t MAX_QUOTE_RICH_TEXTS = 32;  // server-side limit
+  auto max_length = static_cast<size_t>(td->option_manager_->get_option_integer("message_reply_quote_length_max"));
+  vector<RichText> rich_texts;
+  size_t length = 0;
+  bool is_finished = false;
+  rich_message.for_each_quote_text([&](const RichText &rich_text) {
+    if (is_finished) {
+      return;
+    }
+    if (rich_texts.size() >= MAX_QUOTE_RICH_TEXTS || length >= max_length) {
+      is_finished = true;
+      return;
+    }
+    auto text = rich_text.get_quote_text();
+    if (text.empty()) {
+      return;
+    }
+    auto end = utf8_length(text);
+    if (length + end > max_length) {
+      end = max_length - length;
+      is_finished = true;
+    }
+    auto fragment = rich_text.get_quote_fragment(0, end);
+    if (fragment.empty()) {
+      return;
+    }
+    length += utf8_length(fragment.get_quote_text());
+    rich_texts.push_back(std::move(fragment));
+  });
+  return MessageQuote(FormattedText(), std::move(rich_texts), 0, false);
 }
 
 int MessageQuote::need_quote_changed_warning(const MessageQuote &old_quote, const MessageQuote &new_quote) {
