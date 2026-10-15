@@ -90,6 +90,8 @@ class RichText {
 
   static RichText create_plain(string text);
 
+  static RichText create_math(string source);
+
   bool empty() const;
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const;
@@ -99,6 +101,9 @@ class RichText {
   void for_each_rich_text(bool recurse_text, const std::function<void(const RichText &text)> &callback) const;
 
   string get_full_text() const;
+
+  // returns text of the rich text as used in quotes
+  string get_quote_text() const;
 
   int32 get_index_mask() const;
 

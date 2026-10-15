@@ -547,6 +547,13 @@ RichText RichText::create_plain(string text) {
   return result;
 }
 
+RichText RichText::create_math(string source) {
+  RichText result;
+  result.type_ = Type::Math;
+  result.content_ = std::move(source);
+  return result;
+}
+
 bool RichText::empty() const {
   return type_ == Type::Plain && content_.empty();
 }
@@ -590,6 +597,28 @@ string RichText::get_full_text() const {
     }
   });
   return result;
+}
+
+string RichText::get_quote_text() const {
+  switch (type_) {
+    case Type::Plain:
+    case Type::Math:
+    case Type::CustomEmoji:
+      return content_;
+    case Type::Icon:
+      return string();
+    case Type::Diff:
+      // only the new text can be quoted
+      CHECK(!texts_.empty());
+      return texts_[0].get_quote_text();
+    default: {
+      string result;
+      for (auto &text : texts_) {
+        result += text.get_quote_text();
+      }
+      return result;
+    }
+  }
 }
 
 int32 RichText::get_index_mask() const {
