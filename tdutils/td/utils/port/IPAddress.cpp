@@ -12,6 +12,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/ServerSocketFd.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/ScopeGuard.h"
@@ -574,6 +575,26 @@ Status IPAddress::init_sockaddr(sockaddr *addr, socklen_t len) {
 
   is_valid_ = true;
   LOG(DEBUG + 10) << "Have address " << get_ip_str() << " with port " << get_port();
+  return Status::OK();
+}
+
+Status IPAddress::init_socket_address(const ServerSocketFd &server_socket_fd) {
+  is_valid_ = false;
+  if (server_socket_fd.empty()) {
+    return Status::Error("Socket is empty");
+  }
+  auto socket = server_socket_fd.get_native_fd().socket();
+  socklen_t len = storage_size();
+  int ret = getsockname(socket, &sockaddr_, &len);
+  if (ret != 0) {
+    return OS_SOCKET_ERROR("Failed to get socket address");
+  }
+  is_valid_ = true;
+  auto address_family = get_address_family();
+  if (address_family != AF_INET && address_family != AF_INET6) {
+    is_valid_ = false;
+    return Status::Error("Receive unsupported IP address");
+  }
   return Status::OK();
 }
 
