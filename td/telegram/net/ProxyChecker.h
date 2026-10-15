@@ -50,6 +50,8 @@ class ProxyChecker final : public NetQueryCallback {
   uint64 test_proxy_request_id_ = 0;
   FlatHashMap<uint64, unique_ptr<TestProxyRequest>> test_proxy_requests_;
 
+  void test_proxy_address(Proxy &&proxy, IPAddress ip_address, int32 dc_id, double timeout, Promise<Unit> &&promise);
+
   void on_test_proxy_connection_data(uint64 request_id, Result<ConnectionCreator::ConnectionData> r_data);
 
   void on_test_proxy_handshake_connection(uint64 request_id,
