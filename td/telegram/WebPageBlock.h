@@ -145,6 +145,11 @@ class WebPageBlock {
   virtual void for_each_rich_text(bool recurse_text,
                                   const std::function<void(const RichText &text)> &callback) const = 0;
 
+  // calls callback for each text, which can be quoted, in the order of their appearance
+  virtual void for_each_quote_text(const std::function<void(const RichText &text)> &callback) const {
+    for_each_rich_text(false, callback);
+  }
+
   void for_each_text(const std::function<void(Slice text)> &callback) const;
 
   void append_user_ids(vector<UserId> &user_ids) const;
@@ -202,6 +207,9 @@ vector<unique_ptr<WebPageBlock>> clone_web_page_blocks(const vector<unique_ptr<W
 
 vector<telegram_api::object_ptr<telegram_api::PageBlock>> get_input_page_blocks(
     const vector<unique_ptr<WebPageBlock>> &page_blocks, GetInputPageBlockContext &context);
+
+void for_each_web_page_blocks_quote_text(const vector<unique_ptr<WebPageBlock>> &page_blocks,
+                                         const std::function<void(const RichText &text)> &callback);
 
 vector<RichMessageMedia> get_page_blocks_rich_message_media(const vector<unique_ptr<WebPageBlock>> &page_blocks);
 

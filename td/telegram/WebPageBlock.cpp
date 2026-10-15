@@ -1259,6 +1259,10 @@ class WebPageBlockMath final : public WebPageBlock {
     return 0;
   }
 
+  void for_each_quote_text(const std::function<void(const RichText &text)> &callback) const final {
+    callback(RichText::create_math(source));
+  }
+
   unique_ptr<WebPageBlock> clone(CloneContext &context) const final {
     return td::make_unique<WebPageBlockMath>(string(source));
   }
@@ -1632,6 +1636,12 @@ class WebPageBlockList final : public WebPageBlock {
     }
   }
 
+  void for_each_quote_text(const std::function<void(const RichText &text)> &callback) const final {
+    for (auto &item : items) {
+      for_each_web_page_blocks_quote_text(item.page_blocks, callback);
+    }
+  }
+
   bool can_send(const RestrictedRights &rights) const final {
     for (auto &item : items) {
       if (!item.can_send(rights)) {
@@ -1877,6 +1887,9 @@ class WebPageBlockButtonRow final : public WebPageBlock {
     for (auto &button : buttons) {
       button.for_each_rich_text(recurse_text, callback);
     }
+  }
+
+  void for_each_quote_text(const std::function<void(const RichText &text)> &callback) const final {
   }
 
   int32 get_index_mask() const final {
@@ -2529,6 +2542,10 @@ class WebPageBlockCover final : public WebPageBlock {
     cover->for_each_rich_text(recurse_text, callback);
   }
 
+  void for_each_quote_text(const std::function<void(const RichText &text)> &callback) const final {
+    cover->for_each_quote_text(callback);
+  }
+
   bool can_send(const RestrictedRights &rights) const final {
     return cover->can_send(rights);
   }
@@ -2717,6 +2734,11 @@ class WebPageBlockEmbeddedPost final : public WebPageBlock {
     caption.for_each_rich_text(recurse_text, callback);
   }
 
+  void for_each_quote_text(const std::function<void(const RichText &text)> &callback) const final {
+    for_each_web_page_blocks_quote_text(page_blocks, callback);
+    caption.for_each_rich_text(false, callback);
+  }
+
   bool can_send(const RestrictedRights &rights) const final {
     return author_photo.is_empty() || rights.can_send_photos();
   }
@@ -2809,6 +2831,11 @@ class WebPageBlockCollage final : public WebPageBlock {
       page_block->for_each_rich_text(recurse_text, callback);
     }
     caption.for_each_rich_text(recurse_text, callback);
+  }
+
+  void for_each_quote_text(const std::function<void(const RichText &text)> &callback) const final {
+    for_each_web_page_blocks_quote_text(page_blocks, callback);
+    caption.for_each_rich_text(false, callback);
   }
 
   bool can_send(const RestrictedRights &rights) const final {
@@ -2905,6 +2932,11 @@ class WebPageBlockSlideshow final : public WebPageBlock {
       page_block->for_each_rich_text(recurse_text, callback);
     }
     caption.for_each_rich_text(recurse_text, callback);
+  }
+
+  void for_each_quote_text(const std::function<void(const RichText &text)> &callback) const final {
+    for_each_web_page_blocks_quote_text(page_blocks, callback);
+    caption.for_each_rich_text(false, callback);
   }
 
   bool can_send(const RestrictedRights &rights) const final {
@@ -3369,6 +3401,11 @@ class WebPageBlockDetails final : public WebPageBlock {
     }
   }
 
+  void for_each_quote_text(const std::function<void(const RichText &text)> &callback) const final {
+    header.for_each_rich_text(false, callback);
+    for_each_web_page_blocks_quote_text(page_blocks, callback);
+  }
+
   bool can_send(const RestrictedRights &rights) const final {
     for (const auto &page_block : page_blocks) {
       if (!page_block->can_send(rights)) {
@@ -3470,6 +3507,11 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
       page_block->for_each_rich_text(recurse_text, callback);
     }
     caption.for_each_rich_text(recurse_text, callback);
+  }
+
+  void for_each_quote_text(const std::function<void(const RichText &text)> &callback) const final {
+    for_each_web_page_blocks_quote_text(page_blocks, callback);
+    caption.for_each_rich_text(false, callback);
   }
 
   bool can_send(const RestrictedRights &rights) const final {
@@ -4809,6 +4851,13 @@ vector<telegram_api::object_ptr<telegram_api::PageBlock>> get_input_page_blocks(
   return transform(page_blocks, [&](const unique_ptr<WebPageBlock> &page_block) {
     return page_block->get_input_page_block(context);
   });
+}
+
+void for_each_web_page_blocks_quote_text(const vector<unique_ptr<WebPageBlock>> &page_blocks,
+                                         const std::function<void(const RichText &text)> &callback) {
+  for (auto &page_block : page_blocks) {
+    page_block->for_each_quote_text(callback);
+  }
 }
 
 vector<RichMessageMedia> get_page_blocks_rich_message_media(const vector<unique_ptr<WebPageBlock>> &page_blocks) {

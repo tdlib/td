@@ -160,6 +160,10 @@ void RichMessage::for_each_text(const std::function<void(Slice text)> &callback)
   }
 }
 
+void RichMessage::for_each_quote_text(const std::function<void(const RichText &text)> &callback) const {
+  for_each_web_page_blocks_quote_text(blocks_, callback);
+}
+
 vector<UserId> RichMessage::get_user_ids() const {
   vector<UserId> user_ids;
   for (const auto &block : blocks_) {

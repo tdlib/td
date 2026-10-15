@@ -27,6 +27,7 @@ namespace td {
 
 class Dependencies;
 class MessageContent;
+class RichText;
 class Td;
 
 class RichMessage {
@@ -73,6 +74,8 @@ class RichMessage {
   void add_dependencies(Dependencies &dependencies) const;
 
   void for_each_text(const std::function<void(Slice text)> &callback) const;
+
+  void for_each_quote_text(const std::function<void(const RichText &text)> &callback) const;
 
   vector<UserId> get_user_ids() const;
 
