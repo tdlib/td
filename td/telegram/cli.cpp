@@ -3492,6 +3492,8 @@ class CliClient final : public Actor {
       int64 regular_gift_id;
       get_args(args, regular_gift_id);
       send_request(td_api::make_object<td_api::getUpgradedGiftVariants>(regular_gift_id, op != "gugvc", op != "gugvu"));
+    } else if (op == "gpstb") {
+      send_request(td_api::make_object<td_api::getProfileShareThemeBackdrops>());
     } else if (op == "ug") {
       string received_gift_id;
       bool keep_original_details;

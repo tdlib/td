@@ -9322,6 +9322,12 @@ void Requests::on_request(uint64 id, const td_api::resetInstalledBackgrounds &re
   td_->background_manager_->reset_backgrounds(std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getProfileShareThemeBackdrops &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->theme_manager_->get_profile_share_theme_backdrops(std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.referrer_);

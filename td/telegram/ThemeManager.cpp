@@ -169,6 +169,45 @@ class GetUniqueGiftChatThemesQuery final : public Td::ResultHandler {
   }
 };
 
+class GetShareThemeBackdropsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::profileShareThemeBackdrops>> promise_;
+
+ public:
+  explicit GetShareThemeBackdropsQuery(Promise<td_api::object_ptr<td_api::profileShareThemeBackdrops>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getShareThemeBackdrops(0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getShareThemeBackdrops>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetShareThemeBackdropsQuery: " << to_string(ptr);
+    if (ptr->get_id() != telegram_api::shareThemeBackdrops::ID) {
+      return on_error(Status::Error(500, "Receive unexpected response"));
+    }
+    auto backdrops = telegram_api::move_object_as<telegram_api::shareThemeBackdrops>(ptr);
+    auto result = td_api::make_object<td_api::profileShareThemeBackdrops>();
+    for (auto &backdrop : backdrops->backdrops_) {
+      result->backdrops_.push_back(td_api::make_object<td_api::profileShareThemeBackdrop>(
+          backdrop->backdrop_id_, backdrop->name_,
+          td_api::make_object<td_api::upgradedGiftBackdropColors>(backdrop->center_color_, backdrop->edge_color_,
+                                                                  backdrop->pattern_color_, backdrop->text_color_)));
+    }
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 bool operator==(const ThemeManager::ProfileAccentColor &lhs, const ThemeManager::ProfileAccentColor &rhs) {
   return lhs.palette_colors_ == rhs.palette_colors_ && lhs.background_colors_ == rhs.background_colors_ &&
          lhs.story_colors_ == rhs.story_colors_;
@@ -1027,6 +1066,11 @@ void ThemeManager::on_get_profile_accent_colors(
 void ThemeManager::get_unique_gift_chat_themes(const string &offset, int32 limit,
                                                Promise<td_api::object_ptr<td_api::giftChatThemes>> &&promise) {
   td_->create_handler<GetUniqueGiftChatThemesQuery>(std::move(promise))->send(offset, limit);
+}
+
+void ThemeManager::get_profile_share_theme_backdrops(
+    Promise<td_api::object_ptr<td_api::profileShareThemeBackdrops>> &&promise) {
+  td_->create_handler<GetShareThemeBackdropsQuery>(std::move(promise))->send();
 }
 
 void ThemeManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

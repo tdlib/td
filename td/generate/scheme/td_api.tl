@@ -4390,6 +4390,16 @@ builtInThemeArctic = BuiltInTheme;
 themeSettings base_theme:BuiltInTheme accent_color:int32 background:background outgoing_message_fill:BackgroundFill animate_outgoing_message_fill:Bool has_outgoing_message_accent_color:Bool outgoing_message_accent_color:int32 = ThemeSettings;
 
 
+//@description Describes a backdrop, which can be used as a theme of the screen for sharing a link to a user or a chat
+//@id Unique identifier of the backdrop
+//@name Name of the backdrop
+//@colors Colors of the backdrop
+profileShareThemeBackdrop id:int32 name:string colors:upgradedGiftBackdropColors = ProfileShareThemeBackdrop;
+
+//@description Contains a list of backdrops, which can be used as a theme of the screen for sharing a link to a user or a chat @backdrops The list of backdrops
+profileShareThemeBackdrops backdrops:vector<profileShareThemeBackdrop> = ProfileShareThemeBackdrops;
+
+
 //@description Represents a button inside a rich message
 //@text Text of the button; only richTexts, richTextPlain, and richTextCustomEmoji are allowed
 //@style Style of the button
@@ -16052,6 +16062,10 @@ removeInstalledBackground background_id:int64 = Ok;
 
 //@description Resets list of installed backgrounds to its default value
 resetInstalledBackgrounds = Ok;
+
+
+//@description Returns the list of backdrops, which can be used as a theme of the screen for sharing a link to a user or a chat
+getProfileShareThemeBackdrops = ProfileShareThemeBackdrops;
 
 
 //@description Returns information about the current localization target. This is an offline method if only_local is true. Can be called before authorization @only_local Pass true to get only locally available information without sending network requests
