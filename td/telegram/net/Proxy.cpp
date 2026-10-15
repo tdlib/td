@@ -8,9 +8,34 @@
 
 #include "td/telegram/td_api.h"
 
+#include "td/utils/base64.h"
+#include "td/utils/crypto.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/utf8.h"
 
 namespace td {
+
+string Proxy::get_web_proxy_address() const {
+  CHECK(type_ == Type::Web);
+  if (path_.empty()) {
+    return server_;
+  }
+  return PSTRING() << server_ << '/' << path_;
+}
+
+string Proxy::get_web_proxy_bridge_capability() const {
+  CHECK(type_ == Type::Web);
+  // the "tdesktop-" prefix is part of the contract: the deployed relay checks these exact bytes
+  string context;
+  if (path_.empty()) {
+    context = PSTRING() << "tdesktop-web-proxy-bridge-v1\n" << server_;
+  } else {
+    context = PSTRING() << "tdesktop-web-proxy-bridge-v2\n" << server_ << '\n' << path_;
+  }
+  string hash(32, '\0');
+  hmac_sha256(secret_.get_raw_secret(), context, hash);
+  return base64url_encode(hash);
+}
 
 Result<Proxy> Proxy::create_proxy(string server, int port, const td_api::ProxyType *proxy_type) {
   if (proxy_type == nullptr) {
@@ -90,6 +115,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Proxy &proxy) {
     case Proxy::Type::Mtproto:
       return string_builder << "ProxyMtproto " << proxy.server() << ":" << proxy.port() << "/"
                             << proxy.secret().get_encoded_secret();
+    case Proxy::Type::Web:
+      // neither the secret nor the derived capability may be logged
+      return string_builder << "ProxyWeb " << proxy.get_web_proxy_address();
     case Proxy::Type::None:
       return string_builder << "ProxyEmpty";
     default:

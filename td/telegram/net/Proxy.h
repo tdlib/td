@@ -14,6 +14,8 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
+#include <utility>
+
 namespace td {
 
 namespace tl {
@@ -72,9 +74,29 @@ class Proxy {
     return proxy;
   }
 
+  static constexpr int32 WEB_PROXY_PORT = 443;
+
+  static Proxy web(string server, string path, mtproto::ProxySecret secret) {
+    Proxy proxy;
+    proxy.type_ = Type::Web;
+    proxy.server_ = std::move(server);
+    proxy.port_ = WEB_PROXY_PORT;
+    proxy.path_ = std::move(path);
+    proxy.secret_ = std::move(secret);
+    return proxy;
+  }
+
   CSlice server() const {
     return server_;
   }
+
+  CSlice path() const {
+    return path_;
+  }
+
+  string get_web_proxy_address() const;
+
+  string get_web_proxy_bridge_capability() const;
 
   int32 port() const {
     return port_;
@@ -92,7 +114,7 @@ class Proxy {
     return secret_;
   }
 
-  enum class Type : int32 { None, Socks5, Mtproto, HttpTcp, HttpCaching };
+  enum class Type : int32 { None, Socks5, Mtproto, HttpTcp, HttpCaching, Web };
   Type type() const {
     return type_;
   }
@@ -112,6 +134,9 @@ class Proxy {
   bool use_http_caching_proxy() const {
     return type() == Proxy::Type::HttpCaching;
   }
+  bool use_web_proxy() const {
+    return type() == Proxy::Type::Web;
+  }
 
   td_api::object_ptr<td_api::proxy> get_proxy_object() const;
 
@@ -128,6 +153,11 @@ class Proxy {
       store(server_, storer);
       store(port_, storer);
       store(secret_.get_encoded_secret(), storer);
+    } else if (type_ == Proxy::Type::Web) {
+      store(server_, storer);
+      store(port_, storer);
+      store(secret_.get_encoded_secret(), storer);
+      store(path_, storer);
     } else {
       CHECK(type_ == Proxy::Type::None);
     }
@@ -146,6 +176,11 @@ class Proxy {
       parse(server_, parser);
       parse(port_, parser);
       secret_ = mtproto::ProxySecret::from_link(parser.template fetch_string<Slice>(), true).move_as_ok();
+    } else if (type_ == Proxy::Type::Web) {
+      parse(server_, parser);
+      parse(port_, parser);
+      secret_ = mtproto::ProxySecret::from_link(parser.template fetch_string<Slice>(), true).move_as_ok();
+      parse(path_, parser);
     } else {
       CHECK(type_ == Proxy::Type::None);
     }
@@ -157,6 +192,7 @@ class Proxy {
   int32 port_ = 0;
   string user_;
   string password_;
+  string path_;
   mtproto::ProxySecret secret_;
 
   static Result<Proxy> create_proxy(string server, int port, const td_api::ProxyType *proxy_type);
@@ -164,7 +200,8 @@ class Proxy {
 
 inline bool operator==(const Proxy &lhs, const Proxy &rhs) {
   return lhs.type() == rhs.type() && lhs.server() == rhs.server() && lhs.port() == rhs.port() &&
-         lhs.user() == rhs.user() && lhs.password() == rhs.password() && lhs.secret() == rhs.secret();
+         lhs.user() == rhs.user() && lhs.password() == rhs.password() && lhs.path() == rhs.path() &&
+         lhs.secret() == rhs.secret();
 }
 
 inline bool operator!=(const Proxy &lhs, const Proxy &rhs) {
