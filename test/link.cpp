@@ -470,6 +470,11 @@ static auto proxy_socks(const td::string &server, td::int32 port, const td::stri
       server, port, td::td_api::make_object<td::td_api::proxyTypeSocks5>(username, password)));
 }
 
+static auto proxy_web(const td::string &server, const td::string &path, const td::string &secret) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeProxy>(td::td_api::make_object<td::td_api::proxy>(
+      server, 443, td::td_api::make_object<td::td_api::proxyTypeWeb>(path, secret)));
+}
+
 static auto public_chat(const td::string &chat_username, const td::string &draft_text = td::string(),
                         bool open_profile = false) {
   return td::td_api::make_object<td::td_api::internalLinkTypePublicChat>(chat_username, draft_text, open_profile);
@@ -1429,6 +1434,52 @@ TEST(Link, parse_internal_link_part3) {
   parse_internal_link("tg:proxy", unsupported_proxy());
   parse_internal_link("tg:proxy?server=&port=80&secret=1234567890abcdef1234567890ABCDEF", unsupported_proxy());
   parse_internal_link("tg:proxy?server=%FF&port=80&secret=1234567890abcdef1234567890ABCDEF", unsupported_proxy());
+
+  parse_internal_link("t.me/webproxy?server=proxy.example.com&secret=8561944064fc730cbfa4473562d8ec59",
+                      proxy_web("proxy.example.com", "", "8561944064fc730cbfa4473562d8ec59"));
+  parse_internal_link("https://t.me/webproxy?server=proxy.example.com&port=80&secret=8561944064FC730CBFA4473562D8EC59",
+                      proxy_web("proxy.example.com", "", "8561944064fc730cbfa4473562d8ec59"));
+  parse_internal_link("t.me/webproxy?server=HTTPS%3A%2F%2FProxy.Example.COM.&secret=dd8561944064fc730cbfa4473562d8ec59",
+                      proxy_web("proxy.example.com", "", "dd8561944064fc730cbfa4473562d8ec59"));
+  parse_internal_link(
+      "t.me/webproxy?server=%D0%BF%D1%80%D0%B8%D0%BC%D0%B5%D1%80.%D1%80%D1%84&secret="
+      "8561944064fc730cbfa4473562d8ec59",
+      proxy_web("xn--e1afmkfd.xn--p1ai", "", "8561944064fc730cbfa4473562d8ec59"));
+  parse_internal_link(
+      "t.me/webproxy?server=%D0%9F%D1%80%D0%B8%D0%BC%D0%B5%D1%80.%D0%A0%D0%A4&secret="
+      "8561944064fc730cbfa4473562d8ec59",
+      proxy_web("xn--e1afmkfd.xn--p1ai", "", "8561944064fc730cbfa4473562d8ec59"));
+  parse_internal_link("t.me/webproxy?server=proxy.example.com%2Fdobry-cola-super-app&secret=cIVhlEBk_HMMv6RHNWLY7Fk",
+                      proxy_web("proxy.example.com", "dobry-cola-super-app", "8561944064fc730cbfa4473562d8ec59"));
+  parse_internal_link("t.me/webproxy?server=proxy.example.com%2Fa%2Fb_c&secret=cN2FYZRAZPxzDL-kRzVi2OxZ",
+                      proxy_web("proxy.example.com", "a/b_c", "dd8561944064fc730cbfa4473562d8ec59"));
+  parse_internal_link("t.me/webproxy?server=proxy.example.com&secret=cIVhlEBk_HMMv6RHNWLY7Fk",
+                      proxy_web("proxy.example.com", "", "8561944064fc730cbfa4473562d8ec59"));
+  parse_internal_link("t.me/webproxy?server=proxy.example.com%2Fapp&secret=8561944064fc730cbfa4473562d8ec59",
+                      unsupported_proxy());
+  parse_internal_link("t.me/webproxy?server=proxy.example.com&secret=7tAAAAAAAAAAAAAAAAAAAAAAAAcuZ29vZ2xlLmNvbQ",
+                      unsupported_proxy());
+  parse_internal_link("t.me/webproxy?server=proxy.example.com&secret=de8561944064fc730cbfa4473562d8ec59",
+                      unsupported_proxy());
+  parse_internal_link("t.me/webproxy?server=1.2.3.4&secret=8561944064fc730cbfa4473562d8ec59", unsupported_proxy());
+  parse_internal_link("t.me/webproxy?server=proxy.0x7f&secret=8561944064fc730cbfa4473562d8ec59", unsupported_proxy());
+  parse_internal_link("t.me/webproxy?server=localhost&secret=8561944064fc730cbfa4473562d8ec59", unsupported_proxy());
+  parse_internal_link("t.me/webproxy?server=proxy.example.com%2F-app&secret=cIVhlEBk_HMMv6RHNWLY7Fk",
+                      unsupported_proxy());
+  parse_internal_link("t.me/webproxy?server=proxy.example.com%2Fa%2F%2Fb&secret=cIVhlEBk_HMMv6RHNWLY7Fk",
+                      unsupported_proxy());
+  parse_internal_link("t.me/webproxy?server=proxy.example.com%2Fa.b&secret=cIVhlEBk_HMMv6RHNWLY7Fk",
+                      unsupported_proxy());
+  parse_internal_link("t.me/webproxy?server=proxy.example.com", unsupported_proxy());
+  parse_internal_link("t.me/webproxy", unsupported_proxy());
+
+  parse_internal_link("tg:webproxy?server=proxy.example.com&secret=8561944064fc730cbfa4473562d8ec59",
+                      proxy_web("proxy.example.com", "", "8561944064fc730cbfa4473562d8ec59"));
+  parse_internal_link("tg://webproxy?server=proxy.example.com%2Fdobry-cola-super-app&secret=cIVhlEBk_HMMv6RHNWLY7Fk",
+                      proxy_web("proxy.example.com", "dobry-cola-super-app", "8561944064fc730cbfa4473562d8ec59"));
+  parse_internal_link("tg:webproxy?server=proxy.example.com%2Fapp&secret=8561944064fc730cbfa4473562d8ec59",
+                      unsupported_proxy());
+  parse_internal_link("tg:webproxy", unsupported_proxy());
 
   parse_internal_link(
       "t.me/"

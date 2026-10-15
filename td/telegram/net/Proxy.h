@@ -86,7 +86,13 @@ class Proxy {
     return proxy;
   }
 
+  // returns the canonical host and path of a web proxy address "host[/path]"
+  static Result<std::pair<string, string>> parse_web_proxy_address(Slice address);
+
   static Result<mtproto::ProxySecret> get_web_proxy_secret(Slice encoded_secret);
+
+  // a link secret of a web proxy with a path is marked, so that clients without path support reject the link
+  static Result<mtproto::ProxySecret> get_web_proxy_link_secret(Slice link_secret, bool has_path);
 
   CSlice server() const {
     return server_;

@@ -99,6 +99,26 @@ bool Proxy::is_valid_web_proxy_path(Slice path) {
   return path.empty() || !is_segment_start;
 }
 
+Result<std::pair<string, string>> Proxy::parse_web_proxy_address(Slice address) {
+  address = trim(address);
+  Slice scheme("https://");
+  if (address.size() >= scheme.size() && to_lower(address.substr(0, scheme.size())) == scheme) {
+    address.remove_prefix(scheme.size());
+  }
+  Slice host = address;
+  Slice path;
+  auto slash_pos = address.find('/');
+  if (slash_pos != Slice::npos) {
+    host = address.substr(0, slash_pos);
+    path = address.substr(slash_pos + 1);
+  }
+  TRY_RESULT(normalized_host, normalize_web_proxy_host(host));
+  if (!is_valid_web_proxy_path(path)) {
+    return Status::Error(400, "Invalid web proxy path");
+  }
+  return std::make_pair(std::move(normalized_host), path.str());
+}
+
 Result<mtproto::ProxySecret> Proxy::get_web_proxy_secret(Slice encoded_secret) {
   TRY_RESULT(secret, mtproto::ProxySecret::from_link(encoded_secret));
   if (secret.emulate_tls()) {
@@ -106,6 +126,22 @@ Result<mtproto::ProxySecret> Proxy::get_web_proxy_secret(Slice encoded_secret) {
     return Status::Error(400, "Web proxies don't support fake TLS secrets");
   }
   return std::move(secret);
+}
+
+Result<mtproto::ProxySecret> Proxy::get_web_proxy_link_secret(Slice link_secret, bool has_path) {
+  auto r_marked = base64url_decode(link_secret);
+  if (r_marked.is_ok() && r_marked.ok().size() >= 17 &&
+      static_cast<unsigned char>(r_marked.ok()[0]) == WEB_PROXY_LINK_SECRET_MARKER &&
+      Slice(base64url_encode(r_marked.ok())) == link_secret) {
+    auto r_secret = mtproto::ProxySecret::from_binary(Slice(r_marked.ok()).substr(1));
+    if (r_secret.is_ok() && !r_secret.ok().emulate_tls()) {
+      return r_secret.move_as_ok();
+    }
+  }
+  if (has_path) {
+    return Status::Error(400, "Wrong proxy secret");
+  }
+  return get_web_proxy_secret(link_secret);
 }
 
 string Proxy::get_web_proxy_address() const {
