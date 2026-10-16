@@ -637,7 +637,7 @@ string CountryInfoManager::get_country_flag_emoji(const string &country_code) {
     return "\xF0\x9F\x94\xAE";  // crystal ball
   }
   if (first == 'F' && second == 'T') {
-    return "\xF0\x9F\x8F\xB4\xE2\x80\x8D\xE2\x98\xA0\xEF\xB8\x8F";  // pirate flag
+    return "\xF0\x9F\x92\x8E";  // gem stone
   }
   if (first == 'X' && second == 'G') {
     return "\xF0\x9F\x9B\xB0";  // satellite
