@@ -2050,6 +2050,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getProfileShareThemeBackdrops &request);
 
+  void on_request(uint64 id, td_api::setProfileShareTheme &request);
+
   void on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request);
 
   void on_request(uint64 id, td_api::setBotUpdatesStatus &request);

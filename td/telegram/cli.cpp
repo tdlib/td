@@ -4582,6 +4582,36 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteChatBackground>(chat_id, op == "dcbr"));
     } else if (op == "gpstb") {
       send_request(td_api::make_object<td_api::getProfileShareThemeBackdrops>());
+    } else if (op == "spstd") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::setProfileShareTheme>(chat_id, nullptr));
+    } else if (op == "spste" || op == "spstb") {
+      ChatId chat_id;
+      int32 backdrop_id = 0;
+      string emojis;
+      if (op == "spstb") {
+        get_args(args, chat_id, backdrop_id, emojis);
+      } else {
+        get_args(args, chat_id, emojis);
+      }
+      auto emoji_types =
+          transform(autosplit_str(emojis), [](const string &emoji) -> td_api::object_ptr<td_api::EmojiType> {
+            auto r_custom_emoji_id = to_integer_safe<int64>(emoji);
+            if (r_custom_emoji_id.is_ok()) {
+              return td_api::make_object<td_api::emojiTypeCustom>(r_custom_emoji_id.ok());
+            }
+            return td_api::make_object<td_api::emojiTypeRegular>(emoji);
+          });
+      send_request(td_api::make_object<td_api::setProfileShareTheme>(
+          chat_id, td_api::make_object<td_api::inputProfileShareThemeEmoji>(std::move(emoji_types), op == "spste",
+                                                                            backdrop_id)));
+    } else if (op == "spstg") {
+      ChatId chat_id;
+      string received_gift_id;
+      get_args(args, chat_id, received_gift_id);
+      send_request(td_api::make_object<td_api::setProfileShareTheme>(
+          chat_id, td_api::make_object<td_api::inputProfileShareThemeUpgradedGift>(received_gift_id)));
     } else if (op == "gcos") {
       send_request(td_api::make_object<td_api::getCountries>());
     } else if (op == "gcou") {

@@ -59,6 +59,9 @@ class ThemeManager final : public Actor {
 
   void get_profile_share_theme_backdrops(Promise<td_api::object_ptr<td_api::profileShareThemeBackdrops>> &&promise);
 
+  void set_profile_share_theme(DialogId dialog_id, td_api::object_ptr<td_api::InputProfileShareTheme> &&theme,
+                               Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

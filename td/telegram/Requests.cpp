@@ -9328,6 +9328,13 @@ void Requests::on_request(uint64 id, const td_api::getProfileShareThemeBackdrops
   td_->theme_manager_->get_profile_share_theme_backdrops(std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::setProfileShareTheme &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->theme_manager_->set_profile_share_theme(DialogId(request.chat_id_), std::move(request.theme_),
+                                               std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.referrer_);

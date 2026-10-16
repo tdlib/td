@@ -9,10 +9,14 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/ChatTheme.h"
+#include "td/telegram/CustomEmojiId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/StarGiftId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -194,6 +198,101 @@ class GetShareThemeBackdropsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+static Result<telegram_api::object_ptr<telegram_api::ShareTheme>> get_input_share_theme(
+    Td *td, td_api::object_ptr<td_api::InputProfileShareTheme> &&theme) {
+  if (theme == nullptr) {
+    return telegram_api::make_object<telegram_api::shareThemeDefault>();
+  }
+  switch (theme->get_id()) {
+    case td_api::inputProfileShareThemeEmoji::ID: {
+      auto emoji_theme = td_api::move_object_as<td_api::inputProfileShareThemeEmoji>(theme);
+      if (emoji_theme->emojis_.size() > ThemeManager::MAX_SHARE_THEME_EMOJI_COUNT) {
+        return Status::Error(400, "Too many emoji specified");
+      }
+      if (emoji_theme->emojis_.empty() && emoji_theme->use_default_background_) {
+        return Status::Error(400, "Emoji or a backdrop must be specified");
+      }
+      vector<telegram_api::object_ptr<telegram_api::Reaction>> emojis;
+      for (auto &emoji_type : emoji_theme->emojis_) {
+        if (emoji_type == nullptr) {
+          return Status::Error(400, "Emoji must be non-empty");
+        }
+        switch (emoji_type->get_id()) {
+          case td_api::emojiTypeRegular::ID: {
+            auto &emoji = static_cast<td_api::emojiTypeRegular *>(emoji_type.get())->emoji_;
+            if (!clean_input_string(emoji) || !is_emoji(emoji)) {
+              return Status::Error(400, "Invalid emoji specified");
+            }
+            emojis.push_back(telegram_api::make_object<telegram_api::reactionEmoji>(std::move(emoji)));
+            break;
+          }
+          case td_api::emojiTypeCustom::ID: {
+            CustomEmojiId custom_emoji_id(
+                static_cast<const td_api::emojiTypeCustom *>(emoji_type.get())->custom_emoji_id_);
+            if (!custom_emoji_id.is_valid()) {
+              return Status::Error(400, "Invalid custom emoji identifier specified");
+            }
+            emojis.push_back(telegram_api::make_object<telegram_api::reactionCustomEmoji>(custom_emoji_id.get()));
+            break;
+          }
+          default:
+            UNREACHABLE();
+        }
+      }
+      int32 flags = 0;
+      if (!emoji_theme->use_default_background_) {
+        flags |= telegram_api::shareThemeEmojiBackdrop::BACKDROP_ID_MASK;
+      }
+      return telegram_api::make_object<telegram_api::shareThemeEmojiBackdrop>(
+          flags, emoji_theme->background_backdrop_id_, std::move(emojis));
+    }
+    case td_api::inputProfileShareThemeUpgradedGift::ID: {
+      StarGiftId star_gift_id(
+          static_cast<const td_api::inputProfileShareThemeUpgradedGift *>(theme.get())->received_gift_id_);
+      auto input_saved_star_gift = star_gift_id.get_input_saved_star_gift(td);
+      if (input_saved_star_gift == nullptr) {
+        return Status::Error(400, "Invalid gift identifier specified");
+      }
+      return telegram_api::make_object<telegram_api::inputShareThemeGift>(std::move(input_saved_star_gift));
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+class SetShareThemeQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit SetShareThemeQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::ShareTheme> &&theme) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_setShareTheme(std::move(input_peer), std::move(theme)), {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_setShareTheme>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(INFO) << "Receive result for SetShareThemeQuery: " << result_ptr.ok();
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SetShareThemeQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -1195,6 +1294,18 @@ void ThemeManager::on_get_share_theme_backdrops(
   for (auto &promise : promises) {
     promise.set_value(get_profile_share_theme_backdrops_object());
   }
+}
+
+void ThemeManager::set_profile_share_theme(DialogId dialog_id,
+                                           td_api::object_ptr<td_api::InputProfileShareTheme> &&theme,
+                                           Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
+                                                                        "set_profile_share_theme"));
+  if (dialog_id != td_->dialog_manager_->get_my_dialog_id() && dialog_id.get_type() != DialogType::Channel) {
+    return promise.set_error(400, "Can't change theme of the chat");
+  }
+  TRY_RESULT_PROMISE(promise, input_theme, get_input_share_theme(td_, std::move(theme)));
+  td_->create_handler<SetShareThemeQuery>(std::move(promise))->send(dialog_id, std::move(input_theme));
 }
 
 td_api::object_ptr<td_api::profileShareThemeBackdrops> ThemeManager::get_profile_share_theme_backdrops_object() const {

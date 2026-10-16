@@ -4416,12 +4416,24 @@ profileShareThemeDefault = ProfileShareTheme;
 
 //@description A theme with emoji placed on a background
 //@emojis The emoji; 0-6 regular or custom emoji. If empty, then use_default_background is false
-//@use_default_background True, if the default background is used; otherwise, the backdrop with identifier backdrop_id is used as background
+//@use_default_background True, if the default background is used; otherwise, the backdrop with identifier background_backdrop_id is used as background
 //@background_backdrop_id Identifier of the backdrop used as background; must be ignored if use_default_background is true. Use getProfileShareThemeBackdrops to get details about the backdrop
 profileShareThemeEmoji emojis:vector<EmojiType> use_default_background:Bool background_backdrop_id:int32 = ProfileShareTheme;
 
 //@description A theme based on an upgraded gift owned by the user or the chat @gift The upgraded gift
 profileShareThemeUpgradedGift gift:upgradedGift = ProfileShareTheme;
+
+
+//@class InputProfileShareTheme @description Describes a theme of the screen for sharing a link to a user or a chat to be set
+
+//@description A theme with emoji placed on a background
+//@emojis The emoji; 0-6 regular or custom emoji. If empty, then use_default_background must be false
+//@use_default_background Pass true to use the default background; otherwise, the backdrop with identifier background_backdrop_id will be used as background
+//@background_backdrop_id Identifier of the backdrop to be used as background; ignored if use_default_background is true. Use getProfileShareThemeBackdrops to get the list of available backdrops
+inputProfileShareThemeEmoji emojis:vector<EmojiType> use_default_background:Bool background_backdrop_id:int32 = InputProfileShareTheme;
+
+//@description A theme based on an upgraded gift @received_gift_id Identifier of the upgraded gift, which is owned by the user or the chat, for which the theme is set
+inputProfileShareThemeUpgradedGift received_gift_id:string = InputProfileShareTheme;
 
 
 //@description Represents a button inside a rich message
@@ -16090,6 +16102,12 @@ resetInstalledBackgrounds = Ok;
 
 //@description Returns the list of backdrops, which can be used as a theme of the screen for sharing a link to a user or a chat
 getProfileShareThemeBackdrops = ProfileShareThemeBackdrops;
+
+//@description Changes the theme of the screen for sharing a link to the current user or a chat. The chat must have a username.
+//-Requires can_change_info administrator right in supergroups and channels
+//@chat_id Identifier of the chat with the current user, or identifier of a supergroup or a channel chat
+//@theme The new theme; pass null to use the default theme
+setProfileShareTheme chat_id:int53 theme:InputProfileShareTheme = Ok;
 
 
 //@description Returns information about the current localization target. This is an offline method if only_local is true. Can be called before authorization @only_local Pass true to get only locally available information without sending network requests
