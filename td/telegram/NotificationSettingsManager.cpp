@@ -1784,4 +1784,9 @@ void NotificationSettingsManager::get_current_state(vector<td_api::object_ptr<td
   }
 }
 
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+bool NotificationSettingsManager::have_scope_notification_settings(NotificationSettingsScope scope) const {
+  return get_scope_notification_settings(scope)->is_synchronized;
+}
+
 }  // namespace td

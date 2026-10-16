@@ -998,9 +998,30 @@ class MessagesManager final : public Actor {
   vector<NotificationGroupKey> get_message_notification_group_keys_from_database(NotificationGroupKey from_group_key,
                                                                                  int32 limit);
 
+  // LLM-assisted: read-owned state outlives policy callbacks without retaining message pointers.
+  struct ForumNotificationRestoreRead {
+    struct DeferredNotification {
+      MessageId message_id;
+      NotificationId notification_id;
+      ForumTopicId topic_id;
+      bool is_pin;
+    };
+
+    DialogId dialog_id;
+    NotificationGroupId group_id;
+    vector<DeferredNotification> deferred_notifications;
+
+    ForumNotificationRestoreRead(DialogId dialog_id, NotificationGroupId group_id)
+        : dialog_id(dialog_id), group_id(group_id) {
+    }
+  };
+
+  void on_forum_notification_restore_refill_finished(ForumTopicFullId topic_id, uint64 generation);
+
   void get_message_notifications_from_database(DialogId dialog_id, NotificationGroupId group_id,
                                                NotificationId from_notification_id, MessageId from_message_id,
-                                               int32 limit, Promise<vector<Notification>> &&promise);
+                                               int32 limit, Promise<vector<Notification>> &&promise,
+                                               std::shared_ptr<ForumNotificationRestoreRead> read = nullptr);
 
   void remove_message_notification(DialogId dialog_id, NotificationGroupId group_id, NotificationId notification_id);
 
@@ -2371,8 +2392,8 @@ class MessagesManager final : public Actor {
   void fix_dialog_last_notification_id(Dialog *d, bool from_mentions, MessageId message_id);
 
   void do_fix_dialog_last_notification_id(DialogId dialog_id, bool from_mentions,
-                                          NotificationId prev_last_notification_id,
-                                          Result<vector<Notification>> result);
+                                          NotificationId prev_last_notification_id, Result<vector<Notification>> result,
+                                          std::shared_ptr<ForumNotificationRestoreRead> read);
 
   void do_delete_message_log_event(const DeleteMessageLogEvent &log_event) const;
 
@@ -2418,6 +2439,62 @@ class MessagesManager final : public Actor {
 
   void on_notification_forum_topic_loaded(ForumTopicFullId topic_id, Result<Unit> result);
 
+  enum { RestoreMute = 1, RestorePreview = 2, RestoreMentions = 4, RestorePins = 8 };
+
+  struct ForumRestoreDependency {
+    enum class Kind { None, Topic, DialogInfo, DialogSettings, Scope };
+    Kind kind = Kind::None;
+    DialogId dialog_id;
+    NotificationSettingsScope scope = NotificationSettingsScope::Private;
+
+    bool operator==(const ForumRestoreDependency &other) const {
+      return kind == other.kind && dialog_id == other.dialog_id && scope == other.scope;
+    }
+  };
+
+  struct ForumRestoreDependencyRequest {
+    ForumRestoreDependency dependency;
+    bool completed = false;
+  };
+
+  struct DeferredForumNotification {
+    MessageId message_id;
+    NotificationId notification_id;
+    NotificationGroupId group_id;
+    bool from_mentions;
+    bool is_pin;
+  };
+
+  struct PendingForumNotificationRestoration {
+    uint64 generation = 0;
+    bool policy_ready = false;
+    vector<DeferredForumNotification> notifications;
+    vector<ForumRestoreDependencyRequest> dependencies;
+  };
+
+  ForumRestoreDependency get_forum_restore_dialog_dependency(DialogId dialog_id, const Dialog *d, int32 fields) const;
+  ForumRestoreDependency get_forum_restore_dependency(const Dialog *d, const Message *m, bool from_mentions,
+                                                      bool include_preview = true);
+  bool have_forum_notification_restore_policy(const Dialog *d, const Message *m, bool from_mentions);
+  void mark_forum_notification_restore_read(const std::shared_ptr<ForumNotificationRestoreRead> &read, Dialog *d,
+                                            const Message *m, bool from_mentions);
+  void defer_forum_notification_restoration(Dialog *d, const Message *m, bool from_mentions);
+  bool has_pending_forum_notification_restoration(DialogId dialog_id, NotificationGroupId group_id) const;
+  void set_restored_notification_group_locator(Dialog *d, bool from_mentions, int32 date,
+                                               NotificationId notification_id, const char *source,
+                                               const std::shared_ptr<ForumNotificationRestoreRead> &read);
+  bool wait_for_forum_restore_dependency(ForumTopicFullId topic_id, uint64 generation,
+                                         const ForumRestoreDependency &dependency);
+  void on_forum_restore_dependency_loaded(ForumTopicFullId topic_id, uint64 generation,
+                                          ForumRestoreDependency dependency, Result<Unit> result);
+  void on_forum_notification_restoration_policy_loaded(ForumTopicFullId topic_id, uint64 generation,
+                                                       Result<Unit> result);
+  bool try_restore_deferred_forum_notification(ForumTopicFullId topic_id, uint64 generation,
+                                               const DeferredForumNotification &item);
+  void resume_forum_notification_restoration(ForumTopicFullId topic_id, uint64 generation);
+  void finish_forum_notification_restoration(ForumTopicFullId topic_id, uint64 generation);
+  void cancel_forum_notification_restorations();
+
   static bool is_from_mention_notification_group(const Message *m);
 
   static bool is_message_notification_active(const Dialog *d, const Message *m);
@@ -2432,9 +2509,10 @@ class MessagesManager final : public Actor {
                                           NotificationGroupId notification_group_id, MessageId message_id);
 
   void try_add_pinned_message_notification(Dialog *d, vector<Notification> &res, NotificationId max_notification_id,
-                                           int32 limit);
+                                           int32 limit, std::shared_ptr<ForumNotificationRestoreRead> read = nullptr);
 
-  vector<Notification> get_message_notifications_from_database_force(Dialog *d, bool from_mentions, int32 limit);
+  vector<Notification> get_message_notifications_from_database_force(
+      Dialog *d, bool from_mentions, int32 limit, std::shared_ptr<ForumNotificationRestoreRead> read = nullptr);
 
   static vector<MessageDbDialogMessage> do_get_message_notifications_from_database_force(
       Dialog *d, bool from_mentions, NotificationId from_notification_id, MessageId from_message_id, int32 limit);
@@ -2442,12 +2520,14 @@ class MessagesManager final : public Actor {
   void do_get_message_notifications_from_database(Dialog *d, bool from_mentions,
                                                   NotificationId initial_from_notification_id,
                                                   NotificationId from_notification_id, MessageId from_message_id,
-                                                  int32 limit, Promise<vector<Notification>> promise);
+                                                  int32 limit, Promise<vector<Notification>> promise,
+                                                  std::shared_ptr<ForumNotificationRestoreRead> read);
 
   void on_get_message_notifications_from_database(DialogId dialog_id, bool from_mentions,
                                                   NotificationId initial_from_notification_id, int32 limit,
                                                   Result<vector<MessageDbDialogMessage>> result,
-                                                  Promise<vector<Notification>> promise);
+                                                  Promise<vector<Notification>> promise,
+                                                  std::shared_ptr<ForumNotificationRestoreRead> read);
 
   void do_remove_message_notification(DialogId dialog_id, bool from_mentions, NotificationId notification_id,
                                       vector<MessageDbDialogMessage> result);
@@ -3501,6 +3581,9 @@ class MessagesManager final : public Actor {
   FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> run_after_get_channel_difference_;
 
   FlatHashMap<ForumTopicFullId, vector<MessageId>, ForumTopicFullIdHash> pending_forum_topic_notifications_;
+  FlatHashMap<ForumTopicFullId, PendingForumNotificationRestoration, ForumTopicFullIdHash>
+      pending_forum_notification_restorations_;
+  uint64 forum_notification_restoration_generation_ = 0;
 
   ChangesProcessor<unique_ptr<PendingSecretMessage>> pending_secret_messages_;
 
