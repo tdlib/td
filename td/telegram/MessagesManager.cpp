@@ -26065,15 +26065,33 @@ void MessagesManager::on_forum_topic_notification_settings_changed(DialogId dial
       continue;
     }
     auto mute_until = get_message_mute_until(d, m);
-    bool remove = is_from_mention_notification_group(m)
-                      ? have_message_topic_notification_settings(d, m) && is_message_mention_notification_disabled(d, m)
-                      : mute_until.first && mute_until.second > G()->unix_time();
+    bool was_active = is_message_notification_active(d, m);
+    bool remove = !was_active ||
+                  (is_from_mention_notification_group(m) ? have_message_topic_notification_settings(d, m) &&
+                                                               is_message_mention_notification_disabled(d, m)
+                                                         : mute_until.first && mute_until.second > G()->unix_time());
     if (remove) {
+      auto notification_id = m->notification_id;
+      auto group_id = get_notification_group_info(d, m).get_group_id();
       remove_message_notification_id(d, m, true, false);
+      // Topic read state is already advanced. The ordinary helper only sends a
+      // removal for an active notification, but this one may still be displayed.
+      if (!was_active && group_id.is_valid()) {
+        send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_if_present, group_id,
+                           notification_id, "on_forum_topic_read_inbox");
+      }
       on_message_changed(d, m, false, "on_forum_topic_notification_settings_changed");
     } else {
       on_message_notification_changed(d, m, "on_forum_topic_notification_settings_changed");
     }
+  }
+}
+
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+void MessagesManager::on_forum_topic_read_inbox(DialogId dialog_id, ForumTopicId forum_topic_id) {
+  if (forum_topic_id.is_valid()) {
+    // Revalidate only this topic; never advance the shared chat removal watermark.
+    on_forum_topic_notification_settings_changed(dialog_id, forum_topic_id);
   }
 }
 
@@ -26131,13 +26149,31 @@ bool MessagesManager::is_from_mention_notification_group(const Message *m) {
   return m->contains_mention && !m->is_mention_notification_disabled;
 }
 
-bool MessagesManager::is_message_notification_active(const Dialog *d, const Message *m) {
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+MessageId MessagesManager::get_message_last_read_inbox_message_id(const Dialog *d, const Message *m) const {
+  auto last_read_message_id = d->last_read_inbox_message_id;
+  if (d->is_forum) {
+    auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+    if (forum_topic_id.is_valid()) {
+      last_read_message_id = td::max(
+          last_read_message_id,
+          td_->forum_topic_manager_->get_forum_topic_last_read_inbox_message_id_force(d->dialog_id, forum_topic_id));
+    }
+  }
+  return last_read_message_id;
+}
+
+bool MessagesManager::is_message_notification_active(const Dialog *d, const Message *m) const {
   CHECK(!m->message_id.is_scheduled());
+  bool is_read = m->message_id <= get_message_last_read_inbox_message_id(d, m);
+  if (d->is_forum && is_read && m->content->get_type() == MessageContentType::PinMessage) {
+    return false;
+  }
   if (d->notification_info == nullptr) {
     if (is_from_mention_notification_group(m)) {
       return m->contains_unread_mention;
     } else {
-      return m->message_id > d->last_read_inbox_message_id;
+      return !is_read;
     }
   }
   if (is_from_mention_notification_group(m)) {
@@ -26148,7 +26184,7 @@ bool MessagesManager::is_message_notification_active(const Dialog *d, const Mess
   } else {
     return !d->notification_info->message_notification_group_.is_removed_notification(m->notification_id,
                                                                                       m->message_id) &&
-           m->message_id > d->last_read_inbox_message_id;
+           !is_read;
   }
 }
 
@@ -26168,7 +26204,7 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
   auto m = get_message_force(d, message_id, "try_add_pinned_message_notification");
   if (m != nullptr &&
       !d->notification_info->mention_notification_group_.is_removed_notification(m->notification_id, m->message_id) &&
-      m->message_id > d->last_read_inbox_message_id) {
+      m->message_id > get_message_last_read_inbox_message_id(d, m)) {
     if (!have_forum_notification_restore_policy(d, m, true)) {
       mark_forum_notification_restore_read(read, d, m, true);
       defer_forum_notification_restoration(d, m, true);
@@ -26291,9 +26327,11 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
       }
 
       if (!is_message_notification_active(d, m)) {
-        CHECK(from_mentions);
-        CHECK(!m->contains_unread_mention);
-        // skip read mentions
+        if (!d->is_forum) {
+          CHECK(from_mentions);
+          CHECK(!m->contains_unread_mention);
+        }
+        // A read topic doesn't stop pagination through unread neighboring topics.
         continue;
       }
 
@@ -26562,9 +26600,11 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
     }
 
     if (!is_message_notification_active(d, m)) {
-      CHECK(from_mentions);
-      CHECK(!m->contains_unread_mention);
-      // skip read mentions
+      if (!d->is_forum) {
+        CHECK(from_mentions);
+        CHECK(!m->contains_unread_mention);
+      }
+      // A read topic doesn't stop pagination through unread neighboring topics.
       continue;
     }
 
@@ -26914,8 +26954,11 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
 
   auto from_mentions = is_from_mention_notification_group(m);
   bool is_pinned = m->content->get_type() == MessageContentType::PinMessage;
-  bool is_active =
-      from_mentions ? m->contains_unread_mention || is_pinned : m->message_id > d->last_read_inbox_message_id;
+  bool is_read = m->message_id <= get_message_last_read_inbox_message_id(d, m);
+  bool is_active = from_mentions ? m->contains_unread_mention || is_pinned : !is_read;
+  if (d->is_forum && is_pinned && is_read) {
+    is_active = false;
+  }
   if (is_active) {
     auto &group_info = get_notification_group_info(d, from_mentions);
     if (group_info.is_removed_object_id(m->message_id)) {
