@@ -986,6 +986,8 @@ class MessagesManager final : public Actor {
 
   void on_forum_topic_notification_settings_changed(DialogId dialog_id, ForumTopicId forum_topic_id);
 
+  void on_forum_topic_read_inbox(DialogId dialog_id, ForumTopicId forum_topic_id);
+
   void on_forum_scope_notification_settings_changed(NotificationSettingsScope scope);
 
   NotificationGroupFromDatabase get_message_notification_group_force(NotificationGroupId group_id);
@@ -2488,7 +2490,9 @@ class MessagesManager final : public Actor {
 
   static bool is_from_mention_notification_group(const Message *m);
 
-  static bool is_message_notification_active(const Dialog *d, const Message *m);
+  MessageId get_message_last_read_inbox_message_id(const Dialog *d, const Message *m) const;
+
+  bool is_message_notification_active(const Dialog *d, const Message *m) const;
 
   static NotificationGroupInfo &get_notification_group_info(Dialog *d, bool from_mentions);
 

@@ -90,6 +90,8 @@ class ForumTopicManager final : public Actor {
   const DialogNotificationSettings *get_forum_topic_notification_settings_force(DialogId dialog_id,
                                                                                 ForumTopicId forum_topic_id);
 
+  MessageId get_forum_topic_last_read_inbox_message_id_force(DialogId dialog_id, ForumTopicId forum_topic_id);
+
   Status set_forum_topic_draft_message(DialogId dialog_id, ForumTopicId forum_topic_id,
                                        unique_ptr<DraftMessage> &&draft_message);
 
@@ -154,6 +156,8 @@ class ForumTopicManager final : public Actor {
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;
     unique_ptr<ForumTopic> topic_;
+    // Retain reads while the full topic is loading, then merge into its persisted state.
+    MessageId pending_read_inbox_message_id_;
     int32 receive_date_ = 0;
     int32 message_count_ = 0;
     mutable bool need_save_to_database_ = true;

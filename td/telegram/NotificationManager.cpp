@@ -1979,6 +1979,25 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
   promise.set_value(Unit());
 }
 
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+void NotificationManager::remove_notification_if_present(NotificationGroupId group_id, NotificationId notification_id,
+                                                         const char *source) {
+  auto group_it = get_group(group_id);
+  if (group_it == groups_.end()) {
+    return;
+  }
+  auto has_id = [&](const auto &notifications) {
+    return std::any_of(notifications.begin(), notifications.end(), [notification_id](const auto &notification) {
+      return notification.notification_id == notification_id;
+    });
+  };
+  // Check at execution time: a queued pin/chat removal may have won the race.
+  // Removing an absent ID permanently would decrement a partial group's count again.
+  if (has_id(group_it->second.notifications) || has_id(group_it->second.pending_notifications)) {
+    remove_notification(group_id, notification_id, true, false, Promise<Unit>(), source);
+  }
+}
+
 void NotificationManager::remove_temporary_notification_by_object_id(NotificationGroupId group_id,
                                                                      NotificationObjectId object_id, bool force_update,
                                                                      const char *source) {
