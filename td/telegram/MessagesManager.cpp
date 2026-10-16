@@ -10333,6 +10333,7 @@ void MessagesManager::tear_down() {
 }
 
 void MessagesManager::hangup() {
+  cancel_forum_notification_restorations();
   postponed_channel_updates_.clear();
 
   if (!G()->use_message_database()) {
@@ -13318,20 +13319,23 @@ void MessagesManager::fix_dialog_last_notification_id(Dialog *d, bool from_menti
     }
   }
   if (G()->use_message_database()) {
+    auto read = std::make_shared<ForumNotificationRestoreRead>(d->dialog_id, group_info.get_group_id());
     get_message_notifications_from_database(
         d->dialog_id, group_info.get_group_id(), group_info.get_last_notification_id(), message_id, 1,
         PromiseCreator::lambda(
-            [actor_id = actor_id(this), dialog_id = d->dialog_id, from_mentions,
+            [actor_id = actor_id(this), dialog_id = d->dialog_id, from_mentions, read,
              prev_last_notification_id = group_info.get_last_notification_id()](Result<vector<Notification>> result) {
               send_closure(actor_id, &MessagesManager::do_fix_dialog_last_notification_id, dialog_id, from_mentions,
-                           prev_last_notification_id, std::move(result));
-            }));
+                           prev_last_notification_id, std::move(result), read);
+            }),
+        read);
   }
 }
 
 void MessagesManager::do_fix_dialog_last_notification_id(DialogId dialog_id, bool from_mentions,
                                                          NotificationId prev_last_notification_id,
-                                                         Result<vector<Notification>> result) {
+                                                         Result<vector<Notification>> result,
+                                                         std::shared_ptr<ForumNotificationRestoreRead> read) {
   if (result.is_error()) {
     return;
   }
@@ -13362,8 +13366,8 @@ void MessagesManager::do_fix_dialog_last_notification_id(DialogId dialog_id, boo
     last_notification_id = notifications[0].notification_id;
   }
 
-  set_dialog_last_notification(dialog_id, group_info, last_notification_date, last_notification_id,
-                               "do_fix_dialog_last_notification_id");
+  set_restored_notification_group_locator(d, from_mentions, last_notification_date, last_notification_id,
+                                          "do_fix_dialog_last_notification_id", read);
 }
 
 // DO NOT FORGET TO ADD ALL CHANGES OF THIS FUNCTION AS WELL TO delete_all_dialog_messages
@@ -25847,6 +25851,7 @@ NotificationGroupFromDatabase MessagesManager::get_message_notification_group_fo
   bool from_mentions = d->notification_info->mention_notification_group_.has_group_id(group_id);
   auto &group_info = get_notification_group_info(d, from_mentions);
 
+  auto read = std::make_shared<ForumNotificationRestoreRead>(d->dialog_id, group_info.get_group_id());
   NotificationGroupFromDatabase result;
   VLOG(notifications) << "Found " << (from_mentions ? "Mentions " : "Messages ") << group_info.get_group_id() << '/'
                       << d->dialog_id << " by " << group_id << " with " << d->unread_mention_count
@@ -25874,7 +25879,7 @@ NotificationGroupFromDatabase MessagesManager::get_message_notification_group_fo
   } else {
     result.type = from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages;
     result.notifications = get_message_notifications_from_database_force(
-        d, from_mentions, static_cast<int32>(td_->notification_manager_->get_max_notification_group_size()));
+        d, from_mentions, static_cast<int32>(td_->notification_manager_->get_max_notification_group_size()), read);
   }
 
   int32 last_notification_date = 0;
@@ -25883,8 +25888,8 @@ NotificationGroupFromDatabase MessagesManager::get_message_notification_group_fo
     last_notification_date = result.notifications[0].date;
     last_notification_id = result.notifications[0].notification_id;
   }
-  set_dialog_last_notification(d->dialog_id, group_info, last_notification_date, last_notification_id,
-                               "get_message_notification_group_force");
+  set_restored_notification_group_locator(d, from_mentions, last_notification_date, last_notification_id,
+                                          "get_message_notification_group_force", read);
 
   std::reverse(result.notifications.begin(), result.notifications.end());
 
@@ -26093,7 +26098,8 @@ bool MessagesManager::is_message_notification_active(const Dialog *d, const Mess
 }
 
 void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Notification> &res,
-                                                          NotificationId max_notification_id, int32 limit) {
+                                                          NotificationId max_notification_id, int32 limit,
+                                                          std::shared_ptr<ForumNotificationRestoreRead> read) {
   CHECK(d != nullptr);
   if (d->notification_info == nullptr) {
     return;
@@ -26108,8 +26114,9 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
   if (m != nullptr &&
       !d->notification_info->mention_notification_group_.is_removed_notification(m->notification_id, m->message_id) &&
       m->message_id > d->last_read_inbox_message_id) {
-    if (!have_message_topic_notification_settings(d, m)) {
-      // Unknown policy is not a disabled pin. Keep both persisted IDs for the next restoration.
+    if (!have_forum_notification_restore_policy(d, m, true)) {
+      mark_forum_notification_restore_read(read, d, m, true);
+      defer_forum_notification_restoration(d, m, true);
       return;
     }
     if (is_message_mention_notification_disabled(d, m)) {
@@ -26143,8 +26150,8 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
   }
 }
 
-vector<Notification> MessagesManager::get_message_notifications_from_database_force(Dialog *d, bool from_mentions,
-                                                                                    int32 limit) {
+vector<Notification> MessagesManager::get_message_notifications_from_database_force(
+    Dialog *d, bool from_mentions, int32 limit, std::shared_ptr<ForumNotificationRestoreRead> read) {
   CHECK(d != nullptr);
   if (!G()->use_message_database() || td_->auth_manager_->is_bot()) {
     return {};
@@ -26235,13 +26242,14 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
         continue;
       }
 
-      if (d->is_forum && from_mentions &&
-          (!have_message_topic_notification_settings(d, m) || is_message_mention_notification_disabled(d, m))) {
-        continue;
-      }
-      if (d->is_forum && !from_mentions) {
-        auto mute_until = get_message_mute_until(d, m);
-        if (!mute_until.first || mute_until.second > G()->unix_time()) {
+      if (is_correct && d->is_forum) {
+        if (!have_forum_notification_restore_policy(d, m, from_mentions)) {
+          mark_forum_notification_restore_read(read, d, m, from_mentions);
+          defer_forum_notification_restoration(d, m, from_mentions);
+          continue;
+        }
+        if (from_mentions ? is_message_mention_notification_disabled(d, m)
+                          : get_message_mute_until(d, m).second > G()->unix_time()) {
           continue;
         }
       }
@@ -26261,7 +26269,7 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
     }
   }
   if (from_mentions) {
-    try_add_pinned_message_notification(d, res, NotificationId::max(), limit);
+    try_add_pinned_message_notification(d, res, NotificationId::max(), limit, read);
   }
   return res;
 }
@@ -26326,7 +26334,8 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
 void MessagesManager::get_message_notifications_from_database(DialogId dialog_id, NotificationGroupId group_id,
                                                               NotificationId from_notification_id,
                                                               MessageId from_message_id, int32 limit,
-                                                              Promise<vector<Notification>> &&promise) {
+                                                              Promise<vector<Notification>> &&promise,
+                                                              std::shared_ptr<ForumNotificationRestoreRead> read) {
   if (!G()->use_message_database()) {
     return promise.set_error(500, "There is no message database");
   }
@@ -26347,6 +26356,9 @@ void MessagesManager::get_message_notifications_from_database(DialogId dialog_id
 
   VLOG(notifications) << "Get " << limit << " message notifications from database in " << group_id << " from "
                       << dialog_id << " from " << from_notification_id << "/" << from_message_id;
+  if (read == nullptr) {
+    read = std::make_shared<ForumNotificationRestoreRead>(dialog_id, group_id);
+  }
   bool from_mentions = d->notification_info->mention_notification_group_.has_group_id(group_id);
   if (d->notification_info->new_secret_chat_notification_id_.is_valid()) {
     CHECK(dialog_id.get_type() == DialogType::SecretChat);
@@ -26364,14 +26376,15 @@ void MessagesManager::get_message_notifications_from_database(DialogId dialog_id
   }
 
   do_get_message_notifications_from_database(d, from_mentions, from_notification_id, from_notification_id,
-                                             from_message_id, limit, std::move(promise));
+                                             from_message_id, limit, std::move(promise), read);
 }
 
 void MessagesManager::do_get_message_notifications_from_database(Dialog *d, bool from_mentions,
                                                                  NotificationId initial_from_notification_id,
                                                                  NotificationId from_notification_id,
                                                                  MessageId from_message_id, int32 limit,
-                                                                 Promise<vector<Notification>> promise) {
+                                                                 Promise<vector<Notification>> promise,
+                                                                 std::shared_ptr<ForumNotificationRestoreRead> read) {
   CHECK(G()->use_message_database());
   CHECK(!from_message_id.is_scheduled());
 
@@ -26382,11 +26395,11 @@ void MessagesManager::do_get_message_notifications_from_database(Dialog *d, bool
   }
 
   auto dialog_id = d->dialog_id;
-  auto new_promise =
-      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, from_mentions, initial_from_notification_id, limit,
-                              promise = std::move(promise)](Result<vector<MessageDbDialogMessage>> result) mutable {
+  auto new_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_id, from_mentions, initial_from_notification_id, limit, read,
+       promise = std::move(promise)](Result<vector<MessageDbDialogMessage>> result) mutable {
         send_closure(actor_id, &MessagesManager::on_get_message_notifications_from_database, dialog_id, from_mentions,
-                     initial_from_notification_id, limit, std::move(result), std::move(promise));
+                     initial_from_notification_id, limit, std::move(result), std::move(promise), read);
       });
 
   auto *db = G()->td_db()->get_message_db_async();
@@ -26413,7 +26426,8 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
                                                                  NotificationId initial_from_notification_id,
                                                                  int32 limit,
                                                                  Result<vector<MessageDbDialogMessage>> result,
-                                                                 Promise<vector<Notification>> promise) {
+                                                                 Promise<vector<Notification>> promise,
+                                                                 std::shared_ptr<ForumNotificationRestoreRead> read) {
   G()->ignore_result_if_closing(result);
   if (result.is_error()) {
     return promise.set_error(result.move_as_error());
@@ -26499,13 +26513,14 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
       continue;
     }
 
-    if (d->is_forum && from_mentions &&
-        (!have_message_topic_notification_settings(d, m) || is_message_mention_notification_disabled(d, m))) {
-      continue;
-    }
-    if (d->is_forum && !from_mentions) {
-      auto mute_until = get_message_mute_until(d, m);
-      if (!mute_until.first || mute_until.second > G()->unix_time()) {
+    if (is_correct && d->is_forum) {
+      if (!have_forum_notification_restore_policy(d, m, from_mentions)) {
+        mark_forum_notification_restore_read(read, d, m, from_mentions);
+        defer_forum_notification_restoration(d, m, from_mentions);
+        continue;
+      }
+      if (from_mentions ? is_message_mention_notification_disabled(d, m)
+                        : get_message_mute_until(d, m).second > G()->unix_time()) {
         continue;
       }
     }
@@ -26522,7 +26537,7 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
   }
   if (!res.empty() || !from_notification_id.is_valid() || static_cast<size_t>(limit) > messages.size()) {
     if (from_mentions) {
-      try_add_pinned_message_notification(d, res, initial_from_notification_id, limit);
+      try_add_pinned_message_notification(d, res, initial_from_notification_id, limit, read);
     }
 
     std::reverse(res.begin(), res.end());
@@ -26531,7 +26546,7 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
 
   // try again from adjusted from_notification_id and from_message_id
   do_get_message_notifications_from_database(d, from_mentions, initial_from_notification_id, from_notification_id,
-                                             from_message_id, limit, std::move(promise));
+                                             from_message_id, limit, std::move(promise), read);
 }
 
 void MessagesManager::remove_message_notification(DialogId dialog_id, NotificationGroupId group_id,
@@ -37035,6 +37050,406 @@ void MessagesManager::get_message_file_search_text(MessageFullId message_full_id
     }
   }
   return promise.set_error(200, "File not found");
+}
+
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+
+MessagesManager::ForumRestoreDependency MessagesManager::get_forum_restore_dialog_dependency(DialogId dialog_id,
+                                                                                             const Dialog *d,
+                                                                                             int32 fields) const {
+  using Kind = ForumRestoreDependency::Kind;
+  if (fields == 0) {
+    return {};
+  }
+  if (d == nullptr) {
+    return {Kind::DialogInfo, dialog_id, NotificationSettingsScope::Private};
+  }
+  const auto &settings = d->notification_settings;
+  if (!settings.is_synchronized) {
+    return {Kind::DialogSettings, dialog_id, NotificationSettingsScope::Private};
+  }
+  bool needs_scope = ((fields & RestoreMute) && settings.use_default_mute_until) ||
+                     ((fields & RestorePreview) && settings.use_default_show_preview) ||
+                     ((fields & RestoreMentions) && settings.use_default_disable_mention_notifications) ||
+                     ((fields & RestorePins) && settings.use_default_disable_pinned_message_notifications);
+  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  if (needs_scope && !td_->notification_settings_manager_->have_scope_notification_settings(scope)) {
+    return {Kind::Scope, DialogId(), scope};
+  }
+  return {};
+}
+
+MessagesManager::ForumRestoreDependency MessagesManager::get_forum_restore_dependency(const Dialog *d, const Message *m,
+                                                                                      bool from_mentions,
+                                                                                      bool include_preview) {
+  using Kind = ForumRestoreDependency::Kind;
+  if (!d->is_forum) {
+    return {};
+  }
+  auto settings = get_message_topic_notification_settings(d, m);
+  if (settings == nullptr || !settings->is_synchronized) {
+    return {Kind::Topic, DialogId(), NotificationSettingsScope::Private};
+  }
+  int32 fields = include_preview && settings->use_default_show_preview ? RestorePreview : 0;
+  if (!from_mentions) {
+    fields |= settings->use_default_mute_until ? RestoreMute : 0;
+  } else if (m->content->get_type() == MessageContentType::PinMessage) {
+    fields |= settings->use_default_disable_pinned_message_notifications ? RestorePins : 0;
+  } else {
+    fields |= settings->use_default_disable_mention_notifications ? RestoreMentions : 0;
+  }
+  auto dependency = get_forum_restore_dialog_dependency(d->dialog_id, d, fields);
+  if (dependency.kind != Kind::None) {
+    return dependency;
+  }
+  if (!include_preview) {
+    return {};
+  }
+  // Do not call the inherited getter until every field it actually contributes is synchronized.
+  bool preview = settings->use_default_show_preview ? get_dialog_show_preview(d) : settings->show_preview;
+  if (preview && from_mentions) {
+    auto sender_id = get_message_sender(m);
+    if (sender_id.is_valid()) {
+      auto sender = get_dialog_force(sender_id, "get_forum_restore_dependency sender");
+      return get_forum_restore_dialog_dependency(sender_id, sender, RestorePreview);
+    }
+  }
+  return {};
+}
+
+bool MessagesManager::have_forum_notification_restore_policy(const Dialog *d, const Message *m, bool from_mentions) {
+  return get_forum_restore_dependency(d, m, from_mentions).kind == ForumRestoreDependency::Kind::None;
+}
+
+void MessagesManager::mark_forum_notification_restore_read(const std::shared_ptr<ForumNotificationRestoreRead> &read,
+                                                           Dialog *d, const Message *m, bool from_mentions) {
+  if (read != nullptr && read->dialog_id == d->dialog_id &&
+      read->group_id == get_notification_group_info(d, from_mentions).get_group_id()) {
+    for (const auto &item : read->deferred_notifications) {
+      if (item.message_id == m->message_id && item.notification_id == m->notification_id) {
+        return;
+      }
+    }
+    read->deferred_notifications.push_back({m->message_id, m->notification_id,
+                                            get_message_forum_topic_id(d->dialog_id, m),
+                                            m->content->get_type() == MessageContentType::PinMessage});
+  }
+}
+
+void MessagesManager::defer_forum_notification_restoration(Dialog *d, const Message *m, bool from_mentions) {
+  if (G()->close_flag() || !d->is_forum || d->notification_info == nullptr || !m->notification_id.is_valid()) {
+    return;
+  }
+  auto group_id = get_notification_group_info(d, from_mentions).get_group_id();
+  auto topic_id = ForumTopicFullId(d->dialog_id, get_message_forum_topic_id(d->dialog_id, m));
+  if (!group_id.is_valid() || !topic_id.get_forum_topic_id().is_valid()) {
+    return;
+  }
+  // The ordinary cold reader repairs this from returned notifications. Deferred IDs are
+  // deliberately absent from that vector, so recover the same high-water mark BEFORE waiting.
+  td_->notification_manager_->recover_existing_notification_id(m->notification_id);
+  auto &batch = pending_forum_notification_restorations_[topic_id];
+  for (const auto &item : batch.notifications) {
+    if (item.message_id == m->message_id && item.notification_id == m->notification_id && item.group_id == group_id) {
+      return;
+    }
+  }
+  batch.notifications.push_back({m->message_id, m->notification_id, group_id, from_mentions,
+                                 m->content->get_type() == MessageContentType::PinMessage});
+  if (batch.generation != 0) {
+    if (batch.policy_ready) {
+      send_closure_later(actor_id(this), &MessagesManager::resume_forum_notification_restoration, topic_id,
+                         batch.generation);
+    }
+    return;
+  }
+  batch.generation = ++forum_notification_restoration_generation_;
+  auto generation = batch.generation;
+  send_closure_later(G()->notification_manager(), &NotificationManager::on_pending_settings_query_count_changed, 1);
+  if (have_message_topic_notification_settings(d, m)) {
+    batch.policy_ready = true;
+    send_closure_later(actor_id(this), &MessagesManager::resume_forum_notification_restoration, topic_id, generation);
+    return;
+  }
+  td_->forum_topic_manager_->reload_forum_topic(
+      d->dialog_id, topic_id.get_forum_topic_id(),
+      PromiseCreator::lambda([actor_id = actor_id(this), topic_id, generation](Result<Unit> result) {
+        send_closure(actor_id, &MessagesManager::on_forum_notification_restoration_policy_loaded, topic_id, generation,
+                     std::move(result));
+      }));
+}
+
+bool MessagesManager::has_pending_forum_notification_restoration(DialogId dialog_id,
+                                                                 NotificationGroupId group_id) const {
+  for (const auto &entry : pending_forum_notification_restorations_) {
+    if (entry.first.get_dialog_id() == dialog_id) {
+      for (const auto &item : entry.second.notifications) {
+        if (item.group_id == group_id) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+void MessagesManager::set_restored_notification_group_locator(
+    Dialog *d, bool from_mentions, int32 date, NotificationId notification_id, const char *source,
+    const std::shared_ptr<ForumNotificationRestoreRead> &read) {
+  auto &group_info = get_notification_group_info(d, from_mentions);
+  // A filtered result can be nonempty and still omit a newer unread notification.
+  // Keep exact identities until this reader ends, even if its policy query failed.
+  vector<ForumNotificationRestoreRead::DeferredNotification> deferred;
+  if (read != nullptr && read->dialog_id == d->dialog_id && read->group_id == group_info.get_group_id()) {
+    deferred = read->deferred_notifications;
+  }
+  if (has_pending_forum_notification_restoration(d->dialog_id, group_info.get_group_id())) {
+    for (const auto &entry : pending_forum_notification_restorations_) {
+      if (entry.first.get_dialog_id() == d->dialog_id) {
+        for (const auto &item : entry.second.notifications) {
+          if (item.group_id == group_info.get_group_id()) {
+            deferred.push_back({item.message_id, item.notification_id, entry.first.get_forum_topic_id(), item.is_pin});
+          }
+        }
+      }
+    }
+  }
+  // No map references or message pointers survive get_message_force below.
+  for (const auto &item : deferred) {
+    if (!group_info.is_active() || item.notification_id.get() <= notification_id.get() ||
+        group_info.is_removed_notification(item.notification_id, item.message_id)) {
+      continue;
+    }
+    auto m = get_message_force(d, item.message_id, "set_restored_notification_group_locator");
+    if (m == nullptr || m->notification_id != item.notification_id ||
+        get_message_forum_topic_id(d->dialog_id, m) != item.topic_id ||
+        is_from_mention_notification_group(m) != from_mentions ||
+        (m->content->get_type() == MessageContentType::PinMessage) != item.is_pin ||
+        !is_message_notification_active(d, m)) {
+      continue;
+    }
+    if (item.is_pin && (d->notification_info->pinned_message_notification_message_id_ != item.message_id ||
+                        item.message_id <= d->last_read_inbox_message_id || item.message_id > d->last_new_message_id)) {
+      continue;
+    }
+    // A known delivery prohibition must win even while preview privacy is unknown.
+    if (get_forum_restore_dependency(d, m, from_mentions, false).kind == ForumRestoreDependency::Kind::None &&
+        (from_mentions ? is_message_mention_notification_disabled(d, m)
+                       : get_message_mute_until(d, m).second > G()->unix_time())) {
+      continue;
+    }
+    date = m->date;
+    notification_id = item.notification_id;
+  }
+  set_dialog_last_notification(d->dialog_id, group_info, date, notification_id, source);
+}
+
+bool MessagesManager::wait_for_forum_restore_dependency(ForumTopicFullId topic_id, uint64 generation,
+                                                        const ForumRestoreDependency &dependency) {
+  auto it = pending_forum_notification_restorations_.find(topic_id);
+  if (it == pending_forum_notification_restorations_.end() || it->second.generation != generation) {
+    return false;
+  }
+  for (const auto &request : it->second.dependencies) {
+    if (request.dependency == dependency) {
+      // One attempt per distinct dependency and generation. A successful RPC which still
+      // leaves this exact dependency unknown is terminal, as is an error (no retry loop).
+      return !request.completed;
+    }
+  }
+  using Kind = ForumRestoreDependency::Kind;
+  if (dependency.kind == Kind::Topic) {
+    return false;  // The batch's one topic request already completed without usable policy.
+  }
+  it->second.dependencies.push_back({dependency, false});
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), topic_id, generation, dependency](Result<Unit> result) {
+        send_closure(actor_id, &MessagesManager::on_forum_restore_dependency_loaded, topic_id, generation, dependency,
+                     std::move(result));
+      });
+  if (dependency.kind == Kind::Scope) {
+    td_->notification_settings_manager_->send_get_scope_notification_settings_query(dependency.scope,
+                                                                                    std::move(promise));
+  } else {
+    reload_dialog_notification_settings(dependency.dialog_id, std::move(promise), "forum notification restoration");
+  }
+  return true;
+}
+
+void MessagesManager::on_forum_restore_dependency_loaded(ForumTopicFullId topic_id, uint64 generation,
+                                                         ForumRestoreDependency dependency, Result<Unit> result) {
+  auto it = pending_forum_notification_restorations_.find(topic_id);
+  if (it == pending_forum_notification_restorations_.end() || it->second.generation != generation) {
+    return;
+  }
+  bool found = false;
+  for (auto &request : it->second.dependencies) {
+    if (request.dependency == dependency && !request.completed) {
+      request.completed = true;
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    return;  // Duplicate/stale callback does not release the batch's counter twice.
+  }
+  if (result.is_error()) {
+    LOG(INFO) << "Failed to resolve inherited forum notification policy";
+    // Recheck current state: another request may already have populated this dependency.
+    // If it remains unknown, the completed ledger entry makes it terminal and fail-closed.
+  }
+  resume_forum_notification_restoration(topic_id, generation);
+}
+
+void MessagesManager::on_forum_notification_restoration_policy_loaded(ForumTopicFullId topic_id, uint64 generation,
+                                                                      Result<Unit> result) {
+  auto it = pending_forum_notification_restorations_.find(topic_id);
+  if (it == pending_forum_notification_restorations_.end() || it->second.generation != generation) {
+    return;
+  }
+  if (it->second.policy_ready) {
+    return;  // A duplicated policy completion must not finish a batch still waiting for the DB.
+  }
+  if (G()->close_flag() || result.is_error()) {
+    finish_forum_notification_restoration(topic_id, generation);
+    return;  // Preserve IDs/locator; no unbounded automatic network retry.
+  }
+  it->second.policy_ready = true;
+  resume_forum_notification_restoration(topic_id, generation);
+}
+
+void MessagesManager::on_forum_notification_restore_refill_finished(ForumTopicFullId topic_id, uint64 generation) {
+  // Success and error both resume here. If the DB callback started another refill,
+  // NotificationManager will register the same generation on that refill again.
+  resume_forum_notification_restoration(topic_id, generation);
+}
+
+bool MessagesManager::try_restore_deferred_forum_notification(ForumTopicFullId topic_id, uint64 generation,
+                                                              const DeferredForumNotification &item) {
+  auto d = get_dialog_force(topic_id.get_dialog_id(), "try_restore_deferred_forum_notification");
+  if (d == nullptr || !d->is_forum || d->notification_info == nullptr) {
+    return true;
+  }
+  auto &group_info = get_notification_group_info(d, item.from_mentions);
+  if (!group_info.is_active() || group_info.get_group_id() != item.group_id) {
+    return true;
+  }
+  // Only IDs survived the asynchronous boundary. Re-read everything, also after a refill wait.
+  auto m = get_message_force(d, item.message_id, "try_restore_deferred_forum_notification");
+  if (m == nullptr || m->notification_id != item.notification_id ||
+      get_message_forum_topic_id(d->dialog_id, m) != topic_id.get_forum_topic_id() ||
+      is_from_mention_notification_group(m) != item.from_mentions ||
+      (m->content->get_type() == MessageContentType::PinMessage) != item.is_pin ||
+      group_info.is_removed_notification(item.notification_id, item.message_id) ||
+      !is_message_notification_active(d, m)) {
+    return true;
+  }
+  if (item.is_pin && (d->notification_info->pinned_message_notification_message_id_ != item.message_id ||
+                      item.message_id <= d->last_read_inbox_message_id || item.message_id > d->last_new_message_id)) {
+    return true;
+  }
+  auto dependency = get_forum_restore_dependency(d, m, item.from_mentions);
+  if (dependency.kind != ForumRestoreDependency::Kind::None) {
+    return !wait_for_forum_restore_dependency(topic_id, generation, dependency);
+  }
+  if (item.from_mentions) {
+    if (is_message_mention_notification_disabled(d, m)) {
+      if (item.is_pin) {
+        remove_dialog_pinned_message_notification(d, "deferred forum notification disabled");
+      }
+      return true;
+    }
+  } else {
+    auto mute_until = get_message_mute_until(d, m);
+    if (!mute_until.first || mute_until.second > G()->unix_time()) {
+      return true;
+    }
+  }
+  if (item.is_pin) {
+    auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
+    if (pinned_message_id.is_valid()) {
+      get_message_force(d, pinned_message_id, "deferred forum notification target");
+    }
+  }
+  auto result = td_->notification_manager_->restore_existing_forum_notification(
+      d->dialog_id, item.group_id,
+      item.from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages,
+      Notification(
+          item.notification_id, m->date, m->disable_notification,
+          create_new_message_notification(m->message_id, is_message_preview_enabled(d, m, item.from_mentions))),
+      topic_id, generation);
+  if (result == NotificationManager::ExistingNotificationRestoreResult::WaitingForDatabase) {
+    return false;  // Keep record AND counter; no premature acknowledgement on a DB wait.
+  }
+  if (result == NotificationManager::ExistingNotificationRestoreResult::Restored ||
+      result == NotificationManager::ExistingNotificationRestoreResult::AlreadyPresent) {
+    add_notification_id_to_message_id_correspondence(d->notification_info.get(), item.notification_id, item.message_id);
+    if (group_info.get_last_notification_id().get() < item.notification_id.get()) {
+      set_dialog_last_notification(d->dialog_id, group_info, m->date, item.notification_id,
+                                   "try_restore_deferred_forum_notification");
+    }
+  }
+  return true;
+}
+
+void MessagesManager::resume_forum_notification_restoration(ForumTopicFullId topic_id, uint64 generation) {
+  auto it = pending_forum_notification_restorations_.find(topic_id);
+  if (it == pending_forum_notification_restorations_.end() || it->second.generation != generation) {
+    return;
+  }
+  if (G()->close_flag()) {
+    finish_forum_notification_restoration(topic_id, generation);
+    return;
+  }
+  if (!it->second.policy_ready) {
+    return;
+  }
+  // Copy small ID records, not message pointers or map references across manager calls.
+  // Keep originals visible to the per-group locator guard until each record finishes.
+  auto items = it->second.notifications;
+  for (const auto &item : items) {
+    if (!try_restore_deferred_forum_notification(topic_id, generation, item)) {
+      continue;
+    }
+    it = pending_forum_notification_restorations_.find(topic_id);
+    if (it == pending_forum_notification_restorations_.end() || it->second.generation != generation) {
+      return;
+    }
+    td::remove_if(it->second.notifications, [&](const DeferredForumNotification &other) {
+      return other.message_id == item.message_id && other.notification_id == item.notification_id &&
+             other.group_id == item.group_id;
+    });
+  }
+  it = pending_forum_notification_restorations_.find(topic_id);
+  if (it != pending_forum_notification_restorations_.end() && it->second.generation == generation &&
+      it->second.notifications.empty()) {
+    for (const auto &request : it->second.dependencies) {
+      if (!request.completed) {
+        return;  // An owned dependency callback still has to settle (or explicit shutdown cancels it).
+      }
+    }
+    finish_forum_notification_restoration(topic_id, generation);
+  }
+}
+
+void MessagesManager::finish_forum_notification_restoration(ForumTopicFullId topic_id, uint64 generation) {
+  auto it = pending_forum_notification_restorations_.find(topic_id);
+  if (it == pending_forum_notification_restorations_.end() || it->second.generation != generation) {
+    return;
+  }
+  pending_forum_notification_restorations_.erase(it);
+  td_->notification_manager_->cancel_forum_notification_restore_waiters(topic_id, generation);
+  send_closure_later(G()->notification_manager(), &NotificationManager::on_pending_settings_query_count_changed, -1);
+}
+
+void MessagesManager::cancel_forum_notification_restorations() {
+  vector<std::pair<ForumTopicFullId, uint64>> batches;
+  for (const auto &entry : pending_forum_notification_restorations_) {
+    batches.emplace_back(entry.first, entry.second.generation);
+  }
+  for (const auto &batch : batches) {
+    finish_forum_notification_restoration(batch.first, batch.second);
+  }
 }
 
 }  // namespace td

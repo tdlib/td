@@ -591,7 +591,7 @@ void NotificationManager::load_notifications_from_database(const NotificationGro
       auto from_message_id = first_object_id.is_valid() ? MessageId(first_object_id.get()) : MessageId::max();
       send_closure(G()->messages_manager(), &MessagesManager::get_message_notifications_from_database,
                    group_key.dialog_id, group_key.group_id, from_notification_id, from_message_id,
-                   static_cast<int32>(limit), std::move(promise));
+                   static_cast<int32>(limit), std::move(promise), nullptr);
       break;
     }
     case NotificationGroupType::Calls:
@@ -607,6 +607,9 @@ void NotificationManager::on_get_notifications_from_database(NotificationGroupId
   CHECK(group_it != groups_.end());
   auto &group = group_it->second;
   CHECK(group.is_being_loaded_from_database);
+  SCOPE_EXIT {
+    notify_forum_notification_restore_refill_finished(group_id);
+  };
   group.is_being_loaded_from_database = false;
 
   if (r_notifications.is_error()) {
@@ -4305,6 +4308,193 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
   is_binlog_processed_ = true;
   try_send_update_active_notifications();
   VLOG(notifications) << "Finish processing binlog events";
+}
+
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+
+void NotificationManager::recover_existing_notification_id(NotificationId notification_id) {
+  if (notification_id.is_valid() && notification_id.get() > current_notification_id_.get()) {
+    current_notification_id_ = notification_id;
+    G()->td_db()->get_binlog_pmc()->set("notification_id_current", to_string(current_notification_id_.get()));
+  }
+}
+
+void NotificationManager::notify_forum_notification_restore_refill_finished(NotificationGroupId group_id) {
+  auto it = forum_notification_restore_waiters_.find(group_id);
+  if (it == forum_notification_restore_waiters_.end()) {
+    return;
+  }
+  auto waiters = std::move(it->second);
+  forum_notification_restore_waiters_.erase(it);
+  for (const auto &waiter : waiters) {
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_forum_notification_restore_refill_finished,
+                       waiter.topic_id, waiter.generation);
+  }
+}
+
+void NotificationManager::cancel_forum_notification_restore_waiters(ForumTopicFullId topic_id, uint64 generation) {
+  vector<NotificationGroupId> empty_groups;
+  for (auto &entry : forum_notification_restore_waiters_) {
+    td::remove_if(entry.second, [&](const ForumNotificationRestoreWaiter &waiter) {
+      return waiter.topic_id == topic_id && waiter.generation == generation;
+    });
+    if (entry.second.empty()) {
+      empty_groups.push_back(entry.first);
+    }
+  }
+  for (auto group_id : empty_groups) {
+    forum_notification_restore_waiters_.erase(group_id);
+  }
+}
+
+NotificationManager::ExistingNotificationRestoreResult NotificationManager::restore_existing_forum_notification(
+    DialogId dialog_id, NotificationGroupId group_id, NotificationGroupType group_type, Notification notification,
+    ForumTopicFullId topic_id, uint64 generation) {
+  using RestoreResult = ExistingNotificationRestoreResult;
+  if (G()->close_flag() || is_disabled() || is_being_destroyed_ || is_destroyed_ ||
+      max_notification_group_count_ == 0 || max_notification_group_size_ == 0 ||
+      !notification.notification_id.is_valid() || notification.date <= 0 || notification.type == nullptr ||
+      notification.type->is_temporary() || generation == 0 || topic_id.get_dialog_id() != dialog_id ||
+      (group_type != NotificationGroupType::Messages && group_type != NotificationGroupType::Mentions)) {
+    return RestoreResult::Skipped;
+  }
+  // Do not resurrect a deleted/reused group. The original restoration created it before our callback.
+  auto group_it = get_group(group_id);
+  if (group_it == groups_.end() || group_it->first.dialog_id != dialog_id || group_it->second.type != group_type) {
+    return RestoreResult::Skipped;
+  }
+  auto object_id = notification.type->get_object_id();
+  if (!object_id.is_valid()) {
+    return RestoreResult::Skipped;
+  }
+  recover_existing_notification_id(notification.notification_id);
+  auto &group = group_it->second;
+  for (const auto &current : group.notifications) {
+    if (current.notification_id == notification.notification_id || current.type->get_object_id() == object_id) {
+      return current.notification_id == notification.notification_id && current.type->get_object_id() == object_id
+                 ? RestoreResult::AlreadyPresent
+                 : RestoreResult::Skipped;
+    }
+  }
+  for (const auto &current : group.pending_notifications) {
+    if (current.notification_id == notification.notification_id || current.type->get_object_id() == object_id) {
+      return current.notification_id == notification.notification_id && current.type->get_object_id() == object_id
+                 ? RestoreResult::AlreadyPresent
+                 : RestoreResult::Skipped;
+    }
+  }
+  // The production DB callback filters against CURRENT first IDs. Never move that
+  // boundary while a request is in flight. Register + report wait atomically here.
+  if (group.is_being_loaded_from_database) {
+    auto &waiters = forum_notification_restore_waiters_[group_id];
+    bool found = false;
+    for (const auto &waiter : waiters) {
+      if (waiter.topic_id == topic_id && waiter.generation == generation) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      waiters.push_back({topic_id, generation});
+    }
+    return RestoreResult::WaitingForDatabase;
+  }
+  if (!group.pending_notifications.empty() &&
+      (notification.notification_id.get() >= group.pending_notifications.front().notification_id.get() ||
+       !(object_id < group.pending_notifications.front().type->get_object_id()))) {
+    return RestoreResult::Skipped;
+  }
+  if (notification.type->get_notification_type_object(td_, dialog_id) == nullptr) {
+    return RestoreResult::Skipped;
+  }
+  auto visible_groups = [&]() {
+    vector<NotificationGroupId> result;
+    for (const auto &entry : groups_) {
+      if (result.size() == max_notification_group_count_ || entry.first.last_notification_date == 0) {
+        break;
+      }
+      result.push_back(entry.first.group_id);
+    }
+    return result;
+  };
+  auto visible_ids = [&](const NotificationGroup &value) {
+    vector<int32> result;
+    auto count = td::min(value.notifications.size(), max_notification_group_size_);
+    for (size_t i = value.notifications.size() - count; i < value.notifications.size(); i++) {
+      result.push_back(value.notifications[i].notification_id.get());
+    }
+    return result;
+  };
+  auto old_visible_groups = visible_groups();
+  auto old_visible_ids = visible_ids(group);
+  auto pos = std::lower_bound(
+      group.notifications.begin(), group.notifications.end(), notification.notification_id,
+      [](const Notification &value, NotificationId id) { return value.notification_id.get() < id.get(); });
+  if ((pos != group.notifications.end() && !(object_id < pos->type->get_object_id())) ||
+      (pos != group.notifications.begin() && !((pos - 1)->type->get_object_id() < object_id))) {
+    return RestoreResult::Skipped;
+  }
+  group.notifications.insert(pos, std::move(notification));
+  // This is restoration, not arrival: total_count/pending entries/timer are unchanged.
+  if (group.notifications.size() > keep_notification_group_size_) {
+    auto erase_end = group.notifications.end() - keep_notification_group_size_;
+    for (auto it = group.notifications.begin(); it != erase_end; ++it) {
+      on_notification_removed(it->notification_id);
+    }
+    group.notifications.erase(group.notifications.begin(), erase_end);
+    group.is_loaded_from_database = false;
+  }
+  auto final_key = group_it->first;
+  final_key.last_notification_date = 0;
+  for (const auto &current : group.notifications) {
+    final_key.last_notification_date = td::max(final_key.last_notification_date, current.date);
+  }
+  auto moved_group = std::move(group);
+  delete_group(std::move(group_it));
+  group_it = add_group(std::move(final_key), std::move(moved_group), "restore_existing_forum_notification");
+  auto new_visible_groups = visible_groups();
+  for (auto id : old_visible_groups) {
+    if (!td::contains(new_visible_groups, id)) {
+      auto it = get_group(id);
+      CHECK(it != groups_.end());
+      send_remove_group_update(it->first, it->second, vector<int32>());
+    }
+  }
+  for (auto id : new_visible_groups) {
+    if (!td::contains(old_visible_groups, id)) {
+      auto it = get_group(id);
+      CHECK(it != groups_.end());
+      send_add_group_update(it->first, it->second, "restore_existing_forum_notification");
+    }
+  }
+  if (td::contains(old_visible_groups, group_id) && td::contains(new_visible_groups, group_id)) {
+    auto &updated = group_it->second;
+    auto new_visible_ids = visible_ids(updated);
+    vector<int32> removed_ids;
+    vector<td_api::object_ptr<td_api::notification>> added;
+    for (auto id : old_visible_ids) {
+      if (!td::contains(new_visible_ids, id)) {
+        removed_ids.push_back(id);
+      }
+    }
+    auto count = td::min(updated.notifications.size(), max_notification_group_size_);
+    for (size_t i = updated.notifications.size() - count; i < updated.notifications.size(); i++) {
+      const auto &current = updated.notifications[i];
+      if (!td::contains(old_visible_ids, current.notification_id.get())) {
+        auto object = get_notification_object(td_, dialog_id, current);
+        if (object->type_ != nullptr) {
+          added.push_back(std::move(object));
+        }
+      }
+    }
+    if (!added.empty() || !removed_ids.empty()) {
+      add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
+          group_id.get(), get_notification_group_type_object(updated.type),
+          td_->dialog_manager_->get_chat_id_object(dialog_id, "restore_existing_forum_notification"), 0, 0,
+          updated.total_count, std::move(added), std::move(removed_ids)));
+    }
+  }
+  return RestoreResult::Restored;
 }
 
 }  // namespace td

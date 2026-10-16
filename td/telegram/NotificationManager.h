@@ -9,6 +9,7 @@
 #include "td/telegram/CallId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
+#include "td/telegram/ForumTopicFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"
@@ -94,6 +95,16 @@ class NotificationManager final : public Actor {
   void set_notification_total_count(NotificationGroupId group_id, int32 new_total_count);
 
   vector<MessageId> get_notification_group_message_ids(NotificationGroupId group_id);
+
+  // LLM-assisted: reinsert an existing persisted ID after its forum policy becomes available.
+  enum class ExistingNotificationRestoreResult { Skipped, AlreadyPresent, Restored, WaitingForDatabase };
+  ExistingNotificationRestoreResult restore_existing_forum_notification(DialogId dialog_id,
+                                                                        NotificationGroupId group_id,
+                                                                        NotificationGroupType group_type,
+                                                                        Notification notification,
+                                                                        ForumTopicFullId topic_id, uint64 generation);
+  void cancel_forum_notification_restore_waiters(ForumTopicFullId topic_id, uint64 generation);
+  void recover_existing_notification_id(NotificationId notification_id);
 
   void add_call_notification(DialogId dialog_id, CallId call_id);
 
@@ -386,6 +397,14 @@ class NotificationManager final : public Actor {
 
   NotificationGroups groups_;
   FlatHashMap<NotificationGroupId, NotificationGroupKey, NotificationGroupIdHash> group_keys_;
+
+  struct ForumNotificationRestoreWaiter {
+    ForumTopicFullId topic_id;
+    uint64 generation;
+  };
+  FlatHashMap<NotificationGroupId, vector<ForumNotificationRestoreWaiter>, NotificationGroupIdHash>
+      forum_notification_restore_waiters_;
+  void notify_forum_notification_restore_refill_finished(NotificationGroupId group_id);
 
   FlatHashMap<int32, vector<td_api::object_ptr<td_api::Update>>> pending_updates_;
 
