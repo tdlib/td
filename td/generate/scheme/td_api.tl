@@ -4400,6 +4400,30 @@ profileShareThemeBackdrop id:int32 name:string colors:upgradedGiftBackdropColors
 profileShareThemeBackdrops backdrops:vector<profileShareThemeBackdrop> = ProfileShareThemeBackdrops;
 
 
+//@class EmojiType @description Describes an emoji
+
+//@description A regular emoji @emoji Text representation of the emoji
+emojiTypeRegular emoji:string = EmojiType;
+
+//@description A custom emoji @custom_emoji_id Identifier of the custom emoji
+emojiTypeCustom custom_emoji_id:int64 = EmojiType;
+
+
+//@class ProfileShareTheme @description Describes a theme of the screen for sharing a link to a user or a chat
+
+//@description The default theme
+profileShareThemeDefault = ProfileShareTheme;
+
+//@description A theme with emoji placed on a background
+//@emojis The emoji; 0-6 regular or custom emoji. If empty, then use_default_background is false
+//@use_default_background True, if the default background is used; otherwise, the backdrop with identifier backdrop_id is used as background
+//@background_backdrop_id Identifier of the backdrop used as background; must be ignored if use_default_background is true. Use getProfileShareThemeBackdrops to get details about the backdrop
+profileShareThemeEmoji emojis:vector<EmojiType> use_default_background:Bool background_backdrop_id:int32 = ProfileShareTheme;
+
+//@description A theme based on an upgraded gift owned by the user or the chat @gift The upgraded gift
+profileShareThemeUpgradedGift gift:upgradedGift = ProfileShareTheme;
+
+
 //@description Represents a button inside a rich message
 //@text Text of the button; only richTexts, richTextPlain, and richTextCustomEmoji are allowed
 //@style Style of the button

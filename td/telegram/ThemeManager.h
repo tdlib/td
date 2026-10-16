@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/AccentColorId.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeSettings.h"
@@ -24,6 +25,8 @@ class Td;
 
 class ThemeManager final : public Actor {
  public:
+  static constexpr size_t MAX_SHARE_THEME_EMOJI_COUNT = 6u;
+
   ThemeManager(Td *td, ActorShared<> parent);
 
   void init();
