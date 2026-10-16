@@ -27,6 +27,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/FolderId.h"
+#include "td/telegram/ForumTopicFullId.h"
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/logevent/LogEventHelper.h"
@@ -987,6 +988,10 @@ class MessagesManager final : public Actor {
                                                                          DialogId sender_dialog_id, int32 date,
                                                                          bool is_from_scheduled, bool contains_mention,
                                                                          bool is_pinned, bool is_from_binlog);
+
+  void on_forum_topic_notification_settings_changed(DialogId dialog_id, ForumTopicId forum_topic_id);
+
+  void on_forum_scope_notification_settings_changed(NotificationSettingsScope scope);
 
   NotificationGroupFromDatabase get_message_notification_group_force(NotificationGroupId group_id);
 
@@ -2403,6 +2408,16 @@ class MessagesManager final : public Actor {
 
   bool is_message_preview_enabled(const Dialog *d, const Message *m, bool from_mentions);
 
+  const DialogNotificationSettings *get_message_topic_notification_settings(const Dialog *d, const Message *m) const;
+
+  bool have_message_topic_notification_settings(const Dialog *d, const Message *m) const;
+
+  std::pair<bool, int32> get_message_mute_until(const Dialog *d, const Message *m) const;
+
+  bool is_message_mention_notification_disabled(const Dialog *d, const Message *m) const;
+
+  void on_notification_forum_topic_loaded(ForumTopicFullId topic_id, Result<Unit> result);
+
   static bool is_from_mention_notification_group(const Message *m);
 
   static bool is_message_notification_active(const Dialog *d, const Message *m);
@@ -2448,6 +2463,8 @@ class MessagesManager final : public Actor {
   bool may_need_message_notification(const Dialog *d, const Message *m) const;
 
   bool add_new_message_notification(Dialog *d, Message *m, bool force);
+
+  bool is_pending_forum_topic_notification(const Dialog *d, const Message *m) const;
 
   void flush_pending_new_message_notifications(DialogId dialog_id, bool from_mentions, DialogId settings_dialog_id);
 
@@ -3482,6 +3499,8 @@ class MessagesManager final : public Actor {
   FlatHashMap<DialogId, vector<PendingOnGetDialogs>, DialogIdHash> pending_channel_on_get_dialogs_;
 
   FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> run_after_get_channel_difference_;
+
+  FlatHashMap<ForumTopicFullId, vector<MessageId>, ForumTopicFullIdHash> pending_forum_topic_notifications_;
 
   ChangesProcessor<unique_ptr<PendingSecretMessage>> pending_secret_messages_;
 

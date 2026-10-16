@@ -87,6 +87,9 @@ class ForumTopicManager final : public Actor {
       DialogId dialog_id, ForumTopicId forum_topic_id,
       td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings) TD_WARN_UNUSED_RESULT;
 
+  const DialogNotificationSettings *get_forum_topic_notification_settings_force(DialogId dialog_id,
+                                                                                ForumTopicId forum_topic_id);
+
   Status set_forum_topic_draft_message(DialogId dialog_id, ForumTopicId forum_topic_id,
                                        unique_ptr<DraftMessage> &&draft_message);
 

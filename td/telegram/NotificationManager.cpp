@@ -4091,6 +4091,15 @@ void NotificationManager::after_get_difference_impl() {
   flush_all_pending_updates(false, "after_get_difference");
 }
 
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+void NotificationManager::on_pending_settings_query_count_changed(int32 diff) {
+  CHECK(diff == 1 || diff == -1);
+  if (is_being_destroyed_ || is_destroyed_) {
+    return;
+  }
+  on_unreceived_notification_update_count_changed(diff, 0, "forum topic notification settings");
+}
+
 void NotificationManager::before_get_chat_difference(NotificationGroupId group_id) {
   if (is_disabled()) {
     return;

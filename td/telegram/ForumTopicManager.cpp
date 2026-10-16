@@ -474,7 +474,6 @@ void ForumTopicManager::Topic::store(StorerT &storer) const {
 
 template <class ParserT>
 void ForumTopicManager::Topic::parse(ParserT &parser) {
-  CHECK(info_ != nullptr);
   using td::parse;
 
   int32 magic;
@@ -646,6 +645,56 @@ const DialogNotificationSettings *ForumTopicManager::get_forum_topic_notificatio
   return topic->topic_->get_notification_settings();
 }
 
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+const DialogNotificationSettings *ForumTopicManager::get_forum_topic_notification_settings_force(
+    DialogId dialog_id, ForumTopicId forum_topic_id) {
+  if (!forum_topic_id.is_valid()) {
+    return nullptr;
+  }
+  auto settings = get_forum_topic_notification_settings(dialog_id, forum_topic_id);
+  if (settings != nullptr) {
+    return settings;
+  }
+  auto dialog_topics = add_dialog_topics(dialog_id);
+  if (dialog_topics->deleted_topic_ids_.count(forum_topic_id) != 0) {
+    return nullptr;
+  }
+  if (!G()->use_message_database()) {
+    return nullptr;
+  }
+  // The message-thread database can be disabled independently of the message database.
+  // Its synchronous getter requires an initialized database; the async getter is nullable.
+  if (G()->td_db()->get_message_thread_db_async() == nullptr) {
+    return nullptr;
+  }
+  auto db = G()->td_db()->get_message_thread_db_sync();
+  if (db == nullptr) {
+    return nullptr;
+  }
+  auto value = db->get_message_thread(dialog_id, forum_topic_id);
+  if (value.empty()) {
+    return nullptr;
+  }
+  auto stored_topic = make_unique<Topic>();
+  auto status = log_event_parse(*stored_topic, value.as_slice());
+  if (status.is_error() || stored_topic->info_ == nullptr || stored_topic->topic_ == nullptr ||
+      stored_topic->info_->get_forum_topic_id() != forum_topic_id ||
+      stored_topic->info_->get_dialog_id() != dialog_id) {
+    LOG(ERROR) << "Can't load forum topic notification settings from database";
+    return nullptr;
+  }
+  auto topic = add_topic(dialog_topics, forum_topic_id);
+  CHECK(topic != nullptr);
+  // Keep live message counters and any newer topic info received before the database load.
+  if (topic->info_ == nullptr) {
+    topic->info_ = std::move(stored_topic->info_);
+  }
+  topic->topic_ = std::move(stored_topic->topic_);
+  td_->draft_message_manager_->change_draft_message_files(dialog_id, MessageTopic::forum(dialog_id, forum_topic_id), {},
+                                                          get_topic_file_ids(topic), false);
+  return topic->topic_->get_notification_settings();
+}
+
 void ForumTopicManager::on_update_forum_topic_notify_settings(
     DialogId dialog_id, ForumTopicId forum_topic_id,
     tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings, const char *source) {
@@ -656,8 +705,11 @@ void ForumTopicManager::on_update_forum_topic_notify_settings(
   VLOG(notifications) << "Receive notification settings for topic of " << forum_topic_id << " in " << dialog_id
                       << " from " << source << ": " << to_string(peer_notify_settings);
 
+  get_forum_topic_notification_settings_force(dialog_id, forum_topic_id);
   DialogNotificationSettings *current_settings = get_forum_topic_notification_settings(dialog_id, forum_topic_id);
   if (current_settings == nullptr) {
+    // A setting update can arrive before the topic list has ever been opened.
+    reload_forum_topic(dialog_id, forum_topic_id, Promise<Unit>());
     return;
   }
 
@@ -793,11 +845,12 @@ bool ForumTopicManager::update_forum_topic_notification_settings(DialogId dialog
 
   auto need_update = need_update_dialog_notification_settings(current_settings, new_settings);
   if (need_update.are_changed) {
-    // TODO update unmute timeouts, remove notifications
     *current_settings = std::move(new_settings);
 
     auto topic = get_topic(dialog_id, forum_topic_id);
     on_forum_topic_changed(dialog_id, topic);
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_forum_topic_notification_settings_changed,
+                       dialog_id, forum_topic_id);
   }
   return need_update.need_update_server;
 }
@@ -1178,6 +1231,8 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       set_topic_info(dialog_id, topic, std::move(forum_topic_info));
       send_update_forum_topic(dialog_id, topic);
       save_topic_to_database(dialog_id, topic);
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_forum_topic_notification_settings_changed,
+                         dialog_id, forum_topic_id);
       return forum_topic_id;
     }
     default:

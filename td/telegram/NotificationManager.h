@@ -127,6 +127,8 @@ class NotificationManager final : public Actor {
 
   void after_get_chat_difference(NotificationGroupId group_id);
 
+  void on_pending_settings_query_count_changed(int32 diff);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
   void flush_all_notifications();
