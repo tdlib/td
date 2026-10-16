@@ -122,6 +122,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
@@ -5904,16 +5905,18 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
     *current_settings = std::move(new_settings);
     on_dialog_updated(dialog_id, "update_dialog_notification_settings");
 
-    if (is_dialog_muted(d)) {
+    if (d->is_forum) {
+      on_forum_topic_notification_settings_changed(dialog_id, ForumTopicId());
+    } else if (is_dialog_muted(d)) {
       // no check for was_muted to clean pending message notifications in chats with unsynchronized settings
       remove_all_dialog_notifications(d, false, "update_dialog_notification_settings 2");
     }
-    if (is_dialog_pinned_message_notifications_disabled(d) && d->notification_info != nullptr &&
+    if (!d->is_forum && is_dialog_pinned_message_notifications_disabled(d) && d->notification_info != nullptr &&
         d->notification_info->mention_notification_group_.is_valid() &&
         d->notification_info->pinned_message_notification_message_id_.is_valid()) {
       remove_dialog_pinned_message_notification(d, "update_dialog_notification_settings 3");
     }
-    if (was_dialog_mentions_disabled != is_dialog_mention_notifications_disabled(d)) {
+    if (!d->is_forum && was_dialog_mentions_disabled != is_dialog_mention_notifications_disabled(d)) {
       if (was_dialog_mentions_disabled) {
         update_dialog_mention_notification_count(d);
       } else {
@@ -6056,7 +6059,11 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
       Dialog *d = dialog.get();
       if (need_unread_counter(d->order) && d->notification_settings.use_default_mute_until &&
           td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id) == scope) {
-        remove_all_dialog_notifications(d, false, "on_update_notification_scope_is_muted");
+        if (d->is_forum) {
+          on_forum_topic_notification_settings_changed(dialog_id, ForumTopicId());
+        } else {
+          remove_all_dialog_notifications(d, false, "on_update_notification_scope_is_muted");
+        }
       }
     });
   }
@@ -12405,8 +12412,8 @@ void MessagesManager::remove_scope_pinned_message_notifications(NotificationSett
   VLOG(notifications) << "Remove pinned message notifications in " << scope;
   dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
     Dialog *d = dialog.get();
-    if (d->notification_settings.use_default_disable_pinned_message_notifications && d->notification_info != nullptr &&
-        d->notification_info->mention_notification_group_.is_valid() &&
+    if (!d->is_forum && d->notification_settings.use_default_disable_pinned_message_notifications &&
+        d->notification_info != nullptr && d->notification_info->mention_notification_group_.is_valid() &&
         d->notification_info->pinned_message_notification_message_id_.is_valid() &&
         td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id) == scope) {
       remove_dialog_pinned_message_notification(d, "remove_scope_pinned_message_notifications");
@@ -12419,7 +12426,7 @@ void MessagesManager::on_update_scope_mention_notifications(NotificationSettings
   VLOG(notifications) << "Remove mention notifications in " << scope;
   dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
     Dialog *d = dialog.get();
-    if (d->notification_settings.use_default_disable_mention_notifications &&
+    if (!d->is_forum && d->notification_settings.use_default_disable_mention_notifications &&
         td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id) == scope) {
       if (!disable_mention_notifications) {
         update_dialog_mention_notification_count(d);
@@ -13065,6 +13072,9 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   CHECK(m != nullptr);
   CHECK(m->message_id.is_valid());
   MessageFullId message_full_id{d->dialog_id, m->message_id};
+  if (is_pending_forum_topic_notification(d, m)) {
+    return false;
+  }
   if (td_->auth_manager_->is_bot() && !G()->use_message_database()) {
     return !m->message_id.is_yet_unsent() && replied_by_yet_unsent_messages_.count(message_full_id) == 0 &&
            get_edited_message_content(message_full_id) == nullptr && m->message_id != d->last_pinned_message_id &&
@@ -25664,6 +25674,11 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   if (d == nullptr) {
     return Status::Error(406, "Ignore notification in unknown chat");
   }
+  if (d->is_forum) {
+    // The push notification API has no topic/preview settings. Ask the client to synchronize
+    // real messages, rather than mute an enabled topic or disclose a disabled topic preview.
+    return Status::Error(406, "Synchronize forum topic notification settings and messages");
+  }
   if (sender_dialog_id.is_valid() &&
       !have_dialog_force(sender_dialog_id, "get_message_push_notification_info sender")) {
     return Status::Error(406, "Ignore notification sent by unknown chat");
@@ -25887,8 +25902,64 @@ bool MessagesManager::get_dialog_show_preview(const Dialog *d) const {
   }
 }
 
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+const DialogNotificationSettings *MessagesManager::get_message_topic_notification_settings(const Dialog *d,
+                                                                                           const Message *m) const {
+  if (!d->is_forum) {
+    return nullptr;
+  }
+  return td_->forum_topic_manager_->get_forum_topic_notification_settings_force(
+      d->dialog_id, get_message_forum_topic_id(d->dialog_id, m));
+}
+
+bool MessagesManager::have_message_topic_notification_settings(const Dialog *d, const Message *m) const {
+  if (!d->is_forum) {
+    return true;
+  }
+  auto settings = get_message_topic_notification_settings(d, m);
+  return settings != nullptr && settings->is_synchronized;
+}
+
+std::pair<bool, int32> MessagesManager::get_message_mute_until(const Dialog *d, const Message *m) const {
+  if (d->is_forum) {
+    auto settings = get_message_topic_notification_settings(d, m);
+    if (settings == nullptr || !settings->is_synchronized) {
+      return {false, 0};
+    }
+    if (!settings->use_default_mute_until) {
+      return {true, settings->mute_until};
+    }
+  }
+  return get_dialog_mute_until(d->dialog_id, d);
+}
+
+bool MessagesManager::is_message_mention_notification_disabled(const Dialog *d, const Message *m) const {
+  auto settings = get_message_topic_notification_settings(d, m);
+  if (m->content->get_type() == MessageContentType::PinMessage) {
+    if (settings != nullptr && settings->is_synchronized &&
+        !settings->use_default_disable_pinned_message_notifications) {
+      return settings->disable_pinned_message_notifications;
+    }
+    return is_dialog_pinned_message_notifications_disabled(d);
+  }
+  if (settings != nullptr && settings->is_synchronized && !settings->use_default_disable_mention_notifications) {
+    return settings->disable_mention_notifications;
+  }
+  return is_dialog_mention_notifications_disabled(d);
+}
+
 bool MessagesManager::is_message_preview_enabled(const Dialog *d, const Message *m, bool from_mentions) {
-  if (!get_dialog_show_preview(d)) {
+  bool show_preview = get_dialog_show_preview(d);
+  if (d->is_forum) {
+    auto settings = get_message_topic_notification_settings(d, m);
+    if (settings == nullptr || !settings->is_synchronized) {
+      return false;
+    }
+    if (!settings->use_default_show_preview) {
+      show_preview = settings->show_preview;
+    }
+  }
+  if (!show_preview) {
     return false;
   }
   if (!from_mentions) {
@@ -25904,6 +25975,95 @@ bool MessagesManager::is_message_preview_enabled(const Dialog *d, const Message 
     return td_->notification_settings_manager_->get_scope_show_preview(scope);
   }
   return get_dialog_show_preview(d);
+}
+
+void MessagesManager::on_forum_topic_notification_settings_changed(DialogId dialog_id, ForumTopicId forum_topic_id) {
+  auto d = get_dialog(dialog_id);
+  if (d == nullptr || !d->is_forum || d->notification_info == nullptr || td_->auth_manager_->is_bot()) {
+    return;
+  }
+  // The correspondence map covers loaded messages only. Include active and pending notifications
+  // kept by NotificationManager after message eviction, before loading or editing any messages.
+  vector<MessageId> message_ids;
+  for (const auto &entry : d->notification_info->notification_id_to_message_id_) {
+    message_ids.push_back(entry.second);
+  }
+  for (bool from_mentions : {false, true}) {
+    auto group_id = get_notification_group_info(d, from_mentions).get_group_id();
+    if (group_id.is_valid()) {
+      for (auto message_id : td_->notification_manager_->get_notification_group_message_ids(group_id)) {
+        if (!td::contains(message_ids, message_id)) {
+          message_ids.push_back(message_id);
+        }
+      }
+    }
+  }
+  for (auto message_id : message_ids) {
+    auto m = get_message_force(d, message_id, "on_forum_topic_notification_settings_changed");
+    if (m == nullptr || !m->notification_id.is_valid() ||
+        (forum_topic_id.is_valid() && get_message_forum_topic_id(dialog_id, m) != forum_topic_id)) {
+      continue;
+    }
+    auto mute_until = get_message_mute_until(d, m);
+    bool remove = is_from_mention_notification_group(m)
+                      ? have_message_topic_notification_settings(d, m) && is_message_mention_notification_disabled(d, m)
+                      : mute_until.first && mute_until.second > G()->unix_time();
+    if (remove) {
+      remove_message_notification_id(d, m, true, false);
+      on_message_changed(d, m, false, "on_forum_topic_notification_settings_changed");
+    } else {
+      on_message_notification_changed(d, m, "on_forum_topic_notification_settings_changed");
+    }
+  }
+}
+
+void MessagesManager::on_forum_scope_notification_settings_changed(NotificationSettingsScope scope) {
+  dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
+    if (dialog->is_forum && td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id) == scope) {
+      on_forum_topic_notification_settings_changed(dialog_id, ForumTopicId());
+    }
+  });
+}
+
+bool MessagesManager::is_pending_forum_topic_notification(const Dialog *d, const Message *m) const {
+  if (!d->is_forum) {
+    return false;
+  }
+  auto topic_id = ForumTopicFullId(d->dialog_id, get_message_forum_topic_id(d->dialog_id, m));
+  auto it = pending_forum_topic_notifications_.find(topic_id);
+  return it != pending_forum_topic_notifications_.end() && td::contains(it->second, m->message_id);
+}
+
+void MessagesManager::on_notification_forum_topic_loaded(ForumTopicFullId topic_id, Result<Unit> result) {
+  auto it = pending_forum_topic_notifications_.find(topic_id);
+  if (it == pending_forum_topic_notifications_.end()) {
+    return;
+  }
+  auto message_ids = std::move(it->second);
+  pending_forum_topic_notifications_.erase(it);
+  SCOPE_EXIT {
+    send_closure_later(G()->notification_manager(), &NotificationManager::on_pending_settings_query_count_changed, -1);
+  };
+  if (G()->close_flag() || result.is_error()) {
+    return;
+  }
+  auto d = get_dialog(topic_id.get_dialog_id());
+  if (d == nullptr || !d->is_forum) {
+    return;
+  }
+  for (auto message_id : message_ids) {
+    auto m = get_message(d, message_id);
+    if (m != nullptr && !m->notification_id.is_valid() &&
+        get_message_forum_topic_id(d->dialog_id, m) == topic_id.get_forum_topic_id()) {
+      // Resolving the topic doesn't resolve parent/sender settings or a missing pinned message.
+      // Resume the ordinary dependency queue, but register an immediately created notification
+      // here because this message has already been inserted into the dialog.
+      if (add_new_message_notification(d, m, false)) {
+        add_notification_id_to_message_id_correspondence(d->notification_info.get(), m->notification_id, m->message_id);
+      }
+      on_message_changed(d, m, false, "on_notification_forum_topic_loaded");
+    }
+  }
 }
 
 bool MessagesManager::is_from_mention_notification_group(const Message *m) {
@@ -25947,7 +26107,14 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
   auto m = get_message_force(d, message_id, "try_add_pinned_message_notification");
   if (m != nullptr &&
       !d->notification_info->mention_notification_group_.is_removed_notification(m->notification_id, m->message_id) &&
-      m->message_id > d->last_read_inbox_message_id && !is_dialog_pinned_message_notifications_disabled(d)) {
+      m->message_id > d->last_read_inbox_message_id) {
+    if (!have_message_topic_notification_settings(d, m)) {
+      // Unknown policy is not a disabled pin. Keep both persisted IDs for the next restoration.
+      return;
+    }
+    if (is_message_mention_notification_disabled(d, m)) {
+      return remove_dialog_pinned_message_notification(d, "try_add_pinned_message_notification disabled");
+    }
     if (m->notification_id.get() < max_notification_id.get()) {
       VLOG(notifications) << "Add " << m->notification_id << " about pinned " << message_id << " in " << d->dialog_id;
       auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
@@ -26066,6 +26233,17 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
         CHECK(!m->contains_unread_mention);
         // skip read mentions
         continue;
+      }
+
+      if (d->is_forum && from_mentions &&
+          (!have_message_topic_notification_settings(d, m) || is_message_mention_notification_disabled(d, m))) {
+        continue;
+      }
+      if (d->is_forum && !from_mentions) {
+        auto mute_until = get_message_mute_until(d, m);
+        if (!mute_until.first || mute_until.second > G()->unix_time()) {
+          continue;
+        }
       }
 
       if (is_correct) {
@@ -26321,6 +26499,17 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
       continue;
     }
 
+    if (d->is_forum && from_mentions &&
+        (!have_message_topic_notification_settings(d, m) || is_message_mention_notification_disabled(d, m))) {
+      continue;
+    }
+    if (d->is_forum && !from_mentions) {
+      auto mute_until = get_message_mute_until(d, m);
+      if (!mute_until.first || mute_until.second > G()->unix_time()) {
+        continue;
+      }
+    }
+
     if (is_correct) {
       // skip mention messages returned among unread messages
       CHECK(m->date > 0);
@@ -26480,7 +26669,8 @@ int32 MessagesManager::get_dialog_pending_notification_count(const Dialog *d, bo
     if (notification_info->new_secret_chat_notification_id_.is_valid()) {
       return 1;
     }
-    if (is_dialog_muted(d)) {
+    // Forum groups can contain enabled topic exceptions even when the parent is muted.
+    if (!d->is_forum && is_dialog_muted(d)) {
       return narrow_cast<int32>(notification_info->pending_new_message_notifications_.size());  // usually 0
     }
 
@@ -26591,13 +26781,14 @@ bool MessagesManager::may_need_message_notification(const Dialog *d, const Messa
     return false;
   }
 
-  if (is_from_mention_notification_group(m)) {
+  if (d->is_forum ? m->contains_mention && !is_message_mention_notification_disabled(d, m)
+                  : is_from_mention_notification_group(m)) {
     return true;
   }
 
   bool have_settings;
   int32 mute_until;
-  std::tie(have_settings, mute_until) = get_dialog_mute_until(d->dialog_id, d);
+  std::tie(have_settings, mute_until) = get_message_mute_until(d, m);
   return !have_settings || mute_until <= m->date;
 }
 
@@ -26622,6 +26813,33 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   CHECK(!m->notification_id.is_valid());
   if (is_message_notification_disabled(d, m)) {
     return false;
+  }
+
+  if (d->is_forum) {
+    auto settings = get_message_topic_notification_settings(d, m);
+    if (settings == nullptr || !settings->is_synchronized) {
+      auto topic_id = ForumTopicFullId(d->dialog_id, get_message_forum_topic_id(d->dialog_id, m));
+      if (!force && topic_id.get_forum_topic_id().is_valid()) {
+        auto &pending = pending_forum_topic_notifications_[topic_id];
+        bool need_reload = pending.empty();
+        if (!td::contains(pending, m->message_id)) {
+          pending.push_back(m->message_id);
+        }
+        if (need_reload) {
+          send_closure_later(G()->notification_manager(), &NotificationManager::on_pending_settings_query_count_changed,
+                             1);
+          td_->forum_topic_manager_->reload_forum_topic(
+              d->dialog_id, topic_id.get_forum_topic_id(),
+              PromiseCreator::lambda([actor_id = actor_id(this), topic_id](Result<Unit> result) {
+                send_closure(actor_id, &MessagesManager::on_notification_forum_topic_loaded, topic_id,
+                             std::move(result));
+              }));
+        }
+      }
+      // Never fall back to the parent's settings after a topic lookup failure/timeout.
+      return false;
+    }
+    m->is_mention_notification_disabled = is_message_mention_notification_disabled(d, m);
   }
 
   auto from_mentions = is_from_mention_notification_group(m);
@@ -26659,7 +26877,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
 
   bool have_settings;
   int32 mute_until;
-  std::tie(have_settings, mute_until) = get_dialog_mute_until(settings_dialog_id, settings_dialog);
+  std::tie(have_settings, mute_until) =
+      from_mentions ? get_dialog_mute_until(settings_dialog_id, settings_dialog) : get_message_mute_until(d, m);
   if (mute_until > m->date && (have_settings || force)) {
     VLOG(notifications) << "Disable notification, because " << settings_dialog_id << " is muted";
     if (is_pinned && from_mentions) {
@@ -26751,6 +26970,12 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     min_delay_ms = 1000;  // 1 second
   }
   auto ringtone_id = get_dialog_notification_ringtone_id(settings_dialog_id, settings_dialog);
+  if (!from_mentions && d->is_forum) {
+    auto settings = get_message_topic_notification_settings(d, m);
+    if (settings != nullptr && !is_notification_sound_default(settings->sound)) {
+      ringtone_id = get_notification_sound_ringtone_id(settings->sound);
+    }
+  }
   bool is_silent = m->disable_notification || m->message_id <= notification_info->max_push_notification_message_id_;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
                      from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
@@ -30755,12 +30980,12 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
     CHECK(!td_->auth_manager_->is_bot());
     auto message_content_type = m->content->get_type();
     if (message_content_type == MessageContentType::PinMessage) {
-      if (is_dialog_pinned_message_notifications_disabled(d) ||
+      if ((!d->is_forum && is_dialog_pinned_message_notifications_disabled(d)) ||
           !get_message_content_pinned_message_id(m->content.get()).is_valid()) {
         // treat message pin without pinned message as an ordinary message
         m->contains_mention = false;
       }
-    } else if (is_dialog_mention_notifications_disabled(d)) {
+    } else if (!d->is_forum && is_dialog_mention_notifications_disabled(d)) {
       // disable mention notification
       m->is_mention_notification_disabled = true;
     }
@@ -31330,8 +31555,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       add_new_message_notification(d, message.get(), false);
     } else {
       if (from_database && message->notification_id.is_valid() && is_from_mention_notification_group(message.get()) &&
-          is_message_notification_active(d, message.get()) && is_dialog_mention_notifications_disabled(d) &&
-          d->notification_info != nullptr &&
+          is_message_notification_active(d, message.get()) &&
+          have_message_topic_notification_settings(d, message.get()) &&
+          is_message_mention_notification_disabled(d, message.get()) && d->notification_info != nullptr &&
           message_id != d->notification_info->pinned_message_notification_message_id_) {
         auto notification_id = message->notification_id;
         VLOG(notifications) << "Remove mention " << notification_id << " in " << message_id << " in " << dialog_id;
