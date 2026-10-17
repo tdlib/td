@@ -10104,7 +10104,9 @@ internalLinkTypeUserPhoneNumber phone_number:string draft_text:string open_profi
 //@description The link is a link to a user by a temporary token. Call searchUserByToken with the given token to process the link.
 //-If the user is found, then call createPrivateChat and open the chat
 //@token The token
-internalLinkTypeUserToken token:string = InternalLinkType;
+//@unpaid_messages_token Token, which allows the current user to send unpaid messages to the user; may be empty if none.
+//-If the token isn't empty and the user is found, then call applyUnpaidMessagesToken with the user and the token
+internalLinkTypeUserToken token:string unpaid_messages_token:string = InternalLinkType;
 
 //@description The link is a link to a video chat. Call searchPublicChat with the given chat username, and then joinVideoChat with the given invite hash to process the link
 //@chat_username Username of the chat with the video chat
@@ -15435,7 +15437,7 @@ getUserLink = UserLink;
 searchUserByToken token:string = User;
 
 //@description Allows the current user to send unpaid messages to the given user, which requires payment for incoming messages, using a token from an internal link
-//-of the type internalLinkTypePublicChat or internalLinkTypeUserPhoneNumber. The first message sent to the user will be preceded by a messageUnpaidMessagesAllowedByLink message.
+//-of the type internalLinkTypePublicChat, internalLinkTypeUserPhoneNumber, or internalLinkTypeUserToken. The first message sent to the user will be preceded by a messageUnpaidMessagesAllowedByLink message.
 //-Repeated calls and calls for the current user have no effect
 //@user_id Identifier of the user
 //@token Token from the link

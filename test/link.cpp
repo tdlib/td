@@ -552,8 +552,8 @@ static auto user_phone_number(const td::string &phone_number, const td::string &
                                                                               open_profile, unpaid_messages_token);
 }
 
-static auto user_token(const td::string &token) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeUserToken>(token);
+static auto user_token(const td::string &token, const td::string &unpaid_messages_token = td::string()) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeUserToken>(token, unpaid_messages_token);
 }
 
 static auto video_chat(const td::string &chat_username, const td::string &invite_hash, bool is_live_stream) {
@@ -748,6 +748,11 @@ TEST(Link, parse_internal_link_part1) {
   parse_internal_link("tg:contact?token=%29123", user_token(")123"));
   parse_internal_link("tg:contact?token=%2F123", user_token("/123"));
   parse_internal_link("tg:contact?token=%FF123", unknown_deep_link("tg://contact?token=%FF123"));
+  parse_internal_link("tg:contact?token=123456&free=AbCd-_0123456789", user_token("123456", "AbCd-_0123456789"));
+  parse_internal_link("tg:contact?free=abc&token=123456", user_token("123456", "abc"));
+  parse_internal_link("tg:contact?token=123456&free=", user_token("123456"));
+  parse_internal_link("tg:contact?token=123456&free=a%20b", user_token("123456"));
+  parse_internal_link("tg:contact?token=123456&free=a+b", user_token("123456"));
 
   parse_internal_link("tg:nft?slug=1", upgraded_gift("1"));
   parse_internal_link("tg:nft?slug=123456", upgraded_gift("123456"));
@@ -1223,6 +1228,13 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("t.me/contact/?attach=&startattach", nullptr);
   parse_internal_link("t.me/contact/%30123", user_token("0123"));
   parse_internal_link("t.me/contact/%29123", user_token(")123"));
+  parse_internal_link("t.me/contact/123456?free=AbCd-_0123456789", user_token("123456", "AbCd-_0123456789"));
+  parse_internal_link("t.me/contact/123456/?free=abc", user_token("123456", "abc"));
+  parse_internal_link("t.me/contact/123456?free=a%20b", user_token("123456"));
+  parse_internal_link("t.me/contact/123456?free=0123456789012345678901234567890123456789012345678901234567890123",
+                      user_token("123456", "0123456789012345678901234567890123456789012345678901234567890123"));
+  parse_internal_link("t.me/contact/123456?free=01234567890123456789012345678901234567890123456789012345678901234",
+                      user_token("123456"));
   parse_internal_link("t.me/contact/%2F123", user_token("/123"));
   parse_internal_link("t.me/contact/%FF123", nullptr);
 

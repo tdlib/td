@@ -1642,13 +1642,15 @@ class LinkManager::InternalLinkUpgradedGift final : public InternalLink {
 
 class LinkManager::InternalLinkUserToken final : public InternalLink {
   string token_;
+  string unpaid_messages_token_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeUserToken>(token_);
+    return td_api::make_object<td_api::internalLinkTypeUserToken>(token_, unpaid_messages_token_);
   }
 
  public:
-  explicit InternalLinkUserToken(string &&token) : token_(std::move(token)) {
+  InternalLinkUserToken(string &&token, string &&unpaid_messages_token)
+      : token_(std::move(token)), unpaid_messages_token_(std::move(unpaid_messages_token)) {
   }
 };
 
@@ -2522,9 +2524,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
   } else if (path.size() == 1 && path[0] == "contact") {
     // contact?token=<token>
+    // contact?token=<token>&free=<token>
     auto token = get_arg("token");
     if (is_valid_user_token(token)) {
-      return td::make_unique<InternalLinkUserToken>(std::move(token));
+      return td::make_unique<InternalLinkUserToken>(std::move(token), get_url_query_unpaid_messages_token(url_query));
     }
   } else if (path.size() >= 1u && path[0] == "contacts") {
     // contacts[/section]
@@ -2905,8 +2908,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
   } else if (path[0] == "contact") {
     if (path.size() >= 2 && is_valid_user_token(path[1])) {
       // /contact/<token>
+      // /contact/<token>?free=<token>
       auto token = path[1];
-      return td::make_unique<InternalLinkUserToken>(std::move(token));
+      return td::make_unique<InternalLinkUserToken>(std::move(token), get_url_query_unpaid_messages_token(url_query));
     }
   } else if (path[0] == "addstickers" || path[0] == "addemoji") {
     if (path.size() >= 2 && is_valid_sticker_set_name(path[1])) {
@@ -4407,10 +4411,17 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       if (!is_valid_user_token(link->token_)) {
         return Status::Error(400, "Invalid user token specified");
       }
+      if (!link->unpaid_messages_token_.empty() && !is_valid_unpaid_messages_token(link->unpaid_messages_token_)) {
+        return Status::Error(400, "Invalid unpaid messages token specified");
+      }
+      auto query = get_dialog_link_query(Slice(), false, link->unpaid_messages_token_);
       if (is_internal) {
-        return PSTRING() << "tg://contact?token=" << url_encode(link->token_);
+        return PSTRING() << "tg://contact?token=" << url_encode(link->token_) << query;
       } else {
-        return PSTRING() << get_t_me_url() << "contact/" << url_encode(link->token_);
+        if (!query.empty()) {
+          query[0] = '?';
+        }
+        return PSTRING() << get_t_me_url() << "contact/" << url_encode(link->token_) << query;
       }
     }
     case td_api::internalLinkTypeVideoChat::ID: {
