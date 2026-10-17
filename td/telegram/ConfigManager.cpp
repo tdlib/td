@@ -1360,6 +1360,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string gift_craft_probabilities;
   int32 wallet_gasless_daily_transfers = 0;
   vector<string> bot_allowed_suffixes;
+  vector<string> wallet_card_background_gifts;
 
   // {"stories_all_hidden", "archive_all_stories"}
   static const FlatHashMap<Slice, Slice, SliceHash> bool_keys = {
@@ -2065,6 +2066,22 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "wallet_card_bg_gifts") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto gifts = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &gift : gifts) {
+            auto gift_name = get_json_value_string(std::move(gift), key);
+            if (!gift_name.empty() && gift_name.find('\xff') == string::npos) {
+              wallet_card_background_gifts.push_back(gift_name);
+            } else {
+              LOG(ERROR) << "Receive an invalid wallet card background gift name";
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected wallet_card_bg_gifts " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2134,6 +2151,12 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
 
   options.set_option_string("bot_allowed_suffixes", implode(bot_allowed_suffixes, ' '));
+
+  if (wallet_card_background_gifts.empty()) {
+    options.set_option_empty("ton_wallet_card_background_gifts");
+  } else {
+    options.set_option_string("ton_wallet_card_background_gifts", implode(wallet_card_background_gifts, '\xff'));
+  }
 
   options.set_option_string("emoji_sounds", implode(emoji_sounds, ','));
 

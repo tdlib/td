@@ -562,6 +562,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "story_expiring_limit_premium",
                                                               "ton_proxy_address",
                                                               "ton_stakedice_stake_suggested_amounts",
+                                                              "ton_wallet_card_background_gifts",
                                                               "upload_premium_speedup_notify_period",
                                                               "video_ignore_alt_documents",
                                                               "video_note_size_max",
