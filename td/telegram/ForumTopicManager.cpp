@@ -17,6 +17,7 @@
 #include "td/telegram/ForumTopic.hpp"
 #include "td/telegram/ForumTopicIcon.h"
 #include "td/telegram/ForumTopicInfo.hpp"
+#include "td/telegram/ForumTopicLocalNotificationSettings.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -714,6 +715,7 @@ const DialogNotificationSettings *ForumTopicManager::get_forum_topic_notificatio
   bool read_changed =
       stored_topic->topic_->update_last_read_inbox_message_id(topic->pending_read_inbox_message_id_, -1);
   topic->topic_ = std::move(stored_topic->topic_);
+  load_local_notification_settings(dialog_id, forum_topic_id, topic->topic_->get_notification_settings());
   topic->pending_read_inbox_message_id_ = MessageId();
   td_->draft_message_manager_->change_draft_message_files(dialog_id, MessageTopic::forum(dialog_id, forum_topic_id), {},
                                                           get_topic_file_ids(topic), false);
@@ -756,6 +758,7 @@ void ForumTopicManager::on_update_forum_topic_notify_settings(
   }
 
   auto notification_settings = get_dialog_notification_settings(std::move(peer_notify_settings), current_settings);
+  load_local_notification_settings(dialog_id, forum_topic_id, &notification_settings);
   if (!notification_settings.is_synchronized) {
     return;
   }
@@ -869,12 +872,60 @@ Status ForumTopicManager::set_forum_topic_notification_settings(
   }
 
   TRY_RESULT(new_settings, get_dialog_notification_settings(std::move(notification_settings), current_settings));
+  // LLM-assisted: local pin/mention preferences can't be recovered from the server.
+  ForumTopicLocalNotificationSettings::from(new_settings)
+      .save(*G()->td_db()->get_binlog_pmc(), dialog_id.get(), forum_topic_id.get());
   if (update_forum_topic_notification_settings(dialog_id, forum_topic_id, current_settings, std::move(new_settings))) {
     // TODO log event
     td_->notification_settings_manager_->update_dialog_notify_settings(dialog_id, forum_topic_id, *current_settings,
                                                                        Promise<Unit>());
   }
   return Status::OK();
+}
+
+// LLM-assisted: only overlay local preferences; don't mark an unknown server policy as synchronized.
+void ForumTopicManager::load_local_notification_settings(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                         DialogNotificationSettings *settings) {
+  auto local =
+      ForumTopicLocalNotificationSettings::load(*G()->td_db()->get_binlog_pmc(), dialog_id.get(), forum_topic_id.get());
+  if (local.is_error()) {
+    LOG(ERROR) << "Can't load local forum notification settings";
+    return;
+  }
+  local.ok().apply(*settings);
+}
+
+// LLM-assisted: reset unloaded records and live preferences, without changing server-owned fields.
+void ForumTopicManager::reset_local_notification_settings() {
+  ForumTopicLocalNotificationSettings::reset(*G()->td_db()->get_binlog_pmc());
+  dialog_topics_.foreach([&](const DialogId &dialog_id, unique_ptr<DialogTopics> &dialog_topics) {
+    reset_dialog_local_notification_settings(dialog_id, dialog_topics.get());
+  });
+}
+
+void ForumTopicManager::reset_dialog_local_notification_settings(DialogId dialog_id) {
+  ForumTopicLocalNotificationSettings::erase_dialog(*G()->td_db()->get_binlog_pmc(), dialog_id.get());
+  reset_dialog_local_notification_settings(dialog_id, dialog_topics_.get_pointer(dialog_id));
+}
+
+void ForumTopicManager::reset_dialog_local_notification_settings(DialogId dialog_id, DialogTopics *dialog_topics) {
+  if (dialog_topics == nullptr) {
+    return;
+  }
+  dialog_topics->topics_.foreach([&](const ForumTopicId &topic_id, unique_ptr<Topic> &topic) {
+    if (topic->topic_ == nullptr) {
+      return;
+    }
+    auto settings = topic->topic_->get_notification_settings();
+    if (settings->use_default_disable_pinned_message_notifications &&
+        settings->use_default_disable_mention_notifications) {
+      return;
+    }
+    ForumTopicLocalNotificationSettings().apply(*settings);
+    on_forum_topic_changed(dialog_id, topic.get());
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_forum_topic_notification_settings_changed,
+                       dialog_id, topic_id);
+  });
 }
 
 bool ForumTopicManager::update_forum_topic_notification_settings(DialogId dialog_id, ForumTopicId forum_topic_id,
@@ -1127,16 +1178,26 @@ void ForumTopicManager::delete_forum_topic(DialogId dialog_id, ForumTopicId foru
 void ForumTopicManager::on_delete_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id,
                                               Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+  ForumTopicLocalNotificationSettings::erase(*G()->td_db()->get_binlog_pmc(), dialog_id.get(), forum_topic_id.get());
   auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
   if (dialog_topics != nullptr) {
     CHECK(forum_topic_id.is_valid());
     dialog_topics->topics_.erase(forum_topic_id);
     dialog_topics->deleted_topic_ids_.insert(forum_topic_id);
   }
-  delete_topic_from_database(dialog_id, forum_topic_id, std::move(promise));
+  // LLM-assisted: a successful deletion must not restore the local preference after restart.
+  delete_topic_from_database(
+      dialog_id, forum_topic_id, PromiseCreator::lambda([promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          G()->td_db()->get_binlog_pmc()->force_sync(std::move(promise), "forum topic local settings deletion");
+        }
+      }));
 }
 
 void ForumTopicManager::delete_all_dialog_topics(DialogId dialog_id) {
+  ForumTopicLocalNotificationSettings::erase_dialog(*G()->td_db()->get_binlog_pmc(), dialog_id.get());
   dialog_topics_.erase(dialog_id);
 
   auto message_thread_db = G()->td_db()->get_message_thread_db_async();
@@ -1262,6 +1323,7 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
         LOG(ERROR) << "Receive short forum topic";
         return ForumTopicId();
       }
+      load_local_notification_settings(dialog_id, forum_topic_id, forum_topic_full->get_notification_settings());
       // An older in-flight reload must not undo a read received before the full topic.
       auto last_read_message_id =
           td::max(topic->pending_read_inbox_message_id_,

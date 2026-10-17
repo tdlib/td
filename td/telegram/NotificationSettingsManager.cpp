@@ -1696,6 +1696,7 @@ void NotificationSettingsManager::reset_all_notification_settings() {
   CHECK(!td_->auth_manager_->is_bot());
 
   td_->messages_manager_->reset_all_dialog_notification_settings();
+  td_->forum_topic_manager_->reset_local_notification_settings();
 
   reset_scope_notification_settings();
 
