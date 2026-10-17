@@ -9396,7 +9396,7 @@ void MessagesManager::repair_server_unread_count(DialogId dialog_id, int32 unrea
   }
   auto d = get_dialog(dialog_id);
   if (d != nullptr && d->is_forum && d->has_forum_notification_count) {
-    reload_forum_notification_counts(dialog_id);
+    reload_forum_notification_counts(dialog_id, true);
     return;
   }
 
@@ -9417,7 +9417,7 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
     return;
   }
   if (d->is_forum && d->has_forum_notification_count) {
-    reload_forum_notification_counts(d->dialog_id);
+    reload_forum_notification_counts(d->dialog_id, true);
     return;
   }
   if (d->last_read_inbox_message_id >= d->last_new_message_id) {
@@ -9509,7 +9509,8 @@ void MessagesManager::read_history_inbox(Dialog *d, MessageId max_message_id, in
     // The shared read boundary is authoritative, but its raw count may include
     // messages already read in a topic. Recount topics if the local range has gaps.
     unread_count = -1;
-    reload_forum_notification_counts(dialog_id);
+    reload_forum_notification_counts(dialog_id, !d->is_last_read_inbox_message_id_inited ||
+                                                    max_message_id > d->last_read_inbox_message_id);
   }
   auto need_update_always = d->need_repair_channel_server_unread_count;
   if (d->need_repair_channel_server_unread_count) {
@@ -26169,12 +26170,23 @@ void MessagesManager::on_forum_topic_read_inbox(DialogId dialog_id, ForumTopicId
   if (forum_topic_id.is_valid()) {
     // Revalidate only this topic; never advance the shared chat removal watermark.
     on_forum_topic_notification_settings_changed(dialog_id, forum_topic_id);
-    reload_forum_notification_counts(dialog_id);
+    auto d = get_dialog(dialog_id);
+    if (d != nullptr && d->is_forum_notification_count_verified) {
+      auto read_message_id = td_->forum_topic_manager_
+                                 ->get_forum_topic_last_read_inbox_message_id_force(dialog_id, forum_topic_id)
+                                 .get_prev_server_message_id();
+      auto accepted = d->forum_notification_count_read_ids.find(forum_topic_id.get());
+      if (accepted != d->forum_notification_count_read_ids.end() && read_message_id <= accepted->second) {
+        // Installing an accepted snapshot queues the same callback. It isn't a new read.
+        return;
+      }
+    }
+    reload_forum_notification_counts(dialog_id, true);
   }
 }
 
 // LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
-void MessagesManager::reload_forum_notification_counts(DialogId dialog_id) {
+void MessagesManager::reload_forum_notification_counts(DialogId dialog_id, bool invalidate) {
   auto d = get_dialog(dialog_id);
   if (G()->close_flag() || td_->auth_manager_->is_bot() || d == nullptr || !d->is_forum ||
       dialog_id.get_type() != DialogType::Channel) {
@@ -26198,7 +26210,7 @@ void MessagesManager::reload_forum_notification_counts(DialogId dialog_id) {
   }
   auto inserted = forum_notification_count_repairs_.emplace(dialog_id, ForumNotificationCountRepair());
   if (!inserted.second) {
-    if (inserted.first->second.is_running) {
+    if (invalidate && inserted.first->second.is_running) {
       inserted.first->second.is_dirty = true;
     }
     return;

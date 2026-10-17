@@ -993,7 +993,7 @@ class MessagesManager final : public Actor {
 
   void on_forum_topic_read_inbox(DialogId dialog_id, ForumTopicId forum_topic_id);
 
-  void reload_forum_notification_counts(DialogId dialog_id);
+  void reload_forum_notification_counts(DialogId dialog_id, bool invalidate = false);
 
   void on_forum_scope_notification_settings_changed(NotificationSettingsScope scope);
 
