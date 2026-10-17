@@ -1895,7 +1895,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           for (auto &prefix : prefixes) {
             auto prefix_text = get_json_value_string(std::move(prefix), key);
             if (!prefix_text.empty() && prefix_text.find(' ') == string::npos) {
-              fragment_prefixes.push_back(prefix_text);
+              starref_start_param_prefixes.push_back(prefix_text);
             } else {
               LOG(ERROR) << "Receive an invalid affiliate program link prefix";
             }
