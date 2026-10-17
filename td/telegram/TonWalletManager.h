@@ -95,6 +95,9 @@ class TonWalletManager final : public Actor {
 
   void get_nfts(const string &offset, int32 limit, Promise<td_api::object_ptr<td_api::tonNfts>> &&promise);
 
+  void get_ton_wallet_card_background_gift_collection_names(
+      Promise<td_api::object_ptr<td_api::upgradedGiftCollectionNames>> &&promise);
+
   void set_ton_wallet_card_stickers(vector<td_api::object_ptr<td_api::inputTonWalletCardSticker>> &&stickers,
                                     const string &background_nft_address,
                                     Promise<td_api::object_ptr<td_api::tonWalletCard>> &&promise);

@@ -2359,6 +2359,9 @@ tonWalletCard address:string gram_amount:int53 stickers:vector<tonWalletCardStic
 //-The NFT must not be used as a gift shown on the profile page
 inputTonWalletCardSticker position:areaPosition nft_address:string = InputTonWalletCardSticker;
 
+//@description Contains a list of names of upgraded gift collections @names The names
+upgradedGiftCollectionNames names:vector<string> = UpgradedGiftCollectionNames;
+
 
 //@class TonWalletTransactionState @description Describes state of a transaction with a TON wallet
 
@@ -16368,6 +16371,9 @@ getCurrencyExchangeRates = CurrencyExchangeRates;
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of NFTs to be returned; must be positive and can't be greater than 20
 getTonWalletNfts offset:string limit:int32 = TonNfts;
+
+//@description Returns names of upgraded gift collections whose NFTs can be used as background_nft_address in setTonWalletCardStickers
+getTonWalletCardBackgroundGiftCollectionNames = UpgradedGiftCollectionNames;
 
 //@description Changes the list of stickers on the TON wallet card of the current user; can be used only if getOption("can_use_ton_wallet").
 //-The whole list of stickers is replaced. The request can take up to 20 seconds to complete, so it must be called only on explicit user action.

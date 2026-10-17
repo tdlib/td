@@ -2080,6 +2080,12 @@ void TonWalletManager::get_nfts(const string &offset, int32 limit,
   td_->create_handler<GetTonNftsQuery>(std::move(promise))->send(offset, limit);
 }
 
+void TonWalletManager::get_ton_wallet_card_background_gift_collection_names(
+    Promise<td_api::object_ptr<td_api::upgradedGiftCollectionNames>> &&promise) {
+  promise.set_value(td_api::make_object<td_api::upgradedGiftCollectionNames>(
+      full_split(G()->get_option_string("ton_wallet_card_background_gifts"), '\xFF')));
+}
+
 void TonWalletManager::set_ton_wallet_card_stickers(
     vector<td_api::object_ptr<td_api::inputTonWalletCardSticker>> &&stickers, const string &background_nft_address,
     Promise<td_api::object_ptr<td_api::tonWalletCard>> &&promise) {

@@ -8927,6 +8927,8 @@ class CliClient final : public Actor {
       string offset;
       get_args(args, limit, offset);
       send_request(td_api::make_object<td_api::getTonWalletNfts>(offset, as_limit(limit)));
+    } else if (op == "gtwcbgcn") {
+      send_request(td_api::make_object<td_api::getTonWalletCardBackgroundGiftCollectionNames>());
     } else if (op == "stwcs") {
       string nft_addresses;
       string background_nft_address;
