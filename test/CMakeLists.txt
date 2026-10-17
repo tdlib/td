@@ -5,6 +5,7 @@ endif()
 set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/country_info.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/db.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/forum_notification_ledger.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/http.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/link.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/message_entities.cpp

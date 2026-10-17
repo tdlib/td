@@ -9985,6 +9985,11 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
                          d->notification_info->message_notification_group_.get_group_id(), NotificationId(),
                          d->last_read_inbox_message_id, total_count, Slice(source) == Slice("read_dialog_inbox"),
                          Promise<Unit>());
+      if (d->is_forum) {
+        send_closure_later(G()->notification_manager(), &NotificationManager::retire_forum_notifications, d->dialog_id,
+                           d->notification_info->message_notification_group_.get_group_id(), ForumTopicId(),
+                           d->last_read_inbox_message_id, NotificationId(), false);
+      }
     }
 
     if (d->notification_info != nullptr && d->notification_info->mention_notification_group_.is_valid() &&
@@ -25782,6 +25787,12 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
 
     notification_group_id_to_dialog_id_.emplace(next_notification_group_id, dialog_id);
 
+    auto d = get_dialog(dialog_id);
+    if (d != nullptr && d->is_forum && d->notification_info != nullptr &&
+        &group_info == &d->notification_info->message_notification_group_) {
+      td_->notification_manager_->init_forum_notification_ledger(dialog_id, next_notification_group_id);
+    }
+
     if (running_get_channel_difference(dialog_id) || get_channel_difference_to_log_event_id_.count(dialog_id) != 0) {
       send_closure_later(G()->notification_manager(), &NotificationManager::before_get_chat_difference,
                          next_notification_group_id);
@@ -25994,6 +26005,11 @@ NotificationGroupFromDatabase MessagesManager::get_message_notification_group_fo
                       << d->notification_info->new_secret_chat_notification_id_ << " and "
                       << d->server_unread_count + d->local_unread_count << " unread messages";
   result.dialog_id = d->dialog_id;
+  result.is_forum = d->is_forum && !from_mentions;
+  result.legacy_max_message_id = max(d->last_message_id.get(), d->last_new_message_id.get());
+  if (result.legacy_max_message_id <= 0) {
+    result.legacy_max_message_id = std::numeric_limits<int64>::max();
+  }
   result.total_count = get_dialog_pending_notification_count(d, from_mentions);
   auto pending_notification_count = from_mentions ? d->notification_info->pending_new_mention_notifications_.size()
                                                   : d->notification_info->pending_new_message_notifications_.size();
@@ -26041,6 +26057,15 @@ bool MessagesManager::get_dialog_show_preview(const Dialog *d) const {
 }
 
 // LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+ForumTopicId MessagesManager::get_notification_forum_topic_id(DialogId dialog_id, MessageId message_id) {
+  auto d = get_dialog(dialog_id);
+  if (d == nullptr || !d->is_forum) {
+    return {};
+  }
+  auto m = get_message_force(d, message_id, "get_notification_forum_topic_id");
+  return m == nullptr ? ForumTopicId() : get_message_forum_topic_id(dialog_id, m);
+}
+
 const DialogNotificationSettings *MessagesManager::get_message_topic_notification_settings(const Dialog *d,
                                                                                            const Message *m) const {
   if (!d->is_forum) {
@@ -26120,6 +26145,25 @@ void MessagesManager::on_forum_topic_notification_settings_changed(DialogId dial
   if (d == nullptr || !d->is_forum || d->notification_info == nullptr || td_->auth_manager_->is_bot()) {
     return;
   }
+  auto ordinary_group_id = d->notification_info->message_notification_group_.get_group_id();
+  if (ordinary_group_id.is_valid()) {
+    auto topics = forum_topic_id.is_valid()
+                      ? vector<ForumTopicId>{forum_topic_id}
+                      : td_->notification_manager_->get_forum_notification_topics(ordinary_group_id);
+    for (auto topic_id : topics) {
+      auto settings = td_->forum_topic_manager_->get_forum_topic_notification_settings_force(dialog_id, topic_id);
+      if (settings == nullptr || !settings->is_synchronized) {
+        continue;
+      }
+      auto mute_until = settings->use_default_mute_until ? get_dialog_mute_until(dialog_id, d)
+                                                         : std::make_pair(true, settings->mute_until);
+      if (mute_until.first && mute_until.second > G()->unix_time()) {
+        send_closure_later(G()->notification_manager(), &NotificationManager::retire_forum_notifications, dialog_id,
+                           ordinary_group_id, topic_id, MessageId(),
+                           td_->notification_manager_->get_max_notification_id(), false);
+      }
+    }
+  }
   // The correspondence map covers loaded messages only. Include active and pending notifications
   // kept by NotificationManager after message eviction, before loading or editing any messages.
   vector<MessageId> message_ids;
@@ -26168,6 +26212,15 @@ void MessagesManager::on_forum_topic_notification_settings_changed(DialogId dial
 // LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
 void MessagesManager::on_forum_topic_read_inbox(DialogId dialog_id, ForumTopicId forum_topic_id) {
   if (forum_topic_id.is_valid()) {
+    auto dialog = get_dialog(dialog_id);
+    if (dialog != nullptr && dialog->is_forum && dialog->notification_info != nullptr) {
+      auto read_id =
+          td_->forum_topic_manager_->get_forum_topic_last_read_inbox_message_id_force(dialog_id, forum_topic_id)
+              .get_prev_server_message_id();
+      send_closure_later(G()->notification_manager(), &NotificationManager::retire_forum_notifications, dialog_id,
+                         dialog->notification_info->message_notification_group_.get_group_id(), forum_topic_id, read_id,
+                         NotificationId(), false);
+    }
     // Revalidate only this topic; never advance the shared chat removal watermark.
     on_forum_topic_notification_settings_changed(dialog_id, forum_topic_id);
     auto d = get_dialog(dialog_id);
@@ -26462,6 +26515,10 @@ void MessagesManager::on_forum_notification_counts_reloaded(
   for (const auto &topic : repair.topics) {
     td_->forum_topic_manager_->on_update_forum_topic_unread(dialog_id, ForumTopicId(topic.first), MessageId(),
                                                           topic.second.second, MessageId(), topic.second.first);
+    // Apply every accepted frontier, even when FTM suppresses an unchanged callback.
+    send_closure_later(G()->notification_manager(), &NotificationManager::retire_forum_notifications, dialog_id,
+                       repair.message_group_id, ForumTopicId(topic.first), topic.second.second, NotificationId(),
+                       false);
   }
   d->forum_notification_count_read_ids.clear();
   for (const auto &topic : repair.topics) {
@@ -26483,13 +26540,11 @@ void MessagesManager::on_forum_notification_counts_reloaded(
   previous_repaired_read_inbox_max_message_id_.erase(dialog_id);
   on_forum_topic_notification_settings_changed(dialog_id, ForumTopicId());
   if (repair.message_group_id.is_valid() && info.message_notification_group_.has_group_id(repair.message_group_id)) {
-    auto total_count = get_dialog_pending_notification_count(d, false) -
-                       narrow_cast<int32>(info.pending_new_message_notifications_.size());
-    if (total_count >= 0) {
-      // NotificationManager itself accounts for its own pending and temporary notifications.
-      send_closure_later(G()->notification_manager(), &NotificationManager::set_notification_total_count,
-                         repair.message_group_id, total_count);
-    }
+    // Chat unread includes suppressed messages. Only a proven all-read snapshot
+    // can retire the opaque legacy contribution; new membership uses frontiers.
+    send_closure_later(G()->notification_manager(), &NotificationManager::retire_forum_notifications, dialog_id,
+                       repair.message_group_id, ForumTopicId(), MessageId(), NotificationId(),
+                       repair.unread_count == 0 && d->local_unread_count == 0);
   }
   // Mention/pin notifications retain their separate existing aggregate and removal policy.
 }
@@ -27499,7 +27554,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
                      m->date, settings_dialog_id, m->disable_notification, is_silent ? 0 : ringtone_id, min_delay_ms,
                      m->notification_id,
                      create_new_message_notification(m->message_id, is_message_preview_enabled(d, m, from_mentions)),
-                     "add_new_message_notification");
+                     "add_new_message_notification",
+                     !from_mentions && d->is_forum ? get_message_forum_topic_id(d->dialog_id, m) : ForumTopicId());
   return true;
 }
 
@@ -27552,6 +27608,12 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, bool from_menti
     return;
   }
   NotificationGroupInfo &group_info = get_notification_group_info(d, from_mentions);
+  if (d->is_forum && !from_mentions && group_info.is_valid()) {
+    // Include dismissed/evicted members even when the last visible locator is empty.
+    send_closure_later(G()->notification_manager(), &NotificationManager::retire_forum_notifications, d->dialog_id,
+                       group_info.get_group_id(), ForumTopicId(), MessageId(),
+                       td_->notification_manager_->get_max_notification_id(), true);
+  }
   if (group_info.is_valid() && group_info.get_last_notification_id().is_valid()) {
     auto last_notification_id = group_info.get_last_notification_id();
     group_info.set_max_removed_notification_id(last_notification_id,
@@ -27614,6 +27676,10 @@ void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId m
   send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
                      group_info.get_group_id(), NotificationId(), max_notification_message_id, 0, true,
                      Promise<Unit>());
+  if (d->is_forum && !from_mentions) {
+    send_closure_later(G()->notification_manager(), &NotificationManager::retire_forum_notifications, d->dialog_id,
+                       group_info.get_group_id(), ForumTopicId(), max_notification_message_id, NotificationId(), false);
+  }
 }
 
 void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m,
@@ -29307,6 +29373,10 @@ void MessagesManager::set_dialog_is_forum(Dialog *d, bool is_forum, bool is_foru
     d->is_forum_notification_count_verified = false;
     d->forum_notification_count_read_ids.clear();
     cancel_forum_notification_count_repair(d->dialog_id);
+    if (d->notification_info != nullptr) {
+      send_closure_later(G()->notification_manager(), &NotificationManager::on_forum_notification_mode_changed,
+                         d->dialog_id, d->notification_info->message_notification_group_.get_group_id(), is_forum);
+    }
   }
   d->is_forum = is_forum;
   d->is_forum_tabs = is_forum_tabs;
@@ -32737,6 +32807,10 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
   }
 
   if (is_permanently_deleted) {
+    if (d->is_forum && !message_id.is_scheduled() && d->notification_info != nullptr) {
+      td_->notification_manager_->record_forum_message_deleted(
+          d->dialog_id, d->notification_info->message_notification_group_.get_group_id(), message_id);
+    }
     if (message_id.is_scheduled() && message_id.is_valid_scheduled() && message_id.is_scheduled_server()) {
       add_dialog_scheduled_messages(d)->deleted_scheduled_server_message_ids_.insert(
           message_id.get_scheduled_server_message_id());
@@ -33668,7 +33742,8 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
               send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
                                  notification_group_id, NotificationGroupType::SecretChat, dialog_id, date, dialog_id,
                                  false, ringtone_id, 0, notification_info->new_secret_chat_notification_id_,
-                                 create_new_secret_chat_notification(), "add_new_secret_chat_notification");
+                                 create_new_secret_chat_notification(), "add_new_secret_chat_notification",
+                                 ForumTopicId());
             }
           }
         }

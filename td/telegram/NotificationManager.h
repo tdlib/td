@@ -9,6 +9,7 @@
 #include "td/telegram/CallId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
+#include "td/telegram/ForumNotificationLedger.h"
 #include "td/telegram/ForumTopicFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Notification.h"
@@ -36,8 +37,10 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
 
+#include <deque>
 #include <functional>
 #include <map>
+#include <tuple>
 
 namespace td {
 
@@ -75,7 +78,7 @@ class NotificationManager final : public Actor {
   void add_notification(NotificationGroupId group_id, NotificationGroupType group_type, DialogId dialog_id, int32 date,
                         DialogId notification_settings_dialog_id, bool disable_notification, int64 ringtone_id,
                         int32 min_delay_ms, NotificationId notification_id, unique_ptr<NotificationType> type,
-                        const char *source);
+                        const char *source, ForumTopicId forum_topic_id = ForumTopicId());
 
   void edit_notification(NotificationGroupId group_id, NotificationId notification_id,
                          unique_ptr<NotificationType> type);
@@ -95,6 +98,14 @@ class NotificationManager final : public Actor {
                                  Promise<Unit> &&promise);
 
   void set_notification_total_count(NotificationGroupId group_id, int32 new_total_count);
+
+  void init_forum_notification_ledger(DialogId dialog_id, NotificationGroupId group_id);
+  void on_forum_notification_mode_changed(DialogId dialog_id, NotificationGroupId group_id, bool is_forum);
+  void retire_forum_notifications(DialogId dialog_id, NotificationGroupId group_id, ForumTopicId topic_id,
+                                  MessageId max_message_id, NotificationId max_notification_id, bool clear_legacy);
+  void retire_forum_message_notification(DialogId dialog_id, NotificationGroupId group_id, MessageId message_id);
+  void record_forum_message_deleted(DialogId dialog_id, NotificationGroupId group_id, MessageId message_id);
+  vector<ForumTopicId> get_forum_notification_topics(NotificationGroupId group_id);
 
   vector<MessageId> get_notification_group_message_ids(NotificationGroupId group_id);
 
@@ -193,6 +204,8 @@ class NotificationManager final : public Actor {
     NotificationGroupType type = NotificationGroupType::Calls;
     bool is_loaded_from_database = false;
     bool is_being_loaded_from_database = false;
+    unique_ptr<ForumNotificationLedger> forum_ledger;
+    bool forum_accounting_failed = false;
 
     vector<Notification> notifications;
 
@@ -259,6 +272,32 @@ class NotificationManager final : public Actor {
                                                                     NotificationId max_notification_id);
 
   static int32 get_temporary_notification_total_count(const NotificationGroup &group);
+
+  static int32 get_forum_notification_total_count(const NotificationGroup &group);
+  bool restore_forum_notification(const NotificationGroupKey &key, NotificationGroup &group,
+                                  const Notification &notification);
+  void reconcile_forum_notification_ledger(NotificationGroupId group_id);
+  void apply_forum_notification_retirements(DialogId dialog_id, NotificationGroupId group_id,
+                                            ForumNotificationLedger &ledger);
+  struct NotificationDeliveryBatch {
+    vector<td_api::object_ptr<td_api::Update>> updates;
+    vector<NotificationId> completed;
+  };
+  std::deque<NotificationDeliveryBatch> durable_notification_updates_;
+  bool durable_notification_sync_pending_ = false;
+  size_t durable_notification_sync_count_ = 0;
+  uint64 forum_notification_instance_generation_ = 0;
+  FlatHashMap<int32, uint64> forum_notification_instance_generations_;
+  using ForumNotificationCheckpoint = vector<std::tuple<int32, uint64, uint64>>;
+  ForumNotificationCheckpoint forum_notification_sync_checkpoint_;
+  ForumNotificationCheckpoint get_forum_notification_checkpoint(size_t count) const;
+  void refresh_undelivered_notification(NotificationGroupId group_id, DialogId dialog_id,
+                                        td_api::object_ptr<td_api::notification> &notification);
+  void refresh_undelivered_update(td_api::object_ptr<td_api::Update> &update);
+  void deliver_notification_updates(vector<td_api::object_ptr<td_api::Update>> updates,
+                                    vector<NotificationId> completed, bool needs_sync);
+  void sync_notification_deliveries();
+  void on_notification_deliveries_synced(size_t count, Result<Unit> result);
 
   int32 load_message_notification_groups_from_database(int32 limit, bool send_update);
 
