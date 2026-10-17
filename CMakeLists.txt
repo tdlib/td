@@ -871,6 +871,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/FormattedDate.h
   td/telegram/ForumTopic.h
   td/telegram/ForumTopicEditedData.h
+  td/telegram/ForumNotificationLedger.h
   td/telegram/ForumTopicFullId.h
   td/telegram/ForumTopicIcon.h
   td/telegram/ForumTopicId.h
