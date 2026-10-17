@@ -448,6 +448,8 @@ class ReadForumTopicQuery final : public Td::ResultHandler {
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
+    // LLM-assisted: an optimistic topic read doesn't update the dialog-wide unread total.
+    td_->messages_manager_->reload_forum_notification_counts(dialog_id_);
   }
 
   void on_error(Status status) final {
@@ -1257,6 +1259,7 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       auto last_read_message_id =
           td::max(topic->pending_read_inbox_message_id_,
                   topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_read_inbox_message_id());
+      const bool has_new_read_inbox = forum_topic_full->get_last_read_inbox_message_id() > last_read_message_id;
       forum_topic_full->update_last_read_inbox_message_id(last_read_message_id, -1);
       topic->pending_read_inbox_message_id_ = MessageId();
       if (topic->topic_ == nullptr || true) {
@@ -1270,6 +1273,10 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       set_topic_info(dialog_id, topic, std::move(forum_topic_info));
       send_update_forum_topic(dialog_id, topic);
       save_topic_to_database(dialog_id, topic);
+      if (has_new_read_inbox) {
+        // Invalidate an older aggregate response before it can overwrite this newer topic read.
+        td_->messages_manager_->on_forum_topic_read_inbox(dialog_id, forum_topic_id);
+      }
       send_closure_later(G()->messages_manager(), &MessagesManager::on_forum_topic_notification_settings_changed,
                          dialog_id, forum_topic_id);
       return forum_topic_id;
