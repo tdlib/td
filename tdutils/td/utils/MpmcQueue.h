@@ -154,7 +154,6 @@ class MpmcQueueBlock {
   }
 
   //nonblocking pop
-  //returns Ok, Empty or Closed
   PopStatus try_pop(T &value) {
     while (true) {
       // this check slows 1:1 case but prevents writer starvation in 1:N case

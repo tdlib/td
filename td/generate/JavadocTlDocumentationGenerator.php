@@ -131,7 +131,7 @@ $nullable_type_import/**
  * This class contains as static nested classes all other TDLib interface
  * type-classes and function-classes.
  * <p>
- * It has no inner classes, functions or public members.
+ * It has no inner classes, functions, or public members.
  */
 EOT
 );

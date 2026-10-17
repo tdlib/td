@@ -1501,7 +1501,7 @@ upgradedGiftOriginTransfer = UpgradedGiftOrigin;
 //@description The gift was bought from another user @price Price paid for the gift
 upgradedGiftOriginResale price:GiftResalePrice = UpgradedGiftOrigin;
 
-//@description The gift was assigned from blockchain and isn't owned by the current user. The gift can't be transferred, resold or withdrawn to blockchain
+//@description The gift was assigned from blockchain and isn't owned by the current user. The gift can't be transferred, resold, or withdrawn to blockchain
 upgradedGiftOriginBlockchain = UpgradedGiftOrigin;
 
 //@description The sender or receiver of the message has paid for upgrade of the gift, which has been completed
@@ -1804,7 +1804,7 @@ attributeCraftPersistenceProbability persistence_chance_per_mille:vector<int32> 
 //@total_count The total number of received gifts
 //@gifts The list of gifts
 //@attribute_persistence_probabilities The 4 objects that describe probabilities of the crafted gift to have the backdrop or symbol of one of the original gifts
-//-for the cases when 1, 2, 3 or 4 gifts are used in the craft correspondingly
+//-for the cases when 1-4 gifts are used in the craft correspondingly
 //@next_offset The offset for the next request. If empty, then there are no more results
 giftsForCrafting total_count:int32 gifts:vector<receivedGift> attribute_persistence_probabilities:vector<attributeCraftPersistenceProbability> next_offset:string = GiftsForCrafting;
 
@@ -2672,7 +2672,7 @@ emojiStatusCustomEmojis custom_emoji_ids:vector<int64> = EmojiStatusCustomEmojis
 
 
 //@description Describes usernames assigned to a user, a supergroup, or a channel
-//@active_usernames List of active usernames; the first one must be shown as the primary username. The order of active usernames can be changed with reorderActiveUsernames, reorderBotActiveUsernames or reorderSupergroupActiveUsernames
+//@active_usernames List of active usernames; the first one must be shown as the primary username. The order of active usernames can be changed with reorderActiveUsernames, reorderBotActiveUsernames, or reorderSupergroupActiveUsernames
 //@disabled_usernames List of currently disabled usernames; the username can be activated with toggleUsernameIsActive, toggleBotUsernameIsActive, or toggleSupergroupUsernameIsActive
 //@editable_username Active or disabled username, which may be changed with setUsername or setSupergroupUsername
 //@collectible_usernames Collectible usernames that were purchased at https://fragment.com and can be passed to getCollectibleItemInfo for more details
@@ -4413,7 +4413,7 @@ richTextPhoneNumber text:RichText phone_number:string = RichText;
 richTextCustomEmoji custom_emoji_id:int64 alternative_text:string = RichText;
 
 //@description A small image inside the text; instant view only
-//@document The image represented as a document. The image can be in GIF, JPEG or PNG format
+//@document The image represented as a document. The image can be in GIF, JPEG, or PNG format
 //@width Width of a bounding box in which the image must be shown; 0 if unknown
 //@height Height of a bounding box in which the image must be shown; 0 if unknown
 richTextIcon document:document width:int32 height:int32 = RichText;
@@ -5918,7 +5918,7 @@ messageGift gift:gift sender_id:MessageSender receiver_id:MessageSender received
 //@craft_date Point in time (Unix timestamp) when the gift can be used to craft another gift; can be in the past; only for the receiver of the gift
 messageUpgradedGift gift:upgradedGift sender_id:MessageSender receiver_id:MessageSender origin:UpgradedGiftOrigin received_gift_id:string text:formattedText is_private:Bool is_saved:Bool can_be_transferred:Bool was_transferred:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 craft_date:int32 = MessageContent;
 
-//@description A gift which purchase, upgrade or transfer were refunded
+//@description A gift which purchase, upgrade, or transfer were refunded
 //@gift The gift
 //@sender_id Sender of the gift
 //@receiver_id Receiver of the gift
@@ -6577,7 +6577,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 //@can_get_author True, if author of the message sent on behalf of a chat can be received through getMessageAuthor
 //@can_get_embedding_code True, if code for message embedding can be received using getMessageEmbeddingCode
 //@can_get_link True, if a link can be generated for the message using getMessageLink
-//@can_get_media_timestamp_links True, if media timestamp links can be generated for media timestamp entities in the message text, caption or link preview description using getMessageLink
+//@can_get_media_timestamp_links True, if media timestamp links can be generated for media timestamp entities in the message text, caption, or link preview description using getMessageLink
 //@can_get_message_thread True, if information about the message thread is available through getMessageThread and getMessageThreadHistory
 //@can_get_poll_vote_statistics True, if the message is a poll and vote statistics are available through getPollVoteStatistics
 //@can_get_read_date True, if read date of the message can be received through getMessageReadDate
@@ -7830,7 +7830,7 @@ targetChatInternalLink link:InternalLinkType = TargetChat;
 //@video_width Width of the video
 //@video_height Height of the video
 //@reply_markup The message reply markup; pass null if none. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageAnimation, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue or inputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageAnimation, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue, or inputMessageContact
 inputInlineQueryResultAnimation id:string title:string thumbnail_url:string thumbnail_mime_type:string video_url:string video_mime_type:string video_duration:int32 video_width:int32 video_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to an article or web page
@@ -7842,7 +7842,7 @@ inputInlineQueryResultAnimation id:string title:string thumbnail_url:string thum
 //@thumbnail_width Thumbnail width, if known
 //@thumbnail_height Thumbnail height, if known
 //@reply_markup The message reply markup; pass null if none. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue or inputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue, or inputMessageContact
 inputInlineQueryResultArticle id:string url:string title:string description:string thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to an MP3 audio file
@@ -7852,7 +7852,7 @@ inputInlineQueryResultArticle id:string url:string title:string description:stri
 //@audio_url The URL of the audio file
 //@audio_duration Audio file duration, in seconds
 //@reply_markup The message reply markup; pass null if none. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageAudio, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue or inputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageAudio, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue, or inputMessageContact
 inputInlineQueryResultAudio id:string title:string performer:string audio_url:string audio_duration:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a user contact
@@ -7862,7 +7862,7 @@ inputInlineQueryResultAudio id:string title:string performer:string audio_url:st
 //@thumbnail_width Thumbnail width, if known
 //@thumbnail_height Thumbnail height, if known
 //@reply_markup The message reply markup; pass null if none. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue or inputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue, or inputMessageContact
 inputInlineQueryResultContact id:string contact:contact thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to a file
@@ -7875,7 +7875,7 @@ inputInlineQueryResultContact id:string contact:contact thumbnail_url:string thu
 //@thumbnail_width Width of the thumbnail
 //@thumbnail_height Height of the thumbnail
 //@reply_markup The message reply markup; pass null if none. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageDocument, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue or inputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageDocument, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue, or inputMessageContact
 inputInlineQueryResultDocument id:string title:string description:string document_url:string mime_type:string thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a game
@@ -7893,7 +7893,7 @@ inputInlineQueryResultGame id:string game_short_name:string reply_markup:ReplyMa
 //@thumbnail_width Thumbnail width, if known
 //@thumbnail_height Thumbnail height, if known
 //@reply_markup The message reply markup; pass null if none. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue or inputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue, or inputMessageContact
 inputInlineQueryResultLocation id:string location:location live_period:int32 title:string thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents link to a JPEG image
@@ -7905,7 +7905,7 @@ inputInlineQueryResultLocation id:string location:location live_period:int32 tit
 //@photo_width Width of the photo
 //@photo_height Height of the photo
 //@reply_markup The message reply markup; pass null if none. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessagePhoto, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue or inputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessagePhoto, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue, or inputMessageContact
 inputInlineQueryResultPhoto id:string title:string description:string thumbnail_url:string photo_url:string photo_width:int32 photo_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to a WEBP, TGS, or WEBM sticker
@@ -7915,7 +7915,7 @@ inputInlineQueryResultPhoto id:string title:string description:string thumbnail_
 //@sticker_width Width of the sticker
 //@sticker_height Height of the sticker
 //@reply_markup The message reply markup; pass null if none. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageSticker, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue or inputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageSticker, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue, or inputMessageContact
 inputInlineQueryResultSticker id:string thumbnail_url:string sticker_url:string sticker_width:int32 sticker_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents information about a venue
@@ -7925,7 +7925,7 @@ inputInlineQueryResultSticker id:string thumbnail_url:string sticker_url:string 
 //@thumbnail_width Thumbnail width, if known
 //@thumbnail_height Thumbnail height, if known
 //@reply_markup The message reply markup; pass null if none. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue or inputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue, or inputMessageContact
 inputInlineQueryResultVenue id:string venue:venue thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to a page containing an embedded video player or a video file
@@ -7939,7 +7939,7 @@ inputInlineQueryResultVenue id:string venue:venue thumbnail_url:string thumbnail
 //@video_height Height of the video
 //@video_duration Video duration, in seconds
 //@reply_markup The message reply markup; pass null if none. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageVideo, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue or inputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageVideo, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue, or inputMessageContact
 inputInlineQueryResultVideo id:string title:string description:string thumbnail_url:string video_url:string mime_type:string video_width:int32 video_height:int32 video_duration:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to an opus-encoded audio file within an OGG container, single channel audio
@@ -7948,7 +7948,7 @@ inputInlineQueryResultVideo id:string title:string description:string thumbnail_
 //@voice_note_url The URL of the voice note file
 //@voice_note_duration Duration of the voice note, in seconds
 //@reply_markup The message reply markup; pass null if none. Must be of type replyMarkupInlineKeyboard or null
-//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageVoiceNote, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue or inputMessageContact
+//@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageRichMessage, inputMessageVoiceNote, inputMessageInvoice, inputMessageLiveLocation, inputMessageLocation, inputMessageVenue, or inputMessageContact
 inputInlineQueryResultVoiceNote id:string title:string voice_note_url:string voice_note_duration:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 
@@ -9874,7 +9874,7 @@ internalLinkTypeNewPrivateChat = InternalLinkType;
 internalLinkTypeNewStory content_type:StoryContentType = InternalLinkType;
 
 //@description The link is an OAuth link. Call getOauthLinkInfo with the given URL to process the link if the link was received from outside of the application; otherwise, ignore it.
-//-After getOauthLinkInfo, show the user confirmation dialog and process it with checkOauthRequestMatchCode, acceptOauthRequest or declineOauthRequest
+//-After getOauthLinkInfo, show the user confirmation dialog and process it with checkOauthRequestMatchCode, acceptOauthRequest, or declineOauthRequest
 //@url URL to be passed to getOauthLinkInfo
 internalLinkTypeOauth url:string = InternalLinkType;
 
@@ -12718,7 +12718,7 @@ editMessageChecklist chat_id:int53 message_id:int53 reply_markup:ReplyMarkup che
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message. Use messageProperties.can_edit_media to check whether the message can be edited
 //@reply_markup The new message reply markup; pass null if none; for bots only
-//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
+//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto, or inputMessageVideo
 editMessageMedia chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
 //@description Edits the message content caption. Returns the edited message after the edit is completed on the server side
@@ -12751,7 +12751,7 @@ editInlineMessageLiveLocation inline_message_id:string reply_markup:ReplyMarkup 
 //@description Edits the media content of a message with a text, an animation, an audio, a document, a photo or a video in an inline message sent via a bot; for bots only
 //@inline_message_id Inline message identifier
 //@reply_markup The new message reply markup; pass null if none; for bots only
-//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
+//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto, or inputMessageVideo
 editInlineMessageMedia inline_message_id:string reply_markup:ReplyMarkup input_message_content:InputMessageContent = Ok;
 
 //@description Edits the caption of an inline message sent via a bot; for bots only
@@ -12864,7 +12864,7 @@ editBusinessMessageChecklist business_connection_id:string chat_id:int53 message
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message
 //@reply_markup The new message reply markup; pass null if none; for bots only
-//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
+//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto, or inputMessageVideo
 editBusinessMessageMedia business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = BusinessMessage;
 
 //@description Edits the caption of a message sent on behalf of a business account; for bots only
@@ -13011,7 +13011,7 @@ addQuickReplyShortcutMessageAlbum shortcut_name:string reply_to_message_id:int53
 //@message_ids Identifiers of the quick reply messages to re-add. Message identifiers must be in a strictly increasing order
 readdQuickReplyShortcutMessages shortcut_name:string message_ids:vector<int53> = QuickReplyMessages;
 
-//@description Asynchronously edits the text, media or caption of a quick reply message. Use quickReplyMessage.can_be_edited to check whether a message can be edited.
+//@description Asynchronously edits the text, media, or caption of a quick reply message. Use quickReplyMessage.can_be_edited to check whether a message can be edited.
 //-Media message can be edited only to a media message. Checklist messages can be edited only to a checklist message.
 //-The type of message content in an album can't be changed with exception of replacing a photo with a video or vice versa
 //@shortcut_id Unique identifier of the quick reply shortcut with the message
@@ -13623,7 +13623,7 @@ closeChat chat_id:int53 = Ok;
 //@force_read Pass true to mark as read the specified messages even if the chat is closed
 viewMessages chat_id:int53 message_ids:vector<int53> source:MessageSource force_read:Bool = Ok;
 
-//@description Informs TDLib that the message content has been opened (e.g., the user has opened a photo, video, document, location or venue, or has listened to an audio file or voice note message).
+//@description Informs TDLib that the message content has been opened (e.g., the user has opened a photo, video, document, location, or venue, or has listened to an audio file or voice note message).
 //-An updateMessageContentOpened update will be generated if something has changed
 //@chat_id Chat identifier of the message
 //@message_id Identifier of the message with the opened content
@@ -13668,7 +13668,7 @@ getExternalLink link:string allow_write_access:Bool = HttpUrl;
 //@link The HTTP link
 getLinkWebBrowserType link:string = WebBrowserType;
 
-//@description Returns information about an OAuth deep link. Use checkOauthRequestMatchCode, acceptOauthRequest or declineOauthRequest to process the link
+//@description Returns information about an OAuth deep link. Use checkOauthRequestMatchCode, acceptOauthRequest, or declineOauthRequest to process the link
 //@url URL of the link
 //@in_app_origin Origin of the OAuth request if the request was received from the in-app browser; pass an empty string otherwise
 getOauthLinkInfo url:string in_app_origin:string = OauthLinkInfo;
@@ -15996,7 +15996,7 @@ setCustomLanguagePack info:languagePackInfo strings:vector<languagePackString> =
 //@description Edits information about a custom local language pack in the current localization target. Can be called before authorization @info New information about the custom local language pack
 editCustomLanguagePackInfo info:languagePackInfo = Ok;
 
-//@description Adds, edits or deletes a string in a custom local language pack. Can be called before authorization @language_pack_id Identifier of a previously added custom local language pack in the current localization target @new_string New language pack string
+//@description Adds, edits, or deletes a string in a custom local language pack. Can be called before authorization @language_pack_id Identifier of a previously added custom local language pack in the current localization target @new_string New language pack string
 setCustomLanguagePackString language_pack_id:string new_string:languagePackString = Ok;
 
 //@description Deletes all information about a language pack in the current localization target. The language pack which is currently in use (including base language pack) or is being synchronized can't be deleted.

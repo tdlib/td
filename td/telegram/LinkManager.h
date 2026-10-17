@@ -50,7 +50,7 @@ class LinkManager final : public Actor {
     virtual td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const = 0;
   };
 
-  // checks whether the link is a valid tg, ton or HTTP(S) URL and returns it in a canonical form
+  // checks whether the link is a valid supported URL and returns it in a canonical form
   static Result<string> check_link(CSlice link, bool http_only = false, bool https_only = false);
 
   // same as check_link, but returns an empty string instead of an error
