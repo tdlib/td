@@ -14,6 +14,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -104,6 +105,9 @@ class AccountManager final : public Actor {
   void tear_down() final;
 
   void get_user_link_impl(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
+
+  void on_get_find_by_phone_number_privacy(Result<td_api::object_ptr<td_api::userPrivacySettingRules>> r_rules,
+                                           Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
   static string get_age_verification_parameters_key();
 

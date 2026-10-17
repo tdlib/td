@@ -7891,7 +7891,7 @@ botWriteAccessAllowReasonAcceptedRequest = BotWriteAccessAllowReason;
 httpUrl url:string = HttpUrl;
 
 
-//@description Contains an HTTPS URL, which can be used to get information about a user @url The URL @expires_in Left time for which the link is valid, in seconds; 0 if the link is a public username link
+//@description Contains an HTTPS URL, which can be used to get information about a user @url The URL @expires_in Left time for which the link is valid, in seconds; 0 if the link is a public username link or a phone number link
 userLink url:string expires_in:int32 = UserLink;
 
 

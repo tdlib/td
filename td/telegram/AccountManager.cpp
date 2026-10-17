@@ -16,6 +16,7 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/PrivacyManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -1285,6 +1286,50 @@ void AccountManager::get_user_link_impl(Promise<td_api::object_ptr<td_api::userL
   if (!username.empty()) {
     return promise.set_value(td_api::make_object<td_api::userLink>(
         LinkManager::get_public_dialog_link(username, Slice(), false, Slice(), false), 0));
+  }
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                 Result<td_api::object_ptr<td_api::userPrivacySettingRules>> r_rules) mutable {
+        send_closure(actor_id, &AccountManager::on_get_find_by_phone_number_privacy, std::move(r_rules),
+                     std::move(promise));
+      });
+  td_->privacy_manager_->get_privacy(td_api::make_object<td_api::userPrivacySettingAllowFindingByPhoneNumber>(),
+                                     std::move(query_promise));
+}
+
+static bool are_all_users_allowed(const td_api::userPrivacySettingRules &rules) {
+  for (const auto &rule : rules.rules_) {
+    CHECK(rule != nullptr);
+    switch (rule->get_id()) {
+      case td_api::userPrivacySettingRuleAllowAll::ID:
+        return true;
+      case td_api::userPrivacySettingRuleRestrictAll::ID:
+      case td_api::userPrivacySettingRuleRestrictContacts::ID:
+      case td_api::userPrivacySettingRuleRestrictBots::ID:
+      case td_api::userPrivacySettingRuleRestrictUsers::ID:
+      case td_api::userPrivacySettingRuleRestrictChatMembers::ID:
+        return false;
+      default:
+        break;
+    }
+  }
+  return false;
+}
+
+void AccountManager::on_get_find_by_phone_number_privacy(
+    Result<td_api::object_ptr<td_api::userPrivacySettingRules>> r_rules,
+    Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (r_rules.is_ok() && are_all_users_allowed(*r_rules.ok())) {
+    auto phone_number = G()->get_option_string("my_phone_number");
+    if (!phone_number.empty()) {
+      auto r_link = LinkManager::get_internal_link(td_api::make_object<td_api::internalLinkTypeUserPhoneNumber>(
+                                                       std::move(phone_number), string(), false, string()),
+                                                   false);
+      if (r_link.is_ok()) {
+        return promise.set_value(td_api::make_object<td_api::userLink>(r_link.move_as_ok(), 0));
+      }
+    }
   }
   td_->create_handler<ExportContactTokenQuery>(std::move(promise))->send();
 }
