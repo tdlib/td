@@ -432,6 +432,8 @@ class MessagesManager final : public Actor {
 
   void delete_local_reactions_by_sender(DialogId dialog_id, DialogId sender_dialog_id);
 
+  void delete_reaction_by_sender(DialogId dialog_id, MessageId message_id, DialogId sender_dialog_id);
+
   void read_all_local_dialog_poll_votes(DialogId dialog_id, ForumTopicId forum_topic_id);
 
   void read_all_dialog_poll_votes(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
@@ -2142,6 +2144,8 @@ class MessagesManager final : public Actor {
   void on_unread_message_reaction_removed(Dialog *d, const Message *m, const char *source);
 
   bool remove_message_unread_reactions(Dialog *d, Message *m, const char *source);
+
+  void delete_message_reactions_by_sender(Dialog *d, Message *m, DialogId sender_dialog_id, const char *source);
 
   void on_unread_poll_vote_added(Dialog *d, const Message *m, const char *source);
 

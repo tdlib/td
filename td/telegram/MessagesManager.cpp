@@ -9126,7 +9126,6 @@ void MessagesManager::delete_local_reactions_by_sender(DialogId dialog_id, Dialo
   if (d == nullptr) {
     return;
   }
-  auto my_dialog_id = get_my_reaction_dialog_id(d);
   auto message_ids =
       find_dialog_messages(d, [&](const Message *m) { return can_delete_message_reactions(dialog_id, m); });
 
@@ -9134,25 +9133,46 @@ void MessagesManager::delete_local_reactions_by_sender(DialogId dialog_id, Dialo
   for (auto message_id : message_ids) {
     auto m = get_message(d, message_id);
     CHECK(m != nullptr);
-    bool had_unread_reactions = has_unread_message_reactions(dialog_id, m);
-    auto old_unread_reaction_count = m->reactions->unread_reactions_.size();
-    if (!m->reactions->remove_reactions_by_sender(sender_dialog_id, my_dialog_id)) {
-      continue;
-    }
-    m->reactions->sort_reactions(active_reaction_pos_);
-
-    if (had_unread_reactions && m->reactions->unread_reactions_.size() != old_unread_reaction_count) {
-      if (has_unread_message_reactions(dialog_id, m)) {
-        send_update_message_unread_reactions(dialog_id, m, d->unread_reaction_count);
-      } else {
-        on_unread_message_reaction_removed(d, m, "delete_local_reactions_by_sender");
-      }
-    }
-    if (is_visible_message_reactions(dialog_id, m)) {
-      send_update_message_interaction_info(dialog_id, m);
-    }
-    on_message_changed(d, m, true, "delete_local_reactions_by_sender");
+    delete_message_reactions_by_sender(d, m, sender_dialog_id, "delete_local_reactions_by_sender");
   }
+}
+
+void MessagesManager::delete_reaction_by_sender(DialogId dialog_id, MessageId message_id, DialogId sender_dialog_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto *d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    return;
+  }
+  auto m = get_message_force(d, message_id, "delete_reaction_by_sender");
+  if (m == nullptr || !can_delete_message_reactions(dialog_id, m)) {
+    return;
+  }
+  delete_message_reactions_by_sender(d, m, sender_dialog_id, "delete_reaction_by_sender");
+}
+
+void MessagesManager::delete_message_reactions_by_sender(Dialog *d, Message *m, DialogId sender_dialog_id,
+                                                         const char *source) {
+  auto dialog_id = d->dialog_id;
+  bool had_unread_reactions = has_unread_message_reactions(dialog_id, m);
+  auto old_unread_reaction_count = m->reactions->unread_reactions_.size();
+  if (!m->reactions->remove_reactions_by_sender(sender_dialog_id, get_my_reaction_dialog_id(d))) {
+    return;
+  }
+  m->reactions->sort_reactions(active_reaction_pos_);
+
+  if (had_unread_reactions && m->reactions->unread_reactions_.size() != old_unread_reaction_count) {
+    if (has_unread_message_reactions(dialog_id, m)) {
+      send_update_message_unread_reactions(dialog_id, m, d->unread_reaction_count);
+    } else {
+      on_unread_message_reaction_removed(d, m, source);
+    }
+  }
+  if (is_visible_message_reactions(dialog_id, m)) {
+    send_update_message_interaction_info(dialog_id, m);
+  }
+  on_message_changed(d, m, true, source);
 }
 
 void MessagesManager::read_all_local_dialog_poll_votes(DialogId dialog_id, ForumTopicId forum_topic_id) {

@@ -4782,7 +4782,7 @@ void MessageQueryManager::delete_reaction_by_sender(DialogId dialog_id, MessageI
     return promise.set_error(400, "Invalid message identifier specified");
   }
 
-  // td_->messages_manager_->delete_reaction_by_sender(dialog_id, message_id, sender_dialog_id);
+  td_->messages_manager_->delete_reaction_by_sender(dialog_id, message_id, sender_dialog_id);
 
   td_->create_handler<DeleteParticipantReactionQuery>(std::move(promise))
       ->send(dialog_id, message_id, sender_dialog_id);
