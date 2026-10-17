@@ -455,6 +455,8 @@ class ReadForumTopicQuery final : public Td::ResultHandler {
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
+    // LLM-assisted: an optimistic topic read doesn't update the dialog-wide unread total.
+    td_->messages_manager_->reload_forum_notification_counts(dialog_id_);
   }
 
   void on_error(Status status) final {
@@ -481,7 +483,6 @@ void ForumTopicManager::Topic::store(StorerT &storer) const {
 
 template <class ParserT>
 void ForumTopicManager::Topic::parse(ParserT &parser) {
-  CHECK(info_ != nullptr);
   using td::parse;
 
   int32 magic;
@@ -593,22 +594,25 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, ForumTopicId forum_
 void ForumTopicManager::read_forum_topic_messages(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                   MessageId last_read_inbox_message_id) {
   CHECK(!td_->auth_manager_->is_bot());
-  auto topic = get_topic(dialog_id, forum_topic_id);
-  if (topic == nullptr || topic->topic_ == nullptr) {
+  if (!forum_topic_id.is_valid() ||
+      last_read_inbox_message_id <= get_forum_topic_last_read_inbox_message_id_force(dialog_id, forum_topic_id)) {
     return;
   }
-
-  bool need_update = false;
-  if (topic->topic_->update_last_read_inbox_message_id(last_read_inbox_message_id, -1)) {
-    need_update = true;
-    auto max_message_id = last_read_inbox_message_id.get_prev_server_message_id();
-    LOG(INFO) << "Send read topic history request in topic of " << forum_topic_id << " in " << dialog_id << " up to "
-              << max_message_id;
-    td_->create_handler<ReadForumTopicQuery>()->send(dialog_id, forum_topic_id, max_message_id);
+  auto topic = add_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr) {
+    return;
   }
-  if (need_update) {
+  if (topic->topic_ != nullptr) {
+    topic->topic_->update_last_read_inbox_message_id(last_read_inbox_message_id, -1);
     on_forum_topic_changed(dialog_id, topic);
+  } else {
+    topic->pending_read_inbox_message_id_ = last_read_inbox_message_id;
   }
+  send_closure_later(G()->messages_manager(), &MessagesManager::on_forum_topic_read_inbox, dialog_id, forum_topic_id);
+  auto max_message_id = last_read_inbox_message_id.get_prev_server_message_id();
+  LOG(INFO) << "Send read topic history request in topic of " << forum_topic_id << " in " << dialog_id << " up to "
+            << max_message_id;
+  td_->create_handler<ReadForumTopicQuery>()->send(dialog_id, forum_topic_id, max_message_id);
 }
 
 void ForumTopicManager::on_update_forum_topic_unread(DialogId dialog_id, ForumTopicId forum_topic_id,
@@ -618,8 +622,17 @@ void ForumTopicManager::on_update_forum_topic_unread(DialogId dialog_id, ForumTo
     return;
   }
 
+  get_forum_topic_notification_settings_force(dialog_id, forum_topic_id);
   auto topic = get_topic(dialog_id, forum_topic_id);
   if (topic == nullptr || topic->topic_ == nullptr) {
+    if (forum_topic_id.is_valid() && last_read_inbox_message_id.is_valid()) {
+      topic = add_topic(dialog_id, forum_topic_id);
+      if (topic != nullptr && topic->pending_read_inbox_message_id_ < last_read_inbox_message_id) {
+        topic->pending_read_inbox_message_id_ = last_read_inbox_message_id;
+        send_closure_later(G()->messages_manager(), &MessagesManager::on_forum_topic_read_inbox, dialog_id,
+                           forum_topic_id);
+      }
+    }
     return;
   }
 
@@ -629,6 +642,7 @@ void ForumTopicManager::on_update_forum_topic_unread(DialogId dialog_id, ForumTo
   }
   if (topic->topic_->update_last_read_inbox_message_id(last_read_inbox_message_id, unread_count)) {
     need_update = true;
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_forum_topic_read_inbox, dialog_id, forum_topic_id);
   }
   if (need_update) {
     on_forum_topic_changed(dialog_id, topic);
@@ -653,6 +667,76 @@ const DialogNotificationSettings *ForumTopicManager::get_forum_topic_notificatio
   return topic->topic_->get_notification_settings();
 }
 
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+const DialogNotificationSettings *ForumTopicManager::get_forum_topic_notification_settings_force(
+    DialogId dialog_id, ForumTopicId forum_topic_id) {
+  if (!forum_topic_id.is_valid()) {
+    return nullptr;
+  }
+  auto settings = get_forum_topic_notification_settings(dialog_id, forum_topic_id);
+  if (settings != nullptr) {
+    return settings;
+  }
+  auto dialog_topics = add_dialog_topics(dialog_id);
+  if (dialog_topics->deleted_topic_ids_.count(forum_topic_id) != 0) {
+    return nullptr;
+  }
+  if (!G()->use_message_database()) {
+    return nullptr;
+  }
+  // The message-thread database can be disabled independently of the message database.
+  // Its synchronous getter requires an initialized database; the async getter is nullable.
+  if (G()->td_db()->get_message_thread_db_async() == nullptr) {
+    return nullptr;
+  }
+  auto db = G()->td_db()->get_message_thread_db_sync();
+  if (db == nullptr) {
+    return nullptr;
+  }
+  auto value = db->get_message_thread(dialog_id, forum_topic_id);
+  if (value.empty()) {
+    return nullptr;
+  }
+  auto stored_topic = make_unique<Topic>();
+  auto status = log_event_parse(*stored_topic, value.as_slice());
+  if (status.is_error() || stored_topic->info_ == nullptr || stored_topic->topic_ == nullptr ||
+      stored_topic->info_->get_forum_topic_id() != forum_topic_id ||
+      stored_topic->info_->get_dialog_id() != dialog_id) {
+    LOG(ERROR) << "Can't load forum topic notification settings from database";
+    return nullptr;
+  }
+  auto topic = add_topic(dialog_topics, forum_topic_id);
+  CHECK(topic != nullptr);
+  // Keep live message counters and any newer topic info received before the database load.
+  if (topic->info_ == nullptr) {
+    topic->info_ = std::move(stored_topic->info_);
+  }
+  bool read_changed =
+      stored_topic->topic_->update_last_read_inbox_message_id(topic->pending_read_inbox_message_id_, -1);
+  topic->topic_ = std::move(stored_topic->topic_);
+  topic->pending_read_inbox_message_id_ = MessageId();
+  td_->draft_message_manager_->change_draft_message_files(dialog_id, MessageTopic::forum(dialog_id, forum_topic_id), {},
+                                                          get_topic_file_ids(topic), false);
+  if (read_changed) {
+    topic->need_save_to_database_ = true;
+    save_topic_to_database(dialog_id, topic);
+  }
+  return topic->topic_->get_notification_settings();
+}
+
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+MessageId ForumTopicManager::get_forum_topic_last_read_inbox_message_id_force(DialogId dialog_id,
+                                                                              ForumTopicId forum_topic_id) {
+  // Load the same persisted full topic as notification policy, without an extra RPC.
+  get_forum_topic_notification_settings_force(dialog_id, forum_topic_id);
+  auto topic = get_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr) {
+    return MessageId();
+  }
+  return td::max(topic->pending_read_inbox_message_id_,
+                 topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_read_inbox_message_id());
+}
+
 void ForumTopicManager::on_update_forum_topic_notify_settings(
     DialogId dialog_id, ForumTopicId forum_topic_id,
     tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings, const char *source) {
@@ -663,8 +747,11 @@ void ForumTopicManager::on_update_forum_topic_notify_settings(
   VLOG(notifications) << "Receive notification settings for topic of " << forum_topic_id << " in " << dialog_id
                       << " from " << source << ": " << to_string(peer_notify_settings);
 
+  get_forum_topic_notification_settings_force(dialog_id, forum_topic_id);
   DialogNotificationSettings *current_settings = get_forum_topic_notification_settings(dialog_id, forum_topic_id);
   if (current_settings == nullptr) {
+    // A setting update can arrive before the topic list has ever been opened.
+    reload_forum_topic(dialog_id, forum_topic_id, Promise<Unit>());
     return;
   }
 
@@ -800,11 +887,12 @@ bool ForumTopicManager::update_forum_topic_notification_settings(DialogId dialog
 
   auto need_update = need_update_dialog_notification_settings(current_settings, new_settings);
   if (need_update.are_changed) {
-    // TODO update unmute timeouts, remove notifications
     *current_settings = std::move(new_settings);
 
     auto topic = get_topic(dialog_id, forum_topic_id);
     on_forum_topic_changed(dialog_id, topic);
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_forum_topic_notification_settings_changed,
+                       dialog_id, forum_topic_id);
   }
   return need_update.need_update_server;
 }
@@ -1174,6 +1262,13 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
         LOG(ERROR) << "Receive short forum topic";
         return ForumTopicId();
       }
+      // An older in-flight reload must not undo a read received before the full topic.
+      auto last_read_message_id =
+          td::max(topic->pending_read_inbox_message_id_,
+                  topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_read_inbox_message_id());
+      const bool has_new_read_inbox = forum_topic_full->get_last_read_inbox_message_id() > last_read_message_id;
+      forum_topic_full->update_last_read_inbox_message_id(last_read_message_id, -1);
+      topic->pending_read_inbox_message_id_ = MessageId();
       if (topic->topic_ == nullptr || true) {
         auto old_file_ids = get_topic_file_ids(topic);
         topic->topic_ = std::move(forum_topic_full);
@@ -1185,6 +1280,12 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       set_topic_info(dialog_id, topic, std::move(forum_topic_info));
       send_update_forum_topic(dialog_id, topic);
       save_topic_to_database(dialog_id, topic);
+      if (has_new_read_inbox) {
+        // Invalidate an older aggregate response before it can overwrite this newer topic read.
+        td_->messages_manager_->on_forum_topic_read_inbox(dialog_id, forum_topic_id);
+      }
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_forum_topic_notification_settings_changed,
+                         dialog_id, forum_topic_id);
       return forum_topic_id;
     }
     default:
@@ -1438,7 +1539,20 @@ void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, Forum
   CHECK(topic->message_count_ >= 0);
   if (topic->message_count_ == 0 && !td_->auth_manager_->is_bot()) {
     // TODO keep topics in the topic list
-    dialog_topics->topics_.erase(forum_topic_id);
+    auto last_read_message_id =
+        td::max(topic->pending_read_inbox_message_id_,
+                topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_read_inbox_message_id());
+    if (last_read_message_id.is_valid()) {
+      // Eviction isn't topic deletion. Keep only the small read watermark so an
+      // in-flight older reload can't resurrect notifications when the DB is off.
+      topic->pending_read_inbox_message_id_ = last_read_message_id;
+      topic->topic_.reset();
+      topic->info_.reset();
+      topic->receive_date_ = 0;
+      topic->need_save_to_database_ = false;
+    } else {
+      dialog_topics->topics_.erase(forum_topic_id);
+    }
   }
 }
 

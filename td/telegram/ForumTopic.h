@@ -50,6 +50,10 @@ class ForumTopic {
 
   bool update_last_read_inbox_message_id(MessageId last_read_inbox_message_id, int32 unread_count);
 
+  MessageId get_last_read_inbox_message_id() const {
+    return last_read_inbox_message_id_;
+  }
+
   bool update_unread_mention_count(int32 count, bool is_relative);
 
   bool update_unread_reaction_count(int32 count, bool is_relative);

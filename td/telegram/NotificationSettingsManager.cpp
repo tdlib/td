@@ -883,6 +883,9 @@ bool NotificationSettingsManager::update_scope_notification_settings(Notificatio
 
     *current_settings = std::move(new_settings);
 
+    // Apply inherited topic policy only after the new scope settings are visible.
+    // LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+    td_->messages_manager_->on_forum_scope_notification_settings_changed(scope);
     send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
   }
   return need_update_server;
@@ -1779,6 +1782,11 @@ void NotificationSettingsManager::get_current_state(vector<td_api::object_ptr<td
   if (are_saved_ringtones_loaded_) {
     updates.push_back(get_update_saved_notification_sounds_object());
   }
+}
+
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+bool NotificationSettingsManager::have_scope_notification_settings(NotificationSettingsScope scope) const {
+  return get_scope_notification_settings(scope)->is_synchronized;
 }
 
 }  // namespace td
