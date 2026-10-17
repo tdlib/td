@@ -87,6 +87,10 @@ class ForumTopicManager final : public Actor {
       DialogId dialog_id, ForumTopicId forum_topic_id,
       td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings) TD_WARN_UNUSED_RESULT;
 
+  void reset_local_notification_settings();
+
+  void reset_dialog_local_notification_settings(DialogId dialog_id);
+
   const DialogNotificationSettings *get_forum_topic_notification_settings_force(DialogId dialog_id,
                                                                                 ForumTopicId forum_topic_id);
 
@@ -210,6 +214,11 @@ class ForumTopicManager final : public Actor {
   bool update_forum_topic_notification_settings(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                 DialogNotificationSettings *current_settings,
                                                 DialogNotificationSettings &&new_settings);
+
+  static void load_local_notification_settings(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                               DialogNotificationSettings *settings);
+
+  void reset_dialog_local_notification_settings(DialogId dialog_id, DialogTopics *dialog_topics);
 
   void on_delete_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
 

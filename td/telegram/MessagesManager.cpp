@@ -9015,7 +9015,9 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
 
   Dialog *d = get_dialog_force(dialog_id, "on_dialog_deleted");
   if (d == nullptr) {
-    return promise.set_value(Unit());
+    // LLM-assisted: unloaded topic preferences must be deleted and synced too.
+    td_->forum_topic_manager_->delete_all_dialog_topics(dialog_id);
+    return G()->td_db()->get_binlog_pmc()->force_sync(std::move(promise), "deleted dialog local settings");
   }
 
   delete_all_dialog_messages(d, true, false);
@@ -9029,8 +9031,7 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
   td_->dialog_manager_->on_dialog_deleted(dialog_id);
 
   td_->forum_topic_manager_->delete_all_dialog_topics(dialog_id);
-
-  promise.set_value(Unit());
+  G()->td_db()->get_binlog_pmc()->force_sync(std::move(promise), "deleted dialog local settings");
 }
 
 void MessagesManager::on_update_dialog_group_call_rights(DialogId dialog_id) {
@@ -29356,6 +29357,10 @@ void MessagesManager::on_update_dialog_is_forum(DialogId dialog_id, bool is_foru
     return;
   }
 
+  // LLM-assisted: a server mode update can arrive before the Dialog is loaded.
+  if (!is_forum) {
+    td_->forum_topic_manager_->reset_dialog_local_notification_settings(dialog_id);
+  }
   auto d = get_dialog(dialog_id);  // called from update_channel, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
     set_dialog_is_forum(d, is_forum, is_forum_tabs);
@@ -29369,6 +29374,10 @@ void MessagesManager::set_dialog_is_forum(Dialog *d, bool is_forum, bool is_foru
   }
   auto old_view_as_topics = get_dialog_view_as_topics(d);
   if (d->is_forum != is_forum) {
+    // LLM-assisted: disabling the forum discards its local overrides; moving tabs doesn't.
+    if (!is_forum) {
+      td_->forum_topic_manager_->reset_dialog_local_notification_settings(d->dialog_id);
+    }
     d->has_forum_notification_count = false;
     d->is_forum_notification_count_verified = false;
     d->forum_notification_count_read_ids.clear();
