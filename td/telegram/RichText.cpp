@@ -671,15 +671,26 @@ RichText RichText::get_quote_fragment_impl(size_t &pos, size_t begin, size_t end
       result.texts_ = std::move(texts);
       return result;
     }
-    case Type::Button: {
-      // buttons are quoted as plain text
+    case Type::Fixed:
+    case Type::Url:
+    case Type::EmailAddress:
+    case Type::Marked:
+    case Type::PhoneNumber:
+    case Type::Anchor:
+    case Type::Mention:
+    case Type::Hashtag:
+    case Type::Cashtag:
+    case Type::BotCommand:
+    case Type::AutoUrl:
+    case Type::AutoEmailAddress:
+    case Type::AutoPhoneNumber:
+    case Type::BankCardNumber:
+    case Type::MentionName:
+    case Type::Button:
+    case Type::TonAddress:
+      // the formatting isn't supported in quotes, so only the text is quoted
       CHECK(!texts_.empty());
-      auto fragment = texts_[0].get_quote_fragment_impl(pos, begin, end);
-      if (fragment.empty()) {
-        return {};
-      }
-      return create_plain(fragment.get_quote_text());
-    }
+      return texts_[0].get_quote_fragment_impl(pos, begin, end);
     case Type::Diff:
       // only the new text can be quoted
       CHECK(!texts_.empty());
