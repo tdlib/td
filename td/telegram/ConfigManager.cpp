@@ -2071,7 +2071,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           auto gifts = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
           for (auto &gift : gifts) {
             auto gift_name = get_json_value_string(std::move(gift), key);
-            if (!gift_name.empty() && gift_name.find('\xff') == string::npos) {
+            if (!gift_name.empty() && gift_name.find('\xFF') == string::npos) {
               wallet_card_background_gifts.push_back(gift_name);
             } else {
               LOG(ERROR) << "Receive an invalid wallet card background gift name";
@@ -2155,7 +2155,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   if (wallet_card_background_gifts.empty()) {
     options.set_option_empty("ton_wallet_card_background_gifts");
   } else {
-    options.set_option_string("ton_wallet_card_background_gifts", implode(wallet_card_background_gifts, '\xff'));
+    options.set_option_string("ton_wallet_card_background_gifts", implode(wallet_card_background_gifts, '\xFF'));
   }
 
   options.set_option_string("emoji_sounds", implode(emoji_sounds, ','));

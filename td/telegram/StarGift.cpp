@@ -8,6 +8,7 @@
 
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/StarGiftId.h"
 #include "td/telegram/StarGiftResalePrice.h"
@@ -16,7 +17,10 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 
@@ -230,6 +234,14 @@ td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td,
       first_sale_date_, last_sale_date_);
 }
 
+static bool can_be_ton_wallet_card_background(Slice slug) {
+  auto pos = slug.rfind('-');
+  if (pos != Slice::npos) {
+    slug = slug.substr(0, pos);
+  }
+  return td::contains(full_split(G()->get_option_string("ton_wallet_card_background_gifts"), '\xFF'), slug);
+}
+
 td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *td) const {
   CHECK(is_valid());
   CHECK(is_unique_);
@@ -245,9 +257,9 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
       is_theme_available_, td->dialog_manager_->get_chat_id_object(theme_dialog_id_, "upgradedGift theme"),
       !host_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, host_dialog_id_, "upgradedGift host"),
       !owner_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, owner_dialog_id_, "upgradedGift owner"),
-      owner_address_, owner_name_, gift_address_, model_.get_upgraded_gift_model_object(td),
-      pattern_.get_upgraded_gift_symbol_object(td), backdrop_.get_upgraded_gift_backdrop_object(),
-      original_details_.get_upgraded_gift_original_details_object(td),
+      owner_address_, owner_name_, gift_address_, can_be_ton_wallet_card_background(slug_),
+      model_.get_upgraded_gift_model_object(td), pattern_.get_upgraded_gift_symbol_object(td),
+      backdrop_.get_upgraded_gift_backdrop_object(), original_details_.get_upgraded_gift_original_details_object(td),
       peer_color_ == nullptr ? nullptr : peer_color_->get_upgraded_gift_colors_object(), std::move(resale_parameters),
       offer_min_star_count_ > 0, craft_chance_permille_, value_currency_, value_amount_, value_usd_amount_);
 }
