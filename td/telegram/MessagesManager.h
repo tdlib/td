@@ -988,6 +988,8 @@ class MessagesManager final : public Actor {
 
   void on_forum_topic_read_inbox(DialogId dialog_id, ForumTopicId forum_topic_id);
 
+  void reload_forum_notification_counts(DialogId dialog_id);
+
   void on_forum_scope_notification_settings_changed(NotificationSettingsScope scope);
 
   NotificationGroupFromDatabase get_message_notification_group_force(NotificationGroupId group_id);
@@ -1352,6 +1354,9 @@ class MessagesManager final : public Actor {
 
     int32 server_unread_count = 0;
     int32 local_unread_count = 0;
+    bool has_forum_notification_count = false;
+    bool is_forum_notification_count_verified = false;  // memory only; cold arithmetic waits for a complete snapshot
+    FlatHashMap<int32, MessageId> forum_notification_count_read_ids;
     int32 unread_mention_count = 0;
     int32 unread_reaction_count = 0;
     int32 unread_poll_vote_count = 0;
@@ -3576,6 +3581,43 @@ class MessagesManager final : public Actor {
   FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> run_after_get_channel_difference_;
 
   FlatHashMap<ForumTopicFullId, vector<MessageId>, ForumTopicFullIdHash> pending_forum_topic_notifications_;
+  // LLM-assisted: coalesce count-only repairs without using the partial notification cache as a total.
+  struct ForumNotificationCountRepair {
+    uint64 generation = 0;
+    bool is_running = false;
+    bool is_dirty = false;
+    bool order_by_creation_date = false;
+    int32 retry_count = 0;
+    int32 wait_pts = 0;
+    int32 pts = 0;
+    int32 topic_count = -1;
+    int32 unread_count = 0;
+    int32 page_count = 0;
+    int32 overlap_pages = 0;
+    double started_at = 0;
+    int32 offset_date = 0;
+    MessageId offset_message_id;
+    ForumTopicId offset_topic_id;
+    MessageId read_inbox_message_id;
+    FlatHashMap<int32, std::pair<int32, MessageId>> topics;
+    vector<std::pair<int32, std::pair<MessageId, ForumTopicId>>> cursors;
+    NotificationGroupId message_group_id;
+    NotificationGroupId mention_group_id;
+  };
+  FlatHashMap<DialogId, ForumNotificationCountRepair, DialogIdHash> forum_notification_count_repairs_;
+  uint64 forum_notification_count_generation_ = 0;
+  void start_forum_notification_count_repair(DialogId dialog_id);
+  bool can_apply_forum_notification_count_delta(const Dialog *d) const;
+  void expire_forum_notification_count_repair(DialogId dialog_id, uint64 generation);
+  void cancel_forum_notification_count_repair(DialogId dialog_id);
+  void start_pending_forum_notification_count_repairs();
+  void get_forum_notification_count_page(DialogId dialog_id);
+  void retry_forum_notification_count_repair(DialogId dialog_id, int32 wait_pts = 0);
+  bool add_forum_notification_count_page(Dialog *d, ForumNotificationCountRepair &repair,
+                                       const telegram_api::messages_forumTopics &page);
+  void on_forum_notification_counts_reloaded(
+      DialogId dialog_id, uint64 generation, Result<telegram_api::object_ptr<telegram_api::messages_forumTopics>> result);
+
   FlatHashMap<ForumTopicFullId, PendingForumNotificationRestoration, ForumTopicFullIdHash>
       pending_forum_notification_restorations_;
   uint64 forum_notification_restoration_generation_ = 0;
