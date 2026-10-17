@@ -5508,14 +5508,14 @@ Result<UserManager::BotData> UserManager::get_bot_data(UserId user_id) const {
   if (u == nullptr) {
     return Status::Error(400, "Bot not found");
   }
-  if (!u->is_bot) {
-    return Status::Error(400, "User is not a bot");
+  if (!u->is_received) {
+    return Status::Error(400, "User is inaccessible");
   }
   if (u->is_deleted) {
-    return Status::Error(400, "Bot is deleted");
+    return Status::Error(400, "User is deleted");
   }
-  if (!u->is_received) {
-    return Status::Error(400, "Bot is inaccessible");
+  if (!u->is_bot) {
+    return Status::Error(400, "User is not a bot");
   }
 
   BotData bot_data;
