@@ -26058,6 +26058,10 @@ bool MessagesManager::is_message_mention_notification_disabled(const Dialog *d, 
 }
 
 bool MessagesManager::is_message_preview_enabled(const Dialog *d, const Message *m, bool from_mentions) {
+  // LLM-assisted: unknown inherited/sender defaults must not expose a forum preview while loading.
+  if (d->is_forum && !have_forum_notification_restore_policy(d, m, from_mentions)) {
+    return false;
+  }
   bool show_preview = get_dialog_show_preview(d);
   if (d->is_forum) {
     auto settings = get_message_topic_notification_settings(d, m);
@@ -26150,6 +26154,11 @@ void MessagesManager::on_forum_topic_notification_settings_changed(DialogId dial
       }
       on_message_changed(d, m, false, "on_forum_topic_notification_settings_changed");
     } else {
+      // LLM-assisted: an evicted policy must be reloaded, not left hidden until restart.
+      // Reuse the cold-restoration queue to coalesce dependencies and preserve existing IDs.
+      if (!have_forum_notification_restore_policy(d, m, is_from_mention_notification_group(m))) {
+        defer_forum_notification_restoration(d, m, is_from_mention_notification_group(m));
+      }
       on_message_notification_changed(d, m, "on_forum_topic_notification_settings_changed");
     }
   }
@@ -37919,18 +37928,24 @@ bool MessagesManager::try_restore_deferred_forum_notification(ForumTopicFullId t
       get_message_force(d, pinned_message_id, "deferred forum notification target");
     }
   }
+  auto show_preview = is_message_preview_enabled(d, m, item.from_mentions);
   auto result = td_->notification_manager_->restore_existing_forum_notification(
       d->dialog_id, item.group_id,
       item.from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages,
-      Notification(
-          item.notification_id, m->date, m->disable_notification,
-          create_new_message_notification(m->message_id, is_message_preview_enabled(d, m, item.from_mentions))),
+      Notification(item.notification_id, m->date, m->disable_notification,
+                   create_new_message_notification(m->message_id, show_preview)),
       topic_id, generation);
   if (result == NotificationManager::ExistingNotificationRestoreResult::WaitingForDatabase) {
     return false;  // Keep record AND counter; no premature acknowledgement on a DB wait.
   }
   if (result == NotificationManager::ExistingNotificationRestoreResult::Restored ||
       result == NotificationManager::ExistingNotificationRestoreResult::AlreadyPresent) {
+    if (result == NotificationManager::ExistingNotificationRestoreResult::AlreadyPresent) {
+      // LLM-assisted: live revalidation may have hidden this existing ID while loading policy.
+      // Refresh it without allocating another notification or changing the admitted count.
+      send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification, item.group_id,
+                         item.notification_id, create_new_message_notification(item.message_id, show_preview));
+    }
     add_notification_id_to_message_id_correspondence(d->notification_info.get(), item.notification_id, item.message_id);
     if (group_info.get_last_notification_id().get() < item.notification_id.get()) {
       set_dialog_last_notification(d->dialog_id, group_info, m->date, item.notification_id,
