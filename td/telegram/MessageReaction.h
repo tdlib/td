@@ -70,6 +70,8 @@ class MessageReaction {
 
   bool remove_my_recent_chooser_dialog_id();
 
+  bool remove_recent_chooser_dialog_id(DialogId dialog_id);
+
   void update_from(const MessageReaction &old_reaction);
 
   void update_recent_chooser_dialog_ids(const MessageReaction &old_reaction);
@@ -128,6 +130,8 @@ class UnreadMessageReaction {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const UnreadMessageReaction &message_reaction);
 
+  friend struct MessageReactions;
+
  public:
   UnreadMessageReaction() = default;
 
@@ -182,6 +186,8 @@ struct MessageReactions {
                        bool is_tag);
 
   bool remove_my_reaction(const ReactionType &reaction_type, DialogId my_dialog_id);
+
+  bool remove_reactions_by_sender(DialogId sender_dialog_id, DialogId my_dialog_id);
 
   void add_my_paid_reaction(Td *td, int32 star_count, const td_api::object_ptr<td_api::PaidReactionType> &type);
 

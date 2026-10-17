@@ -362,6 +362,15 @@ bool MessageReaction::remove_my_recent_chooser_dialog_id() {
   return false;
 }
 
+bool MessageReaction::remove_recent_chooser_dialog_id(DialogId dialog_id) {
+  if (dialog_id == my_recent_chooser_dialog_id_ || !td::remove(recent_chooser_dialog_ids_, dialog_id)) {
+    return false;
+  }
+  choose_count_--;
+  fix_choose_count();
+  return true;
+}
+
 void MessageReaction::update_from(const MessageReaction &old_reaction) {
   CHECK(old_reaction.is_chosen());
   is_chosen_ = true;
@@ -763,6 +772,33 @@ bool MessageReactions::remove_my_reaction(const ReactionType &reaction_type, Dia
     return true;
   }
   return false;
+}
+
+bool MessageReactions::remove_reactions_by_sender(DialogId sender_dialog_id, DialogId my_dialog_id) {
+  bool is_changed = false;
+  if (sender_dialog_id == my_dialog_id) {
+    for (const auto &reaction_type : get_chosen_reaction_types()) {
+      if (remove_my_reaction(reaction_type, my_dialog_id)) {
+        is_changed = true;
+      }
+    }
+  }
+  for (auto it = reactions_.begin(); it != reactions_.end();) {
+    if (!it->get_reaction_type().is_paid_reaction() && it->remove_recent_chooser_dialog_id(sender_dialog_id)) {
+      is_changed = true;
+      if (it->is_empty()) {
+        it = reactions_.erase(it);
+        continue;
+      }
+    }
+    ++it;
+  }
+  if (td::remove_if(unread_reactions_, [sender_dialog_id](const UnreadMessageReaction &unread_reaction) {
+        return unread_reaction.sender_dialog_id_ == sender_dialog_id;
+      })) {
+    is_changed = true;
+  }
+  return is_changed;
 }
 
 bool MessageReactions::do_remove_my_reaction(const ReactionType &reaction_type) {

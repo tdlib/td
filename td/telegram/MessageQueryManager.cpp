@@ -4766,7 +4766,7 @@ void MessageQueryManager::delete_reactions_by_sender(DialogId dialog_id, DialogI
     return promise.set_error(400, "Reaction sender not found");
   }
 
-  // td_->messages_manager_->delete_local_reactions_by_sender(dialog_id, sender_dialog_id);
+  td_->messages_manager_->delete_local_reactions_by_sender(dialog_id, sender_dialog_id);
 
   td_->create_handler<DeleteParticipantReactionsQuery>(std::move(promise))->send(dialog_id, sender_dialog_id);
 }
