@@ -75,7 +75,7 @@ For example, take a look at [Airgram](https://github.com/airgram/airgram) – mo
 at [tdl](https://github.com/eilvelia/tdl), which provides a convenient, fully-asynchronous interface for interaction with TDLib and contains a bunch of examples.
 
 You can also see [TdNode](https://github.com/puppy0cam/TdNode), [tglib](https://github.com/nodegin/tglib), [node-tdlib](https://github.com/wfjsw/node-tdlib), [tdlnode](https://github.com/fonbah/tdlnode),
-[Paper Plane](https://github.com/par6n/paper-plane), or [node-tlg](https://github.com/dilongfa/node-tlg) for other examples of TDLib JSON interface integration with Node.js.
+[Paper Plane](https://github.com/par6n/paper-plane), or [node-tlg](https://github.com/ajivatthamaka/node-tlg) for other examples of TDLib JSON interface integration with Node.js.
 
 See also the source code of [DIBgram](https://github.com/DIBgram/DIBgram) - an unofficial Telegram web application which looks like Telegram Desktop.
 
@@ -301,7 +301,7 @@ See [TDLib Vala](https://github.com/AYMENJD/td-vala) for an example of such usag
 
 TDLib can be used from the 1С programming language.
 
-See [TDLib bindings for 1С:Enterprise](https://github.com/Infactum/telegram-native) and [e1c.tAgents](https://github.com/fedbka/e1c.tAgents) for examples of such usage.
+See [TDLib bindings for 1С:Enterprise](https://github.com/Infactum/telegram-native) for an example of such usage.
 
 <a name="c"></a>
 ## Using TDLib in C projects
@@ -326,7 +326,7 @@ You can also see [gas_tdjson_example](https://gist.github.com/isopen/25c4829daff
 
 TDLib can be used from the G graphical programming language in LabVIEW development environment.
 
-See [TDLib bindings for LabVIEW](https://github.com/IvanLisRus/Telegram-Client_TDLib) for examples of such usage.
+See [TDLib bindings for LabVIEW](https://github.com/IvanLisRus/Telegram-Client_TDLib) for an example of such usage.
 
 <a name="other"></a>
 ## Using TDLib from other programming languages
