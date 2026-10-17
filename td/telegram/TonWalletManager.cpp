@@ -2355,6 +2355,8 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
   UserId peer_user_id;
   string peer_domain;
   string peer_provider_name;
+  bool is_telegram_gift = false;
+  bool is_saved = false;
   switch (transaction->peer_->get_id()) {
     case telegram_api::walletTransactionPeerUser::ID: {
       auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerUser>(transaction->peer_);
@@ -2382,8 +2384,12 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
     }
     case telegram_api::walletTransactionPeerChannel::ID:
       break;
-    case telegram_api::walletTransactionPeerTelegramGift::ID:
+    case telegram_api::walletTransactionPeerTelegramGift::ID: {
+      auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerTelegramGift>(transaction->peer_);
+      is_telegram_gift = true;
+      is_saved = peer->own_profile_;
       break;
+    }
     case telegram_api::walletTransactionPeerUnsupported::ID:
       break;
     default:
@@ -2401,9 +2407,15 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
   }();
   auto type = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionType> {
     if (transaction->nft_ != nullptr) {
+      auto nft = TonNft(td, std::move(transaction->nft_)).get_ton_nft_object(td);
+      if (is_telegram_gift) {
+        return td_api::make_object<td_api::tonWalletTransactionTypeTelegramGiftTransfer>(std::move(nft), is_saved);
+      }
       return td_api::make_object<td_api::tonWalletTransactionTypeNftTransfer>(
-          TonNft(td, std::move(transaction->nft_)).get_ton_nft_object(td), !transaction->incoming_,
-          transaction->comment_, transaction->comment_encrypted_);
+          std::move(nft), !transaction->incoming_, transaction->comment_, transaction->comment_encrypted_);
+    }
+    if (is_telegram_gift) {
+      LOG(ERROR) << "Receive Telegram gift transaction " << transaction->id_ << " without NFT";
     }
     if (!peer_provider_name.empty()) {
       return td_api::make_object<td_api::tonWalletTransactionTypeOnRampDeposit>(amount, peer_provider_name);

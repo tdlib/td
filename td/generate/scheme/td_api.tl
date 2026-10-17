@@ -2389,6 +2389,11 @@ tonWalletTransactionTypeTransfer amount:int53 is_gasless:Bool comment:string is_
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
 tonWalletTransactionTypeNftTransfer nft:tonNft is_outgoing:Bool comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
 
+//@description A Telegram gift was minted as a TON NFT or was transferred from Telegram to the wallet or back
+//@nft The minted or transferred NFT
+//@is_saved True, if the gift was displayed on the current user's profile page before or after the transfer
+tonWalletTransactionTypeTelegramGiftTransfer nft:tonNft is_saved:Bool = TonWalletTransactionType;
+
 //@description Change of the wallet key
 tonWalletTransactionTypeKeyChange = TonWalletTransactionType;
 
