@@ -15446,7 +15446,9 @@ getBusinessChatLinkInfo link_name:string = BusinessChatLinkInfo;
 //@remove_messages_fee Pass true to get a link, which allows other users to send messages to the current user without paying the fee for incoming messages.
 //-By default, a temporary link is returned in this case
 //@return_permanent_link Pass true to get a permanent link; ignored if remove_messages_fee is false. Can be used only if userLink.can_get_permanent_link is true
-getUserLink remove_messages_fee:Bool return_permanent_link:Bool = UserLink;
+//@revoke_previous_links Pass true to revoke previously created links, which allow other users to send messages to the current user without paying the fee;
+//-ignored if remove_messages_fee is false. If return_permanent_link is true, then the permanent link is revoked too; otherwise, only temporary links are revoked
+getUserLink remove_messages_fee:Bool return_permanent_link:Bool revoke_previous_links:Bool = UserLink;
 
 //@description Searches a user by a token from the user's link @token Token to search for
 searchUserByToken token:string = User;

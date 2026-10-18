@@ -65,7 +65,7 @@ class AccountManager final : public Actor {
 
   void cancel_web_token(const string &token, Promise<Unit> &&promise);
 
-  void get_user_link(bool remove_messages_fee, bool is_permanent,
+  void get_user_link(bool remove_messages_fee, bool is_permanent, bool revoke_previous_links,
                      Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
   void import_contact_token(const string &token, Promise<td_api::object_ptr<td_api::user>> &&promise);
@@ -105,7 +105,7 @@ class AccountManager final : public Actor {
 
   void tear_down() final;
 
-  void get_user_link_impl(bool remove_messages_fee, bool is_permanent,
+  void get_user_link_impl(bool remove_messages_fee, bool is_permanent, bool revoke_previous_links,
                           Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
   void create_user_link(string unpaid_messages_token, int32 unpaid_messages_token_expire_date,

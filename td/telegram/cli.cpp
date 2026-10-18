@@ -3712,8 +3712,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getCloseFriends>());
     } else if (op == "scfr") {
       send_request(td_api::make_object<td_api::setCloseFriends>(as_user_ids(args)));
-    } else if (op == "gul" || op == "gulf" || op == "gulfp") {
-      send_request(td_api::make_object<td_api::getUserLink>(op != "gul", op == "gulfp"));
+    } else if (op == "gul" || op == "gulf" || op == "gulfp" || op == "gulfr" || op == "gulfpr") {
+      send_request(td_api::make_object<td_api::getUserLink>(op != "gul", op == "gulfp" || op == "gulfpr",
+                                                            op == "gulfr" || op == "gulfpr"));
     } else if (op == "subt") {
       send_request(td_api::make_object<td_api::searchUserByToken>(args));
     } else if (op == "aumt") {
