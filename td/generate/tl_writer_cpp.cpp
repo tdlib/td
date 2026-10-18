@@ -420,7 +420,11 @@ std::string TD_TL_writer_cpp::gen_type_store(const std::string &field_name, cons
   auto pretty_field_name = get_pretty_field_name(field_name);
   if (pretty_field_name == "private_key" || pretty_field_name == "secret_phrase" ||
       pretty_field_name == "new_encryption_key" || pretty_field_name == "database_encryption_key" ||
-      pretty_field_name == "encryption_key") {
+      pretty_field_name == "encryption_key" || pretty_field_name == "secret" ||
+      (pretty_field_name.size() >= 7u && pretty_field_name.substr(pretty_field_name.size() - 7u) == "_secret" &&
+       pretty_field_name != "is_secret") ||
+      pretty_field_name == "token" ||
+      (pretty_field_name.size() >= 6u && pretty_field_name.substr(pretty_field_name.size() - 6u) == "_token")) {
     return "s.store_field(\"" + pretty_field_name + "\", \"[REDACTED]\");";
   } else if (name == "#" || name == "Int" || name == "Long" || name == "Int32" || name == "Int53" || name == "Int64" ||
              name == "Double" || name == "Bool" || name == "String" || name == "SecureString" || name == "Int128" ||
