@@ -15440,7 +15440,8 @@ getBusinessChatLinkInfo link_name:string = BusinessChatLinkInfo;
 
 
 //@description Returns an HTTPS link, which can be used to get information about the current user
-getUserLink = UserLink;
+//@remove_messages_fee Pass true to get a link, which allows other users to send messages to the current user without paying the fee for incoming messages
+getUserLink remove_messages_fee:Bool = UserLink;
 
 //@description Searches a user by a token from the user's link @token Token to search for
 searchUserByToken token:string = User;

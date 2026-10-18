@@ -65,7 +65,7 @@ class AccountManager final : public Actor {
 
   void cancel_web_token(const string &token, Promise<Unit> &&promise);
 
-  void get_user_link(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
+  void get_user_link(bool remove_messages_fee, Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
   void import_contact_token(const string &token, Promise<td_api::object_ptr<td_api::user>> &&promise);
 
@@ -104,9 +104,13 @@ class AccountManager final : public Actor {
 
   void tear_down() final;
 
-  void get_user_link_impl(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
+  void get_user_link_impl(bool remove_messages_fee, Promise<td_api::object_ptr<td_api::userLink>> &&promise);
+
+  void create_user_link(string unpaid_messages_token, int32 unpaid_messages_token_expire_date,
+                        Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
   void on_get_find_by_phone_number_privacy(Result<td_api::object_ptr<td_api::userPrivacySettingRules>> r_rules,
+                                           string unpaid_messages_token, int32 unpaid_messages_token_expire_date,
                                            Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
   static string get_age_verification_parameters_key();

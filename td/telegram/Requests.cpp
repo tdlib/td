@@ -2519,7 +2519,7 @@ void Requests::on_request(uint64 id, td_api::checkPhoneNumberCode &request) {
 void Requests::on_request(uint64 id, const td_api::getUserLink &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->account_manager_->get_user_link(std::move(promise));
+  td_->account_manager_->get_user_link(request.remove_messages_fee_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::searchUserByToken &request) {
