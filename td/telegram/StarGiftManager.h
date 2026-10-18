@@ -130,7 +130,7 @@ class StarGiftManager final : public Actor {
   void get_upgraded_gift_value_info(const string &name,
                                     Promise<td_api::object_ptr<td_api::upgradedGiftValueInfo>> &&promise);
 
-  void get_star_gift_withdrawal_url(StarGiftId star_gift_id, const string &password, Promise<string> &&promise);
+  void get_star_gift_withdrawal_url(StarGiftId star_gift_id, Promise<string> &&promise);
 
   void get_upgraded_gift_deposit_info(DialogId owner_dialog_id, const string &name, bool hide_sender,
                                       Promise<td_api::object_ptr<td_api::upgradedGiftDepositInfo>> &&promise);
@@ -196,10 +196,6 @@ class StarGiftManager final : public Actor {
   Status check_star_gift_id(const StarGiftId &star_gift_id, DialogId dialog_id) const;
 
   Status check_star_gift_ids(const vector<StarGiftId> &star_gift_ids, DialogId dialog_id) const;
-
-  void send_get_star_gift_withdrawal_url_query(
-      StarGiftId star_gift_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
-      Promise<string> &&promise);
 
   double get_gift_message_polling_timeout() const;
 

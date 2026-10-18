@@ -1930,15 +1930,14 @@ class GetStarGiftWithdrawalUrlQuery final : public Td::ResultHandler {
   explicit GetStarGiftWithdrawalUrlQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(StarGiftId star_gift_id,
-            telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password) {
+  void send(StarGiftId star_gift_id, const string &temp_password) {
     auto input_gift = star_gift_id.get_input_saved_star_gift(td_);
     if (input_gift == nullptr) {
       return on_error(Status::Error(400, "Gift not found"));
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_getStarGiftWithdrawalUrl(0, std::move(input_gift), BufferSlice())));
+        telegram_api::payments_getStarGiftWithdrawalUrl(0, std::move(input_gift), BufferSlice(temp_password))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3256,33 +3255,16 @@ void StarGiftManager::get_upgraded_gift_value_info(
   td_->create_handler<GetUniqueStarGiftValueInfoQuery>(std::move(promise))->send(name);
 }
 
-void StarGiftManager::get_star_gift_withdrawal_url(StarGiftId star_gift_id, const string &password,
-                                                   Promise<string> &&promise) {
+void StarGiftManager::get_star_gift_withdrawal_url(StarGiftId star_gift_id, Promise<string> &&promise) {
   if (!star_gift_id.is_valid()) {
     return promise.set_error(400, "Invalid gift identifier specified");
   }
-  if (password.empty()) {
-    return promise.set_error(400, "PASSWORD_HASH_INVALID");
+  auto temp_password_state = PasswordManager::get_temp_password_state_sync();
+  if (!temp_password_state.has_temp_password) {
+    return promise.set_error(400, "Temporary password required to withdraw the gift");
   }
-  send_closure(
-      td_->password_manager_, &PasswordManager::get_input_check_password_srp, password,
-      PromiseCreator::lambda([actor_id = actor_id(this), star_gift_id, promise = std::move(promise)](
-                                 Result<telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP>> result) mutable {
-        if (result.is_error()) {
-          return promise.set_error(result.move_as_error());
-        }
-        send_closure(actor_id, &StarGiftManager::send_get_star_gift_withdrawal_url_query, star_gift_id,
-                     result.move_as_ok(), std::move(promise));
-      }));
-}
-
-void StarGiftManager::send_get_star_gift_withdrawal_url_query(
-    StarGiftId star_gift_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
-    Promise<string> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-
   td_->create_handler<GetStarGiftWithdrawalUrlQuery>(std::move(promise))
-      ->send(star_gift_id, std::move(input_check_password));
+      ->send(star_gift_id, temp_password_state.temp_password);
 }
 
 void StarGiftManager::get_upgraded_gift_deposit_info(

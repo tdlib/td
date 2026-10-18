@@ -3585,9 +3585,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setGiftResalePrice>(received_gift_id, price));
     } else if (op == "gugwu") {
       string received_gift_id;
-      string password;
-      get_args(args, received_gift_id, password);
-      send_request(td_api::make_object<td_api::getUpgradedGiftWithdrawalUrl>(received_gift_id, password));
+      get_args(args, received_gift_id);
+      send_request(td_api::make_object<td_api::getUpgradedGiftWithdrawalUrl>(received_gift_id));
     } else if (op == "wug") {
       string received_gift_id;
       bool keep_on_profile;

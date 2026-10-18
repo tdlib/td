@@ -15978,10 +15978,10 @@ getUpgradedGift name:string = UpgradedGift;
 //@description Returns information about value of an upgraded gift by its name @name Unique name of the upgraded gift
 getUpgradedGiftValueInfo name:string = UpgradedGiftValueInfo;
 
-//@description Returns a URL for upgraded gift withdrawal in the TON blockchain as an NFT; requires owner privileges for gifts owned by a chat
+//@description Returns a URL for upgraded gift withdrawal in the TON blockchain as an NFT; requires owner privileges for gifts owned by a chat.
+//-The user must have a valid temporary password; see createTemporaryPassword
 //@received_gift_id Identifier of the gift
-//@password The 2-step verification password of the current user
-getUpgradedGiftWithdrawalUrl received_gift_id:string password:string = HttpUrl;
+getUpgradedGiftWithdrawalUrl received_gift_id:string = HttpUrl;
 
 //@description Withdraws an upgraded gift to the TON blockchain as an NFT directly to the TON wallet of the current user, which is created automatically if the user has no wallet yet;
 //-requires owner privileges for gifts owned by a chat. The user must have a valid temporary password; see createTemporaryPassword.
