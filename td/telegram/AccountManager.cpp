@@ -621,7 +621,8 @@ class ExportContactTokenQuery final : public Td::ResultHandler {
         expire_date = unpaid_messages_token_expire_date_;
       }
     }
-    promise_.set_value(td_api::make_object<td_api::userLink>(std::move(url), get_user_link_expires_in(expire_date)));
+    promise_.set_value(
+        td_api::make_object<td_api::userLink>(std::move(url), get_user_link_expires_in(expire_date), false));
   }
 
   void on_error(Status status) final {
@@ -1367,7 +1368,7 @@ void AccountManager::create_user_link(string unpaid_messages_token, int32 unpaid
   if (!username.empty()) {
     return promise.set_value(td_api::make_object<td_api::userLink>(
         LinkManager::get_public_dialog_link(username, Slice(), false, unpaid_messages_token, false),
-        get_user_link_expires_in(unpaid_messages_token_expire_date)));
+        get_user_link_expires_in(unpaid_messages_token_expire_date), true));
   }
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), unpaid_messages_token = std::move(unpaid_messages_token),
@@ -1411,7 +1412,7 @@ void AccountManager::on_get_find_by_phone_number_privacy(
                                                    false);
       if (r_link.is_ok()) {
         return promise.set_value(td_api::make_object<td_api::userLink>(
-            r_link.move_as_ok(), get_user_link_expires_in(unpaid_messages_token_expire_date)));
+            r_link.move_as_ok(), get_user_link_expires_in(unpaid_messages_token_expire_date), true));
       }
     }
   }

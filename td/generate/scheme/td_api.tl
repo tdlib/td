@@ -7900,8 +7900,11 @@ botWriteAccessAllowReasonAcceptedRequest = BotWriteAccessAllowReason;
 httpUrl url:string = HttpUrl;
 
 
-//@description Contains an HTTPS URL, which can be used to get information about a user @url The URL @expires_in Left time for which the link is valid, in seconds; 0 if the link is a public username link or a phone number link
-userLink url:string expires_in:int32 = UserLink;
+//@description Contains an HTTPS URL, which can be used to get information about a user
+//@url The URL
+//@expires_in Left time for which the link is valid, in seconds; 0 if the link is valid forever
+//@can_get_permanent_link True, if a link without expiration date can be received for the user; false if all links to the user expire
+userLink url:string expires_in:int32 can_get_permanent_link:Bool = UserLink;
 
 
 //@description Describes allowed types for the target chat
