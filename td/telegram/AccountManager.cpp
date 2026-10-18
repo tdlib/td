@@ -639,8 +639,9 @@ class ExportNoPaidMessagesTokenQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send() {
-    send_query(G()->net_query_creator().create(telegram_api::contacts_exportNoPaidMessagesToken(0, false, false)));
+  void send(bool is_temporary) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::contacts_exportNoPaidMessagesToken(0, false, is_temporary)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1331,18 +1332,20 @@ void AccountManager::cancel_web_token(const string &token, Promise<Unit> &&promi
   td_->create_handler<CancelWebTokenAuthorizationQuery>(std::move(promise))->send(token);
 }
 
-void AccountManager::get_user_link(bool remove_messages_fee, Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
-  td_->user_manager_->get_me(PromiseCreator::lambda(
-      [actor_id = actor_id(this), remove_messages_fee, promise = std::move(promise)](Result<Unit> &&result) mutable {
-        if (result.is_error()) {
-          promise.set_error(result.move_as_error());
-        } else {
-          send_closure(actor_id, &AccountManager::get_user_link_impl, remove_messages_fee, std::move(promise));
-        }
-      }));
+void AccountManager::get_user_link(bool remove_messages_fee, bool is_permanent,
+                                   Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
+  td_->user_manager_->get_me(PromiseCreator::lambda([actor_id = actor_id(this), remove_messages_fee, is_permanent,
+                                                     promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      send_closure(actor_id, &AccountManager::get_user_link_impl, remove_messages_fee, is_permanent,
+                   std::move(promise));
+    }
+  }));
 }
 
-void AccountManager::get_user_link_impl(bool remove_messages_fee,
+void AccountManager::get_user_link_impl(bool remove_messages_fee, bool is_permanent,
                                         Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   if (!remove_messages_fee) {
@@ -1358,7 +1361,7 @@ void AccountManager::get_user_link_impl(bool remove_messages_fee,
         send_closure(actor_id, &AccountManager::create_user_link, std::move(token->token_), token->expires_,
                      std::move(promise));
       });
-  td_->create_handler<ExportNoPaidMessagesTokenQuery>(std::move(query_promise))->send();
+  td_->create_handler<ExportNoPaidMessagesTokenQuery>(std::move(query_promise))->send(!is_permanent);
 }
 
 void AccountManager::create_user_link(string unpaid_messages_token, int32 unpaid_messages_token_expire_date,
