@@ -92,7 +92,7 @@ inline auto to_tl(const EmojiNonces &entry) {
   using TlType = td::e2e_api::e2e_personalEmojiNonces;
   td::int32 flags = TlType::SELF_NONCE_MASK * static_cast<bool>(entry.self_nonce) +
                     TlType::CONTACT_NONCE_MASK * static_cast<bool>(entry.contact_nonce) +
-                    TlType::CONTACT_NONCE_MASK * static_cast<bool>(entry.contact_nonce_hash);
+                    TlType::CONTACT_NONCE_HASH_MASK * static_cast<bool>(entry.contact_nonce_hash);
   return td::e2e_api::make_object<TlType>(flags, to_td(entry.self_nonce.value_or(Int256{})),
                                           to_td(entry.contact_nonce_hash.value_or(Int256{})),
                                           to_td(entry.contact_nonce.value_or(Int256{})));
@@ -187,6 +187,10 @@ inline td::StringBuilder &operator<<(td::StringBuilder &sb, const EmojiNonces &e
   }
   return sb << "}";
 }
+inline bool operator==(const EmojiNonces &lhs, const EmojiNonces &rhs) {
+  return lhs.self_nonce == rhs.self_nonce && lhs.contact_nonce_hash == rhs.contact_nonce_hash &&
+         lhs.contact_nonce == rhs.contact_nonce;
+}
 inline bool operator==(const PhoneNumber &lhs, const PhoneNumber &rhs) {
   return lhs.phone_number == rhs.phone_number;
 }
@@ -230,9 +234,7 @@ td::StringBuilder &operator<<(td::StringBuilder &sb, const Entry<S> &entry) {
 }
 template <class T>
 bool operator==(const Entry<T> &lhs, const Entry<T> &rhs) {
-  return true;
-  //TODO(now)
-  //  return lhs.source == rhs.source && lhs.value == rhs.value && lhs.timestamp == rhs.timestamp;
+  return lhs.source == rhs.source && lhs.value == rhs.value && lhs.timestamp == rhs.timestamp;
 }
 
 template <class S>
@@ -285,9 +287,8 @@ inline td::StringBuilder &operator<<(td::StringBuilder &sb, const Update &update
   return sb << "\n}\n";
 }
 inline bool operator==(const Update &lhs, const Update &rhs) {
-  return lhs.o_contact_state == rhs.o_contact_state && lhs.o_user_id == rhs.o_user_id &&
-         lhs.o_phone_number == rhs.o_phone_number && lhs.o_emoji_nonces == rhs.o_emoji_nonces &&
-         lhs.o_user_id == rhs.o_user_id;
+  return lhs.o_user_id == rhs.o_user_id && lhs.o_name == rhs.o_name && lhs.o_phone_number == rhs.o_phone_number &&
+         lhs.o_emoji_nonces == rhs.o_emoji_nonces && lhs.o_contact_state == rhs.o_contact_state;
 }
 
 struct KeyContactByPublicKey {

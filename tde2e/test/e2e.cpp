@@ -857,11 +857,15 @@ TEST(State, Basic) {
 
   Value value;
   value.o_name = entry_name;
+  value.o_name->source = Entry<Name>::Contact;
 
   ASSERT_EQ(std::optional<Value>(), storage_get_contact(storage, contact_public_key).value());
   ASSERT_EQ(value, storage_get_contact_optimistic(storage, contact_public_key).value());
 
   update_blockchain();
+  // TODO: entry sources and contact state aren't stored in the blockchain yet
+  value.o_name->source = Entry<Name>::Self;
+  value.contact_state.value.state = ContactState::NotContact;
   ASSERT_EQ(value, storage_get_contact(storage, contact_public_key).value());
 }
 
