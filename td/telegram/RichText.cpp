@@ -688,11 +688,8 @@ RichText RichText::get_quote_fragment_impl(size_t &pos, size_t begin, size_t end
     case Type::MentionName:
     case Type::Button:
     case Type::TonAddress:
-      // the formatting isn't supported in quotes, so only the text is quoted
-      CHECK(!texts_.empty());
-      return texts_[0].get_quote_fragment_impl(pos, begin, end);
     case Type::Diff:
-      // only the new text can be quoted
+      // the formatting isn't supported in quotes, so only the text is quoted
       CHECK(!texts_.empty());
       return texts_[0].get_quote_fragment_impl(pos, begin, end);
     default: {
