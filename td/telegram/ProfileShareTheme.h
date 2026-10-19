@@ -26,6 +26,12 @@ class ProfileShareTheme {
   struct ThemeEmoji {
     string emoji_;                   // for regular emoji
     CustomEmojiId custom_emoji_id_;  // for custom emoji
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
   vector<ThemeEmoji> emojis_;            // for Emoji
   bool use_default_background_ = false;  // for Emoji
@@ -39,6 +45,16 @@ class ProfileShareTheme {
   ProfileShareTheme(Td *td, telegram_api::object_ptr<telegram_api::ShareTheme> theme);
 
   td_api::object_ptr<td_api::ProfileShareTheme> get_profile_share_theme_object(Td *td) const;
+
+  bool is_default() const {
+    return type_ == Type::Default;
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 }  // namespace td

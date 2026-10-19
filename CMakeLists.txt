@@ -1260,6 +1260,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/PollManager.hpp
   td/telegram/PollOption.hpp
   td/telegram/PremiumGiftOption.hpp
+  td/telegram/ProfileShareTheme.hpp
   td/telegram/ReactionManager.hpp
   td/telegram/ReactionNotificationSettings.hpp
   td/telegram/ReactionNotificationsFrom.hpp
