@@ -48,6 +48,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/ExpiringFlatHashMap.h"
+#include "td/utils/ExpiringWaitFreeHashMap.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/HashTableUtils.h"
@@ -888,6 +889,8 @@ class UserManager final : public Actor {
 
   static constexpr int32 USER_FULL_EXPIRE_TIME = 60;
   static constexpr int32 USER_FULL_CONTACT_PRICE_CACHE_TIME = 3600;  // some reasonable value
+  static constexpr int32 USER_PHOTOS_CACHE_TIME = 3600;              // some reasonable value
+  static constexpr int32 USER_SAVED_MUSIC_CACHE_TIME = 3600;         // some reasonable value
 
   static constexpr int32 ACCOUNT_UPDATE_FIRST_NAME = 1 << 0;
   static constexpr int32 ACCOUNT_UPDATE_LAST_NAME = 1 << 1;
@@ -1271,7 +1274,7 @@ class UserManager final : public Actor {
 
   WaitFreeHashMap<UserId, unique_ptr<User>, UserIdHash> users_;
   WaitFreeHashMap<UserId, unique_ptr<UserFull>, UserIdHash> users_full_;
-  WaitFreeHashMap<UserId, unique_ptr<UserPhotos>, UserIdHash> user_photos_;
+  ExpiringWaitFreeHashMap<UserId, UserPhotos, UserIdHash> user_photos_{USER_PHOTOS_CACHE_TIME};
   WaitFreeHashMap<UserId, vector<PendingGetPhotoRequest>, UserIdHash> pending_get_user_photos_requests_;
 
   mutable FlatHashSet<UserId, UserIdHash> unknown_users_;
@@ -1304,7 +1307,7 @@ class UserManager final : public Actor {
     }
   };
   WaitFreeHashMap<UserSavedMusicId, FileSourceId, UserSavedMusicIdHash> user_saved_music_file_source_ids_;
-  WaitFreeHashMap<UserId, unique_ptr<UserSavedMusic>, UserIdHash> user_saved_music_;
+  ExpiringWaitFreeHashMap<UserId, UserSavedMusic, UserIdHash> user_saved_music_{USER_SAVED_MUSIC_CACHE_TIME};
   WaitFreeHashMap<UserId, vector<PendingGetSavedMusicRequest>, UserIdHash> pending_get_user_saved_music_requests_;
 
   bool are_my_saved_music_ids_inited_ = false;

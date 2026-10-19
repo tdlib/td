@@ -6346,7 +6346,7 @@ void UserManager::add_set_profile_photo_to_cache(UserId user_id, Photo &&photo, 
   bool is_me = user_id == get_my_id();
 
   // update photo list
-  auto user_photos = user_photos_.get_pointer(user_id);
+  auto user_photos = user_photos_.get(user_id);
   if (is_me && !is_fallback && user_photos != nullptr && user_photos->count != -1 && !photo.is_empty()) {
     if (user_photos->offset == 0) {
       if (user_photos->photos.empty() || user_photos->photos[0].id.get() != photo.id.get()) {
@@ -6429,7 +6429,7 @@ bool UserManager::delete_my_profile_photo_from_cache(int64 profile_photo_id) {
   bool is_main_photo_deleted = u != nullptr && u->photo.id == profile_photo_id;
 
   // update photo list
-  auto user_photos = user_photos_.get_pointer(user_id);
+  auto user_photos = user_photos_.get(user_id);
   if (user_photos != nullptr && user_photos->count > 0) {
     auto old_size = user_photos->photos.size();
     if (td::remove_if(user_photos->photos,
@@ -7173,11 +7173,7 @@ FileSourceId UserManager::get_user_profile_photo_file_source_id(UserId user_id, 
 
 UserManager::UserPhotos *UserManager::add_user_photos(UserId user_id) {
   CHECK(user_id.is_valid());
-  auto &user_photos_ptr = user_photos_[user_id];
-  if (user_photos_ptr == nullptr) {
-    user_photos_ptr = make_unique<UserPhotos>();
-  }
-  return user_photos_ptr.get();
+  return &user_photos_[user_id];
 }
 
 void UserManager::on_get_user_photos(UserId user_id, int32 offset, int32 limit, int32 total_count,
@@ -7490,7 +7486,7 @@ void UserManager::on_add_saved_music(FileId file_id, FileId after_file_id, Promi
   }
 
   auto user_id = get_my_id();
-  auto user_saved_music = user_saved_music_.get_pointer(user_id);
+  auto user_saved_music = user_saved_music_.get(user_id);
   if (user_saved_music != nullptr && user_saved_music->count != -1 && user_saved_music->offset != -1) {
     auto is_deleted = td::remove(user_saved_music->saved_music_file_ids, file_id);
     if (!is_deleted) {
@@ -7537,7 +7533,7 @@ void UserManager::on_remove_saved_music(FileId file_id, Promise<Unit> &&promise)
   }
 
   auto user_id = get_my_id();
-  auto user_saved_music = user_saved_music_.get_pointer(user_id);
+  auto user_saved_music = user_saved_music_.get(user_id);
   if (user_saved_music != nullptr && user_saved_music->count != -1 && user_saved_music->offset != -1) {
     auto is_deleted = td::remove(user_saved_music->saved_music_file_ids, file_id);
     if (is_deleted || user_saved_music->offset == 0) {
@@ -7727,11 +7723,7 @@ void UserManager::finish_get_user_saved_music(UserId user_id, Result<Unit> &&res
 
 UserManager::UserSavedMusic *UserManager::add_user_saved_music(UserId user_id) {
   CHECK(user_id.is_valid());
-  auto &user_saved_music_ptr = user_saved_music_[user_id];
-  if (user_saved_music_ptr == nullptr) {
-    user_saved_music_ptr = make_unique<UserSavedMusic>();
-  }
-  return user_saved_music_ptr.get();
+  return &user_saved_music_[user_id];
 }
 
 void UserManager::on_get_user_saved_music(UserId user_id, int32 offset, int32 limit, int32 total_count,
@@ -9464,7 +9456,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   if (!first_saved_music_file_id.is_valid()) {
     drop_user_saved_music(user_id, true, "on_get_user_full");
   } else {
-    auto user_saved_music = user_saved_music_.get_pointer(user_id);
+    auto user_saved_music = user_saved_music_.get(user_id);
     if (user_saved_music != nullptr && user_saved_music->offset == 0 &&
         (user_saved_music->saved_music_file_ids.empty() ||
          user_saved_music->saved_music_file_ids[0] != first_saved_music_file_id)) {
@@ -9689,7 +9681,7 @@ void UserManager::drop_user_full_photos(UserFull *user_full, UserId user_id, int
 }
 
 void UserManager::drop_user_photos(UserId user_id, bool is_empty, const char *source) {
-  auto user_photos = user_photos_.get_pointer(user_id);
+  auto user_photos = user_photos_.get(user_id);
   if (user_photos != nullptr) {
     int32 new_count = is_empty ? 0 : -1;
     if (user_photos->count == new_count) {
@@ -9705,7 +9697,7 @@ void UserManager::drop_user_photos(UserId user_id, bool is_empty, const char *so
 }
 
 void UserManager::drop_user_saved_music(UserId user_id, bool is_empty, const char *source) {
-  auto user_saved_music = user_saved_music_.get_pointer(user_id);
+  auto user_saved_music = user_saved_music_.get(user_id);
   if (user_saved_music != nullptr) {
     int32 new_count = is_empty ? 0 : -1;
     if (user_saved_music->count == new_count) {
