@@ -3455,6 +3455,10 @@ class CliClient final : public Actor {
       string star_gift_id;
       get_args(args, star_gift_id);
       send_request(td_api::make_object<td_api::sellGift>(business_connection_id_, star_gift_id));
+    } else if (op == "delg") {
+      string star_gift_id;
+      get_args(args, star_gift_id);
+      send_request(td_api::make_object<td_api::deleteGift>(business_connection_id_, star_gift_id));
     } else if (op == "pgab" || op == "pgabp") {
       int64 gift_id;
       int64 star_count;

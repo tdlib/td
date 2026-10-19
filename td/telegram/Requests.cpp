@@ -8882,6 +8882,13 @@ void Requests::on_request(uint64 id, td_api::sellGift &request) {
                                         StarGiftId(request.received_gift_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::deleteGift &request) {
+  CHECK_IS_USER_OR_BUSINESS();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->star_gift_manager_->delete_gift(BusinessConnectionId(std::move(request.business_connection_id_)),
+                                       StarGiftId(request.received_gift_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::toggleGiftIsSaved &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -531,6 +531,39 @@ class ConvertStarGiftQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteStarGiftQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit DeleteStarGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+    auto input_gift = star_gift_id.get_input_saved_star_gift(td_);
+    CHECK(input_gift != nullptr);
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(), telegram_api::payments_deleteStarGift(std::move(input_gift)),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_deleteStarGift>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(INFO) << "Receive result for DeleteStarGiftQuery: " << result_ptr.ok();
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeleteStarGiftQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SaveStarGiftQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -2954,6 +2987,30 @@ void StarGiftManager::convert_gift(BusinessConnectionId business_connection_id, 
         send_closure(actor_id, &StarGiftManager::on_dialog_gift_transferred, dialog_id, DialogId(), std::move(promise));
       });
   td_->create_handler<ConvertStarGiftQuery>(std::move(query_promise))
+      ->send(business_connection_id, star_gift_id, dialog_id);
+}
+
+void StarGiftManager::delete_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id,
+                                  Promise<Unit> &&promise) {
+  if (business_connection_id.is_valid()) {
+    TRY_STATUS_PROMISE(promise, td_->business_connection_manager_->check_business_connection(business_connection_id));
+  }
+  if (star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
+    return promise.set_error(400, "Invalid gift identifier specified");
+  }
+  auto dialog_id =
+      business_connection_id.is_valid()
+          ? DialogId(td_->business_connection_manager_->get_business_connection_user_id(business_connection_id))
+          : star_gift_id.get_dialog_id(td_);
+
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &StarGiftManager::on_dialog_gift_transferred, dialog_id, DialogId(), std::move(promise));
+      });
+  td_->create_handler<DeleteStarGiftQuery>(std::move(query_promise))
       ->send(business_connection_id, star_gift_id, dialog_id);
 }
 

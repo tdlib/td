@@ -79,6 +79,8 @@ class StarGiftManager final : public Actor {
 
   void convert_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, Promise<Unit> &&promise);
 
+  void delete_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, Promise<Unit> &&promise);
+
   void save_gift(StarGiftId star_gift_id, bool is_saved, Promise<Unit> &&promise);
 
   void set_dialog_pinned_gifts(DialogId dialog_id, const vector<StarGiftId> &star_gift_ids, Promise<Unit> &&promise);

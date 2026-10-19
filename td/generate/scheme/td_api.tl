@@ -924,7 +924,7 @@ businessGreetingMessageSettings shortcut_id:int32 recipients:businessRecipients 
 //@can_edit_profile_photo True, if the bot can edit profile photo of the business account
 //@can_edit_username True, if the bot can edit username of the business account
 //@can_view_gifts_and_stars True, if the bot can view gifts and Telegram Star amount owned by the business account
-//@can_sell_gifts True, if the bot can sell regular gifts received by the business account
+//@can_sell_gifts True, if the bot can sell or delete regular gifts received by the business account
 //@can_change_gift_settings True, if the bot can change gift receiving settings of the business account
 //@can_transfer_and_upgrade_gifts True, if the bot can transfer and upgrade gifts received by the business account
 //@can_transfer_stars True, if the bot can transfer Telegram Stars received by the business account to account of the bot, or use them to upgrade and transfer gifts
@@ -15881,6 +15881,12 @@ increaseGiftAuctionBid gift_id:int64 star_count:int53 = Ok;
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@received_gift_id Identifier of the gift
 sellGift business_connection_id:string received_gift_id:string = Ok;
+
+//@description Deletes a received gift without receiving Telegram Stars for it; requires owner privileges for gifts owned by a chat.
+//-Gifts with limited availability and upgraded gifts can't be deleted
+//@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
+//@received_gift_id Identifier of the gift
+deleteGift business_connection_id:string received_gift_id:string = Ok;
 
 //@description Toggles whether a gift is shown on the current user's or the channel's profile page; requires can_post_messages administrator right in the channel chat
 //@received_gift_id Identifier of the gift
