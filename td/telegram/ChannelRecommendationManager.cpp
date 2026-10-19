@@ -324,16 +324,16 @@ void ChannelRecommendationManager::get_channel_recommendations(
     return;
   }
   bool use_database = true;
-  auto it = channel_recommended_dialogs_.find(channel_id);
-  if (it != channel_recommended_dialogs_.end()) {
-    if (are_suitable_recommended_dialogs(it->second)) {
-      auto next_reload_time = it->second.next_reload_time_;
+  auto *recommended_dialogs = channel_recommended_dialogs_.get(channel_id);
+  if (recommended_dialogs != nullptr) {
+    if (are_suitable_recommended_dialogs(*recommended_dialogs)) {
+      auto next_reload_time = recommended_dialogs->next_reload_time_;
       if (chats_promise) {
-        chats_promise.set_value(td_->dialog_manager_->get_chats_object(it->second.total_count_, it->second.dialog_ids_,
-                                                                       "get_channel_recommendations"));
+        chats_promise.set_value(td_->dialog_manager_->get_chats_object(
+            recommended_dialogs->total_count_, recommended_dialogs->dialog_ids_, "get_channel_recommendations"));
       }
       if (count_promise) {
-        auto count = it->second.total_count_;
+        auto count = recommended_dialogs->total_count_;
         count_promise.set_value(std::move(count));
       }
       if (next_reload_time > Time::now()) {
@@ -343,7 +343,7 @@ void ChannelRecommendationManager::get_channel_recommendations(
       count_promise = {};
     } else {
       LOG(INFO) << "Drop cache for similar chats of " << dialog_id;
-      channel_recommended_dialogs_.erase(it);
+      channel_recommended_dialogs_.erase(channel_id);
       if (G()->use_message_database()) {
         G()->td_db()->get_sqlite_pmc()->erase(get_channel_recommendations_database_key(channel_id), Auto());
       }

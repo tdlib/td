@@ -147,16 +147,16 @@ void BotRecommendationManager::get_bot_recommendations(UserId bot_user_id, bool 
     return;
   }
   bool use_database = true;
-  auto it = bot_recommended_bots_.find(bot_user_id);
-  if (it != bot_recommended_bots_.end()) {
-    if (are_suitable_recommended_bots(it->second)) {
-      auto next_reload_time = it->second.next_reload_time_;
+  auto *recommended_bots = bot_recommended_bots_.get(bot_user_id);
+  if (recommended_bots != nullptr) {
+    if (are_suitable_recommended_bots(*recommended_bots)) {
+      auto next_reload_time = recommended_bots->next_reload_time_;
       if (users_promise) {
         users_promise.set_value(
-            td_->user_manager_->get_users_object(it->second.total_count_, it->second.bot_user_ids_));
+            td_->user_manager_->get_users_object(recommended_bots->total_count_, recommended_bots->bot_user_ids_));
       }
       if (count_promise) {
-        auto count = it->second.total_count_;
+        auto count = recommended_bots->total_count_;
         count_promise.set_value(std::move(count));
       }
       if (next_reload_time > Time::now()) {
@@ -166,7 +166,7 @@ void BotRecommendationManager::get_bot_recommendations(UserId bot_user_id, bool 
       count_promise = {};
     } else {
       LOG(INFO) << "Drop cache for similar bots of " << bot_user_id;
-      bot_recommended_bots_.erase(it);
+      bot_recommended_bots_.erase(bot_user_id);
       if (G()->use_message_database()) {
         G()->td_db()->get_sqlite_pmc()->erase(get_bot_recommendations_database_key(bot_user_id), Auto());
       }

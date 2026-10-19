@@ -13,6 +13,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/ExpiringFlatHashMap.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
@@ -72,7 +73,7 @@ class BotRecommendationManager final : public Actor {
   Td *td_;
   ActorShared<> parent_;
 
-  FlatHashMap<UserId, RecommendedBots, UserIdHash> bot_recommended_bots_;
+  ExpiringFlatHashMap<UserId, RecommendedBots, UserIdHash> bot_recommended_bots_{BOT_RECOMMENDATIONS_CACHE_TIME};
   FlatHashMap<UserId, vector<Promise<td_api::object_ptr<td_api::users>>>, UserIdHash> get_bot_recommendations_queries_;
   FlatHashMap<UserId, vector<Promise<int32>>, UserIdHash> get_bot_recommendation_count_queries_[2];
 };
