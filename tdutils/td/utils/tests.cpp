@@ -246,7 +246,7 @@ bool TestsRunner::run_all_step() {
     if (real_passed + 1e-1 > passed) {
       LOG(ERROR) << format::as_time(passed);
     } else {
-      LOG(ERROR) << format::as_time(real_passed) << " adjusted [" << format::as_time(real_passed) << "]";
+      LOG(ERROR) << format::as_time(real_passed) << " adjusted [" << format::as_time(passed) << "]";
     }
     if (regression_tester_) {
       regression_tester_->save_db();
