@@ -7,6 +7,7 @@
 #include "td/telegram/UserStarGift.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"
@@ -67,6 +68,11 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedS
       star_gift_id_ = StarGiftId(dialog_id, gift->saved_id_);
     }
   }
+  if (star_gift_id_.is_valid() && gift_.can_be_deleted() && !was_refunded_ && convert_star_count_ == 0) {
+    can_delete_ = is_me || (is_user && td->auth_manager_->is_bot()) ||
+                  (dialog_id.get_type() == DialogType::Channel &&
+                   td->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_creator());
+  }
   if (sender_dialog_id_ != DialogId() && !sender_dialog_id_.is_valid()) {
     LOG(ERROR) << "Receive " << sender_dialog_id_ << " as sender of " << gift_;
     sender_dialog_id_ = DialogId();
@@ -84,7 +90,7 @@ td_api::object_ptr<td_api::receivedGift> UserStarGift::get_received_gift_object(
       star_gift_id_.get_star_gift_id(),
       sender_dialog_id_ == DialogId() ? nullptr : get_message_sender_object(td, sender_dialog_id_, "receivedGift"),
       get_formatted_text_object(td->user_manager_.get(), message_, true, -1), gift_num_, is_name_hidden_, is_saved_,
-      is_pinned_, can_upgrade_, can_transfer_, was_refunded_, date_, gift_.get_sent_gift_object(td),
+      is_pinned_, can_upgrade_, can_transfer_, can_delete_, was_refunded_, date_, gift_.get_sent_gift_object(td),
       std::move(collection_ids), convert_star_count_, upgrade_star_count_,
       upgrade_star_count_ > 0 && is_upgrade_separate_, transfer_star_count_, drop_original_details_star_count_,
       can_transfer_at_, can_resell_at_, can_export_at_, prepaid_upgrade_hash_, can_craft_at_);

@@ -42,6 +42,7 @@ class UserStarGift {
   bool is_pinned_ = false;
   bool can_upgrade_ = false;
   bool can_transfer_ = false;
+  bool can_delete_ = false;
   bool was_refunded_ = false;
   bool is_upgrade_separate_ = false;
 
