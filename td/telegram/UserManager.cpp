@@ -10652,8 +10652,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       td_->audios_manager_->get_audio_object(user_full->first_saved_music_file_id), std::move(user_rating),
       std::move(pending_user_rating), user_full->pending_star_rating_date, std::move(note),
       user_full->ton_wallet_card == nullptr ? nullptr : user_full->ton_wallet_card->get_ton_wallet_card_object(td_),
-      user_full->share_theme == nullptr ? td_api::make_object<td_api::profileShareThemeDefault>()
-                                        : user_full->share_theme->get_profile_share_theme_object(td_),
+      user_full->share_theme == nullptr ? nullptr : user_full->share_theme->get_profile_share_theme_object(td_),
       std::move(business_info), std::move(bot_info));
 }
 

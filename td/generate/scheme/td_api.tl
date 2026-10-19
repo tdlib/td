@@ -2831,7 +2831,7 @@ botInfo short_description:string description:string photo:photo animation:animat
 //@pending_rating_date Unix timestamp when rating of the user will change to pending_rating; 0 if the user isn't the current user or there are no pending rating changes
 //@note Note added to the user's contact; may be null if none
 //@ton_wallet_card TON wallet card of the user; may be null if none
-//@share_theme Theme of the screen for sharing a link to the user
+//@share_theme Theme of the screen for sharing a link to the user; may be null if the default theme is used
 //@business_info Information about business settings for Telegram Business accounts; may be null if none
 //@bot_info For bots, information about the bot; may be null if the user isn't a bot
 userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto community_id:int53 block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_posted_to_profile_stories:Bool has_sponsored_messages_enabled:Bool need_phone_number_privacy_exception:Bool set_chat_background:Bool uses_unofficial_app:Bool bio:formattedText birthdate:birthdate personal_chat_id:int53 gift_count:int32 group_in_common_count:int32 incoming_paid_message_star_count:int53 outgoing_paid_message_star_count:int53 gift_settings:giftSettings bot_verification:botVerification main_profile_tab:ProfileTab first_profile_audio:audio rating:userRating pending_rating:userRating pending_rating_date:int32 note:formattedText ton_wallet_card:tonWalletCard share_theme:ProfileShareTheme business_info:businessInfo bot_info:botInfo = UserFullInfo;
@@ -4427,9 +4427,6 @@ emojiTypeCustomEmoji custom_emoji_id:int64 = EmojiType;
 
 
 //@class ProfileShareTheme @description Describes a theme of the screen for sharing a link to a user or a chat
-
-//@description The default theme
-profileShareThemeDefault = ProfileShareTheme;
 
 //@description A theme with emoji placed on a background
 //@emojis The emoji; 0-6 regular or custom emoji. If empty, then use_default_background is false

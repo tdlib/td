@@ -88,7 +88,7 @@ ProfileShareTheme::ProfileShareTheme(Td *td, telegram_api::object_ptr<telegram_a
 td_api::object_ptr<td_api::ProfileShareTheme> ProfileShareTheme::get_profile_share_theme_object(Td *td) const {
   switch (type_) {
     case Type::Default:
-      return td_api::make_object<td_api::profileShareThemeDefault>();
+      return nullptr;
     case Type::Emoji: {
       auto emojis = transform(emojis_, [](const ThemeEmoji &emoji) -> td_api::object_ptr<td_api::EmojiType> {
         if (emoji.custom_emoji_id_.is_valid()) {
