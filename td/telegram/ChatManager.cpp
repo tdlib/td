@@ -39,6 +39,8 @@
 #include "td/telegram/PeerColor.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoSize.h"
+#include "td/telegram/ProfileShareTheme.h"
+#include "td/telegram/ProfileShareTheme.hpp"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StickersManager.h"
@@ -2411,6 +2413,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   bool has_main_profile_tab = main_profile_tab != ProfileTab::Default;
   bool has_guard_bot_user_id = guard_bot_user_id.is_valid();
   bool has_linked_community_id = linked_community_id.is_valid();
+  bool has_share_theme = share_theme != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -2463,6 +2466,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
     STORE_FLAG(has_main_profile_tab);
     STORE_FLAG(has_guard_bot_user_id);
     STORE_FLAG(has_linked_community_id);
+    STORE_FLAG(has_share_theme);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -2545,6 +2549,9 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   if (has_linked_community_id) {
     store(linked_community_id, storer);
   }
+  if (has_share_theme) {
+    store(share_theme, storer);
+  }
 }
 
 template <class ParserT>
@@ -2581,6 +2588,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   bool has_main_profile_tab = false;
   bool has_guard_bot_user_id = false;
   bool has_linked_community_id = false;
+  bool has_share_theme = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -2633,6 +2641,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
     PARSE_FLAG(has_main_profile_tab);
     PARSE_FLAG(has_guard_bot_user_id);
     PARSE_FLAG(has_linked_community_id);
+    PARSE_FLAG(has_share_theme);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -2722,6 +2731,9 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_linked_community_id) {
     parse(linked_community_id, parser);
+  }
+  if (has_share_theme) {
+    parse(share_theme, parser);
   }
 
   if (legacy_can_view_statistics) {
@@ -5134,6 +5146,9 @@ void ChatManager::on_load_channel_full_from_database(ChannelId channel_id, strin
   if (channel_full->bot_verification != nullptr) {
     channel_full->bot_verification->add_dependencies(dependencies);
   }
+  if (channel_full->share_theme != nullptr) {
+    channel_full->share_theme->add_dependencies(dependencies);
+  }
   dependencies.add(channel_full->invite_link.get_creator_user_id());
   if (!dependencies.resolve_force(td_, source)) {
     channels_full_.erase(channel_id);
@@ -5965,6 +5980,9 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         can_view_statistics = false;
       }
       auto main_profile_tab = get_profile_tab(std::move(channel->main_tab_), get_channel_type(c));
+      ProfileShareTheme profile_share_theme(td_, std::move(channel->share_theme_));
+      auto share_theme =
+          profile_share_theme.is_default() ? nullptr : make_unique<ProfileShareTheme>(std::move(profile_share_theme));
 
       channel_full->repair_request_version = 0;
       channel_full->expires_at = Time::now() + CHANNEL_FULL_EXPIRE_TIME;
@@ -5990,7 +6008,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
           channel_full->has_stargifts_available != has_stargifts_available ||
           channel_full->has_paid_messages_available != has_paid_messages_available ||
           channel_full->send_paid_message_stars != send_paid_message_stars ||
-          channel_full->main_profile_tab != main_profile_tab) {
+          channel_full->main_profile_tab != main_profile_tab || channel_full->share_theme != share_theme) {
         channel_full->participant_count = participant_count;
         channel_full->administrator_count = administrator_count;
         channel_full->restricted_count = restricted_count;
@@ -6018,6 +6036,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         channel_full->has_paid_messages_available = has_paid_messages_available;
         channel_full->send_paid_message_stars = StarManager::get_star_count(send_paid_message_stars);
         channel_full->main_profile_tab = main_profile_tab;
+        channel_full->share_theme = std::move(share_theme);
 
         channel_full->is_changed = true;
       }
@@ -9941,6 +9960,7 @@ td_api::object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_
       channel_full->invite_link.get_chat_invite_link_object(td_->user_manager_.get()),
       td_->user_manager_->get_user_id_object(channel_full->guard_bot_user_id, "supergroupFullInfo guard bot"),
       std::move(bot_commands), std::move(bot_verification), get_profile_tab_object(channel_full->main_profile_tab),
+      channel_full->share_theme == nullptr ? nullptr : channel_full->share_theme->get_profile_share_theme_object(td_),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

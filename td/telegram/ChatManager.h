@@ -61,6 +61,7 @@ struct BinlogEvent;
 class BotVerification;
 class EmojiStatus;
 struct MinChannel;
+class ProfileShareTheme;
 class Td;
 
 class ChatManager final : public Actor {
@@ -623,6 +624,8 @@ class ChatManager final : public Actor {
     DialogLocation location;
 
     ProfileTab main_profile_tab = ProfileTab::Default;
+
+    unique_ptr<ProfileShareTheme> share_theme;
 
     DcId stats_dc_id;
 
