@@ -7977,12 +7977,13 @@ void UserManager::can_send_message_to_user(UserId user_id, bool force,
     return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
   }
 
-  auto it = user_full_contact_price_.find(user_id);
-  if (it != user_full_contact_price_.end()) {
-    if (it->second > 0) {
-      return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserHasPaidMessages>(it->second));
+  auto *contact_price = user_full_contact_price_.get(user_id);
+  if (contact_price != nullptr) {
+    if (*contact_price > 0) {
+      return promise.set_value(
+          td_api::make_object<td_api::canSendMessageToUserResultUserHasPaidMessages>(*contact_price));
     }
-    if (it->second == -1) {
+    if (*contact_price == -1) {
       return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserRestrictsNewChats>());
     }
     return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
@@ -8038,9 +8039,9 @@ void UserManager::allow_send_message_to_user(UserId user_id) {
   CHECK(!td_->auth_manager_->is_bot());
   if (get_user_full(user_id) == nullptr) {
     CHECK(user_id.is_valid());
-    auto it = user_full_contact_price_.find(user_id);
-    if (it != user_full_contact_price_.end() && it->second == -1) {
-      it->second = 0;
+    auto *contact_price = user_full_contact_price_.get(user_id);
+    if (contact_price != nullptr && *contact_price == -1) {
+      *contact_price = 0;
     }
   }
 }

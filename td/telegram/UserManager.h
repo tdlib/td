@@ -47,6 +47,7 @@
 #include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
+#include "td/utils/ExpiringFlatHashMap.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/HashTableUtils.h"
@@ -886,6 +887,7 @@ class UserManager final : public Actor {
   static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;  // some reasonable limit
 
   static constexpr int32 USER_FULL_EXPIRE_TIME = 60;
+  static constexpr int32 USER_FULL_CONTACT_PRICE_CACHE_TIME = 3600;  // some reasonable value
 
   static constexpr int32 ACCOUNT_UPDATE_FIRST_NAME = 1 << 0;
   static constexpr int32 ACCOUNT_UPDATE_LAST_NAME = 1 << 1;
@@ -1388,7 +1390,8 @@ class UserManager final : public Actor {
   bool are_imported_contacts_changing_ = false;
   bool need_clear_imported_contacts_ = false;
 
-  FlatHashMap<UserId, int64, UserIdHash> user_full_contact_price_;  // -1 - premium required
+  // -1 - premium required
+  ExpiringFlatHashMap<UserId, int64, UserIdHash> user_full_contact_price_{USER_FULL_CONTACT_PRICE_CACHE_TIME};
 
   FlatHashMap<MessageFullId, int32, MessageFullIdHash> noforwards_request_ids_;
   FlatHashMap<int32, MessageFullId> noforwards_request_message_full_ids_;
