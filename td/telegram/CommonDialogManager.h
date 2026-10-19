@@ -13,7 +13,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
-#include "td/utils/FlatHashMap.h"
+#include "td/utils/ExpiringFlatHashMap.h"
 #include "td/utils/Promise.h"
 
 #include <utility>
@@ -42,7 +42,8 @@ class CommonDialogManager final : public Actor {
  private:
   void tear_down() final;
 
-  static constexpr int32 MAX_GET_DIALOGS = 100;  // server-side limit
+  static constexpr int32 MAX_GET_DIALOGS = 100;              // server-side limit
+  static constexpr int32 COMMON_DIALOGS_CACHE_TIME = 86400;  // some reasonable value
 
   struct CommonDialogs {
     vector<DialogId> dialog_ids;
@@ -50,7 +51,7 @@ class CommonDialogManager final : public Actor {
     int32 total_count = 0;
     bool is_outdated = false;
   };
-  FlatHashMap<UserId, CommonDialogs, UserIdHash> found_common_dialogs_;
+  ExpiringFlatHashMap<UserId, CommonDialogs, UserIdHash> found_common_dialogs_{COMMON_DIALOGS_CACHE_TIME};
 
   Td *td_;
   ActorShared<> parent_;

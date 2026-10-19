@@ -87,9 +87,9 @@ void CommonDialogManager::tear_down() {
 }
 
 void CommonDialogManager::drop_common_dialogs_cache(UserId user_id) {
-  auto it = found_common_dialogs_.find(user_id);
-  if (it != found_common_dialogs_.end()) {
-    it->second.is_outdated = true;
+  auto *common_dialogs = found_common_dialogs_.get(user_id);
+  if (common_dialogs != nullptr) {
+    common_dialogs->is_outdated = true;
   }
 }
 
@@ -136,11 +136,11 @@ std::pair<int32, vector<DialogId>> CommonDialogManager::get_common_dialogs(UserI
       break;
   }
 
-  auto it = found_common_dialogs_.find(user_id);
-  if (it != found_common_dialogs_.end() && !it->second.dialog_ids.empty()) {
-    int32 total_count = it->second.total_count;
-    vector<DialogId> &common_dialog_ids = it->second.dialog_ids;
-    bool use_cache = (!it->second.is_outdated && it->second.receive_time >= Time::now() - 3600) || force ||
+  auto *common_dialogs = found_common_dialogs_.get(user_id);
+  if (common_dialogs != nullptr && !common_dialogs->dialog_ids.empty()) {
+    int32 total_count = common_dialogs->total_count;
+    vector<DialogId> &common_dialog_ids = common_dialogs->dialog_ids;
+    bool use_cache = (!common_dialogs->is_outdated && common_dialogs->receive_time >= Time::now() - 3600) || force ||
                      offset_chat_id != 0 || common_dialog_ids.size() >= static_cast<size_t>(MAX_GET_DIALOGS);
     // use cache if it is up-to-date, or we required to use it or we can't update it
     if (use_cache) {
