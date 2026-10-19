@@ -4419,7 +4419,7 @@ profileShareThemeBackdrops backdrops:vector<profileShareThemeBackdrop> = Profile
 emojiTypeRegular emoji:string = EmojiType;
 
 //@description A custom emoji @custom_emoji_id Identifier of the custom emoji
-emojiTypeCustom custom_emoji_id:int64 = EmojiType;
+emojiTypeCustomEmoji custom_emoji_id:int64 = EmojiType;
 
 
 //@class ProfileShareTheme @description Describes a theme of the screen for sharing a link to a user or a chat

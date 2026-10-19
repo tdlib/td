@@ -4599,7 +4599,7 @@ class CliClient final : public Actor {
           transform(autosplit_str(emojis), [](const string &emoji) -> td_api::object_ptr<td_api::EmojiType> {
             auto r_custom_emoji_id = to_integer_safe<int64>(emoji);
             if (r_custom_emoji_id.is_ok()) {
-              return td_api::make_object<td_api::emojiTypeCustom>(r_custom_emoji_id.ok());
+              return td_api::make_object<td_api::emojiTypeCustomEmoji>(r_custom_emoji_id.ok());
             }
             return td_api::make_object<td_api::emojiTypeRegular>(emoji);
           });

@@ -230,9 +230,9 @@ static Result<telegram_api::object_ptr<telegram_api::ShareTheme>> get_input_shar
             emojis.push_back(telegram_api::make_object<telegram_api::reactionEmoji>(std::move(emoji)));
             break;
           }
-          case td_api::emojiTypeCustom::ID: {
+          case td_api::emojiTypeCustomEmoji::ID: {
             CustomEmojiId custom_emoji_id(
-                static_cast<const td_api::emojiTypeCustom *>(emoji_type.get())->custom_emoji_id_);
+                static_cast<const td_api::emojiTypeCustomEmoji *>(emoji_type.get())->custom_emoji_id_);
             if (!custom_emoji_id.is_valid()) {
               return Status::Error(400, "Invalid custom emoji identifier specified");
             }
