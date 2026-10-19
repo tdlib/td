@@ -76,6 +76,7 @@ class BusinessIntro;
 class BusinessWorkHours;
 class EmojiStatus;
 class PeerColorCollectible;
+class ProfileShareTheme;
 class StarRating;
 class Td;
 class TonWalletCard;
@@ -772,6 +773,8 @@ class UserManager final : public Actor {
 
     unique_ptr<TonWalletCard> ton_wallet_card;
 
+    unique_ptr<ProfileShareTheme> share_theme;
+
     bool is_blocked = false;
     bool is_blocked_for_stories = false;
     bool can_be_called = false;
@@ -1058,6 +1061,8 @@ class UserManager final : public Actor {
   static void on_update_user_full_note(UserFull *user_full, FormattedText &&note);
 
   static void on_update_user_full_ton_wallet_card(UserFull *user_full, unique_ptr<TonWalletCard> &&ton_wallet_card);
+
+  static void on_update_user_full_share_theme(UserFull *user_full, unique_ptr<ProfileShareTheme> &&share_theme);
 
   std::pair<int64, int64> get_saved_music_document_id(FileId saved_music_file_id, bool from_server = true) const;
 

@@ -112,4 +112,14 @@ void ProfileShareTheme::add_dependencies(Dependencies &dependencies) const {
   }
 }
 
+bool operator==(const ProfileShareTheme &lhs, const ProfileShareTheme &rhs) {
+  return lhs.type_ == rhs.type_ && lhs.emojis_ == rhs.emojis_ &&
+         lhs.use_default_background_ == rhs.use_default_background_ && lhs.backdrop_id_ == rhs.backdrop_id_ &&
+         lhs.star_gift_ == rhs.star_gift_;
+}
+
+bool operator!=(const ProfileShareTheme &lhs, const ProfileShareTheme &rhs) {
+  return !(lhs == rhs);
+}
+
 }  // namespace td

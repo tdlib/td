@@ -28,6 +28,10 @@ class ProfileShareTheme {
     string emoji_;                   // for regular emoji
     CustomEmojiId custom_emoji_id_;  // for custom emoji
 
+    bool operator==(const ThemeEmoji &other) const {
+      return emoji_ == other.emoji_ && custom_emoji_id_ == other.custom_emoji_id_;
+    }
+
     template <class StorerT>
     void store(StorerT &storer) const;
 
@@ -39,6 +43,8 @@ class ProfileShareTheme {
   int32 backdrop_id_ = 0;                // for Emoji
 
   StarGift star_gift_;  // for Gift
+
+  friend bool operator==(const ProfileShareTheme &lhs, const ProfileShareTheme &rhs);
 
  public:
   ProfileShareTheme() = default;
@@ -59,5 +65,9 @@ class ProfileShareTheme {
   template <class ParserT>
   void parse(ParserT &parser);
 };
+
+bool operator==(const ProfileShareTheme &lhs, const ProfileShareTheme &rhs);
+
+bool operator!=(const ProfileShareTheme &lhs, const ProfileShareTheme &rhs);
 
 }  // namespace td
