@@ -3409,10 +3409,10 @@ vector<DialogId> DialogManager::search_public_dialogs(
   }
 
   auto type_num = static_cast<int32>(type_filter);
-  auto it = found_public_dialogs_[type_num].find(query);
-  if (it != found_public_dialogs_[type_num].end()) {
+  auto *dialog_ids = found_public_dialogs_[type_num].get(query);
+  if (dialog_ids != nullptr) {
     promise.set_value(Unit());
-    return it->second;
+    return *dialog_ids;
   }
 
   send_search_public_dialogs_query(query, type_filter, std::move(promise));
@@ -3439,10 +3439,10 @@ vector<DialogId> DialogManager::search_dialogs_on_server(
   }
 
   auto type_num = static_cast<int32>(type_filter);
-  auto it = found_on_server_dialogs_[type_num].find(query);
-  if (it != found_on_server_dialogs_[type_num].end()) {
+  auto *dialog_ids = found_on_server_dialogs_[type_num].get(query);
+  if (dialog_ids != nullptr) {
     promise.set_value(Unit());
-    return td_->messages_manager_->sort_dialogs_by_order(it->second, limit);
+    return td_->messages_manager_->sort_dialogs_by_order(*dialog_ids, limit);
   }
 
   send_search_public_dialogs_query(query, type_filter, std::move(promise));

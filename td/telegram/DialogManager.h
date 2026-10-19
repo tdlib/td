@@ -30,6 +30,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/ExpiringFlatHashMap.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/Hints.h"
@@ -342,6 +343,7 @@ class DialogManager final : public Actor {
   static constexpr int32 MAX_RECENT_DIALOGS = 50;                  // some reasonable value
 
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 86400;
+  static constexpr int32 SEARCH_PUBLIC_DIALOGS_CACHE_TIME = 3600;  // some reasonable value
 
   void hangup() final;
 
@@ -431,8 +433,13 @@ class DialogManager final : public Actor {
   FlatHashMap<string, vector<Promise<Unit>>> resolve_dialog_username_queries_;
 
   FlatHashMap<string, vector<Promise<Unit>>> search_public_dialogs_queries_[3];
-  FlatHashMap<string, vector<DialogId>> found_public_dialogs_[3];     // TODO time bound cache
-  FlatHashMap<string, vector<DialogId>> found_on_server_dialogs_[3];  // TODO time bound cache
+  using FoundDialogs = ExpiringFlatHashMap<string, vector<DialogId>>;
+  FoundDialogs found_public_dialogs_[3]{FoundDialogs(SEARCH_PUBLIC_DIALOGS_CACHE_TIME),
+                                        FoundDialogs(SEARCH_PUBLIC_DIALOGS_CACHE_TIME),
+                                        FoundDialogs(SEARCH_PUBLIC_DIALOGS_CACHE_TIME)};
+  FoundDialogs found_on_server_dialogs_[3]{FoundDialogs(SEARCH_PUBLIC_DIALOGS_CACHE_TIME),
+                                           FoundDialogs(SEARCH_PUBLIC_DIALOGS_CACHE_TIME),
+                                           FoundDialogs(SEARCH_PUBLIC_DIALOGS_CACHE_TIME)};
 
   Hints dialog_hints_;  // search dialogs by title and usernames
 
