@@ -79,6 +79,18 @@ class ExpiringFlatHashMap {
     on_access(node.get(), now);
   }
 
+  // the reference is valid until the next call to a non-const method
+  ValueT &operator[](const KeyT &key) {
+    auto now = Time::now();
+    drop_expired_items(now);
+    auto &node = map_[key];
+    if (node == nullptr) {
+      node = td::make_unique<Node>(key, ValueT());
+    }
+    on_access(node.get(), now);
+    return node->value_;
+  }
+
   size_t erase(const KeyT &key) {
     drop_expired_items(Time::now());
     return map_.erase(key);

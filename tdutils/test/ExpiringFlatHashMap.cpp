@@ -45,3 +45,30 @@ TEST(ExpiringFlatHashMap, expiration) {
   ASSERT_EQ(1u, map.size());
   ASSERT_EQ(1, *map.get(1));
 }
+
+TEST(ExpiringFlatHashMap, operator_brackets) {
+  td::ExpiringFlatHashMap<int, int> map(10.0);
+  ASSERT_EQ(0, map[1]);
+  ASSERT_EQ(1u, map.size());
+  map[1] = 5;
+  map[2]++;
+  ASSERT_EQ(5, *map.get(1));
+  ASSERT_EQ(1, map[2]);
+  ASSERT_EQ(2u, map.size());
+  td::Time::jump_in_future(td::Time::now() + 6.0);
+  map[1] += 1;
+  td::Time::jump_in_future(td::Time::now() + 6.0);
+  // item 2 is expired, but item 1 was accessed through operator[] recently
+  ASSERT_TRUE(map.get(3) == nullptr);
+  ASSERT_EQ(1u, map.size());
+  ASSERT_EQ(6, map[1]);
+  ASSERT_EQ(0, map[2]);
+  ASSERT_EQ(2u, map.size());
+
+  td::ExpiringFlatHashMap<td::string, td::string> string_map(10.0);
+  string_map["a"] += "b";
+  string_map["a"] += "c";
+  ASSERT_EQ("bc", *string_map.get("a"));
+  ASSERT_TRUE(string_map["b"].empty());
+  ASSERT_EQ(2u, string_map.size());
+}
