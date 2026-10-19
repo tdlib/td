@@ -2236,6 +2236,9 @@ tonWalletOwnershipProofChallenge payload:string domain:string = TonWalletOwnersh
 //@signature The signature proving the ownership
 tonWalletOwnershipProof public_key:bytes timestamp:int32 signature:bytes = TonWalletOwnershipProof;
 
+//@description Contains the secret phrase of a TON wallet @secret_phrase The secret phrase as a space separated list of words
+tonWalletSecretPhrase secret_phrase:string = TonWalletSecretPhrase;
+
 //@description Represents state of gasless transfers for the current user
 //@left_count Number of left gasless transfers. The daily available number of gasless transfers is available as getOption("ton_wallet_gasless_transfer_daily_count_max")
 //@reset_date Point in time (Unix timestamp) when the number of left transfers will be reset; 0 if never
@@ -16333,9 +16336,9 @@ createUserTonWallet user_id:int53 = UserTonWalletAddress;
 //@description Returns information about a TON wallet with the given address; can be used only if getOption("can_use_ton_wallet") @address Address in the TON blockchain
 getAddressTonWallet address:string = UserTonWalletAddress;
 
-//@description Returns the secret phrase of the user's TON wallet as a space separated list of words. Works only if tonWalletState.can_export_phrase is true
+//@description Returns the secret phrase of the user's TON wallet. Works only if tonWalletState.can_export_phrase is true
 //@password Password of the current user; pass an empty string unless receive an error with a message "PASSWORD_MISSING" for a passwordless request
-getTonWalletSecretPhrase password:string = Text;
+getTonWalletSecretPhrase password:string = TonWalletSecretPhrase;
 
 //@description Returns a challenge which may be used to prove ownership of a TON wallet; can be used only if getOption("can_use_ton_wallet")
 getTonWalletOwnershipProofChallenge = TonWalletOwnershipProofChallenge;
