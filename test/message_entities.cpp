@@ -1320,6 +1320,7 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("➡️ ➡️", "➡️ ➡️", {});
   check_parse_html("&ge;&lt;&gt;&amp;&quot;&laquo;&raquo;&#12345678;", "&ge;<>&\"&laquo;&raquo;&#12345678;", {});
   check_parse_html("&Or;", "&Or;", {});
+  check_parse_html("&#x41;&#X41;&#x1F600;&#X1f600;&#65;", "AA😀😀A", {});
   check_parse_html("➡️ ➡️<i>➡️ ➡️</i>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Italic, 5, 5}});
   check_parse_html("➡️ ➡️<em>➡️ ➡️</em>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Italic, 5, 5}});
   check_parse_html("➡️ ➡️<b>➡️ ➡️</b>", "➡️ ➡️➡️ ➡️", {{td::MessageEntity::Type::Bold, 5, 5}});

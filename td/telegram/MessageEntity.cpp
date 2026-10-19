@@ -3318,7 +3318,7 @@ static uint32 decode_html_entity(CSlice text, size_t &pos) {
   if (text[pos + 1] == '#') {
     // numeric character reference
     end_pos++;
-    if (text[pos + 2] == 'x') {
+    if (text[pos + 2] == 'x' || text[pos + 2] == 'X') {
       // hexadecimal numeric character reference
       end_pos++;
       while (is_hex_digit(text[end_pos])) {
