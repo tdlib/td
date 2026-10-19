@@ -19,6 +19,7 @@
 #include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
+#include "td/utils/ExpiringFlatHashMap.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/Promise.h"
@@ -89,6 +90,7 @@ class DialogInviteLinkManager final : public Actor {
 
  private:
   static constexpr size_t MAX_INVITE_LINK_TITLE_LENGTH = 32;  // server-side limit
+  static constexpr int32 INVITE_LINK_INFO_CACHE_TIME = 300;   // some reasonable value
 
   void tear_down() final;
 
@@ -130,7 +132,7 @@ class DialogInviteLinkManager final : public Actor {
     bool is_scam = false;
     bool is_fake = false;
   };
-  FlatHashMap<string, unique_ptr<InviteLinkInfo>> invite_link_infos_;
+  ExpiringFlatHashMap<string, InviteLinkInfo> invite_link_infos_{INVITE_LINK_INFO_CACHE_TIME};
 
   struct DialogAccessByInviteLink {
     FlatHashSet<string> invite_links;
