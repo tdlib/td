@@ -276,7 +276,7 @@ passwordState has_password:Bool password_hint:string has_recovery_email_address:
 recoveryEmailAddress recovery_email_address:string = RecoveryEmailAddress;
 
 
-//@description Returns information about the availability of a temporary password, which can be used for payments and withdrawal of upgraded gifts
+//@description Contains information about the availability of a temporary password, which can be used for payments and withdrawal of upgraded gifts
 //@has_password True, if a temporary password is available
 //@valid_for Time left before the temporary password expires, in seconds
 temporaryPasswordState has_password:Bool valid_for:int32 = TemporaryPasswordState;
@@ -1154,13 +1154,13 @@ mainWebApp url:webAppUrl mode:WebAppOpenMode = MainWebApp;
 webAppOpenParameters theme:themeParameters application_name:string mode:WebAppOpenMode = WebAppOpenParameters;
 
 
-//@description Describes position of a clickable rectangle area on a story media or a TON wallet card
-//@x_percentage The abscissa of the rectangle's center, as a percentage of the media width
-//@y_percentage The ordinate of the rectangle's center, as a percentage of the media height
-//@width_percentage The width of the rectangle, as a percentage of the media width
-//@height_percentage The height of the rectangle, as a percentage of the media height
+//@description Describes position of a rectangle area on a story media or a TON wallet card
+//@x_percentage The abscissa of the rectangle's center, as a percentage of the media or the card width
+//@y_percentage The ordinate of the rectangle's center, as a percentage of the media or the card height
+//@width_percentage The width of the rectangle, as a percentage of the media or the card width
+//@height_percentage The height of the rectangle, as a percentage of the media or the card height
 //@rotation_angle Clockwise rotation angle of the rectangle, in degrees; 0-360
-//@corner_radius_percentage The radius of the rectangle corner rounding, as a percentage of the media width
+//@corner_radius_percentage The radius of the rectangle corner rounding, as a percentage of the media or the card width
 areaPosition x_percentage:double y_percentage:double width_percentage:double height_percentage:double rotation_angle:double corner_radius_percentage:double = AreaPosition;
 
 
@@ -1664,7 +1664,7 @@ upgradedGiftValueInfo currency:string value:int53 is_value_average:Bool initial_
 //-The gift must be transferred by an internal message from the wallet to nft_address with gram_amount attached and with payload as the message body
 //@nft_address Address in TON blockchain to which the message must be sent
 //@payload Body of the NFT transfer message
-//@gram_amount The amount of nanograms that must be attached to the message to cover fees; excess amount will be returned to the wallet
+//@gram_amount The amount of TON Grams that must be attached to the message to cover fees, in the smallest units of the cryptocurrency; excess amount will be returned to the wallet
 upgradedGiftDepositInfo nft_address:string payload:bytes gram_amount:int53 = UpgradedGiftDepositInfo;
 
 //@description Contains result of gift upgrading
@@ -2332,8 +2332,8 @@ tonNftAttribute trait_type:string value:string = TonNftAttribute;
 //@sticker Sticker of the NFT; may be null if none
 //@attributes Attributes of the NFT
 //@extra Additional data about the NFT; may be null if none
-//@gift The upgraded gift corresponding to the NFT; may be null if the NFT doesn't belong to a Telegram gift collection. Information about the owner of the gift isn't available.
-//-Original details of the gift are available only to participants of the original gift sending
+//@gift The upgraded gift corresponding to the NFT; may be null if none. Information about the owner of the gift isn't available.
+//-Original details of the gift are available only to the sender and the receiver of the original gift
 tonNft collection_address:string address:string owner_address:string index:string name:string description:string image:photoSize thumbnail:photoSize content:document sticker:sticker attributes:vector<tonNftAttribute> extra:JsonValue gift:upgradedGift = TonNft;
 
 //@description Represents a list of TON NFTs
@@ -2350,16 +2350,16 @@ tonWalletCardSticker position:areaPosition nft:tonNft = TonWalletCardSticker;
 //@address Address of the wallet
 //@gram_amount Balance of the wallet, in the smallest units of the cryptocurrency; may be slightly outdated
 //@stickers Stickers placed on the card
-//@background_nft_address Address of the NFT from stickers, which colors must be used for the card background; may be empty if the default background must be used
+//@background_nft_address Address of the NFT of one of the stickers, whose colors must be used for the card background; may be empty if the default background must be used
 tonWalletCard address:string gram_amount:int53 stickers:vector<tonWalletCardSticker> background_nft_address:string = TonWalletCard;
 
 //@description Describes a sticker to be placed on the TON wallet card of the current user
 //@position Position of the sticker on the card
-//@nft_address Address of an NFT from a Telegram gift collection owned by the wallet; use getTonWalletNfts to get the list of owned NFTs.
-//-The NFT must not be used as a gift shown on the profile page
+//@nft_address Address of an NFT owned by the wallet, which is an upgraded gift; use getTonWalletNfts to get the list of owned NFTs
 inputTonWalletCardSticker position:areaPosition nft_address:string = InputTonWalletCardSticker;
 
-//@description Contains a list of names of upgraded gift collections @names The names
+//@description Contains a list of names of upgraded gift collections. The name of the collection of an upgraded gift is the part of upgradedGift.name before the last "-"
+//@names The names
 upgradedGiftCollectionNames names:vector<string> = UpgradedGiftCollectionNames;
 
 
@@ -2480,11 +2480,11 @@ tonConnectConnectItemProof payload:string = TonConnectConnectItem;
 //@items Items requested from the wallet
 tonConnectConnectRequest manifest_url:string items:vector<TonConnectConnectItem> = TonConnectConnectRequest;
 
-//@description Data required to accept a TON Connect session
+//@description Contains data required to give access to the TON wallet of the current user in acceptOauthRequest
 //@session_id Unique identifier of the session
 //@challenge_answer Answer to the challenge received from setTonConnectSessionWalletClientId
-//@body Body of the result
-//@proof Proof of the TON wallet ownership
+//@body Body of the result of the connection request as in sendTonConnectSessionConnectResult
+//@proof Proof of the TON wallet ownership for the payload oauthLinkInfo.ton_proof_payload
 tonConnectConnectData session_id:int64 challenge_answer:bytes body:bytes proof:tonWalletOwnershipProof = TonConnectConnectData;
 
 //@description Represents a TON Connect session. See https://github.com/ton-blockchain/ton-connect/tree/main/spec for full TON Connect protocol documentation
@@ -3412,8 +3412,11 @@ messageSendingStateFailed error:error can_retry:Bool need_another_sender:Bool ne
 //@description Describes manually or automatically chosen quote from another message
 //@text Text of the quote. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, and DateTime entities can be present in the text.
 //-May be empty if the quote was chosen from a rich message
-//@rich_texts Rich text of the quote if it was chosen from a rich message; empty if the quote wasn't chosen from a rich message
-//@position Approximate quote position in the original message in UTF-16 code units as specified by the message sender
+//@rich_texts Rich text of the quote if it was chosen from a rich message; empty if the quote wasn't chosen from a rich message.
+//-Only richTextPlain, richTextBold, richTextItalic, richTextUnderline, richTextStrikethrough, richTextSpoiler, richTextSubscript, richTextSuperscript,
+//-richTextDateTime, richTextCustomEmoji, richTextMathematicalExpression, and richTexts can be present in the texts
+//@position Approximate quote position in the original message in UTF-16 code units as specified by the message sender. For quotes from rich messages,
+//-it is the position in the text formed by joining plain texts of all quotable texts of the message, separated by line feeds
 //@is_manual True, if the quote was manually chosen by the message sender
 textQuote text:formattedText rich_texts:vector<RichText> position:int32 is_manual:Bool = TextQuote;
 
@@ -3424,7 +3427,8 @@ textQuote text:formattedText rich_texts:vector<RichText> position:int32 is_manua
 //-The first and the last elements can contain only a part of the corresponding text; all other elements must contain the whole text. Formatting of the quoted parts must be kept.
 //-Mathematical expressions must be quoted entirely. Buttons in pageBlockButtonRow, anchors and dividers can't be quoted.
 //-There can be up to 32 quoted texts with total length up to getOption("message_reply_quote_length_max") characters
-//@position Quote position in the original message in UTF-16 code units. For quotes from rich messages, position in the text formed by joining plain texts of all quoted texts of the message, separated by line feeds
+//@position Quote position in the original message in UTF-16 code units. For quotes from rich messages, it is the position in the text formed by joining plain texts
+//-of all quotable texts of the message, separated by line feeds
 inputTextQuote text:formattedText rich_texts:vector<RichText> position:int32 = InputTextQuote;
 
 
@@ -4250,9 +4254,9 @@ loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 reque
 //@bot_user_id User identifier of a bot linked with the website
 //@request_write_access True, if the user must be asked for the permission to the bot to send them messages
 //@request_phone_number_access True, if the user must be asked for the permission to share their phone number
-//@request_ton_wallet_access True, if access to the user's TON wallet is requested by the app. If true and user agrees to give the access,
-//-then use createTonConnectSession to create the TON Connect session, then setTonConnectSessionWalletClientId, then create a TON Proof with payload ton_proof_payload,
-//-and then pass all data to acceptOauthRequest in the parameter ton_connect_connect_data
+//@request_ton_wallet_access True, if access to the user's TON wallet is requested by the app. If true and the user agrees to give access, then use createTonConnectSession
+//-with dapp_client_id and ton_connect_manifest_url to create the TON Connect session, then setTonConnectSessionWalletClientId, then create a tonWalletOwnershipProof
+//-for the given domain with the payload ton_proof_payload, and then pass all data to acceptOauthRequest in the parameter ton_connect_connect_data
 //@dapp_client_id Hex-encoded public X25519 key of the dApp; may be empty if TON wallet access wasn't requested
 //@ton_connect_manifest_url URL of the TON Connect manifest of the dApp; may be empty if TON wallet access wasn't requested
 //@ton_proof_payload Payload for TON wallet ownership proof; may be empty if TON wallet access wasn't requested
@@ -4399,13 +4403,13 @@ builtInThemeArctic = BuiltInTheme;
 themeSettings base_theme:BuiltInTheme accent_color:int32 background:background outgoing_message_fill:BackgroundFill animate_outgoing_message_fill:Bool has_outgoing_message_accent_color:Bool outgoing_message_accent_color:int32 = ThemeSettings;
 
 
-//@description Describes a backdrop, which can be used as a theme of the screen for sharing a link to a user or a chat
+//@description Describes a backdrop, which can be used as a background of a theme of the screen for sharing a link to a user or a chat
 //@id Unique identifier of the backdrop
 //@name Name of the backdrop
 //@colors Colors of the backdrop
 profileShareThemeBackdrop id:int32 name:string colors:upgradedGiftBackdropColors = ProfileShareThemeBackdrop;
 
-//@description Contains a list of backdrops, which can be used as a theme of the screen for sharing a link to a user or a chat @backdrops The list of backdrops
+//@description Contains a list of backdrops, which can be used as a background of a theme of the screen for sharing a link to a user or a chat @backdrops The list of backdrops
 profileShareThemeBackdrops backdrops:vector<profileShareThemeBackdrop> = ProfileShareThemeBackdrops;
 
 
@@ -6065,7 +6069,7 @@ messagePaidMessagePriceChanged paid_message_star_count:int53 = MessageContent;
 //-0 if the direct messages group was disabled or the messages are free
 messageDirectMessagePriceChanged is_enabled:Bool paid_message_star_count:int53 = MessageContent;
 
-//@description The sender of the message used a link of the other user, which allows to send unpaid messages to the user
+//@description The sender of the message used a link of the other user, which allows sending unpaid messages to the user
 messageUnpaidMessagesAllowedByLink = MessageContent;
 
 //@description Some tasks from a checklist were marked as done or not done
@@ -7902,8 +7906,8 @@ httpUrl url:string = HttpUrl;
 
 //@description Contains an HTTPS URL, which can be used to get information about a user
 //@url The URL
-//@expires_in Left time for which the link is valid, in seconds; 0 if the link is valid forever
-//@can_get_permanent_link True, if a link without expiration date can be received for the user; false if all links to the user expire
+//@expires_in Left time for which the link is valid, in seconds; 0 if the link is permanent
+//@can_get_permanent_link True, if a permanent link to the current user can be received; false if all links to the current user expire
 userLink url:string expires_in:int32 can_get_permanent_link:Bool = UserLink;
 
 
@@ -10026,7 +10030,7 @@ internalLinkTypeProxy proxy:proxy = InternalLinkType;
 //@chat_username Username of the chat
 //@draft_text Draft text for message to send in the chat
 //@open_profile True, if chat profile information screen must be opened; otherwise, the chat itself must be opened
-//@unpaid_messages_token Token, which allows the current user to send unpaid messages to the user; may be empty if none.
+//@unpaid_messages_token Token, which allows the current user to send unpaid messages; may be empty if none.
 //-If the token isn't empty and the chat is a private chat with a regular user, then call applyUnpaidMessagesToken with the user and the token
 internalLinkTypePublicChat chat_username:string draft_text:string open_profile:Bool unpaid_messages_token:string = InternalLinkType;
 
@@ -15443,10 +15447,9 @@ getBusinessChatLinkInfo link_name:string = BusinessChatLinkInfo;
 
 
 //@description Returns an HTTPS link, which can be used to get information about the current user
-//@remove_messages_fee Pass true to get a link, which allows other users to send messages to the current user without paying the fee for incoming messages.
-//-By default, a temporary link is returned in this case
-//@return_permanent_link Pass true to get a permanent link; ignored if remove_messages_fee is false. Can be used only if userLink.can_get_permanent_link is true
-//@revoke_previous_links Pass true to revoke previously created links, which allow other users to send messages to the current user without paying the fee;
+//@remove_messages_fee Pass true to get a link, which allows other users to send unpaid messages to the current user. By default, a temporary link is returned in this case
+//@return_permanent_link Pass true to get a permanent link; ignored if remove_messages_fee is false. Can be used only if can_get_permanent_link is true in a previously received userLink
+//@revoke_previous_links Pass true to revoke previously created links, which allow other users to send unpaid messages to the current user;
 //-ignored if remove_messages_fee is false. If return_permanent_link is true, then the permanent link is revoked too; otherwise, only temporary links are revoked
 getUserLink remove_messages_fee:Bool return_permanent_link:Bool revoke_previous_links:Bool = UserLink;
 
@@ -16006,7 +16009,7 @@ withdrawUpgradedGift received_gift_id:string keep_on_profile:Bool = Ok;
 getUpgradedGiftDepositInfo owner_id:MessageSender name:string hide_sender:Bool = UpgradedGiftDepositInfo;
 
 //@description Shows an upgraded gift from the TON wallet of the current user on a profile page or hides it from all profile pages; the gift remains in the wallet
-//@owner_id Identifier of the current user or a channel chat owned by the current user on which profile page the gift will be shown; pass null to hide the gift from all profile pages
+//@owner_id Identifier of the current user or a channel chat owned by the current user on whose profile page the gift will be shown; pass null to hide the gift from all profile pages
 //@name Unique name of the upgraded gift
 displayUpgradedGift owner_id:MessageSender name:string = Ok;
 
@@ -16119,7 +16122,7 @@ removeInstalledBackground background_id:int64 = Ok;
 resetInstalledBackgrounds = Ok;
 
 
-//@description Returns the list of backdrops, which can be used as a theme of the screen for sharing a link to a user or a chat
+//@description Returns the list of backdrops, which can be used as a background of a theme of the screen for sharing a link to a user or a chat
 getProfileShareThemeBackdrops = ProfileShareThemeBackdrops;
 
 //@description Changes the theme of the screen for sharing a link to the current user or a chat. The chat must have a username.
@@ -16380,14 +16383,14 @@ getCurrencyExchangeRates = CurrencyExchangeRates;
 //@limit The maximum number of NFTs to be returned; must be positive and can't be greater than 20
 getTonWalletNfts offset:string limit:int32 = TonNfts;
 
-//@description Returns names of upgraded gift collections whose NFTs can be used as background_nft_address in setTonWalletCardStickers
+//@description Returns names of upgraded gift collections whose NFTs can be used as background_nft_address in setTonWalletCardStickers; can be used only if getOption("can_use_ton_wallet")
 getTonWalletCardBackgroundGiftCollectionNames = UpgradedGiftCollectionNames;
 
 //@description Changes the list of stickers on the TON wallet card of the current user; can be used only if getOption("can_use_ton_wallet").
 //-The whole list of stickers is replaced. The request can take up to 20 seconds to complete, so it must be called only on explicit user action.
 //-Stickers are removed automatically if the corresponding NFT leaves the wallet or the wallet is replaced. Returns the updated card
 //@stickers The new list of stickers; pass an empty list to remove all stickers. Up to 10 stickers can be added. Each NFT can be used only once
-//@background_nft_address Address of the NFT from the new list of stickers, which colors will be used for the card background; pass an empty string to use the default background.
+//@background_nft_address Address of the NFT from the new list of stickers, whose colors will be used for the card background; pass an empty string to use the default background.
 //-The NFT must correspond to an upgraded gift with can_be_ton_wallet_card_background == true
 setTonWalletCardStickers stickers:vector<inputTonWalletCardSticker> background_nft_address:string = TonWalletCard;
 
@@ -16400,7 +16403,8 @@ getTonConnectSessions = TonConnectSessions;
 //@manifest_url URL of the manifest of the dApp
 createTonConnectSession dapp_client_id:string manifest_url:string = TonConnectSession;
 
-//@description Sets wallet_client_id for a pending TON Connect session. Then, sendTonConnectSessionConnectResult must be used to accept or reject the session
+//@description Sets wallet_client_id for a pending TON Connect session. Then, sendTonConnectSessionConnectResult must be used to accept or reject the session.
+//-If the session was created for an OAuth request, then acceptOauthRequest must be used instead
 //@session_id Unique identifier of the session
 //@wallet_client_id Hex-encoded public X25519 key of the current user's application calculated from the TON wallet private key and session parameters
 setTonConnectSessionWalletClientId session_id:int64 wallet_client_id:string = TonConnectChallenge;
