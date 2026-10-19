@@ -72,3 +72,40 @@ TEST(ExpiringFlatHashMap, operator_brackets) {
   ASSERT_TRUE(string_map["b"].empty());
   ASSERT_EQ(2u, string_map.size());
 }
+
+TEST(ExpiringFlatHashMap, clear) {
+  td::ExpiringFlatHashMap<int, int> map(10.0);
+  map.clear();
+  ASSERT_TRUE(map.empty());
+  for (int i = 1; i <= 25; i++) {
+    map.set(i, i);
+  }
+  map.clear();
+  ASSERT_TRUE(map.empty());
+  ASSERT_EQ(0u, map.size());
+  ASSERT_TRUE(map.get(1) == nullptr);
+  ASSERT_EQ(0u, map.erase(2));
+
+  map.set(1, 10);
+  map[2] = 20;
+  ASSERT_EQ(10, *map.get(1));
+  ASSERT_EQ(20, map[2]);
+  ASSERT_EQ(0, map[3]);
+  ASSERT_EQ(3u, map.size());
+  td::Time::jump_in_future(td::Time::now() + 6.0);
+  ASSERT_EQ(10, *map.get(1));
+  td::Time::jump_in_future(td::Time::now() + 6.0);
+  // only items added after clear are dropped
+  ASSERT_TRUE(map.get(4) == nullptr);
+  ASSERT_EQ(1u, map.size());
+  ASSERT_EQ(10, *map.get(1));
+
+  map.clear();
+  map.clear();
+  ASSERT_TRUE(map.empty());
+  map.set(5, 50);
+  ASSERT_EQ(1u, map.size());
+  ASSERT_EQ(50, *map.get(5));
+  ASSERT_EQ(1u, map.erase(5));
+  ASSERT_TRUE(map.empty());
+}
