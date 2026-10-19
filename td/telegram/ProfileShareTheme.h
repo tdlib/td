@@ -51,6 +51,9 @@ class ProfileShareTheme {
 
   ProfileShareTheme(Td *td, telegram_api::object_ptr<telegram_api::ShareTheme> theme);
 
+  static unique_ptr<ProfileShareTheme> get_profile_share_theme(
+      Td *td, telegram_api::object_ptr<telegram_api::ShareTheme> &&theme);
+
   td_api::object_ptr<td_api::ProfileShareTheme> get_profile_share_theme_object(Td *td) const;
 
   bool is_default() const {

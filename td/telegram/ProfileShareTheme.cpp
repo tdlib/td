@@ -85,6 +85,18 @@ ProfileShareTheme::ProfileShareTheme(Td *td, telegram_api::object_ptr<telegram_a
   }
 }
 
+unique_ptr<ProfileShareTheme> ProfileShareTheme::get_profile_share_theme(
+    Td *td, telegram_api::object_ptr<telegram_api::ShareTheme> &&theme) {
+  if (theme == nullptr) {
+    return nullptr;
+  }
+  auto result = td::make_unique<ProfileShareTheme>(td, std::move(theme));
+  if (result->is_default()) {
+    return nullptr;
+  }
+  return result;
+}
+
 td_api::object_ptr<td_api::ProfileShareTheme> ProfileShareTheme::get_profile_share_theme_object(Td *td) const {
   switch (type_) {
     case Type::Default:

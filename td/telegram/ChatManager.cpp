@@ -5980,9 +5980,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         can_view_statistics = false;
       }
       auto main_profile_tab = get_profile_tab(std::move(channel->main_tab_), get_channel_type(c));
-      ProfileShareTheme profile_share_theme(td_, std::move(channel->share_theme_));
-      auto share_theme =
-          profile_share_theme.is_default() ? nullptr : make_unique<ProfileShareTheme>(std::move(profile_share_theme));
+      auto share_theme = ProfileShareTheme::get_profile_share_theme(td_, std::move(channel->share_theme_));
 
       channel_full->repair_request_version = 0;
       channel_full->expires_at = Time::now() + CHANNEL_FULL_EXPIRE_TIME;

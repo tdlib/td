@@ -9205,9 +9205,8 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
                            get_formatted_text(this, std::move(user->note_), true, false, "on_get_user_full note"));
   on_update_user_full_ton_wallet_card(user_full,
                                       TonWalletCard::get_ton_wallet_card(td_, std::move(user->wallet_card_)));
-  ProfileShareTheme share_theme(td_, std::move(user->share_theme_));
-  on_update_user_full_share_theme(
-      user_full, share_theme.is_default() ? nullptr : make_unique<ProfileShareTheme>(std::move(share_theme)));
+  on_update_user_full_share_theme(user_full,
+                                  ProfileShareTheme::get_profile_share_theme(td_, std::move(user->share_theme_)));
 
   bool can_pin_messages = user->can_pin_message_;
   bool can_be_called = user->phone_calls_available_ && !user->phone_calls_private_;
