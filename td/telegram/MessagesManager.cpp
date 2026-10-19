@@ -21072,16 +21072,16 @@ Status MessagesManager::can_send_message(DialogId dialog_id) const {
   return td_->dialog_manager_->can_send_message_to_dialog(dialog_id);
 }
 
-MessageId MessagesManager::get_persistent_message_id(const Dialog *d, MessageId message_id) const {
+MessageId MessagesManager::get_persistent_message_id(const Dialog *d, MessageId message_id) {
   if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
     return MessageId();
   }
   if (message_id.is_yet_unsent()) {
     // it is possible that user tries to do something with an already sent message by its temporary identifier
     // we need to use real message in this case and transparently replace message_id
-    auto it = yet_unsent_message_full_id_to_persistent_message_id_.find({d->dialog_id, message_id});
-    if (it != yet_unsent_message_full_id_to_persistent_message_id_.end()) {
-      return it->second;
+    auto *persistent_message_id = yet_unsent_message_full_id_to_persistent_message_id_.get({d->dialog_id, message_id});
+    if (persistent_message_id != nullptr) {
+      return *persistent_message_id;
     }
   }
 
@@ -26948,7 +26948,7 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
     td_->star_manager_->add_pending_owned_ton_count(stake_ton_count - prize_ton_count, true);
   }
   if (!td_->auth_manager_->is_bot()) {
-    yet_unsent_message_full_id_to_persistent_message_id_.emplace({d->dialog_id, old_message_id}, m->message_id);
+    yet_unsent_message_full_id_to_persistent_message_id_.set({d->dialog_id, old_message_id}, m->message_id);
 
     auto message =
         delete_message(d, m->message_id, false, need_update_dialog_pos, "send_update_message_send_succeeded");
@@ -28346,7 +28346,7 @@ void MessagesManager::fail_send_message(MessageFullId message_full_id, int32 err
 
   LOG(INFO) << "Send updateMessageSendFailed for " << message_full_id;
   if (!td_->auth_manager_->is_bot()) {
-    yet_unsent_message_full_id_to_persistent_message_id_.emplace({dialog_id, old_message_id}, m->message_id);
+    yet_unsent_message_full_id_to_persistent_message_id_.set({dialog_id, old_message_id}, m->message_id);
   }
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateMessageSendFailed>(

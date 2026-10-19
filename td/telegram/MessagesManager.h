@@ -89,6 +89,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/ChangesProcessor.h"
 #include "td/utils/common.h"
+#include "td/utils/ExpiringFlatHashMap.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/HashTableUtils.h"
@@ -1706,6 +1707,8 @@ class MessagesManager final : public Actor {
 
   static constexpr int32 MAX_RESEND_DELAY = 86400;  // seconds, some reasonable limit
 
+  static constexpr int32 PERSISTENT_MESSAGE_ID_CACHE_TIME = 3600;  // some reasonable limit
+
   static constexpr bool DROP_SEND_MESSAGE_UPDATES = false;
 
   vector<UserId> get_message_user_ids(const Message *m) const;
@@ -1818,7 +1821,7 @@ class MessagesManager final : public Actor {
                                vector<string> &&cover_file_references, int32 schedule_date,
                                int32 schedule_repeat_period, uint64 edit_generation, Result<int32> &&result);
 
-  MessageId get_persistent_message_id(const Dialog *d, MessageId message_id) const;
+  MessageId get_persistent_message_id(const Dialog *d, MessageId message_id);
 
   MessageFullId get_replied_message_full_id(DialogId dialog_id, const Message *m) const;
 
@@ -3551,7 +3554,8 @@ class MessagesManager final : public Actor {
 
   FlatHashMap<DialogId, MessageId, DialogIdHash> previous_repaired_read_inbox_max_message_id_;
 
-  FlatHashMap<MessageFullId, MessageId, MessageFullIdHash> yet_unsent_message_full_id_to_persistent_message_id_;
+  ExpiringFlatHashMap<MessageFullId, MessageId, MessageFullIdHash> yet_unsent_message_full_id_to_persistent_message_id_{
+      PERSISTENT_MESSAGE_ID_CACHE_TIME};
   FlatHashMap<MessageFullId, std::set<MessageId>, MessageFullIdHash>
       yet_unsent_thread_message_ids_;  // {dialog_id, top_thread_message_id} -> yet unsent message identifiers
 
