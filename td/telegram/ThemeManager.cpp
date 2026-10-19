@@ -288,7 +288,13 @@ class SetShareThemeQuery final : public Td::ResultHandler {
     }
 
     LOG(INFO) << "Receive result for SetShareThemeQuery: " << result_ptr.ok();
-    promise_.set_value(Unit());
+    if (dialog_id_ == td_->dialog_manager_->get_my_dialog_id()) {
+      td_->user_manager_->reload_user_full(td_->user_manager_->get_my_id(), std::move(promise_), "SetShareThemeQuery");
+    } else if (dialog_id_.get_type() == DialogType::Channel) {
+      td_->chat_manager_->reload_channel_full(dialog_id_.get_channel_id(), std::move(promise_), "SetShareThemeQuery");
+    } else {
+      promise_.set_value(Unit());
+    }
   }
 
   void on_error(Status status) final {
