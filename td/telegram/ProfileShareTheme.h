@@ -15,6 +15,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class ProfileShareTheme {
@@ -49,6 +50,8 @@ class ProfileShareTheme {
   bool is_default() const {
     return type_ == Type::Default;
   }
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

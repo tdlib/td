@@ -6,6 +6,8 @@
 //
 #include "td/telegram/ProfileShareTheme.h"
 
+#include "td/telegram/Dependencies.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 
@@ -101,6 +103,12 @@ td_api::object_ptr<td_api::ProfileShareTheme> ProfileShareTheme::get_profile_sha
       return td_api::make_object<td_api::profileShareThemeUpgradedGift>(star_gift_.get_upgraded_gift_object(td));
     default:
       UNREACHABLE();
+  }
+}
+
+void ProfileShareTheme::add_dependencies(Dependencies &dependencies) const {
+  if (type_ == Type::Gift) {
+    star_gift_.add_dependencies(dependencies);
   }
 }
 
