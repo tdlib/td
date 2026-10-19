@@ -515,14 +515,7 @@ class ConvertStarGiftQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    if (dialog_id_ == td_->dialog_manager_->get_my_dialog_id()) {
-      td_->user_manager_->reload_user_full(td_->user_manager_->get_my_id(), std::move(promise_),
-                                           "ConvertStarGiftQuery");
-    } else if (dialog_id_.get_type() == DialogType::Channel) {
-      td_->chat_manager_->reload_channel_full(dialog_id_.get_channel_id(), std::move(promise_), "ConvertStarGiftQuery");
-    } else {
-      promise_.set_value(Unit());
-    }
+    promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
