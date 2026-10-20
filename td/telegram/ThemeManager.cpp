@@ -6,6 +6,7 @@
 //
 #include "td/telegram/ThemeManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/ChatTheme.h"

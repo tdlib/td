@@ -9,6 +9,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/RichMessage.h"
 #include "td/telegram/Td.h"
@@ -16,6 +17,7 @@
 #include "td/telegram/WebPageBlock.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"

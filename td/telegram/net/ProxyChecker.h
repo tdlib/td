@@ -18,6 +18,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/port/IPAddress.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 

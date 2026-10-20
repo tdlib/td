@@ -22,7 +22,6 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DocumentsManager.hpp"
 #include "td/telegram/files/FileId.h"
-#include "td/telegram/files/FileManager.h"
 #include "td/telegram/InlineKeyboardButton.h"
 #include "td/telegram/InlineKeyboardButton.hpp"
 #include "td/telegram/LinkManager.h"
@@ -43,7 +42,6 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
-#include "td/telegram/UserManager.h"
 #include "td/telegram/Version.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VideosManager.hpp"
@@ -62,6 +60,8 @@
 #include <type_traits>
 
 namespace td {
+
+class FileManager;
 
 static vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
     const vector<unique_ptr<WebPageBlock>> &page_blocks, GetWebPageBlockObjectContext *context) {

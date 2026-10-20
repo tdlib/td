@@ -19,9 +19,7 @@
 namespace td {
 
 class Dependencies;
-
 class RichMessage;
-
 class Td;
 
 class MessageQuote {
