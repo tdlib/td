@@ -2408,7 +2408,7 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
     context_->on_merge_files(node->main_file_id_, other_node->main_file_id_);
   }
 
-  bool send_updates_flag = false;
+  bool send_updates_flag = other_node->need_info_flush();
   auto other_pmc_id = other_node->pmc_id_;
   append(node->file_ids_, other_node->file_ids_);
 
@@ -2416,12 +2416,10 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
     auto file_id_info = get_file_id_info(file_id);
     CHECK(file_id_info->node_id_ == node_ids[other_node_i]);
     file_id_info->node_id_ = node_ids[node_i];
-    send_updates_flag |= file_id_info->pin_flag_;
   }
   other_node = {};
 
-  // node might not changed, but other_node might changed, so we need to send update anyway, unless other_node was
-  // created just to be merged: its file identifiers aren't pinned and will be forgotten, but an update would pin them
+  // unsent changes of other_node would be lost with it, so they must be sent with node
   if (send_updates_flag) {
     VLOG(update_file) << "File " << node->main_file_id_ << " has been merged";
     node->on_info_changed();
