@@ -290,12 +290,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
     return callback_->on_error(id, make_error(400, "Request is empty"));
   }
 
-  if (function->get_id() == td_api::processWebProxyCarrierMessage::ID) {
-    // the page messages carry relay traffic, which must never be logged
-    VLOG(td_requests) << "Receive request " << id << ": processWebProxyCarrierMessage";
-  } else {
-    VLOG(td_requests) << "Receive request " << id << ": " << to_string(function);
-  }
+  VLOG(td_requests) << "Receive request " << id << ": " << to_string(function);
   request_set_.emplace(id, function->get_id());
   if (SynchronousRequests::is_synchronous_request(function.get())) {
     // send response synchronously
