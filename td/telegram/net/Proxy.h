@@ -211,7 +211,7 @@ class Proxy {
 
   static Result<Proxy> create_proxy(string server, int port, const td_api::ProxyType *proxy_type);
 
-  static Result<string> normalize_web_proxy_host(Slice host);
+  static Result<string> normalize_web_proxy_host(CSlice server);
 
   static bool is_valid_web_proxy_path(Slice path);
 };

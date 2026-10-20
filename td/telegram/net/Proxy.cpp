@@ -20,8 +20,11 @@ namespace td {
 // 0xdd must never be used as the marker: older clients read a 17-byte secret starting with it as a valid one
 static constexpr unsigned char WEB_PROXY_LINK_SECRET_MARKER = 0x70;
 
-Result<string> Proxy::normalize_web_proxy_host(Slice host) {
-  host = trim(host);
+Result<string> Proxy::normalize_web_proxy_host(CSlice server) {
+  if (!check_utf8(server)) {
+    return Status::Error(400, "Invalid web proxy server");
+  }
+  auto host = trim(Slice(server));
   Slice scheme("https://");
   if (host.size() >= scheme.size() && to_lower(host.substr(0, scheme.size())) == scheme) {
     host.remove_prefix(scheme.size());
@@ -30,9 +33,6 @@ Result<string> Proxy::normalize_web_proxy_host(Slice host) {
     host.remove_suffix(1);
   }
   if (host.empty() || host.size() > 253 * 4) {
-    return Status::Error(400, "Invalid web proxy server");
-  }
-  if (!check_utf8(host.str())) {
     return Status::Error(400, "Invalid web proxy server");
   }
   // only the Windows idn_to_ascii case-folds, but the host is a part of the capability, so it must not depend on the OS
@@ -112,7 +112,7 @@ Result<std::pair<string, string>> Proxy::parse_web_proxy_address(Slice address) 
     host = address.substr(0, slash_pos);
     path = address.substr(slash_pos + 1);
   }
-  TRY_RESULT(normalized_host, normalize_web_proxy_host(host));
+  TRY_RESULT(normalized_host, normalize_web_proxy_host(host.str()));
   if (!is_valid_web_proxy_path(path)) {
     return Status::Error(400, "Invalid web proxy path");
   }
