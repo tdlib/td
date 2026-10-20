@@ -2415,7 +2415,8 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
     if (transaction->nft_ != nullptr) {
       auto nft = TonNft(td, std::move(transaction->nft_)).get_ton_nft_object(td);
       if (is_telegram_gift) {
-        return td_api::make_object<td_api::tonWalletTransactionTypeTelegramGiftTransfer>(std::move(nft), is_saved);
+        return td_api::make_object<td_api::tonWalletTransactionTypeTelegramGiftTransfer>(
+            std::move(nft), !transaction->incoming_, is_saved);
       }
       return td_api::make_object<td_api::tonWalletTransactionTypeNftTransfer>(
           std::move(nft), !transaction->incoming_, transaction->comment_, transaction->comment_encrypted_);
