@@ -32,24 +32,23 @@ void ProxyChecker::test_proxy(Proxy &&proxy, int32 dc_id, double timeout, Promis
   auto start_time = Time::now();
 
   if (proxy.use_web_proxy()) {
-    send_closure(G()->web_proxy_manager(), &WebProxyManager::open_temporary_carrier, proxy,
-                 PromiseCreator::lambda([actor_id = actor_id(this), proxy, dc_id, timeout, start_time,
-                                         promise = std::move(promise)](
-                                            Result<WebProxyManager::TemporaryCarrier> r_carrier) mutable {
-                   if (r_carrier.is_error()) {
-                     return promise.set_error(r_carrier.move_as_error());
-                   }
-                   auto carrier = r_carrier.move_as_ok();
-                   auto test_promise = PromiseCreator::lambda(
-                       [endpoint_id = carrier.endpoint_id, promise = std::move(promise)](Result<Unit> result) mutable {
-                         send_closure(G()->web_proxy_manager(), &WebProxyManager::close_temporary_carrier,
-                                      endpoint_id);
-                         promise.set_result(std::move(result));
-                       });
-                   send_closure(actor_id, &ProxyChecker::test_proxy_address, std::move(proxy),
-                                std::move(carrier.ip_address), dc_id, timeout + start_time - Time::now(),
-                                std::move(test_promise));
-                 }));
+    send_closure(
+        G()->web_proxy_manager(), &WebProxyManager::open_temporary_carrier, proxy,
+        PromiseCreator::lambda(
+            [actor_id = actor_id(this), proxy, dc_id, timeout, start_time,
+             promise = std::move(promise)](Result<WebProxyManager::TemporaryCarrier> r_carrier) mutable {
+              if (r_carrier.is_error()) {
+                return promise.set_error(r_carrier.move_as_error());
+              }
+              auto carrier = r_carrier.move_as_ok();
+              auto test_promise = PromiseCreator::lambda(
+                  [endpoint_id = carrier.endpoint_id, promise = std::move(promise)](Result<Unit> result) mutable {
+                    send_closure(G()->web_proxy_manager(), &WebProxyManager::close_temporary_carrier, endpoint_id);
+                    promise.set_result(std::move(result));
+                  });
+              send_closure(actor_id, &ProxyChecker::test_proxy_address, std::move(proxy), std::move(carrier.ip_address),
+                           dc_id, timeout + start_time - Time::now(), std::move(test_promise));
+            }));
     return;
   }
 

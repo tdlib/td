@@ -324,22 +324,22 @@ void ConnectionCreator::ping_proxy(td_api::object_ptr<td_api::proxy> input_proxy
 
   TRY_RESULT_PROMISE(promise, proxy, Proxy::create_proxy(input_proxy.get()));
   if (proxy.use_web_proxy()) {
-    send_closure(
-        G()->web_proxy_manager(), &WebProxyManager::open_temporary_carrier, proxy,
-        PromiseCreator::lambda([actor_id = actor_id(this), proxy, promise = std::move(promise)](
-                                   Result<WebProxyManager::TemporaryCarrier> r_carrier) mutable {
-          if (r_carrier.is_error()) {
-            return promise.set_error(r_carrier.move_as_error());
-          }
-          auto carrier = r_carrier.move_as_ok();
-          auto ping_promise = PromiseCreator::lambda(
-              [endpoint_id = carrier.endpoint_id, promise = std::move(promise)](Result<double> result) mutable {
-                send_closure(G()->web_proxy_manager(), &WebProxyManager::close_temporary_carrier, endpoint_id);
-                promise.set_result(std::move(result));
-              });
-          send_closure(actor_id, &ConnectionCreator::ping_proxy_resolved, std::move(proxy),
-                       std::move(carrier.ip_address), std::move(ping_promise));
-        }));
+    send_closure(G()->web_proxy_manager(), &WebProxyManager::open_temporary_carrier, proxy,
+                 PromiseCreator::lambda([actor_id = actor_id(this), proxy, promise = std::move(promise)](
+                                            Result<WebProxyManager::TemporaryCarrier> r_carrier) mutable {
+                   if (r_carrier.is_error()) {
+                     return promise.set_error(r_carrier.move_as_error());
+                   }
+                   auto carrier = r_carrier.move_as_ok();
+                   auto ping_promise =
+                       PromiseCreator::lambda([endpoint_id = carrier.endpoint_id,
+                                               promise = std::move(promise)](Result<double> result) mutable {
+                         send_closure(G()->web_proxy_manager(), &WebProxyManager::close_temporary_carrier, endpoint_id);
+                         promise.set_result(std::move(result));
+                       });
+                   send_closure(actor_id, &ConnectionCreator::ping_proxy_resolved, std::move(proxy),
+                                std::move(carrier.ip_address), std::move(ping_promise));
+                 }));
     return;
   }
   bool prefer_ipv6 = G()->get_option_boolean("prefer_ipv6");

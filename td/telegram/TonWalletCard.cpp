@@ -27,7 +27,7 @@ TonWalletCard::TonWalletCard(Td *td, telegram_api::object_ptr<telegram_api::wall
   }
   if (card->bg_nft_item_ != nullptr) {
     auto background_nft_address = std::move(card->bg_nft_item_->address_);
-    if (any_of(stickers_, [&background_nft_address](const TonWalletCardSticker &sticker) {
+    if (any_of(stickers_, [&background_nft_address](const auto &sticker) {
           return sticker.get_nft_address() == background_nft_address;
         })) {
       background_nft_address_ = std::move(background_nft_address);

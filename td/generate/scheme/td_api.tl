@@ -2222,7 +2222,7 @@ tonTransaction id:string gram_amount:int53 is_refund:Bool date:int32 type:TonTra
 tonTransactions gram_amount:int53 transactions:vector<tonTransaction> next_offset:string = TonTransactions;
 
 
-//@class TonCenterApiRequestType @description Describes type of a request to TON Center API
+//@class TonCenterApiRequestType @description Describes a type of request to the TON Center API
 
 //@description A GET request @query URL-encoded query of the request
 tonCenterApiRequestTypeGet query:string = TonCenterApiRequestType;
@@ -10875,7 +10875,7 @@ addedProxies proxies:vector<addedProxy> = AddedProxies;
 //@proxy_id Identifier of the added proxy that uses the carrier; 0 if the carrier is used by pingProxy or testProxy
 //@url The HTTPS URL to load. The URL contains the capability for the proxy and a fragment, which must be kept; the URL must never be logged or shown to the user
 //@origin Origin of the relay page, for example, "https://proxy.example.com". The web view must not be allowed to navigate to another origin
-//@path_prefix The only path prefix on carrier.origin, from which the page may load resources or to which it may send requests, for example, "/" or "/relay/"
+//@path_prefix The only path prefix on carrier.origin from which the page may load resources or to which it may send requests, for example, "/" or "/relay/"
 //@bridge_object_name Name of the object to define in the top-level document; currently, always "TelegramWebProxy"
 //@is_temporary True, if the carrier is needed only to test the proxy and will be closed after the test.
 //-The application may refuse to open such carriers, for example, to avoid creating a web view for every saved proxy
@@ -10899,7 +10899,7 @@ webProxyCarrierErrorUnsupported = WebProxyCarrierError;
 //@description The application can't open the carrier now, for example, because it is in the background; TDLib will request it again after the next call to setNetworkType or after a delay
 webProxyCarrierErrorPaused = WebProxyCarrierError;
 
-//@description The page failed to load: a network, TLS or HTTP error, or a forbidden navigation @message Description of the error for logging; must not contain the URL
+//@description The page failed to load: a network, TLS, or HTTP error, or a forbidden navigation @message The error to be logged; must not contain the URL
 webProxyCarrierErrorLoadFailed message:string = WebProxyCarrierError;
 
 //@description The web view or its renderer process was terminated, or passing data between the application and the page failed

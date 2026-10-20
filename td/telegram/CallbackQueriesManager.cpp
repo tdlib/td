@@ -65,12 +65,11 @@ class GetBotCallbackAnswerQuery final : public Td::ResultHandler {
       default:
         UNREACHABLE();
     }
-    int32 flags = 0;
     if (!is_game && data.empty()) {
       return on_error(Status::Error(400, "Payload data must be non-empty"));
     }
     auto net_query = G()->net_query_creator().create(telegram_api::messages_getBotCallbackAnswer(
-        flags, is_game, std::move(input_peer), message_id.get_server_message_id().get(), std::move(data),
+        0, is_game, std::move(input_peer), message_id.get_server_message_id().get(), std::move(data),
         std::move(password)));
     net_query->need_resend_on_503_ = false;
     send_query(std::move(net_query));

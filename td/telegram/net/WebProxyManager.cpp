@@ -490,8 +490,7 @@ void WebProxyManager::accept_connection(int64 endpoint_id, SocketFd socket_fd) {
   auto stream = make_unique<Stream>();
   stream->endpoint_id = endpoint_id;
   stream->stream_id = allocate_stream_id(*endpoint);
-  stream->actor =
-      create_actor<WebProxyStream>("WebProxyStream", std::move(socket_fd), actor_shared(this, stream_key));
+  stream->actor = create_actor<WebProxyStream>("WebProxyStream", std::move(socket_fd), actor_shared(this, stream_key));
   endpoint->streams.emplace(stream->stream_id, stream_key);
   auto &stream_ref = *stream;
   streams_.emplace(stream_key, std::move(stream));
@@ -546,10 +545,10 @@ void WebProxyManager::open_carrier(Endpoint &endpoint) {
   string url = PSTRING() << origin << path_prefix << "?bridge=" << proxy.get_web_proxy_bridge_capability()
                          << "#android=" << endpoint.nonce;
   LOG(INFO) << "Open web proxy carrier " << carrier_id << " for " << proxy;
-  send_web_proxy_update(td_api::make_object<td_api::updateWebProxyCarrierOpened>(
-      td_api::make_object<td_api::webProxyCarrier>(carrier_id, endpoint.proxy_id, std::move(url), std::move(origin),
-                                                   std::move(path_prefix), BRIDGE_OBJECT_NAME.str(),
-                                                   endpoint.is_temporary)));
+  send_web_proxy_update(
+      td_api::make_object<td_api::updateWebProxyCarrierOpened>(td_api::make_object<td_api::webProxyCarrier>(
+          carrier_id, endpoint.proxy_id, std::move(url), std::move(origin), std::move(path_prefix),
+          BRIDGE_OBJECT_NAME.str(), endpoint.is_temporary)));
   update_timeout();
 }
 
@@ -585,8 +584,8 @@ void WebProxyManager::fail_carrier(Endpoint &endpoint, Slice reason, bool is_ref
 
   if (endpoint.is_temporary) {
     if (endpoint.temporary_promise) {
-      endpoint.temporary_promise.set_error(400, is_refused ? Slice("WEB_PROXY_CARRIER_REFUSED")
-                                                           : Slice("WEB_PROXY_CARRIER_FAILED"));
+      endpoint.temporary_promise.set_error(
+          400, is_refused ? Slice("WEB_PROXY_CARRIER_REFUSED") : Slice("WEB_PROXY_CARRIER_FAILED"));
       // the caller may still use the endpoint, so it is destroyed later
       send_closure_later(actor_id(this), &WebProxyManager::close_temporary_carrier, endpoint.endpoint_id);
     }
@@ -733,8 +732,8 @@ void WebProxyManager::on_carrier_binary(Endpoint &endpoint, Slice data) {
     }
     auto header = bytes + offset;
     auto type = static_cast<uint8>(header[0]);
-    auto stream_id = (static_cast<uint32>(header[1]) << 16) | (static_cast<uint32>(header[2]) << 8) |
-                     static_cast<uint32>(header[3]);
+    auto stream_id =
+        (static_cast<uint32>(header[1]) << 16) | (static_cast<uint32>(header[2]) << 8) | static_cast<uint32>(header[3]);
     auto length = read_uint32(header + 4);
     if (length > MAX_FRAME_PAYLOAD_SIZE || data.size() - offset - FRAME_HEADER_SIZE < length) {
       return fail_carrier(endpoint, "invalid frame length", false);
@@ -753,7 +752,7 @@ void WebProxyManager::on_carrier_binary(Endpoint &endpoint, Slice data) {
 Status WebProxyManager::on_carrier_frame(Endpoint &endpoint, uint8 type, uint32 stream_id, Slice payload) {
   if (endpoint.state != CarrierState::Ready) {
     if (type != FRAME_WELCOME || stream_id != 0 || !payload.empty()) {
-      return Status::Error("unexpected frame before welcome");
+      return Status::Error("Unexpected frame before welcome");
     }
     on_carrier_welcome(endpoint);
     return Status::OK();
@@ -763,28 +762,28 @@ Status WebProxyManager::on_carrier_frame(Endpoint &endpoint, uint8 type, uint32 
     switch (type) {
       case FRAME_PING:
         if (payload.size() > MAX_PING_PAYLOAD_SIZE) {
-          return Status::Error("too long ping");
+          return Status::Error("Too long ping");
         }
         send_frame(endpoint, FRAME_PONG, 0, payload);
         return Status::OK();
       case FRAME_BYE:
-        return Status::Error("relay said goodbye");
+        return Status::Error("Relay said goodbye");
       default:
-        return Status::Error(PSLICE() << "unexpected session frame " << static_cast<int32>(type));
+        return Status::Error(PSLICE() << "Unexpected session frame " << static_cast<int32>(type));
     }
   }
 
   auto it = endpoint.streams.find(stream_id);
   if (it == endpoint.streams.end()) {
     if (endpoint.closed_stream_ids.count(stream_id) == 0) {
-      return Status::Error("frame for an unknown stream");
+      return Status::Error("Frame for an unknown stream");
     }
     // the frame crossed our CLOSE
     bool is_valid = (type == FRAME_DATA && !payload.empty()) ||
                     (type == FRAME_WINDOW && payload.size() == 4 && read_uint32(payload.ubegin()) != 0) ||
                     (type == FRAME_CLOSE && payload.empty());
     if (!is_valid) {
-      return Status::Error("invalid frame for a closed stream");
+      return Status::Error("Invalid frame for a closed stream");
     }
     return Status::OK();
   }
@@ -797,7 +796,7 @@ Status WebProxyManager::on_carrier_frame(Endpoint &endpoint, uint8 type, uint32 
   switch (type) {
     case FRAME_DATA:
       if (payload.empty() || payload.size() > stream.receive_window) {
-        return Status::Error("data beyond the receive window");
+        return Status::Error("Data beyond the receive window");
       }
       stream.receive_window -= static_cast<uint32>(payload.size());
       stream.has_received_data = true;
@@ -805,25 +804,25 @@ Status WebProxyManager::on_carrier_frame(Endpoint &endpoint, uint8 type, uint32 
       return Status::OK();
     case FRAME_WINDOW: {
       if (payload.size() != 4) {
-        return Status::Error("invalid window frame");
+        return Status::Error("Invalid window frame");
       }
       auto amount = read_uint32(payload.ubegin());
       if (amount == 0) {
-        return Status::Error("empty window frame");
+        return Status::Error("Empty window frame");
       }
       send_closure(stream.actor, &WebProxyStream::add_send_window, amount);
       return Status::OK();
     }
     case FRAME_CLOSE:
       if (!payload.empty()) {
-        return Status::Error("invalid close frame");
+        return Status::Error("Invalid close frame");
       }
       // released, because destroying the actor would drop the data that is still being written
       send_closure(stream.actor.release(), &WebProxyStream::close);
       close_stream(endpoint, stream_key, false);
       return Status::OK();
     default:
-      return Status::Error(PSLICE() << "unexpected stream frame " << static_cast<int32>(type));
+      return Status::Error(PSLICE() << "Unexpected stream frame " << static_cast<int32>(type));
   }
 }
 
