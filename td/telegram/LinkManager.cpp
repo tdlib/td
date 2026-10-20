@@ -240,6 +240,27 @@ static int64 get_gram_amount(Slice amount) {
   return result;
 }
 
+static string get_ton_connect_query_from_startapp(Slice startapp) {
+  if (!begins_with(startapp, "tonconnect-")) {
+    return string();
+  }
+  string connect_query = "?";
+  for (size_t i = 11; i < startapp.size(); i++) {
+    if (startapp[i] == '_' && startapp[i + 1] == '_') {
+      i++;
+      connect_query += '=';
+    } else if (startapp[i] == '-' && startapp[i + 1] == '-') {
+      i++;
+      connect_query += '%';
+    } else if (startapp[i] == '-') {
+      connect_query += '&';
+    } else {
+      connect_query += startapp[i];
+    }
+  }
+  return connect_query;
+}
+
 static const vector<string> &get_appearance_settings_subsections() {
   static const vector<string> subsections{
       "themes", "themes/edit", "themes/create", "wallpapers", "wallpapers/edit", "wallpapers/set",
@@ -2393,6 +2414,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
         return td::make_unique<InternalLinkOauth>(PSTRING()
                                                   << "tg://resolve" << copy_arg("domain") << copy_arg("startapp"));
       }
+      if (username == "sendgrams" && has_arg("startapp")) {
+        auto link = get_internal_link_ton_connect(get_ton_connect_query_from_startapp(get_arg("startapp")), true);
+        if (link != nullptr) {
+          return link;
+        }
+      }
       for (auto &arg : url_query.args_) {
         if ((arg.first == "voicechat" || arg.first == "videochat" || arg.first == "livestream") &&
             is_valid_video_chat_invite_hash(arg.second)) {
@@ -2947,26 +2974,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
   } else if (path[0] == "sendgrams") {
     // /sendgrams?to=<receiver>&amount=<amount>
     // /sendgrams?startapp=tonconnect-...
-    auto startapp = get_arg("startapp");
-    if (begins_with(startapp, "tonconnect-")) {
-      string connect_query = "?";
-      for (size_t i = 11; i < startapp.size(); i++) {
-        if (startapp[i] == '_' && startapp[i + 1] == '_') {
-          i++;
-          connect_query += '=';
-        } else if (startapp[i] == '-' && startapp[i + 1] == '-') {
-          i++;
-          connect_query += '%';
-        } else if (startapp[i] == '-') {
-          connect_query += '&';
-        } else {
-          connect_query += startapp[i];
-        }
-      }
-      auto link = get_internal_link_ton_connect(connect_query, true);
-      if (link != nullptr) {
-        return link;
-      }
+    auto link = get_internal_link_ton_connect(get_ton_connect_query_from_startapp(get_arg("startapp")), true);
+    if (link != nullptr) {
+      return link;
     }
     auto receiver = get_arg("to");
     auto amount = get_arg("amount");
