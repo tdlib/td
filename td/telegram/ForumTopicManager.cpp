@@ -1098,6 +1098,9 @@ void ForumTopicManager::set_pinned_forum_topics(DialogId dialog_id, vector<Forum
 void ForumTopicManager::delete_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
   TRY_STATUS_PROMISE(promise, can_be_forum_topic_id(forum_topic_id));
+  if (forum_topic_id == ForumTopicId::general()) {
+    return promise.set_error(400, "The General topic can't be deleted");
+  }
 
   if (dialog_id.get_type() == DialogType::Channel) {
     auto channel_id = dialog_id.get_channel_id();
@@ -1131,6 +1134,9 @@ void ForumTopicManager::on_delete_forum_topic(DialogId dialog_id, ForumTopicId f
       if (topic->pinned_order_ != 0) {
         dialog_topics->ordered_topics_.unpin_topic(forum_topic_id);
       }
+      if (topic->info_ != nullptr && !td_->auth_manager_->is_bot()) {
+        send_update_forum_topic_deleted(dialog_id, forum_topic_id);
+      }
     }
     dialog_topics->topics_.erase(forum_topic_id);
     dialog_topics->deleted_topic_ids_.insert(forum_topic_id);
@@ -1156,8 +1162,20 @@ void ForumTopicManager::on_dialog_is_forum_changed(DialogId dialog_id) {
   if (dialog_topics == nullptr) {
     return;
   }
+  vector<ForumTopicId> forum_topic_ids;
+  if (!td_->auth_manager_->is_bot()) {
+    dialog_topics->topics_.foreach([&](const ForumTopicId &forum_topic_id, unique_ptr<Topic> &topic) {
+      if (topic->info_ != nullptr) {
+        forum_topic_ids.push_back(forum_topic_id);
+      }
+    });
+  }
   auto load_queries = std::move(dialog_topics->load_queries_);
   dialog_topics_.erase(dialog_id);
+  // the app must forget the topics too, without having to track whether the chat is a forum
+  for (auto forum_topic_id : forum_topic_ids) {
+    send_update_forum_topic_deleted(dialog_id, forum_topic_id);
+  }
   fail_promises(load_queries, Status::Error(400, "The chat is not a forum"));
 }
 
@@ -1258,7 +1276,9 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
         LOG(ERROR) << "Receive " << to_string(forum_topic);
         return ForumTopicId();
       }
-      on_delete_forum_topic(dialog_id, forum_topic_id, Promise<Unit>());
+      if (forum_topic_id != ForumTopicId::general()) {
+        on_delete_forum_topic(dialog_id, forum_topic_id, Promise<Unit>());
+      }
       return ForumTopicId();
     }
     case telegram_api::forumTopic::ID: {
@@ -1528,6 +1548,13 @@ void ForumTopicManager::send_update_forum_topic_info(const ForumTopicInfo *topic
     return;
   }
   send_closure(G()->td(), &Td::send_update, get_update_forum_topic_info_object(topic_info));
+}
+
+void ForumTopicManager::send_update_forum_topic_deleted(DialogId dialog_id, ForumTopicId forum_topic_id) const {
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateForumTopicDeleted>(
+          td_->dialog_manager_->get_chat_id_object(dialog_id, "updateForumTopicDeleted"), forum_topic_id.get()));
 }
 
 td_api::object_ptr<td_api::updateForumTopic> ForumTopicManager::get_update_forum_topic_object(

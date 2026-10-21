@@ -11473,6 +11473,11 @@ updateForumTopicInfo info:forumTopicInfo = Update;
 //@description Information about a topic in a forum chat was changed @topic New data about the topic
 updateForumTopic topic:forumTopic = Update;
 
+//@description A topic in a forum chat was deleted. The General topic is deleted only when the chat stops being a forum, in which case the update is sent for all known topics
+//@chat_id Chat identifier
+//@forum_topic_id Forum topic identifier of the deleted topic
+updateForumTopicDeleted chat_id:int53 forum_topic_id:int32 = Update;
+
 //@description Notification settings for some type of chats were updated
 //@scope Types of chats for which notification settings were updated
 //@notification_settings The new notification settings

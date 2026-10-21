@@ -231,6 +231,8 @@ class ForumTopicManager final : public Actor {
 
   void send_update_forum_topic_info(const ForumTopicInfo *topic_info) const;
 
+  void send_update_forum_topic_deleted(DialogId dialog_id, ForumTopicId forum_topic_id) const;
+
   td_api::object_ptr<td_api::updateForumTopic> get_update_forum_topic_object(DialogId dialog_id,
                                                                              const Topic *topic) const;
 
