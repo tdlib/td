@@ -1320,10 +1320,7 @@ int64 SavedMessagesManager::get_topic_order(int32 message_date, MessageId messag
 
 int64 SavedMessagesManager::get_topic_public_order(const TopicList *topic_list, const SavedMessagesTopic *topic) {
   CHECK(topic_list != nullptr);
-  if (TopicDate(topic->private_order_, topic->saved_messages_topic_id_) <= topic_list->last_topic_date_) {
-    return topic->private_order_;
-  }
-  return 0;
+  return topic_list->ordered_topics_.get_public_order(topic->private_order_, topic->saved_messages_topic_id_);
 }
 
 void SavedMessagesManager::on_topic_changed(TopicList *topic_list, SavedMessagesTopic *topic, const char *source) {
@@ -1354,25 +1351,8 @@ void SavedMessagesManager::on_topic_changed(TopicList *topic_list, SavedMessages
         new_private_order = draft_order;
       }
     }
-    if (topic->private_order_ != new_private_order) {
-      if (topic->private_order_ != 0) {
-        bool is_deleted =
-            topic_list->ordered_topics_.erase({topic->private_order_, topic->saved_messages_topic_id_}) > 0;
-        CHECK(is_deleted);
-        if (topic_list->server_total_count_ > 0) {
-          topic_list->server_total_count_--;
-        }
-      }
-      topic->private_order_ = new_private_order;
-      if (topic->private_order_ != 0) {
-        bool is_inserted =
-            topic_list->ordered_topics_.insert({topic->private_order_, topic->saved_messages_topic_id_}).second;
-        CHECK(is_inserted);
-        if (topic_list->server_total_count_ >= 0) {
-          topic_list->server_total_count_++;
-        }
-      }
-    }
+    topic_list->ordered_topics_.update_order(topic->saved_messages_topic_id_, topic->private_order_, new_private_order);
+    topic->private_order_ = new_private_order;
     LOG(INFO) << "Update order of " << topic->saved_messages_topic_id_ << " to " << topic->private_order_ << " from "
               << source;
   }
@@ -1482,7 +1462,7 @@ void SavedMessagesManager::load_topics(TopicList *topic_list, int32 limit, Promi
   if (limit == 0) {
     return promise.set_value(Unit());
   }
-  if (topic_list->last_topic_date_ == MAX_TOPIC_DATE) {
+  if (topic_list->ordered_topics_.is_fully_loaded()) {
     return promise.set_error(404, "Not Found");
   }
   if (!topic_list->are_pinned_saved_messages_topics_inited_) {
@@ -1775,13 +1755,13 @@ void SavedMessagesManager::process_saved_messages_topics(
   if (is_get_topic) {
     // nothing to do
   } else if (!is_pinned) {
-    topic_list->server_total_count_ = total_count;
+    topic_list->ordered_topics_.set_server_total_count(total_count);
 
     topic_list->offset_date_ = last_message_date;
     topic_list->offset_dialog_id_ = last_dialog_id;
     topic_list->offset_message_id_ = last_message_id;
-  } else if (topic_list->server_total_count_ <= total_count) {
-    topic_list->server_total_count_ = total_count + 1;
+  } else if (topic_list->ordered_topics_.get_server_total_count() <= total_count) {
+    topic_list->ordered_topics_.set_server_total_count(total_count + 1);
   }
   update_saved_messages_topic_sent_total_count(topic_list, "on_get_saved_messages_topics");
 
@@ -1798,7 +1778,7 @@ void SavedMessagesManager::process_saved_messages_topics(
     set_pinned_saved_messages_topics(std::move(added_saved_messages_topic_ids));
     set_last_topic_date(topic_list, {MIN_PINNED_TOPIC_ORDER - 1, SavedMessagesTopicId()});
   } else if (is_last) {
-    set_last_topic_date(topic_list, MAX_TOPIC_DATE);
+    set_last_topic_date(topic_list, OrderedTopics<SavedMessagesTopicId>::max_topic_date());
 
     if (dialogs.empty()) {
       return promise.set_error(404, "Not Found");
@@ -1808,7 +1788,7 @@ void SavedMessagesManager::process_saved_messages_topics(
                         {get_topic_order(last_message_date, last_message_id), SavedMessagesTopicId(last_dialog_id)});
   } else {
     LOG(ERROR) << "Receive no suitable topics";
-    set_last_topic_date(topic_list, MAX_TOPIC_DATE);
+    set_last_topic_date(topic_list, OrderedTopics<SavedMessagesTopicId>::max_topic_date());
     return promise.set_error(404, "Not Found");
   }
 
@@ -1900,16 +1880,11 @@ void SavedMessagesManager::update_saved_messages_topic_sent_total_count(TopicLis
   if (topic_list->dialog_id_ != DialogId()) {
     return;
   }
-  if (topic_list->server_total_count_ == -1) {
+  auto new_total_count = topic_list->ordered_topics_.update_total_count();
+  if (new_total_count == -1) {
     return;
   }
   LOG(INFO) << "Update Saved Messages topic sent total count from " << source;
-  auto new_total_count = static_cast<int32>(topic_list->ordered_topics_.size());
-  if (topic_list->last_topic_date_ != MAX_TOPIC_DATE) {
-    new_total_count = max(new_total_count, topic_list->server_total_count_);
-  } else if (topic_list->server_total_count_ != new_total_count) {
-    topic_list->server_total_count_ = new_total_count;
-  }
   if (topic_list->sent_total_count_ != new_total_count) {
     topic_list->sent_total_count_ = new_total_count;
     send_closure(G()->td(), &Td::send_update, get_update_saved_messages_topic_count_object());
@@ -2005,14 +1980,8 @@ bool SavedMessagesManager::set_saved_messages_topic_is_pinned(SavedMessagesTopic
 
 void SavedMessagesManager::set_last_topic_date(TopicList *topic_list, TopicDate topic_date) {
   CHECK(topic_list != nullptr);
-  if (topic_date <= topic_list->last_topic_date_) {
-    return;
-  }
-  auto min_topic_date = topic_list->last_topic_date_;
-  topic_list->last_topic_date_ = topic_date;
-  for (auto it = topic_list->ordered_topics_.upper_bound(min_topic_date);
-       it != topic_list->ordered_topics_.end() && *it <= topic_date; ++it) {
-    auto topic = get_topic(topic_list, it->get_topic_id());
+  for (auto saved_messages_topic_id : topic_list->ordered_topics_.set_last_topic_date(topic_date)) {
+    auto topic = get_topic(topic_list, saved_messages_topic_id);
     CHECK(topic != nullptr);
     send_update_saved_messages_topic(topic_list, topic, "set_last_topic_date");
   }
@@ -2611,9 +2580,5 @@ void SavedMessagesManager::get_current_state(vector<td_api::object_ptr<td_api::U
     }
   }
 }
-
-const SavedMessagesManager::TopicDate SavedMessagesManager::MIN_TOPIC_DATE{std::numeric_limits<int64>::max(),
-                                                                           SavedMessagesTopicId()};
-const SavedMessagesManager::TopicDate SavedMessagesManager::MAX_TOPIC_DATE{0, SavedMessagesTopicId()};
 
 }  // namespace td

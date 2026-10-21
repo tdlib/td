@@ -12,6 +12,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/OrderedMessage.h"
+#include "td/telegram/OrderedTopics.h"
 #include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -24,7 +25,6 @@
 #include "td/utils/Status.h"
 
 #include <limits>
-#include <set>
 
 namespace td {
 
@@ -205,52 +205,17 @@ class SavedMessagesManager final : public Actor {
     bool is_changed_ = false;
   };
 
-  class TopicDate {
-    int64 order_;
-    SavedMessagesTopicId topic_id_;
-
-   public:
-    TopicDate(int64 order, SavedMessagesTopicId topic_id) : order_(order), topic_id_(topic_id) {
-    }
-
-    bool operator<(const TopicDate &other) const {
-      return order_ > other.order_ ||
-             (order_ == other.order_ && topic_id_.get_unique_id() > other.topic_id_.get_unique_id());
-    }
-
-    bool operator<=(const TopicDate &other) const {
-      return order_ > other.order_ ||
-             (order_ == other.order_ && topic_id_.get_unique_id() >= other.topic_id_.get_unique_id());
-    }
-
-    bool operator==(const TopicDate &other) const {
-      return order_ == other.order_ && topic_id_ == other.topic_id_;
-    }
-
-    bool operator!=(const TopicDate &other) const {
-      return !(*this == other);
-    }
-
-    SavedMessagesTopicId get_topic_id() const {
-      return topic_id_;
-    }
-  };
-
-  static const TopicDate MIN_TOPIC_DATE;
-  static const TopicDate MAX_TOPIC_DATE;
+  using TopicDate = OrderedTopics<SavedMessagesTopicId>::TopicDate;
 
   struct TopicList {
     DialogId dialog_id_;
-    int32 server_total_count_ = -1;
     int32 sent_total_count_ = -1;
     uint32 generation_ = 0;
 
     vector<SavedMessagesTopicId> pinned_saved_messages_topic_ids_;
     bool are_pinned_saved_messages_topics_inited_ = false;
 
-    std::set<TopicDate> ordered_topics_;
-
-    TopicDate last_topic_date_ = MIN_TOPIC_DATE;  // in memory
+    OrderedTopics<SavedMessagesTopicId> ordered_topics_;
 
     vector<Promise<Unit>> load_pinned_queries_;
     vector<Promise<Unit>> load_queries_;
