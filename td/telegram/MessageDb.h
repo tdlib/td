@@ -32,6 +32,7 @@ struct MessageDbMessagesQuery {
   MessageId from_message_id;
   int32 offset{0};
   int32 limit{100};
+  int64 topic_id{0};  // if non-zero, only messages from the topic are returned; can't be used with a filter
 };
 
 struct MessageDbDialogMessage {
