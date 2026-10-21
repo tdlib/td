@@ -113,6 +113,10 @@ class OrderedTopics {
     return result;
   }
 
+  TopicDate get_last_topic_date() const {
+    return last_topic_date_;
+  }
+
   // returns the date of the topic at the given position in the list, or max_topic_date() if there are fewer topics
   TopicDate get_topic_date(size_t position) const {
     if (position >= ordered_topics_.size()) {
