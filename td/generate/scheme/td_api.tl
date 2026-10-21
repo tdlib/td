@@ -11470,18 +11470,8 @@ updateChatWelcomeMessages chat_id:int53 messages:vector<welcomeMessage> = Update
 //@description Basic information about a topic in a forum chat was changed @info New information about the topic
 updateForumTopicInfo info:forumTopicInfo = Update;
 
-//@description Information about a topic in a forum chat was changed
-//@chat_id Chat identifier
-//@forum_topic_id Forum topic identifier of the topic
-//@is_pinned True, if the topic is pinned in the topic list
-//@last_read_inbox_message_id Identifier of the last read incoming message
-//@last_read_outbox_message_id Identifier of the last read outgoing message
-//@unread_mention_count Number of unread messages with a mention/reply in the topic
-//@unread_reaction_count Number of messages with unread reactions in the topic
-//@unread_poll_vote_count Number of messages with unread poll votes in the topic
-//@notification_settings Notification settings for the topic
-//@draft_message A draft of a message in the topic; may be null if none
-updateForumTopic chat_id:int53 forum_topic_id:int32 is_pinned:Bool last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 unread_poll_vote_count:int32 notification_settings:chatNotificationSettings draft_message:draftMessage = Update;
+//@description Information about a topic in a forum chat was changed @topic New data about the topic
+updateForumTopic topic:forumTopic = Update;
 
 //@description Notification settings for some type of chats were updated
 //@scope Types of chats for which notification settings were updated
