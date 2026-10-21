@@ -218,15 +218,15 @@ bool IPAddress::is_valid() const {
 
 static bool is_reserved_ipv4(uint32 ip) {
   // https://www.iana.org/assignments/iana-ipv4-special-registry
+  // an aggregate, so that the tables below are constant-initialized: with a constructor,
+  // MSVC 14.51 crashes compiling this function at /Ob1
   struct IpBlock {
-    CSlice ip;
+    const char *ip;
     int mask;
-    IpBlock(CSlice ip, int mask) : ip(ip), mask(mask) {
-    }
   };
   auto is_in_block = [ip](const IpBlock &block) {
     IPAddress block_ip_address;
-    block_ip_address.init_ipv4_port(block.ip, 80).ensure();
+    block_ip_address.init_ipv4_port(CSlice(block.ip), 80).ensure();
     uint32 range = block_ip_address.get_ipv4();
     CHECK(block.mask != 0);
     uint32 mask = std::numeric_limits<uint32>::max() >> (32 - block.mask) << (32 - block.mask);
