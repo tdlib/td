@@ -537,7 +537,7 @@ void ForumTopicManager::Topic::store(StorerT &storer) const {
 
 template <class ParserT>
 void ForumTopicManager::Topic::parse(ParserT &parser) {
-  CHECK(info_ != nullptr);
+  CHECK(info_ == nullptr);
   using td::parse;
 
   int32 magic;
