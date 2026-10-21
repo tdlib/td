@@ -133,6 +133,8 @@ class ForumTopicManager final : public Actor {
 
   void on_update_pinned_forum_topics(DialogId dialog_id, vector<ForumTopicId> forum_topic_ids);
 
+  void reload_pinned_forum_topics(DialogId dialog_id);
+
   void on_forum_topic_edited(DialogId dialog_id, ForumTopicId forum_topic_id, const ForumTopicEditedData &edited_data);
 
   bool on_get_forum_topic_error(DialogId dialog_id, ForumTopicId forum_topic_id, const Status &status,
@@ -212,6 +214,12 @@ class ForumTopicManager final : public Actor {
     vector<ForumTopicId> reloading_topic_ids_;
     int32 reload_topics_retry_delay_ = 0;      // the delay before the next retry of a failed reload, in seconds
     vector<ForumTopicId> received_topic_ids_;  // the topics, which are received together with the messages being added
+
+    // the pinned topics received from the server, which must be applied after unknown topics are loaded
+    vector<ForumTopicId> pending_pinned_topic_ids_;
+    bool have_pending_pinned_topic_ids_ = false;
+    bool is_reloading_pinned_topics_ = false;
+    bool need_reload_pinned_topics_ = false;
   };
 
   void tear_down() final;
@@ -242,6 +250,9 @@ class ForumTopicManager final : public Actor {
                                        bool need_update);
 
   static ForumTopicId get_received_forum_topic_id(const telegram_api::ForumTopic *forum_topic);
+
+  // pinned topics are received with the first page of the list, so updates about them are needed only after it
+  static bool is_topic_list_loaded(const DialogTopics *dialog_topics);
 
   void on_get_topic_messages(DialogId dialog_id, MessagesInfo &&info, vector<ForumTopicId> received_topic_ids,
                              const char *source);
@@ -293,6 +304,9 @@ class ForumTopicManager final : public Actor {
   void on_reload_topics_timeout(DialogId dialog_id);
 
   void reload_topic_without_last_message(DialogId dialog_id, ForumTopicId forum_topic_id);
+
+  void on_reload_pinned_forum_topics(DialogId dialog_id, uint32 generation,
+                                     Result<td_api::object_ptr<td_api::forumTopics>> &&result);
 
   static bool can_unload_topic(const DialogTopics *dialog_topics, ForumTopicId forum_topic_id, const Topic *topic,
                                OrderedTopics<ForumTopicId>::TopicDate last_kept_topic_date);

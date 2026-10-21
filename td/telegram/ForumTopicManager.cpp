@@ -822,8 +822,22 @@ void ForumTopicManager::on_update_forum_topic_is_pinned(DialogId dialog_id, Foru
     return;
   }
 
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics != nullptr && dialog_topics->have_pending_pinned_topic_ids_) {
+    // the update is newer than the pinned list, which waits for unknown topics
+    auto &pending_topic_ids = dialog_topics->pending_pinned_topic_ids_;
+    td::remove(pending_topic_ids, forum_topic_id);
+    if (is_pinned) {
+      pending_topic_ids.insert(pending_topic_ids.begin(), forum_topic_id);
+    }
+  }
+
   auto topic = get_topic(dialog_id, forum_topic_id);
   if (topic == nullptr || topic->topic_ == nullptr) {
+    if (is_pinned && forum_topic_id.is_valid() && is_topic_list_loaded(dialog_topics)) {
+      // the topic will be received with its pinned state
+      reload_topic(dialog_id, dialog_topics, forum_topic_id);
+    }
     return;
   }
   if (topic->topic_->set_is_pinned(is_pinned)) {
@@ -845,10 +859,80 @@ void ForumTopicManager::on_update_pinned_forum_topics(DialogId dialog_id, vector
   }
 
   auto dialog_topics = get_dialog_topics(dialog_id);
-  if (dialog_topics == nullptr) {
+  if (!is_topic_list_loaded(dialog_topics)) {
+    return;
+  }
+  bool have_unknown_topics = false;
+  for (auto forum_topic_id : forum_topic_ids) {
+    auto *topic = get_topic(dialog_topics, forum_topic_id);
+    if (topic == nullptr || topic->topic_ == nullptr) {
+      reload_topic(dialog_id, dialog_topics, forum_topic_id);
+      have_unknown_topics = true;
+    }
+  }
+  if (have_unknown_topics) {
+    dialog_topics->pending_pinned_topic_ids_ = std::move(forum_topic_ids);
+    dialog_topics->have_pending_pinned_topic_ids_ = true;
     return;
   }
 
+  dialog_topics->have_pending_pinned_topic_ids_ = false;
+  set_local_pinned_forum_topics(dialog_id, dialog_topics, std::move(forum_topic_ids));
+}
+
+bool ForumTopicManager::is_topic_list_loaded(const DialogTopics *dialog_topics) {
+  return dialog_topics != nullptr &&
+         dialog_topics->ordered_topics_.get_last_topic_date() != OrderedTopics<ForumTopicId>::min_topic_date();
+}
+
+void ForumTopicManager::reload_pinned_forum_topics(DialogId dialog_id) {
+  if (td_->auth_manager_->is_bot() || is_forum(dialog_id, true).is_error()) {
+    return;
+  }
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (!is_topic_list_loaded(dialog_topics)) {
+    return;
+  }
+  if (dialog_topics->is_reloading_pinned_topics_) {
+    // the result of the request in progress can be older than the reason for the reload
+    dialog_topics->need_reload_pinned_topics_ = true;
+    return;
+  }
+  dialog_topics->is_reloading_pinned_topics_ = true;
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
+                                               generation = dialog_topics->generation_](
+                                                  Result<td_api::object_ptr<td_api::forumTopics>> result) {
+    send_closure(actor_id, &ForumTopicManager::on_reload_pinned_forum_topics, dialog_id, generation, std::move(result));
+  });
+  // pinned topics are returned first
+  td_->create_handler<GetForumTopicsQuery>(std::move(query_promise))
+      ->send(dialog_id, 0, string(), 0, MessageId(), ForumTopicId(), MAX_GET_FORUM_TOPICS);
+}
+
+void ForumTopicManager::on_reload_pinned_forum_topics(DialogId dialog_id, uint32 generation,
+                                                      Result<td_api::object_ptr<td_api::forumTopics>> &&result) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr || dialog_topics->generation_ != generation) {
+    return;
+  }
+  dialog_topics->is_reloading_pinned_topics_ = false;
+  if (dialog_topics->need_reload_pinned_topics_) {
+    dialog_topics->need_reload_pinned_topics_ = false;
+    return reload_pinned_forum_topics(dialog_id);
+  }
+  if (result.is_error()) {
+    return;
+  }
+  vector<ForumTopicId> forum_topic_ids;
+  for (auto &forum_topic : result.ok()->topics_) {
+    if (forum_topic->is_pinned_) {
+      forum_topic_ids.push_back(ForumTopicId(forum_topic->info_->forum_topic_id_));
+    }
+  }
+  dialog_topics->have_pending_pinned_topic_ids_ = false;
   set_local_pinned_forum_topics(dialog_id, dialog_topics, std::move(forum_topic_ids));
 }
 
@@ -1061,6 +1145,8 @@ vector<ForumTopicId> ForumTopicManager::on_load_forum_topics_page(DialogId dialo
     }
   }
   if (is_first_page) {
+    // the page is newer than the pinned list, which waits for unknown topics
+    dialog_topics->have_pending_pinned_topic_ids_ = false;
     set_local_pinned_forum_topics(dialog_id, dialog_topics, std::move(pinned_forum_topic_ids));
   }
 
@@ -1840,6 +1926,8 @@ void ForumTopicManager::reload_topics(DialogId dialog_id, DialogTopics *dialog_t
   }
   if (is_forum(dialog_id, true).is_error()) {
     reload_topic_ids.clear();
+    // the pinned list can't wait for the topics anymore
+    dialog_topics->have_pending_pinned_topic_ids_ = false;
     return;
   }
   auto size = min(reload_topic_ids.size(), MAX_GET_FORUM_TOPICS_BY_ID);
@@ -1892,6 +1980,10 @@ void ForumTopicManager::on_reload_topics(DialogId dialog_id, uint32 generation, 
   }
   dialog_topics->reloading_topic_ids_.clear();
   reload_topics(dialog_id, dialog_topics);
+  if (dialog_topics->have_pending_pinned_topic_ids_ && dialog_topics->reloading_topic_ids_.empty()) {
+    dialog_topics->have_pending_pinned_topic_ids_ = false;
+    set_local_pinned_forum_topics(dialog_id, dialog_topics, std::move(dialog_topics->pending_pinned_topic_ids_));
+  }
 }
 
 void ForumTopicManager::on_reload_topics_timeout_callback(void *forum_topic_manager_ptr, int64 dialog_id_int) {
@@ -2101,7 +2193,9 @@ bool ForumTopicManager::can_unload_topic(const DialogTopics *dialog_topics, Foru
                                          const Topic *topic,
                                          OrderedTopics<ForumTopicId>::TopicDate last_kept_topic_date) {
   if (topic->pinned_order_ != 0 || td::contains(dialog_topics->reload_topic_ids_, forum_topic_id) ||
-      td::contains(dialog_topics->reloading_topic_ids_, forum_topic_id)) {
+      td::contains(dialog_topics->reloading_topic_ids_, forum_topic_id) ||
+      (dialog_topics->have_pending_pinned_topic_ids_ &&
+       td::contains(dialog_topics->pending_pinned_topic_ids_, forum_topic_id))) {
     return false;
   }
   if (forum_topic_id == ForumTopicId::general()) {
