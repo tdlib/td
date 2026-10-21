@@ -1936,8 +1936,10 @@ void ForumTopicManager::save_topic_to_database(DialogId dialog_id, const Topic *
   }
 
   auto forum_topic_id = topic->info_->get_forum_topic_id();
-  LOG(INFO) << "Save topic of " << forum_topic_id << " in " << dialog_id << " to database";
-  message_thread_db->add_message_thread(dialog_id, forum_topic_id, 0, log_event_store(*topic), Auto());
+  // the order of pinned topics depends on the pinned topic list, which is saved separately
+  auto order = topic->topic_ == nullptr ? 0 : topic->topic_->get_order(forum_topic_id, topic->last_message_date_);
+  LOG(INFO) << "Save topic of " << forum_topic_id << " in " << dialog_id << " with order " << order << " to database";
+  message_thread_db->add_message_thread(dialog_id, forum_topic_id, order, log_event_store(*topic), Auto());
 }
 
 void ForumTopicManager::delete_topic_from_database(DialogId dialog_id, ForumTopicId forum_topic_id,
