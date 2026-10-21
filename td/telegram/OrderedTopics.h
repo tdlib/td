@@ -6,8 +6,10 @@
 //
 #pragma once
 
+#include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 
+#include <algorithm>
 #include <limits>
 #include <set>
 
@@ -122,12 +124,69 @@ class OrderedTopics {
     return total_count;
   }
 
+  static constexpr int64 MIN_PINNED_TOPIC_ORDER = static_cast<int64>(2147000000) << 32;
+
+  bool are_pinned_topics_inited() const {
+    return are_pinned_topics_inited_;
+  }
+
+  void set_pinned_topics_inited() {
+    are_pinned_topics_inited_ = true;
+  }
+
+  const vector<TopicIdT> &get_pinned_topic_ids() const {
+    return pinned_topic_ids_;
+  }
+
+  // returns the new pinned order of the topic, or 0 if the topic is already the first pinned topic
+  int64 pin_topic(TopicIdT topic_id) {
+    if (!pinned_topic_ids_.empty() && pinned_topic_ids_[0] == topic_id) {
+      return 0;
+    }
+    add_to_top(pinned_topic_ids_, pinned_topic_ids_.size() + 1, topic_id);
+    return ++current_pinned_topic_order_;
+  }
+
+  bool unpin_topic(TopicIdT topic_id) {
+    return td::remove(pinned_topic_ids_, topic_id);
+  }
+
+  // returns topics, which must be pinned in the returned order, and topics, which must be unpinned,
+  // for the list of pinned topics to become topic_ids; topics already in the right relative order are left alone
+  void get_pinned_topic_changes(vector<TopicIdT> topic_ids, vector<TopicIdT> &added_topic_ids,
+                                vector<TopicIdT> &removed_topic_ids) const {
+    removed_topic_ids = pinned_topic_ids_;
+    auto old_topic_ids = pinned_topic_ids_;
+    std::reverse(old_topic_ids.begin(), old_topic_ids.end());
+    std::reverse(topic_ids.begin(), topic_ids.end());
+    auto old_it = old_topic_ids.begin();
+    for (auto topic_id : topic_ids) {
+      td::remove(removed_topic_ids, topic_id);
+      while (old_it < old_topic_ids.end()) {
+        if (*old_it == topic_id) {
+          break;
+        }
+        ++old_it;
+      }
+      if (old_it < old_topic_ids.end()) {
+        // leave the topic where it is
+        ++old_it;
+        continue;
+      }
+      added_topic_ids.push_back(topic_id);
+    }
+  }
+
  private:
   std::set<TopicDate> ordered_topics_;
 
   TopicDate last_topic_date_ = min_topic_date();  // in memory
 
   int32 server_total_count_ = -1;
+
+  vector<TopicIdT> pinned_topic_ids_;
+  bool are_pinned_topics_inited_ = false;
+  int64 current_pinned_topic_order_ = MIN_PINNED_TOPIC_ORDER;
 };
 
 }  // namespace td
