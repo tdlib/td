@@ -1010,6 +1010,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/OnlineManager.h
   td/telegram/OptionManager.h
   td/telegram/OrderedMessage.h
+  td/telegram/OrderedTopics.h
   td/telegram/OrderInfo.h
   td/telegram/Outline.h
   td/telegram/PaidReactionType.h
