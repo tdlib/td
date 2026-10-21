@@ -61,8 +61,8 @@ class MessageDbBench final : public td::Benchmark {
 
         // use async on same thread.
         message_db_async_->add_message({dialog_id, message_id}, unique_message_id, sender_dialog_id, random_id,
-                                       ttl_expires_at, 0, 0, "", td::NotificationId(), td::MessageId(), std::move(data),
-                                       td::Promise<>());
+                                       ttl_expires_at, 0, 0, "", td::NotificationId(), td::MessageId(), 0,
+                                       std::move(data), td::Promise<>());
       }
     }
   }

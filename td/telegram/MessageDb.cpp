@@ -100,6 +100,21 @@ Status init_message_db(SqliteDb &db, int32 version) {
         "CREATE INDEX IF NOT EXISTS message_by_notification_id ON messages (dialog_id, notification_id) WHERE "
         "notification_id IS NOT NULL");
   };
+  // topic_id is the forum topic identifier or the Saved Messages topic identifier of a message
+  // the topics are kept in a separate table, because an index over the messages table would require to scan it
+  auto add_message_topics_table = [&db] {
+    TRY_STATUS(
+        db.exec("CREATE TABLE IF NOT EXISTS message_topics (dialog_id INT8, message_id INT8, topic_id INT8, "
+                "PRIMARY KEY (dialog_id, message_id))"));
+
+    TRY_STATUS(
+        db.exec("CREATE INDEX IF NOT EXISTS message_topic_by_topic_id ON message_topics (dialog_id, topic_id, "
+                "message_id)"));
+
+    return db.exec(
+        "CREATE TRIGGER IF NOT EXISTS trigger_message_topics_delete AFTER DELETE ON messages BEGIN DELETE FROM "
+        "message_topics WHERE dialog_id = OLD.dialog_id AND message_id = OLD.message_id; END");
+  };
   auto add_scheduled_messages_table = [&db] {
     TRY_STATUS(
         db.exec("CREATE TABLE IF NOT EXISTS scheduled_messages (dialog_id INT8, message_id INT8, "
@@ -140,6 +155,8 @@ Status init_message_db(SqliteDb &db, int32 version) {
 
     TRY_STATUS(add_scheduled_messages_table());
 
+    TRY_STATUS(add_message_topics_table());
+
     version = current_db_version();
   }
   if (version < static_cast<int32>(DbVersion::AddMessageDbMediaIndex)) {
@@ -167,6 +184,9 @@ Status init_message_db(SqliteDb &db, int32 version) {
   if (version < static_cast<int32>(DbVersion::AddMessageThreadSupport)) {
     TRY_STATUS(db.exec("ALTER TABLE messages ADD COLUMN top_thread_message_id INT8"));
   }
+  if (version < static_cast<int32>(DbVersion::AddMessageTopicTable)) {
+    TRY_STATUS(add_message_topics_table());
+  }
   return Status::OK();
 }
 
@@ -174,6 +194,7 @@ Status init_message_db(SqliteDb &db, int32 version) {
 Status drop_message_db(SqliteDb &db, int32 version) {
   LOG(WARNING) << "Drop message database " << tag("version", version)
                << tag("current_db_version", current_db_version());
+  TRY_STATUS(db.exec("DROP TABLE IF EXISTS message_topics"));
   return db.exec("DROP TABLE IF EXISTS messages");
 }
 
@@ -187,6 +208,10 @@ class MessageDbImpl final : public MessageDbSyncInterface {
     TRY_RESULT_ASSIGN(
         add_message_stmt_,
         db_.get_statement("INSERT OR REPLACE INTO messages VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)"));
+    TRY_RESULT_ASSIGN(add_message_topic_stmt_,
+                      db_.get_statement("INSERT OR REPLACE INTO message_topics VALUES(?1, ?2, ?3)"));
+    TRY_RESULT_ASSIGN(delete_message_topic_stmt_,
+                      db_.get_statement("DELETE FROM message_topics WHERE dialog_id = ?1 AND message_id = ?2"));
     TRY_RESULT_ASSIGN(delete_message_stmt_,
                       db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND message_id = ?2"));
     TRY_RESULT_ASSIGN(delete_all_dialog_messages_stmt_,
@@ -289,7 +314,8 @@ class MessageDbImpl final : public MessageDbSyncInterface {
 
   void add_message(MessageFullId message_full_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                    int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                   NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data) final {
+                   NotificationId notification_id, MessageId top_thread_message_id, int64 topic_id,
+                   BufferSlice data) final {
     LOG(INFO) << "Add " << message_full_id << " to database";
     auto dialog_id = message_full_id.get_dialog_id();
     auto message_id = message_full_id.get_message_id();
@@ -364,6 +390,24 @@ class MessageDbImpl final : public MessageDbSyncInterface {
     }
 
     add_message_stmt_.step().ensure();
+
+    // the message could have been in another topic before
+    if (topic_id != 0) {
+      SCOPE_EXIT {
+        add_message_topic_stmt_.reset();
+      };
+      add_message_topic_stmt_.bind_int64(1, dialog_id.get()).ensure();
+      add_message_topic_stmt_.bind_int64(2, message_id.get()).ensure();
+      add_message_topic_stmt_.bind_int64(3, topic_id).ensure();
+      add_message_topic_stmt_.step().ensure();
+    } else {
+      SCOPE_EXIT {
+        delete_message_topic_stmt_.reset();
+      };
+      delete_message_topic_stmt_.bind_int64(1, dialog_id.get()).ensure();
+      delete_message_topic_stmt_.bind_int64(2, message_id.get()).ensure();
+      delete_message_topic_stmt_.step().ensure();
+    }
   }
 
   void add_scheduled_message(MessageFullId message_full_id, BufferSlice data) final {
@@ -827,6 +871,8 @@ class MessageDbImpl final : public MessageDbSyncInterface {
   SqliteDb db_;
 
   SqliteStatement add_message_stmt_;
+  SqliteStatement add_message_topic_stmt_;
+  SqliteStatement delete_message_topic_stmt_;
 
   SqliteStatement delete_message_stmt_;
   SqliteStatement delete_all_dialog_messages_stmt_;
@@ -994,11 +1040,11 @@ class MessageDbAsync final : public MessageDbAsyncInterface {
 
   void add_message(MessageFullId message_full_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                    int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                   NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data,
+                   NotificationId notification_id, MessageId top_thread_message_id, int64 topic_id, BufferSlice data,
                    Promise<> promise) final {
     send_closure_later(impl_, &Impl::add_message, message_full_id, unique_message_id, sender_dialog_id, random_id,
                        ttl_expires_at, index_mask, search_id, std::move(text), notification_id, top_thread_message_id,
-                       std::move(data), std::move(promise));
+                       topic_id, std::move(data), std::move(promise));
   }
   void add_scheduled_message(MessageFullId message_full_id, BufferSlice data, Promise<> promise) final {
     send_closure_later(impl_, &Impl::add_scheduled_message, message_full_id, std::move(data), std::move(promise));
@@ -1074,13 +1120,13 @@ class MessageDbAsync final : public MessageDbAsyncInterface {
     }
     void add_message(MessageFullId message_full_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                      int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                     NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data,
+                     NotificationId notification_id, MessageId top_thread_message_id, int64 topic_id, BufferSlice data,
                      Promise<> promise) {
       add_write_query([this, message_full_id, unique_message_id, sender_dialog_id, random_id, ttl_expires_at,
-                       index_mask, search_id, text = std::move(text), notification_id, top_thread_message_id,
+                       index_mask, search_id, text = std::move(text), notification_id, top_thread_message_id, topic_id,
                        data = std::move(data), promise = std::move(promise)](Unit) mutable {
         sync_db_->add_message(message_full_id, unique_message_id, sender_dialog_id, random_id, ttl_expires_at,
-                              index_mask, search_id, std::move(text), notification_id, top_thread_message_id,
+                              index_mask, search_id, std::move(text), notification_id, top_thread_message_id, topic_id,
                               std::move(data));
         on_write_result(std::move(promise));
       });
