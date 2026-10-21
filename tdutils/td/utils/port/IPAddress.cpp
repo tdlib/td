@@ -224,19 +224,30 @@ static bool is_reserved_ipv4(uint32 ip) {
     const char *ip;
     int mask;
   };
-  auto is_in_block = [ip](const IpBlock &block) {
-    IPAddress block_ip_address;
-    block_ip_address.init_ipv4_port(CSlice(block.ip), 80).ensure();
-    uint32 range = block_ip_address.get_ipv4();
-    CHECK(block.mask != 0);
-    uint32 mask = std::numeric_limits<uint32>::max() >> (32 - block.mask) << (32 - block.mask);
-    return (ip & mask) == (range & mask);
+  struct IpRange {
+    uint32 range;
+    uint32 mask;
+  };
+  auto get_ranges = [](const auto &blocks) {
+    vector<IpRange> ranges;
+    for (auto &block : blocks) {
+      IPAddress block_ip_address;
+      block_ip_address.init_ipv4_port(CSlice(block.ip), 80).ensure();
+      CHECK(block.mask != 0);
+      uint32 mask = std::numeric_limits<uint32>::max() >> (32 - block.mask) << (32 - block.mask);
+      ranges.push_back(IpRange{block_ip_address.get_ipv4() & mask, mask});
+    }
+    return ranges;
+  };
+  auto is_in_range = [ip](const IpRange &range) {
+    return (ip & range.mask) == range.range;
   };
 
   // globally reachable addresses from reserved blocks
   static const IpBlock global_blocks[] = {{"192.0.0.9", 32}, {"192.0.0.10", 32}};
-  for (auto &block : global_blocks) {
-    if (is_in_block(block)) {
+  static const vector<IpRange> global_ranges = get_ranges(global_blocks);
+  for (auto &range : global_ranges) {
+    if (is_in_range(range)) {
       return false;
     }
   }
@@ -245,8 +256,9 @@ static bool is_reserved_ipv4(uint32 ip) {
                                    {"169.254.0.0", 16}, {"172.16.0.0", 12},  {"192.0.0.0", 24},  {"192.0.2.0", 24},
                                    {"192.88.99.0", 24}, {"192.168.0.0", 16}, {"198.18.0.0", 15}, {"198.51.100.0", 24},
                                    {"203.0.113.0", 24}, {"224.0.0.0", 3}};
-  for (auto &block : blocks) {
-    if (is_in_block(block)) {
+  static const vector<IpRange> ranges = get_ranges(blocks);
+  for (auto &range : ranges) {
+    if (is_in_range(range)) {
       return true;
     }
   }
