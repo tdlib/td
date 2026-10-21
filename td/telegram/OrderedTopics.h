@@ -99,6 +99,10 @@ class OrderedTopics {
     return result;
   }
 
+  TopicDate get_last_topic_date() const {
+    return last_topic_date_;
+  }
+
   bool is_fully_loaded() const {
     return last_topic_date_ == max_topic_date();
   }
