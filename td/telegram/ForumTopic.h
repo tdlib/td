@@ -46,6 +46,16 @@ class ForumTopic {
     return is_short_;
   }
 
+  MessageId get_last_message_id() const {
+    return last_message_id_;
+  }
+
+  bool is_pinned() const {
+    return is_pinned_;
+  }
+
+  int64 get_order(int32 last_message_date) const;
+
   bool update_last_read_outbox_message_id(MessageId last_read_outbox_message_id);
 
   bool update_last_read_inbox_message_id(MessageId last_read_inbox_message_id, int32 unread_count);
