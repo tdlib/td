@@ -362,6 +362,66 @@ class GetForumTopicQuery final : public Td::ResultHandler {
   }
 };
 
+class GetForumTopicsByIdQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetForumTopicsByIdQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const vector<ForumTopicId> &forum_topic_ids) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_getForumTopicsByID(
+                                            std::move(input_peer), ForumTopicId::get_top_msg_ids(forum_topic_ids)),
+                                        {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getForumTopicsByID>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetForumTopicsByIdQuery: " << to_string(ptr);
+
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetForumTopicsByIdQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetForumTopicsByIdQuery");
+
+    MessagesInfo messages_info;
+    messages_info.messages = std::move(ptr->messages_);
+    messages_info.total_count = ptr->count_;
+    messages_info.is_channel_messages = dialog_id_.get_type() == DialogType::Channel;
+
+    td_->messages_manager_->get_channel_difference_if_needed(
+        dialog_id_, std::move(messages_info),
+        PromiseCreator::lambda([actor_id = td_->forum_topic_manager_actor_.get(), dialog_id = dialog_id_,
+                                topics = std::move(ptr->topics_),
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &ForumTopicManager::on_get_forum_topics_by_id, dialog_id, result.move_as_ok(),
+                         std::move(topics), std::move(promise));
+          }
+        }),
+        "GetForumTopicsByIdQuery");
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetForumTopicsByIdQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetForumTopicsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::forumTopics>> promise_;
   DialogId dialog_id_;
@@ -497,6 +557,8 @@ void ForumTopicManager::Topic::parse(ParserT &parser) {
 }
 
 ForumTopicManager::ForumTopicManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  reload_topics_timeout_.set_callback(on_reload_topics_timeout_callback);
+  reload_topics_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 ForumTopicManager::~ForumTopicManager() {
@@ -854,8 +916,7 @@ void ForumTopicManager::on_get_forum_topic(DialogId dialog_id, ForumTopicId expe
                                            telegram_api::object_ptr<telegram_api::ForumTopic> &&topic,
                                            Promise<td_api::object_ptr<td_api::forumTopic>> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
-  td_->messages_manager_->on_get_messages(dialog_id, std::move(info.messages), false, Promise<Unit>(),
-                                          "on_get_forum_topic");
+  on_get_topic_messages(dialog_id, std::move(info), {get_received_forum_topic_id(topic.get())}, "on_get_forum_topic");
 
   auto forum_topic_id = on_get_forum_topic_impl(dialog_id, std::move(topic), true);
   if (!forum_topic_id.is_valid()) {
@@ -865,6 +926,19 @@ void ForumTopicManager::on_get_forum_topic(DialogId dialog_id, ForumTopicId expe
     return promise.set_error(500, "Wrong forum topic received");
   }
   promise.set_value(get_forum_topic_object(dialog_id, forum_topic_id));
+}
+
+void ForumTopicManager::on_get_forum_topics_by_id(DialogId dialog_id, MessagesInfo &&info,
+                                                  vector<telegram_api::object_ptr<telegram_api::ForumTopic>> &&topics,
+                                                  Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
+  on_get_topic_messages(dialog_id, std::move(info),
+                        transform(topics, [](const auto &topic) { return get_received_forum_topic_id(topic.get()); }),
+                        "on_get_forum_topics_by_id");
+  for (auto &topic : topics) {
+    on_get_forum_topic_impl(dialog_id, std::move(topic), true);
+  }
+  promise.set_value(Unit());
 }
 
 void ForumTopicManager::get_forum_topic_link(DialogId dialog_id, ForumTopicId forum_topic_id,
@@ -1007,8 +1081,9 @@ void ForumTopicManager::on_get_forum_topics(DialogId dialog_id, uint32 generatio
                                             vector<telegram_api::object_ptr<telegram_api::ForumTopic>> &&topics,
                                             Promise<td_api::object_ptr<td_api::forumTopics>> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
-  td_->messages_manager_->on_get_messages(dialog_id, std::move(info.messages), false, Promise<Unit>(),
-                                          "on_get_forum_topics");
+  on_get_topic_messages(dialog_id, std::move(info),
+                        transform(topics, [](const auto &topic) { return get_received_forum_topic_id(topic.get()); }),
+                        "on_get_forum_topics");
   // a newly pinned topic is pinned above the other ones, so the page is applied from its end
   vector<ForumTopicId> forum_topic_ids;
   for (auto &topic : reversed(topics)) {
@@ -1289,6 +1364,30 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
   }
 }
 
+ForumTopicId ForumTopicManager::get_received_forum_topic_id(const telegram_api::ForumTopic *forum_topic) {
+  CHECK(forum_topic != nullptr);
+  switch (forum_topic->get_id()) {
+    case telegram_api::forumTopicDeleted::ID:
+      return ForumTopicId(static_cast<const telegram_api::forumTopicDeleted *>(forum_topic)->id_);
+    case telegram_api::forumTopic::ID:
+      return ForumTopicId(static_cast<const telegram_api::forumTopic *>(forum_topic)->id_);
+    default:
+      UNREACHABLE();
+      return ForumTopicId();
+  }
+}
+
+void ForumTopicManager::on_get_topic_messages(DialogId dialog_id, MessagesInfo &&info,
+                                              vector<ForumTopicId> received_topic_ids, const char *source) {
+  // the topics of the messages are received together with them, so they must not be loaded once more
+  add_dialog_topics(dialog_id)->received_topic_ids_ = std::move(received_topic_ids);
+  td_->messages_manager_->on_get_messages(dialog_id, std::move(info.messages), false, Promise<Unit>(), source);
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics != nullptr) {
+    dialog_topics->received_topic_ids_.clear();
+  }
+}
+
 ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
                                                         tl_object_ptr<telegram_api::ForumTopic> &&forum_topic,
                                                         bool need_update) {
@@ -1319,6 +1418,8 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
         LOG(ERROR) << "Receive short forum topic";
         return ForumTopicId();
       }
+      auto old_last_message_id = topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_message_id();
+      auto old_last_message_date = topic->last_message_date_;
       if (topic->topic_ == nullptr || true) {
         auto old_file_ids = get_topic_file_ids(topic);
         topic->topic_ = std::move(forum_topic_full);
@@ -1329,7 +1430,11 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       topic->receive_date_ = G()->unix_time();
       set_topic_info(dialog_id, topic, std::move(forum_topic_info));
       auto last_message_id = topic->topic_->get_last_message_id();
-      if (last_message_id.is_valid()) {
+      if (old_last_message_id > last_message_id) {
+        // the topic was requested before its newer last message was received
+        topic->topic_->set_last_message_id(old_last_message_id);
+        topic->last_message_date_ = old_last_message_date;
+      } else if (last_message_id.is_valid()) {
         topic->last_message_date_ = td_->messages_manager_->get_get_message_date(dialog_id)(last_message_id);
       }
       update_topic_order(dialog_id, topic);
@@ -1678,6 +1783,121 @@ void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, Forum
   CHECK(topic->message_count_ >= 0);
 }
 
+void ForumTopicManager::reload_topic(DialogId dialog_id, DialogTopics *dialog_topics, ForumTopicId forum_topic_id) {
+  CHECK(dialog_topics != nullptr);
+  // messages of a loaded topic are received before the topic itself
+  if (td::contains(dialog_topics->reload_topic_ids_, forum_topic_id) ||
+      td::contains(dialog_topics->reloading_topic_ids_, forum_topic_id)) {
+    return;
+  }
+  auto *topic = get_topic(dialog_topics, forum_topic_id);
+  if (topic != nullptr && topic->topic_ == nullptr && topic->is_not_received_) {
+    return;
+  }
+  LOG(INFO) << "Reload " << forum_topic_id << " in " << dialog_id;
+  dialog_topics->reload_topic_ids_.push_back(forum_topic_id);
+  if (dialog_topics->reloading_topic_ids_.empty()) {
+    reload_topics(dialog_id, dialog_topics);
+  }
+}
+
+void ForumTopicManager::reload_topics(DialogId dialog_id, DialogTopics *dialog_topics) {
+  CHECK(dialog_topics != nullptr);
+  CHECK(dialog_topics->reloading_topic_ids_.empty());
+  auto &reload_topic_ids = dialog_topics->reload_topic_ids_;
+  if (reload_topic_ids.empty() || reload_topics_timeout_.has_timeout(dialog_id.get())) {
+    // new topics wait for the retry of a failed reload
+    return;
+  }
+  if (is_forum(dialog_id, true).is_error()) {
+    reload_topic_ids.clear();
+    return;
+  }
+  auto size = min(reload_topic_ids.size(), MAX_GET_FORUM_TOPICS_BY_ID);
+  vector<ForumTopicId> forum_topic_ids(reload_topic_ids.begin(), reload_topic_ids.begin() + size);
+  reload_topic_ids.erase(reload_topic_ids.begin(), reload_topic_ids.begin() + size);
+
+  dialog_topics->reloading_topic_ids_ = forum_topic_ids;
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_id, generation = dialog_topics->generation_](Result<Unit> &&result) {
+        send_closure(actor_id, &ForumTopicManager::on_reload_topics, dialog_id, generation, std::move(result));
+      });
+  td_->create_handler<GetForumTopicsByIdQuery>(std::move(query_promise))->send(dialog_id, forum_topic_ids);
+}
+
+void ForumTopicManager::on_reload_topics(DialogId dialog_id, uint32 generation, Result<Unit> &&result) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr || dialog_topics->generation_ != generation) {
+    return;
+  }
+  if (result.is_error()) {
+    LOG(INFO) << "Failed to reload topics in " << dialog_id << ": " << result.error();
+    if (is_forum(dialog_id, true).is_ok() &&
+        td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+      // the topics would stay unknown, so they are requested again later, as a failed getChannelDifference is
+      append(dialog_topics->reload_topic_ids_, std::move(dialog_topics->reloading_topic_ids_));
+      dialog_topics->reloading_topic_ids_.clear();
+      auto &delay = dialog_topics->reload_topics_retry_delay_;
+      if (delay == 0) {
+        delay = 1;
+      }
+      reload_topics_timeout_.set_timeout_in(dialog_id.get(), Random::fast(delay * 800, delay * 1200) * 1e-3);
+      delay *= 2;
+      if (delay > 60) {
+        delay = Random::fast(60, 80);
+      }
+      return;
+    }
+  } else {
+    dialog_topics->reload_topics_retry_delay_ = 0;
+  }
+  for (auto forum_topic_id : dialog_topics->reloading_topic_ids_) {
+    auto *topic = get_topic(dialog_topics, forum_topic_id);
+    if (topic != nullptr && topic->topic_ == nullptr) {
+      // the topic is requested again only after it is removed from memory
+      topic->is_not_received_ = true;
+    }
+  }
+  dialog_topics->reloading_topic_ids_.clear();
+  reload_topics(dialog_id, dialog_topics);
+}
+
+void ForumTopicManager::on_reload_topics_timeout_callback(void *forum_topic_manager_ptr, int64 dialog_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto forum_topic_manager = static_cast<ForumTopicManager *>(forum_topic_manager_ptr);
+  send_closure_later(forum_topic_manager->actor_id(forum_topic_manager), &ForumTopicManager::on_reload_topics_timeout,
+                     DialogId(dialog_id_int));
+}
+
+void ForumTopicManager::on_reload_topics_timeout(DialogId dialog_id) {
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr || !dialog_topics->reloading_topic_ids_.empty()) {
+    return;
+  }
+  reload_topics(dialog_id, dialog_topics);
+}
+
+void ForumTopicManager::reload_topic_without_last_message(DialogId dialog_id, ForumTopicId forum_topic_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr) {
+    return;
+  }
+  auto *topic = get_topic(dialog_topics, forum_topic_id);
+  if (topic == nullptr || topic->topic_ == nullptr || topic->topic_->get_last_message_id().is_valid()) {
+    return;
+  }
+  reload_topic(dialog_id, dialog_topics, forum_topic_id);
+}
+
 bool ForumTopicManager::is_last_topic_message(DialogId dialog_id, ForumTopicId forum_topic_id,
                                               MessageId message_id) const {
   auto *topic = get_topic(dialog_id, forum_topic_id);
@@ -1698,7 +1918,14 @@ void ForumTopicManager::on_topic_message_added(DialogId dialog_id, ForumTopicId 
   }
   auto last_message_id = topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_message_id();
   topic->ordered_messages_.insert(message_id, from_update, last_message_id, source);
-  if (topic->topic_ == nullptr || message_id <= last_message_id) {
+  if (topic->topic_ == nullptr) {
+    auto *dialog_topics = get_dialog_topics(dialog_id);
+    if (td::contains(dialog_topics->received_topic_ids_, forum_topic_id)) {
+      return;
+    }
+    return reload_topic(dialog_id, dialog_topics, forum_topic_id);
+  }
+  if (message_id <= last_message_id) {
     return;
   }
 
@@ -1710,7 +1937,7 @@ void ForumTopicManager::on_topic_message_added(DialogId dialog_id, ForumTopicId 
     on_forum_topic_changed(dialog_id, topic);
   } else {
     // a message newer than the last known one was received not from an update, so the last message is unknown
-    reload_forum_topic(dialog_id, forum_topic_id, Promise<Unit>());
+    reload_topic(dialog_id, get_dialog_topics(dialog_id), forum_topic_id);
   }
 }
 
@@ -1746,13 +1973,16 @@ void ForumTopicManager::on_topic_message_deleted(DialogId dialog_id, ForumTopicI
     if (*it != nullptr) {
       new_last_message_id = (*it)->get_message_id();
       topic->last_message_date_ = td_->messages_manager_->get_get_message_date(dialog_id)(new_last_message_id);
+      topic->topic_->set_last_message_id(new_last_message_id);
+      on_forum_topic_changed(dialog_id, topic);
+    } else {
+      // the previous message is unknown, so the topic keeps the order until it gets another last message;
+      // a sent message is added again right away with its new identifier, so the topic is received again only
+      // if it has no last message after that
+      topic->topic_->set_last_message_id(MessageId());
+      send_closure_later(actor_id(this), &ForumTopicManager::reload_topic_without_last_message, dialog_id,
+                         forum_topic_id);
     }
-    topic->topic_->set_last_message_id(new_last_message_id);
-    if (!new_last_message_id.is_valid()) {
-      // keep the old date for the order until the topic is received again
-      reload_forum_topic(dialog_id, forum_topic_id, Promise<Unit>());
-    }
-    on_forum_topic_changed(dialog_id, topic);
   }
   topic->ordered_messages_.erase(message_id, only_from_memory, source);
 }
