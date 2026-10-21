@@ -1093,6 +1093,9 @@ void ForumTopicManager::set_pinned_forum_topics(DialogId dialog_id, vector<Forum
 void ForumTopicManager::delete_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
   TRY_STATUS_PROMISE(promise, can_be_forum_topic_id(forum_topic_id));
+  if (forum_topic_id == ForumTopicId::general()) {
+    return promise.set_error(400, "The General topic can't be deleted");
+  }
 
   if (dialog_id.get_type() == DialogType::Channel) {
     auto channel_id = dialog_id.get_channel_id();
@@ -1125,6 +1128,12 @@ void ForumTopicManager::on_delete_forum_topic(DialogId dialog_id, ForumTopicId f
       dialog_topics->ordered_topics_.update_order(forum_topic_id, topic->private_order_, 0);
       if (topic->pinned_order_ != 0) {
         dialog_topics->ordered_topics_.unpin_topic(forum_topic_id);
+      }
+      if (topic->info_ != nullptr && !td_->auth_manager_->is_bot()) {
+        send_closure(
+            G()->td(), &Td::send_update,
+            td_api::make_object<td_api::updateForumTopicDeleted>(
+                td_->dialog_manager_->get_chat_id_object(dialog_id, "updateForumTopicDeleted"), forum_topic_id.get()));
       }
     }
     dialog_topics->topics_.erase(forum_topic_id);
@@ -1247,7 +1256,9 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
         LOG(ERROR) << "Receive " << to_string(forum_topic);
         return ForumTopicId();
       }
-      on_delete_forum_topic(dialog_id, forum_topic_id, Promise<Unit>());
+      if (forum_topic_id != ForumTopicId::general()) {
+        on_delete_forum_topic(dialog_id, forum_topic_id, Promise<Unit>());
+      }
       return ForumTopicId();
     }
     case telegram_api::forumTopic::ID: {
