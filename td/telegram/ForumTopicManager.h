@@ -138,6 +138,8 @@ class ForumTopicManager final : public Actor {
 
   void reload_pinned_forum_topics(DialogId dialog_id);
 
+  void on_channel_difference_too_long(DialogId dialog_id);
+
   void on_update_forum_topic_edited(DialogId dialog_id, ForumTopicId forum_topic_id,
                                     const ForumTopicEditedData &edited_data);
 
