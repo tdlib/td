@@ -1035,6 +1035,13 @@ void ForumTopicManager::on_delete_forum_topic(DialogId dialog_id, ForumTopicId f
   auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
   if (dialog_topics != nullptr) {
     CHECK(forum_topic_id.is_valid());
+    auto *topic = get_topic(dialog_topics, forum_topic_id);
+    if (topic != nullptr) {
+      dialog_topics->ordered_topics_.update_order(forum_topic_id, topic->private_order_, 0);
+      if (topic->pinned_order_ != 0) {
+        dialog_topics->ordered_topics_.unpin_topic(forum_topic_id);
+      }
+    }
     dialog_topics->topics_.erase(forum_topic_id);
     dialog_topics->deleted_topic_ids_.insert(forum_topic_id);
   }
@@ -1181,6 +1188,11 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       }
       topic->receive_date_ = G()->unix_time();
       set_topic_info(dialog_id, topic, std::move(forum_topic_info));
+      auto last_message_id = topic->topic_->get_last_message_id();
+      if (last_message_id.is_valid()) {
+        topic->last_message_date_ = td_->messages_manager_->get_get_message_date(dialog_id)(last_message_id);
+      }
+      update_topic_order(dialog_id, topic);
       send_update_forum_topic(dialog_id, topic);
       save_topic_to_database(dialog_id, topic);
       return forum_topic_id;
@@ -1385,9 +1397,36 @@ void ForumTopicManager::send_update_forum_topic(DialogId dialog_id, const Topic 
 
 void ForumTopicManager::on_forum_topic_changed(DialogId dialog_id, Topic *topic) {
   CHECK(topic != nullptr);
+  update_topic_order(dialog_id, topic);
   send_update_forum_topic(dialog_id, topic);
   topic->need_save_to_database_ = true;
   save_topic_to_database(dialog_id, topic);
+}
+
+void ForumTopicManager::update_topic_order(DialogId dialog_id, Topic *topic) {
+  CHECK(topic != nullptr);
+  if (td_->auth_manager_->is_bot() || topic->info_ == nullptr) {
+    return;
+  }
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  CHECK(dialog_topics != nullptr);
+  auto &ordered_topics = dialog_topics->ordered_topics_;
+  auto forum_topic_id = topic->info_->get_forum_topic_id();
+
+  int64 new_order = 0;
+  if (topic->topic_ != nullptr) {
+    if (topic->topic_->is_pinned()) {
+      if (topic->pinned_order_ == 0) {
+        topic->pinned_order_ = ordered_topics.pin_topic(forum_topic_id);
+      }
+    } else if (topic->pinned_order_ != 0) {
+      ordered_topics.unpin_topic(forum_topic_id);
+      topic->pinned_order_ = 0;
+    }
+    new_order = topic->pinned_order_ != 0 ? topic->pinned_order_ : topic->topic_->get_order(topic->last_message_date_);
+  }
+  ordered_topics.update_order(forum_topic_id, topic->private_order_, new_order);
+  topic->private_order_ = new_order;
 }
 
 void ForumTopicManager::save_topic_to_database(DialogId dialog_id, const Topic *topic) {
