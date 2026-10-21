@@ -31943,11 +31943,10 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   if (m->ttl_period != 0 && (ttl_expires_at == 0 || m->date + m->ttl_period < ttl_expires_at)) {
     ttl_expires_at = m->date + m->ttl_period;
   }
-  G()->td_db()->get_message_db_async()->add_message({d->dialog_id, message_id}, unique_message_id,
-                                                    get_message_sender(m), random_id, ttl_expires_at,
-                                                    get_message_index_mask(d->dialog_id, m), search_id, text,
-                                                    m->notification_id, m->top_thread_message_id, log_event_store(*m),
-                                                    Auto());  // TODO Promise
+  G()->td_db()->get_message_db_async()->add_message(
+      {d->dialog_id, message_id}, unique_message_id, get_message_sender(m), random_id, ttl_expires_at,
+      get_message_index_mask(d->dialog_id, m), search_id, text, m->notification_id, m->top_thread_message_id, 0,
+      log_event_store(*m), Auto());  // TODO Promise
 }
 
 void MessagesManager::delete_all_dialog_notifications(Dialog *d, MessageId max_message_id, const char *source) {

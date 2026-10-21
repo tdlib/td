@@ -106,7 +106,8 @@ class MessageDbSyncInterface {
 
   virtual void add_message(MessageFullId message_full_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                            int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                           NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data) = 0;
+                           NotificationId notification_id, MessageId top_thread_message_id, int64 topic_id,
+                           BufferSlice data) = 0;
   virtual void add_scheduled_message(MessageFullId message_full_id, BufferSlice data) = 0;
 
   virtual void delete_message(MessageFullId message_full_id) = 0;
@@ -157,8 +158,8 @@ class MessageDbAsyncInterface {
 
   virtual void add_message(MessageFullId message_full_id, ServerMessageId unique_message_id, DialogId sender_dialog_id,
                            int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                           NotificationId notification_id, MessageId top_thread_message_id, BufferSlice data,
-                           Promise<> promise) = 0;
+                           NotificationId notification_id, MessageId top_thread_message_id, int64 topic_id,
+                           BufferSlice data, Promise<> promise) = 0;
   virtual void add_scheduled_message(MessageFullId message_full_id, BufferSlice data, Promise<> promise) = 0;
 
   virtual void delete_message(MessageFullId message_full_id, Promise<> promise) = 0;
