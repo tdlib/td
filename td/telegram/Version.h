@@ -91,6 +91,7 @@ enum class DbVersion : int32 {
   StorePinnedDialogsInBinlog,
   AddMessageThreadSupport,
   AddMessageThreadDatabase,
+  AddMessageTopicTable,
   Next
 };
 
