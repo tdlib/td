@@ -4535,14 +4535,16 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
     return;
   }
 
+  if (td_->chat_manager_->is_forum_channel(dialog_id.get_channel_id())) {
+    // the topic doesn't need its first message to be known
+    td_->forum_topic_manager_->on_update_forum_topic_unread(
+        dialog_id, ForumTopicId::from_top_thread_message_id(top_thread_message_id), max_message_id,
+        last_read_inbox_message_id, last_read_outbox_message_id, unread_count);
+  }
+
   auto m = get_message_force(d, top_thread_message_id, "on_update_read_message_comments");
   if (m == nullptr || !m->message_id.is_server() || m->top_thread_message_id != m->message_id) {
     return;
-  }
-  if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_update_forum_topic_unread(dialog_id, get_message_forum_topic_id(dialog_id, m),
-                                                            max_message_id, last_read_inbox_message_id,
-                                                            last_read_outbox_message_id, unread_count);
   }
   if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
     return;
