@@ -16527,6 +16527,18 @@ bool MessagesManager::is_dialog_muted(const Dialog *d) const {
   return get_dialog_mute_until(d) != 0;
 }
 
+void MessagesManager::on_forum_topic_notification_settings_known(DialogId dialog_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  const Dialog *d = get_dialog(dialog_id);
+  if (d == nullptr || d->notification_info == nullptr ||
+      d->notification_info->pending_new_message_notifications_.empty()) {
+    return;
+  }
+  flush_pending_new_message_notifications(dialog_id, false, dialog_id);
+}
+
 bool MessagesManager::is_dialog_pinned_message_notifications_disabled(const Dialog *d) const {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
@@ -26669,6 +26681,15 @@ bool MessagesManager::may_need_message_notification(const Dialog *d, const Messa
   bool have_settings;
   int32 mute_until;
   std::tie(have_settings, mute_until) = get_dialog_mute_until(d->dialog_id, d);
+  auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+  if (forum_topic_id.is_valid()) {
+    if (td_->forum_topic_manager_->get_forum_topic_mute_until(d->dialog_id, forum_topic_id, mute_until)) {
+      have_settings = true;
+    } else if (!td_->forum_topic_manager_->have_forum_topic_notification_settings(d->dialog_id, forum_topic_id)) {
+      // the topic can have its own settings
+      return true;
+    }
+  }
   return !have_settings || mute_until <= m->date;
 }
 
@@ -26731,7 +26752,21 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   bool have_settings;
   int32 mute_until;
   std::tie(have_settings, mute_until) = get_dialog_mute_until(settings_dialog_id, settings_dialog);
-  if (mute_until > m->date && (have_settings || force)) {
+  ForumTopicId unknown_forum_topic_id;
+  if (settings_dialog_id == d->dialog_id) {
+    // a topic with its own notification settings overrides the chat's ones
+    auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+    if (forum_topic_id.is_valid()) {
+      if (td_->forum_topic_manager_->get_forum_topic_mute_until(d->dialog_id, forum_topic_id, mute_until)) {
+        have_settings = true;
+      } else if (!force &&
+                 !td_->forum_topic_manager_->have_forum_topic_notification_settings(d->dialog_id, forum_topic_id)) {
+        // the topic can have its own settings, so the notification waits for the topic
+        unknown_forum_topic_id = forum_topic_id;
+      }
+    }
+  }
+  if (!unknown_forum_topic_id.is_valid() && mute_until > m->date && (have_settings || force)) {
     VLOG(notifications) << "Disable notification, because " << settings_dialog_id << " is muted";
     if (is_pinned && from_mentions) {
       remove_dialog_pinned_message_notification(d, "add_new_message_notification");
@@ -26752,7 +26787,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   auto notification_info = add_dialog_notification_info(d);
   auto &pending_notifications = from_mentions ? notification_info->pending_new_mention_notifications_
                                               : notification_info->pending_new_message_notifications_;
-  if (!force && (!have_settings || !pending_notifications.empty() || missing_pinned_message_id.is_valid())) {
+  if (!force && (!have_settings || unknown_forum_topic_id.is_valid() || !pending_notifications.empty() ||
+                 missing_pinned_message_id.is_valid())) {
     VLOG(notifications) << "Delay new message notification for " << m->message_id << " in " << d->dialog_id << " with "
                         << pending_notifications.size() << " already waiting messages";
     if (pending_notifications.empty()) {
@@ -26767,7 +26803,12 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
           .release();
     }
     auto last_settings_dialog_id = (pending_notifications.empty() ? DialogId() : pending_notifications.back().first);
-    pending_notifications.emplace_back((have_settings ? DialogId() : settings_dialog_id), m->message_id);
+    bool need_settings = !have_settings || unknown_forum_topic_id.is_valid();
+    pending_notifications.emplace_back((need_settings ? settings_dialog_id : DialogId()), m->message_id);
+    if (unknown_forum_topic_id.is_valid()) {
+      VLOG(notifications) << "Wait for " << unknown_forum_topic_id << " in " << d->dialog_id;
+      td_->forum_topic_manager_->load_forum_topic(d->dialog_id, unknown_forum_topic_id);
+    }
     if (!have_settings && last_settings_dialog_id != settings_dialog_id) {
       VLOG(notifications) << "Fetch notification settings for " << settings_dialog_id;
       auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id, from_mentions,
