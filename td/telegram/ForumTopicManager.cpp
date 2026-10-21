@@ -523,12 +523,17 @@ void ForumTopicManager::Topic::store(StorerT &storer) const {
   store(MAGIC, storer);
 
   bool has_topic = topic_ != nullptr;
+  bool has_last_message_date = last_message_date_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_topic);
+  STORE_FLAG(has_last_message_date);
   END_STORE_FLAGS();
   store(info_, storer);
   if (has_topic) {
     store(topic_, storer);
+  }
+  if (has_last_message_date) {
+    store(last_message_date_, storer);
   }
 }
 
@@ -544,12 +549,17 @@ void ForumTopicManager::Topic::parse(ParserT &parser) {
   }
 
   bool has_topic;
+  bool has_last_message_date;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_topic);
+  PARSE_FLAG(has_last_message_date);
   END_PARSE_FLAGS();
   parse(info_, parser);
   if (has_topic) {
     parse(topic_, parser);
+  }
+  if (has_last_message_date) {
+    parse(last_message_date_, parser);
   }
 }
 
