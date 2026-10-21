@@ -55,8 +55,24 @@ class ExpiringWaitFreeHashMap {
   explicit ExpiringWaitFreeHashMap(double expire_time) : expire_time_(expire_time) {
   }
 
-  // returns nullptr if the item isn't found; the pointer is valid until the next call to a non-const method
+  // returns nullptr if the item isn't found or has expired; doesn't update access time of the item
+  // the pointer is valid until the next call to a non-const method
   ValueT *get(const KeyT &key) {
+    auto now = Time::now();
+    drop_expired_items(now);
+    auto *node = map_.get_pointer(key);
+    if (node == nullptr) {
+      return nullptr;
+    }
+    if (node->access_time_ + expire_time_ <= now) {
+      return nullptr;
+    }
+    return &node->value_;
+  }
+
+  // returns nullptr if the item isn't found; updates access time of the item
+  // the pointer is valid until the next call to a non-const method
+  ValueT *access(const KeyT &key) {
     auto now = Time::now();
     drop_expired_items(now);
     auto *node = map_.get_pointer(key);

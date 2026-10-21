@@ -7989,7 +7989,7 @@ void UserManager::can_send_message_to_user(UserId user_id, bool force,
     return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
   }
 
-  auto *contact_price = user_full_contact_price_.get(user_id);
+  auto *contact_price = user_full_contact_price_.access(user_id);
   if (contact_price != nullptr) {
     if (*contact_price > 0) {
       return promise.set_value(
@@ -8051,7 +8051,7 @@ void UserManager::allow_send_message_to_user(UserId user_id) {
   CHECK(!td_->auth_manager_->is_bot());
   if (get_user_full(user_id) == nullptr) {
     CHECK(user_id.is_valid());
-    auto *contact_price = user_full_contact_price_.get(user_id);
+    auto *contact_price = user_full_contact_price_.access(user_id);
     if (contact_price != nullptr && *contact_price == -1) {
       *contact_price = 0;
     }

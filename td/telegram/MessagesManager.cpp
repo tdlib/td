@@ -21079,7 +21079,8 @@ MessageId MessagesManager::get_persistent_message_id(const Dialog *d, MessageId 
   if (message_id.is_yet_unsent()) {
     // it is possible that user tries to do something with an already sent message by its temporary identifier
     // we need to use real message in this case and transparently replace message_id
-    auto *persistent_message_id = yet_unsent_message_full_id_to_persistent_message_id_.get({d->dialog_id, message_id});
+    auto *persistent_message_id =
+        yet_unsent_message_full_id_to_persistent_message_id_.access({d->dialog_id, message_id});
     if (persistent_message_id != nullptr) {
       return *persistent_message_id;
     }
