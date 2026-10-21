@@ -571,9 +571,11 @@ void ForumTopicManager::Topic::store(StorerT &storer) const {
 
   bool has_topic = topic_ != nullptr;
   bool has_last_message_date = last_message_date_ != 0;
+  bool has_database_range = last_database_message_id_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_topic);
   STORE_FLAG(has_last_message_date);
+  STORE_FLAG(has_database_range);
   END_STORE_FLAGS();
   store(info_, storer);
   if (has_topic) {
@@ -581,6 +583,11 @@ void ForumTopicManager::Topic::store(StorerT &storer) const {
   }
   if (has_last_message_date) {
     store(last_message_date_, storer);
+  }
+  if (has_database_range) {
+    store(first_database_message_id_, storer);
+    store(last_database_message_id_, storer);
+    store(last_server_message_id_, storer);
   }
 }
 
@@ -597,9 +604,11 @@ void ForumTopicManager::Topic::parse(ParserT &parser) {
 
   bool has_topic;
   bool has_last_message_date;
+  bool has_database_range;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_topic);
   PARSE_FLAG(has_last_message_date);
+  PARSE_FLAG(has_database_range);
   END_PARSE_FLAGS();
   parse(info_, parser);
   if (has_topic) {
@@ -607,6 +616,11 @@ void ForumTopicManager::Topic::parse(ParserT &parser) {
   }
   if (has_last_message_date) {
     parse(last_message_date_, parser);
+  }
+  if (has_database_range) {
+    parse(first_database_message_id_, parser);
+    parse(last_database_message_id_, parser);
+    parse(last_server_message_id_, parser);
   }
 }
 
@@ -1318,6 +1332,11 @@ void ForumTopicManager::add_topic_from_database(DialogId dialog_id, DialogTopics
 
   topic->topic_ = std::move(saved_topic->topic_);
   topic->last_message_date_ = saved_topic->last_message_date_;
+  if (!topic->last_database_message_id_.is_valid()) {
+    topic->first_database_message_id_ = saved_topic->first_database_message_id_;
+    topic->last_database_message_id_ = saved_topic->last_database_message_id_;
+    topic->last_server_message_id_ = max(topic->last_server_message_id_, saved_topic->last_server_message_id_);
+  }
   if (topic->info_ == nullptr) {
     // the info could have been received after the database request was sent
     set_topic_info(dialog_id, topic, std::move(saved_topic->info_));
@@ -1327,6 +1346,9 @@ void ForumTopicManager::add_topic_from_database(DialogId dialog_id, DialogTopics
     auto last_message_id = topic->topic_->get_last_message_id();
     if (last_message_id.is_valid()) {
       td_->messages_manager_->have_message_force({dialog_id, last_message_id}, "add_topic_from_database");
+    }
+    if (last_message_id.is_server() && last_message_id > topic->last_server_message_id_) {
+      topic->last_server_message_id_ = last_message_id;
     }
   }
   update_topic_order(dialog_id, topic);
@@ -1774,6 +1796,9 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
           topic->sent_read_inbox_message_id_ >= topic->topic_->get_last_message_id()) {
         // the topic was read up to its last message before it was received
         topic->topic_->update_last_read_inbox_message_id(topic->sent_read_inbox_message_id_, 0);
+      }
+      if (last_message_id.is_server() && last_message_id > topic->last_server_message_id_) {
+        topic->last_server_message_id_ = last_message_id;
       }
       update_topic_order(dialog_id, topic);
       send_update_forum_topic(dialog_id, topic);
@@ -2244,6 +2269,14 @@ void ForumTopicManager::on_topic_message_added(DialogId dialog_id, ForumTopicId 
   }
   auto last_message_id = topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_message_id();
   topic->ordered_messages_.insert(message_id, from_update, last_message_id, source);
+  if (from_update && is_new && message_id.is_server() && message_id > topic->last_server_message_id_) {
+    if (topic->last_database_message_id_.is_valid() &&
+        topic->last_database_message_id_ == topic->last_server_message_id_) {
+      topic->last_database_message_id_ = message_id;
+      topic->need_save_to_database_ = true;
+    }
+    topic->last_server_message_id_ = message_id;
+  }
   if (topic->topic_ == nullptr) {
     auto *dialog_topics = get_dialog_topics(dialog_id);
     if (td::contains(dialog_topics->received_topic_ids_, forum_topic_id)) {
@@ -2336,6 +2369,145 @@ void ForumTopicManager::on_topic_message_deleted(DialogId dialog_id, ForumTopicI
     }
   }
   topic->ordered_messages_.erase(message_id, only_from_memory, source);
+}
+
+void ForumTopicManager::on_all_dialog_messages_deleted(DialogId dialog_id) {
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr) {
+    return;
+  }
+  vector<Topic *> changed_topics;
+  dialog_topics->topics_.foreach([&](const ForumTopicId &forum_topic_id, unique_ptr<Topic> &topic) {
+    if (topic->last_database_message_id_.is_valid()) {
+      topic->first_database_message_id_ = MessageId();
+      topic->last_database_message_id_ = MessageId();
+      topic->need_save_to_database_ = true;
+      changed_topics.push_back(topic.get());
+    }
+  });
+  for (auto *topic : changed_topics) {
+    save_topic_to_database(dialog_id, topic);
+  }
+}
+
+void ForumTopicManager::on_get_topic_history_from_server(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                         MessageId from_message_id, int32 offset, int32 limit,
+                                                         const vector<MessageId> &message_ids,
+                                                         bool are_all_messages_from_topic) {
+  if (td_->auth_manager_->is_bot() || !G()->use_message_database()) {
+    return;
+  }
+  auto *topic = get_topic(dialog_id, forum_topic_id);
+  // the topic itself can still be loading, and the range is saved when it is received
+  if (topic == nullptr) {
+    return;
+  }
+  if (!are_all_messages_from_topic) {
+    // the server returned messages, which are stored in the database as messages of another topic,
+    // so messages of the topic can't be loaded from the database
+    return forget_topic_database_range(dialog_id, topic);
+  }
+
+  // the server returns all topic messages in the requested part of the topic
+  bool from_the_end = !from_message_id.is_valid() || from_message_id >= MessageId::max();
+  MessageId min_message_id;
+  MessageId max_message_id;
+  int32 older_message_count = 0;
+  for (auto message_id : message_ids) {
+    if (!message_id.is_server()) {
+      continue;
+    }
+    if (from_the_end || message_id < from_message_id) {
+      older_message_count++;
+    }
+    if (!min_message_id.is_valid() || message_id < min_message_id) {
+      min_message_id = message_id;
+    }
+    if (message_id > max_message_id) {
+      max_message_id = message_id;
+    }
+  }
+  auto newer_message_count = static_cast<int32>(message_ids.size()) - older_message_count;
+  // the server can return fewer messages than requested, for example if some of them were just deleted,
+  // so the beginning of a topic is known only from the message, which created it
+  auto first_topic_message_id =
+      forum_topic_id == ForumTopicId::general() ? MessageId() : forum_topic_id.to_top_thread_message_id();
+  bool is_first =
+      (limit + offset > 0 && older_message_count == 0) ||
+      (first_topic_message_id.is_valid() && min_message_id.is_valid() && min_message_id <= first_topic_message_id);
+  bool is_last = from_the_end || newer_message_count < -offset;
+
+  auto &first = topic->first_database_message_id_;
+  auto &last = topic->last_database_message_id_;
+  auto old_first = first;
+  auto old_last = last;
+  if (!max_message_id.is_valid()) {
+    // there are no messages in the requested part of the topic
+    if (is_first && last.is_valid() && from_message_id == first) {
+      first = MessageId::min();
+    }
+  } else {
+    auto new_first = is_first ? MessageId::min() : min_message_id;
+    auto new_last = max_message_id;
+    bool is_adjacent = !from_the_end && offset == 0 && from_message_id == first;
+    if (last.is_valid() && ((new_first <= last && new_last >= first) || is_adjacent)) {
+      first = min(first, new_first);
+      last = max(last, new_last);
+    } else if (!last.is_valid() || is_last) {
+      // keep the range, which can be used to get the newest messages
+      first = new_first;
+      last = new_last;
+    }
+    if (is_last && max_message_id > topic->last_server_message_id_) {
+      topic->last_server_message_id_ = max_message_id;
+    }
+  }
+  if (first != old_first || last != old_last) {
+    LOG(INFO) << "Messages of " << forum_topic_id << " in " << dialog_id << " from " << first << " to " << last
+              << " are stored in the database";
+    topic->need_save_to_database_ = true;
+    save_topic_to_database(dialog_id, topic);
+  }
+}
+
+bool ForumTopicManager::get_topic_database_range(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                 MessageId &first_message_id, MessageId &last_message_id,
+                                                 bool &is_last) const {
+  auto *topic = get_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr || topic->topic_ == nullptr || !topic->last_database_message_id_.is_valid()) {
+    return false;
+  }
+  first_message_id = topic->first_database_message_id_;
+  last_message_id = topic->last_database_message_id_;
+  is_last = topic->last_server_message_id_.is_valid() && last_message_id >= topic->last_server_message_id_;
+  return true;
+}
+
+MessageId ForumTopicManager::get_topic_last_message_id(DialogId dialog_id, ForumTopicId forum_topic_id) const {
+  auto *topic = get_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr || topic->topic_ == nullptr) {
+    return MessageId();
+  }
+  return topic->topic_->get_last_message_id();
+}
+
+void ForumTopicManager::forget_topic_database_range(DialogId dialog_id, ForumTopicId forum_topic_id) {
+  auto *topic = get_topic(dialog_id, forum_topic_id);
+  if (topic != nullptr) {
+    forget_topic_database_range(dialog_id, topic);
+  }
+}
+
+void ForumTopicManager::forget_topic_database_range(DialogId dialog_id, Topic *topic) {
+  CHECK(topic != nullptr);
+  if (!topic->last_database_message_id_.is_valid()) {
+    return;
+  }
+  LOG(INFO) << "Forget stored messages of " << topic->info_->get_forum_topic_id() << " in " << dialog_id;
+  topic->first_database_message_id_ = MessageId();
+  topic->last_database_message_id_ = MessageId();
+  topic->need_save_to_database_ = true;
+  save_topic_to_database(dialog_id, topic);
 }
 
 void ForumTopicManager::on_topic_mention_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count,
