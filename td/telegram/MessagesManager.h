@@ -603,6 +603,9 @@ class MessagesManager final : public Actor {
 
   int64 get_message_order(DialogId dialog_id, MessageId message_id) const;
 
+  // returns 0 if the message isn't in memory
+  int32 get_message_date(MessageFullId message_full_id) const;
+
   void block_message_sender_from_replies(MessageId message_id, bool need_delete_message, bool need_delete_all_messages,
                                          bool report_spam, Promise<Unit> &&promise);
 
