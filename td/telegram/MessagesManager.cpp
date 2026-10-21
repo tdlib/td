@@ -4471,6 +4471,11 @@ void MessagesManager::on_update_read_channel_inbox(tl_object_ptr<telegram_api::u
   on_update_dialog_folder_id(DialogId(channel_id), FolderId(update->folder_id_));
   on_read_channel_inbox(channel_id, MessageId(ServerMessageId(update->max_id_)), update->still_unread_count_,
                         update->pts_, "updateReadChannelInbox");
+  if (td_->chat_manager_->is_forum_tabs_channel(channel_id)) {
+    // reading of the whole chat reads all its topics only if they are shown as tabs
+    td_->forum_topic_manager_->on_update_read_all_forum_topics(DialogId(channel_id),
+                                                               MessageId(ServerMessageId(update->max_id_)));
+  }
 }
 
 void MessagesManager::on_update_read_channel_outbox(tl_object_ptr<telegram_api::updateReadChannelOutbox> &&update) {

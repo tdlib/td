@@ -724,6 +724,25 @@ bool ForumTopicManager::read_topic_messages(DialogId dialog_id, Topic *topic, Me
   return topic->topic_->update_last_read_inbox_message_id(read_inbox_max_message_id, unread_count);
 }
 
+void ForumTopicManager::on_update_read_all_forum_topics(DialogId dialog_id, MessageId read_inbox_max_message_id) {
+  if (td_->auth_manager_->is_bot() || !read_inbox_max_message_id.is_valid()) {
+    return;
+  }
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr) {
+    return;
+  }
+  vector<Topic *> changed_topics;
+  dialog_topics->topics_.foreach([&](const ForumTopicId &forum_topic_id, unique_ptr<Topic> &topic) {
+    if (topic->topic_ != nullptr && read_topic_messages(dialog_id, topic.get(), read_inbox_max_message_id, -1)) {
+      changed_topics.push_back(topic.get());
+    }
+  });
+  for (auto *topic : changed_topics) {
+    on_forum_topic_changed(dialog_id, topic);
+  }
+}
+
 DialogNotificationSettings *ForumTopicManager::get_forum_topic_notification_settings(DialogId dialog_id,
                                                                                      ForumTopicId forum_topic_id) {
   auto topic = get_topic(dialog_id, forum_topic_id);

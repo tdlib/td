@@ -133,6 +133,8 @@ class ForumTopicManager final : public Actor {
 
   void on_update_pinned_forum_topics(DialogId dialog_id, vector<ForumTopicId> forum_topic_ids);
 
+  void on_update_read_all_forum_topics(DialogId dialog_id, MessageId read_inbox_max_message_id);
+
   void reload_pinned_forum_topics(DialogId dialog_id);
 
   void on_channel_difference_too_long(DialogId dialog_id);
