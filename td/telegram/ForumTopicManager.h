@@ -170,6 +170,20 @@ class ForumTopicManager final : public Actor {
   // returns whether some topics were unloaded, so that their last messages can be unloaded too
   bool unload_forum_topics(DialogId dialog_id);
 
+  void on_all_dialog_messages_deleted(DialogId dialog_id);
+
+  void on_get_topic_history_from_server(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId from_message_id,
+                                        int32 offset, int32 limit, const vector<MessageId> &message_ids,
+                                        bool are_all_messages_from_topic);
+
+  // returns the range of topic messages, which are all stored in the message database
+  bool get_topic_database_range(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId &first_message_id,
+                                MessageId &last_message_id, bool &is_last) const;
+
+  MessageId get_topic_last_message_id(DialogId dialog_id, ForumTopicId forum_topic_id) const;
+
+  void forget_topic_database_range(DialogId dialog_id, ForumTopicId forum_topic_id);
+
   void on_topic_mention_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count, bool is_relative);
 
   void on_topic_reaction_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count, bool is_relative);
@@ -198,6 +212,10 @@ class ForumTopicManager final : public Actor {
     int32 receive_date_ = 0;
     int32 last_message_date_ = 0;
     MessageId sent_read_inbox_message_id_;  // for topics, which aren't loaded yet
+    MessageId last_server_message_id_;      // the last known server message in the topic
+    // all messages of the topic between them are stored in the message database; MessageId::min() means from the start
+    MessageId first_database_message_id_;
+    MessageId last_database_message_id_;
     int64 pinned_order_ = 0;
     int64 private_order_ = 0;
     bool is_database_checked_ = false;  // whether the topic was looked for in the database before a reload
@@ -365,6 +383,8 @@ class ForumTopicManager final : public Actor {
   void save_topic_list_state(DialogId dialog_id, const DialogTopics *dialog_topics) const;
 
   void save_topic_to_database(DialogId dialog_id, const Topic *topic);
+
+  void forget_topic_database_range(DialogId dialog_id, Topic *topic);
 
   void delete_topic_from_database(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
 

@@ -7658,6 +7658,10 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
     first_added_message_id = MessageId::min();
   }
   bool can_be_in_different_dialog = message_topic.is_thread() && td_->dialog_manager_->is_broadcast_channel(dialog_id);
+  bool is_forum_topic_history = query.empty() && !sender_dialog_id.is_valid() && filter == MessageSearchFilter::Empty &&
+                                message_topic.is_forum() && tag.is_empty();
+  // all received messages, including the ones, which were deleted locally
+  vector<MessageId> received_message_ids;
   DialogId real_dialog_id;
   MessageId next_from_message_id;
   Dialog *d = get_dialog(dialog_id);
@@ -7665,6 +7669,9 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
   for (auto &message : messages) {
     auto message_id = MessageId::get_message_id(message, false);
     next_from_message_id = message_id;
+    if (is_forum_topic_history) {
+      received_message_ids.push_back(message_id);
+    }
     auto expected_dialog_id = can_be_in_different_dialog ? real_dialog_id : dialog_id;
     auto new_message_full_id =
         on_get_message(expected_dialog_id, std::move(message), false, false, "on_get_dialog_messages_search_result");
@@ -7705,6 +7712,19 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
     LOG(ERROR) << "Receive " << result.size() << " valid messages out of " << total_count << " in " << messages.size()
                << " messages";
     total_count = static_cast<int32>(result.size());
+  }
+  if (is_forum_topic_history && !real_dialog_id.is_valid()) {
+    auto forum_topic_id = message_topic.get_forum_topic_id();
+    bool are_all_messages_from_topic = true;
+    for (auto message_id : result) {
+      const Message *m = get_message(d, message_id);
+      if (m != nullptr && get_message_forum_topic_id(dialog_id, m) != forum_topic_id) {
+        are_all_messages_from_topic = false;
+        break;
+      }
+    }
+    td_->forum_topic_manager_->on_get_topic_history_from_server(
+        dialog_id, forum_topic_id, from_message_id, offset, limit, received_message_ids, are_all_messages_from_topic);
   }
   if (query.empty() && !sender_dialog_id.is_valid() && filter != MessageSearchFilter::Empty &&
       message_topic.is_empty() && tag.is_empty()) {
@@ -8917,6 +8937,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     clear_dialog_message_list(d, remove_from_dialog_list, last_message_date);
 
     td_->saved_messages_manager_->on_all_dialog_messages_deleted(d->dialog_id);
+    td_->forum_topic_manager_->on_all_dialog_messages_deleted(d->dialog_id);
   }
 
   bool was_live_location_deleted = false;
@@ -31983,6 +32004,8 @@ void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, Messag
   auto dialog_id = d->dialog_id;
   LOG(INFO) << "Delete all messages in " << dialog_id << " from database up to " << max_message_id << " from "
             << source;
+  // the stored ranges of topic messages can't be used anymore
+  td_->forum_topic_manager_->on_all_dialog_messages_deleted(dialog_id);
   /*
   if (dialog_id.get_type() == DialogType::User && max_message_id.is_server()) {
     bool need_save = false;
