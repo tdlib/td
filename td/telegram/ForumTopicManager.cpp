@@ -1697,6 +1697,24 @@ void ForumTopicManager::repair_topic_unread_reaction_count(DialogId dialog_id, F
       ->send(dialog_id, forum_topic_id);
 }
 
+void ForumTopicManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  dialog_topics_.foreach([&](const DialogId &dialog_id, const unique_ptr<DialogTopics> &dialog_topics) {
+    dialog_topics->topics_.foreach([&](const ForumTopicId &forum_topic_id, const unique_ptr<Topic> &topic) {
+      if (topic->info_ == nullptr) {
+        return;
+      }
+      updates.push_back(get_update_forum_topic_info_object(topic->info_.get()));
+      if (topic->topic_ != nullptr) {
+        updates.push_back(get_update_forum_topic_object(dialog_id, topic.get()));
+      }
+    });
+  });
+}
+
 void ForumTopicManager::repair_topic_unread_poll_vote_count(DialogId dialog_id, ForumTopicId forum_topic_id) {
   // no need to repair unread vote count in private chats with bots
   if (is_forum(dialog_id, false).is_error() || can_be_forum_topic_id(forum_topic_id).is_error()) {
