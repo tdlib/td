@@ -31943,9 +31943,16 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   if (m->ttl_period != 0 && (ttl_expires_at == 0 || m->date + m->ttl_period < ttl_expires_at)) {
     ttl_expires_at = m->date + m->ttl_period;
   }
+  int64 topic_id = 0;
+  auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+  if (forum_topic_id.is_valid()) {
+    topic_id = forum_topic_id.get();
+  } else if (m->saved_messages_topic_id.is_valid()) {
+    topic_id = m->saved_messages_topic_id.get_unique_id();
+  }
   G()->td_db()->get_message_db_async()->add_message(
       {d->dialog_id, message_id}, unique_message_id, get_message_sender(m), random_id, ttl_expires_at,
-      get_message_index_mask(d->dialog_id, m), search_id, text, m->notification_id, m->top_thread_message_id, 0,
+      get_message_index_mask(d->dialog_id, m), search_id, text, m->notification_id, m->top_thread_message_id, topic_id,
       log_event_store(*m), Auto());  // TODO Promise
 }
 
