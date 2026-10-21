@@ -324,9 +324,15 @@ class ForumTopicManager final : public Actor {
   void set_local_pinned_forum_topics(DialogId dialog_id, DialogTopics *dialog_topics,
                                      vector<ForumTopicId> forum_topic_ids);
 
+  static string get_topic_list_state_key(DialogId dialog_id);
+
+  void save_topic_list_state(DialogId dialog_id, const DialogTopics *dialog_topics) const;
+
   void save_topic_to_database(DialogId dialog_id, const Topic *topic);
 
   void delete_topic_from_database(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
+
+  void delete_all_dialog_topics_from_database(DialogId dialog_id);
 
   Td *td_;
   ActorShared<> parent_;
