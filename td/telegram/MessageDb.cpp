@@ -239,6 +239,16 @@ class MessageDbImpl final : public MessageDbSyncInterface {
     TRY_RESULT_ASSIGN(get_messages_stmt_.desc_stmt_,
                       db_.get_statement("SELECT data, message_id FROM messages WHERE dialog_id = ?1 AND message_id < "
                                         "?2 ORDER BY message_id DESC LIMIT ?3"));
+    TRY_RESULT_ASSIGN(get_topic_messages_stmt_.asc_stmt_,
+                      db_.get_statement("SELECT messages.data, messages.message_id FROM message_topics JOIN messages "
+                                        "USING (dialog_id, message_id) WHERE message_topics.dialog_id = ?1 AND "
+                                        "message_topics.topic_id = ?4 AND message_topics.message_id > ?2 ORDER BY "
+                                        "message_topics.message_id ASC LIMIT ?3"));
+    TRY_RESULT_ASSIGN(get_topic_messages_stmt_.desc_stmt_,
+                      db_.get_statement("SELECT messages.data, messages.message_id FROM message_topics JOIN messages "
+                                        "USING (dialog_id, message_id) WHERE message_topics.dialog_id = ?1 AND "
+                                        "message_topics.topic_id = ?4 AND message_topics.message_id < ?2 ORDER BY "
+                                        "message_topics.message_id DESC LIMIT ?3"));
     TRY_RESULT_ASSIGN(get_scheduled_messages_stmt_,
                       db_.get_statement("SELECT data, message_id FROM scheduled_messages WHERE dialog_id = ?1 AND "
                                         "message_id < ?2 ORDER BY message_id DESC LIMIT ?3"));
@@ -700,7 +710,12 @@ class MessageDbImpl final : public MessageDbSyncInterface {
 
   vector<MessageDbDialogMessage> get_messages(MessageDbMessagesQuery query) final {
     if (query.filter != MessageSearchFilter::Empty) {
+      CHECK(query.topic_id == 0);
       return get_messages_from_index(query.dialog_id, query.from_message_id, query.filter, query.offset, query.limit);
+    }
+    if (query.topic_id != 0) {
+      return get_messages_impl(get_topic_messages_stmt_, query.dialog_id, query.from_message_id, query.offset,
+                               query.limit, query.topic_id);
     }
     return get_messages_impl(get_messages_stmt_, query.dialog_id, query.from_message_id, query.offset, query.limit);
   }
@@ -888,6 +903,7 @@ class MessageDbImpl final : public MessageDbSyncInterface {
     SqliteStatement desc_stmt_;
   };
   GetMessagesStmt get_messages_stmt_;
+  GetMessagesStmt get_topic_messages_stmt_;
   SqliteStatement get_scheduled_messages_stmt_;
   SqliteStatement get_messages_from_notification_id_stmt_;
 
@@ -904,7 +920,8 @@ class MessageDbImpl final : public MessageDbSyncInterface {
   SqliteStatement delete_scheduled_server_message_stmt_;
 
   static vector<MessageDbDialogMessage> get_messages_impl(GetMessagesStmt &stmt, DialogId dialog_id,
-                                                          MessageId from_message_id, int32 offset, int32 limit) {
+                                                          MessageId from_message_id, int32 offset, int32 limit,
+                                                          int64 topic_id = 0) {
     LOG_CHECK(dialog_id.is_valid()) << dialog_id;
     CHECK(from_message_id.is_valid());
 
@@ -932,14 +949,14 @@ class MessageDbImpl final : public MessageDbSyncInterface {
         left_cnt++;
       }
 
-      left = get_messages_inner(stmt.desc_stmt_, dialog_id, left_message_id, left_cnt);
+      left = get_messages_inner(stmt.desc_stmt_, dialog_id, left_message_id, left_cnt, topic_id);
 
       if (right_cnt == 1 && !left.empty() && false /*get_message_id(left[0].as_slice()) == message_id*/) {
         right_cnt = 0;
       }
     }
     if (right_cnt != 0) {
-      right = get_messages_inner(stmt.asc_stmt_, dialog_id, right_message_id, right_cnt);
+      right = get_messages_inner(stmt.asc_stmt_, dialog_id, right_message_id, right_cnt, topic_id);
       td::reverse(right);
     }
     if (left.empty()) {
@@ -956,13 +973,16 @@ class MessageDbImpl final : public MessageDbSyncInterface {
   }
 
   static vector<MessageDbDialogMessage> get_messages_inner(SqliteStatement &stmt, DialogId dialog_id,
-                                                           int64 from_message_id, int32 limit) {
+                                                           int64 from_message_id, int32 limit, int64 topic_id = 0) {
     SCOPE_EXIT {
       stmt.reset();
     };
     stmt.bind_int64(1, dialog_id.get()).ensure();
     stmt.bind_int64(2, from_message_id).ensure();
     stmt.bind_int32(3, limit).ensure();
+    if (topic_id != 0) {
+      stmt.bind_int64(4, topic_id).ensure();
+    }
 
     LOG(INFO) << "Begin to load " << limit << " messages in " << dialog_id << " from " << MessageId(from_message_id)
               << " from database";
