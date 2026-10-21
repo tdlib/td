@@ -2249,6 +2249,13 @@ class MessagesManager final : public Actor {
                                                                     int32 limit, int64 &random_id,
                                                                     Promise<Unit> &&promise);
 
+  void on_get_forum_topic_history_from_database(DialogId dialog_id, MessageTopic topic, MessageId from_message_id,
+                                                int32 offset, int32 limit, int64 random_id,
+                                                MessageId first_database_message_id, MessageId last_database_message_id,
+                                                bool is_last_database_message,
+                                                Result<vector<MessageDbDialogMessage>> r_messages,
+                                                Promise<Unit> &&promise);
+
   static bool have_dialog_scheduled_messages_in_memory(const Dialog *d);
 
   static bool is_allowed_useless_update(const tl_object_ptr<telegram_api::Update> &update);

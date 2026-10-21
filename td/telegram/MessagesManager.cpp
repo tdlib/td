@@ -18155,10 +18155,99 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
   } while (random_id == 0 || found_dialog_messages_.count(random_id) > 0);
   found_dialog_messages_[random_id];  // reserve place for result
 
+  if (topic.is_forum() && G()->use_message_database()) {
+    MessageId first_database_message_id;
+    MessageId last_database_message_id;
+    bool is_last_database_message = false;
+    if (td_->forum_topic_manager_->get_topic_database_range(dialog_id, topic.get_forum_topic_id(),
+                                                            first_database_message_id, last_database_message_id,
+                                                            is_last_database_message) &&
+        (from_message_id == MessageId::max()
+             ? is_last_database_message
+             : first_database_message_id < from_message_id && from_message_id <= last_database_message_id)) {
+      MessageDbMessagesQuery db_query;
+      db_query.dialog_id = dialog_id;
+      db_query.from_message_id =
+          from_message_id == MessageId::max() ? from_message_id : from_message_id.get_next_server_message_id();
+      db_query.offset = offset;
+      db_query.limit = limit;
+      db_query.topic_id = topic.get_forum_topic_id().get();
+      G()->td_db()->get_message_db_async()->get_messages(
+          db_query, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, topic, from_message_id, offset, limit,
+                                            random_id, first_database_message_id, last_database_message_id,
+                                            is_last_database_message, promise = std::move(promise)](
+                                               Result<vector<MessageDbDialogMessage>> r_messages) mutable {
+            send_closure(actor_id, &MessagesManager::on_get_forum_topic_history_from_database, dialog_id, topic,
+                         from_message_id, offset, limit, random_id, first_database_message_id, last_database_message_id,
+                         is_last_database_message, std::move(r_messages), std::move(promise));
+          }));
+      return {};
+    }
+  }
+
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
       ->send(dialog_id, topic, string(), DialogId(), from_message_id.get_next_server_message_id(), offset, limit,
              MessageSearchFilter::Empty, ReactionType(), random_id);
   return {};
+}
+
+void MessagesManager::on_get_forum_topic_history_from_database(
+    DialogId dialog_id, MessageTopic topic, MessageId from_message_id, int32 offset, int32 limit, int64 random_id,
+    MessageId first_database_message_id, MessageId last_database_message_id, bool is_last_database_message,
+    Result<vector<MessageDbDialogMessage>> r_messages, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  auto it = found_dialog_messages_.find(random_id);
+  CHECK(it != found_dialog_messages_.end());
+
+  auto from_server_message_id =
+      from_message_id == MessageId::max() ? from_message_id : from_message_id.get_next_server_message_id();
+  vector<MessageId> message_ids;
+  int32 older_message_count = 0;
+  if (r_messages.is_ok()) {
+    for (auto &message : r_messages.ok_ref()) {
+      auto m = on_get_message_from_database(d, message, false, "on_get_forum_topic_history_from_database");
+      // local messages are added from the thread's list, and messages outside the range may have gaps before them
+      if (m == nullptr || !m->message_id.is_server() || m->message_id < first_database_message_id ||
+          m->message_id > last_database_message_id) {
+        continue;
+      }
+      if (m->message_id < from_server_message_id) {
+        older_message_count++;
+      }
+      message_ids.push_back(m->message_id);
+    }
+  }
+  auto newer_message_count = static_cast<int32>(message_ids.size()) - older_message_count;
+  bool is_complete = r_messages.is_ok() &&
+                     (older_message_count == limit + offset || first_database_message_id == MessageId::min()) &&
+                     (newer_message_count == -offset || is_last_database_message);
+  if (is_complete && is_last_database_message &&
+      (from_message_id == MessageId::max() || newer_message_count < -offset)) {
+    // the found messages must end with the last message of the topic
+    auto forum_topic_id = topic.get_forum_topic_id();
+    auto last_message_id = td_->forum_topic_manager_->get_topic_last_message_id(dialog_id, forum_topic_id);
+    MessageId max_message_id;
+    for (auto message_id : message_ids) {
+      max_message_id = max(max_message_id, message_id);
+    }
+    if (last_message_id.is_server() && max_message_id < last_message_id) {
+      LOG(INFO) << "Have no " << last_message_id << " of " << topic << " in the database";
+      td_->forum_topic_manager_->forget_topic_database_range(dialog_id, forum_topic_id);
+      is_complete = false;
+    }
+  }
+  if (is_complete) {
+    LOG(INFO) << "Found " << message_ids.size() << " messages of " << topic << " in the database";
+    it->second.message_ids = std::move(message_ids);
+    return promise.set_value(Unit());
+  }
+
+  // some messages aren't in the database; they must be loaded from the server
+  td_->create_handler<SearchMessagesQuery>(std::move(promise))
+      ->send(dialog_id, topic, string(), DialogId(), from_server_message_id, offset, limit, MessageSearchFilter::Empty,
+             ReactionType(), random_id);
 }
 
 std::pair<DialogId, vector<MessageId>> MessagesManager::get_forum_topic_history(DialogId dialog_id,
