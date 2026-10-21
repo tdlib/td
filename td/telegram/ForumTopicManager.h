@@ -17,6 +17,7 @@
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesInfo.h"
+#include "td/telegram/MessageThreadDb.h"
 #include "td/telegram/OrderedMessage.h"
 #include "td/telegram/OrderedTopics.h"
 #include "td/telegram/td_api.h"
@@ -184,6 +185,7 @@ class ForumTopicManager final : public Actor {
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server-side limit for forum topic title
   static constexpr int32 MAX_GET_FORUM_TOPICS = 100;           // server-side limit
   static constexpr size_t MAX_GET_FORUM_TOPICS_BY_ID = 100;    // server-side limit
+  static constexpr int32 MAX_LOAD_FORUM_TOPICS_FROM_DATABASE = 1000;
 
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;
@@ -211,6 +213,7 @@ class ForumTopicManager final : public Actor {
     OrderedTopics<ForumTopicId> ordered_topics_;
 
     uint32 generation_ = 0;
+    bool is_database_loaded_ = false;
     vector<Promise<Unit>> load_queries_;
     int32 offset_date_ = 0;
     MessageId offset_message_id_;
@@ -308,6 +311,15 @@ class ForumTopicManager final : public Actor {
 
   void on_reload_pinned_forum_topics(DialogId dialog_id, uint32 generation,
                                      Result<td_api::object_ptr<td_api::forumTopics>> &&result);
+
+  void load_forum_topics_from_server(DialogId dialog_id, DialogTopics *dialog_topics, int32 limit);
+
+  bool load_forum_topics_from_database(DialogId dialog_id, DialogTopics *dialog_topics);
+
+  void on_load_forum_topics_from_database(DialogId dialog_id, uint32 generation, string state,
+                                          Result<MessageThreadDbMessageThreads> result);
+
+  void add_topic_from_database(DialogId dialog_id, DialogTopics *dialog_topics, BufferSlice data);
 
   void on_load_forum_topics(DialogId dialog_id, uint32 generation,
                             Result<td_api::object_ptr<td_api::forumTopics>> &&result);
