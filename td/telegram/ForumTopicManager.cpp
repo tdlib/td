@@ -365,15 +365,17 @@ class GetForumTopicQuery final : public Td::ResultHandler {
 class GetForumTopicsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::forumTopics>> promise_;
   DialogId dialog_id_;
+  uint32 generation_ = 0;
 
  public:
   explicit GetForumTopicsQuery(Promise<td_api::object_ptr<td_api::forumTopics>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &query, int32 offset_date, MessageId offset_message_id,
+  void send(DialogId dialog_id, uint32 generation, const string &query, int32 offset_date, MessageId offset_message_id,
             ForumTopicId offset_forum_topic_id, int32 limit) {
     dialog_id_ = dialog_id;
+    generation_ = generation;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
@@ -408,14 +410,15 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
     td_->messages_manager_->get_channel_difference_if_needed(
         dialog_id_, std::move(messages_info),
         PromiseCreator::lambda([actor_id = td_->forum_topic_manager_actor_.get(), dialog_id = dialog_id_,
-                                order_by_creation_date = ptr->order_by_create_date_, topics = std::move(ptr->topics_),
+                                generation = generation_, order_by_creation_date = ptr->order_by_create_date_,
+                                topics = std::move(ptr->topics_),
                                 promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
             auto info = result.move_as_ok();
-            send_closure(actor_id, &ForumTopicManager::on_get_forum_topics, dialog_id, order_by_creation_date,
-                         std::move(info), std::move(topics), std::move(promise));
+            send_closure(actor_id, &ForumTopicManager::on_get_forum_topics, dialog_id, generation,
+                         order_by_creation_date, std::move(info), std::move(topics), std::move(promise));
           }
         }),
         "GetForumTopicsQuery");
@@ -753,14 +756,7 @@ void ForumTopicManager::on_update_pinned_forum_topics(DialogId dialog_id, vector
     return;
   }
 
-  dialog_topics->topics_.foreach([&](const ForumTopicId &forum_topic_id, unique_ptr<Topic> &topic) {
-    if (topic->topic_ == nullptr) {
-      return;
-    }
-    if (topic->topic_->set_is_pinned(contains(forum_topic_ids, forum_topic_id))) {
-      on_forum_topic_changed(dialog_id, topic.get());
-    }
-  });
+  set_local_pinned_forum_topics(dialog_id, dialog_topics, std::move(forum_topic_ids));
 }
 
 Status ForumTopicManager::set_forum_topic_notification_settings(
@@ -827,7 +823,8 @@ void ForumTopicManager::get_forum_topic(DialogId dialog_id, ForumTopicId forum_t
     auto topic = get_topic(dialog_id, forum_topic_id);
     if (topic != nullptr && topic->topic_ != nullptr && topic->receive_date_ > G()->unix_time() - 60) {
       CHECK(topic->info_ != nullptr);
-      auto forum_topic = topic->topic_->get_forum_topic_object(td_, dialog_id, *topic->info_);
+      auto forum_topic = topic->topic_->get_forum_topic_object(td_, dialog_id, *topic->info_,
+                                                               get_topic_public_order(dialog_id, topic));
       if (forum_topic != nullptr) {
         return promise.set_value(std::move(forum_topic));
       }
@@ -860,7 +857,7 @@ void ForumTopicManager::on_get_forum_topic(DialogId dialog_id, ForumTopicId expe
   td_->messages_manager_->on_get_messages(dialog_id, std::move(info.messages), false, Promise<Unit>(),
                                           "on_get_forum_topic");
 
-  auto forum_topic_id = on_get_forum_topic_impl(dialog_id, std::move(topic));
+  auto forum_topic_id = on_get_forum_topic_impl(dialog_id, std::move(topic), true);
   if (!forum_topic_id.is_valid()) {
     return promise.set_value(nullptr);
   }
@@ -892,6 +889,97 @@ void ForumTopicManager::get_forum_topic_link(DialogId dialog_id, ForumTopicId fo
   promise.set_value(td_api::make_object<td_api::messageLink>(sb.as_cslice().str(), is_public));
 }
 
+void ForumTopicManager::load_forum_topics(DialogId dialog_id, int32 limit, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
+  if (limit < 0) {
+    return promise.set_error(400, "Limit must be non-negative");
+  }
+  if (limit == 0) {
+    return promise.set_value(Unit());
+  }
+  auto *dialog_topics = add_dialog_topics(dialog_id);
+  if (dialog_topics->ordered_topics_.is_fully_loaded()) {
+    return promise.set_error(404, "Not Found");
+  }
+  dialog_topics->load_queries_.push_back(std::move(promise));
+  if (dialog_topics->load_queries_.size() != 1u) {
+    return;
+  }
+
+  limit = min(limit, MAX_GET_FORUM_TOPICS);
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, generation = dialog_topics->generation_](
+                                 Result<td_api::object_ptr<td_api::forumTopics>> result) {
+        send_closure(actor_id, &ForumTopicManager::on_load_forum_topics, dialog_id, generation, std::move(result));
+      });
+  td_->create_handler<GetForumTopicsQuery>(std::move(query_promise))
+      ->send(dialog_id, dialog_topics->generation_, string(), dialog_topics->offset_date_,
+             dialog_topics->offset_message_id_, dialog_topics->offset_forum_topic_id_, limit);
+}
+
+void ForumTopicManager::on_load_forum_topics(DialogId dialog_id, uint32 generation,
+                                             Result<td_api::object_ptr<td_api::forumTopics>> &&result) {
+  G()->ignore_result_if_closing(result);
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr || dialog_topics->generation_ != generation) {
+    return;
+  }
+  if (result.is_error()) {
+    return fail_promises(dialog_topics->load_queries_, result.move_as_error());
+  }
+  CHECK(result.ok() != nullptr);
+  if (result.ok()->topics_.empty()) {
+    return fail_promises(dialog_topics->load_queries_, Status::Error(404, "Not Found"));
+  }
+  set_promises(dialog_topics->load_queries_);
+}
+
+vector<ForumTopicId> ForumTopicManager::on_load_forum_topics_page(DialogId dialog_id, DialogTopics *dialog_topics,
+                                                                  const td_api::forumTopics *forum_topics) {
+  CHECK(dialog_topics != nullptr);
+  CHECK(forum_topics != nullptr);
+  bool is_first_page = dialog_topics->offset_date_ == 0 && dialog_topics->offset_message_id_ == MessageId() &&
+                       dialog_topics->offset_forum_topic_id_ == ForumTopicId();
+  vector<ForumTopicId> pinned_forum_topic_ids;
+  const Topic *last_topic = nullptr;
+  for (auto &forum_topic : forum_topics->topics_) {
+    auto forum_topic_id = ForumTopicId(forum_topic->info_->forum_topic_id_);
+    auto *topic = get_topic(dialog_topics, forum_topic_id);
+    if (topic == nullptr || topic->topic_ == nullptr) {
+      continue;
+    }
+    if (forum_topic->is_pinned_) {
+      pinned_forum_topic_ids.push_back(forum_topic_id);
+    } else if (topic->private_order_ != 0) {
+      // a topic without a known last message date has no place in the list and can't bound the loaded part of it
+      last_topic = topic;
+    }
+  }
+  if (is_first_page) {
+    set_local_pinned_forum_topics(dialog_id, dialog_topics, std::move(pinned_forum_topic_ids));
+  }
+
+  auto &ordered_topics = dialog_topics->ordered_topics_;
+  ordered_topics.set_server_total_count(forum_topics->total_count_);
+  bool is_last = forum_topics->topics_.empty() ||
+                 (forum_topics->next_offset_date_ == dialog_topics->offset_date_ &&
+                  MessageId(forum_topics->next_offset_message_id_) == dialog_topics->offset_message_id_ &&
+                  ForumTopicId(forum_topics->next_offset_forum_topic_id_) == dialog_topics->offset_forum_topic_id_);
+  dialog_topics->offset_date_ = forum_topics->next_offset_date_;
+  dialog_topics->offset_message_id_ = MessageId(forum_topics->next_offset_message_id_);
+  dialog_topics->offset_forum_topic_id_ = ForumTopicId(forum_topics->next_offset_forum_topic_id_);
+
+  auto last_topic_date = OrderedTopics<ForumTopicId>::max_topic_date();
+  if (is_last) {
+    // the whole list is loaded
+  } else if (last_topic != nullptr) {
+    last_topic_date = {last_topic->private_order_, last_topic->info_->get_forum_topic_id()};
+  } else {
+    last_topic_date = {OrderedTopics<ForumTopicId>::MIN_PINNED_TOPIC_ORDER - 1, ForumTopicId()};
+  }
+  return ordered_topics.set_last_topic_date(last_topic_date);
+}
+
 void ForumTopicManager::get_forum_topics(DialogId dialog_id, string query, int32 offset_date,
                                          MessageId offset_message_id, ForumTopicId offset_forum_topic_id, int32 limit,
                                          Promise<td_api::object_ptr<td_api::forumTopics>> promise) {
@@ -909,11 +997,13 @@ void ForumTopicManager::get_forum_topics(DialogId dialog_id, string query, int32
   if (limit <= 0) {
     return promise.set_error(400, "Invalid limit specified");
   }
+  // generations of topic lists start from 1
   td_->create_handler<GetForumTopicsQuery>(std::move(promise))
-      ->send(dialog_id, query, offset_date, offset_message_id, offset_forum_topic_id, limit);
+      ->send(dialog_id, 0, query, offset_date, offset_message_id, offset_forum_topic_id, limit);
 }
 
-void ForumTopicManager::on_get_forum_topics(DialogId dialog_id, bool order_by_creation_date, MessagesInfo &&info,
+void ForumTopicManager::on_get_forum_topics(DialogId dialog_id, uint32 generation, bool order_by_creation_date,
+                                            MessagesInfo &&info,
                                             vector<telegram_api::object_ptr<telegram_api::ForumTopic>> &&topics,
                                             Promise<td_api::object_ptr<td_api::forumTopics>> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
@@ -922,7 +1012,7 @@ void ForumTopicManager::on_get_forum_topics(DialogId dialog_id, bool order_by_cr
   // a newly pinned topic is pinned above the other ones, so the page is applied from its end
   vector<ForumTopicId> forum_topic_ids;
   for (auto &topic : reversed(topics)) {
-    forum_topic_ids.push_back(on_get_forum_topic_impl(dialog_id, std::move(topic)));
+    forum_topic_ids.push_back(on_get_forum_topic_impl(dialog_id, std::move(topic), false));
   }
   vector<td_api::object_ptr<td_api::forumTopic>> forum_topics;
   int32 next_offset_date = 0;
@@ -945,9 +1035,28 @@ void ForumTopicManager::on_get_forum_topics(DialogId dialog_id, bool order_by_cr
     forum_topics.push_back(std::move(forum_topic_object));
   }
 
-  promise.set_value(td_api::make_object<td_api::forumTopics>(info.total_count, std::move(forum_topics),
-                                                             next_offset_date, next_offset_message_id.get(),
-                                                             next_offset_forum_topic_id.get()));
+  auto result =
+      td_api::make_object<td_api::forumTopics>(info.total_count, std::move(forum_topics), next_offset_date,
+                                               next_offset_message_id.get(), next_offset_forum_topic_id.get());
+
+  // a page of the list being loaded extends the loaded part of the list before its topics are sent,
+  // so that they are sent once, with their place in the list
+  vector<ForumTopicId> changed_forum_topic_ids;
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics != nullptr && dialog_topics->generation_ == generation) {
+    changed_forum_topic_ids = on_load_forum_topics_page(dialog_id, dialog_topics, result.get());
+  }
+  for (auto forum_topic_id : reversed(forum_topic_ids)) {
+    if (forum_topic_id.is_valid()) {
+      send_update_forum_topic(dialog_id, get_topic(dialog_id, forum_topic_id));
+    }
+  }
+  for (auto forum_topic_id : changed_forum_topic_ids) {
+    if (!td::contains(forum_topic_ids, forum_topic_id)) {
+      send_update_forum_topic(dialog_id, get_topic(dialog_id, forum_topic_id));
+    }
+  }
+  promise.set_value(std::move(result));
 }
 
 void ForumTopicManager::toggle_forum_topic_is_closed(DialogId dialog_id, ForumTopicId forum_topic_id, bool is_closed,
@@ -1066,7 +1175,13 @@ void ForumTopicManager::delete_all_dialog_topics(DialogId dialog_id) {
 
 void ForumTopicManager::on_dialog_is_forum_changed(DialogId dialog_id) {
   // messages are assigned to topics depending on whether the chat is a forum, so the topics must be received again
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr) {
+    return;
+  }
+  auto load_queries = std::move(dialog_topics->load_queries_);
   dialog_topics_.erase(dialog_id);
+  fail_promises(load_queries, Status::Error(400, "The chat is not a forum"));
 }
 
 void ForumTopicManager::on_forum_topic_edited(DialogId dialog_id, ForumTopicId forum_topic_id,
@@ -1157,7 +1272,8 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
 }
 
 ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
-                                                        tl_object_ptr<telegram_api::ForumTopic> &&forum_topic) {
+                                                        tl_object_ptr<telegram_api::ForumTopic> &&forum_topic,
+                                                        bool need_update) {
   CHECK(forum_topic != nullptr);
   switch (forum_topic->get_id()) {
     case telegram_api::forumTopicDeleted::ID: {
@@ -1197,7 +1313,9 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
         topic->last_message_date_ = td_->messages_manager_->get_get_message_date(dialog_id)(last_message_id);
       }
       update_topic_order(dialog_id, topic);
-      send_update_forum_topic(dialog_id, topic);
+      if (need_update) {
+        send_update_forum_topic(dialog_id, topic);
+      }
       save_topic_to_database(dialog_id, topic);
       return forum_topic_id;
     }
@@ -1231,7 +1349,58 @@ td_api::object_ptr<td_api::forumTopic> ForumTopicManager::get_forum_topic_object
     return nullptr;
   }
   CHECK(topic->info_ != nullptr);
-  return topic->topic_->get_forum_topic_object(td_, dialog_id, *topic->info_);
+  return topic->topic_->get_forum_topic_object(td_, dialog_id, *topic->info_, get_topic_public_order(dialog_id, topic));
+}
+
+int64 ForumTopicManager::get_topic_public_order(DialogId dialog_id, const Topic *topic) const {
+  CHECK(topic != nullptr);
+  if (td_->auth_manager_->is_bot()) {
+    return topic->topic_ == nullptr ? 0 : topic->topic_->get_order(topic->last_message_date_);
+  }
+  if (topic->info_ == nullptr) {
+    return 0;
+  }
+  auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
+  CHECK(dialog_topics != nullptr);
+  return dialog_topics->ordered_topics_.get_public_order(topic->private_order_, topic->info_->get_forum_topic_id());
+}
+
+void ForumTopicManager::set_local_pinned_forum_topics(DialogId dialog_id, DialogTopics *dialog_topics,
+                                                      vector<ForumTopicId> forum_topic_ids) {
+  CHECK(dialog_topics != nullptr);
+  td::remove_if(forum_topic_ids, [&](ForumTopicId forum_topic_id) {
+    auto *topic = get_topic(dialog_topics, forum_topic_id);
+    return topic == nullptr || topic->topic_ == nullptr;
+  });
+  auto &ordered_topics = dialog_topics->ordered_topics_;
+  if (ordered_topics.get_pinned_topic_ids() == forum_topic_ids) {
+    return;
+  }
+  vector<ForumTopicId> added_forum_topic_ids;
+  vector<ForumTopicId> removed_forum_topic_ids;
+  ordered_topics.get_pinned_topic_changes(std::move(forum_topic_ids), added_forum_topic_ids, removed_forum_topic_ids);
+  for (auto forum_topic_id : removed_forum_topic_ids) {
+    ordered_topics.unpin_topic(forum_topic_id);
+    auto *topic = get_topic(dialog_topics, forum_topic_id);
+    if (topic == nullptr) {
+      continue;
+    }
+    topic->pinned_order_ = 0;
+    if (topic->topic_ != nullptr) {
+      topic->topic_->set_is_pinned(false);
+    }
+    on_forum_topic_changed(dialog_id, topic);
+  }
+  for (auto forum_topic_id : added_forum_topic_ids) {
+    auto *topic = get_topic(dialog_topics, forum_topic_id);
+    CHECK(topic != nullptr && topic->topic_ != nullptr);
+    auto pinned_order = ordered_topics.pin_topic(forum_topic_id);
+    if (pinned_order != 0) {
+      topic->pinned_order_ = pinned_order;
+    }
+    topic->topic_->set_is_pinned(true);
+    on_forum_topic_changed(dialog_id, topic);
+  }
 }
 
 Status ForumTopicManager::is_forum(DialogId dialog_id, bool allow_bots) {
@@ -1302,6 +1471,7 @@ ForumTopicManager::DialogTopics *ForumTopicManager::add_dialog_topics(DialogId d
   auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
   if (dialog_topics == nullptr) {
     auto new_dialog_topics = make_unique<DialogTopics>();
+    new_dialog_topics->generation_ = ++current_topic_list_generation_;
     dialog_topics = new_dialog_topics.get();
     dialog_topics_.set(dialog_id, std::move(new_dialog_topics));
   }

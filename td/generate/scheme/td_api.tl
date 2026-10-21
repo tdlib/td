@@ -4420,7 +4420,7 @@ forumTopicInfo chat_id:int53 forum_topic_id:int32 name:string icon:forumTopicIco
 //@description Describes a forum topic
 //@info Basic information about the topic
 //@last_message Last message in the topic; may be null if unknown
-//@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order
+//@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order. If order is 0, then the topic must not be shown in the topic list
 //@is_pinned True, if the topic is pinned in the topic list
 //@unread_count Number of unread messages in the topic
 //@last_read_inbox_message_id Identifier of the last read incoming message
@@ -13643,6 +13643,12 @@ getForumTopicHistory chat_id:int53 forum_topic_id:int32 from_message_id:int53 of
 
 //@description Returns an HTTPS link to a topic in a forum supergroup chat. This is an offline method @chat_id Identifier of the chat @forum_topic_id Forum topic identifier
 getForumTopicLink chat_id:int53 forum_topic_id:int32 = MessageLink;
+
+//@description Loads more topics in a forum supergroup chat or a chat with a bot with topics. The loaded topics will be sent through updateForumTopic.
+//-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
+//@chat_id Identifier of the chat
+//@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
+loadForumTopics chat_id:int53 limit:int32 = Ok;
 
 //@description Returns found forum topics in a forum supergroup chat or a chat with a bot with topics. This is a temporary method for getting information about topic list from the server
 //@chat_id Identifier of the chat

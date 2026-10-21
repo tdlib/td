@@ -4899,6 +4899,12 @@ void Requests::on_request(uint64 id, const td_api::getForumTopicLink &request) {
                                                   std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::loadForumTopics &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->forum_topic_manager_->load_forum_topics(DialogId(request.chat_id_), request.limit_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getForumTopics &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
