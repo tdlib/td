@@ -8924,6 +8924,12 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     }
     remove_message_file_sources(d->dialog_id, m, "delete_all_dialog_messages");
 
+    auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+    if (forum_topic_id.is_valid()) {
+      td_->forum_topic_manager_->on_topic_message_deleted(d->dialog_id, forum_topic_id, message_id, false,
+                                                          "delete_all_dialog_messages");
+    }
+
     on_message_deleted(d, m, is_permanently_deleted, "delete_all_dialog_messages");
 
     if (is_permanently_deleted) {
@@ -13147,6 +13153,11 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
       td_->saved_messages_manager_->is_last_topic_message(d->dialog_id, m->saved_messages_topic_id, m->message_id)) {
     return false;
   }
+  auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+  if (forum_topic_id.is_valid() &&
+      td_->forum_topic_manager_->is_last_topic_message(d->dialog_id, forum_topic_id, m->message_id)) {
+    return false;
+  }
   return d->open_count == 0 && m->message_id != d->last_message_id && m->message_id != d->last_database_message_id &&
          !m->message_id.is_yet_unsent() && active_live_location_message_full_ids_.count(message_full_id) == 0 &&
          replied_by_yet_unsent_messages_.count(message_full_id) == 0 &&
@@ -13571,6 +13582,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     if (m->saved_messages_topic_id.is_valid()) {
       td_->saved_messages_manager_->on_topic_message_deleted(d->dialog_id, m->saved_messages_topic_id, m->message_id,
                                                              only_from_memory, source);
+    }
+    auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+    if (forum_topic_id.is_valid()) {
+      td_->forum_topic_manager_->on_topic_message_deleted(d->dialog_id, forum_topic_id, m->message_id, only_from_memory,
+                                                          source);
     }
   }
 
@@ -27210,6 +27226,10 @@ void MessagesManager::send_update_last_message_if_needed(const Dialog *d, const 
   if (m->saved_messages_topic_id.is_valid()) {
     td_->saved_messages_manager_->on_topic_message_updated(d->dialog_id, m->saved_messages_topic_id, m->message_id);
   }
+  auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+  if (forum_topic_id.is_valid()) {
+    td_->forum_topic_manager_->on_topic_message_updated(d->dialog_id, forum_topic_id, m->message_id);
+  }
 }
 
 void MessagesManager::send_update_chat_last_message(Dialog *d, const char *source) {
@@ -28617,6 +28637,16 @@ void MessagesManager::set_dialog_is_forum(Dialog *d, bool is_forum, bool is_foru
   auto old_view_as_topics = get_dialog_view_as_topics(d);
   if (d->is_forum != is_forum) {
     td_->forum_topic_manager_->on_dialog_is_forum_changed(d->dialog_id);
+    if (!td_->auth_manager_->is_bot()) {
+      // the messages in memory must be added to the topics, to which they belong now
+      d->messages.foreach([&](const MessageId &message_id, const unique_ptr<Message> &message) {
+        auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, message.get());
+        if (forum_topic_id.is_valid()) {
+          td_->forum_topic_manager_->on_topic_message_added(d->dialog_id, forum_topic_id, message_id, message->date,
+                                                            false, false, false, "set_dialog_is_forum");
+        }
+      });
+    }
   }
   d->is_forum = is_forum;
   d->is_forum_tabs = is_forum_tabs;
@@ -31570,6 +31600,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                                                            from_update, *need_update,
                                                            message_id >= d->last_new_message_id, source);
     }
+    auto forum_topic_id = get_message_forum_topic_id(dialog_id, m);
+    if (forum_topic_id.is_valid()) {
+      td_->forum_topic_manager_->on_topic_message_added(dialog_id, forum_topic_id, message_id, m->date, from_update,
+                                                        *need_update, message_id >= d->last_new_message_id, source);
+    }
 
     if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid()) {
       auto is_inserted = yet_unsent_thread_message_ids_[MessageFullId{dialog_id, m->top_thread_message_id}]
@@ -32472,6 +32507,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       }
     }
 
+    auto old_forum_topic_id = get_message_forum_topic_id(dialog_id, old_message);
     if ((is_top_thread_message_id_changed || is_is_topic_message_changed) && is_message_in_dialog &&
         old_message->is_topic_message && old_message->top_thread_message_id != MessageId()) {
       td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id,
@@ -32495,6 +32531,17 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         old_message->is_topic_message && old_message->top_thread_message_id != MessageId()) {
       td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id,
                                                                 get_message_forum_topic_id(dialog_id, old_message), +1);
+    }
+    auto new_forum_topic_id = get_message_forum_topic_id(dialog_id, old_message);
+    if (is_message_in_dialog && new_forum_topic_id != old_forum_topic_id && !message_id.is_scheduled()) {
+      if (old_forum_topic_id.is_valid()) {
+        td_->forum_topic_manager_->on_topic_message_deleted(dialog_id, old_forum_topic_id, message_id, false,
+                                                            "update_message");
+      }
+      if (new_forum_topic_id.is_valid()) {
+        td_->forum_topic_manager_->on_topic_message_added(dialog_id, new_forum_topic_id, message_id, old_message->date,
+                                                          false, false, false, "update_message");
+      }
     }
     need_send_update = true;
   }

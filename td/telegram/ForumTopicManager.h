@@ -17,6 +17,7 @@
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesInfo.h"
+#include "td/telegram/OrderedMessage.h"
 #include "td/telegram/OrderedTopics.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -139,6 +140,16 @@ class ForumTopicManager final : public Actor {
 
   void on_topic_message_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int diff);
 
+  bool is_last_topic_message(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id) const;
+
+  void on_topic_message_added(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id, int32 message_date,
+                              bool from_update, bool need_update, bool is_new, const char *source);
+
+  void on_topic_message_updated(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id);
+
+  void on_topic_message_deleted(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id,
+                                bool only_from_memory, const char *source);
+
   void on_topic_mention_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count, bool is_relative);
 
   void on_topic_reaction_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count, bool is_relative);
@@ -160,6 +171,7 @@ class ForumTopicManager final : public Actor {
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;
     unique_ptr<ForumTopic> topic_;
+    OrderedMessages ordered_messages_;
     int32 receive_date_ = 0;
     int32 message_count_ = 0;
     int32 last_message_date_ = 0;
