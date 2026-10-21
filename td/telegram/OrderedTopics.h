@@ -44,6 +44,10 @@ class OrderedTopics {
       return !(*this == other);
     }
 
+    int64 get_order() const {
+      return order_;
+    }
+
     TopicIdT get_topic_id() const {
       return topic_id_;
     }
