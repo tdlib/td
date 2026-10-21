@@ -101,6 +101,8 @@ class ForumTopicManager final : public Actor {
 
   void delete_all_dialog_topics(DialogId dialog_id);
 
+  void on_dialog_is_forum_changed(DialogId dialog_id);
+
   void read_forum_topic_messages(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId last_read_inbox_message_id);
 
   void on_update_forum_topic_unread(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId last_message_id,

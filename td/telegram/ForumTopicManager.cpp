@@ -1053,6 +1053,11 @@ void ForumTopicManager::delete_all_dialog_topics(DialogId dialog_id) {
   message_thread_db->delete_all_dialog_message_threads(dialog_id, Auto());
 }
 
+void ForumTopicManager::on_dialog_is_forum_changed(DialogId dialog_id) {
+  // messages are assigned to topics depending on whether the chat is a forum, so the topics must be received again
+  dialog_topics_.erase(dialog_id);
+}
+
 void ForumTopicManager::on_forum_topic_edited(DialogId dialog_id, ForumTopicId forum_topic_id,
                                               const ForumTopicEditedData &edited_data) {
   auto topic = get_topic(dialog_id, forum_topic_id);
@@ -1429,10 +1434,6 @@ void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, Forum
   }
   topic->message_count_ += diff;
   CHECK(topic->message_count_ >= 0);
-  if (topic->message_count_ == 0 && !td_->auth_manager_->is_bot()) {
-    // TODO keep topics in the topic list
-    dialog_topics->topics_.erase(forum_topic_id);
-  }
 }
 
 void ForumTopicManager::on_topic_mention_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count,

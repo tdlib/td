@@ -28615,6 +28615,9 @@ void MessagesManager::set_dialog_is_forum(Dialog *d, bool is_forum, bool is_foru
     return;
   }
   auto old_view_as_topics = get_dialog_view_as_topics(d);
+  if (d->is_forum != is_forum) {
+    td_->forum_topic_manager_->on_dialog_is_forum_changed(d->dialog_id);
+  }
   d->is_forum = is_forum;
   d->is_forum_tabs = is_forum_tabs;
   on_dialog_updated(d->dialog_id, "set_dialog_is_forum");
