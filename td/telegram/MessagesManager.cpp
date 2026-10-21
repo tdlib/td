@@ -8926,7 +8926,8 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
 
     auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
     if (forum_topic_id.is_valid()) {
-      td_->forum_topic_manager_->on_topic_message_deleted(d->dialog_id, forum_topic_id, message_id, false,
+      // topics are deleted only by the server, even if their first messages are deleted with the whole history
+      td_->forum_topic_manager_->on_topic_message_deleted(d->dialog_id, forum_topic_id, message_id, false, false,
                                                           "delete_all_dialog_messages");
     }
 
@@ -13585,8 +13586,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
     auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
     if (forum_topic_id.is_valid()) {
-      td_->forum_topic_manager_->on_topic_message_deleted(d->dialog_id, forum_topic_id, m->message_id, only_from_memory,
-                                                          source);
+      td_->forum_topic_manager_->on_topic_message_deleted(d->dialog_id, forum_topic_id, m->message_id,
+                                                          is_permanently_deleted, only_from_memory, source);
     }
   }
 
@@ -32525,7 +32526,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     auto new_forum_topic_id = get_message_forum_topic_id(dialog_id, old_message);
     if (is_message_in_dialog && new_forum_topic_id != old_forum_topic_id && !message_id.is_scheduled()) {
       if (old_forum_topic_id.is_valid()) {
-        td_->forum_topic_manager_->on_topic_message_deleted(dialog_id, old_forum_topic_id, message_id, false,
+        td_->forum_topic_manager_->on_topic_message_deleted(dialog_id, old_forum_topic_id, message_id, false, false,
                                                             "update_message");
       }
       if (new_forum_topic_id.is_valid()) {

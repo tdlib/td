@@ -1936,9 +1936,15 @@ void ForumTopicManager::on_topic_message_updated(DialogId dialog_id, ForumTopicI
 }
 
 void ForumTopicManager::on_topic_message_deleted(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id,
-                                                 bool only_from_memory, const char *source) {
+                                                 bool is_permanently_deleted, bool only_from_memory,
+                                                 const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
+  }
+  if (is_permanently_deleted && dialog_id.get_type() == DialogType::Channel &&
+      message_id == forum_topic_id.to_top_thread_message_id() && forum_topic_id != ForumTopicId::general()) {
+    // in supergroups the message, which created the topic, can be deleted only together with the topic
+    return on_delete_forum_topic(dialog_id, forum_topic_id, Promise<Unit>());
   }
   auto *topic = get_topic(dialog_id, forum_topic_id);
   // the topic list can be dropped and the chat can stop being a forum while its messages are still in memory

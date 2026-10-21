@@ -152,7 +152,7 @@ class ForumTopicManager final : public Actor {
   void on_topic_message_updated(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id);
 
   void on_topic_message_deleted(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id,
-                                bool only_from_memory, const char *source);
+                                bool is_permanently_deleted, bool only_from_memory, const char *source);
 
   void on_topic_mention_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count, bool is_relative);
 
