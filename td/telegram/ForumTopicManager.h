@@ -23,6 +23,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
@@ -70,6 +71,10 @@ class ForumTopicManager final : public Actor {
   void on_get_forum_topic(DialogId dialog_id, ForumTopicId expected_forum_topic_id, MessagesInfo &&info,
                           telegram_api::object_ptr<telegram_api::ForumTopic> &&topic,
                           Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);
+
+  void on_get_forum_topics_by_id(DialogId dialog_id, MessagesInfo &&info,
+                                 vector<telegram_api::object_ptr<telegram_api::ForumTopic>> &&topics,
+                                 Promise<Unit> &&promise);
 
   void on_get_forum_topics(DialogId dialog_id, bool order_by_creation_date, MessagesInfo &&info,
                            vector<telegram_api::object_ptr<telegram_api::ForumTopic>> &&topics,
@@ -166,6 +171,7 @@ class ForumTopicManager final : public Actor {
  private:
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server-side limit for forum topic title
   static constexpr int32 MAX_GET_FORUM_TOPICS = 100;           // server-side limit
+  static constexpr size_t MAX_GET_FORUM_TOPICS_BY_ID = 100;    // server-side limit
 
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;
@@ -197,6 +203,11 @@ class ForumTopicManager final : public Actor {
     int32 offset_date_ = 0;
     MessageId offset_message_id_;
     ForumTopicId offset_forum_topic_id_;
+
+    vector<ForumTopicId> reload_topic_ids_;
+    vector<ForumTopicId> reloading_topic_ids_;
+    int32 reload_topics_retry_delay_ = 0;      // the delay before the next retry of a failed reload, in seconds
+    vector<ForumTopicId> received_topic_ids_;  // the topics, which are received together with the messages being added
   };
 
   void tear_down() final;
@@ -224,6 +235,11 @@ class ForumTopicManager final : public Actor {
   void set_topic_info(DialogId dialog_id, Topic *topic, unique_ptr<ForumTopicInfo> forum_topic_info);
 
   ForumTopicId on_get_forum_topic_impl(DialogId dialog_id, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic);
+
+  static ForumTopicId get_received_forum_topic_id(const telegram_api::ForumTopic *forum_topic);
+
+  void on_get_topic_messages(DialogId dialog_id, MessagesInfo &&info, vector<ForumTopicId> received_topic_ids,
+                             const char *source);
 
   const DialogNotificationSettings *get_forum_topic_notification_settings(DialogId dialog_id,
                                                                           ForumTopicId forum_topic_id) const;
@@ -258,6 +274,16 @@ class ForumTopicManager final : public Actor {
 
   int64 get_topic_public_order(DialogId dialog_id, const Topic *topic) const;
 
+  void reload_topic(DialogId dialog_id, DialogTopics *dialog_topics, ForumTopicId forum_topic_id);
+
+  void reload_topics(DialogId dialog_id, DialogTopics *dialog_topics);
+
+  void on_reload_topics(DialogId dialog_id, uint32 generation, Result<Unit> &&result);
+
+  static void on_reload_topics_timeout_callback(void *forum_topic_manager_ptr, int64 dialog_id_int);
+
+  void on_reload_topics_timeout(DialogId dialog_id);
+
   void on_load_forum_topics(DialogId dialog_id, uint32 generation,
                             Result<td_api::object_ptr<td_api::forumTopics>> &&result);
 
@@ -274,6 +300,8 @@ class ForumTopicManager final : public Actor {
   WaitFreeHashMap<DialogId, unique_ptr<DialogTopics>, DialogIdHash> dialog_topics_;
 
   uint32 current_topic_list_generation_ = 0;
+
+  MultiTimeout reload_topics_timeout_{"ForumTopicReloadTimeout"};
 };
 
 }  // namespace td
