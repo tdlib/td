@@ -518,6 +518,51 @@ class ReadForumTopicQuery final : public Td::ResultHandler {
   }
 };
 
+// the part of a topic list, which was loaded from the server, and how to continue loading it
+struct ForumTopicListState {
+  int64 last_topic_order_ = 0;
+  ForumTopicId last_topic_id_;
+  int32 server_total_count_ = -1;
+  int32 offset_date_ = 0;
+  MessageId offset_message_id_;
+  ForumTopicId offset_forum_topic_id_;
+  vector<ForumTopicId> pinned_forum_topic_ids_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    bool has_pinned_forum_topic_ids = !pinned_forum_topic_ids_.empty();
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_pinned_forum_topic_ids);
+    END_STORE_FLAGS();
+    td::store(last_topic_order_, storer);
+    td::store(last_topic_id_, storer);
+    td::store(server_total_count_, storer);
+    td::store(offset_date_, storer);
+    td::store(offset_message_id_, storer);
+    td::store(offset_forum_topic_id_, storer);
+    if (has_pinned_forum_topic_ids) {
+      td::store(pinned_forum_topic_ids_, storer);
+    }
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    bool has_pinned_forum_topic_ids;
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_pinned_forum_topic_ids);
+    END_PARSE_FLAGS();
+    td::parse(last_topic_order_, parser);
+    td::parse(last_topic_id_, parser);
+    td::parse(server_total_count_, parser);
+    td::parse(offset_date_, parser);
+    td::parse(offset_message_id_, parser);
+    td::parse(offset_forum_topic_id_, parser);
+    if (has_pinned_forum_topic_ids) {
+      td::parse(pinned_forum_topic_ids_, parser);
+    }
+  }
+};
+
 template <class StorerT>
 void ForumTopicManager::Topic::store(StorerT &storer) const {
   CHECK(info_ != nullptr);
@@ -1242,7 +1287,10 @@ vector<ForumTopicId> ForumTopicManager::on_load_forum_topics_page(DialogId dialo
   } else {
     last_topic_date = {OrderedTopics<ForumTopicId>::MIN_PINNED_TOPIC_ORDER - 1, ForumTopicId()};
   }
-  return ordered_topics.set_last_topic_date(last_topic_date);
+  auto changed_forum_topic_ids = ordered_topics.set_last_topic_date(last_topic_date);
+
+  save_topic_list_state(dialog_id, dialog_topics);
+  return changed_forum_topic_ids;
 }
 
 void ForumTopicManager::get_forum_topics(DialogId dialog_id, string query, int32 offset_date,
@@ -1435,6 +1483,13 @@ void ForumTopicManager::on_delete_forum_topic(DialogId dialog_id, ForumTopicId f
 
 void ForumTopicManager::delete_all_dialog_topics(DialogId dialog_id) {
   dialog_topics_.erase(dialog_id);
+  delete_all_dialog_topics_from_database(dialog_id);
+}
+
+void ForumTopicManager::delete_all_dialog_topics_from_database(DialogId dialog_id) {
+  if (G()->use_message_database()) {
+    G()->td_db()->get_binlog_pmc()->erase(get_topic_list_state_key(dialog_id));
+  }
 
   auto message_thread_db = G()->td_db()->get_message_thread_db_async();
   if (message_thread_db == nullptr) {
@@ -1447,6 +1502,7 @@ void ForumTopicManager::delete_all_dialog_topics(DialogId dialog_id) {
 
 void ForumTopicManager::on_dialog_is_forum_changed(DialogId dialog_id) {
   // messages are assigned to topics depending on whether the chat is a forum, so the topics must be received again
+  delete_all_dialog_topics_from_database(dialog_id);
   auto *dialog_topics = get_dialog_topics(dialog_id);
   if (dialog_topics == nullptr) {
     return;
@@ -1737,6 +1793,7 @@ void ForumTopicManager::set_local_pinned_forum_topics(DialogId dialog_id, Dialog
     topic->topic_->set_is_pinned(true);
     on_forum_topic_changed(dialog_id, topic);
   }
+  save_topic_list_state(dialog_id, dialog_topics);
 }
 
 Status ForumTopicManager::is_forum(DialogId dialog_id, bool allow_bots) {
@@ -1947,6 +2004,32 @@ void ForumTopicManager::update_topic_order(DialogId dialog_id, Topic *topic) {
   }
   ordered_topics.update_order(forum_topic_id, topic->private_order_, new_order);
   topic->private_order_ = new_order;
+}
+
+string ForumTopicManager::get_topic_list_state_key(DialogId dialog_id) {
+  return PSTRING() << "forum_topics" << dialog_id.get();
+}
+
+void ForumTopicManager::save_topic_list_state(DialogId dialog_id, const DialogTopics *dialog_topics) const {
+  CHECK(dialog_topics != nullptr);
+  if (!G()->use_message_database() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+  const auto &ordered_topics = dialog_topics->ordered_topics_;
+  auto last_topic_date = ordered_topics.get_last_topic_date();
+  if (last_topic_date == OrderedTopics<ForumTopicId>::min_topic_date()) {
+    // nothing was loaded yet
+    return;
+  }
+  ForumTopicListState state;
+  state.last_topic_order_ = last_topic_date.get_order();
+  state.last_topic_id_ = last_topic_date.get_topic_id();
+  state.server_total_count_ = ordered_topics.get_server_total_count();
+  state.offset_date_ = dialog_topics->offset_date_;
+  state.offset_message_id_ = dialog_topics->offset_message_id_;
+  state.offset_forum_topic_id_ = dialog_topics->offset_forum_topic_id_;
+  state.pinned_forum_topic_ids_ = ordered_topics.get_pinned_topic_ids();
+  G()->td_db()->get_binlog_pmc()->set(get_topic_list_state_key(dialog_id), log_event_store(state).as_slice().str());
 }
 
 void ForumTopicManager::save_topic_to_database(DialogId dialog_id, const Topic *topic) {
