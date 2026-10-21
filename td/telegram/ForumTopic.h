@@ -47,6 +47,25 @@ class ForumTopic {
     return last_message_id_;
   }
 
+  MessageId get_last_read_inbox_message_id() const {
+    return last_read_inbox_message_id_;
+  }
+
+  int32 get_unread_count() const {
+    return unread_count_;
+  }
+
+  bool set_unread_count(int32 unread_count) {
+    if (unread_count < 0) {
+      unread_count = 0;
+    }
+    if (unread_count_ == unread_count) {
+      return false;
+    }
+    unread_count_ = unread_count;
+    return true;
+  }
+
   bool set_last_message_id(MessageId last_message_id) {
     if (last_message_id_ == last_message_id) {
       return false;
