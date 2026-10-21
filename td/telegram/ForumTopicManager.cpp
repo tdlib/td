@@ -1625,6 +1625,85 @@ void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, Forum
   CHECK(topic->message_count_ >= 0);
 }
 
+bool ForumTopicManager::is_last_topic_message(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                              MessageId message_id) const {
+  auto *topic = get_topic(dialog_id, forum_topic_id);
+  return topic != nullptr && topic->topic_ != nullptr && topic->topic_->get_last_message_id() == message_id;
+}
+
+void ForumTopicManager::on_topic_message_added(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id,
+                                               int32 message_date, bool from_update, bool need_update, bool is_new,
+                                               const char *source) {
+  if (td_->auth_manager_->is_bot() || !can_be_forum(dialog_id) || !forum_topic_id.is_valid()) {
+    return;
+  }
+  CHECK(message_id.is_valid());
+
+  auto *topic = add_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr) {
+    return;
+  }
+  auto last_message_id = topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_message_id();
+  topic->ordered_messages_.insert(message_id, from_update, last_message_id, source);
+  if (topic->topic_ == nullptr || message_id <= last_message_id) {
+    return;
+  }
+
+  LOG(INFO) << "Add " << message_id << " to " << forum_topic_id << " of " << dialog_id
+            << " with from_update = " << from_update << ", need_update = " << need_update << " and is_new = " << is_new;
+  if (from_update && is_new) {
+    topic->topic_->set_last_message_id(message_id);
+    topic->last_message_date_ = message_date;
+    on_forum_topic_changed(dialog_id, topic);
+  } else {
+    // a message newer than the last known one was received not from an update, so the last message is unknown
+    reload_forum_topic(dialog_id, forum_topic_id, Promise<Unit>());
+  }
+}
+
+void ForumTopicManager::on_topic_message_updated(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                 MessageId message_id) {
+  if (td_->auth_manager_->is_bot() || message_id.is_scheduled()) {
+    return;
+  }
+  auto *topic = get_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr || topic->topic_ == nullptr || topic->topic_->get_last_message_id() != message_id) {
+    return;
+  }
+  send_update_forum_topic(dialog_id, topic);
+}
+
+void ForumTopicManager::on_topic_message_deleted(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id,
+                                                 bool only_from_memory, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto *topic = get_topic(dialog_id, forum_topic_id);
+  // the topic list can be dropped and the chat can stop being a forum while its messages are still in memory
+  if (topic == nullptr || !topic->ordered_messages_.has_message(message_id)) {
+    return;
+  }
+
+  LOG(INFO) << "Delete " << message_id << " from " << forum_topic_id << " of " << dialog_id << " from " << source;
+  if (!only_from_memory && topic->topic_ != nullptr && topic->topic_->get_last_message_id() == message_id) {
+    MessageId new_last_message_id;
+    auto it = topic->ordered_messages_.get_const_iterator(message_id);
+    CHECK(*it != nullptr);
+    --it;
+    if (*it != nullptr) {
+      new_last_message_id = (*it)->get_message_id();
+      topic->last_message_date_ = td_->messages_manager_->get_get_message_date(dialog_id)(new_last_message_id);
+    }
+    topic->topic_->set_last_message_id(new_last_message_id);
+    if (!new_last_message_id.is_valid()) {
+      // keep the old date for the order until the topic is received again
+      reload_forum_topic(dialog_id, forum_topic_id, Promise<Unit>());
+    }
+    on_forum_topic_changed(dialog_id, topic);
+  }
+  topic->ordered_messages_.erase(message_id, only_from_memory, source);
+}
+
 void ForumTopicManager::on_topic_mention_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count,
                                                        bool is_relative) {
   LOG(INFO) << "Change " << (is_relative ? "by" : "to") << ' ' << count << " number of mentions in thread of "
