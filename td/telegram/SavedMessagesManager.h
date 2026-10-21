@@ -163,8 +163,6 @@ class SavedMessagesManager final : public Actor {
  private:
   static constexpr int32 MAX_GET_HISTORY = 100;  // server-side limit
 
-  static constexpr int64 MIN_PINNED_TOPIC_ORDER = static_cast<int64>(2147000000) << 32;
-
   struct SavedMessagesTopicInfo {
     DialogId peer_dialog_id_;
     MessageId last_topic_message_id_;
@@ -211,9 +209,6 @@ class SavedMessagesManager final : public Actor {
     DialogId dialog_id_;
     int32 sent_total_count_ = -1;
     uint32 generation_ = 0;
-
-    vector<SavedMessagesTopicId> pinned_saved_messages_topic_ids_;
-    bool are_pinned_saved_messages_topics_inited_ = false;
 
     OrderedTopics<SavedMessagesTopicId> ordered_topics_;
 
@@ -289,8 +284,6 @@ class SavedMessagesManager final : public Actor {
 
   void load_topics(TopicList *topic_list, int32 limit, Promise<Unit> &&promise);
 
-  int64 get_next_pinned_saved_messages_topic_order();
-
   bool set_pinned_saved_messages_topics(vector<SavedMessagesTopicId> added_saved_messages_topic_ids);
 
   bool set_saved_messages_topic_is_pinned(SavedMessagesTopicId saved_messages_topic_id, bool is_pinned,
@@ -361,8 +354,6 @@ class SavedMessagesManager final : public Actor {
 
   Td *td_;
   ActorShared<> parent_;
-
-  int64 current_pinned_saved_messages_topic_order_ = MIN_PINNED_TOPIC_ORDER;
 
   TopicList topic_list_;
 
