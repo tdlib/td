@@ -275,6 +275,9 @@ class ForumTopicManager final : public Actor {
 
   void update_topic_order(DialogId dialog_id, Topic *topic);
 
+  bool read_topic_messages(DialogId dialog_id, Topic *topic, MessageId read_inbox_max_message_id,
+                           int32 hint_unread_count);
+
   int64 get_topic_public_order(DialogId dialog_id, const Topic *topic) const;
 
   void reload_topic(DialogId dialog_id, DialogTopics *dialog_topics, ForumTopicId forum_topic_id);
