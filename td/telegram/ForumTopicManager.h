@@ -181,6 +181,7 @@ class ForumTopicManager final : public Actor {
     OrderedMessages ordered_messages_;
     int32 receive_date_ = 0;
     int32 last_message_date_ = 0;
+    MessageId sent_read_inbox_message_id_;  // for topics, which aren't loaded yet
     int64 pinned_order_ = 0;
     int64 private_order_ = 0;
     mutable bool need_save_to_database_ = true;
