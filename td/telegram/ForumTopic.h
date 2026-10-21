@@ -47,6 +47,14 @@ class ForumTopic {
     return last_message_id_;
   }
 
+  bool set_last_message_id(MessageId last_message_id) {
+    if (last_message_id_ == last_message_id) {
+      return false;
+    }
+    last_message_id_ = last_message_id;
+    return true;
+  }
+
   bool is_pinned() const {
     return is_pinned_;
   }
