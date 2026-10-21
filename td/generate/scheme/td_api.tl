@@ -13644,6 +13644,12 @@ getForumTopicHistory chat_id:int53 forum_topic_id:int32 from_message_id:int53 of
 //@description Returns an HTTPS link to a topic in a forum supergroup chat. This is an offline method @chat_id Identifier of the chat @forum_topic_id Forum topic identifier
 getForumTopicLink chat_id:int53 forum_topic_id:int32 = MessageLink;
 
+//@description Loads more topics in a forum supergroup chat or a chat with a bot with topics. The loaded topics will be sent through updateForumTopic.
+//-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
+//@chat_id Identifier of the chat
+//@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
+loadForumTopics chat_id:int53 limit:int32 = Ok;
+
 //@description Returns found forum topics in a forum supergroup chat or a chat with a bot with topics. This is a temporary method for getting information about topic list from the server
 //@chat_id Identifier of the chat
 //@query Query to search for in the forum topic's name

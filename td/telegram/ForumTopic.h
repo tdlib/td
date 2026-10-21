@@ -34,8 +34,6 @@ class ForumTopic {
   DialogNotificationSettings notification_settings_;
   unique_ptr<DraftMessage> draft_message_;
 
-  int64 get_forum_topic_order(Td *td, DialogId dialog_id) const;
-
  public:
   ForumTopic() = default;
 
@@ -88,8 +86,8 @@ class ForumTopic {
     return draft_message_;
   }
 
-  td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(Td *td, DialogId dialog_id,
-                                                                const ForumTopicInfo &info) const;
+  td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(Td *td, DialogId dialog_id, const ForumTopicInfo &info,
+                                                                int64 order) const;
 
   td_api::object_ptr<td_api::updateForumTopic> get_update_forum_topic_object(Td *td, DialogId dialog_id,
                                                                              ForumTopicId forum_topic_id) const;

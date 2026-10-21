@@ -77,6 +77,8 @@ class ForumTopicManager final : public Actor {
   void get_forum_topic_link(DialogId dialog_id, ForumTopicId forum_topic_id,
                             Promise<td_api::object_ptr<td_api::messageLink>> &&promise);
 
+  void load_forum_topics(DialogId dialog_id, int32 limit, Promise<Unit> &&promise);
+
   void get_forum_topics(DialogId dialog_id, string query, int32 offset_date, MessageId offset_message_id,
                         ForumTopicId offset_forum_topic_id, int32 limit,
                         Promise<td_api::object_ptr<td_api::forumTopics>> promise);
@@ -150,6 +152,7 @@ class ForumTopicManager final : public Actor {
 
  private:
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server-side limit for forum topic title
+  static constexpr int32 MAX_GET_FORUM_TOPICS = 100;           // server-side limit
 
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;
@@ -174,6 +177,12 @@ class ForumTopicManager final : public Actor {
     WaitFreeHashMap<ForumTopicId, unique_ptr<Topic>, ForumTopicIdHash> topics_;
     WaitFreeHashSet<ForumTopicId, ForumTopicIdHash> deleted_topic_ids_;
     OrderedTopics<ForumTopicId> ordered_topics_;
+
+    uint32 generation_ = 0;
+    vector<Promise<Unit>> load_queries_;
+    int32 offset_date_ = 0;
+    MessageId offset_message_id_;
+    ForumTopicId offset_forum_topic_id_;
   };
 
   void tear_down() final;
@@ -231,6 +240,14 @@ class ForumTopicManager final : public Actor {
 
   void update_topic_order(DialogId dialog_id, Topic *topic);
 
+  int64 get_topic_public_order(DialogId dialog_id, const Topic *topic) const;
+
+  void on_load_forum_topics(DialogId dialog_id, uint32 generation,
+                            Result<td_api::object_ptr<td_api::forumTopics>> &&result);
+
+  void set_local_pinned_forum_topics(DialogId dialog_id, DialogTopics *dialog_topics,
+                                     vector<ForumTopicId> forum_topic_ids);
+
   void save_topic_to_database(DialogId dialog_id, const Topic *topic);
 
   void delete_topic_from_database(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
@@ -239,6 +256,8 @@ class ForumTopicManager final : public Actor {
   ActorShared<> parent_;
 
   WaitFreeHashMap<DialogId, unique_ptr<DialogTopics>, DialogIdHash> dialog_topics_;
+
+  uint32 current_topic_list_generation_ = 0;
 };
 
 }  // namespace td
