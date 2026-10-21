@@ -906,6 +906,29 @@ void ForumTopicManager::reload_pinned_forum_topics(DialogId dialog_id) {
       ->send(dialog_id, string(), 0, MessageId(), ForumTopicId(), MAX_GET_FORUM_TOPICS);
 }
 
+void ForumTopicManager::on_channel_difference_too_long(DialogId dialog_id) {
+  if (td_->auth_manager_->is_bot() || is_forum(dialog_id, true).is_error()) {
+    return;
+  }
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr) {
+    return;
+  }
+
+  // updates of all topics could have been missed; the first page also contains topics created in the meantime
+  LOG(INFO) << "Reload all topics in " << dialog_id << " after a gap";
+  vector<ForumTopicId> forum_topic_ids;
+  dialog_topics->topics_.foreach([&](const ForumTopicId &forum_topic_id, unique_ptr<Topic> &topic) {
+    if (topic->topic_ != nullptr) {
+      forum_topic_ids.push_back(forum_topic_id);
+    }
+  });
+  for (auto forum_topic_id : forum_topic_ids) {
+    reload_topic(dialog_id, dialog_topics, forum_topic_id);
+  }
+  reload_pinned_forum_topics(dialog_id);
+}
+
 void ForumTopicManager::on_reload_pinned_forum_topics(DialogId dialog_id, uint32 generation,
                                                       Result<td_api::object_ptr<td_api::forumTopics>> &&result) {
   if (G()->close_flag()) {
