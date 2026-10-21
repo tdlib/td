@@ -1522,11 +1522,13 @@ void ForumTopicManager::send_update_forum_topic_info(const ForumTopicInfo *topic
 td_api::object_ptr<td_api::updateForumTopic> ForumTopicManager::get_update_forum_topic_object(
     DialogId dialog_id, const Topic *topic) const {
   CHECK(topic != nullptr);
-  return topic->topic_->get_update_forum_topic_object(td_, dialog_id, topic->info_->get_forum_topic_id());
+  CHECK(topic->info_ != nullptr && topic->topic_ != nullptr);
+  return td_api::make_object<td_api::updateForumTopic>(
+      topic->topic_->get_forum_topic_object(td_, dialog_id, *topic->info_, get_topic_public_order(dialog_id, topic)));
 }
 
 void ForumTopicManager::send_update_forum_topic(DialogId dialog_id, const Topic *topic) const {
-  if (td_->auth_manager_->is_bot()) {
+  if (td_->auth_manager_->is_bot() || topic->info_ == nullptr || topic->topic_ == nullptr) {
     return;
   }
   send_closure(G()->td(), &Td::send_update, get_update_forum_topic_object(dialog_id, topic));

@@ -9,7 +9,6 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogNotificationSettings.h"
 #include "td/telegram/DraftMessage.h"
-#include "td/telegram/ForumTopicId.h"
 #include "td/telegram/ForumTopicInfo.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
@@ -88,9 +87,6 @@ class ForumTopic {
 
   td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(Td *td, DialogId dialog_id, const ForumTopicInfo &info,
                                                                 int64 order) const;
-
-  td_api::object_ptr<td_api::updateForumTopic> get_update_forum_topic_object(Td *td, DialogId dialog_id,
-                                                                             ForumTopicId forum_topic_id) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
