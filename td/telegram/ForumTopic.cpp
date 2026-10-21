@@ -133,6 +133,20 @@ int64 ForumTopic::get_forum_topic_order(Td *td, DialogId dialog_id) const {
   return order <= 0 ? 0 : order;
 }
 
+int64 ForumTopic::get_order(int32 last_message_date) const {
+  int64 order = DEFAULT_ORDER;
+  if (last_message_id_ != MessageId() && last_message_date > 0) {
+    order = DialogDate::get_dialog_order(last_message_id_, last_message_date);
+  }
+  if (draft_message_ != nullptr) {
+    int64 draft_order = DialogDate::get_dialog_order(MessageId(), draft_message_->get_date());
+    if (draft_order > order) {
+      order = draft_order;
+    }
+  }
+  return order <= 0 ? 0 : order;
+}
+
 td_api::object_ptr<td_api::forumTopic> ForumTopic::get_forum_topic_object(Td *td, DialogId dialog_id,
                                                                           const ForumTopicInfo &info) const {
   if (info.is_empty()) {

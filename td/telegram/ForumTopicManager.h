@@ -17,6 +17,7 @@
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesInfo.h"
+#include "td/telegram/OrderedTopics.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -155,6 +156,9 @@ class ForumTopicManager final : public Actor {
     unique_ptr<ForumTopic> topic_;
     int32 receive_date_ = 0;
     int32 message_count_ = 0;
+    int32 last_message_date_ = 0;
+    int64 pinned_order_ = 0;
+    int64 private_order_ = 0;
     mutable bool need_save_to_database_ = true;
 
     template <class StorerT>
@@ -169,6 +173,7 @@ class ForumTopicManager final : public Actor {
   struct DialogTopics {
     WaitFreeHashMap<ForumTopicId, unique_ptr<Topic>, ForumTopicIdHash> topics_;
     WaitFreeHashSet<ForumTopicId, ForumTopicIdHash> deleted_topic_ids_;
+    OrderedTopics<ForumTopicId> ordered_topics_;
   };
 
   void tear_down() final;
@@ -223,6 +228,8 @@ class ForumTopicManager final : public Actor {
   void send_update_forum_topic(DialogId dialog_id, const Topic *topic) const;
 
   void on_forum_topic_changed(DialogId dialog_id, Topic *topic);
+
+  void update_topic_order(DialogId dialog_id, Topic *topic);
 
   void save_topic_to_database(DialogId dialog_id, const Topic *topic);
 
