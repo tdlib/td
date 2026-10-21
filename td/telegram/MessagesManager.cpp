@@ -35395,6 +35395,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
                             dialog->unread_poll_votes_count_, MessageId(ServerMessageId(dialog->read_outbox_max_id_)),
                             std::move(difference->messages_));
       update_dialog_pos(d, "updates.channelDifferenceTooLong");
+      td_->forum_topic_manager_->on_channel_difference_too_long(dialog_id);
 
       if (!td_->auth_manager_->is_bot()) {
         // set is_pinned only after updating chat position to ensure that order is initialized
