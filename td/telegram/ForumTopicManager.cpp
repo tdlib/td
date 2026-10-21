@@ -1767,24 +1767,6 @@ void ForumTopicManager::delete_topic_from_database(DialogId dialog_id, ForumTopi
   message_thread_db->delete_message_thread(dialog_id, forum_topic_id, std::move(promise));
 }
 
-void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int diff) {
-  if (!can_be_forum(dialog_id) || can_be_forum_topic_id(forum_topic_id).is_error()) {
-    LOG(ERROR) << "Change by " << diff << " number of loaded messages in thread of " << forum_topic_id << " in "
-               << dialog_id;
-    return;
-  }
-
-  LOG(INFO) << "Change by " << diff << " number of loaded messages in thread of " << forum_topic_id << " in "
-            << dialog_id;
-  auto *dialog_topics = add_dialog_topics(dialog_id);
-  auto topic = add_topic(dialog_topics, forum_topic_id);
-  if (topic == nullptr) {
-    return;
-  }
-  topic->message_count_ += diff;
-  CHECK(topic->message_count_ >= 0);
-}
-
 void ForumTopicManager::reload_topic(DialogId dialog_id, DialogTopics *dialog_topics, ForumTopicId forum_topic_id) {
   CHECK(dialog_topics != nullptr);
   // messages of a loaded topic are received before the topic itself

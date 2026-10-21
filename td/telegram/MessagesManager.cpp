@@ -13720,10 +13720,6 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   if (m->message_id.is_yet_unsent() || dialog_type == DialogType::SecretChat) {
     delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
   }
-  if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, get_message_forum_topic_id(d->dialog_id, m),
-                                                              -1);
-  }
 
   added_message_count_--;
 }
@@ -13795,10 +13791,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   unregister_message_reply(d->dialog_id, m);
   if (message_id.is_yet_unsent()) {
     delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
-  }
-  if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, get_message_forum_topic_id(d->dialog_id, m),
-                                                              -1);
   }
 
   return result;
@@ -31551,10 +31543,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(dialog_id, m), +1);
-  }
-
   Message *result_message = message.get();
   d->messages.set(message_id, std::move(message));
 
@@ -31752,10 +31740,6 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     update_sent_message_contents(dialog_id, m);
     update_used_hashtags(dialog_id, m);
     update_has_outgoing_messages(dialog_id, m);
-  }
-
-  if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(dialog_id, m), +1);
   }
 
   auto *scheduled_messages = add_dialog_scheduled_messages(d);
@@ -32499,11 +32483,6 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     }
 
     auto old_forum_topic_id = get_message_forum_topic_id(dialog_id, old_message);
-    if ((is_top_thread_message_id_changed || is_is_topic_message_changed) && is_message_in_dialog &&
-        old_message->is_topic_message && old_message->top_thread_message_id != MessageId()) {
-      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id,
-                                                                get_message_forum_topic_id(dialog_id, old_message), -1);
-    }
 
     if (is_message_in_dialog) {
       unregister_message_reply(d->dialog_id, old_message);
@@ -32518,11 +32497,6 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       register_message_reply(d->dialog_id, old_message);
     }
     update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
-    if ((is_top_thread_message_id_changed || is_is_topic_message_changed) && is_message_in_dialog &&
-        old_message->is_topic_message && old_message->top_thread_message_id != MessageId()) {
-      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id,
-                                                                get_message_forum_topic_id(dialog_id, old_message), +1);
-    }
     auto new_forum_topic_id = get_message_forum_topic_id(dialog_id, old_message);
     if (is_message_in_dialog && new_forum_topic_id != old_forum_topic_id && !message_id.is_scheduled()) {
       if (old_forum_topic_id.is_valid()) {

@@ -142,8 +142,6 @@ class ForumTopicManager final : public Actor {
   void on_get_forum_topic_infos(DialogId dialog_id, vector<tl_object_ptr<telegram_api::ForumTopic>> &&forum_topics,
                                 const char *source);
 
-  void on_topic_message_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int diff);
-
   bool is_last_topic_message(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id) const;
 
   void on_topic_message_added(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id, int32 message_date,
@@ -178,7 +176,6 @@ class ForumTopicManager final : public Actor {
     unique_ptr<ForumTopic> topic_;
     OrderedMessages ordered_messages_;
     int32 receive_date_ = 0;
-    int32 message_count_ = 0;
     int32 last_message_date_ = 0;
     int64 pinned_order_ = 0;
     int64 private_order_ = 0;
