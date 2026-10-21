@@ -209,12 +209,8 @@ class SetBotShippingAnswerQuery final : public Td::ResultHandler {
 
   void send(int64 shipping_query_id, const string &error_message,
             vector<tl_object_ptr<telegram_api::shippingOption>> &&shipping_options) {
-    int32 flags = 0;
-    if (!error_message.empty()) {
-      flags |= telegram_api::messages_setBotShippingResults::ERROR_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::messages_setBotShippingResults(
-        flags, shipping_query_id, error_message, std::move(shipping_options))));
+        0, shipping_query_id, error_message, std::move(shipping_options))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -243,16 +239,10 @@ class SetBotPreCheckoutAnswerQuery final : public Td::ResultHandler {
   }
 
   void send(int64 pre_checkout_query_id, const string &error_message) {
-    int32 flags = 0;
-    bool is_success = false;
-    if (!error_message.empty()) {
-      flags |= telegram_api::messages_setBotPrecheckoutResults::ERROR_MASK;
-    } else {
-      is_success = true;
-    }
+    bool is_success = error_message.empty();
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_setBotPrecheckoutResults(flags, is_success, pre_checkout_query_id, error_message)));
+        telegram_api::messages_setBotPrecheckoutResults(0, is_success, pre_checkout_query_id, error_message)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -446,18 +436,8 @@ static tl_object_ptr<telegram_api::paymentRequestedInfo> convert_order_info(
   if (order_info == nullptr) {
     return nullptr;
   }
-  int32 flags = 0;
-  if (!order_info->name_.empty()) {
-    flags |= telegram_api::paymentRequestedInfo::NAME_MASK;
-  }
-  if (!order_info->phone_number_.empty()) {
-    flags |= telegram_api::paymentRequestedInfo::PHONE_MASK;
-  }
-  if (!order_info->email_address_.empty()) {
-    flags |= telegram_api::paymentRequestedInfo::EMAIL_MASK;
-  }
   return make_tl_object<telegram_api::paymentRequestedInfo>(
-      flags, std::move(order_info->name_), std::move(order_info->phone_number_), std::move(order_info->email_address_),
+      0, std::move(order_info->name_), std::move(order_info->phone_number_), std::move(order_info->email_address_),
       convert_address(std::move(order_info->shipping_address_)));
 }
 
@@ -636,12 +616,6 @@ class SendPaymentFormQuery final : public Td::ResultHandler {
     dialog_id_ = input_invoice_info.dialog_id_;
 
     int32 flags = 0;
-    if (!order_info_id.empty()) {
-      flags |= telegram_api::payments_sendPaymentForm::REQUESTED_INFO_ID_MASK;
-    }
-    if (!shipping_option_id.empty()) {
-      flags |= telegram_api::payments_sendPaymentForm::SHIPPING_OPTION_ID_MASK;
-    }
     if (tip_amount != 0) {
       flags |= telegram_api::payments_sendPaymentForm::TIP_AMOUNT_MASK;
     }

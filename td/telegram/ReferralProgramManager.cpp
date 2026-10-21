@@ -69,8 +69,7 @@ class ResolveReferralProgramQuery final : public Td::ResultHandler {
   }
 
   void send(const string &username, const string &referrer) {
-    int32 flags = telegram_api::contacts_resolveUsername::REFERER_MASK;
-    send_query(G()->net_query_creator().create(telegram_api::contacts_resolveUsername(flags, username, referrer)));
+    send_query(G()->net_query_creator().create(telegram_api::contacts_resolveUsername(0, username, referrer)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -442,6 +441,9 @@ void ReferralProgramManager::set_dialog_referral_program(DialogId dialog_id, Ref
 
 void ReferralProgramManager::search_dialog_referral_program(const string &username, const string &referral,
                                                             Promise<td_api::object_ptr<td_api::chat>> &&promise) {
+  if (referral.empty()) {
+    return promise.set_error(400, "Referrer must be non-empty");
+  }
   td_->create_handler<ResolveReferralProgramQuery>(std::move(promise))->send(username, referral);
 }
 

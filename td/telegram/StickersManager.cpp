@@ -1082,13 +1082,9 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
             vector<tl_object_ptr<telegram_api::inputStickerSetItem>> &&input_stickers, const string &software) {
     CHECK(input_user != nullptr);
 
-    int32 flags = 0;
-    if (!software.empty()) {
-      flags |= telegram_api::stickers_createStickerSet::SOFTWARE_MASK;
-    }
     send_query(G()->net_query_creator().create(
         telegram_api::stickers_createStickerSet(
-            flags, sticker_type == StickerType::Mask, sticker_type == StickerType::CustomEmoji, has_text_color,
+            0, sticker_type == StickerType::Mask, sticker_type == StickerType::CustomEmoji, has_text_color,
             std::move(input_user), title, short_name, nullptr, std::move(input_stickers), software),
         {{short_name}}));
   }
@@ -3523,12 +3519,8 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
   }
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (main_remote_location != nullptr && !main_remote_location->is_web() && input_file == nullptr) {
-    int32 flags = 0;
-    if (!emoji.empty()) {
-      flags |= telegram_api::inputMediaDocument::QUERY_MASK;
-    }
     return telegram_api::make_object<telegram_api::inputMediaDocument>(
-        flags, false, main_remote_location->as_input_document(), nullptr, 0, 0, emoji);
+        0, false, main_remote_location->as_input_document(), nullptr, 0, 0, emoji);
   }
   const auto *url = file_view.get_url();
   if (url != nullptr) {
@@ -8062,14 +8054,10 @@ Result<telegram_api::object_ptr<telegram_api::inputStickerSetItem>> StickersMana
   }
   auto input_document = main_remote_location->as_input_document();
 
-  int32 flags = 0;
   string keywords = implode(sticker->keywords_, ',');
-  if (!keywords.empty()) {
-    flags |= telegram_api::inputStickerSetItem::KEYWORDS_MASK;
-  }
 
   return make_tl_object<telegram_api::inputStickerSetItem>(
-      flags, std::move(input_document), sticker->emojis_,
+      0, std::move(input_document), sticker->emojis_,
       StickerMaskPosition(sticker->mask_position_).get_input_mask_coords(), keywords);
 }
 

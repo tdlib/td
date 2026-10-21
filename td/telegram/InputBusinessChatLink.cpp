@@ -32,12 +32,8 @@ InputBusinessChatLink::InputBusinessChatLink(const Td *td, td_api::object_ptr<td
 
 telegram_api::object_ptr<telegram_api::inputBusinessChatLink> InputBusinessChatLink::get_input_business_chat_link(
     const UserManager *user_manager) const {
-  int32 flags = 0;
   auto entities = get_input_message_entities(user_manager, &text_, "get_input_business_chat_link");
-  if (!title_.empty()) {
-    flags |= telegram_api::inputBusinessChatLink::TITLE_MASK;
-  }
-  return telegram_api::make_object<telegram_api::inputBusinessChatLink>(flags, text_.text, std::move(entities), title_);
+  return telegram_api::make_object<telegram_api::inputBusinessChatLink>(0, text_.text, std::move(entities), title_);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const InputBusinessChatLink &link) {

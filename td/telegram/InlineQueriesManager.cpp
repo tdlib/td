@@ -127,13 +127,9 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
             telegram_api::object_ptr<telegram_api::inlineBotWebView> web_view,
             vector<tl_object_ptr<telegram_api::InputBotInlineResult>> &&results, int32 cache_time,
             const string &next_offset) {
-    int32 flags = 0;
-    if (!next_offset.empty()) {
-      flags |= telegram_api::messages_setInlineBotResults::NEXT_OFFSET_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::messages_setInlineBotResults(
-        flags, is_gallery, is_personal, inline_query_id, std::move(results), cache_time, next_offset,
-        std::move(switch_pm), std::move(web_view))));
+        0, is_gallery, is_personal, inline_query_id, std::move(results), cache_time, next_offset, std::move(switch_pm),
+        std::move(web_view))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -330,19 +326,16 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
   }
 
   void send(tl_object_ptr<telegram_api::InputUser> &&input_user, string url, const WebAppOpenParameters &parameters) {
-    int32 flags = 0;
     string start_parameter;
     bool from_switch_webview = false;
     bool from_side_menu = false;
     if (ends_with(url, "#kb")) {
       // a URL from keyboard button
       url.resize(url.size() - 3);
-      flags |= telegram_api::messages_requestSimpleWebView::URL_MASK;
     } else if (ends_with(url, "#iq")) {
       // a URL from inline query results button
       url.resize(url.size() - 3);
       from_switch_webview = true;
-      flags |= telegram_api::messages_requestSimpleWebView::URL_MASK;
     } else if (url.empty()) {
       from_side_menu = true;
     } else if (begins_with(url, "start://")) {
@@ -350,12 +343,11 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
       url = string();
 
       from_side_menu = true;
-      flags |= telegram_api::messages_requestSimpleWebView::START_PARAM_MASK;
     } else {
       return on_error(Status::Error(400, "Invalid URL specified"));
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_requestSimpleWebView(
-        flags, from_switch_webview, from_side_menu, parameters.is_compact(), parameters.is_full_screen(),
+        0, from_switch_webview, from_side_menu, parameters.is_compact(), parameters.is_full_screen(),
         std::move(input_user), url, start_parameter, parameters.get_input_theme_parameters(),
         parameters.get_application_name())));
   }
@@ -1138,18 +1130,11 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
     duration = 0;
   }
 
-  int32 flags = 0;
-  if (!title.empty()) {
-    flags |= telegram_api::inputBotInlineResult::TITLE_MASK;
-    if (!clean_input_string(title)) {
-      return Status::Error(400, "Strings must be encoded in UTF-8");
-    }
+  if (!clean_input_string(title)) {
+    return Status::Error(400, "Strings must be encoded in UTF-8");
   }
-  if (!description.empty()) {
-    flags |= telegram_api::inputBotInlineResult::DESCRIPTION_MASK;
-    if (!clean_input_string(description)) {
-      return Status::Error(400, "Strings must be encoded in UTF-8");
-    }
+  if (!clean_input_string(description)) {
+    return Status::Error(400, "Strings must be encoded in UTF-8");
   }
 
   if (file_type != FileType::Temp && content_url.find('.') == string::npos) {
@@ -1171,14 +1156,11 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
     }
 
     return make_tl_object<telegram_api::inputBotInlineResultDocument>(
-        flags, id, type, title, description, main_remote_location->as_input_document(), std::move(inline_message));
+        0, id, type, title, description, main_remote_location->as_input_document(), std::move(inline_message));
   }
 
-  if (!url.empty()) {
-    flags |= telegram_api::inputBotInlineResult::URL_MASK;
-    if (!clean_input_string(url)) {
-      return Status::Error(400, "Strings must be encoded in UTF-8");
-    }
+  if (!clean_input_string(url)) {
+    return Status::Error(400, "Strings must be encoded in UTF-8");
   }
   tl_object_ptr<telegram_api::inputWebDocument> thumbnail;
   if (!thumbnail_url.empty()) {
@@ -1210,9 +1192,8 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
         attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeImageSize>(width, height));
       }
     } else if (type == "audio") {
-      attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeAudio>(
-          telegram_api::documentAttributeAudio::TITLE_MASK | telegram_api::documentAttributeAudio::PERFORMER_MASK,
-          false, duration, title, description, BufferSlice()));
+      attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeAudio>(0, false, duration, title,
+                                                                                           description, BufferSlice()));
     } else if (type == "voice") {
       attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeAudio>(0, true, duration, string(),
                                                                                            string(), BufferSlice()));
@@ -1225,7 +1206,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
   }
 
   return telegram_api::make_object<telegram_api::inputBotInlineResult>(
-      flags, id, type, title, description, url, std::move(thumbnail), std::move(content), std::move(inline_message));
+      0, id, type, title, description, url, std::move(thumbnail), std::move(content), std::move(inline_message));
 }
 
 void InlineQueriesManager::get_weather(Location location,

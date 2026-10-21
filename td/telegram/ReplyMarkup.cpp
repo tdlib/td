@@ -399,20 +399,12 @@ telegram_api::object_ptr<telegram_api::ReplyMarkup> ReplyMarkup::get_input_reply
         }
         rows.push_back(telegram_api::make_object<telegram_api::keyboardButtonRow>(std::move(buttons)));
       }
-      int32 flags = 0;
-      if (!placeholder.empty()) {
-        flags |= telegram_api::replyKeyboardMarkup::PLACEHOLDER_MASK;
-      }
-      return telegram_api::make_object<telegram_api::replyKeyboardMarkup>(
-          flags, need_resize_keyboard, is_one_time_keyboard, is_personal, is_persistent, force_reply, std::move(rows),
-          placeholder);
+      return telegram_api::make_object<telegram_api::replyKeyboardMarkup>(0, need_resize_keyboard, is_one_time_keyboard,
+                                                                          is_personal, is_persistent, force_reply,
+                                                                          std::move(rows), placeholder);
     }
     case ReplyMarkup::Type::ForceReply: {
-      int32 flags = 0;
-      if (!placeholder.empty()) {
-        flags |= telegram_api::replyKeyboardForceReply::PLACEHOLDER_MASK;
-      }
-      return telegram_api::make_object<telegram_api::replyKeyboardForceReply>(flags, is_one_time_keyboard, is_personal,
+      return telegram_api::make_object<telegram_api::replyKeyboardForceReply>(0, is_one_time_keyboard, is_personal,
                                                                               placeholder);
     }
     case ReplyMarkup::Type::RemoveKeyboard:

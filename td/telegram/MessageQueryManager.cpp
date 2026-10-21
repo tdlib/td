@@ -156,12 +156,8 @@ class UploadCoverQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Have no access to the chat"));
     }
 
-    int32 flags = 0;
-    if (business_connection_id_.is_valid()) {
-      flags |= telegram_api::messages_uploadMedia::BUSINESS_CONNECTION_ID_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::messages_uploadMedia(
-        flags, business_connection_id_.get(), std::move(input_peer), std::move(input_media))));
+        0, business_connection_id_.get(), std::move(input_peer), std::move(input_media))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -321,7 +317,6 @@ class SendBotRequestedPeerQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_sendBotRequestedPeer::MSG_ID_MASK;
     } else {
       input_peer = td_->dialog_manager_->get_input_peer(DialogId(bot_user_id), AccessRights::Write);
-      flags |= telegram_api::messages_sendBotRequestedPeer::WEBAPP_REQ_ID_MASK;
     }
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
@@ -494,9 +489,6 @@ class ToggleSuggestedPostApprovalQuery final : public Td::ResultHandler {
     int32 flags = 0;
     if (schedule_date) {
       flags |= telegram_api::messages_toggleSuggestedPostApproval::SCHEDULE_DATE_MASK;
-    }
-    if (!comment.empty()) {
-      flags |= telegram_api::messages_toggleSuggestedPostApproval::REJECT_COMMENT_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_toggleSuggestedPostApproval(
         flags, is_rejected, std::move(input_peer), server_message_id, schedule_date, comment)));
@@ -673,11 +665,7 @@ class CheckSearchPostsFloodQuery final : public Td::ResultHandler {
   }
 
   void send(const string &query) {
-    int32 flags = 0;
-    if (!query.empty()) {
-      flags |= telegram_api::channels_checkSearchPostsFlood::QUERY_MASK;
-    }
-    send_query(G()->net_query_creator().create(telegram_api::channels_checkSearchPostsFlood(flags, query)));
+    send_query(G()->net_query_creator().create(telegram_api::channels_checkSearchPostsFlood(0, query)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -802,9 +790,8 @@ class SearchPostsQuery final : public Td::ResultHandler {
     auto input_peer = DialogManager::get_input_peer_force(offset.dialog_id_);
     CHECK(input_peer != nullptr);
 
-    int32 flags = telegram_api::channels_searchPosts::HASHTAG_MASK;
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_searchPosts(flags, hashtag, string(), offset.date_, std::move(input_peer),
+        telegram_api::channels_searchPosts(0, hashtag, string(), offset.date_, std::move(input_peer),
                                            offset.message_id_.get_server_message_id().get(), limit, 0)));
   }
 
@@ -1231,19 +1218,12 @@ class SummarizeTextQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, MessageId message_id, const string &to_language_code, const string &tone) {
-    int32 flags = 0;
-    if (!to_language_code.empty()) {
-      flags |= telegram_api::messages_summarizeText::TO_LANG_MASK;
-    }
-    if (!tone.empty()) {
-      flags |= telegram_api::messages_summarizeText::TONE_MASK;
-    }
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return promise_.set_error(400, "Chat is not accessible");
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_summarizeText(
-        flags, std::move(input_peer), message_id.get_server_message_id().get(), to_language_code, tone)));
+        0, std::move(input_peer), message_id.get_server_message_id().get(), to_language_code, tone)));
   }
 
   void on_result(BufferSlice packet) final {

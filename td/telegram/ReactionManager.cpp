@@ -223,12 +223,8 @@ class UpdateSavedReactionTagQuery final : public Td::ResultHandler {
   }
 
   void send(const ReactionType &reaction_type, const string &title) {
-    int32 flags = 0;
-    if (!title.empty()) {
-      flags |= telegram_api::messages_updateSavedReactionTag::TITLE_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_updateSavedReactionTag(flags, reaction_type.get_input_reaction(), title)));
+        telegram_api::messages_updateSavedReactionTag(0, reaction_type.get_input_reaction(), title)));
   }
 
   void on_result(BufferSlice packet) final {

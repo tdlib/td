@@ -147,15 +147,8 @@ class SetBotCallbackAnswerQuery final : public Td::ResultHandler {
   }
 
   void send(int64 callback_query_id, const string &text, const string &url, bool show_alert, int32 cache_time) {
-    int32 flags = 0;
-    if (!text.empty()) {
-      flags |= telegram_api::messages_setBotCallbackAnswer::MESSAGE_MASK;
-    }
-    if (!url.empty()) {
-      flags |= telegram_api::messages_setBotCallbackAnswer::URL_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_setBotCallbackAnswer(flags, show_alert, callback_query_id, text, url, cache_time)));
+        telegram_api::messages_setBotCallbackAnswer(0, show_alert, callback_query_id, text, url, cache_time)));
   }
 
   void on_result(BufferSlice packet) final {

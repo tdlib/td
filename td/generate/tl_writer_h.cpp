@@ -192,6 +192,21 @@ bool TD_TL_writer_h::need_arg_mask(const tl::tl_combinator *t, const tl::arg &a)
   if (name == "True" || name == "Bytes") {
     return false;
   }
+  if (name == "String") {
+    // flags for non-empty strings are set automatically; masks are needed only to send or check empty strings
+    const std::string &type_name = t->name;
+    return ((type_name == "messages.editMessage" || type_name == "messages.editInlineBotMessage" ||
+             type_name == "ephemeral.editMessage") &&
+            a.name == "message") ||
+           (type_name == "stories.editStory" && a.name == "caption") ||
+           ((type_name == "messages.editExportedChatInvite" || type_name == "chatlists.editExportedInvite") &&
+            a.name == "title") ||
+           (type_name == "account.passwordInputSettings" && a.name == "email") ||
+           (type_name == "channels.searchPosts" && a.name == "query") ||
+           (type_name == "user" && (a.name == "phone" || a.name == "bot_inline_placeholder")) ||
+           type_name == "account.updateProfile" || type_name == "bots.setBotInfo" ||
+           type_name == "stickers.changeSticker";
+  }
   if (is_built_in_complex_type(name)) {
     // flags for non-empty vectors are set automatically; masks are needed only to send or check empty vectors
     const std::string &type_name = t->name;

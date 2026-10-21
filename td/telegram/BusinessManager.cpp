@@ -386,13 +386,9 @@ class UpdateBusinessLocationQuery final : public Td::ResultHandler {
 
   void send(DialogLocation &&location) {
     location_ = std::move(location);
-    int32 flags = 0;
-    if (!location_.get_address().empty()) {
-      flags |= telegram_api::account_updateBusinessLocation::ADDRESS_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::account_updateBusinessLocation(
-            flags, location_.empty() ? nullptr : location_.get_input_geo_point(), location_.get_address()),
+        telegram_api::account_updateBusinessLocation(0, location_.empty() ? nullptr : location_.get_input_geo_point(),
+                                                     location_.get_address()),
         {{"me"}}));
   }
 

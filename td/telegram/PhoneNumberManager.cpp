@@ -277,6 +277,9 @@ void PhoneNumberManager::send_firebase_sms(const string &token, Promise<Unit> &&
   if (state_ != State::WaitCode) {
     return promise.set_error(400, "Can't send Firebase SMS");
   }
+  if (token.empty()) {
+    return promise.set_error(400, "Token must be non-empty");
+  }
 
   td_->create_handler<RequestFirebaseSmsQuery>(std::move(promise))->send(send_code_helper_.request_firebase_sms(token));
 }

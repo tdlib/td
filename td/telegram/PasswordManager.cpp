@@ -655,7 +655,6 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
   telegram_api::object_ptr<telegram_api::PasswordKdfAlgo> new_algo;
   string new_hint;
   if (update_settings.update_password) {
-    flags |= telegram_api::account_passwordInputSettings::HINT_MASK;
     if (!update_settings.new_password.empty()) {
       auto new_client_salt = create_salt(state.client_salt);
 

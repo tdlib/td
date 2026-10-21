@@ -498,9 +498,6 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> BackgroundType::get_in
     default:
       UNREACHABLE();
   }
-  if (!theme_name_.empty()) {
-    flags |= telegram_api::wallPaperSettings::EMOTICON_MASK;
-  }
   if (intensity_ != 0) {
     flags |= telegram_api::wallPaperSettings::INTENSITY_MASK;
   }

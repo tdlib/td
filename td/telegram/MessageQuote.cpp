@@ -196,7 +196,6 @@ void MessageQuote::update_input_reply_to_message(Td *td,
   }
   CHECK(is_manual_);
   if (rich_texts_.empty()) {
-    input_reply_to_message->flags_ |= telegram_api::inputReplyToMessage::QUOTE_TEXT_MASK;
     input_reply_to_message->quote_text_ = text_.text;
     input_reply_to_message->quote_entities_ =
         get_input_message_entities(td->user_manager_.get(), text_.entities, "update_input_reply_to_message");

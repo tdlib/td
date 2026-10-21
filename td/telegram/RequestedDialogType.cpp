@@ -188,14 +188,7 @@ telegram_api::object_ptr<telegram_api::RequestPeerType> RequestedDialogType::get
           flags, is_created_, has_username_, std::move(user_admin_rights), std::move(bot_admin_rights));
     }
     case Type::CreateBot: {
-      int32 flags = 0;
-      if (!suggested_name_.empty()) {
-        flags |= telegram_api::requestPeerTypeCreateBot::SUGGESTED_NAME_MASK;
-      }
-      if (!suggested_username_.empty()) {
-        flags |= telegram_api::requestPeerTypeCreateBot::SUGGESTED_USERNAME_MASK;
-      }
-      return telegram_api::make_object<telegram_api::requestPeerTypeCreateBot>(flags, true, suggested_name_,
+      return telegram_api::make_object<telegram_api::requestPeerTypeCreateBot>(0, true, suggested_name_,
                                                                                suggested_username_);
     }
     default:

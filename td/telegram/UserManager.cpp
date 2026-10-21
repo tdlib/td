@@ -5215,9 +5215,6 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
         profile_photo_id = 5170408289966598902;
       }
     }
-    if (!phone_number.empty()) {
-      flags |= telegram_api::user::PHONE_MASK;
-    }
 
     telegram_api::object_ptr<telegram_api::userProfilePhoto> profile_photo;
     if (!G()->is_test_dc() && profile_photo_id != 0) {

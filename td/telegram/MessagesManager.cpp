@@ -22292,9 +22292,6 @@ void MessagesManager::send_secret_message(DialogId dialog_id, const Message *m, 
   if (m->reply_to_random_id != 0) {
     flags |= secret_api::decryptedMessage::REPLY_TO_RANDOM_ID_MASK;
   }
-  if (m->via_bot_user_id.is_valid()) {
-    flags |= secret_api::decryptedMessage::VIA_BOT_NAME_MASK;
-  }
   if (m->media_album_id != 0) {
     CHECK(m->media_album_id < 0);
     flags |= secret_api::decryptedMessage::GROUPED_ID_MASK;

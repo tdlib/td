@@ -50,15 +50,14 @@ Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code(
   if (next_code_info_.type == AuthenticationCodeInfo::Type::None) {
     return Status::Error(400, "Authentication code can't be resend");
   }
-  int32 flags = 0;
   string reason_str;
   if (reason != nullptr && reason->get_id() == td_api::resendCodeReasonVerificationFailed::ID) {
     reason_str = std::move(static_cast<td_api::resendCodeReasonVerificationFailed *>(reason.get())->error_message_);
   }
-  if (!reason_str.empty() && clean_input_string(reason_str)) {
-    flags |= telegram_api::auth_resendCode::REASON_MASK;
+  if (!clean_input_string(reason_str)) {
+    reason_str.clear();
   }
-  return telegram_api::auth_resendCode(flags, phone_number_, phone_code_hash_, reason_str);
+  return telegram_api::auth_resendCode(0, phone_number_, phone_code_hash_, reason_str);
 }
 
 telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_code_settings(const Settings &settings) {
@@ -81,7 +80,7 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
     if (settings->firebase_authentication_settings_ != nullptr) {
       allow_firebase = true;
       if (settings->firebase_authentication_settings_->get_id() == td_api::firebaseAuthenticationSettingsIos::ID) {
-        flags |= telegram_api::codeSettings::TOKEN_MASK;
+        flags |= telegram_api::codeSettings::APP_SANDBOX_MASK;
         auto ios_settings = static_cast<const td_api::firebaseAuthenticationSettingsIos *>(
             settings->firebase_authentication_settings_.get());
         device_token = ios_settings->device_token_;
@@ -114,22 +113,18 @@ telegram_api::auth_requestFirebaseSms SendCodeHelper::request_firebase_sms(const
   string safety_net_token;
   string play_integrity_token;
   string ios_push_secret;
-  int32 flags = 0;
 #if TD_ANDROID
   if (sent_code_info_.type == AuthenticationCodeInfo::Type::FirebaseAndroidSafetyNet) {
-    flags |= telegram_api::auth_requestFirebaseSms::SAFETY_NET_TOKEN_MASK;
     safety_net_token = token;
   } else if (sent_code_info_.type == AuthenticationCodeInfo::Type::FirebaseAndroidPlayIntegrity) {
-    flags |= telegram_api::auth_requestFirebaseSms::PLAY_INTEGRITY_TOKEN_MASK;
     play_integrity_token = token;
   }
 #elif TD_DARWIN
   if (sent_code_info_.type == AuthenticationCodeInfo::Type::FirebaseIos) {
-    flags |= telegram_api::auth_requestFirebaseSms::IOS_PUSH_SECRET_MASK;
     ios_push_secret = token;
   }
 #endif
-  return telegram_api::auth_requestFirebaseSms(flags, phone_number_, phone_code_hash_, safety_net_token,
+  return telegram_api::auth_requestFirebaseSms(0, phone_number_, phone_code_hash_, safety_net_token,
                                                play_integrity_token, ios_push_secret);
 }
 

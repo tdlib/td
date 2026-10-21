@@ -405,16 +405,12 @@ telegram_api::object_ptr<telegram_api::keyboardInlineButton> InlineKeyboardButto
       case Type::Buy:
         return telegram_api::make_object<telegram_api::inlineButtonTypeBuy>();
       case Type::UrlAuth: {
-        int32 flags = 0;
         bool request_write_access = false;
         int64 bot_user_id = id_;
         if (bot_user_id >= 0) {
           request_write_access = true;
         } else {
           bot_user_id = -bot_user_id - 1;
-        }
-        if (!forward_text_.empty()) {
-          flags |= telegram_api::inputInlineButtonTypeUrlAuth::FWD_TEXT_MASK;
         }
         telegram_api::object_ptr<telegram_api::InputUser> input_user;
         if (bot_user_id != 0) {
@@ -426,7 +422,7 @@ telegram_api::object_ptr<telegram_api::keyboardInlineButton> InlineKeyboardButto
           input_user = r_input_user.move_as_ok();
         }
         return telegram_api::make_object<telegram_api::inputInlineButtonTypeUrlAuth>(
-            flags, request_write_access, forward_text_, data_, std::move(input_user));
+            0, request_write_access, forward_text_, data_, std::move(input_user));
       }
       case Type::CallbackWithPassword:
         UNREACHABLE();

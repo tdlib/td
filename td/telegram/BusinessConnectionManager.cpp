@@ -343,12 +343,11 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
       return on_error(Status::Error(400, "FILE_PART_1_MISSING"));
     }
 
-    int32 flags = telegram_api::messages_uploadMedia::BUSINESS_CONNECTION_ID_MASK;
     auto input_peer = td_->dialog_manager_->get_input_peer(message_->dialog_id_, AccessRights::Know);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(telegram_api::messages_uploadMedia(
-        flags, message_->business_connection_id_.get(), std::move(input_peer), std::move(input_media))));
+        0, message_->business_connection_id_.get(), std::move(input_peer), std::move(input_media))));
   }
 
   void on_result(BufferSlice packet) final {

@@ -6086,11 +6086,7 @@ InputMedia get_message_content_multi_input_media(
   switch (content->get_type()) {
     case MessageContentType::PaidMedia: {
       const auto *m = static_cast<const MessagePaidMedia *>(content);
-      int32 flags = 0;
-      if (!m->payload.empty()) {
-        flags |= telegram_api::inputMediaPaidMedia::PAYLOAD_MASK;
-      }
-      return telegram_api::make_object<telegram_api::inputMediaPaidMedia>(flags, m->star_count, std::move(input_media),
+      return telegram_api::make_object<telegram_api::inputMediaPaidMedia>(0, m->star_count, std::move(input_media),
                                                                           m->payload);
     }
     case MessageContentType::Poll: {

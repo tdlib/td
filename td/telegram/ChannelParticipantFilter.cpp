@@ -21,9 +21,6 @@ ChannelParticipantFilter::get_input_channel_participants_filter() const {
       return telegram_api::make_object<telegram_api::channelParticipantsSearch>(query_);
     case Type::Mention: {
       int32 flags = 0;
-      if (!query_.empty()) {
-        flags |= telegram_api::channelParticipantsMentions::Q_MASK;
-      }
       auto top_msg_id = message_topic_.get_input_top_msg_id();
       if (top_msg_id != 0) {
         flags |= telegram_api::channelParticipantsMentions::TOP_MSG_ID_MASK;

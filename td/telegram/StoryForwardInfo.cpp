@@ -27,7 +27,7 @@ StoryForwardInfo::StoryForwardInfo(Td *td, telegram_api::object_ptr<telegram_api
     } else {
       td->dialog_manager_->force_create_dialog(dialog_id_, "StoryForwardInfo", true);
     }
-  } else if ((fwd_header->flags_ & telegram_api::storyFwdHeader::FROM_NAME_MASK) != 0) {
+  } else if (!fwd_header->from_name_.empty()) {
     if (fwd_header->story_id_ != 0) {
       LOG(ERROR) << "Receive " << to_string(fwd_header);
     }

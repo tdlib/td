@@ -312,18 +312,8 @@ telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_are
     case Type::Location: {
       telegram_api::object_ptr<telegram_api::geoPointAddress> address;
       if (!address_.is_empty()) {
-        int32 address_flags = 0;
-        if (!address_.state_.empty()) {
-          address_flags |= telegram_api::geoPointAddress::STATE_MASK;
-        }
-        if (!address_.city_.empty()) {
-          address_flags |= telegram_api::geoPointAddress::CITY_MASK;
-        }
-        if (!address_.street_.empty()) {
-          address_flags |= telegram_api::geoPointAddress::STREET_MASK;
-        }
-        address = telegram_api::make_object<telegram_api::geoPointAddress>(
-            address_flags, address_.country_iso2_, address_.state_, address_.city_, address_.street_);
+        address = telegram_api::make_object<telegram_api::geoPointAddress>(0, address_.country_iso2_, address_.state_,
+                                                                           address_.city_, address_.street_);
       }
 
       return telegram_api::make_object<telegram_api::mediaAreaGeoPoint>(

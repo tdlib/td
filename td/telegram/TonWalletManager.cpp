@@ -445,12 +445,8 @@ class SetWalletCardStickersQuery final : public Td::ResultHandler {
 
   void send(vector<telegram_api::object_ptr<telegram_api::inputWalletCardSticker>> &&stickers,
             const string &background_nft_address) {
-    int32 flags = 0;
-    if (!background_nft_address.empty()) {
-      flags |= telegram_api::wallet_setCardStickers::BG_NFT_ADDRESS_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::wallet_setCardStickers(flags, std::move(stickers), background_nft_address)));
+        telegram_api::wallet_setCardStickers(0, std::move(stickers), background_nft_address)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -781,12 +777,8 @@ class SubmitTonConnectResultQuery final : public Td::ResultHandler {
 
   void send(int64 session_id, const string &challenge_answer, bool is_error, const string &body,
             const string &trace_id) {
-    int32 flags = 0;
-    if (!trace_id.empty()) {
-      flags |= telegram_api::wallet_tonConnectSubmitConnectResult::TRACE_ID_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::wallet_tonConnectSubmitConnectResult(
-        flags, is_error, session_id, BufferSlice(challenge_answer), BufferSlice(body), trace_id)));
+        0, is_error, session_id, BufferSlice(challenge_answer), BufferSlice(body), trace_id)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -813,9 +805,7 @@ class TonWalletManager::GetTonConnectPendingQuery final : public Td::ResultHandl
 
   void send(bool by_dapp, int64 session_id, const string &dapp_client_id) {
     int32 flags = 0;
-    if (by_dapp) {
-      flags |= telegram_api::wallet_tonConnectGetPending::DAPP_CLIENT_ID_MASK;
-    } else {
+    if (!by_dapp) {
       flags |= telegram_api::wallet_tonConnectGetPending::SESSION_ID_MASK;
     }
     send_query(
@@ -873,12 +863,8 @@ class SubmitTonConnectResponseQuery final : public Td::ResultHandler {
   }
 
   void send(int64 session_id, MessageId message_id, const string &trace_id, const string &body) {
-    int32 flags = 0;
-    if (!trace_id.empty()) {
-      flags |= telegram_api::wallet_tonConnectSubmitResponse::TRACE_ID_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::wallet_tonConnectSubmitResponse(
-        flags, session_id, message_id.get_server_message_id().get(), BufferSlice(body), trace_id)));
+        0, session_id, message_id.get_server_message_id().get(), BufferSlice(body), trace_id)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -958,11 +944,7 @@ class GetOnRampProvidersQuery final : public Td::ResultHandler {
   }
 
   void send(const string &cryptocurrency) {
-    int32 flags = 0;
-    if (!cryptocurrency.empty()) {
-      flags |= telegram_api::payments_getOnrampProviders::CRYPTO_CURRENCY_MASK;
-    }
-    send_query(G()->net_query_creator().create(telegram_api::payments_getOnrampProviders(flags, cryptocurrency)));
+    send_query(G()->net_query_creator().create(telegram_api::payments_getOnrampProviders(0, cryptocurrency)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1017,12 +999,8 @@ class GetOnRampAvailabilityQuery final : public Td::ResultHandler {
   }
 
   void send(const string &provider, const string &cryptocurrency, const string &base_currency) {
-    int32 flags = 0;
-    if (!base_currency.empty()) {
-      flags |= telegram_api::payments_getOnrampAvailability::BASE_CURRENCY_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_getOnrampAvailability(flags, provider, cryptocurrency, base_currency)));
+        telegram_api::payments_getOnrampAvailability(0, provider, cryptocurrency, base_currency)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1055,12 +1033,8 @@ class TonWalletManager::GetOnRampLimitsQuery final : public Td::ResultHandler {
 
   void send(const string &provider, const string &cryptocurrency, const string &base_currency,
             const string &payment_method) {
-    int32 flags = 0;
-    if (!payment_method.empty()) {
-      flags |= telegram_api::payments_getOnrampLimits::PAYMENT_METHOD_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_getOnrampLimits(flags, provider, cryptocurrency, base_currency, payment_method)));
+        telegram_api::payments_getOnrampLimits(0, provider, cryptocurrency, base_currency, payment_method)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1088,18 +1062,8 @@ class TonWalletManager::GetOnRampQuoteQuery final : public Td::ResultHandler {
 
   void send(const string &provider, const string &cryptocurrency, const string &base_currency,
             const string &cryptocurrency_amount, const string &base_currency_amount, const string &payment_method) {
-    int32 flags = 0;
-    if (!base_currency_amount.empty()) {
-      flags |= telegram_api::payments_getOnrampQuote::BASE_AMOUNT_MASK;
-    }
-    if (!cryptocurrency_amount.empty()) {
-      flags |= telegram_api::payments_getOnrampQuote::CRYPTO_AMOUNT_MASK;
-    }
-    if (!payment_method.empty()) {
-      flags |= telegram_api::payments_getOnrampQuote::PAYMENT_METHOD_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::payments_getOnrampQuote(
-        flags, provider, cryptocurrency, base_currency, base_currency_amount, cryptocurrency_amount, payment_method)));
+        0, provider, cryptocurrency, base_currency, base_currency_amount, cryptocurrency_amount, payment_method)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1128,33 +1092,8 @@ class TonWalletManager::CreateOnRampSessionQuery final : public Td::ResultHandle
   void send(const string &provider, const string &cryptocurrency, const string &address, const string &payment_method,
             const string &base_currency, const string &cryptocurrency_amount, const string &base_currency_amount,
             const string &memo, const string &theme, const string &success_return_url, const string &fail_return_url) {
-    int32 flags = 0;
-    if (!payment_method.empty()) {
-      flags |= telegram_api::payments_createOnrampSession::PAYMENT_METHOD_MASK;
-    }
-    if (!base_currency.empty()) {
-      flags |= telegram_api::payments_createOnrampSession::BASE_CURRENCY_MASK;
-    }
-    if (!cryptocurrency_amount.empty()) {
-      flags |= telegram_api::payments_createOnrampSession::CRYPTO_AMOUNT_MASK;
-    }
-    if (!base_currency_amount.empty()) {
-      flags |= telegram_api::payments_createOnrampSession::BASE_AMOUNT_MASK;
-    }
-    if (!memo.empty()) {
-      flags |= telegram_api::payments_createOnrampSession::MEMO_MASK;
-    }
-    if (!theme.empty()) {
-      flags |= telegram_api::payments_createOnrampSession::THEME_MASK;
-    }
-    if (!success_return_url.empty()) {
-      flags |= telegram_api::payments_createOnrampSession::SUCCESS_RETURN_URL_MASK;
-    }
-    if (!fail_return_url.empty()) {
-      flags |= telegram_api::payments_createOnrampSession::FAIL_RETURN_URL_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::payments_createOnrampSession(
-        flags, provider, cryptocurrency, address, payment_method, base_currency, base_currency_amount, memo, theme,
+        0, provider, cryptocurrency, address, payment_method, base_currency, base_currency_amount, memo, theme,
         success_return_url, fail_return_url, cryptocurrency_amount)));
   }
 
@@ -1181,16 +1120,8 @@ class PerformTonCenterApiRequestQuery final : public Td::ResultHandler {
   }
 
   void send(const string &endpoint, bool is_post, const string &query, const string &payload) {
-    int32 flags = 0;
-    if (!query.empty()) {
-      flags |= telegram_api::toncenter_performApiRequest::QUERY_MASK;
-    }
-    if (!payload.empty()) {
-      flags |= telegram_api::toncenter_performApiRequest::PAYLOAD_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::toncenter_performApiRequest(flags, is_post, endpoint, query, payload), {},
-        G()->get_webfile_dc_id()));
+        telegram_api::toncenter_performApiRequest(0, is_post, endpoint, query, payload), {}, G()->get_webfile_dc_id()));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2144,6 +2075,9 @@ void TonWalletManager::close_ton_connect_session(int64 session_id, const string 
 
 void TonWalletManager::get_ton_connect_requests(bool by_dapp, int64 session_id, const string &dapp_client_id,
                                                 Promise<td_api::object_ptr<td_api::tonConnectRequests>> &&promise) {
+  if (by_dapp && dapp_client_id.empty()) {
+    return promise.set_error(400, "dApp client identifier must be non-empty");
+  }
   td_->create_handler<GetTonConnectPendingQuery>(std::move(promise))->send(by_dapp, session_id, dapp_client_id);
 }
 

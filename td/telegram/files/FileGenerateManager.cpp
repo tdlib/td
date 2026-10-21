@@ -169,9 +169,8 @@ class WebFileDownloadGenerateActor final : public FileGenerateActor {
       file_name_ = PSTRING() << "Album cover " << (is_small ? "thumbnail " : "") << "for " << parts[3] << " - "
                              << parts[2] << ".jpg";
 
-      int32 flags = telegram_api::inputWebFileAudioAlbumThumbLocation::TITLE_MASK;
       return telegram_api::make_object<telegram_api::inputWebFileAudioAlbumThumbLocation>(
-          flags, is_small, nullptr, parts[2].str(), parts[3].str());
+          0, is_small, nullptr, parts[2].str(), parts[3].str());
     }
 
     if (parts.size() != 9 || parts[1] != "map") {

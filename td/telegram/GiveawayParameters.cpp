@@ -103,14 +103,9 @@ GiveawayParameters::get_input_store_payment_premium_giveaway(Td *td, const strin
     additional_input_peers.push_back(std::move(input_peer));
   }
 
-  int32 flags = 0;
-  if (!prize_description_.empty()) {
-    flags |= telegram_api::inputStorePaymentPremiumGiveaway::PRIZE_DESCRIPTION_MASK;
-  }
   return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiveaway>(
-      flags, only_new_subscribers_, winners_are_visible_, std::move(boost_input_peer),
-      std::move(additional_input_peers), vector<string>(country_codes_), prize_description_, random_id, date_, currency,
-      amount);
+      0, only_new_subscribers_, winners_are_visible_, std::move(boost_input_peer), std::move(additional_input_peers),
+      vector<string>(country_codes_), prize_description_, random_id, date_, currency, amount);
 }
 
 telegram_api::object_ptr<telegram_api::inputStorePaymentStarsGiveaway>
@@ -131,12 +126,8 @@ GiveawayParameters::get_input_store_payment_stars_giveaway(Td *td, const string 
     additional_input_peers.push_back(std::move(input_peer));
   }
 
-  int32 flags = 0;
-  if (!prize_description_.empty()) {
-    flags |= telegram_api::inputStorePaymentStarsGiveaway::PRIZE_DESCRIPTION_MASK;
-  }
   return telegram_api::make_object<telegram_api::inputStorePaymentStarsGiveaway>(
-      flags, only_new_subscribers_, winners_are_visible_, star_count, std::move(boost_input_peer),
+      0, only_new_subscribers_, winners_are_visible_, star_count, std::move(boost_input_peer),
       std::move(additional_input_peers), vector<string>(country_codes_), prize_description_, random_id, date_, currency,
       amount, user_count);
 }

@@ -126,14 +126,10 @@ class GetPollVotersQuery final : public Td::ResultHandler {
     }
 
     CHECK(!option.empty());
-    int32 flags = 0;
-    if (!offset.empty()) {
-      flags |= telegram_api::messages_getPollVotes::OFFSET_MASK;
-    }
 
     auto message_id = message_full_id.get_message_id().get_server_message_id().get();
-    send_query(G()->net_query_creator().create(telegram_api::messages_getPollVotes(
-        flags, std::move(input_peer), message_id, std::move(option), offset, limit)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getPollVotes(0, std::move(input_peer), message_id, std::move(option), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2076,17 +2072,12 @@ telegram_api::object_ptr<telegram_api::InputMedia> PollManager::get_input_media(
   }
   auto country_codes = poll->country_codes_;
 
-  int32 flags = 0;
   vector<int32> correct_answers;
   if (poll->is_quiz_) {
     CHECK(!poll->correct_option_ids_.empty());
     for (auto correct_option_id : poll->correct_option_ids_) {
       CHECK(static_cast<size_t>(correct_option_id) < poll->options_.size());
       correct_answers.push_back(correct_option_id);
-    }
-
-    if (!poll->explanation_.is_empty()) {
-      flags |= telegram_api::inputMediaPoll::SOLUTION_MASK;
     }
   } else {
     input_media[1] = nullptr;  // just in case
@@ -2096,7 +2087,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> PollManager::get_input_media(
     answers.push_back(poll->options_[i].get_input_poll_answer(std::move(input_media[2 + i])));
   }
   return telegram_api::make_object<telegram_api::inputMediaPoll>(
-      flags,
+      0,
       telegram_api::make_object<telegram_api::poll>(
           0, poll_flags, poll->is_closed_, !poll->is_anonymous_, poll->allow_multiple_answers_, poll->is_quiz_,
           poll->has_open_answers_, poll->has_revoting_disabled_, poll->shuffle_answers_,

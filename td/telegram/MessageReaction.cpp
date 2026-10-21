@@ -224,14 +224,9 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    int32 flags = 0;
-    if (!offset_.empty()) {
-      flags |= telegram_api::messages_getMessageReactionsList::OFFSET_MASK;
-    }
-
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getMessageReactionsList(
-            flags, std::move(input_peer), message_id_.get_server_message_id().get(),
+            0, std::move(input_peer), message_id_.get_server_message_id().get(),
             reaction_type_.is_empty() ? nullptr : reaction_type_.get_input_reaction(), offset_, limit),
         {{message_full_id}}));
   }

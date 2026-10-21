@@ -147,9 +147,6 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
     if (usage_limit > 0) {
       flags |= telegram_api::messages_exportChatInvite::USAGE_LIMIT_MASK;
     }
-    if (!title.empty()) {
-      flags |= telegram_api::messages_exportChatInvite::TITLE_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(
         flags, is_permanent, creates_join_request, std::move(input_peer), expire_date, usage_limit, title,
         subscription_pricing.get_input_stars_subscription_pricing())));
@@ -304,7 +301,6 @@ class GetExportedChatInvitesQuery final : public Td::ResultHandler {
     int32 flags = 0;
     if (!offset_invite_link.empty() || offset_date != 0) {
       flags |= telegram_api::messages_getExportedChatInvites::OFFSET_DATE_MASK;
-      flags |= telegram_api::messages_getExportedChatInvites::OFFSET_LINK_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_getExportedChatInvites(
         flags, is_revoked, std::move(input_peer), std::move(input_user), offset_date, offset_invite_link, limit)));
@@ -413,9 +409,8 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
       r_input_user = make_tl_object<telegram_api::inputUserEmpty>();
     }
 
-    int32 flags = telegram_api::messages_getChatInviteImporters::LINK_MASK;
     send_query(G()->net_query_creator().create(telegram_api::messages_getChatInviteImporters(
-        flags, false, subscription_expired, std::move(input_peer), invite_link, string(), offset_date,
+        0, false, subscription_expired, std::move(input_peer), invite_link, string(), offset_date,
         r_input_user.move_as_ok(), limit)));
   }
 

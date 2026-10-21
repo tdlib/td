@@ -75,12 +75,8 @@ class GetAllStoriesQuery final : public Td::ResultHandler {
   }
 
   void send(StoryListId story_list_id, bool is_next, const string &state) {
-    int32 flags = 0;
-    if (!state.empty()) {
-      flags |= telegram_api::stories_getAllStories::STATE_MASK;
-    }
     bool hidden = story_list_id == StoryListId::archive();
-    send_query(G()->net_query_creator().create(telegram_api::stories_getAllStories(flags, is_next, hidden, state)));
+    send_query(G()->net_query_creator().create(telegram_api::stories_getAllStories(0, is_next, hidden, state)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -317,12 +313,8 @@ class GetStoryViewsListQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    int32 flags = 0;
-    if (!query.empty()) {
-      flags |= telegram_api::stories_getStoryViewsList::Q_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::stories_getStoryViewsList(flags, only_contacts, prefer_with_reaction, prefer_forwards,
+        telegram_api::stories_getStoryViewsList(0, only_contacts, prefer_with_reaction, prefer_forwards,
                                                 std::move(input_peer), query, story_id.get(), offset, limit)));
   }
 
@@ -362,12 +354,8 @@ class GetStoryReactionsListQuery final : public Td::ResultHandler {
     }
     CHECK(!reaction_type.is_paid_reaction());
 
-    int32 flags = 0;
-    if (!offset.empty()) {
-      flags |= telegram_api::stories_getStoryReactionsList::OFFSET_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::stories_getStoryReactionsList(
-        flags, prefer_forwards, std::move(input_peer), story_full_id.get_story_id().get(),
+        0, prefer_forwards, std::move(input_peer), story_full_id.get_story_id().get(),
         reaction_type.is_empty() ? nullptr : reaction_type.get_input_reaction(), offset, limit)));
   }
 
@@ -735,26 +723,15 @@ class SearchStoriesQuery final : public Td::ResultHandler {
       input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
       CHECK(input_peer != nullptr);
     }
-    send_query(G()->net_query_creator().create(telegram_api::stories_searchPosts(
-        telegram_api::stories_searchPosts::HASHTAG_MASK, hashtag, nullptr, std::move(input_peer), offset, limit)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_searchPosts(0, hashtag, nullptr, std::move(input_peer), offset, limit)));
   }
 
   void send(td_api::object_ptr<td_api::locationAddress> &&address, const string &offset, int32 limit) {
-    int32 address_flags = 0;
-    if (!address->state_.empty()) {
-      address_flags |= telegram_api::geoPointAddress::STATE_MASK;
-    }
-    if (!address->city_.empty()) {
-      address_flags |= telegram_api::geoPointAddress::CITY_MASK;
-    }
-    if (!address->street_.empty()) {
-      address_flags |= telegram_api::geoPointAddress::STREET_MASK;
-    }
-
     auto area = telegram_api::make_object<telegram_api::mediaAreaGeoPoint>(
         0, telegram_api::make_object<telegram_api::mediaAreaCoordinates>(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
         telegram_api::make_object<telegram_api::geoPoint>(0, 0.0, 0.0, 0, 0),
-        telegram_api::make_object<telegram_api::geoPointAddress>(address_flags, address->country_code_, address->state_,
+        telegram_api::make_object<telegram_api::geoPointAddress>(0, address->country_code_, address->state_,
                                                                  address->city_, address->street_));
     send_query(G()->net_query_creator().create(
         telegram_api::stories_searchPosts(0, string(), std::move(area), nullptr, offset, limit)));
@@ -1148,13 +1125,9 @@ class UpdateStoryAlbumQuery final : public Td::ResultHandler {
     added_story_ids_ = added_story_ids;
     auto input_peer = td_->dialog_manager_->get_input_peer(owner_dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    int32 flags = 0;
-    if (!title.empty()) {
-      flags |= telegram_api::stories_updateAlbum::TITLE_MASK;
-    }
     send_query(G()->net_query_creator().create(
         telegram_api::stories_updateAlbum(
-            flags, std::move(input_peer), story_album_id.get(), title, StoryId::get_input_story_ids(deleted_story_ids),
+            0, std::move(input_peer), story_album_id.get(), title, StoryId::get_input_story_ids(deleted_story_ids),
             StoryId::get_input_story_ids(added_story_ids), StoryId::get_input_story_ids(ordered_story_ids)),
         {{owner_dialog_id_}}));
   }
@@ -1354,9 +1327,6 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     auto privacy_rules = story->privacy_rules_.get_input_privacy_rules(td_);
     auto period = story->expire_date_ - story->date_;
     int32 flags = 0;
-    if (!caption.is_empty()) {
-      flags |= telegram_api::stories_sendStory::CAPTION_MASK;
-    }
     if (period != 86400) {
       flags |= telegram_api::stories_sendStory::PERIOD_MASK;
     }

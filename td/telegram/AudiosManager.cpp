@@ -240,8 +240,7 @@ SecretInputMedia AudiosManager::get_secret_input_media(
     attributes.push_back(secret_api::make_object<secret_api::documentAttributeFilename>(audio->file_name));
   }
   attributes.push_back(secret_api::make_object<secret_api::documentAttributeAudio>(
-      secret_api::documentAttributeAudio::TITLE_MASK | secret_api::documentAttributeAudio::PERFORMER_MASK, false,
-      audio->duration, audio->title, audio->performer, BufferSlice()));
+      0, false, audio->duration, audio->title, audio->performer, BufferSlice()));
 
   return {std::move(input_file),
           std::move(thumbnail),
@@ -276,8 +275,7 @@ tl_object_ptr<telegram_api::InputMedia> AudiosManager::get_input_media(
 
     vector<telegram_api::object_ptr<telegram_api::DocumentAttribute>> attributes;
     attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeAudio>(
-        telegram_api::documentAttributeAudio::TITLE_MASK | telegram_api::documentAttributeAudio::PERFORMER_MASK, false,
-        audio->duration, audio->title, audio->performer, BufferSlice()));
+        0, false, audio->duration, audio->title, audio->performer, BufferSlice()));
     if (!audio->file_name.empty()) {
       attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeFilename>(audio->file_name));
     }

@@ -41,23 +41,19 @@ class TranslateTextQuery final : public Td::ResultHandler {
 
   void send(vector<FormattedText> &&texts, MessageFullId message_full_id, const string &to_language_code,
             const string &tone) {
-    int32 flags = 0;
-    if (!tone.empty()) {
-      flags |= telegram_api::messages_translateText::TONE_MASK;
-    }
     if (message_full_id.get_message_id().is_valid()) {
       CHECK(texts.size() == 1u);
       auto input_peer = td_->dialog_manager_->get_input_peer(message_full_id.get_dialog_id(), AccessRights::Read);
       CHECK(input_peer != nullptr);
       auto message_ids = {message_full_id.get_message_id().get_server_message_id().get()};
       send_query(G()->net_query_creator().create(telegram_api::messages_translateText(
-          flags, std::move(input_peer), std::move(message_ids), Auto(), to_language_code, tone)));
+          0, std::move(input_peer), std::move(message_ids), Auto(), to_language_code, tone)));
     } else {
       auto input_texts = transform(std::move(texts), [user_manager = td_->user_manager_.get()](FormattedText &&text) {
         return get_input_text_with_entities(user_manager, std::move(text), "TranslateTextQuery");
       });
       send_query(G()->net_query_creator().create(telegram_api::messages_translateText(
-          flags, nullptr, vector<int32>{}, std::move(input_texts), to_language_code, tone)));
+          0, nullptr, vector<int32>{}, std::move(input_texts), to_language_code, tone)));
     }
   }
 
@@ -98,16 +94,12 @@ class TranslateRichMessageQuery final : public Td::ResultHandler {
   }
 
   void send(RichMessage &&rich_message, MessageFullId message_full_id, const string &to_language_code, string tone) {
-    int32 flags = 0;
-    if (!tone.empty()) {
-      flags |= telegram_api::messages_translateRichMessage::TONE_MASK;
-    }
     if (message_full_id.get_message_id().is_valid()) {
       auto input_peer = td_->dialog_manager_->get_input_peer(message_full_id.get_dialog_id(), AccessRights::Read);
       CHECK(input_peer != nullptr);
       auto message_ids = {message_full_id.get_message_id().get_server_message_id().get()};
       send_query(G()->net_query_creator().create(telegram_api::messages_translateRichMessage(
-          flags, std::move(input_peer), std::move(message_ids), Auto(), to_language_code, tone)));
+          0, std::move(input_peer), std::move(message_ids), Auto(), to_language_code, tone)));
     } else {
       auto input_rich_message = rich_message.get_input_rich_message(td_);
       if (input_rich_message == nullptr) {
@@ -125,7 +117,7 @@ class TranslateRichMessageQuery final : public Td::ResultHandler {
       vector<telegram_api::object_ptr<telegram_api::InputRichMessage>> input_rich_messages;
       input_rich_messages.push_back(std::move(input_rich_message));
       send_query(G()->net_query_creator().create(telegram_api::messages_translateRichMessage(
-          flags, nullptr, vector<int32>{}, std::move(input_rich_messages), to_language_code_, tone_)));
+          0, nullptr, vector<int32>{}, std::move(input_rich_messages), to_language_code_, tone_)));
     }
   }
 
@@ -239,9 +231,8 @@ class UpdateToneQuery final : public Td::ResultHandler {
 
   void send(telegram_api::object_ptr<telegram_api::InputAiComposeTone> &&input_tone, const string &title,
             CustomEmojiId custom_emoji_id, const string &prompt, bool show_creator) {
-    int32 flags = telegram_api::aicompose_updateTone::DISPLAY_AUTHOR_MASK |
-                  telegram_api::aicompose_updateTone::EMOJI_ID_MASK | telegram_api::aicompose_updateTone::TITLE_MASK |
-                  telegram_api::aicompose_updateTone::PROMPT_MASK;
+    int32 flags =
+        telegram_api::aicompose_updateTone::DISPLAY_AUTHOR_MASK | telegram_api::aicompose_updateTone::EMOJI_ID_MASK;
     send_query(G()->net_query_creator().create(telegram_api::aicompose_updateTone(
         flags, std::move(input_tone), show_creator, custom_emoji_id.get(), title, prompt)));
   }
@@ -405,12 +396,8 @@ class ComposeMessageWithAiQuery final : public Td::ResultHandler {
     skip_bot_commands_ = text.skip_bot_commands_;
     max_media_timestamp_ = text.max_media_timestamp_;
 
-    int32 flags = 0;
-    if (!translate_to_language_code.empty()) {
-      flags |= telegram_api::messages_composeMessageWithAI::TRANSLATE_TO_LANG_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::messages_composeMessageWithAI(
-        flags, false, emojify,
+        0, false, emojify,
         get_input_text_with_entities(td_->user_manager_.get(), text.text_, "ComposeMessageWithAiQuery"),
         translate_to_language_code, std::move(input_tone))));
   }
@@ -455,10 +442,6 @@ class ComposeRichMessageWithAiQuery final : public Td::ResultHandler {
             telegram_api::object_ptr<telegram_api::InputAiComposeTone> &&input_tone, bool emojify, bool proofread) {
     input_rich_message_ = std::move(message);
 
-    int32 flags = 0;
-    if (!translate_to_language_code.empty()) {
-      flags |= telegram_api::messages_composeRichMessageWithAI::TRANSLATE_TO_LANG_MASK;
-    }
     telegram_api::object_ptr<telegram_api::InputRichMessage> input_rich_message;
     if (has_message) {
       input_rich_message = input_rich_message_.message_.get_input_rich_message(td_);
@@ -475,7 +458,7 @@ class ComposeRichMessageWithAiQuery final : public Td::ResultHandler {
       proofread_ = proofread;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_composeRichMessageWithAI(
-        flags, proofread, emojify, std::move(input_rich_message), translate_to_language_code, std::move(input_tone))));
+        0, proofread, emojify, std::move(input_rich_message), translate_to_language_code, std::move(input_tone))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -868,6 +851,12 @@ void TranslationManager::do_create_tone(const string &title, CustomEmojiId custo
 void TranslationManager::update_tone(const string &name, const string &title, CustomEmojiId custom_emoji_id,
                                      const string &prompt, bool show_creator,
                                      Promise<td_api::object_ptr<td_api::textCompositionStyle>> &&promise) {
+  if (title.empty()) {
+    return promise.set_error(400, "Title must be non-empty");
+  }
+  if (prompt.empty()) {
+    return promise.set_error(400, "Prompt must be non-empty");
+  }
   td_->user_manager_->get_me([actor_id = actor_id(this), name, title, custom_emoji_id, prompt, show_creator,
                               promise = std::move(promise)](Unit) mutable {
     send_closure(actor_id, &TranslationManager::do_update_tone, name, title, custom_emoji_id, prompt, show_creator,

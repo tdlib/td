@@ -141,8 +141,8 @@ class EditForumTopicQuery final : public Td::ResultHandler {
   explicit EditForumTopicQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, ForumTopicId forum_topic_id, bool edit_title, const string &title,
-            bool edit_custom_emoji_id, CustomEmojiId icon_custom_emoji_id) {
+  void send(DialogId dialog_id, ForumTopicId forum_topic_id, const string &title, bool edit_custom_emoji_id,
+            CustomEmojiId icon_custom_emoji_id) {
     dialog_id_ = dialog_id;
     forum_topic_id_ = forum_topic_id;
 
@@ -152,9 +152,6 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     }
 
     int32 flags = 0;
-    if (edit_title) {
-      flags |= telegram_api::messages_editForumTopic::TITLE_MASK;
-    }
     if (edit_custom_emoji_id) {
       flags |= telegram_api::messages_editForumTopic::ICON_EMOJI_ID_MASK;
     }
@@ -383,12 +380,8 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    int32 flags = 0;
-    if (!query.empty()) {
-      flags |= telegram_api::messages_getForumTopics::Q_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getForumTopics(flags, std::move(input_peer), query, offset_date,
+        telegram_api::messages_getForumTopics(0, std::move(input_peer), query, offset_date,
                                               offset_message_id.get_server_message_id().get(),
                                               offset_forum_topic_id.get(), limit),
         {{dialog_id}}));
@@ -587,7 +580,7 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, ForumTopicId forum_
   }
 
   td_->create_handler<EditForumTopicQuery>(std::move(promise))
-      ->send(dialog_id, forum_topic_id, edit_title, new_title, edit_icon_custom_emoji, icon_custom_emoji_id);
+      ->send(dialog_id, forum_topic_id, new_title, edit_icon_custom_emoji, icon_custom_emoji_id);
 }
 
 void ForumTopicManager::read_forum_topic_messages(DialogId dialog_id, ForumTopicId forum_topic_id,

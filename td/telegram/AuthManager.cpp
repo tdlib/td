@@ -745,6 +745,9 @@ void AuthManager::set_firebase_token(uint64 query_id, string token) {
   if (state_ != State::WaitCode) {
     return on_query_error(query_id, Status::Error(400, "Call to sendAuthenticationFirebaseSms unexpected"));
   }
+  if (token.empty()) {
+    return on_query_error(query_id, Status::Error(400, "Token must be non-empty"));
+  }
   on_new_query(query_id);
 
   start_net_query(NetQueryType::RequestFirebaseSms,
@@ -804,10 +807,9 @@ void AuthManager::resend_authentication_code(uint64 query_id, td_api::object_ptr
 
 void AuthManager::send_auth_sign_in_query() {
   bool is_email = !email_code_.is_empty();
-  int32 flags = is_email ? 0 : telegram_api::auth_signIn::PHONE_CODE_MASK;
   start_net_query(NetQueryType::SignIn,
                   G()->net_query_creator().create_unauth(telegram_api::auth_signIn(
-                      flags, send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash(), code_,
+                      0, send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash(), code_,
                       is_email ? email_code_.get_input_email_verification() : nullptr)));
 }
 
@@ -847,6 +849,9 @@ void AuthManager::reset_email_address(uint64 query_id) {
 void AuthManager::check_code(uint64 query_id, string code) {
   if (state_ != State::WaitCode) {
     return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationCode unexpected"));
+  }
+  if (code.empty()) {
+    return on_query_error(query_id, Status::Error(400, "Authentication code must be non-empty"));
   }
 
   code_ = std::move(code);

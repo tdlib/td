@@ -1527,9 +1527,7 @@ class WebPageBlockList final : public WebPageBlock {
     telegram_api::object_ptr<telegram_api::PageListOrderedItem> get_input_page_list_ordered_item(
         InputContext &context) const {
       CHECK(!label.empty());
-      int32 flags = telegram_api::pageListOrderedItemBlocks::NUM_MASK |
-                    telegram_api::pageListOrderedItemBlocks::VALUE_MASK |
-                    telegram_api::pageListOrderedItemBlocks::TYPE_MASK;
+      int32 flags = telegram_api::pageListOrderedItemBlocks::VALUE_MASK;
       return telegram_api::make_object<telegram_api::pageListOrderedItemBlocks>(
           flags, has_checkbox, has_checkbox && is_checked, label, get_input_page_blocks(page_blocks, context), value,
           type);
@@ -1675,7 +1673,7 @@ class WebPageBlockList final : public WebPageBlock {
 
   telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(InputContext &context) const final {
     if (!items.empty() && !items[0].label.empty()) {
-      int32 flags = telegram_api::pageBlockOrderedList::START_MASK | telegram_api::pageBlockOrderedList::TYPE_MASK;
+      int32 flags = telegram_api::pageBlockOrderedList::START_MASK;
       return telegram_api::make_object<telegram_api::pageBlockOrderedList>(
           flags, is_reversed,
           transform(items, [&](const Item &item) { return item.get_input_page_list_ordered_item(context); }), start,
