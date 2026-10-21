@@ -33789,6 +33789,11 @@ int64 MessagesManager::get_next_pinned_dialog_order() {
   return current_pinned_dialog_order_;
 }
 
+int32 MessagesManager::get_message_date(MessageFullId message_full_id) const {
+  auto m = get_message(message_full_id);
+  return m == nullptr ? 0 : m->date;
+}
+
 int64 MessagesManager::get_message_order(DialogId dialog_id, MessageId message_id) const {
   auto m = get_message({dialog_id, message_id});
   if (m == nullptr) {
