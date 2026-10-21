@@ -758,6 +758,28 @@ const DialogNotificationSettings *ForumTopicManager::get_forum_topic_notificatio
   return topic->topic_->get_notification_settings();
 }
 
+bool ForumTopicManager::get_forum_topic_mute_until(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                   int32 &mute_until) const {
+  const auto *settings = get_forum_topic_notification_settings(dialog_id, forum_topic_id);
+  if (settings == nullptr || settings->use_default_mute_until) {
+    return false;
+  }
+  mute_until = settings->mute_until;
+  return true;
+}
+
+bool ForumTopicManager::have_forum_topic_notification_settings(DialogId dialog_id, ForumTopicId forum_topic_id) const {
+  const auto *topic = get_topic(dialog_id, forum_topic_id);
+  return topic != nullptr && topic->topic_ != nullptr;
+}
+
+void ForumTopicManager::load_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id) {
+  if (td_->auth_manager_->is_bot() || have_forum_topic_notification_settings(dialog_id, forum_topic_id)) {
+    return;
+  }
+  reload_topic(dialog_id, add_dialog_topics(dialog_id), forum_topic_id);
+}
+
 void ForumTopicManager::on_update_forum_topic_notify_settings(
     DialogId dialog_id, ForumTopicId forum_topic_id,
     tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings, const char *source) {
@@ -1558,6 +1580,7 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       auto old_last_read_inbox_message_id =
           topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_read_inbox_message_id();
       auto old_unread_count = topic->topic_ == nullptr ? 0 : topic->topic_->get_unread_count();
+      bool was_known = topic->topic_ != nullptr;
       if (topic->topic_ == nullptr || true) {
         auto old_file_ids = get_topic_file_ids(topic);
         topic->topic_ = std::move(forum_topic_full);
@@ -1588,6 +1611,10 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       update_topic_order(dialog_id, topic);
       send_update_forum_topic(dialog_id, topic);
       save_topic_to_database(dialog_id, topic);
+      if (!was_known) {
+        // notifications about messages in the topic could wait for its notification settings
+        td_->messages_manager_->on_forum_topic_notification_settings_known(dialog_id);
+      }
       return forum_topic_id;
     }
     default:

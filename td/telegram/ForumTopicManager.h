@@ -134,6 +134,14 @@ class ForumTopicManager final : public Actor {
 
   void on_update_read_all_forum_topics(DialogId dialog_id, MessageId read_inbox_max_message_id);
 
+  // returns the mute_until of the topic, if the topic doesn't use the chat's value
+  bool get_forum_topic_mute_until(DialogId dialog_id, ForumTopicId forum_topic_id, int32 &mute_until) const;
+
+  // returns whether the notification settings of the topic are known
+  bool have_forum_topic_notification_settings(DialogId dialog_id, ForumTopicId forum_topic_id) const;
+
+  void load_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id);
+
   void reload_pinned_forum_topics(DialogId dialog_id);
 
   void on_channel_difference_too_long(DialogId dialog_id);
