@@ -1421,7 +1421,8 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
           topic->topic_->set_unread_count(old_unread_count);
         }
       } else if (last_message_id.is_valid()) {
-        topic->last_message_date_ = td_->messages_manager_->get_get_message_date(dialog_id)(last_message_id);
+        // the message may not be added yet, for example while getChannelDifference is running
+        topic->last_message_date_ = td_->messages_manager_->get_message_date({dialog_id, last_message_id});
       }
       update_topic_order(dialog_id, topic);
       send_update_forum_topic(dialog_id, topic);
@@ -1858,6 +1859,11 @@ void ForumTopicManager::on_topic_message_added(DialogId dialog_id, ForumTopicId 
     }
     return reload_topic(dialog_id, dialog_topics, forum_topic_id);
   }
+  if (message_id == last_message_id && topic->last_message_date_ == 0) {
+    // the last message was received from the server before it was added
+    topic->last_message_date_ = message_date;
+    return on_forum_topic_changed(dialog_id, topic);
+  }
   if (message_id <= last_message_id) {
     return;
   }
@@ -1921,7 +1927,7 @@ void ForumTopicManager::on_topic_message_deleted(DialogId dialog_id, ForumTopicI
     --it;
     if (*it != nullptr) {
       new_last_message_id = (*it)->get_message_id();
-      topic->last_message_date_ = td_->messages_manager_->get_get_message_date(dialog_id)(new_last_message_id);
+      topic->last_message_date_ = td_->messages_manager_->get_message_date({dialog_id, new_last_message_id});
       topic->topic_->set_last_message_id(new_last_message_id);
       on_forum_topic_changed(dialog_id, topic);
     } else {
