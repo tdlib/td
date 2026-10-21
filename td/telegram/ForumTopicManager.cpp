@@ -651,9 +651,19 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, ForumTopicId forum_
 void ForumTopicManager::read_forum_topic_messages(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                   MessageId last_read_inbox_message_id) {
   CHECK(!td_->auth_manager_->is_bot());
-  auto topic = get_topic(dialog_id, forum_topic_id);
-  if (topic == nullptr || topic->topic_ == nullptr) {
+  auto topic = add_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr) {
     return;
+  }
+  if (topic->topic_ == nullptr) {
+    // the topic must be read on the server even if its state isn't known yet
+    if (last_read_inbox_message_id <= topic->sent_read_inbox_message_id_) {
+      return;
+    }
+    topic->sent_read_inbox_message_id_ = last_read_inbox_message_id;
+    td_->create_handler<ReadForumTopicQuery>()->send(dialog_id, forum_topic_id,
+                                                     last_read_inbox_message_id.get_prev_server_message_id());
+    return reload_topic(dialog_id, get_dialog_topics(dialog_id), forum_topic_id);
   }
 
   bool need_update = false;
@@ -1465,6 +1475,11 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       } else if (last_message_id.is_valid()) {
         // the message may not be added yet, for example while getChannelDifference is running
         topic->last_message_date_ = td_->messages_manager_->get_message_date({dialog_id, last_message_id});
+      }
+      if (topic->sent_read_inbox_message_id_ > topic->topic_->get_last_read_inbox_message_id() &&
+          topic->sent_read_inbox_message_id_ >= topic->topic_->get_last_message_id()) {
+        // the topic was read up to its last message before it was received
+        topic->topic_->update_last_read_inbox_message_id(topic->sent_read_inbox_message_id_, 0);
       }
       update_topic_order(dialog_id, topic);
       if (need_update) {
