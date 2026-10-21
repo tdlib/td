@@ -654,7 +654,7 @@ void ForumTopicManager::read_forum_topic_messages(DialogId dialog_id, ForumTopic
   }
 
   bool need_update = false;
-  if (topic->topic_->update_last_read_inbox_message_id(last_read_inbox_message_id, -1)) {
+  if (read_topic_messages(dialog_id, topic, last_read_inbox_message_id, -1)) {
     need_update = true;
     auto max_message_id = last_read_inbox_message_id.get_prev_server_message_id();
     LOG(INFO) << "Send read topic history request in topic of " << forum_topic_id << " in " << dialog_id << " up to "
@@ -682,12 +682,33 @@ void ForumTopicManager::on_update_forum_topic_unread(DialogId dialog_id, ForumTo
   if (topic->topic_->update_last_read_outbox_message_id(last_read_outbox_message_id)) {
     need_update = true;
   }
-  if (topic->topic_->update_last_read_inbox_message_id(last_read_inbox_message_id, unread_count)) {
+  if (read_topic_messages(dialog_id, topic, last_read_inbox_message_id, unread_count)) {
     need_update = true;
   }
   if (need_update) {
     on_forum_topic_changed(dialog_id, topic);
   }
+}
+
+bool ForumTopicManager::read_topic_messages(DialogId dialog_id, Topic *topic, MessageId read_inbox_max_message_id,
+                                            int32 hint_unread_count) {
+  CHECK(topic != nullptr && topic->topic_ != nullptr);
+  auto old_read_inbox_max_message_id = topic->topic_->get_last_read_inbox_message_id();
+  if (read_inbox_max_message_id <= old_read_inbox_max_message_id) {
+    return false;
+  }
+  auto unread_count = topic->ordered_messages_.calc_new_unread_count(
+      read_inbox_max_message_id, old_read_inbox_max_message_id, topic->topic_->get_unread_count(),
+      topic->topic_->get_last_message_id(),
+      td_->messages_manager_->get_is_counted_as_unread(dialog_id, MessageType::Server), hint_unread_count);
+  if (unread_count < 0) {
+    // the messages between the old and the new read position aren't known; the server knows the count
+    unread_count = hint_unread_count >= 0 ? hint_unread_count : topic->topic_->get_unread_count();
+    if (hint_unread_count < 0) {
+      reload_topic(dialog_id, get_dialog_topics(dialog_id), topic->info_->get_forum_topic_id());
+    }
+  }
+  return topic->topic_->update_last_read_inbox_message_id(read_inbox_max_message_id, unread_count);
 }
 
 DialogNotificationSettings *ForumTopicManager::get_forum_topic_notification_settings(DialogId dialog_id,
@@ -1378,6 +1399,9 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       }
       auto old_last_message_id = topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_message_id();
       auto old_last_message_date = topic->last_message_date_;
+      auto old_last_read_inbox_message_id =
+          topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_read_inbox_message_id();
+      auto old_unread_count = topic->topic_ == nullptr ? 0 : topic->topic_->get_unread_count();
       if (topic->topic_ == nullptr || true) {
         auto old_file_ids = get_topic_file_ids(topic);
         topic->topic_ = std::move(forum_topic_full);
@@ -1389,9 +1413,13 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       set_topic_info(dialog_id, topic, std::move(forum_topic_info));
       auto last_message_id = topic->topic_->get_last_message_id();
       if (old_last_message_id > last_message_id) {
-        // the topic was requested before its newer last message was received
+        // the topic was requested before its newer last message was received, so its unread count is older too
         topic->topic_->set_last_message_id(old_last_message_id);
         topic->last_message_date_ = old_last_message_date;
+        if (old_last_read_inbox_message_id >= topic->topic_->get_last_read_inbox_message_id()) {
+          topic->topic_->update_last_read_inbox_message_id(old_last_read_inbox_message_id, old_unread_count);
+          topic->topic_->set_unread_count(old_unread_count);
+        }
       } else if (last_message_id.is_valid()) {
         topic->last_message_date_ = td_->messages_manager_->get_get_message_date(dialog_id)(last_message_id);
       }
@@ -1828,8 +1856,8 @@ bool ForumTopicManager::is_last_topic_message(DialogId dialog_id, ForumTopicId f
 }
 
 void ForumTopicManager::on_topic_message_added(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id,
-                                               int32 message_date, bool from_update, bool need_update, bool is_new,
-                                               const char *source) {
+                                               int32 message_date, bool is_outgoing, bool from_update, bool need_update,
+                                               bool is_new, const char *source) {
   if (td_->auth_manager_->is_bot() || !can_be_forum(dialog_id) || !forum_topic_id.is_valid()) {
     return;
   }
@@ -1857,7 +1885,17 @@ void ForumTopicManager::on_topic_message_added(DialogId dialog_id, ForumTopicId 
   if (from_update && is_new) {
     topic->topic_->set_last_message_id(message_id);
     topic->last_message_date_ = message_date;
+    // the server counts unread messages in a topic only after it was read for the first time
+    auto last_read_inbox_message_id = topic->topic_->get_last_read_inbox_message_id();
+    if (need_update && last_read_inbox_message_id.is_valid() && message_id > last_read_inbox_message_id &&
+        td_->messages_manager_->get_is_counted_as_unread(dialog_id, MessageType::Server)(message_id)) {
+      topic->topic_->set_unread_count(topic->topic_->get_unread_count() + 1);
+    }
     on_forum_topic_changed(dialog_id, topic);
+    if (is_outgoing && message_id.is_server()) {
+      // the server doesn't read a topic when a message is sent to it, so the topic is read explicitly
+      read_forum_topic_messages(dialog_id, forum_topic_id, message_id);
+    }
   } else {
     // a message newer than the last known one was received not from an update, so the last message is unknown
     reload_topic(dialog_id, get_dialog_topics(dialog_id), forum_topic_id);
@@ -1901,6 +1939,14 @@ void ForumTopicManager::on_topic_message_deleted(DialogId dialog_id, ForumTopicI
     } else {
       // the previous message is unknown; the deleted message keeps the order until the topic is received again
       reload_topic(dialog_id, get_dialog_topics(dialog_id), forum_topic_id);
+    }
+  }
+  if (!only_from_memory && topic->topic_ != nullptr) {
+    auto last_read_inbox_message_id = topic->topic_->get_last_read_inbox_message_id();
+    if (last_read_inbox_message_id.is_valid() && message_id > last_read_inbox_message_id &&
+        td_->messages_manager_->get_is_counted_as_unread(dialog_id, MessageType::Server)(message_id) &&
+        topic->topic_->set_unread_count(topic->topic_->get_unread_count() - 1)) {
+      on_forum_topic_changed(dialog_id, topic);
     }
   }
   topic->ordered_messages_.erase(message_id, only_from_memory, source);

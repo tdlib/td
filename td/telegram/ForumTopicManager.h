@@ -147,7 +147,7 @@ class ForumTopicManager final : public Actor {
   bool is_last_topic_message(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id) const;
 
   void on_topic_message_added(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id, int32 message_date,
-                              bool from_update, bool need_update, bool is_new, const char *source);
+                              bool is_outgoing, bool from_update, bool need_update, bool is_new, const char *source);
 
   void on_topic_message_updated(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id);
 
@@ -269,6 +269,9 @@ class ForumTopicManager final : public Actor {
   void on_forum_topic_changed(DialogId dialog_id, Topic *topic);
 
   void update_topic_order(DialogId dialog_id, Topic *topic);
+
+  bool read_topic_messages(DialogId dialog_id, Topic *topic, MessageId read_inbox_max_message_id,
+                           int32 hint_unread_count);
 
   int64 get_topic_public_order(DialogId dialog_id, const Topic *topic) const;
 

@@ -31592,8 +31592,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
     auto forum_topic_id = get_message_forum_topic_id(dialog_id, m);
     if (forum_topic_id.is_valid()) {
-      td_->forum_topic_manager_->on_topic_message_added(dialog_id, forum_topic_id, message_id, m->date, from_update,
-                                                        *need_update, message_id >= d->last_new_message_id, source);
+      td_->forum_topic_manager_->on_topic_message_added(dialog_id, forum_topic_id, message_id, m->date, m->is_outgoing,
+                                                        from_update, *need_update, message_id >= d->last_new_message_id,
+                                                        source);
     }
 
     if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid()) {
@@ -32530,7 +32531,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       }
       if (new_forum_topic_id.is_valid()) {
         td_->forum_topic_manager_->on_topic_message_added(dialog_id, new_forum_topic_id, message_id, old_message->date,
-                                                          false, false, false, "update_message");
+                                                          old_message->is_outgoing, false, false, false,
+                                                          "update_message");
       }
     }
     need_send_update = true;
