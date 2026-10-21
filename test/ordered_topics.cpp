@@ -33,6 +33,10 @@ class TestTopicId {
   bool operator==(const TestTopicId &other) const {
     return id_ == other.id_;
   }
+
+  bool operator!=(const TestTopicId &other) const {
+    return id_ != other.id_;
+  }
 };
 
 // the list as it is documented: topics sorted by order, then by identifier, both descending;
@@ -149,4 +153,57 @@ TEST(OrderedTopics, total_count) {
   ASSERT_TRUE(topics.is_fully_loaded());
   ASSERT_EQ(2, topics.update_total_count());
   ASSERT_EQ(2, topics.get_server_total_count());
+}
+
+TEST(OrderedTopics, pinned_topics) {
+  using Topics = td::OrderedTopics<TestTopicId>;
+  Topics topics;
+  auto pin = [&](td::int64 topic_id) {
+    return topics.pin_topic(TestTopicId(topic_id));
+  };
+  auto ids = [&] {
+    return td::transform(topics.get_pinned_topic_ids(), [](TestTopicId id) { return id.get_unique_id(); });
+  };
+
+  auto order1 = pin(1);
+  auto order2 = pin(2);
+  ASSERT_TRUE(order1 > Topics::MIN_PINNED_TOPIC_ORDER);
+  ASSERT_TRUE(order2 > order1);
+  ASSERT_EQ(0, pin(2));  // already the first
+  ASSERT_TRUE(pin(1) > order2);
+  ASSERT_TRUE(ids() == td::vector<td::int64>({1, 2}));
+  ASSERT_TRUE(topics.unpin_topic(TestTopicId(2)));
+  ASSERT_TRUE(!topics.unpin_topic(TestTopicId(2)));
+  ASSERT_TRUE(ids() == td::vector<td::int64>({1}));
+
+  auto check_changes = [&](td::vector<td::int64> old_ids, td::vector<td::int64> new_ids,
+                           td::vector<td::int64> expected_added, td::vector<td::int64> expected_removed) {
+    Topics list;
+    for (auto it = old_ids.rbegin(); it != old_ids.rend(); ++it) {
+      list.pin_topic(TestTopicId(*it));
+    }
+    td::vector<TestTopicId> added;
+    td::vector<TestTopicId> removed;
+    list.get_pinned_topic_changes(td::transform(new_ids, [](td::int64 id) { return TestTopicId(id); }), added, removed);
+    auto to_ids = [](const td::vector<TestTopicId> &v) {
+      return td::transform(v, [](TestTopicId id) { return id.get_unique_id(); });
+    };
+    ASSERT_TRUE(to_ids(added) == expected_added);
+    ASSERT_TRUE(to_ids(removed) == expected_removed);
+
+    // applying the changes gives the requested list
+    for (auto topic_id : added) {
+      list.pin_topic(topic_id);
+    }
+    for (auto topic_id : removed) {
+      list.unpin_topic(topic_id);
+    }
+    ASSERT_TRUE(to_ids(list.get_pinned_topic_ids()) == new_ids);
+  };
+  check_changes({}, {1, 2, 3}, {3, 2, 1}, {});
+  check_changes({1, 2, 3}, {1, 2, 3}, {}, {});
+  check_changes({1, 2, 3}, {}, {}, {1, 2, 3});
+  check_changes({1, 2, 3}, {2, 1, 3}, {2}, {});
+  check_changes({1, 2, 3}, {4, 1, 3}, {4}, {2});
+  check_changes({1, 2, 3}, {3, 2, 1}, {2, 3}, {});
 }
