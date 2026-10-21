@@ -151,6 +151,8 @@ class ForumTopicManager final : public Actor {
 
   void repair_topic_unread_poll_vote_count(DialogId dialog_id, ForumTopicId forum_topic_id);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server-side limit for forum topic title
   static constexpr int32 MAX_GET_FORUM_TOPICS = 100;           // server-side limit

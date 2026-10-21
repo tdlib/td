@@ -2234,6 +2234,8 @@ void Requests::on_request(uint64 id, const td_api::getCurrentState &request) {
 
     td_->saved_messages_manager_->get_current_state(updates);
 
+    td_->forum_topic_manager_->get_current_state(updates);
+
     td_->story_manager_->get_current_state(updates);
 
     td_->suggested_action_manager_->get_current_state(updates);
