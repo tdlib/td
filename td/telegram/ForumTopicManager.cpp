@@ -40,6 +40,8 @@
 #include "td/utils/Slice.h"
 #include "td/utils/tl_helpers.h"
 
+#include <limits>
+
 namespace td {
 
 class CreateForumTopicQuery final : public Td::ResultHandler {
@@ -1211,6 +1213,128 @@ void ForumTopicManager::load_forum_topics(DialogId dialog_id, int32 limit, Promi
     return;
   }
 
+  if (!dialog_topics->is_database_loaded_) {
+    dialog_topics->is_database_loaded_ = true;
+    if (load_forum_topics_from_database(dialog_id, dialog_topics)) {
+      return;
+    }
+  }
+  load_forum_topics_from_server(dialog_id, dialog_topics, limit);
+}
+
+bool ForumTopicManager::load_forum_topics_from_database(DialogId dialog_id, DialogTopics *dialog_topics) {
+  auto message_thread_db = G()->td_db()->get_message_thread_db_async();
+  if (message_thread_db == nullptr) {
+    return false;
+  }
+  auto state = G()->td_db()->get_binlog_pmc()->get(get_topic_list_state_key(dialog_id));
+  if (state.empty()) {
+    return false;
+  }
+
+  LOG(INFO) << "Load topics of " << dialog_id << " from database";
+  message_thread_db->get_message_threads(
+      dialog_id, std::numeric_limits<int64>::max(), MAX_LOAD_FORUM_TOPICS_FROM_DATABASE,
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, generation = dialog_topics->generation_,
+                              state = std::move(state)](Result<MessageThreadDbMessageThreads> result) mutable {
+        send_closure(actor_id, &ForumTopicManager::on_load_forum_topics_from_database, dialog_id, generation,
+                     std::move(state), std::move(result));
+      }));
+  return true;
+}
+
+void ForumTopicManager::on_load_forum_topics_from_database(DialogId dialog_id, uint32 generation, string state,
+                                                           Result<MessageThreadDbMessageThreads> result) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr || dialog_topics->generation_ != generation) {
+    return;
+  }
+  ForumTopicListState list_state;
+  if (result.is_error() || log_event_parse(list_state, state).is_error()) {
+    LOG(ERROR) << "Failed to load topics of " << dialog_id << " from database";
+    G()->td_db()->get_binlog_pmc()->erase(get_topic_list_state_key(dialog_id));
+    return load_forum_topics_from_server(dialog_id, dialog_topics, MAX_GET_FORUM_TOPICS);
+  }
+
+  auto message_threads = result.move_as_ok();
+  auto loaded_count = message_threads.message_threads.size();
+  if (loaded_count == 0) {
+    // a forum has at least the General topic, so the saved topics were deleted with the database
+    LOG(INFO) << "Have no saved topics of " << dialog_id;
+    G()->td_db()->get_binlog_pmc()->erase(get_topic_list_state_key(dialog_id));
+    return load_forum_topics_from_server(dialog_id, dialog_topics, MAX_GET_FORUM_TOPICS);
+  }
+  for (auto &data : message_threads.message_threads) {
+    add_topic_from_database(dialog_id, dialog_topics, std::move(data));
+  }
+  if (loaded_count == static_cast<size_t>(MAX_LOAD_FORUM_TOPICS_FROM_DATABASE)) {
+    G()->td_db()->get_message_thread_db_async()->get_message_threads(
+        dialog_id, message_threads.next_order, MAX_LOAD_FORUM_TOPICS_FROM_DATABASE,
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, generation,
+                                state = std::move(state)](Result<MessageThreadDbMessageThreads> result) mutable {
+          send_closure(actor_id, &ForumTopicManager::on_load_forum_topics_from_database, dialog_id, generation,
+                       std::move(state), std::move(result));
+        }));
+    return;
+  }
+
+  // all saved topics are loaded; restore the part of the list, which was loaded from the server
+  set_local_pinned_forum_topics(dialog_id, dialog_topics, std::move(list_state.pinned_forum_topic_ids_));
+  auto &ordered_topics = dialog_topics->ordered_topics_;
+  ordered_topics.set_server_total_count(list_state.server_total_count_);
+  dialog_topics->offset_date_ = list_state.offset_date_;
+  dialog_topics->offset_message_id_ = list_state.offset_message_id_;
+  dialog_topics->offset_forum_topic_id_ = list_state.offset_forum_topic_id_;
+  for (auto forum_topic_id :
+       ordered_topics.set_last_topic_date({list_state.last_topic_order_, list_state.last_topic_id_})) {
+    auto *topic = get_topic(dialog_topics, forum_topic_id);
+    CHECK(topic != nullptr);
+    send_update_forum_topic(dialog_id, topic);
+  }
+  set_promises(dialog_topics->load_queries_);
+
+  // the topics could have been changed while they weren't watched
+  reload_pinned_forum_topics(dialog_id);
+}
+
+void ForumTopicManager::add_topic_from_database(DialogId dialog_id, DialogTopics *dialog_topics, BufferSlice data) {
+  auto saved_topic = make_unique<Topic>();
+  if (log_event_parse(*saved_topic, data.as_slice()).is_error() || saved_topic->info_ == nullptr ||
+      saved_topic->info_->get_dialog_id() != dialog_id) {
+    LOG(ERROR) << "Failed to parse a topic of " << dialog_id << " from database";
+    return;
+  }
+  auto forum_topic_id = saved_topic->info_->get_forum_topic_id();
+  auto *topic = add_topic(dialog_topics, forum_topic_id);
+  if (topic == nullptr || topic->topic_ != nullptr) {
+    // the topic was deleted or was already received from the server
+    return;
+  }
+
+  topic->topic_ = std::move(saved_topic->topic_);
+  topic->last_message_date_ = saved_topic->last_message_date_;
+  if (topic->info_ == nullptr) {
+    // the info could have been received after the database request was sent
+    set_topic_info(dialog_id, topic, std::move(saved_topic->info_));
+  }
+  topic->need_save_to_database_ = false;
+  if (topic->topic_ != nullptr) {
+    auto last_message_id = topic->topic_->get_last_message_id();
+    if (last_message_id.is_valid()) {
+      td_->messages_manager_->have_message_force({dialog_id, last_message_id}, "add_topic_from_database");
+    }
+  }
+  update_topic_order(dialog_id, topic);
+  send_update_forum_topic(dialog_id, topic);
+  if (topic->topic_ != nullptr) {
+    td_->messages_manager_->on_forum_topic_notification_settings_known(dialog_id);
+  }
+}
+
+void ForumTopicManager::load_forum_topics_from_server(DialogId dialog_id, DialogTopics *dialog_topics, int32 limit) {
   limit = min(limit, MAX_GET_FORUM_TOPICS);
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, generation = dialog_topics->generation_](
@@ -2007,7 +2131,9 @@ void ForumTopicManager::save_topic_list_state(DialogId dialog_id, const DialogTo
 
 void ForumTopicManager::save_topic_to_database(DialogId dialog_id, const Topic *topic) {
   CHECK(topic != nullptr);
-  if (topic->info_ == nullptr || !topic->need_save_to_database_) {
+  // a topic, which is known only by its info, would replace the saved topic
+  if (td_->auth_manager_->is_bot() || topic->info_ == nullptr || topic->topic_ == nullptr ||
+      !topic->need_save_to_database_) {
     return;
   }
   topic->need_save_to_database_ = false;
