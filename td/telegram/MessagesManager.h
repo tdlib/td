@@ -278,6 +278,8 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_is_forum(DialogId dialog_id, bool is_forum, bool is_forum_tabs);
 
+  void on_forum_topic_notification_settings_known(DialogId dialog_id);
+
   void on_update_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages);
 
   void on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread);
