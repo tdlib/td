@@ -16202,7 +16202,6 @@ bool MessagesManager::set_folder_pinned_dialogs(FolderId folder_id, vector<Dialo
   LOG(INFO) << "Reorder pinned chats in " << folder_id << " from " << old_dialog_ids << " to " << new_dialog_ids;
 
   td::reverse(old_dialog_ids);
-  td::reverse(new_dialog_ids);
 
   FlatHashSet<DialogId, DialogIdHash> all_old_pinned_dialog_ids;
   for (auto dialog_id : old_dialog_ids) {
@@ -16212,7 +16211,7 @@ bool MessagesManager::set_folder_pinned_dialogs(FolderId folder_id, vector<Dialo
 
   bool are_pinned_dialogs_saved = false;
   auto old_it = old_dialog_ids.begin();
-  for (auto dialog_id : new_dialog_ids) {
+  for (auto dialog_id : reversed(new_dialog_ids)) {
     all_old_pinned_dialog_ids.erase(dialog_id);
     while (old_it < old_dialog_ids.end()) {
       if (*old_it == dialog_id) {

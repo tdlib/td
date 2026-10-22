@@ -4054,8 +4054,7 @@ void StickersManager::on_get_installed_sticker_sets(StickerType sticker_type,
   vector<StickerSetId> installed_sticker_set_ids;
   vector<int32> debug_hashes;
   vector<int64> debug_sticker_set_ids;
-  td::reverse(stickers->sets_);  // apply installed sticker sets in reverse order
-  for (auto &set : stickers->sets_) {
+  for (auto &set : reversed(stickers->sets_)) {  // apply installed sticker sets in reverse order
     debug_hashes.push_back(set->hash_);
     debug_sticker_set_ids.push_back(set->id_);
     StickerSetId set_id = on_get_sticker_set(std::move(set), false, "on_get_installed_sticker_sets");

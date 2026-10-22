@@ -157,9 +157,8 @@ class OrderedTopics {
     removed_topic_ids = pinned_topic_ids_;
     auto old_topic_ids = pinned_topic_ids_;
     td::reverse(old_topic_ids);
-    td::reverse(topic_ids);
     auto old_it = old_topic_ids.begin();
-    for (auto topic_id : topic_ids) {
+    for (auto topic_id : reversed(topic_ids)) {
       td::remove(removed_topic_ids, topic_id);
       while (old_it < old_topic_ids.end()) {
         if (*old_it == topic_id) {
