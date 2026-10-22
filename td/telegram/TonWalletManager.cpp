@@ -1527,6 +1527,26 @@ Status TonWalletManager::check_ton_address(Slice address) {
   return Status::OK();
 }
 
+static Status check_ton_raw_address(Slice address) {
+  auto colon_pos = address.find(':');
+  if (colon_pos == Slice::npos) {
+    return Status::Error(400, "Invalid address format");
+  }
+  if (to_integer_safe<int32>(address.substr(0, colon_pos)).is_error()) {
+    return Status::Error(400, "Invalid address workchain");
+  }
+  auto hash = address.substr(colon_pos + 1);
+  if (hash.size() != 64u) {
+    return Status::Error(400, "Invalid address length");
+  }
+  for (auto c : hash) {
+    if (!is_hex_digit(c)) {
+      return Status::Error(400, "Invalid address format");
+    }
+  }
+  return Status::OK();
+}
+
 void TonWalletManager::on_update_wallet_state(telegram_api::object_ptr<telegram_api::WalletState> &&wallet_state) {
   LOG(INFO) << "Receive " << to_string(wallet_state);
   if (td_->auth_manager_->is_bot()) {
@@ -2098,7 +2118,9 @@ void TonWalletManager::set_ton_wallet_card_stickers(
     if (!coordinates.is_valid()) {
       return promise.set_error(400, "Invalid sticker position specified");
     }
-    TRY_STATUS_PROMISE(promise, check_ton_address(sticker->nft_address_));
+    if (check_ton_raw_address(sticker->nft_address_).is_error()) {
+      TRY_STATUS_PROMISE(promise, check_ton_address(sticker->nft_address_));
+    }
     if (td::contains(nft_addresses, sticker->nft_address_)) {
       return promise.set_error(400, "The same NFT can't be used twice");
     }
