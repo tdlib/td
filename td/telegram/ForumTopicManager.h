@@ -14,6 +14,7 @@
 #include "td/telegram/ForumTopicEditedData.h"
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/ForumTopicInfo.h"
+#include "td/telegram/ForumUnreadCounts.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesInfo.h"
@@ -135,6 +136,12 @@ class ForumTopicManager final : public Actor {
 
   void on_update_read_all_forum_topics(DialogId dialog_id, MessageId read_inbox_max_message_id);
 
+  void preload_forum_topics(DialogId dialog_id);
+
+  void on_dialog_mute_changed(DialogId dialog_id);
+
+  void on_notification_scope_mute_changed();
+
   // returns the mute_until of the topic, if the topic doesn't use the chat's value
   bool get_forum_topic_mute_until(DialogId dialog_id, ForumTopicId forum_topic_id, int32 &mute_until) const;
 
@@ -215,6 +222,7 @@ class ForumTopicManager final : public Actor {
   static constexpr size_t MAX_GET_FORUM_TOPICS_BY_ID = 100;    // server-side limit
   static constexpr int32 MAX_GET_HISTORY = 100;                // server-side limit
   static constexpr size_t MAX_KEPT_FORUM_TOPICS = 20;          // non-pinned topics, which stay loaded with the list
+  static constexpr int32 MAX_PRELOAD_FORUM_TOPICS = 20;        // forums in chat lists need their unread topics
   static constexpr int32 MAX_LOAD_FORUM_TOPICS_FROM_DATABASE = 1000;
 
   struct Topic {
@@ -230,6 +238,7 @@ class ForumTopicManager final : public Actor {
     MessageId last_database_message_id_;
     int64 pinned_order_ = 0;
     int64 private_order_ = 0;
+    ForumUnreadCounts unread_counts_;   // the part of unread counts of the forum, which is added by the topic
     bool is_database_checked_ = false;  // whether the topic was looked for in the database before a reload
     bool is_loading_from_database_ = false;
     bool is_preloading_older_messages_ = false;
@@ -270,6 +279,11 @@ class ForumTopicManager final : public Actor {
     bool have_pending_pinned_topic_ids_ = false;
     bool is_reloading_pinned_topics_ = false;
     bool need_reload_pinned_topics_ = false;
+
+    ForumUnreadCounts unread_counts_;
+    // the counts aren't sent before the list is loaded, because they would cover only some of the topics
+    bool are_unread_counts_known_ = false;
+    int32 next_unmute_date_ = 0;  // the earliest date, when an unread topic stops being muted
   };
 
   void tear_down() final;
@@ -331,7 +345,23 @@ class ForumTopicManager final : public Actor {
   td_api::object_ptr<td_api::updateForumTopic> get_update_forum_topic_object(DialogId dialog_id,
                                                                              const Topic *topic) const;
 
-  void send_update_forum_topic(DialogId dialog_id, const Topic *topic) const;
+  void send_update_forum_topic(DialogId dialog_id, Topic *topic);
+
+  ForumUnreadCounts get_topic_unread_counts(DialogId dialog_id, const Topic *topic) const;
+
+  static bool update_topic_unread_counts(DialogTopics *dialog_topics, Topic *topic, ForumUnreadCounts unread_counts);
+
+  void recount_unread_counts(DialogId dialog_id, DialogTopics *dialog_topics);
+
+  void schedule_topic_unmute(DialogId dialog_id, DialogTopics *dialog_topics, const Topic *topic);
+
+  static void on_topic_unmute_timeout_callback(void *forum_topic_manager_ptr, int64 dialog_id_int);
+
+  void on_topic_unmute_timeout(DialogId dialog_id);
+
+  void on_topic_list_loaded(DialogId dialog_id, DialogTopics *dialog_topics);
+
+  void send_forum_unread_counts(DialogId dialog_id, const DialogTopics *dialog_topics) const;
 
   void on_forum_topic_changed(DialogId dialog_id, Topic *topic);
 
@@ -420,6 +450,7 @@ class ForumTopicManager final : public Actor {
   uint32 current_topic_list_generation_ = 0;
 
   MultiTimeout reload_topics_timeout_{"ForumTopicReloadTimeout"};
+  MultiTimeout topic_unmute_timeout_{"ForumTopicUnmuteTimeout"};
 };
 
 }  // namespace td

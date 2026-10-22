@@ -629,6 +629,8 @@ void ForumTopicManager::Topic::parse(ParserT &parser) {
 ForumTopicManager::ForumTopicManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   reload_topics_timeout_.set_callback(on_reload_topics_timeout_callback);
   reload_topics_timeout_.set_callback_data(static_cast<void *>(this));
+  topic_unmute_timeout_.set_callback(on_topic_unmute_timeout_callback);
+  topic_unmute_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 ForumTopicManager::~ForumTopicManager() {
@@ -1351,6 +1353,7 @@ void ForumTopicManager::on_load_forum_topics_from_database(DialogId dialog_id, u
   dialog_topics->offset_forum_topic_id_ = list_state.offset_forum_topic_id_;
   dialog_topics->last_server_topic_date_ = {list_state.last_topic_order_, list_state.last_topic_id_};
   update_last_topic_date(dialog_id, dialog_topics);
+  on_topic_list_loaded(dialog_id, dialog_topics);
   set_promises(dialog_topics->load_queries_);
 
   // the topics could have been changed while they weren't watched
@@ -1577,6 +1580,7 @@ void ForumTopicManager::on_load_forum_topics(DialogId dialog_id, uint32 generati
   // the server is asked only after the database is read up to the part loaded from the server
   dialog_topics->last_database_topic_date_ = OrderedTopics<ForumTopicId>::max_topic_date();
   update_last_topic_date(dialog_id, dialog_topics);
+  on_topic_list_loaded(dialog_id, dialog_topics);
 
   save_topic_list_state(dialog_id, dialog_topics);
 
@@ -1746,6 +1750,9 @@ void ForumTopicManager::on_delete_forum_topic(DialogId dialog_id, ForumTopicId f
       if (topic->info_ != nullptr && !td_->auth_manager_->is_bot()) {
         send_update_forum_topic_deleted(dialog_id, forum_topic_id);
       }
+      if (update_topic_unread_counts(dialog_topics, topic, ForumUnreadCounts())) {
+        send_forum_unread_counts(dialog_id, dialog_topics);
+      }
     }
     dialog_topics->topics_.erase(forum_topic_id);
     dialog_topics->deleted_topic_ids_.insert(forum_topic_id);
@@ -1754,6 +1761,10 @@ void ForumTopicManager::on_delete_forum_topic(DialogId dialog_id, ForumTopicId f
 }
 
 void ForumTopicManager::delete_all_dialog_topics(DialogId dialog_id) {
+  if (!td_->auth_manager_->is_bot()) {
+    // the counts could have been saved with the chat in a previous session
+    td_->messages_manager_->on_update_forum_unread_counts(dialog_id, ForumUnreadCounts());
+  }
   dialog_topics_.erase(dialog_id);
   delete_all_dialog_topics_from_database(dialog_id);
 }
@@ -2239,11 +2250,149 @@ td_api::object_ptr<td_api::updateForumTopic> ForumTopicManager::get_update_forum
       topic->topic_->get_forum_topic_object(td_, dialog_id, *topic->info_, get_topic_public_order(dialog_id, topic)));
 }
 
-void ForumTopicManager::send_update_forum_topic(DialogId dialog_id, const Topic *topic) const {
+void ForumTopicManager::send_update_forum_topic(DialogId dialog_id, Topic *topic) {
   if (td_->auth_manager_->is_bot() || topic->info_ == nullptr || topic->topic_ == nullptr) {
     return;
   }
   send_closure(G()->td(), &Td::send_update, get_update_forum_topic_object(dialog_id, topic));
+
+  // the update is sent after every change of the topic, so the unread counts can't miss a change
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics != nullptr) {
+    if (update_topic_unread_counts(dialog_topics, topic, get_topic_unread_counts(dialog_id, topic))) {
+      send_forum_unread_counts(dialog_id, dialog_topics);
+    }
+    schedule_topic_unmute(dialog_id, dialog_topics, topic);
+  }
+}
+
+ForumUnreadCounts ForumTopicManager::get_topic_unread_counts(DialogId dialog_id, const Topic *topic) const {
+  ForumUnreadCounts result;
+  if (topic->info_ == nullptr || topic->topic_ == nullptr) {
+    return result;
+  }
+  auto unread_count = topic->topic_->get_unread_count();
+  if (unread_count <= 0) {
+    return result;
+  }
+  int32 mute_until = 0;
+  bool is_muted = get_forum_topic_mute_until(dialog_id, topic->info_->get_forum_topic_id(), mute_until)
+                      ? mute_until > G()->unix_time()
+                      : td_->messages_manager_->is_dialog_muted(dialog_id);
+  result.topic_count_ = 1;
+  result.unmuted_topic_count_ = is_muted ? 0 : 1;
+  result.message_count_ = unread_count;
+  result.muted_message_count_ = is_muted ? unread_count : 0;
+  return result;
+}
+
+bool ForumTopicManager::update_topic_unread_counts(DialogTopics *dialog_topics, Topic *topic,
+                                                   ForumUnreadCounts unread_counts) {
+  if (unread_counts == topic->unread_counts_) {
+    return false;
+  }
+  dialog_topics->unread_counts_ -= topic->unread_counts_;
+  dialog_topics->unread_counts_ += unread_counts;
+  topic->unread_counts_ = unread_counts;
+  return true;
+}
+
+void ForumTopicManager::recount_unread_counts(DialogId dialog_id, DialogTopics *dialog_topics) {
+  bool is_changed = false;
+  dialog_topics->topics_.foreach([&](const ForumTopicId &forum_topic_id, unique_ptr<Topic> &topic) {
+    if (update_topic_unread_counts(dialog_topics, topic.get(), get_topic_unread_counts(dialog_id, topic.get()))) {
+      is_changed = true;
+    }
+    schedule_topic_unmute(dialog_id, dialog_topics, topic.get());
+  });
+  if (is_changed) {
+    send_forum_unread_counts(dialog_id, dialog_topics);
+  }
+}
+
+void ForumTopicManager::schedule_topic_unmute(DialogId dialog_id, DialogTopics *dialog_topics, const Topic *topic) {
+  if (topic->unread_counts_.topic_count_ == 0 || topic->unread_counts_.unmuted_topic_count_ != 0 ||
+      topic->info_ == nullptr) {
+    return;
+  }
+  int32 mute_until = 0;
+  if (!get_forum_topic_mute_until(dialog_id, topic->info_->get_forum_topic_id(), mute_until)) {
+    return;
+  }
+  auto unix_time = G()->unix_time();
+  if (mute_until <= unix_time || mute_until >= unix_time + 366 * 86400) {
+    return;
+  }
+  if (dialog_topics->next_unmute_date_ == 0 || mute_until < dialog_topics->next_unmute_date_) {
+    dialog_topics->next_unmute_date_ = mute_until;
+    topic_unmute_timeout_.set_timeout_in(dialog_id.get(), mute_until - unix_time + 1);
+  }
+}
+
+void ForumTopicManager::on_topic_unmute_timeout_callback(void *forum_topic_manager_ptr, int64 dialog_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto forum_topic_manager = static_cast<ForumTopicManager *>(forum_topic_manager_ptr);
+  send_closure_later(forum_topic_manager->actor_id(forum_topic_manager), &ForumTopicManager::on_topic_unmute_timeout,
+                     DialogId(dialog_id_int));
+}
+
+void ForumTopicManager::on_topic_unmute_timeout(DialogId dialog_id) {
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr) {
+    return;
+  }
+  // a topic, whose mute expired, must be counted as unmuted; the next expiry is scheduled by the recount
+  dialog_topics->next_unmute_date_ = 0;
+  recount_unread_counts(dialog_id, dialog_topics);
+}
+
+void ForumTopicManager::on_topic_list_loaded(DialogId dialog_id, DialogTopics *dialog_topics) {
+  if (dialog_topics->are_unread_counts_known_ || td_->auth_manager_->is_bot()) {
+    return;
+  }
+  dialog_topics->are_unread_counts_known_ = true;
+  send_forum_unread_counts(dialog_id, dialog_topics);
+}
+
+void ForumTopicManager::send_forum_unread_counts(DialogId dialog_id, const DialogTopics *dialog_topics) const {
+  if (!dialog_topics->are_unread_counts_known_) {
+    return;
+  }
+  td_->messages_manager_->on_update_forum_unread_counts(dialog_id, dialog_topics->unread_counts_);
+}
+
+void ForumTopicManager::preload_forum_topics(DialogId dialog_id) {
+  if (td_->auth_manager_->is_bot() || is_forum(dialog_id, true).is_error()) {
+    return;
+  }
+  auto *dialog_topics = add_dialog_topics(dialog_id);
+  if (dialog_topics->are_unread_counts_known_ || !dialog_topics->load_queries_.empty()) {
+    return;
+  }
+  LOG(INFO) << "Preload topics of " << dialog_id;
+  load_forum_topics(dialog_id, MAX_PRELOAD_FORUM_TOPICS, Auto());
+}
+
+void ForumTopicManager::on_dialog_mute_changed(DialogId dialog_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics != nullptr) {
+    recount_unread_counts(dialog_id, dialog_topics);
+  }
+}
+
+void ForumTopicManager::on_notification_scope_mute_changed() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  dialog_topics_.foreach([&](const DialogId &dialog_id, unique_ptr<DialogTopics> &dialog_topics) {
+    recount_unread_counts(dialog_id, dialog_topics.get());
+  });
 }
 
 void ForumTopicManager::on_forum_topic_changed(DialogId dialog_id, Topic *topic) {
@@ -2616,14 +2765,21 @@ bool ForumTopicManager::unload_forum_topics(DialogId dialog_id) {
     dialog_topics->last_database_topic_date_ = last_kept_topic_date;
   }
   auto server_total_count = ordered_topics.get_server_total_count();
+  bool are_unread_counts_changed = false;
   for (auto *topic : topics) {
     auto forum_topic_id = topic->info_->get_forum_topic_id();
     LOG(INFO) << "Unload " << forum_topic_id << " in " << dialog_id;
     save_topic_to_database(dialog_id, topic);
     ordered_topics.update_order(forum_topic_id, topic->private_order_, 0);
+    if (update_topic_unread_counts(dialog_topics, topic, ForumUnreadCounts())) {
+      are_unread_counts_changed = true;
+    }
     dialog_topics->topics_.erase(forum_topic_id);
   }
   ordered_topics.set_server_total_count(server_total_count);
+  if (are_unread_counts_changed) {
+    send_forum_unread_counts(dialog_id, dialog_topics);
+  }
   return true;
 }
 
