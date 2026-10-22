@@ -18,6 +18,8 @@ struct NotificationGroupFromDatabase {
   DialogId dialog_id;
   NotificationGroupType type = NotificationGroupType::Calls;
   int32 total_count = 0;
+  bool is_forum = false;
+  int64 legacy_max_message_id = 0;
   vector<Notification> notifications;
 };
 

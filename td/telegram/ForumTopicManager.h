@@ -87,6 +87,15 @@ class ForumTopicManager final : public Actor {
       DialogId dialog_id, ForumTopicId forum_topic_id,
       td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings) TD_WARN_UNUSED_RESULT;
 
+  void reset_local_notification_settings();
+
+  void reset_dialog_local_notification_settings(DialogId dialog_id);
+
+  const DialogNotificationSettings *get_forum_topic_notification_settings_force(DialogId dialog_id,
+                                                                                ForumTopicId forum_topic_id);
+
+  MessageId get_forum_topic_last_read_inbox_message_id_force(DialogId dialog_id, ForumTopicId forum_topic_id);
+
   Status set_forum_topic_draft_message(DialogId dialog_id, ForumTopicId forum_topic_id,
                                        unique_ptr<DraftMessage> &&draft_message);
 
@@ -151,6 +160,8 @@ class ForumTopicManager final : public Actor {
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;
     unique_ptr<ForumTopic> topic_;
+    // Retain reads while the full topic is loading, then merge into its persisted state.
+    MessageId pending_read_inbox_message_id_;
     int32 receive_date_ = 0;
     int32 message_count_ = 0;
     mutable bool need_save_to_database_ = true;
@@ -203,6 +214,11 @@ class ForumTopicManager final : public Actor {
   bool update_forum_topic_notification_settings(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                 DialogNotificationSettings *current_settings,
                                                 DialogNotificationSettings &&new_settings);
+
+  static void load_local_notification_settings(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                               DialogNotificationSettings *settings);
+
+  void reset_dialog_local_notification_settings(DialogId dialog_id, DialogTopics *dialog_topics);
 
   void on_delete_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
 

@@ -8328,9 +8328,13 @@ void Requests::on_request(uint64 id, td_api::setChatNotificationSettings &reques
 
 void Requests::on_request(uint64 id, td_api::setForumTopicNotificationSettings &request) {
   CHECK_IS_USER();
-  answer_ok_query(id, td_->forum_topic_manager_->set_forum_topic_notification_settings(
-                          DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_),
-                          std::move(request.notification_settings_)));
+  auto status = td_->forum_topic_manager_->set_forum_topic_notification_settings(
+      DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_), std::move(request.notification_settings_));
+  if (status.is_error()) {
+    return answer_ok_query(id, std::move(status));
+  }
+  // LLM-assisted: pin/mention overrides are local; acknowledge only after their durable write.
+  G()->td_db()->get_binlog_pmc()->force_sync(create_ok_request_promise(id), "forum topic local notification settings");
 }
 
 void Requests::on_request(uint64 id, td_api::setScopeNotificationSettings &request) {
@@ -8351,7 +8355,8 @@ void Requests::on_request(uint64 id, td_api::setReactionNotificationSettings &re
 void Requests::on_request(uint64 id, const td_api::resetAllNotificationSettings &request) {
   CHECK_IS_USER();
   td_->notification_settings_manager_->reset_all_notification_settings();
-  send_closure(td_actor_, &Td::send_result, id, td_api::make_object<td_api::ok>());
+  // LLM-assisted: include local topic preferences in the persisted reset boundary.
+  G()->td_db()->get_binlog_pmc()->force_sync(create_ok_request_promise(id), "reset local notification settings");
 }
 
 void Requests::on_request(uint64 id, const td_api::getMapThumbnailFile &request) {

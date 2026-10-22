@@ -96,6 +96,8 @@ class NotificationSettingsManager final : public Actor {
                                                                    Promise<Unit> &&promise);
   void send_get_scope_notification_settings_query(NotificationSettingsScope scope, Promise<Unit> &&promise);
 
+  bool have_scope_notification_settings(NotificationSettingsScope scope) const;
+
   void send_get_reaction_notification_settings_query(Promise<Unit> &&promise);
 
   void on_get_dialog_notification_settings_query_finished(DialogId dialog_id, ForumTopicId forum_topic_id,
