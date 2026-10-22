@@ -223,7 +223,7 @@ class ForumTopicManager final : public Actor {
     OrderedMessages ordered_messages_;
     int32 receive_date_ = 0;
     int32 last_message_date_ = 0;
-    MessageId sent_read_inbox_message_id_;  // for topics, which aren't loaded yet
+    MessageId sent_read_inbox_message_id_;  // the last read position, which was sent to the server
     MessageId last_server_message_id_;      // the last known server message in the topic
     // all messages of the topic between them are stored in the message database; MessageId::min() means from the start
     MessageId first_database_message_id_;
