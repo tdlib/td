@@ -10627,7 +10627,7 @@ void MessagesManager::init() {
           list->pinned_dialogs_.emplace_back(order, dialog_id);
           list->pinned_dialog_id_orders_.emplace(dialog_id, order);
         }
-        std::reverse(list->pinned_dialogs_.begin(), list->pinned_dialogs_.end());
+        td::reverse(list->pinned_dialogs_);
         list->are_pinned_dialogs_inited_ = true;
         update_list_last_pinned_dialog_date(*list);
 
@@ -16201,8 +16201,8 @@ bool MessagesManager::set_folder_pinned_dialogs(FolderId folder_id, vector<Dialo
                                                 vector<DialogId> new_dialog_ids) {
   LOG(INFO) << "Reorder pinned chats in " << folder_id << " from " << old_dialog_ids << " to " << new_dialog_ids;
 
-  std::reverse(old_dialog_ids.begin(), old_dialog_ids.end());
-  std::reverse(new_dialog_ids.begin(), new_dialog_ids.end());
+  td::reverse(old_dialog_ids);
+  td::reverse(new_dialog_ids);
 
   FlatHashSet<DialogId, DialogIdHash> all_old_pinned_dialog_ids;
   for (auto dialog_id : old_dialog_ids) {
@@ -18083,7 +18083,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
       limit--;
     }
 
-    std::reverse(result.begin(), result.end());
+    td::reverse(result);
     result = get_message_history_slice(result.begin(), std::lower_bound(result.begin(), result.end(), from_message_id),
                                        result.end(), from_message_id, offset, limit);
 
@@ -25926,7 +25926,7 @@ NotificationGroupFromDatabase MessagesManager::get_message_notification_group_fo
   set_dialog_last_notification(d->dialog_id, group_info, last_notification_date, last_notification_id,
                                "get_message_notification_group_force");
 
-  std::reverse(result.notifications.begin(), result.notifications.end());
+  td::reverse(result.notifications);
 
   return result;
 }
@@ -26391,7 +26391,7 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
       try_add_pinned_message_notification(d, res, initial_from_notification_id, limit);
     }
 
-    std::reverse(res.begin(), res.end());
+    td::reverse(res);
     return promise.set_value(std::move(res));
   }
 
@@ -29963,7 +29963,7 @@ void MessagesManager::add_dialog_list_for_dialog_filter(DialogFilterId dialog_fi
     list.pinned_dialogs_.emplace_back(order, dialog_id);
     list.pinned_dialog_id_orders_.emplace(dialog_id, order);
   }
-  std::reverse(list.pinned_dialogs_.begin(), list.pinned_dialogs_.end());
+  td::reverse(list.pinned_dialogs_);
   list.are_pinned_dialogs_inited_ = true;
 
   update_list_last_pinned_dialog_date(list);
@@ -30014,7 +30014,7 @@ void MessagesManager::edit_dialog_list_for_dialog_filter(unique_ptr<DialogFilter
     new_list.pinned_dialogs_.emplace_back(order, dialog_id);
     new_list.pinned_dialog_id_orders_.emplace(dialog_id, order);
   }
-  std::reverse(new_list.pinned_dialogs_.begin(), new_list.pinned_dialogs_.end());
+  td::reverse(new_list.pinned_dialogs_);
   new_list.are_pinned_dialogs_inited_ = true;
 
   do_update_list_last_pinned_dialog_date(new_list);

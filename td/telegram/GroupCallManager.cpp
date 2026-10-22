@@ -4988,7 +4988,7 @@ void GroupCallManager::process_join_video_chat_response(InputGroupCallId input_g
   if (!new_message_updates.empty()) {
     td_->updates_manager_->process_updates_users_and_chats(updates.get());
 
-    std::reverse(new_message_updates.begin(), new_message_updates.end());
+    td::reverse(new_message_updates);
     auto group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr);
     group_call->old_messages.clear();

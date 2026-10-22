@@ -357,7 +357,7 @@ td_api::object_ptr<td_api::updateActiveNotifications> NotificationManager::get_u
       }
     }
     if (!notifications.empty()) {
-      std::reverse(notifications.begin(), notifications.end());
+      td::reverse(notifications);
       groups.push_back(td_api::make_object<td_api::notificationGroup>(
           group.first.group_id.get(), get_notification_group_type_object(group.second.type),
           td_->dialog_manager_->get_chat_id_object(group.first.dialog_id, "updateActiveNotifications"),
@@ -2238,7 +2238,7 @@ void NotificationManager::remove_temporary_notifications(NotificationGroupId gro
         max_notification_group_size_ > group.notifications.size()) {
       load_notifications_from_database(group_it->first, group, keep_notification_group_size_);
     }
-    std::reverse(added_notifications.begin(), added_notifications.end());
+    td::reverse(added_notifications);
   }
   CHECK(get_temporary_notification_total_count(group_it->second) == 0);
 

@@ -4054,7 +4054,7 @@ void StickersManager::on_get_installed_sticker_sets(StickerType sticker_type,
   vector<StickerSetId> installed_sticker_set_ids;
   vector<int32> debug_hashes;
   vector<int64> debug_sticker_set_ids;
-  std::reverse(stickers->sets_.begin(), stickers->sets_.end());  // apply installed sticker sets in reverse order
+  td::reverse(stickers->sets_);  // apply installed sticker sets in reverse order
   for (auto &set : stickers->sets_) {
     debug_hashes.push_back(set->hash_);
     debug_sticker_set_ids.push_back(set->id_);
@@ -4082,9 +4082,9 @@ void StickersManager::on_get_installed_sticker_sets(StickerType sticker_type,
       sets_to_load.push_back(set_id);
     }
   }
-  std::reverse(debug_hashes.begin(), debug_hashes.end());
-  std::reverse(installed_sticker_set_ids.begin(), installed_sticker_set_ids.end());
-  std::reverse(debug_sticker_set_ids.begin(), debug_sticker_set_ids.end());
+  td::reverse(debug_hashes);
+  td::reverse(installed_sticker_set_ids);
+  td::reverse(debug_sticker_set_ids);
 
   if (!sets_to_load.empty()) {
     load_sticker_sets(std::move(sets_to_load), Auto());
@@ -5262,7 +5262,7 @@ void StickersManager::on_load_installed_sticker_sets_from_database(StickerType s
       sets_to_load.push_back(sticker_set_id);
     }
   }
-  std::reverse(sets_to_load.begin(), sets_to_load.end());  // load installed sticker sets in reverse order
+  td::reverse(sets_to_load);  // load installed sticker sets in reverse order
 
   load_sticker_sets_without_stickers(
       std::move(sets_to_load),

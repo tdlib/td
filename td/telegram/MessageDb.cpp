@@ -17,6 +17,7 @@
 #include "td/actor/actor.h"
 #include "td/actor/SchedulerLocalStorage.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/ScopeGuard.h"
@@ -29,7 +30,6 @@
 #include "td/utils/unicode.h"
 #include "td/utils/utf8.h"
 
-#include <algorithm>
 #include <array>
 #include <iterator>
 #include <limits>
@@ -894,7 +894,7 @@ class MessageDbImpl final : public MessageDbSyncInterface {
     }
     if (right_cnt != 0) {
       right = get_messages_inner(stmt.asc_stmt_, dialog_id, right_message_id, right_cnt);
-      std::reverse(right.begin(), right.end());
+      td::reverse(right);
     }
     if (left.empty()) {
       return right;
