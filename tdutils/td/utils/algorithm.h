@@ -213,6 +213,17 @@ bool all_of(const V &v, F &&f) {
 }
 
 template <class T>
+void reverse(vector<T> &v) {
+  if (v.empty()) {
+    return;
+  }
+  using std::swap;
+  for (size_t i = 0, j = v.size() - 1; i < j; i++, j--) {
+    swap(v[i], v[j]);
+  }
+}
+
+template <class T>
 void reset_to_empty(T &value) {
   using std::swap;
   std::decay_t<T> tmp;
