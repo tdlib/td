@@ -140,6 +140,11 @@ class WebPageBlock {
   virtual void append_rich_message_media(vector<RichMessageMedia> &media) const {
   }
 
+  // removes nested media blocks without files; returns true, if the block itself has no files and must be removed
+  virtual bool remove_empty_media_blocks() {
+    return false;
+  }
+
   virtual void add_dependencies(Dependencies &dependencies) const = 0;
 
   virtual void for_each_rich_text(bool recurse_text,
@@ -212,6 +217,8 @@ void for_each_web_page_blocks_quote_text(const vector<unique_ptr<WebPageBlock>> 
                                          const std::function<void(const RichText &text)> &callback);
 
 vector<RichMessageMedia> get_page_blocks_rich_message_media(const vector<unique_ptr<WebPageBlock>> &page_blocks);
+
+void remove_empty_media_page_blocks(vector<unique_ptr<WebPageBlock>> &page_blocks);
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
     const vector<unique_ptr<WebPageBlock>> &page_blocks, Td *td, Slice base_url, Slice real_url,

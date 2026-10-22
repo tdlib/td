@@ -52,6 +52,7 @@ void RichMessage::parse(ParserT &parser) {
   PARSE_FLAG(has_media);
   END_PARSE_FLAGS();
   td::parse(blocks_, parser);
+  remove_empty_media_page_blocks(blocks_);
   if (has_input_type) {
     td::parse(input_type_, parser);
   }

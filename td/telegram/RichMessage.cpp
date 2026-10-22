@@ -81,6 +81,7 @@ RichMessage::RichMessage(Td *td, telegram_api::object_ptr<telegram_api::richMess
 
   blocks_ = get_web_page_blocks(td, std::move(rich_message->blocks_), animations, audios, documents, photos, videos,
                                 voice_notes);
+  remove_empty_media_page_blocks(blocks_);
   is_rtl_ = rich_message->rtl_;
   is_full_ = !rich_message->part_;
   media_ = get_page_blocks_rich_message_media(blocks_);

@@ -1622,6 +1622,13 @@ class WebPageBlockList final : public WebPageBlock {
     }
   }
 
+  bool remove_empty_media_blocks() final {
+    for (auto &item : items) {
+      remove_empty_media_page_blocks(item.page_blocks);
+    }
+    return false;
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     for (auto &item : items) {
       item.add_dependencies(dependencies);
@@ -2187,6 +2194,10 @@ class WebPageBlockAnimation final : public WebPageBlock {
     }
   }
 
+  bool remove_empty_media_blocks() final {
+    return !animation_file_id.is_valid();
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
   }
@@ -2307,6 +2318,10 @@ class WebPageBlockPhoto final : public WebPageBlock {
     }
   }
 
+  bool remove_empty_media_blocks() final {
+    return photo.is_empty();
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
     dependencies.add(web_page_id);
@@ -2420,6 +2435,10 @@ class WebPageBlockVideo final : public WebPageBlock {
     }
   }
 
+  bool remove_empty_media_blocks() final {
+    return !video_file_id.is_valid();
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
   }
@@ -2530,6 +2549,10 @@ class WebPageBlockCover final : public WebPageBlock {
 
   void append_rich_message_media(vector<RichMessageMedia> &media) const final {
     cover->append_rich_message_media(media);
+  }
+
+  bool remove_empty_media_blocks() final {
+    return cover->remove_empty_media_blocks();
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
@@ -2817,6 +2840,11 @@ class WebPageBlockCollage final : public WebPageBlock {
     }
   }
 
+  bool remove_empty_media_blocks() final {
+    remove_empty_media_page_blocks(page_blocks);
+    return page_blocks.empty();
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     for (auto &page_block : page_blocks) {
       page_block->add_dependencies(dependencies);
@@ -2916,6 +2944,11 @@ class WebPageBlockSlideshow final : public WebPageBlock {
     for (const auto &page_block : page_blocks) {
       page_block->append_rich_message_media(media);
     }
+  }
+
+  bool remove_empty_media_blocks() final {
+    remove_empty_media_page_blocks(page_blocks);
+    return page_blocks.empty();
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
@@ -3144,6 +3177,10 @@ class WebPageBlockAudio final : public WebPageBlock {
     if (audio_file_id.is_valid()) {
       media.emplace_back(create_audio_message_content(audio_file_id));
     }
+  }
+
+  bool remove_empty_media_blocks() final {
+    return !audio_file_id.is_valid();
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
@@ -3385,6 +3422,11 @@ class WebPageBlockDetails final : public WebPageBlock {
     }
   }
 
+  bool remove_empty_media_blocks() final {
+    remove_empty_media_page_blocks(page_blocks);
+    return false;
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     header.add_dependencies(dependencies);
     for (auto &page_block : page_blocks) {
@@ -3491,6 +3533,11 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
     for (const auto &page_block : page_blocks) {
       page_block->append_rich_message_media(media);
     }
+  }
+
+  bool remove_empty_media_blocks() final {
+    remove_empty_media_page_blocks(page_blocks);
+    return false;
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
@@ -3744,6 +3791,10 @@ class WebPageBlockVoiceNote final : public WebPageBlock {
     }
   }
 
+  bool remove_empty_media_blocks() final {
+    return !voice_note_file_id.is_valid();
+  }
+
   void add_dependencies(Dependencies &dependencies) const final {
     caption.add_dependencies(dependencies);
   }
@@ -3848,6 +3899,10 @@ class WebPageBlockDocument final : public WebPageBlock {
     if (document_file_id.is_valid()) {
       media.emplace_back(create_document_message_content(document_file_id));
     }
+  }
+
+  bool remove_empty_media_blocks() final {
+    return !document_file_id.is_valid();
   }
 
   void add_dependencies(Dependencies &dependencies) const final {
@@ -4864,6 +4919,11 @@ vector<RichMessageMedia> get_page_blocks_rich_message_media(const vector<unique_
     page_block->append_rich_message_media(result);
   }
   return result;
+}
+
+void remove_empty_media_page_blocks(vector<unique_ptr<WebPageBlock>> &page_blocks) {
+  td::remove_if(page_blocks,
+                [](unique_ptr<WebPageBlock> &page_block) { return page_block->remove_empty_media_blocks(); });
 }
 
 vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
