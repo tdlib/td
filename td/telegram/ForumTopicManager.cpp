@@ -743,6 +743,9 @@ void ForumTopicManager::read_forum_topic_messages(DialogId dialog_id, ForumTopic
     LOG(INFO) << "Send read topic history request in topic of " << forum_topic_id << " in " << dialog_id << " up to "
               << max_message_id;
     td_->create_handler<ReadForumTopicQuery>()->send(dialog_id, forum_topic_id, max_message_id);
+    if (last_read_inbox_message_id > topic->sent_read_inbox_message_id_) {
+      topic->sent_read_inbox_message_id_ = last_read_inbox_message_id;
+    }
   }
   if (need_update) {
     on_forum_topic_changed(dialog_id, topic);
@@ -1770,6 +1773,8 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       auto old_last_message_date = topic->last_message_date_;
       auto old_last_read_inbox_message_id =
           topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_read_inbox_message_id();
+      auto old_last_read_outbox_message_id =
+          topic->topic_ == nullptr ? MessageId() : topic->topic_->get_last_read_outbox_message_id();
       auto old_unread_count = topic->topic_ == nullptr ? 0 : topic->topic_->get_unread_count();
       bool was_known = topic->topic_ != nullptr;
       if (topic->topic_ == nullptr || true) {
@@ -1802,6 +1807,11 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       if (last_message_id.is_server() && last_message_id > topic->last_server_message_id_) {
         topic->last_server_message_id_ = last_message_id;
       }
+      if (old_last_read_inbox_message_id <= topic->sent_read_inbox_message_id_) {
+        // the topic was requested before the read was sent; a newer read state from elsewhere must not be kept
+        topic->topic_->update_last_read_inbox_message_id(old_last_read_inbox_message_id, old_unread_count);
+      }
+      topic->topic_->update_last_read_outbox_message_id(old_last_read_outbox_message_id);
       update_topic_order(dialog_id, topic);
       send_update_forum_topic(dialog_id, topic);
       save_topic_to_database(dialog_id, topic);
