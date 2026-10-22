@@ -4218,6 +4218,12 @@ void Requests::on_request(uint64 id, const td_api::readAllForumTopicMentions &re
                                                    std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::readAllForumTopics &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->forum_topic_manager_->read_all_forum_topics(DialogId(request.chat_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::readAllChatReactions &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
