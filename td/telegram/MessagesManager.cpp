@@ -14455,9 +14455,8 @@ void MessagesManager::mark_dialog_as_read(Dialog *d) {
     return;
   }
   if (d->is_forum) {
-    // TODO read forum topics
-  }
-  if (d->server_unread_count + d->local_unread_count > 0 && d->last_message_id.is_valid()) {
+    td_->forum_topic_manager_->read_all_forum_topics(d->dialog_id, Auto());
+  } else if (d->server_unread_count + d->local_unread_count > 0 && d->last_message_id.is_valid()) {
     auto message_id = d->ordered_messages.get_last_sent_message_id();
     if (message_id == MessageId()) {
       // if can't find the last message, then d->last_new_message_id is the best guess

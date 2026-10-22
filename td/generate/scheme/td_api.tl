@@ -13702,6 +13702,9 @@ deleteForumTopic chat_id:int53 forum_topic_id:int32 = Ok;
 //@forum_topic_id Forum topic identifier in which mentions are marked as read
 readAllForumTopicMentions chat_id:int53 forum_topic_id:int32 = Ok;
 
+//@description Marks all messages in all known topics of a forum supergroup chat as read @chat_id Chat identifier
+readAllForumTopics chat_id:int53 = Ok;
+
 //@description Marks all reactions in a topic in a forum supergroup chat or a chat with a bot with topics as read
 //@chat_id Chat identifier
 //@forum_topic_id Forum topic identifier in which reactions are marked as read

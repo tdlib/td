@@ -2204,6 +2204,24 @@ void ForumTopicManager::preload_forum_topics(DialogId dialog_id) {
   load_forum_topics(dialog_id, MAX_PRELOAD_FORUM_TOPICS, Auto());
 }
 
+void ForumTopicManager::read_all_forum_topics(DialogId dialog_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics != nullptr) {
+    vector<std::pair<ForumTopicId, MessageId>> unread_topics;
+    dialog_topics->topics_.foreach([&](const ForumTopicId &forum_topic_id, unique_ptr<Topic> &topic) {
+      if (topic->topic_ != nullptr && topic->topic_->get_unread_count() > 0 &&
+          topic->topic_->get_last_message_id().is_valid()) {
+        unread_topics.emplace_back(forum_topic_id, topic->topic_->get_last_message_id());
+      }
+    });
+    for (auto &unread_topic : unread_topics) {
+      read_forum_topic_messages(dialog_id, unread_topic.first, unread_topic.second);
+    }
+  }
+  promise.set_value(Unit());
+}
+
 void ForumTopicManager::on_dialog_mute_changed(DialogId dialog_id) {
   if (td_->auth_manager_->is_bot()) {
     return;

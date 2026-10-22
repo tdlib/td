@@ -138,6 +138,8 @@ class ForumTopicManager final : public Actor {
 
   void preload_forum_topics(DialogId dialog_id);
 
+  void read_all_forum_topics(DialogId dialog_id, Promise<Unit> &&promise);
+
   void on_dialog_mute_changed(DialogId dialog_id);
 
   void on_notification_scope_mute_changed();
