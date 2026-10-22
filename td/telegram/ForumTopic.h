@@ -51,6 +51,10 @@ class ForumTopic {
     return last_read_inbox_message_id_;
   }
 
+  MessageId get_last_read_outbox_message_id() const {
+    return last_read_outbox_message_id_;
+  }
+
   int32 get_unread_count() const {
     return unread_count_;
   }
