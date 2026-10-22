@@ -1434,7 +1434,26 @@ void TonWalletManager::tear_down() {
   parent_.reset();
 }
 
-Status TonWalletManager::check_ton_address(Slice address) {
+Status TonWalletManager::check_ton_address(Slice address, bool allow_raw) {
+  if (allow_raw) {
+    auto colon_pos = address.find(':');
+    if (colon_pos != Slice::npos) {
+      // raw address "<workchain>:<64 hexadecimal digits>"
+      if (to_integer_safe<int32>(address.substr(0, colon_pos)).is_error()) {
+        return Status::Error(400, "Invalid address workchain");
+      }
+      auto account_id = address.substr(colon_pos + 1);
+      if (account_id.size() != 64u) {
+        return Status::Error(400, "Invalid address length");
+      }
+      for (auto c : account_id) {
+        if (!is_hex_digit(c)) {
+          return Status::Error(400, "Invalid address format");
+        }
+      }
+      return Status::OK();
+    }
+  }
   if (address.size() != 48u) {
     return Status::Error(400, "Invalid address length");
   }
@@ -1566,7 +1585,7 @@ void TonWalletManager::create_user_ton_wallet(UserId user_id,
 
 void TonWalletManager::get_address_ton_wallet(const string &address,
                                               Promise<td_api::object_ptr<td_api::userTonWalletAddress>> &&promise) {
-  TRY_STATUS_PROMISE(promise, check_ton_address(address));
+  TRY_STATUS_PROMISE(promise, check_ton_address(address, true));
   td_->create_handler<GetAddressWalletQuery>(std::move(promise))->send(address);
 }
 
@@ -1825,7 +1844,7 @@ void TonWalletManager::send_ton_wallet_transfer(
     const string &data_normal, const string &data_gasless, UserId peer_user_id, const string &peer_address,
     int64 amount, const string &comment, bool is_comment_encrypted, int32 sending_id,
     Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise) {
-  TRY_STATUS_PROMISE(promise, check_ton_address(peer_address));
+  TRY_STATUS_PROMISE(promise, check_ton_address(peer_address, true));
   if (amount <= 0 || amount < td_->option_manager_->get_option_integer("ton_wallet_transfer_amount_min")) {
     return promise.set_error(400, "Invalid transfer amount specified");
   }
@@ -2029,7 +2048,7 @@ void TonWalletManager::set_ton_wallet_card_stickers(
     if (!coordinates.is_valid()) {
       return promise.set_error(400, "Invalid sticker position specified");
     }
-    TRY_STATUS_PROMISE(promise, check_ton_address(sticker->nft_address_));
+    TRY_STATUS_PROMISE(promise, check_ton_address(sticker->nft_address_, true));
     if (td::contains(nft_addresses, sticker->nft_address_)) {
       return promise.set_error(400, "The same NFT can't be used twice");
     }

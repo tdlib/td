@@ -33,7 +33,7 @@ class TonWalletManager final : public Actor {
  public:
   TonWalletManager(Td *td, ActorShared<> parent);
 
-  static Status check_ton_address(Slice address);
+  static Status check_ton_address(Slice address, bool allow_raw = false);
 
   void on_update_wallet_state(telegram_api::object_ptr<telegram_api::WalletState> &&wallet_state);
 
