@@ -44,6 +44,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/ForumTopicManager.h"
+#include "td/telegram/ForumUnreadCounts.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/InlineMessageContent.h"
@@ -3051,6 +3052,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_background = background_info.is_valid();
   bool has_business_bot_manage_bar = business_bot_manage_bar != nullptr;
   bool has_ephemeral_message_ids = !ephemeral_message_ids.empty();
+  bool has_forum_unread_counts = forum_unread_counts != ForumUnreadCounts();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -3149,6 +3151,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(need_repair_unread_poll_vote_count);
     STORE_FLAG(has_ephemeral_message_ids);  // 25
     STORE_FLAG(has_welcome_messages);
+    STORE_FLAG(has_forum_unread_counts);
     END_STORE_FLAGS();
   }
 
@@ -3281,6 +3284,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     }
     store(stored_data, storer);
   }
+  if (has_forum_unread_counts) {
+    store(forum_unread_counts, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -3334,6 +3340,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_background = false;
   bool has_business_bot_manage_bar = false;
   bool has_ephemeral_message_ids = false;
+  bool has_forum_unread_counts = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -3432,6 +3439,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(need_repair_unread_poll_vote_count);
     PARSE_FLAG(has_ephemeral_message_ids);
     PARSE_FLAG(has_welcome_messages);
+    PARSE_FLAG(has_forum_unread_counts);
     END_PARSE_FLAGS();
   }
 
@@ -3611,6 +3619,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
         ephemeral_message_ids.emplace(it.first, EphemeralMessageInfo{it.second, max_ephemeral_message_num++});
       }
     }
+  }
+  if (has_forum_unread_counts) {
+    parse(forum_unread_counts, parser);
   }
 
   (void)legacy_know_can_report_spam;
@@ -5965,7 +5976,7 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool &old_use_defa
   auto scope_mute_until = td_->notification_settings_manager_->get_scope_mute_until(scope);
   bool was_muted = (old_use_default ? scope_mute_until : old_mute_until) != 0;
   bool is_muted = (new_use_default ? scope_mute_until : new_mute_until) != 0;
-  if (was_muted != is_muted && need_unread_counter(d->order)) {
+  if (was_muted != is_muted && need_unread_counter(d->order) && !d->is_forum) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
     if (unread_count != 0 || d->is_marked_as_unread) {
       for (auto &list : get_dialog_lists(d)) {
@@ -5989,6 +6000,13 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool &old_use_defa
   old_use_default = new_use_default;
   old_mute_until = new_mute_until;
 
+  if (was_muted != is_muted && d->is_forum) {
+    change_dialog_unread_counts(d, get_forum_dialog_unread_counts(d, was_muted),
+                                get_forum_dialog_unread_counts(d, is_muted), "update_dialog_unmute_timeout");
+    // topics without own notification settings follow the chat
+    td_->forum_topic_manager_->on_dialog_mute_changed(d->dialog_id);
+  }
+
   if (was_muted != is_muted && td_->dialog_filter_manager_->have_dialog_filters()) {
     update_dialog_lists(d, get_dialog_positions(d), true, false, "update_dialog_unmute_timeout");
   }
@@ -6008,6 +6026,12 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
       Dialog *d = dialog.get();
       if (need_unread_counter(d->order) && d->notification_settings.use_default_mute_until &&
           td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id) == scope) {
+        if (d->is_forum) {
+          change_dialog_unread_counts(d, get_forum_dialog_unread_counts(d, !is_muted),
+                                      get_forum_dialog_unread_counts(d, is_muted),
+                                      "on_update_notification_scope_is_muted");
+          return;
+        }
         int32 unread_count = d->server_unread_count + d->local_unread_count;
         if (unread_count != 0) {
           for (auto dialog_list_id : get_dialog_list_ids(d)) {
@@ -6047,6 +6071,9 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
       }
     }
   }
+
+  // topics without own notification settings follow the chat
+  td_->forum_topic_manager_->on_notification_scope_mute_changed();
 
   if (td_->dialog_filter_manager_->have_dialog_filters()) {
     dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
@@ -9769,21 +9796,16 @@ void MessagesManager::recalc_unread_count(DialogListId dialog_list_id, int32 old
         continue;
       }
 
-      int unread_count = d->server_unread_count + d->local_unread_count;
-      if (need_unread_counter(d->order) && (unread_count > 0 || d->is_marked_as_unread)) {
-        message_total_count += unread_count;
-        dialog_total_count++;
-        if (unread_count == 0 && d->is_marked_as_unread) {
-          dialog_marked_count++;
-        }
-
-        LOG(DEBUG) << "Have " << unread_count << " messages in " << dialog_id;
-        if (is_dialog_muted(d)) {
-          message_muted_count += unread_count;
-          dialog_muted_count++;
-          if (unread_count == 0 && d->is_marked_as_unread) {
-            dialog_muted_marked_count++;
-          }
+      if (need_unread_counter(d->order)) {
+        auto unread_counts = get_dialog_unread_counts(d);
+        message_total_count += unread_counts.message_count;
+        message_muted_count += unread_counts.muted_message_count;
+        dialog_total_count += unread_counts.dialog_count;
+        dialog_muted_count += unread_counts.muted_dialog_count;
+        dialog_marked_count += unread_counts.marked_dialog_count;
+        dialog_muted_marked_count += unread_counts.muted_marked_dialog_count;
+        if (unread_counts.dialog_count != 0) {
+          LOG(DEBUG) << "Have " << unread_counts.message_count << " messages in " << dialog_id;
         }
       }
       if (d->order != DEFAULT_ORDER) {  // must not count sponsored dialog, which is added independently
@@ -9884,7 +9906,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
   d->server_unread_count = server_unread_count;
   d->local_unread_count = local_unread_count;
 
-  if (need_unread_counter(d->order)) {
+  if (need_unread_counter(d->order) && !d->is_forum) {
     const int32 new_unread_count = d->server_unread_count + d->local_unread_count;
     for (auto &list : get_dialog_lists(d)) {
       int32 delta = new_unread_count - old_unread_count;
@@ -16557,6 +16579,11 @@ bool MessagesManager::is_dialog_muted(const Dialog *d) const {
   return get_dialog_mute_until(d) != 0;
 }
 
+bool MessagesManager::is_dialog_muted(DialogId dialog_id) const {
+  const Dialog *d = get_dialog(dialog_id);
+  return d != nullptr && is_dialog_muted(d);
+}
+
 void MessagesManager::on_forum_topic_notification_settings_known(DialogId dialog_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -16567,6 +16594,84 @@ void MessagesManager::on_forum_topic_notification_settings_known(DialogId dialog
     return;
   }
   flush_pending_new_message_notifications(dialog_id, false, dialog_id);
+}
+
+MessagesManager::DialogUnreadCounts MessagesManager::get_dialog_unread_counts(const Dialog *d) const {
+  return get_dialog_unread_counts(d, d->is_forum);
+}
+
+MessagesManager::DialogUnreadCounts MessagesManager::get_dialog_unread_counts(const Dialog *d, bool is_forum) const {
+  if (is_forum) {
+    // the chat's own mute matters only for a forum, which is marked as unread without unread topics
+    return get_forum_dialog_unread_counts(
+        d, d->forum_unread_counts.topic_count_ == 0 && d->is_marked_as_unread && is_dialog_muted(d));
+  }
+  DialogUnreadCounts result;
+  auto unread_count = d->server_unread_count + d->local_unread_count;
+  if (unread_count == 0 && !d->is_marked_as_unread) {
+    return result;
+  }
+  bool is_muted = is_dialog_muted(d);
+  result.message_count = unread_count;
+  result.muted_message_count = is_muted ? unread_count : 0;
+  result.dialog_count = 1;
+  result.muted_dialog_count = is_muted ? 1 : 0;
+  if (unread_count == 0) {
+    result.marked_dialog_count = 1;
+    result.muted_marked_dialog_count = result.muted_dialog_count;
+  }
+  return result;
+}
+
+MessagesManager::DialogUnreadCounts MessagesManager::get_forum_dialog_unread_counts(const Dialog *d,
+                                                                                    bool is_dialog_muted) {
+  // a forum is counted by its known topics and is muted only if all its unread topics are muted
+  const auto &counts = d->forum_unread_counts;
+  DialogUnreadCounts result;
+  if (counts.topic_count_ == 0 && !d->is_marked_as_unread) {
+    return result;
+  }
+  bool is_muted = counts.topic_count_ != 0 ? counts.unmuted_topic_count_ == 0 : is_dialog_muted;
+  result.message_count = counts.message_count_;
+  result.muted_message_count = counts.muted_message_count_;
+  result.dialog_count = 1;
+  result.muted_dialog_count = is_muted ? 1 : 0;
+  if (counts.topic_count_ == 0) {
+    result.marked_dialog_count = 1;
+    result.muted_marked_dialog_count = result.muted_dialog_count;
+  }
+  return result;
+}
+
+void MessagesManager::change_dialog_unread_counts(Dialog *d, const DialogUnreadCounts &old_counts,
+                                                  const DialogUnreadCounts &new_counts, const char *source) {
+  if (!need_unread_counter(d->order)) {
+    return;
+  }
+  bool is_message_count_changed = old_counts.message_count != new_counts.message_count ||
+                                  old_counts.muted_message_count != new_counts.muted_message_count;
+  bool is_dialog_count_changed = old_counts.dialog_count != new_counts.dialog_count ||
+                                 old_counts.muted_dialog_count != new_counts.muted_dialog_count ||
+                                 old_counts.marked_dialog_count != new_counts.marked_dialog_count ||
+                                 old_counts.muted_marked_dialog_count != new_counts.muted_marked_dialog_count;
+  for (auto &list : get_dialog_lists(d)) {
+    if (is_message_count_changed && list.is_message_unread_count_inited_) {
+      list.unread_message_total_count_ += new_counts.message_count - old_counts.message_count;
+      list.unread_message_muted_count_ += new_counts.muted_message_count - old_counts.muted_message_count;
+      send_update_unread_message_count(list, d->dialog_id, true, source);
+    }
+    if (is_dialog_count_changed && list.is_dialog_unread_count_inited_) {
+      list.unread_dialog_total_count_ += new_counts.dialog_count - old_counts.dialog_count;
+      list.unread_dialog_muted_count_ += new_counts.muted_dialog_count - old_counts.muted_dialog_count;
+      list.unread_dialog_marked_count_ += new_counts.marked_dialog_count - old_counts.marked_dialog_count;
+      list.unread_dialog_muted_marked_count_ +=
+          new_counts.muted_marked_dialog_count - old_counts.muted_marked_dialog_count;
+      send_update_unread_chat_count(list, d->dialog_id, true, source);
+    }
+  }
+  if (old_counts.dialog_count != new_counts.dialog_count && td_->dialog_filter_manager_->have_dialog_filters()) {
+    update_dialog_lists(d, get_dialog_positions(d), true, false, source);
+  }
 }
 
 bool MessagesManager::is_dialog_pinned_message_notifications_disabled(const Dialog *d) const {
@@ -17430,7 +17535,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       can_delete.for_all_users_, td_->dialog_manager_->can_report_dialog(d->dialog_id),
       d->notification_settings.silent_send_message, d->server_unread_count + d->local_unread_count,
       d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
-      d->unread_reaction_count, d->unread_poll_vote_count,
+      d->unread_reaction_count, d->unread_poll_vote_count, d->is_forum ? d->forum_unread_counts.topic_count_ : 0,
+      d->is_forum ? d->forum_unread_counts.unmuted_topic_count_ : 0,
       get_chat_notification_settings_object(&d->notification_settings), std::move(available_reactions),
       d->message_ttl.get_message_auto_delete_time_object(),
       td_->dialog_manager_->get_dialog_emoji_status_object(d->dialog_id), get_chat_background_object(d),
@@ -28834,7 +28940,10 @@ void MessagesManager::set_dialog_is_forum(Dialog *d, bool is_forum, bool is_foru
     return;
   }
   auto old_view_as_topics = get_dialog_view_as_topics(d);
-  if (d->is_forum != is_forum) {
+  bool is_bot = td_->auth_manager_->is_bot();
+  auto old_unread_counts = is_bot ? DialogUnreadCounts() : get_dialog_unread_counts(d);
+  bool was_forum = d->is_forum;
+  if (was_forum != is_forum) {
     td_->forum_topic_manager_->on_dialog_is_forum_changed(d->dialog_id);
   }
   d->is_forum = is_forum;
@@ -28843,6 +28952,49 @@ void MessagesManager::set_dialog_is_forum(Dialog *d, bool is_forum, bool is_foru
 
   LOG(INFO) << "Set " << d->dialog_id << " is_forum to " << is_forum << '/' << is_forum_tabs;
   on_update_dialog_view_as_topics(d, old_view_as_topics);
+
+  if (was_forum != is_forum && !is_bot) {
+    change_dialog_unread_counts(d, old_unread_counts, get_dialog_unread_counts(d), "set_dialog_is_forum");
+    if (d->forum_unread_counts != ForumUnreadCounts()) {
+      send_update_chat_unread_topic_count(d);
+    }
+    if (is_forum && !get_dialog_list_ids(d).empty()) {
+      td_->forum_topic_manager_->preload_forum_topics(d->dialog_id);
+    }
+  }
+}
+
+void MessagesManager::on_update_forum_unread_counts(DialogId dialog_id, ForumUnreadCounts forum_unread_counts) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  Dialog *d = get_dialog_force(dialog_id, "on_update_forum_unread_counts");
+  if (d == nullptr || d->forum_unread_counts == forum_unread_counts) {
+    return;
+  }
+
+  LOG(INFO) << "Set unread counts of topics in " << dialog_id << " to " << forum_unread_counts;
+  auto old_unread_counts = get_dialog_unread_counts(d);
+  bool is_topic_count_changed = d->forum_unread_counts.topic_count_ != forum_unread_counts.topic_count_ ||
+                                d->forum_unread_counts.unmuted_topic_count_ != forum_unread_counts.unmuted_topic_count_;
+  d->forum_unread_counts = forum_unread_counts;
+  on_dialog_updated(dialog_id, "on_update_forum_unread_counts");
+  if (is_topic_count_changed && d->is_forum) {
+    send_update_chat_unread_topic_count(d);
+  }
+  change_dialog_unread_counts(d, old_unread_counts, get_dialog_unread_counts(d), "on_update_forum_unread_counts");
+}
+
+void MessagesManager::send_update_chat_unread_topic_count(const Dialog *d) const {
+  CHECK(d != nullptr);
+  if (!d->is_update_new_chat_sent) {
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatUnreadTopicCount>(
+                   get_chat_id_object(d->dialog_id, "updateChatUnreadTopicCount"),
+                   d->is_forum ? d->forum_unread_counts.topic_count_ : 0,
+                   d->is_forum ? d->forum_unread_counts.unmuted_topic_count_ : 0));
 }
 
 void MessagesManager::on_update_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages) {
@@ -28919,6 +29071,7 @@ void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_a
 
   CHECK(d != nullptr);
   CHECK(d->is_marked_as_unread != is_marked_as_unread);
+  auto old_unread_counts = get_dialog_unread_counts(d);
   d->is_marked_as_unread = is_marked_as_unread;
   on_dialog_updated(d->dialog_id, "set_dialog_is_marked_as_unread");
 
@@ -28927,6 +29080,11 @@ void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_a
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatIsMarkedAsUnread>(
                    get_chat_id_object(d->dialog_id, "updateChatIsMarkedAsUnread"), is_marked_as_unread));
+
+  if (d->is_forum) {
+    return change_dialog_unread_counts(d, old_unread_counts, get_dialog_unread_counts(d),
+                                       "set_dialog_is_marked_as_unread");
+  }
 
   if (d->server_unread_count + d->local_unread_count == 0 && need_unread_counter(d->order)) {
     int32 delta = d->is_marked_as_unread ? 1 : -1;
@@ -30291,25 +30449,13 @@ void MessagesManager::edit_dialog_list_for_dialog_filter(unique_ptr<DialogFilter
           new_list.server_dialog_total_count_++;
         }
 
-        auto unread_count = d->server_unread_count + d->local_unread_count;
-        if (unread_count != 0) {
-          new_list.unread_message_total_count_ += unread_count;
-          if (is_dialog_muted(d)) {
-            new_list.unread_message_muted_count_ += unread_count;
-          }
-        }
-        if (unread_count != 0 || d->is_marked_as_unread) {
-          new_list.unread_dialog_total_count_++;
-          if (unread_count == 0 && d->is_marked_as_unread) {
-            new_list.unread_dialog_marked_count_++;
-          }
-          if (is_dialog_muted(d)) {
-            new_list.unread_dialog_muted_count_++;
-            if (unread_count == 0 && d->is_marked_as_unread) {
-              new_list.unread_dialog_muted_marked_count_++;
-            }
-          }
-        }
+        auto unread_counts = get_dialog_unread_counts(d);
+        new_list.unread_message_total_count_ += unread_counts.message_count;
+        new_list.unread_message_muted_count_ += unread_counts.muted_message_count;
+        new_list.unread_dialog_total_count_ += unread_counts.dialog_count;
+        new_list.unread_dialog_marked_count_ += unread_counts.marked_dialog_count;
+        new_list.unread_dialog_muted_count_ += unread_counts.muted_dialog_count;
+        new_list.unread_dialog_muted_marked_count_ += unread_counts.muted_marked_dialog_count;
       } else {
         if (was_in_list) {
           remove_dialog_from_list(d, dialog_list_id);
@@ -33263,6 +33409,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
   auto dialog_id = d->dialog_id;
   LOG_CHECK(is_inited_) << dialog_id << ' ' << is_loaded_from_database << ' ' << source;
   LOG_CHECK(!have_dialog(dialog_id)) << dialog_id << ' ' << is_loaded_from_database << ' ' << source;
+  bool was_forum = d->is_forum;
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       auto user_id = dialog_id.get_user_id();
@@ -33456,6 +33603,11 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
                  last_clear_history_date, last_clear_history_message_id, default_join_group_call_as_dialog_id,
                  default_send_message_as_dialog_id, need_drop_default_send_message_as_dialog_id,
                  is_loaded_from_database, source);
+
+  if (is_loaded_from_database && was_forum != d->is_forum && !td_->auth_manager_->is_bot()) {
+    // the stored counters of chat lists count the chat as it was stored
+    change_dialog_unread_counts(d, get_dialog_unread_counts(d, was_forum), get_dialog_unread_counts(d), source);
+  }
 
   return d;
 }
@@ -34253,28 +34405,18 @@ void MessagesManager::update_dialog_lists(
       if (!is_loaded_from_database) {
         need_update_unread_chat_count =
             list.is_dialog_unread_count_inited_ && old_position.total_dialog_count != get_dialog_total_count(list);
-        auto unread_count = d->server_unread_count + d->local_unread_count;
+        auto unread_counts = get_dialog_unread_counts(d);
         const char *change_source = was_in_list ? "on_dialog_remove" : "on_dialog_add";
-        if (unread_count != 0 && list.is_message_unread_count_inited_) {
-          unread_count *= delta;
-
-          list.unread_message_total_count_ += unread_count;
-          if (is_dialog_muted(d)) {
-            list.unread_message_muted_count_ += unread_count;
-          }
+        if (unread_counts.message_count != 0 && list.is_message_unread_count_inited_) {
+          list.unread_message_total_count_ += delta * unread_counts.message_count;
+          list.unread_message_muted_count_ += delta * unread_counts.muted_message_count;
           send_update_unread_message_count(list, dialog_id, true, change_source);
         }
-        if ((unread_count != 0 || d->is_marked_as_unread) && list.is_dialog_unread_count_inited_) {
+        if (unread_counts.dialog_count != 0 && list.is_dialog_unread_count_inited_) {
           list.unread_dialog_total_count_ += delta;
-          if (unread_count == 0 && d->is_marked_as_unread) {
-            list.unread_dialog_marked_count_ += delta;
-          }
-          if (is_dialog_muted(d)) {
-            list.unread_dialog_muted_count_ += delta;
-            if (unread_count == 0 && d->is_marked_as_unread) {
-              list.unread_dialog_muted_marked_count_ += delta;
-            }
-          }
+          list.unread_dialog_marked_count_ += delta * unread_counts.marked_dialog_count;
+          list.unread_dialog_muted_count_ += delta * unread_counts.muted_dialog_count;
+          list.unread_dialog_muted_marked_count_ += delta * unread_counts.muted_marked_dialog_count;
           need_update_unread_chat_count = true;
         }
         if (need_update_unread_chat_count) {
@@ -34286,6 +34428,9 @@ void MessagesManager::update_dialog_lists(
         remove_dialog_from_list(d, dialog_list_id);
       } else {
         add_dialog_to_list(d, dialog_list_id);
+        if (d->is_forum) {
+          td_->forum_topic_manager_->preload_forum_topics(dialog_id);
+        }
       }
     }
     if (!need_update_unread_chat_count && list.is_dialog_unread_count_inited_ &&
@@ -34688,7 +34833,7 @@ DialogFilterDialogInfo MessagesManager::get_dialog_info_for_dialog_filter(const 
   dialog_info.folder_id_ = d->folder_id;
   dialog_info.has_unread_mentions_ = d->unread_mention_count != 0 && !is_dialog_mention_notifications_disabled(d);
   dialog_info.is_muted_ = is_dialog_muted(d);
-  dialog_info.has_unread_messages_ = d->server_unread_count + d->local_unread_count != 0 || d->is_marked_as_unread;
+  dialog_info.has_unread_messages_ = get_dialog_unread_counts(d).dialog_count != 0;
   return dialog_info;
 }
 
