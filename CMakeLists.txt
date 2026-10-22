@@ -888,6 +888,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ForumTopicId.h
   td/telegram/ForumTopicInfo.h
   td/telegram/ForumTopicManager.h
+  td/telegram/ForumUnreadCounts.h
   td/telegram/Game.h
   td/telegram/GameManager.h
   td/telegram/GitCommitHash.h
@@ -1238,6 +1239,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ForumTopicEditedData.hpp
   td/telegram/ForumTopicIcon.hpp
   td/telegram/ForumTopicInfo.hpp
+  td/telegram/ForumUnreadCounts.hpp
   td/telegram/Game.hpp
   td/telegram/GiveawayParameters.hpp
   td/telegram/GroupCallMessageLimit.hpp
