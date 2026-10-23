@@ -30,6 +30,8 @@ class MessageQuote {
 
   vector<td_api::object_ptr<td_api::RichText>> get_rich_texts_object(Td *td) const;
 
+  static bool remove_unallowed_quote_entities_from_rich_texts(vector<RichText> &rich_texts);
+
   friend bool operator==(const MessageQuote &lhs, const MessageQuote &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageQuote &quote);
@@ -45,6 +47,7 @@ class MessageQuote {
   MessageQuote(FormattedText &&text, vector<RichText> &&rich_texts, int32 position, bool is_manual = true)
       : text_(std::move(text)), rich_texts_(std::move(rich_texts)), position_(max(0, position)), is_manual_(is_manual) {
     remove_unallowed_quote_entities(text_);
+    remove_unallowed_quote_entities_from_rich_texts(rich_texts_);
   }
 
   MessageQuote(Td *td, telegram_api::object_ptr<telegram_api::inputReplyToMessage> &input_reply_to_message);

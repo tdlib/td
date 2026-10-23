@@ -56,6 +56,7 @@ void MessageQuote::parse(ParserT &parser) {
   }
   if (has_rich_texts) {
     td::parse(rich_texts_, parser);
+    remove_unallowed_quote_entities_from_rich_texts(rich_texts_);
   }
 }
 

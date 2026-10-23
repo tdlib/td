@@ -713,6 +713,74 @@ RichText RichText::get_quote_fragment_impl(size_t &pos, size_t begin, size_t end
   }
 }
 
+bool RichText::remove_unallowed_quote_entities() {
+  switch (type_) {
+    case Type::Plain:
+    case Type::Math:
+    case Type::CustomEmoji:
+      return false;
+    case Type::Icon:
+      // icons can't be quoted
+      *this = RichText();
+      return true;
+    case Type::Concatenation: {
+      bool is_changed = false;
+      for (auto &text : texts_) {
+        if (text.remove_unallowed_quote_entities()) {
+          is_changed = true;
+        }
+      }
+      if (td::remove_if(texts_, [](const RichText &text) { return text.empty(); })) {
+        is_changed = true;
+      }
+      if (texts_.empty()) {
+        *this = RichText();
+        return true;
+      }
+      return is_changed;
+    }
+    case Type::Fixed:
+    case Type::Url:
+    case Type::EmailAddress:
+    case Type::Marked:
+    case Type::PhoneNumber:
+    case Type::Anchor:
+    case Type::Mention:
+    case Type::Hashtag:
+    case Type::Cashtag:
+    case Type::BotCommand:
+    case Type::AutoUrl:
+    case Type::AutoEmailAddress:
+    case Type::AutoPhoneNumber:
+    case Type::BankCardNumber:
+    case Type::MentionName:
+    case Type::Button:
+    case Type::TonAddress:
+    case Type::Diff: {
+      // the formatting isn't supported in quotes, so only the text is kept
+      CHECK(!texts_.empty());
+      auto text = std::move(texts_[0]);
+      text.remove_unallowed_quote_entities();
+      *this = std::move(text);
+      return true;
+    }
+    default:
+      if (texts_.size() != 1u) {
+        LOG(ERROR) << "Receive rich text of type " << static_cast<int32>(type_) << " with " << texts_.size()
+                   << " texts";
+        *this = RichText();
+        return true;
+      }
+      if (!texts_[0].remove_unallowed_quote_entities()) {
+        return false;
+      }
+      if (texts_[0].empty()) {
+        *this = RichText();
+      }
+      return true;
+  }
+}
+
 int32 RichText::get_index_mask() const {
   switch (type_) {
     case Type::Url:

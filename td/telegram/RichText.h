@@ -110,6 +110,9 @@ class RichText {
   // returns part of the rich text between begin and end UTF-8 characters of its quote text, which can be used in a quote
   RichText get_quote_fragment(size_t begin, size_t end) const;
 
+  // removes formatting, which isn't supported in quotes; returns true, if the text was changed
+  bool remove_unallowed_quote_entities();
+
   int32 get_index_mask() const;
 
   void append_user_ids(vector<UserId> &user_ids) const;
