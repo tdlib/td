@@ -22,7 +22,6 @@
 #include "td/utils/Status.h"
 
 #include <deque>
-#include <map>
 
 namespace td {
 
@@ -123,7 +122,7 @@ class WebProxyManager final : public Actor {
 
   int64 max_endpoint_id_ = 0;
   int64 active_endpoint_id_ = 0;
-  std::map<int64, unique_ptr<Endpoint>> endpoints_;
+  FlatHashMap<int64, unique_ptr<Endpoint>> endpoints_;
 
   int32 max_carrier_id_ = 0;
   FlatHashMap<int32, int64> carrier_endpoint_ids_;
