@@ -30,6 +30,8 @@ class MessageQuote {
 
   vector<td_api::object_ptr<td_api::RichText>> get_rich_texts_object(Td *td) const;
 
+  size_t get_text_size() const;
+
   static bool remove_unallowed_quote_entities_from_rich_texts(vector<RichText> &rich_texts);
 
   friend bool operator==(const MessageQuote &lhs, const MessageQuote &rhs);

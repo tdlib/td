@@ -176,10 +176,18 @@ MessageQuote MessageQuote::create_automatic_quote(Td *td, const RichMessage &ric
   return MessageQuote(FormattedText(), std::move(rich_texts), 0, false);
 }
 
+size_t MessageQuote::get_text_size() const {
+  auto size = text_.text.size();
+  for (auto &rich_text : rich_texts_) {
+    size += rich_text.get_quote_text().size();
+  }
+  return size;
+}
+
 int MessageQuote::need_quote_changed_warning(const MessageQuote &old_quote, const MessageQuote &new_quote) {
   if (old_quote.position_ != new_quote.position_ &&
       max(old_quote.position_, new_quote.position_) <
-          static_cast<int32>(min(old_quote.text_.text.size(), new_quote.text_.text.size()))) {
+          static_cast<int32>(min(old_quote.get_text_size(), new_quote.get_text_size()))) {
     // quote position can't change
     return 1;
   }
