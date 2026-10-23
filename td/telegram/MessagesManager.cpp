@@ -5768,6 +5768,9 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
       update_dialog_pinned_messages_from_updates(DialogId(update->peer_), message_ids, update->pinned_);
       break;
     }
+    case telegram_api::updateMessageWidgetData::ID:
+      LOG(INFO) << "Process updateMessageWidgetData";
+      break;
     default:
       UNREACHABLE();
   }

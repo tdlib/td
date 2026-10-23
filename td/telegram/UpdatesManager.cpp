@@ -4030,6 +4030,13 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedMessages>
                          "updatePinnedMessages");
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageWidgetData> update, Promise<Unit> &&promise) {
+  int new_pts = update->pts_;
+  int pts_count = update->pts_count_;
+  add_pending_pts_update(std::move(update), new_pts, pts_count, Time::now(), std::move(promise),
+                         "updateMessageWidgetData");
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedChannelMessages> update,
                                Promise<Unit> &&promise) {
   DialogId dialog_id(ChannelId(update->channel_id_));
@@ -4221,6 +4228,10 @@ bool UpdatesManager::check_pts_update(const tl_object_ptr<telegram_api::Update> 
       auto update_pinned_messages = static_cast<const telegram_api::updatePinnedMessages *>(update.get());
       return check_pts_update_dialog_id(DialogId(update_pinned_messages->peer_));
     }
+    case telegram_api::updateMessageWidgetData::ID: {
+      auto update_message_widget_data = static_cast<const telegram_api::updateMessageWidgetData *>(update.get());
+      return check_pts_update_dialog_id(DialogId(update_message_widget_data->peer_));
+    }
     default:
       return false;
   }
@@ -4237,6 +4248,7 @@ bool UpdatesManager::is_pts_update(const telegram_api::Update *update) {
     case telegram_api::updateWebPage::ID:
     case telegram_api::updatePinnedMessages::ID:
     case telegram_api::updateFolderPeers::ID:
+    case telegram_api::updateMessageWidgetData::ID:
       return true;
     default:
       return false;
@@ -4263,6 +4275,8 @@ int32 UpdatesManager::get_update_pts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updatePinnedMessages *>(update)->pts_;
     case telegram_api::updateFolderPeers::ID:
       return static_cast<const telegram_api::updateFolderPeers *>(update)->pts_;
+    case telegram_api::updateMessageWidgetData::ID:
+      return static_cast<const telegram_api::updateMessageWidgetData *>(update)->pts_;
     default:
       return 0;
   }
@@ -5191,6 +5205,28 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebBrowserExcep
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudioFile> update,
+                               Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditForumTopic> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotWidgetQuery> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateInlineBotWidgetQuery> update,
+                               Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotWidgetCopyQuery> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

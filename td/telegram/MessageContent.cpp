@@ -4784,6 +4784,12 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       reply_markup = std::move(inline_message->reply_markup_);
       break;
     }
+    case telegram_api::botInlineMessageWidget::ID: {
+      auto inline_message = telegram_api::move_object_as<telegram_api::botInlineMessageWidget>(bot_inline_message);
+      LOG(INFO) << "Receive unsupported " << to_string(inline_message);
+      reply_markup = std::move(inline_message->reply_markup_);
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -10343,6 +10349,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                               std::move(completions));
     }
     case telegram_api::messageMediaUnsupported::ID:
+    case telegram_api::messageMediaWidget::ID:
       return make_unique<MessageUnsupported>();
     case telegram_api::messageMediaVideoStream::ID:
       LOG(ERROR) << "Receive " << to_string(media_ptr);

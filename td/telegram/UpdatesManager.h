@@ -616,6 +616,9 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updatePinnedForumTopics> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updatePinnedMessages> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateMessageWidgetData> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updatePinnedChannelMessages> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateDraftMessage> update, Promise<Unit> &&promise);
@@ -801,6 +804,16 @@ class UpdatesManager final : public Actor {
   // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateTranscribedAudioFile> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateEditForumTopic> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateBotWidgetQuery> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateInlineBotWidgetQuery> update, Promise<Unit> &&promise);
+
+  void on_update(tl_object_ptr<telegram_api::updateBotWidgetCopyQuery> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

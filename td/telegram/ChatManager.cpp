@@ -985,7 +985,7 @@ class ToggleForumQuery final : public Td::ResultHandler {
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_toggleForum(std::move(input_channel), is_forum, is_forum && is_forum_tabs),
+        telegram_api::channels_toggleForum(std::move(input_channel), is_forum, is_forum && is_forum_tabs, false),
         {{channel_id}}));
   }
 
