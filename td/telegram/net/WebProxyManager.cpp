@@ -240,7 +240,7 @@ WebProxyManager::~WebProxyManager() = default;
 void WebProxyManager::register_connection(const SocketFd &socket_fd) {
   IPAddress ip_address;
   auto status = ip_address.init_socket_address(socket_fd);
-  if (status.is_error()) {
+  if (status.is_error() || ip_address.get_port() <= 0) {
     LOG(WARNING) << "Failed to get web proxy connection address: " << status;
     return;
   }
@@ -940,6 +940,7 @@ void WebProxyManager::close_all_streams(Endpoint &endpoint) {
 }
 
 void WebProxyManager::remember_closed_stream(Endpoint &endpoint, uint32 stream_id) {
+  CHECK(stream_id != 0);
   if (!endpoint.closed_stream_ids.insert(stream_id).second) {
     return;
   }
