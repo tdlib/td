@@ -278,6 +278,8 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_is_forum(DialogId dialog_id, bool is_forum, bool is_forum_tabs);
 
+  void on_forum_topic_notification_settings_known(DialogId dialog_id);
+
   void on_update_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages);
 
   void on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread);
@@ -602,6 +604,9 @@ class MessagesManager final : public Actor {
   vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
 
   int64 get_message_order(DialogId dialog_id, MessageId message_id) const;
+
+  // returns 0 if the message isn't in memory
+  int32 get_message_date(MessageFullId message_full_id) const;
 
   void block_message_sender_from_replies(MessageId message_id, bool need_delete_message, bool need_delete_all_messages,
                                          bool report_spam, Promise<Unit> &&promise);
