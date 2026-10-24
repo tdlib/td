@@ -773,6 +773,9 @@ class MessagesManager final : public Actor {
                                                                     int32 limit, int64 &random_id,
                                                                     Promise<Unit> &&promise);
 
+  void preload_forum_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId from_message_id,
+                                   int32 offset, int32 limit, Promise<Unit> &&promise);
+
   std::pair<DialogId, vector<MessageId>> get_forum_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                                  MessageId from_message_id, int32 offset, int32 limit,
                                                                  int64 &random_id, Promise<Unit> &&promise);
@@ -2246,8 +2249,10 @@ class MessagesManager final : public Actor {
   std::pair<DialogId, vector<MessageId>> get_message_thread_history(DialogId dialog_id, MessageTopic topic,
                                                                     MessageFullId top_thread_message_full_id,
                                                                     MessageId from_message_id, int32 offset,
-                                                                    int32 limit, int64 &random_id,
+                                                                    int32 limit, bool from_memory, int64 &random_id,
                                                                     Promise<Unit> &&promise);
+
+  void on_preload_forum_topic_history(int64 random_id, Result<Unit> &&result, Promise<Unit> &&promise);
 
   void on_get_forum_topic_history_from_database(DialogId dialog_id, MessageTopic topic, MessageId from_message_id,
                                                 int32 offset, int32 limit, int64 random_id,
