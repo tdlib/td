@@ -3501,7 +3501,7 @@ inputTextQuote text:formattedText rich_texts:vector<RichText> position:int32 = I
 //@content Media content of the message if the message was from another chat or topic; may be null for messages from the same chat and messages without media.
 //-Can be only one of the following types: messageAnimation, messageAudio, messageChecklist, messageContact, messageDice, messageDocument, messageGame,
 //-messageGiveaway, messageGiveawayWinners, messageInvoice, messageLocation, messagePaidMedia, messagePhoto, messagePoll, messageStakeDice,
-//-messageSticker, messageStory, messageText (for link preview), messageVenue, messageVideo, messageVideoNote, or messageVoiceNote
+//-messageSticker, messageStory, messageText (for link preview), messageVenue, messageVideo, messageVideoNote, messageVoiceNote, or messageWidget
 messageReplyToMessage chat_id:int53 message_id:int53 quote:textQuote checklist_task_id:int32 poll_option_id:string origin:MessageOrigin origin_send_date:int32 content:MessageContent = MessageReplyTo;
 
 //@description Describes a story replied by a given message @story_poster_chat_id The identifier of the poster of the story @story_id The identifier of the story
@@ -5808,6 +5808,20 @@ messageStakeDice initial_state:DiceStickers final_state:DiceStickers value:int32
 //@story_id Story identifier
 //@via_mention True, if the story was automatically forwarded because of a mention of the user
 messageStory story_poster_chat_id:int53 story_id:int32 via_mention:Bool = MessageContent;
+
+//@description A message with an HTML widget
+//@width Width of the widget; 0 if the widget must occupy the whole width of the message bubble
+//@height Height of the widget; 0 if the height of the widget isn't fixed
+//@html HTML code of the widget
+//@public_data Public data of the widget
+//@chat_data Data of the widget, which is specific to the chat
+//@widget_id Identifier of the shared widget; 0 if the widget isn't shared
+//@caption Widget caption
+//@show_caption_above_media True, if the caption must be shown above the widget; otherwise, the caption must be shown below the widget
+//@is_copy True, if the message is a copy of the widget
+//@can_send_queries True, if the widget can send queries to the bot
+//@can_send_background_queries True, if the widget can send queries to the bot in the background
+messageWidget width:int32 height:int32 html:string public_data:string chat_data:string widget_id:int64 caption:formattedText show_caption_above_media:Bool is_copy:Bool can_send_queries:Bool can_send_background_queries:Bool = MessageContent;
 
 //@description A message with a checklist @list The checklist description
 messageChecklist list:checklist = MessageContent;
@@ -13207,7 +13221,7 @@ resendMessages chat_id:int53 message_ids:vector<int53> quote:inputTextQuote paid
 //@only_preview Pass true to get a fake message instead of actually sending it
 //@reply_markup Markup for replying to the message; pass null if none; for bots only
 //@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageAnimation,
-//-inputMessageAudio, inputMessageDocument, inputMessagePhoto, inputMessageRichMessage, inputMessageSticker, inputMessageVideo, inputMessageVideoNote, inputMessageVoiceNote,
+//-inputMessageAudio, inputMessageDocument, inputMessagePhoto, inputMessageRichMessage, inputMessageSticker, inputMessageVideo, inputMessageVideoNote, inputMessageVoiceNote, inputMessageWidget,
 //-inputMessageLocation, inputMessageVenue, inputMessageContact
 sendEphemeralMessage chat_id:int53 topic_id:MessageTopic receiver_user_id:int53 callback_query_id:int64 replace_callback_query_message:Bool reply_to:InputMessageReplyTo protect_content:Bool sending_id:int32 only_preview:Bool reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
@@ -13344,7 +13358,7 @@ editEphemeralMessageCaption chat_id:int53 receiver_user_id:int53 ephemeral_messa
 //@protect_content Pass true if the content of the message must be protected from forwarding and saving
 //@reply_markup The new message reply markup; pass null if none
 //@input_message_content New content of the message. Must be one of the following types: inputMessageText, inputMessageAnimation,
-//-inputMessageAudio, inputMessageDocument, inputMessagePhoto, inputMessageRichMessage, inputMessageSticker, inputMessageVideo, inputMessageVideoNote, inputMessageVoiceNote
+//-inputMessageAudio, inputMessageDocument, inputMessagePhoto, inputMessageRichMessage, inputMessageSticker, inputMessageVideo, inputMessageVideoNote, inputMessageVoiceNote, inputMessageWidget
 replyToCallbackQueryWithEphemeralMessage callback_query_id:int64 replace_callback_query_message:Bool protect_content:Bool reply_markup:ReplyMarkup input_message_content:InputMessageContent = Ok;
 
 //@description Edits the time when a scheduled message will be sent. Scheduling state of all messages in the same album or forwarded together with the message will be also changed

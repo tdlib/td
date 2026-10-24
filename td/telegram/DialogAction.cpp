@@ -467,6 +467,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::Invoice:
     case MessageContentType::Text:
     case MessageContentType::Unsupported:
+    case MessageContentType::Widget:
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:
     case MessageContentType::ChatChangePhoto:
