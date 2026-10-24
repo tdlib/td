@@ -44,6 +44,10 @@ class OrderedTopics {
       return !(*this == other);
     }
 
+    int64 get_order() const {
+      return order_;
+    }
+
     TopicIdT get_topic_id() const {
       return topic_id_;
     }
@@ -97,6 +101,10 @@ class OrderedTopics {
       result.push_back(it->get_topic_id());
     }
     return result;
+  }
+
+  TopicDate get_last_topic_date() const {
+    return last_topic_date_;
   }
 
   bool is_fully_loaded() const {

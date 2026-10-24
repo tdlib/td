@@ -4063,6 +4063,8 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
 //@unread_reaction_count Number of messages with unread reactions in the chat
 //@unread_poll_vote_count Number of messages with unread poll votes in the chat
+//@unread_topic_count Number of known topics with unread messages in the chat; 0 if the chat isn't a forum
+//@unread_unmuted_topic_count Number of known topics with unread messages in the chat, which aren't muted; 0 if the chat isn't a forum
 //@notification_settings Notification settings for the chat
 //@available_reactions Types of reaction, available in the chat
 //@message_auto_delete_time Current message auto-delete or self-destruct timer setting for the chat, in seconds; 0 if disabled.
@@ -4077,7 +4079,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null if none
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int32 background_custom_emoji_id:int64 upgraded_gift_colors:upgradedGiftColors profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> chat_lists:vector<ChatList> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool view_as_topics:Bool has_scheduled_messages:Bool has_welcome_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 unread_poll_vote_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 emoji_status:emojiStatus background:chatBackground theme:ChatTheme action_bar:ChatActionBar business_bot_manage_bar:businessBotManageBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int32 background_custom_emoji_id:int64 upgraded_gift_colors:upgradedGiftColors profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> chat_lists:vector<ChatList> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool view_as_topics:Bool has_scheduled_messages:Bool has_welcome_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 unread_poll_vote_count:int32 unread_topic_count:int32 unread_unmuted_topic_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 emoji_status:emojiStatus background:chatBackground theme:ChatTheme action_bar:ChatActionBar business_bot_manage_bar:businessBotManageBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total number of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -11389,6 +11391,12 @@ updateChatUnreadReactionCount chat_id:int53 unread_reaction_count:int32 = Update
 //@description The chat unread_poll_vote_count has changed @chat_id Chat identifier @unread_poll_vote_count The number of messages with unread poll votes left in the chat
 updateChatUnreadPollVoteCount chat_id:int53 unread_poll_vote_count:int32 = Update;
 
+//@description The number of unread topics in a forum chat has changed
+//@chat_id Chat identifier
+//@unread_topic_count The number of known topics with unread messages in the chat
+//@unread_unmuted_topic_count The number of known topics with unread messages in the chat, which aren't muted
+updateChatUnreadTopicCount chat_id:int53 unread_topic_count:int32 unread_unmuted_topic_count:int32 = Update;
+
 //@description A chat video chat state has changed @chat_id Chat identifier @video_chat New value of video_chat
 updateChatVideoChat chat_id:int53 video_chat:videoChat = Update;
 
@@ -11470,18 +11478,13 @@ updateChatWelcomeMessages chat_id:int53 messages:vector<welcomeMessage> = Update
 //@description Basic information about a topic in a forum chat was changed @info New information about the topic
 updateForumTopicInfo info:forumTopicInfo = Update;
 
-//@description Information about a topic in a forum chat was changed
+//@description Information about a topic in a forum chat was changed @topic New data about the topic
+updateForumTopic topic:forumTopic = Update;
+
+//@description A topic in a forum chat was deleted. The General topic is never deleted
 //@chat_id Chat identifier
-//@forum_topic_id Forum topic identifier of the topic
-//@is_pinned True, if the topic is pinned in the topic list
-//@last_read_inbox_message_id Identifier of the last read incoming message
-//@last_read_outbox_message_id Identifier of the last read outgoing message
-//@unread_mention_count Number of unread messages with a mention/reply in the topic
-//@unread_reaction_count Number of messages with unread reactions in the topic
-//@unread_poll_vote_count Number of messages with unread poll votes in the topic
-//@notification_settings Notification settings for the topic
-//@draft_message A draft of a message in the topic; may be null if none
-updateForumTopic chat_id:int53 forum_topic_id:int32 is_pinned:Bool last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 unread_poll_vote_count:int32 notification_settings:chatNotificationSettings draft_message:draftMessage = Update;
+//@forum_topic_id Forum topic identifier of the deleted topic
+updateForumTopicDeleted chat_id:int53 forum_topic_id:int32 = Update;
 
 //@description Notification settings for some type of chats were updated
 //@scope Types of chats for which notification settings were updated
@@ -13644,6 +13647,12 @@ getForumTopicHistory chat_id:int53 forum_topic_id:int32 from_message_id:int53 of
 //@description Returns an HTTPS link to a topic in a forum supergroup chat. This is an offline method @chat_id Identifier of the chat @forum_topic_id Forum topic identifier
 getForumTopicLink chat_id:int53 forum_topic_id:int32 = MessageLink;
 
+//@description Loads more topics in a forum supergroup chat or a chat with a bot with topics. The loaded topics will be sent through updateForumTopic.
+//-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
+//@chat_id Identifier of the chat
+//@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
+loadForumTopics chat_id:int53 limit:int32 = Ok;
+
 //@description Returns found forum topics in a forum supergroup chat or a chat with a bot with topics. This is a temporary method for getting information about topic list from the server
 //@chat_id Identifier of the chat
 //@query Query to search for in the forum topic's name
@@ -13692,6 +13701,9 @@ deleteForumTopic chat_id:int53 forum_topic_id:int32 = Ok;
 //@chat_id Chat identifier
 //@forum_topic_id Forum topic identifier in which mentions are marked as read
 readAllForumTopicMentions chat_id:int53 forum_topic_id:int32 = Ok;
+
+//@description Marks all messages in all known topics of a forum supergroup chat as read @chat_id Chat identifier
+readAllForumTopics chat_id:int53 = Ok;
 
 //@description Marks all reactions in a topic in a forum supergroup chat or a chat with a bot with topics as read
 //@chat_id Chat identifier

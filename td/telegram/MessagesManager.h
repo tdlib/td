@@ -28,6 +28,7 @@
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/ForumTopicId.h"
+#include "td/telegram/ForumUnreadCounts.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContentDupType.h"
@@ -277,6 +278,12 @@ class MessagesManager final : public Actor {
   void on_update_pinned_dialogs(FolderId folder_id);
 
   void on_update_dialog_is_forum(DialogId dialog_id, bool is_forum, bool is_forum_tabs);
+
+  void on_update_forum_unread_counts(DialogId dialog_id, ForumUnreadCounts forum_unread_counts);
+
+  bool is_dialog_muted(DialogId dialog_id) const;
+
+  void on_forum_topic_notification_settings_known(DialogId dialog_id);
 
   void on_update_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages);
 
@@ -603,6 +610,9 @@ class MessagesManager final : public Actor {
 
   int64 get_message_order(DialogId dialog_id, MessageId message_id) const;
 
+  // returns 0 if the message isn't in memory
+  int32 get_message_date(MessageFullId message_full_id) const;
+
   void block_message_sender_from_replies(MessageId message_id, bool need_delete_message, bool need_delete_all_messages,
                                          bool report_spam, Promise<Unit> &&promise);
 
@@ -767,6 +777,9 @@ class MessagesManager final : public Actor {
                                                                     MessageId from_message_id, int32 offset,
                                                                     int32 limit, int64 &random_id,
                                                                     Promise<Unit> &&promise);
+
+  void preload_forum_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId from_message_id,
+                                   int32 offset, int32 limit, Promise<Unit> &&promise);
 
   std::pair<DialogId, vector<MessageId>> get_forum_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                                  MessageId from_message_id, int32 offset, int32 limit,
@@ -1332,6 +1345,7 @@ class MessagesManager final : public Actor {
     int32 unread_mention_count = 0;
     int32 unread_reaction_count = 0;
     int32 unread_poll_vote_count = 0;
+    ForumUnreadCounts forum_unread_counts;   // the unread counts of the known topics, if the chat is a forum
     int32 last_read_inbox_message_date = 0;  // secret chats only
     MessageId last_read_inbox_message_id;
     MessageId last_read_outbox_message_id;
@@ -2241,8 +2255,17 @@ class MessagesManager final : public Actor {
   std::pair<DialogId, vector<MessageId>> get_message_thread_history(DialogId dialog_id, MessageTopic topic,
                                                                     MessageFullId top_thread_message_full_id,
                                                                     MessageId from_message_id, int32 offset,
-                                                                    int32 limit, int64 &random_id,
+                                                                    int32 limit, bool from_memory, int64 &random_id,
                                                                     Promise<Unit> &&promise);
+
+  void on_preload_forum_topic_history(int64 random_id, Result<Unit> &&result, Promise<Unit> &&promise);
+
+  void on_get_forum_topic_history_from_database(DialogId dialog_id, MessageTopic topic, MessageId from_message_id,
+                                                int32 offset, int32 limit, int64 random_id,
+                                                MessageId first_database_message_id, MessageId last_database_message_id,
+                                                bool is_last_database_message,
+                                                Result<vector<MessageDbDialogMessage>> r_messages,
+                                                Promise<Unit> &&promise);
 
   static bool have_dialog_scheduled_messages_in_memory(const Dialog *d);
 
@@ -2580,6 +2603,27 @@ class MessagesManager final : public Actor {
   td_api::object_ptr<td_api::updateActiveLiveLocationMessages> get_update_active_live_location_messages_object() const;
 
   static bool need_unread_counter(int64 dialog_order);
+
+  // the part of unread counters of chat lists, which is added by a chat
+  struct DialogUnreadCounts {
+    int32 message_count = 0;
+    int32 muted_message_count = 0;
+    int32 dialog_count = 0;
+    int32 muted_dialog_count = 0;
+    int32 marked_dialog_count = 0;
+    int32 muted_marked_dialog_count = 0;
+  };
+
+  DialogUnreadCounts get_dialog_unread_counts(const Dialog *d) const;
+
+  DialogUnreadCounts get_dialog_unread_counts(const Dialog *d, bool is_forum) const;
+
+  static DialogUnreadCounts get_forum_dialog_unread_counts(const Dialog *d, bool is_dialog_muted);
+
+  void change_dialog_unread_counts(Dialog *d, const DialogUnreadCounts &old_counts,
+                                   const DialogUnreadCounts &new_counts, const char *source);
+
+  void send_update_chat_unread_topic_count(const Dialog *d) const;
 
   int32 get_dialog_total_count(const DialogList &list) const;
 

@@ -66,6 +66,10 @@ class ForumTopicId {
     return id_;
   }
 
+  int64 get_unique_id() const {
+    return id_;
+  }
+
   bool operator==(const ForumTopicId &other) const {
     return id_ == other.id_;
   }
