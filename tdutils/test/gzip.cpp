@@ -11,11 +11,17 @@
 #include "td/utils/Gzip.h"
 #include "td/utils/GzipByteFlow.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/tests.h"
 #include "td/utils/Time.h"
+
+TEST(Gzip, zlib) {
+  ASSERT_STREQ("abacaba", td::gzdecode(td::hex_decode("78da4b4c4a4c4e4c4a04000ab302ac").ok()));
+  ASSERT_STREQ("abacaba", td::gzdecode(td::hex_decode("1f8b080000000000020a4b4c4a4c4e4c4a040092c93b5c07000000").ok()));
+}
 
 static void encode_decode(const td::string &s) {
   auto r = td::gzencode(s, 2);
