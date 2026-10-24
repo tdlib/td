@@ -444,6 +444,42 @@ vector<MessageId> OrderedMessages::get_history(MessageId last_message_id, Messag
   return message_ids;
 }
 
+void OrderedMessages::attach_messages(const vector<MessageId> &message_ids, bool attach_newest_to_next,
+                                      const char *source) {
+  bool have_next = attach_newest_to_next;
+  MessageId newer_message_id;
+  for (auto message_id : message_ids) {
+    if (have_next) {
+      attach_message_to_next(message_id, source);
+    }
+    if (newer_message_id.is_valid()) {
+      attach_message_to_previous(newer_message_id, source);
+    }
+    have_next = true;
+    newer_message_id = message_id;
+  }
+}
+
+bool OrderedMessages::need_preload_older_messages(MessageId &min_message_id, int32 limit) const {
+  auto it = get_const_iterator(min_message_id);
+  while (*it != nullptr && limit-- > 0) {
+    min_message_id = (*it)->message_id_;
+    --it;
+  }
+  return limit > 0;
+}
+
+bool OrderedMessages::need_preload_newer_messages(MessageId &max_message_id, int32 limit) const {
+  auto it = get_const_iterator(max_message_id);
+  while (*it != nullptr && limit-- > 0) {
+    ++it;
+    if (*it) {
+      max_message_id = (*it)->message_id_;
+    }
+  }
+  return limit > 0;
+}
+
 int32 OrderedMessages::calc_new_unread_count_from_last_unread(
     MessageId max_message_id, MessageId last_read_inbox_message_id, int32 old_unread_count,
     std::function<bool(MessageId)> is_counted_as_unread) const {

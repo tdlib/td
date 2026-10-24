@@ -19559,15 +19559,8 @@ void MessagesManager::preload_newer_messages(const Dialog *d, MessageId max_mess
   CHECK(max_message_id.is_valid());
   CHECK(!td_->auth_manager_->is_bot());
 
-  auto it = d->ordered_messages.get_const_iterator(max_message_id);
-  int32 limit = MAX_GET_HISTORY * 3 / 10;
-  while (*it != nullptr && limit-- > 0) {
-    ++it;
-    if (*it) {
-      max_message_id = (*it)->get_message_id();
-    }
-  }
-  if (limit > 0 && (d->last_message_id == MessageId() || max_message_id < d->last_message_id)) {
+  if (d->ordered_messages.need_preload_newer_messages(max_message_id, MAX_GET_HISTORY * 3 / 10) &&
+      (d->last_message_id == MessageId() || max_message_id < d->last_message_id)) {
     // need to preload some new messages
     LOG(INFO) << "Preloading newer after " << max_message_id;
     load_messages_impl(d, max_message_id, -MAX_GET_HISTORY + 1, MAX_GET_HISTORY, 3, false, Promise<Unit>());
@@ -19585,13 +19578,7 @@ void MessagesManager::preload_older_messages(const Dialog *d, MessageId min_mess
       return;
     }
   */
-  auto it = d->ordered_messages.get_const_iterator(min_message_id);
-  int32 limit = MAX_GET_HISTORY * 3 / 10 + 1;
-  while (*it != nullptr && limit-- > 0) {
-    min_message_id = (*it)->get_message_id();
-    --it;
-  }
-  if (limit > 0) {
+  if (d->ordered_messages.need_preload_older_messages(min_message_id, MAX_GET_HISTORY * 3 / 10 + 1)) {
     // need to preload some old messages
     LOG(INFO) << "Preloading older before " << min_message_id;
     load_messages_impl(d, min_message_id, 0, MAX_GET_HISTORY / 2, 3, false, Promise<Unit>());
