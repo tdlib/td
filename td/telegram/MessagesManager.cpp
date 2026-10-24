@@ -15855,10 +15855,8 @@ void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, DialogI
   auto message_id = info.message_id;
   get_message_force_from_server(d, message_id,
                                 PromiseCreator::lambda([actor_id = actor_id(this), info = std::move(info), dialog_id,
-                                                        promise = std::move(promise)](Result<Unit> &&result) mutable {
-                                  if (result.is_error()) {
-                                    return promise.set_value(std::move(info));
-                                  }
+                                                        promise = std::move(promise)](Result<Unit> &&) mutable {
+                                  // a message, which can't be loaded, is handled as not found
                                   send_closure(actor_id, &MessagesManager::on_get_message_link_message, std::move(info),
                                                dialog_id, std::move(promise));
                                 }));
@@ -15870,6 +15868,13 @@ void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, Dialog
 
   auto message_id = info.message_id;
   Message *m = get_message_force({dialog_id, message_id}, "on_get_message_link_message");
+  if (m == nullptr && info.top_thread_message_id.is_valid() && !td_->auth_manager_->is_bot()) {
+    // the topic from the link is returned without the message, so it must be known
+    auto message_topic = MessageTopic::autodetect(td_, dialog_id, info.top_thread_message_id);
+    if (message_topic.is_forum()) {
+      td_->forum_topic_manager_->load_forum_topic(dialog_id, message_topic.get_forum_topic_id());
+    }
+  }
   if (info.comment_message_id == MessageId() || m == nullptr ||
       !td_->dialog_manager_->is_broadcast_channel(dialog_id) || !m->reply_info.is_comment_ ||
       !is_active_message_reply_info(dialog_id, m->reply_info)) {
