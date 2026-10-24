@@ -2163,11 +2163,11 @@ void SavedMessagesManager::on_get_topic_history(DialogId dialog_id, uint32 gener
   }
 
   auto *topic = add_topic(topic_list, saved_messages_topic_id, false);
-  MessageId first_message_id;
   MessageId last_message_id;
   int32 last_message_date = 0;
   bool from_the_end = from_message_id == MessageId::max();
-  bool have_next = false;
+  vector<MessageId> message_ids;
+  bool attach_newest_to_next = false;
   for (auto &message : info.messages) {
     auto message_date = MessagesManager::get_message_date(message);
     auto message_full_id =
@@ -2182,24 +2182,17 @@ void SavedMessagesManager::on_get_topic_history(DialogId dialog_id, uint32 gener
       info.total_count--;
       continue;
     }
-    if (!have_next && from_the_end && message_id < topic->last_message_id_) {
+    if (message_ids.empty() && from_the_end && message_id < topic->last_message_id_) {
       // last message in the dialog should be attached to the next message if there is some
-      have_next = true;
-    }
-    if (have_next) {
-      topic->ordered_messages_.attach_message_to_next(message_id, "on_get_topic_history");
+      attach_newest_to_next = true;
     }
     if (!last_message_id.is_valid()) {
       last_message_id = message_id;
       last_message_date = message_date;
     }
-    if (!have_next) {
-      have_next = true;
-    } else if (first_message_id.is_valid()) {
-      topic->ordered_messages_.attach_message_to_previous(first_message_id, "on_get_topic_history");
-    }
-    first_message_id = message_id;
+    message_ids.push_back(message_id);
   }
+  topic->ordered_messages_.attach_messages(message_ids, attach_newest_to_next, "on_get_topic_history");
   if (from_the_end && last_message_id.is_valid() && last_message_id > topic->last_message_id_ &&
       topic->ordered_messages_.get_last_message_id() == last_message_id) {
     do_set_topic_last_message_id(topic, last_message_id, last_message_date);

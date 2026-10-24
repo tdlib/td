@@ -188,6 +188,16 @@ class OrderedMessages {
   vector<MessageId> get_history(MessageId last_message_id, MessageId &from_message_id, int32 &offset, int32 &limit,
                                 bool force) const;
 
+  // attaches to each other the messages, which are given in descending order and are all the messages between them;
+  // the newest message is attached also to the next message if attach_newest_to_next
+  void attach_messages(const vector<MessageId> &message_ids, bool attach_newest_to_next, const char *source);
+
+  // returns whether fewer than limit messages without gaps end with min_message_id; changes it to the oldest of them
+  bool need_preload_older_messages(MessageId &min_message_id, int32 limit) const;
+
+  // returns whether fewer than limit messages without gaps follow max_message_id; changes it to the newest of them
+  bool need_preload_newer_messages(MessageId &max_message_id, int32 limit) const;
+
   int32 calc_new_unread_count(MessageId max_message_id, MessageId last_read_inbox_message_id, int32 old_unread_count,
                               MessageId last_message_id, std::function<bool(MessageId)> is_counted_as_unread,
                               int32 hint_unread_count) const;
