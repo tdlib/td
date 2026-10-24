@@ -11470,18 +11470,13 @@ updateChatWelcomeMessages chat_id:int53 messages:vector<welcomeMessage> = Update
 //@description Basic information about a topic in a forum chat was changed @info New information about the topic
 updateForumTopicInfo info:forumTopicInfo = Update;
 
-//@description Information about a topic in a forum chat was changed
+//@description Information about a topic in a forum chat was changed @topic New data about the topic
+updateForumTopic topic:forumTopic = Update;
+
+//@description A topic in a forum chat was deleted. The General topic is never deleted
 //@chat_id Chat identifier
-//@forum_topic_id Forum topic identifier of the topic
-//@is_pinned True, if the topic is pinned in the topic list
-//@last_read_inbox_message_id Identifier of the last read incoming message
-//@last_read_outbox_message_id Identifier of the last read outgoing message
-//@unread_mention_count Number of unread messages with a mention/reply in the topic
-//@unread_reaction_count Number of messages with unread reactions in the topic
-//@unread_poll_vote_count Number of messages with unread poll votes in the topic
-//@notification_settings Notification settings for the topic
-//@draft_message A draft of a message in the topic; may be null if none
-updateForumTopic chat_id:int53 forum_topic_id:int32 is_pinned:Bool last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 unread_poll_vote_count:int32 notification_settings:chatNotificationSettings draft_message:draftMessage = Update;
+//@forum_topic_id Forum topic identifier of the deleted topic
+updateForumTopicDeleted chat_id:int53 forum_topic_id:int32 = Update;
 
 //@description Notification settings for some type of chats were updated
 //@scope Types of chats for which notification settings were updated
@@ -13643,6 +13638,12 @@ getForumTopicHistory chat_id:int53 forum_topic_id:int32 from_message_id:int53 of
 
 //@description Returns an HTTPS link to a topic in a forum supergroup chat. This is an offline method @chat_id Identifier of the chat @forum_topic_id Forum topic identifier
 getForumTopicLink chat_id:int53 forum_topic_id:int32 = MessageLink;
+
+//@description Loads more topics in a forum supergroup chat or a chat with a bot with topics. The loaded topics will be sent through updateForumTopic.
+//-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
+//@chat_id Identifier of the chat
+//@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
+loadForumTopics chat_id:int53 limit:int32 = Ok;
 
 //@description Returns found forum topics in a forum supergroup chat or a chat with a bot with topics. This is a temporary method for getting information about topic list from the server
 //@chat_id Identifier of the chat
