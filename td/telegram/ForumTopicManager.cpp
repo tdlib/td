@@ -40,6 +40,8 @@
 #include "td/utils/Slice.h"
 #include "td/utils/tl_helpers.h"
 
+#include <algorithm>
+#include <functional>
 #include <limits>
 
 namespace td {
@@ -2610,7 +2612,8 @@ bool ForumTopicManager::unload_forum_topics(DialogId dialog_id) {
 bool ForumTopicManager::can_unload_topic(const DialogTopics *dialog_topics, const Topic *topic,
                                          OrderedTopics<ForumTopicId>::TopicDate last_kept_topic_date) {
   if (topic->info_ == nullptr || topic->topic_ == nullptr || topic->pinned_order_ != 0 ||
-      topic->is_loading_from_database_) {
+      topic->is_loading_from_database_ || topic->is_preloading_older_messages_ ||
+      topic->is_preloading_newer_messages_) {
     return false;
   }
   auto forum_topic_id = topic->info_->get_forum_topic_id();
@@ -2726,6 +2729,133 @@ void ForumTopicManager::on_get_topic_history_from_server(DialogId dialog_id, For
               << " are stored in the database";
     topic->need_save_to_database_ = true;
     save_topic_to_database(dialog_id, topic);
+  }
+}
+
+void ForumTopicManager::on_get_topic_history_messages(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                      MessageId from_message_id, vector<MessageId> message_ids,
+                                                      const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto *topic = get_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr) {
+    return;
+  }
+  auto &ordered_messages = topic->ordered_messages_;
+  td::remove_if(message_ids, [&](MessageId message_id) { return !ordered_messages.has_message(message_id); });
+  if (message_ids.empty()) {
+    return;
+  }
+  std::sort(message_ids.begin(), message_ids.end(), std::greater<>());
+
+  // the topic holds only its own messages, so the neighbours of a message inside the found part are its neighbours
+  // in the topic; only local messages, which aren't returned, can lie between them
+  auto newest_message_id = message_ids[0];
+  bool attach_newest_to_next = false;
+  if (!from_message_id.is_valid() || from_message_id >= MessageId::max()) {
+    attach_newest_to_next = topic->topic_ != nullptr && newest_message_id < topic->topic_->get_last_message_id();
+  } else {
+    attach_newest_to_next = newest_message_id < from_message_id && ordered_messages.has_message(from_message_id);
+  }
+  if (attach_newest_to_next) {
+    // unlike in a chat, the last message of a topic can be unloaded
+    auto it = ordered_messages.get_const_iterator(MessageId::max());
+    attach_newest_to_next = *it != nullptr && (*it)->get_message_id() > newest_message_id;
+  }
+  ordered_messages.attach_messages(message_ids, attach_newest_to_next, source);
+}
+
+vector<MessageId> ForumTopicManager::get_topic_history_from_memory(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                                   MessageId from_message_id, int32 offset,
+                                                                   int32 limit) {
+  if (td_->auth_manager_->is_bot()) {
+    return {};
+  }
+  auto *topic = get_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr || topic->topic_ == nullptr) {
+    return {};
+  }
+  auto last_message_id = topic->topic_->get_last_message_id();
+  if ((from_message_id >= MessageId::max() || from_message_id > last_message_id) &&
+      (!last_message_id.is_valid() || !topic->ordered_messages_.has_message(last_message_id))) {
+    // unlike in a chat, the last message of a topic can be unloaded, and then the newest known messages aren't the last
+    return {};
+  }
+  auto message_ids = topic->ordered_messages_.get_history(last_message_id, from_message_id, offset, limit, false);
+  if (!message_ids.empty()) {
+    preload_newer_topic_messages(dialog_id, forum_topic_id, topic, message_ids[0]);
+    preload_older_topic_messages(dialog_id, forum_topic_id, topic, message_ids.back());
+  }
+  return message_ids;
+}
+
+void ForumTopicManager::preload_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId min_message_id,
+                                              MessageId max_message_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto *topic = get_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr) {
+    return;
+  }
+  if (topic->ordered_messages_.has_message(max_message_id)) {
+    preload_newer_topic_messages(dialog_id, forum_topic_id, topic, max_message_id);
+  }
+  if (topic->ordered_messages_.has_message(min_message_id)) {
+    preload_older_topic_messages(dialog_id, forum_topic_id, topic, min_message_id);
+  }
+}
+
+void ForumTopicManager::preload_older_topic_messages(DialogId dialog_id, ForumTopicId forum_topic_id, Topic *topic,
+                                                     MessageId min_message_id) {
+  CHECK(topic != nullptr);
+  if (topic->is_preloading_older_messages_) {
+    return;
+  }
+  if (!topic->ordered_messages_.need_preload_older_messages(min_message_id, MAX_GET_HISTORY * 3 / 10 + 1) ||
+      (forum_topic_id != ForumTopicId::general() && min_message_id <= forum_topic_id.to_top_thread_message_id())) {
+    // a topic other than General begins with the message, which created it
+    return;
+  }
+  LOG(INFO) << "Preload messages of " << forum_topic_id << " in " << dialog_id << " before " << min_message_id;
+  topic->is_preloading_older_messages_ = true;
+  td_->messages_manager_->preload_forum_topic_history(
+      dialog_id, forum_topic_id, min_message_id, 0, MAX_GET_HISTORY / 2,
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, forum_topic_id](Result<Unit>) {
+        send_closure(actor_id, &ForumTopicManager::on_preload_topic_messages, dialog_id, forum_topic_id, true);
+      }));
+}
+
+void ForumTopicManager::preload_newer_topic_messages(DialogId dialog_id, ForumTopicId forum_topic_id, Topic *topic,
+                                                     MessageId max_message_id) {
+  CHECK(topic != nullptr);
+  if (topic->is_preloading_newer_messages_ || topic->topic_ == nullptr) {
+    return;
+  }
+  auto last_message_id = topic->topic_->get_last_message_id();
+  if (!topic->ordered_messages_.need_preload_newer_messages(max_message_id, MAX_GET_HISTORY * 3 / 10) ||
+      (last_message_id.is_valid() && max_message_id >= last_message_id)) {
+    return;
+  }
+  LOG(INFO) << "Preload messages of " << forum_topic_id << " in " << dialog_id << " after " << max_message_id;
+  topic->is_preloading_newer_messages_ = true;
+  td_->messages_manager_->preload_forum_topic_history(
+      dialog_id, forum_topic_id, max_message_id, -MAX_GET_HISTORY + 1, MAX_GET_HISTORY,
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, forum_topic_id](Result<Unit>) {
+        send_closure(actor_id, &ForumTopicManager::on_preload_topic_messages, dialog_id, forum_topic_id, false);
+      }));
+}
+
+void ForumTopicManager::on_preload_topic_messages(DialogId dialog_id, ForumTopicId forum_topic_id, bool is_older) {
+  auto *topic = get_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr) {
+    return;
+  }
+  if (is_older) {
+    topic->is_preloading_older_messages_ = false;
+  } else {
+    topic->is_preloading_newer_messages_ = false;
   }
 }
 

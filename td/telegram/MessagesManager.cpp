@@ -7725,6 +7725,10 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
     }
     td_->forum_topic_manager_->on_get_topic_history_from_server(
         dialog_id, forum_topic_id, from_message_id, offset, limit, received_message_ids, are_all_messages_from_topic);
+    if (are_all_messages_from_topic) {
+      td_->forum_topic_manager_->on_get_topic_history_messages(dialog_id, forum_topic_id, from_message_id, result,
+                                                               "on_get_dialog_messages_search_result");
+    }
   }
   if (query.empty() && !sender_dialog_id.is_valid() && filter != MessageSearchFilter::Empty &&
       message_topic.is_empty() && tag.is_empty()) {
@@ -18036,12 +18040,12 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
 
   CHECK(message_id.is_server());
   return get_message_thread_history(dialog_id, MessageTopic::thread(dialog_id, message_id), top_thread_message_full_id,
-                                    from_message_id, offset, limit, random_id, std::move(promise));
+                                    from_message_id, offset, limit, false, random_id, std::move(promise));
 }
 
 std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_history(
     DialogId dialog_id, MessageTopic topic, MessageFullId top_thread_message_full_id, MessageId from_message_id,
-    int32 offset, int32 limit, int64 &random_id, Promise<Unit> &&promise) {
+    int32 offset, int32 limit, bool from_memory, int64 &random_id, Promise<Unit> &&promise) {
   if (limit <= 0) {
     promise.set_error(400, "Parameter limit must be positive");
     return {};
@@ -18145,9 +18149,33 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
                                        result.end(), from_message_id, offset, limit);
 
     LOG(INFO) << "Return " << result.size() << " messages in result to getMessageThreadHistory";
+    if (topic.is_forum() && !result.empty()) {
+      // getChatHistory answers from memory after loading, and preloads from there
+      auto minmax = std::minmax_element(result.begin(), result.end());
+      td_->forum_topic_manager_->preload_topic_history(dialog_id, topic.get_forum_topic_id(), *minmax.first,
+                                                       *minmax.second);
+    }
 
     promise.set_value(Unit());
     return {dialog_id, std::move(result)};
+  }
+
+  if (from_memory && topic.is_forum()) {
+    auto forum_topic_id = topic.get_forum_topic_id();
+    if (forum_topic_id != ForumTopicId::general() && offset == 0 &&
+        from_message_id <= forum_topic_id.to_top_thread_message_id()) {
+      // a topic other than General begins with the message, which created it
+      promise.set_value(Unit());
+      return {dialog_id, {}};
+    }
+    // messages, which are already known, are returned at once, as in getChatHistory
+    auto message_ids = td_->forum_topic_manager_->get_topic_history_from_memory(
+        dialog_id, topic.get_forum_topic_id(), from_message_id, offset, is_limit_increased ? limit - 1 : limit);
+    if (!message_ids.empty()) {
+      LOG(INFO) << "Return " << message_ids.size() << " messages of " << topic << " from memory";
+      promise.set_value(Unit());
+      return {dialog_id, std::move(message_ids)};
+    }
   }
 
   do {
@@ -18240,6 +18268,9 @@ void MessagesManager::on_get_forum_topic_history_from_database(
   }
   if (is_complete) {
     LOG(INFO) << "Found " << message_ids.size() << " messages of " << topic << " in the database";
+    td_->forum_topic_manager_->on_get_topic_history_messages(dialog_id, topic.get_forum_topic_id(),
+                                                             from_server_message_id, message_ids,
+                                                             "on_get_forum_topic_history_from_database");
     it->second.message_ids = std::move(message_ids);
     return promise.set_value(Unit());
   }
@@ -18276,7 +18307,32 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_forum_topic_history(
 
   return get_message_thread_history(dialog_id, MessageTopic::forum(dialog_id, forum_topic_id),
                                     {dialog_id, forum_topic_id.to_top_thread_message_id()}, from_message_id, offset,
-                                    limit, random_id, std::move(promise));
+                                    limit, true, random_id, std::move(promise));
+}
+
+void MessagesManager::preload_forum_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                  MessageId from_message_id, int32 offset, int32 limit,
+                                                  Promise<Unit> &&promise) {
+  // the result is known only to this query, so it must be removed when the query finishes
+  auto random_id_holder = std::make_shared<int64>(0);
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), random_id_holder, promise = std::move(promise)](Result<Unit> result) mutable {
+        send_closure(actor_id, &MessagesManager::on_preload_forum_topic_history, *random_id_holder, std::move(result),
+                     std::move(promise));
+      });
+  int64 random_id = 0;
+  get_message_thread_history(dialog_id, MessageTopic::forum(dialog_id, forum_topic_id),
+                             {dialog_id, forum_topic_id.to_top_thread_message_id()}, from_message_id, offset, limit,
+                             false, random_id, std::move(query_promise));
+  *random_id_holder = random_id;
+}
+
+void MessagesManager::on_preload_forum_topic_history(int64 random_id, Result<Unit> &&result, Promise<Unit> &&promise) {
+  if (random_id != 0) {
+    found_dialog_messages_.erase(random_id);
+    found_dialog_messages_dialog_id_.erase(random_id);
+  }
+  promise.set_result(std::move(result));
 }
 
 void MessagesManager::get_dialog_message_calendar(DialogId dialog_id,
