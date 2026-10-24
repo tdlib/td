@@ -173,6 +173,17 @@ class ForumTopicManager final : public Actor {
                                         int32 offset, int32 limit, const vector<MessageId> &message_ids,
                                         bool are_all_messages_from_topic);
 
+  // the messages must be all messages of the topic between the oldest of them and from_message_id
+  void on_get_topic_history_messages(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId from_message_id,
+                                     vector<MessageId> message_ids, const char *source);
+
+  // returns the known messages, which follow each other in the topic, and preloads more of them
+  vector<MessageId> get_topic_history_from_memory(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                  MessageId from_message_id, int32 offset, int32 limit);
+
+  void preload_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId min_message_id,
+                             MessageId max_message_id);
+
   // returns the range of topic messages, which are all stored in the message database
   bool get_topic_database_range(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId &first_message_id,
                                 MessageId &last_message_id, bool &is_last) const;
@@ -200,6 +211,7 @@ class ForumTopicManager final : public Actor {
   static constexpr int32 MAX_GET_FORUM_TOPICS = 100;           // server-side limit
   static constexpr size_t MAX_GET_FORUM_TOPICS_BY_ID = 100;    // server-side limit
   static constexpr int32 MAX_LOAD_FORUM_TOPICS_FROM_DATABASE = 1000;
+  static constexpr int32 MAX_GET_HISTORY = 100;  // server-side limit
 
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;
@@ -214,6 +226,8 @@ class ForumTopicManager final : public Actor {
     MessageId last_database_message_id_;
     int64 pinned_order_ = 0;
     int64 private_order_ = 0;
+    bool is_preloading_older_messages_ = false;
+    bool is_preloading_newer_messages_ = false;
     mutable bool need_save_to_database_ = true;
 
     template <class StorerT>
@@ -352,6 +366,14 @@ class ForumTopicManager final : public Actor {
   void save_topic_to_database(DialogId dialog_id, const Topic *topic);
 
   void forget_topic_database_range(DialogId dialog_id, Topic *topic);
+
+  void preload_older_topic_messages(DialogId dialog_id, ForumTopicId forum_topic_id, Topic *topic,
+                                    MessageId min_message_id);
+
+  void preload_newer_topic_messages(DialogId dialog_id, ForumTopicId forum_topic_id, Topic *topic,
+                                    MessageId max_message_id);
+
+  void on_preload_topic_messages(DialogId dialog_id, ForumTopicId forum_topic_id, bool is_older);
 
   void delete_topic_from_database(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
 
