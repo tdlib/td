@@ -503,20 +503,19 @@ td_api::object_ptr<td_api::thumbnail> get_thumbnail_object(FileManager *file_man
   return get_thumbnail_object(file_manager, photo_size, PhotoFormat::Jpeg);
 }
 
-td_api::object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager, const PhotoSize *photo_size) {
-  CHECK(photo_size != nullptr);
-  LOG_CHECK(photo_size->file_id.is_valid()) << *photo_size;
+td_api::object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager, const PhotoSize &photo_size) {
+  LOG_CHECK(photo_size.file_id.is_valid()) << photo_size;
   return td_api::make_object<td_api::photoSize>(
-      photo_size->type.type ? std::string(1, static_cast<char>(photo_size->type.type))
-                            : std::string(),  // TODO replace string type with integer type
-      file_manager->get_file_object(photo_size->file_id), photo_size->dimensions.width, photo_size->dimensions.height,
-      vector<int32>(photo_size->progressive_sizes));
+      photo_size.type.type ? std::string(1, static_cast<char>(photo_size.type.type))
+                           : std::string(),  // TODO replace string type with integer type
+      file_manager->get_file_object(photo_size.file_id), photo_size.dimensions.width, photo_size.dimensions.height,
+      vector<int32>(photo_size.progressive_sizes));
 }
 
 vector<td_api::object_ptr<td_api::photoSize>> get_photo_sizes_object(FileManager *file_manager,
                                                                      const vector<PhotoSize> &photo_sizes) {
   auto sizes = transform(photo_sizes, [file_manager](const PhotoSize &photo_size) {
-    return get_photo_size_object(file_manager, &photo_size);
+    return get_photo_size_object(file_manager, photo_size);
   });
   std::stable_sort(sizes.begin(), sizes.end(), [](const auto &lhs, const auto &rhs) {
     if (lhs->photo_->expected_size_ != rhs->photo_->expected_size_) {
