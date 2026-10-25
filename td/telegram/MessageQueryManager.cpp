@@ -2340,7 +2340,7 @@ class MessageQueryManager::UploadEphemeralMessageContentCallback final
 
   void on_message_content_uploaded(MessageContentUploadId upload_id, InputMedia &&input_media) final {
     auto &query = manager_->edit_ephemeral_message_queries_[upload_id];
-    CHECK(!input_media.is_empty());
+    CHECK(!input_media.is_empty() || (query.is_send_ && query.content_->get_type() == MessageContentType::Text));
     if (query.is_send_) {
       const FormattedText *text = get_message_content_text(query.content_.get());
       manager_->td_->create_handler<EditCallbackQueryMessageQuery>()->send(
@@ -4104,6 +4104,7 @@ void MessageQueryManager::edit_ephemeral_message(
         ->send(dialog_id, receiver_user_id, ephemeral_message_id, true, &input_message_text.text,
                input_message_text.disable_web_page_preview, MessageContentUploadId(),
                input_message_text.get_input_media_web_page(), input_message_text.show_above_text, new_reply_markup);
+    return;
   }
 
   TRY_RESULT_PROMISE(promise, content,
