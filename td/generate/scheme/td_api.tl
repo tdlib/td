@@ -8416,6 +8416,9 @@ callbackQueryPayloadGame game_short_name:string = CallbackQueryPayload;
 //@url URL to be opened
 callbackQueryAnswer text:string show_alert:Bool url:string = CallbackQueryAnswer;
 
+//@description Contains an answer to a widget query @data Data returned by the bot
+widgetQueryAnswer data:string = WidgetQueryAnswer;
+
 
 //@description Contains the result of a custom request @result A JSON-serialized result
 customRequestResult result:string = CustomRequestResult;
@@ -14137,6 +14140,13 @@ getCallbackQueryAnswer chat_id:int53 message_id:int53 payload:CallbackQueryPaylo
 //@url URL to be opened
 //@cache_time Time during which the result of the query can be cached, in seconds
 answerCallbackQuery callback_query_id:int64 text:string show_alert:Bool url:string cache_time:int32 = Ok;
+
+
+//@description Sends a widget query to a bot and returns an answer. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires
+//@chat_id Identifier of the chat with the message
+//@message_id Identifier of the widget message from which the query originated. The message must not be scheduled
+//@data Data of the query
+getWidgetQueryAnswer chat_id:int53 message_id:int53 data:bytes = WidgetQueryAnswer;
 
 
 //@description Sets the result of a shipping query; for bots only

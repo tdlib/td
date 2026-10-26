@@ -6,9 +6,13 @@
 //
 #pragma once
 
+#include "td/telegram/MessageFullId.h"
+#include "td/telegram/td_api.h"
+
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 
 namespace td {
 
@@ -22,6 +26,9 @@ class WidgetManager final : public Actor {
   WidgetManager(WidgetManager &&) = delete;
   WidgetManager &operator=(WidgetManager &&) = delete;
   ~WidgetManager() final;
+
+  void send_widget_query(MessageFullId message_full_id, string &&data,
+                         Promise<td_api::object_ptr<td_api::widgetQueryAnswer>> &&promise);
 
  private:
   void tear_down() final;

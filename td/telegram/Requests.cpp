@@ -189,6 +189,7 @@
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
 #include "td/telegram/WelcomeMessageManager.h"
+#include "td/telegram/WidgetManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/Slice.h"
@@ -8727,6 +8728,13 @@ void Requests::on_request(uint64 id, td_api::getCallbackQueryAnswer &request) {
   CREATE_REQUEST_PROMISE();
   td_->callback_queries_manager_->send_callback_query({DialogId(request.chat_id_), MessageId(request.message_id_)},
                                                       std::move(request.payload_), std::move(promise));
+}
+
+void Requests::on_request(uint64 id, td_api::getWidgetQueryAnswer &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->widget_manager_->send_widget_query({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                          std::move(request.data_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::answerCallbackQuery &request) {

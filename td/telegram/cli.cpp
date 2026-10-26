@@ -7088,6 +7088,12 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, data);
       send_request(td_api::make_object<td_api::getCallbackQueryAnswer>(
           chat_id, message_id, td_api::make_object<td_api::callbackQueryPayloadData>(data)));
+    } else if (op == "gwqa") {
+      ChatId chat_id;
+      MessageId message_id;
+      string data;
+      get_args(args, chat_id, message_id, data);
+      send_request(td_api::make_object<td_api::getWidgetQueryAnswer>(chat_id, message_id, data));
     } else if (op == "gcpqa") {
       ChatId chat_id;
       MessageId message_id;
