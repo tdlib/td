@@ -650,7 +650,6 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
     const PasswordPrivateState *private_state) {
   bool have_secret = private_state != nullptr && private_state->secret;
   auto update_secure_secret = update_settings.update_secure_secret;
-  int32 flags = 0;
   BufferSlice new_password_hash;
   telegram_api::object_ptr<telegram_api::PasswordKdfAlgo> new_algo;
   string new_hint;
@@ -696,6 +695,7 @@ Result<PasswordManager::PasswordInputSettings> PasswordManager::get_password_inp
     new_secure_settings = make_tl_object<telegram_api::secureSecretSettings>(
         std::move(algorithm), BufferSlice(encrypted_secret.as_slice()), secret.get_hash());
   }
+  int32 flags = 0;
   if (update_settings.update_recovery_email_address) {
     flags |= telegram_api::account_passwordInputSettings::EMAIL_MASK;
   }
