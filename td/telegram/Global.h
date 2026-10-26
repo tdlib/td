@@ -101,6 +101,7 @@ class WebBrowserManager;
 class WebPagesManager;
 class WebProxyManager;
 class WelcomeMessageManager;
+class WidgetManager;
 
 class Global final : public ActorContext {
  public:
@@ -653,6 +654,13 @@ class Global final : public ActorContext {
     welcome_message_manager_ = welcome_message_manager;
   }
 
+  ActorId<WidgetManager> widget_manager() const {
+    return widget_manager_;
+  }
+  void set_widget_manager(ActorId<WidgetManager> widget_manager) {
+    widget_manager_ = widget_manager;
+  }
+
   ActorId<ConnectionCreator> connection_creator() const;
   void set_connection_creator(ActorOwn<ConnectionCreator> connection_creator);
 
@@ -845,6 +853,7 @@ class Global final : public ActorContext {
   ActorId<WebPagesManager> web_pages_manager_;
   ActorId<WebProxyManager> web_proxy_manager_;
   ActorId<WelcomeMessageManager> welcome_message_manager_;
+  ActorId<WidgetManager> widget_manager_;
   ActorOwn<ConnectionCreator> connection_creator_;
   ActorOwn<TempAuthKeyWatchdog> temp_auth_key_watchdog_;
 

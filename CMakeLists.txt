@@ -721,6 +721,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/WebPageBlock.cpp
   td/telegram/WebPagesManager.cpp
   td/telegram/WelcomeMessageManager.cpp
+  td/telegram/WidgetManager.cpp
 
   td/telegram/AccentColorId.h
   td/telegram/AccessRights.h
@@ -1184,6 +1185,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/WebPageId.h
   td/telegram/WebPagesManager.h
   td/telegram/WelcomeMessageManager.h
+  td/telegram/WidgetManager.h
 
   td/telegram/AgeVerificationParameters.hpp
   td/telegram/AiComposeTone.hpp

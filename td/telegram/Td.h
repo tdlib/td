@@ -120,6 +120,7 @@ class WebBrowserManager;
 class WebPagesManager;
 class WebProxyManager;
 class WelcomeMessageManager;
+class WidgetManager;
 
 extern int VERBOSITY_NAME(td_init);
 extern int VERBOSITY_NAME(td_requests);
@@ -307,6 +308,8 @@ class Td final : public Actor {
   ActorOwn<WebPagesManager> web_pages_manager_actor_;
   unique_ptr<WelcomeMessageManager> welcome_message_manager_;
   ActorOwn<WelcomeMessageManager> welcome_message_manager_actor_;
+  unique_ptr<WidgetManager> widget_manager_;
+  ActorOwn<WidgetManager> widget_manager_actor_;
 
   ActorOwn<AlarmManager> alarm_manager_;
   ActorOwn<HashtagHints> cashtag_search_hints_;

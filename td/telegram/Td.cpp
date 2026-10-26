@@ -112,6 +112,7 @@
 #include "td/telegram/WebBrowserManager.h"
 #include "td/telegram/WebPagesManager.h"
 #include "td/telegram/WelcomeMessageManager.h"
+#include "td/telegram/WidgetManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"
 
@@ -590,6 +591,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(web_browser_manager_, "WebBrowserManager");
       reset_manager(web_pages_manager_, "WebPagesManager");
       reset_manager(welcome_message_manager_, "WelcomeMessageManager");
+      reset_manager(widget_manager_, "WidgetManager");
 
       G()->set_option_manager(nullptr);
       option_manager_.reset();
@@ -772,6 +774,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(web_browser_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(web_pages_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(welcome_message_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(widget_manager_actor_)));
   LOG(DEBUG) << "All actors were cleared" << timer;
 }
 
@@ -1352,6 +1355,9 @@ void Td::init_managers() {
   welcome_message_manager_ = make_unique<WelcomeMessageManager>(this, create_reference());
   welcome_message_manager_actor_ = register_actor("WelcomeMessageManager", welcome_message_manager_.get());
   G()->set_welcome_message_manager(welcome_message_manager_actor_.get());
+  widget_manager_ = make_unique<WidgetManager>(this, create_reference());
+  widget_manager_actor_ = register_actor("WidgetManager", widget_manager_.get());
+  G()->set_widget_manager(widget_manager_actor_.get());
 }
 
 void Td::init_pure_actor_managers(const Parameters &parameters) {
