@@ -2024,7 +2024,7 @@ void SavedMessagesManager::on_get_monoforum_topic(DialogId dialog_id, uint32 gen
 
   for (auto &promise : promises) {
     if (!promise) {
-      return promise.set_value(nullptr);
+      continue;
     }
     promise.set_value(get_direct_messages_chat_topic_object(topic_list, topic));
   }
