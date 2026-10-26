@@ -21366,6 +21366,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
             get_message_topic(reply_d->dialog_id, replied_m).get_implicit_reply_to_message_id(td_);
         CHECK(implicit_reply_to_message_id == MessageId() || implicit_reply_to_message_id.is_server());
         set_message_reply(reply_d, replied_m, MessageInputReplyTo::regular(implicit_reply_to_message_id), true);
+        update_replied_by_message_count(reply_d->dialog_id, replied_m, true);
       }
       replied_yet_unsent_messages_.erase(it);
     }
