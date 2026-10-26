@@ -1900,6 +1900,7 @@ class MessageWidget final : public MessageContent {
   bool is_copy = false;
   bool can_query = false;
   bool background_query = false;
+  bool is_shared = false;  // for sending only
 
   MessageWidget() = default;
   MessageWidget(int32 width, int32 height, string &&html, string &&public_data, int64 public_data_hash,
@@ -3181,6 +3182,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(m->can_query);
       STORE_FLAG(m->background_query);
       STORE_FLAG(has_public_data_hash);
+      STORE_FLAG(m->is_shared);
       END_STORE_FLAGS();
       if (has_width) {
         store(m->width, storer);
@@ -4749,6 +4751,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(m->can_query);
       PARSE_FLAG(m->background_query);
       PARSE_FLAG(has_public_data_hash);
+      PARSE_FLAG(m->is_shared);
       END_PARSE_FLAGS();
       if (has_width) {
         parse(m->width, parser);
@@ -5040,6 +5043,10 @@ td_api::object_ptr<td_api::formattedText> extract_input_caption(
       auto input_voice_note = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
       return std::move(input_voice_note->caption_);
     }
+    case td_api::inputMessageWidget::ID: {
+      auto input_widget = static_cast<td_api::inputMessageWidget *>(input_message_content.get());
+      return std::move(input_widget->caption_);
+    }
     default:
       return nullptr;
   }
@@ -5062,6 +5069,10 @@ bool extract_input_invert_media(const td_api::object_ptr<td_api::InputMessageCon
     case td_api::inputMessageVideo::ID: {
       auto input_video = static_cast<const td_api::inputMessageVideo *>(input_message_content.get());
       return input_video->show_caption_above_media_;
+    }
+    case td_api::inputMessageWidget::ID: {
+      auto input_widget = static_cast<const td_api::inputMessageWidget *>(input_message_content.get());
+      return input_widget->show_caption_above_media_;
     }
     default:
       return false;
@@ -5453,6 +5464,35 @@ static Result<InputMessageContent> create_input_message_content(
       content = td::make_unique<MessageToDoList>(std::move(to_do_list), vector<ToDoCompletion>());
       break;
     }
+    case td_api::inputMessageWidget::ID: {
+      auto input_widget = static_cast<td_api::inputMessageWidget *>(input_message_content.get());
+      if (!is_bot) {
+        return Status::Error(400, "Only bots can send widget messages");
+      }
+      if (input_widget->width_ < 0 || input_widget->height_ < 0) {
+        return Status::Error(400, "Invalid widget size specified");
+      }
+      if (!clean_input_string(input_widget->html_)) {
+        return Status::Error(400, "Widget HTML code must be encoded in UTF-8");
+      }
+      if (input_widget->html_.empty()) {
+        return Status::Error(400, "Widget HTML code must be non-empty");
+      }
+      if (!clean_input_string(input_widget->public_data_)) {
+        return Status::Error(400, "Widget public data must be encoded in UTF-8");
+      }
+      if (!clean_input_string(input_widget->chat_data_)) {
+        return Status::Error(400, "Widget chat data must be encoded in UTF-8");
+      }
+      invert_media = input_widget->show_caption_above_media_ && !is_secret;
+      auto widget =
+          td::make_unique<MessageWidget>(input_widget->width_, input_widget->height_, std::move(input_widget->html_),
+                                         std::move(input_widget->public_data_), 0, std::move(input_widget->chat_data_),
+                                         0, std::move(caption), false, input_widget->allow_queries_, false);
+      widget->is_shared = input_widget->is_shared_;
+      content = std::move(widget);
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -5811,7 +5851,6 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::GramTransfer:
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
-    case MessageContentType::Widget:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -5830,6 +5869,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::Video:
     case MessageContentType::VideoNote:
     case MessageContentType::VoiceNote:
+    case MessageContentType::Widget:
       return true;
     default:
       UNREACHABLE();
@@ -6151,6 +6191,11 @@ static InputMedia get_message_content_input_media_impl(
       const auto *m = static_cast<const MessageVoiceNote *>(content);
       return td->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file), ttl.get_input_ttl());
     }
+    case MessageContentType::Widget: {
+      const auto *m = static_cast<const MessageWidget *>(content);
+      return telegram_api::make_object<telegram_api::inputMediaWidget>(
+          0, m->can_query, m->is_shared, m->width, m->height, m->html, m->public_data, m->chat_data);
+    }
     case MessageContentType::Text:
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
@@ -6230,7 +6275,6 @@ static InputMedia get_message_content_input_media_impl(
     case MessageContentType::GramTransfer:
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
-    case MessageContentType::Widget:
       break;
     default:
       UNREACHABLE();
@@ -6718,9 +6762,6 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::Widget:
-      if (!is_forward && !td->auth_manager_->is_bot()) {
-        return Status::Error(400, "Only bots can send widget messages");
-      }
       break;
     case MessageContentType::Unsupported:
       break;
@@ -9189,7 +9230,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       if (lhs->width != rhs->width || lhs->height != rhs->height || lhs->html != rhs->html ||
           lhs->public_data != rhs->public_data || lhs->chat_data != rhs->chat_data ||
           lhs->widget_id != rhs->widget_id || lhs->caption != rhs->caption || lhs->is_copy != rhs->is_copy ||
-          lhs->can_query != rhs->can_query || lhs->background_query != rhs->background_query) {
+          lhs->can_query != rhs->can_query || lhs->background_query != rhs->background_query ||
+          lhs->is_shared != rhs->is_shared) {
         need_update = true;
       } else if (lhs->public_data_hash != rhs->public_data_hash) {
         is_content_changed = true;

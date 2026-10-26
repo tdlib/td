@@ -6822,6 +6822,18 @@ inputMessageStory story_poster_chat_id:int53 story_id:int32 = InputMessageConten
 //@checklist The checklist to send
 inputMessageChecklist checklist:inputChecklist = InputMessageContent;
 
+//@description A message with an HTML widget; for bots only
+//@width Width of the widget; 0 if the widget must occupy the whole width of the message bubble
+//@height Height of the widget; 0 if the height of the widget isn't fixed
+//@html HTML code of the widget; 1-32768 bytes; must not contain zero character and must not exceed 4096 bytes when compressed by zlib with the maximal compression level
+//@public_data Public data of the widget, which will be available in copies and forwards of the message
+//@chat_data Data of the widget, which is specific to the chat
+//@caption Widget caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
+//@show_caption_above_media True, if the caption must be shown above the widget; otherwise, the caption must be shown below the widget
+//@allow_queries Pass true to allow the widget to send queries to the bot
+//@is_shared Pass true to create a shared widget, which can be sent again by its identifier
+inputMessageWidget width:int32 height:int32 html:string public_data:string chat_data:string caption:formattedText show_caption_above_media:Bool allow_queries:Bool is_shared:Bool = InputMessageContent;
+
 //@description A forwarded message
 //@from_chat_id Identifier for the chat this forwarded message came from
 //@message_id Identifier of the message to forward. A message can be forwarded only if messageProperties.can_be_forwarded
