@@ -1923,6 +1923,15 @@ class MessageWidget final : public MessageContent {
   }
 };
 
+// returns empty string if the payload is invalid
+static string get_widget_html(Slice payload) {
+  auto html = gzdecode(payload).as_slice().str();
+  if (!check_utf8(html)) {
+    return string();
+  }
+  return html;
+}
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -4914,7 +4923,19 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
     }
     case telegram_api::botInlineMessageWidget::ID: {
       auto inline_message = telegram_api::move_object_as<telegram_api::botInlineMessageWidget>(bot_inline_message);
-      LOG(INFO) << "Receive unsupported " << to_string(inline_message);
+      auto html = get_widget_html(inline_message->payload_.as_slice());
+      if (html.empty()) {
+        LOG(ERROR) << "Receive invalid inline widget payload";
+      } else {
+        auto caption =
+            get_message_text(td->user_manager_.get(), inline_message->message_, std::move(inline_message->entities_),
+                             true, false, 0, false, "create_inline_message_content");
+        result.message_content = td::make_unique<MessageWidget>(
+            max(0, inline_message->width_), max(0, inline_message->height_), std::move(html),
+            std::move(inline_message->public_data_), inline_message->public_data_hash_,
+            std::move(inline_message->chat_data_), inline_message->widget_id_, std::move(caption), false, false, false);
+      }
+      result.invert_media = inline_message->invert_media_;
       reply_markup = std::move(inline_message->reply_markup_);
       break;
     }
@@ -10507,8 +10528,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     }
     case telegram_api::messageMediaWidget::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaWidget>(media_ptr);
-      auto html = gzdecode(media->payload_.as_slice()).as_slice().str();
-      if (html.empty() || !check_utf8(html)) {
+      auto html = get_widget_html(media->payload_.as_slice());
+      if (html.empty()) {
         LOG(ERROR) << "Receive invalid widget payload";
         return make_unique<MessageUnsupported>();
       }
