@@ -7239,15 +7239,21 @@ class CliClient final : public Actor {
       InputChecklist checklist;
       get_args(args, chat_id, checklist);
       send_message(chat_id, td_api::make_object<td_api::inputMessageChecklist>(checklist));
+    } else if (op == "sswidget") {
+      ChatId chat_id;
+      int64 widget_id;
+      get_args(args, chat_id, widget_id);
+      send_message(chat_id, td_api::make_object<td_api::inputMessageSharedWidget>(
+                                widget_id, "chat", as_caption("caption"), show_caption_above_media_));
     } else if (op == "swidget" || op == "swidgets") {
       ChatId chat_id;
       int32 width;
       int32 height;
       string html;
       get_args(args, chat_id, width, height, html);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageWidget>(width, height, html, "public", "chat",
-                                                                            as_caption("caption"), rand_bool(), true,
-                                                                            op == "swidgets"));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageWidget>(
+                                width, height, html, "public", "chat", as_caption("caption"), show_caption_above_media_,
+                                true, op == "swidgets"));
     } else if (op == "sp") {
       ChatId chat_id;
       string photo;

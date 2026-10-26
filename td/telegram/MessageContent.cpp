@@ -5047,6 +5047,10 @@ td_api::object_ptr<td_api::formattedText> extract_input_caption(
       auto input_widget = static_cast<td_api::inputMessageWidget *>(input_message_content.get());
       return std::move(input_widget->caption_);
     }
+    case td_api::inputMessageSharedWidget::ID: {
+      auto input_widget = static_cast<td_api::inputMessageSharedWidget *>(input_message_content.get());
+      return std::move(input_widget->caption_);
+    }
     default:
       return nullptr;
   }
@@ -5072,6 +5076,10 @@ bool extract_input_invert_media(const td_api::object_ptr<td_api::InputMessageCon
     }
     case td_api::inputMessageWidget::ID: {
       auto input_widget = static_cast<const td_api::inputMessageWidget *>(input_message_content.get());
+      return input_widget->show_caption_above_media_;
+    }
+    case td_api::inputMessageSharedWidget::ID: {
+      auto input_widget = static_cast<const td_api::inputMessageSharedWidget *>(input_message_content.get());
       return input_widget->show_caption_above_media_;
     }
     default:
@@ -5491,6 +5499,22 @@ static Result<InputMessageContent> create_input_message_content(
                                          0, std::move(caption), false, input_widget->allow_queries_, false);
       widget->is_shared = input_widget->is_shared_;
       content = std::move(widget);
+      break;
+    }
+    case td_api::inputMessageSharedWidget::ID: {
+      auto input_widget = static_cast<td_api::inputMessageSharedWidget *>(input_message_content.get());
+      if (!is_bot) {
+        return Status::Error(400, "Only bots can send widget messages");
+      }
+      if (input_widget->widget_id_ == 0) {
+        return Status::Error(400, "Invalid widget identifier specified");
+      }
+      if (!clean_input_string(input_widget->chat_data_)) {
+        return Status::Error(400, "Widget chat data must be encoded in UTF-8");
+      }
+      invert_media = input_widget->show_caption_above_media_ && !is_secret;
+      content = td::make_unique<MessageWidget>(0, 0, string(), string(), 0, std::move(input_widget->chat_data_),
+                                               input_widget->widget_id_, std::move(caption), false, false, false);
       break;
     }
     default:
@@ -6193,6 +6217,9 @@ static InputMedia get_message_content_input_media_impl(
     }
     case MessageContentType::Widget: {
       const auto *m = static_cast<const MessageWidget *>(content);
+      if (m->widget_id != 0) {
+        return telegram_api::make_object<telegram_api::inputMediaWidgetId>(0, m->widget_id, m->chat_data);
+      }
       return telegram_api::make_object<telegram_api::inputMediaWidget>(
           0, m->can_query, m->is_shared, m->width, m->height, m->html, m->public_data, m->chat_data);
     }
