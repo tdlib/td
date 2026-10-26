@@ -378,6 +378,10 @@ bool update_message_content_extended_media(
 
 bool need_poll_message_content_extended_media(const MessageContent *content);
 
+// returns whether the content has changed; need_update is set if the changes must be sent to the app
+bool update_message_content_widget_data(MessageContent *content, string &&public_data, int64 public_data_hash,
+                                        string &&chat_data, bool &need_update);
+
 bool need_poll_conference_call_message_content(const MessageContent *content);
 
 void set_message_content_video_start_timestamp(MessageContent *content, int32 start_timestamp);

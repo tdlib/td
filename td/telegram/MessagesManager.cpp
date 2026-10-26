@@ -5210,6 +5210,35 @@ void MessagesManager::on_update_message_extended_media(
   }
 }
 
+void MessagesManager::on_update_message_widget_data(MessageFullId message_full_id, string &&public_data,
+                                                    int64 public_data_hash, string &&chat_data) {
+  if (!message_full_id.get_message_id().is_valid()) {
+    LOG(ERROR) << "Receive widget data for invalid " << message_full_id;
+    return;
+  }
+  auto dialog_id = message_full_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id, "on_update_message_widget_data 1");
+  if (d == nullptr) {
+    LOG(INFO) << "Ignore update of message widget data in unknown " << dialog_id;
+    return;
+  }
+
+  auto m = get_message_force(d, message_full_id.get_message_id(), "on_update_message_widget_data 2");
+  if (m == nullptr) {
+    LOG(INFO) << "Ignore update of message widget data in unknown " << message_full_id;
+    return;
+  }
+
+  bool need_update = false;
+  if (update_message_content_widget_data(m->content.get(), std::move(public_data), public_data_hash,
+                                         std::move(chat_data), need_update)) {
+    if (need_update) {
+      send_update_message_content(d, m, true, "on_update_message_widget_data 3");
+    }
+    on_message_changed(d, m, need_update, "on_update_message_widget_data 4");
+  }
+}
+
 bool MessagesManager::need_skip_bot_commands(DialogId dialog_id, const Message *m) const {
   if (td_->auth_manager_->is_bot()) {
     return false;
@@ -5768,9 +5797,14 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
       update_dialog_pinned_messages_from_updates(DialogId(update->peer_), message_ids, update->pinned_);
       break;
     }
-    case telegram_api::updateMessageWidgetData::ID:
+    case telegram_api::updateMessageWidgetData::ID: {
+      auto update = move_tl_object_as<telegram_api::updateMessageWidgetData>(update_ptr);
       LOG(INFO) << "Process updateMessageWidgetData";
+      on_update_message_widget_data({DialogId(update->peer_), MessageId(ServerMessageId(update->msg_id_))},
+                                    std::move(update->public_data_), update->public_data_hash_,
+                                    std::move(update->chat_data_));
       break;
+    }
     default:
       UNREACHABLE();
   }

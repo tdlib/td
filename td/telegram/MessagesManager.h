@@ -376,6 +376,9 @@ class MessagesManager final : public Actor {
       MessageFullId message_full_id,
       vector<telegram_api::object_ptr<telegram_api::MessageExtendedMedia>> extended_media);
 
+  void on_update_message_widget_data(MessageFullId message_full_id, string &&public_data, int64 public_data_hash,
+                                     string &&chat_data);
+
   void on_external_update_message_content(MessageFullId message_full_id, const char *source,
                                           bool expect_no_message = false, bool need_reregister = false);
 
