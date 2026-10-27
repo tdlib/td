@@ -4428,6 +4428,17 @@ void Requests::on_request(uint64 id, td_api::editInlineMessageReplyMarkup &reque
                                                                  std::move(request.reply_markup_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::editInlineMessageWidgetData &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.inline_message_id_);
+  CLEAN_INPUT_STRING(request.public_data_);
+  CLEAN_INPUT_STRING(request.chat_data_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->inline_message_manager_->edit_inline_message_widget_data(request.inline_message_id_, request.edit_public_data_,
+                                                                request.public_data_, request.edit_chat_data_,
+                                                                request.chat_data_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::editEphemeralMessage &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();

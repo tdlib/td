@@ -45,6 +45,10 @@ class InlineMessageManager final : public Actor {
                                         td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                         Promise<Unit> &&promise);
 
+  void edit_inline_message_widget_data(const string &inline_message_id, bool edit_public_data,
+                                       const string &public_data, bool edit_chat_data, const string &chat_data,
+                                       Promise<Unit> &&promise);
+
   void set_inline_game_score(const string &inline_message_id, bool edit_message, UserId user_id, int32 score,
                              bool force, Promise<Unit> &&promise);
 

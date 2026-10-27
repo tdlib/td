@@ -204,7 +204,8 @@ bool TD_TL_writer_h::need_arg_mask(const tl::tl_combinator *t, const tl::arg &a)
            (type_name == "account.passwordInputSettings" && a.name == "email") ||
            (type_name == "user" && (a.name == "phone" || a.name == "bot_inline_placeholder")) ||
            type_name == "account.updateProfile" || type_name == "bots.setBotInfo" ||
-           type_name == "stickers.changeSticker" || type_name == "messages.editMessageWidgetData";
+           type_name == "stickers.changeSticker" || type_name == "messages.editMessageWidgetData" ||
+           type_name == "messages.editInlineBotMessageWidgetData";
   }
   if (is_built_in_complex_type(name)) {
     // flags for non-empty vectors are set automatically; masks are needed only to send or check empty vectors

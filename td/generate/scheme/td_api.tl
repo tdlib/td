@@ -13398,6 +13398,14 @@ editInlineMessageCaption inline_message_id:string reply_markup:ReplyMarkup capti
 //@reply_markup The new message reply markup; pass null if none
 editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup = Ok;
 
+//@description Edits data of a widget in an inline message sent via the bot; for bots only
+//@inline_message_id Inline message identifier
+//@edit_public_data Pass true to edit public data of the widget
+//@public_data New public data of the widget; ignored if edit_public_data is false
+//@edit_chat_data Pass true to edit data of the widget, which is specific to the chat
+//@chat_data New data of the widget, which is specific to the chat; ignored if edit_chat_data is false
+editInlineMessageWidgetData inline_message_id:string edit_public_data:Bool public_data:string edit_chat_data:Bool chat_data:string = Ok;
+
 //@description Edits the text, media, or reply markup of an ephemeral message sent by the bot; for bots only
 //@chat_id The chat the message belongs to
 //@receiver_user_id Identifier of the user who received the message

@@ -720,6 +720,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::editInlineMessageReplyMarkup &request);
 
+  void on_request(uint64 id, td_api::editInlineMessageWidgetData &request);
+
   void on_request(uint64 id, td_api::editEphemeralMessage &request);
 
   void on_request(uint64 id, td_api::editEphemeralMessageCaption &request);

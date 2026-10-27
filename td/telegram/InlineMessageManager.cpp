@@ -128,6 +128,49 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
   }
 };
 
+class EditInlineMessageWidgetDataQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit EditInlineMessageWidgetDataQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> input_bot_inline_message_id,
+            bool edit_public_data, const string &public_data, bool edit_chat_data, const string &chat_data) {
+    CHECK(input_bot_inline_message_id != nullptr);
+
+    int32 flags = 0;
+    if (edit_public_data) {
+      flags |= telegram_api::messages_editInlineBotMessageWidgetData::PUBLIC_DATA_MASK;
+    }
+    if (edit_chat_data) {
+      flags |= telegram_api::messages_editInlineBotMessageWidgetData::CHAT_DATA_MASK;
+    }
+    auto dc_id = DcId::internal(get_inline_message_dc_id(input_bot_inline_message_id));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_editInlineBotMessageWidgetData(flags, std::move(input_bot_inline_message_id),
+                                                              edit_public_data ? public_data : string(),
+                                                              edit_chat_data ? chat_data : string()),
+        {}, dc_id));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_editInlineBotMessageWidgetData>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG_IF(ERROR, !result_ptr.ok()) << "Receive false in result of editInlineBotMessageWidgetData";
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for EditInlineMessageWidgetDataQuery: " << status;
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetInlineGameScoreQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -324,6 +367,20 @@ void InlineMessageManager::edit_inline_message_reply_markup(const string &inline
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(std::move(input_bot_inline_message_id), false, nullptr, false, InputMedia(), false /*ignored*/,
              new_reply_markup);
+}
+
+void InlineMessageManager::edit_inline_message_widget_data(const string &inline_message_id, bool edit_public_data,
+                                                           const string &public_data, bool edit_chat_data,
+                                                           const string &chat_data, Promise<Unit> &&promise) {
+  CHECK(td_->auth_manager_->is_bot());
+
+  TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
+  if (!edit_public_data && !edit_chat_data) {
+    return promise.set_value(Unit());
+  }
+
+  td_->create_handler<EditInlineMessageWidgetDataQuery>(std::move(promise))
+      ->send(std::move(input_bot_inline_message_id), edit_public_data, public_data, edit_chat_data, chat_data);
 }
 
 void InlineMessageManager::set_inline_game_score(const string &inline_message_id, bool edit_message, UserId user_id,

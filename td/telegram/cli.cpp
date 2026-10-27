@@ -6791,6 +6791,19 @@ class CliClient final : public Actor {
       }
       send_request(td_api::make_object<td_api::editMessageWidgetData>(chat_id, message_id, op != "emwdc", public_data,
                                                                       op != "emwdp", chat_data));
+    } else if (op == "eimwd" || op == "eimwdp" || op == "eimwdc") {
+      string inline_message_id;
+      string public_data;
+      string chat_data;
+      if (op == "eimwdp") {
+        get_args(args, inline_message_id, public_data);
+      } else if (op == "eimwdc") {
+        get_args(args, inline_message_id, chat_data);
+      } else {
+        get_args(args, inline_message_id, public_data, chat_data);
+      }
+      send_request(td_api::make_object<td_api::editInlineMessageWidgetData>(inline_message_id, op != "eimwdc",
+                                                                            public_data, op != "eimwdp", chat_data));
     } else if (op == "eqrm" || op == "eqrrm") {
       ShortcutId shortcut_id;
       MessageId message_id;
