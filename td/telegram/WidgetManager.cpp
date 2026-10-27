@@ -15,6 +15,7 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
@@ -92,6 +93,54 @@ class SetBotWidgetQueryAnswerQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class EditMessageWidgetDataQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  MessageId message_id_;
+
+ public:
+  explicit EditMessageWidgetDataQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id, bool edit_public_data, const string &public_data,
+            bool edit_chat_data, const string &chat_data) {
+    dialog_id_ = dialog_id;
+    message_id_ = message_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    int32 flags = 0;
+    if (edit_public_data) {
+      flags |= telegram_api::messages_editMessageWidgetData::PUBLIC_DATA_MASK;
+    }
+    if (edit_chat_data) {
+      flags |= telegram_api::messages_editMessageWidgetData::CHAT_DATA_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_editMessageWidgetData(
+            flags, std::move(input_peer), message_id.get_server_message_id().get(),
+            edit_public_data ? public_data : string(), edit_chat_data ? chat_data : string()),
+        {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_editMessageWidgetData>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditMessageWidgetDataQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "EditMessageWidgetDataQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -233,6 +282,29 @@ void WidgetManager::on_new_widget_copy_query(int64 widget_query_id, UserId sende
 
 void WidgetManager::answer_widget_query(int64 widget_query_id, const string &data, Promise<Unit> &&promise) {
   td_->create_handler<SetBotWidgetQueryAnswerQuery>(std::move(promise))->send(widget_query_id, data);
+}
+
+void WidgetManager::edit_message_widget_data(MessageFullId message_full_id, bool edit_public_data,
+                                             const string &public_data, bool edit_chat_data, const string &chat_data,
+                                             Promise<Unit> &&promise) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "edit_message_widget_data"));
+
+  if (!td_->messages_manager_->have_message_force(message_full_id, "edit_message_widget_data")) {
+    return promise.set_error(400, "Message not found");
+  }
+  auto message_id = message_full_id.get_message_id();
+  if (!message_id.is_server()) {
+    return promise.set_error(400, "Wrong message identifier");
+  }
+
+  if (!edit_public_data && !edit_chat_data) {
+    return promise.set_value(Unit());
+  }
+
+  td_->create_handler<EditMessageWidgetDataQuery>(std::move(promise))
+      ->send(dialog_id, message_id, edit_public_data, public_data, edit_chat_data, chat_data);
 }
 
 void WidgetManager::get_widget_public_data(MessageFullId message_full_id,

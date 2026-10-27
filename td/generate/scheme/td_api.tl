@@ -13358,6 +13358,15 @@ editMessageCaption chat_id:int53 message_id:int53 reply_markup:ReplyMarkup capti
 //@reply_markup The new message reply markup; pass null if none
 editMessageReplyMarkup chat_id:int53 message_id:int53 reply_markup:ReplyMarkup = Message;
 
+//@description Edits data of a widget sent by the bot; for bots only
+//@chat_id The chat the message belongs to
+//@message_id Identifier of the widget message
+//@edit_public_data Pass true to edit public data of the widget
+//@public_data New public data of the widget; ignored if edit_public_data is false
+//@edit_chat_data Pass true to edit data of the widget, which is specific to the chat
+//@chat_data New data of the widget, which is specific to the chat; ignored if edit_chat_data is false
+editMessageWidgetData chat_id:int53 message_id:int53 edit_public_data:Bool public_data:string edit_chat_data:Bool chat_data:string = Ok;
+
 //@description Edits the text of an inline text or game message sent via the bot; for bots only
 //@inline_message_id Inline message identifier
 //@reply_markup The new message reply markup; pass null if none

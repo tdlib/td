@@ -46,6 +46,9 @@ class WidgetManager final : public Actor {
 
   void answer_widget_query(int64 widget_query_id, const string &data, Promise<Unit> &&promise);
 
+  void edit_message_widget_data(MessageFullId message_full_id, bool edit_public_data, const string &public_data,
+                                bool edit_chat_data, const string &chat_data, Promise<Unit> &&promise);
+
   void get_widget_public_data(MessageFullId message_full_id,
                               Promise<td_api::object_ptr<td_api::widgetPublicData>> &&promise);
 

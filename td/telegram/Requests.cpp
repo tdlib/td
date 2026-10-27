@@ -4376,6 +4376,16 @@ void Requests::on_request(uint64 id, td_api::editMessageReplyMarkup &request) {
                  std::move(request.reply_markup_));
 }
 
+void Requests::on_request(uint64 id, td_api::editMessageWidgetData &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.public_data_);
+  CLEAN_INPUT_STRING(request.chat_data_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->widget_manager_->edit_message_widget_data({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                 request.edit_public_data_, request.public_data_,
+                                                 request.edit_chat_data_, request.chat_data_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::editInlineMessageText &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);

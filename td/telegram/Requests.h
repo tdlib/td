@@ -708,6 +708,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::editMessageReplyMarkup &request);
 
+  void on_request(uint64 id, td_api::editMessageWidgetData &request);
+
   void on_request(uint64 id, td_api::editInlineMessageText &request);
 
   void on_request(uint64 id, td_api::editInlineMessageLiveLocation &request);

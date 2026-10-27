@@ -6777,6 +6777,20 @@ class CliClient final : public Actor {
       } else {
         send_request(td_api::make_object<td_api::editMessageText>(chat_id, message_id, nullptr, std::move(input_text)));
       }
+    } else if (op == "emwd" || op == "emwdp" || op == "emwdc") {
+      ChatId chat_id;
+      MessageId message_id;
+      string public_data;
+      string chat_data;
+      if (op == "emwdp") {
+        get_args(args, chat_id, message_id, public_data);
+      } else if (op == "emwdc") {
+        get_args(args, chat_id, message_id, chat_data);
+      } else {
+        get_args(args, chat_id, message_id, public_data, chat_data);
+      }
+      send_request(td_api::make_object<td_api::editMessageWidgetData>(chat_id, message_id, op != "emwdc", public_data,
+                                                                      op != "emwdp", chat_data));
     } else if (op == "eqrm" || op == "eqrrm") {
       ShortcutId shortcut_id;
       MessageId message_id;
