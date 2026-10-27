@@ -13694,18 +13694,17 @@ void extract_message_content_authentication_codes(const MessageContent *content,
   }
 }
 
-bool update_message_content_widget_data(MessageContent *content, string &&public_data, int64 public_data_hash,
-                                        string &&chat_data, bool update_chat_data, bool &need_update) {
+void update_message_content_widget_data(MessageContent *content, string &&public_data, int64 public_data_hash,
+                                        string &&chat_data, bool update_chat_data, bool &is_content_changed,
+                                        bool &need_update) {
   CHECK(content != nullptr);
-  need_update = false;
   if (content->get_type() != MessageContentType::Widget) {
     if (content->get_type() != MessageContentType::Unsupported) {
       LOG(ERROR) << "Receive widget data for a message of type " << content->get_type();
     }
-    return false;
+    return;
   }
   auto *m = static_cast<MessageWidget *>(content);
-  bool is_changed = false;
   if (m->public_data != public_data) {
     m->public_data = std::move(public_data);
     need_update = true;
@@ -13716,9 +13715,8 @@ bool update_message_content_widget_data(MessageContent *content, string &&public
   }
   if (m->public_data_hash != public_data_hash) {
     m->public_data_hash = public_data_hash;
-    is_changed = true;
+    is_content_changed = true;
   }
-  return is_changed || need_update;
 }
 
 std::pair<string, int64> get_message_content_widget_public_data(const MessageContent *content) {

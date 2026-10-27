@@ -5229,9 +5229,11 @@ void MessagesManager::on_update_message_widget_data(MessageFullId message_full_i
     return;
   }
 
+  bool is_content_changed = false;
   bool need_update = false;
-  if (update_message_content_widget_data(m->content.get(), std::move(public_data), public_data_hash,
-                                         std::move(chat_data), update_chat_data, need_update)) {
+  update_message_content_widget_data(m->content.get(), std::move(public_data), public_data_hash, std::move(chat_data),
+                                     update_chat_data, is_content_changed, need_update);
+  if (is_content_changed || need_update) {
     if (need_update) {
       send_update_message_content(d, m, true, "on_update_message_widget_data 3");
     }
