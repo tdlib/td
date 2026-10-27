@@ -608,6 +608,21 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
         input_widget->width_, input_widget->height_, input_widget->html_, input_widget->public_data_,
         input_widget->chat_data_, std::move(input_reply_markup), caption.text, std::move(entities));
   }
+  if (constructor_id == td_api::inputMessageSharedWidget::ID) {
+    auto input_widget = static_cast<td_api::inputMessageSharedWidget *>(input_message_content.get());
+    if (input_widget->widget_id_ == 0) {
+      return Status::Error(400, "Invalid widget identifier specified");
+    }
+    if (!clean_input_string(input_widget->chat_data_)) {
+      return Status::Error(400, "Widget chat data must be encoded in UTF-8");
+    }
+    TRY_RESULT(caption, get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(),
+                                           std::move(input_widget->caption_), true, true, true, false));
+    auto entities = get_input_message_entities(td_->user_manager_.get(), caption.entities, "get_inline_message");
+    return telegram_api::make_object<telegram_api::inputBotInlineMessageWidgetId>(
+        0, input_widget->show_caption_above_media_, input_widget->widget_id_, input_widget->chat_data_,
+        std::move(input_reply_markup), caption.text, std::move(entities));
+  }
   if (constructor_id == allowed_media_content_id) {
     TRY_RESULT(caption, get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(),
                                            extract_input_caption(input_message_content), true, true, true, false));
