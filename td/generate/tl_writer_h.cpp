@@ -210,10 +210,7 @@ bool TD_TL_writer_h::need_arg_mask(const tl::tl_combinator *t, const tl::arg &a)
   if (is_built_in_complex_type(name)) {
     // flags for non-empty vectors are set automatically; masks are needed only to send or check empty vectors
     const std::string &type_name = t->name;
-    return (type_name == "stories.editStory" && (a.name == "media_areas" || a.name == "privacy_rules")) ||
-           ((type_name == "inputMediaUploadedDocument" || type_name == "inputMediaUploadedPhoto") &&
-            a.name == "stickers") ||
-           (type_name == "peerColorCollectible" && a.name == "dark_colors");
+    return type_name == "stories.editStory" && (a.name == "media_areas" || a.name == "privacy_rules");
   }
   if (!is_built_in_simple_type(name)) {
     return false;

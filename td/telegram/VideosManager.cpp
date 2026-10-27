@@ -340,11 +340,7 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
       attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeFilename>(video->file_name));
     }
     int32 flags = 0;
-    vector<tl_object_ptr<telegram_api::InputDocument>> added_stickers;
-    if (video->has_stickers) {
-      flags |= telegram_api::inputMediaUploadedDocument::STICKERS_MASK;
-      added_stickers = td_->file_manager_->get_input_documents(video->sticker_file_ids);
-    }
+    auto added_stickers = td_->file_manager_->get_input_documents(video->sticker_file_ids);
     string mime_type = video->mime_type;
     if (!begins_with(mime_type, "video/") || ttl > 0) {
       mime_type = "video/mp4";
@@ -393,11 +389,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> VideosManager::get_story_docu
     attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeFilename>(video->file_name));
   }
   int32 flags = 0;
-  vector<telegram_api::object_ptr<telegram_api::InputDocument>> added_stickers;
-  if (video->has_stickers) {
-    flags |= telegram_api::inputMediaUploadedDocument::STICKERS_MASK;
-    added_stickers = td_->file_manager_->get_input_documents(video->sticker_file_ids);
-  }
+  auto added_stickers = td_->file_manager_->get_input_documents(video->sticker_file_ids);
   string mime_type = video->mime_type;
   if (!begins_with(mime_type, "video/")) {
     mime_type = "video/mp4";

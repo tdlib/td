@@ -344,11 +344,7 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
   }
   if (input_file != nullptr) {
     int32 flags = 0;
-    vector<tl_object_ptr<telegram_api::InputDocument>> added_stickers;
-    if (photo.has_stickers) {
-      flags |= telegram_api::inputMediaUploadedPhoto::STICKERS_MASK;
-      added_stickers = file_manager->get_input_documents(photo.sticker_file_ids);
-    }
+    auto added_stickers = file_manager->get_input_documents(photo.sticker_file_ids);
     if (ttl != 0) {
       flags |= telegram_api::inputMediaUploadedPhoto::TTL_SECONDS_MASK;
     }

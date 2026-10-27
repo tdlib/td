@@ -34,13 +34,12 @@ PeerColorCollectible::PeerColorCollectible(telegram_api::object_ptr<telegram_api
   } else {
     dark_accent_color_ = light_accent_color_;
   }
-  if ((peer_color->flags_ & telegram_api::peerColorCollectible::DARK_COLORS_MASK) != 0) {
-    dark_colors_ = peer_color->dark_colors_;
-    if (dark_colors_.size() > 3u) {
-      LOG(ERROR) << "Receive " << to_string(peer_color);
-      dark_colors_ = {};
-    }
-  } else {
+  dark_colors_ = std::move(peer_color->dark_colors_);
+  if (dark_colors_.size() > 3u) {
+    LOG(ERROR) << "Receive " << to_string(peer_color);
+    dark_colors_ = {};
+  }
+  if (dark_colors_.empty()) {
     dark_colors_ = light_colors_;
   }
 }
