@@ -3625,9 +3625,10 @@ class MessagesManager final : public Actor {
   void get_forum_notification_count_page(DialogId dialog_id);
   void retry_forum_notification_count_repair(DialogId dialog_id, int32 wait_pts = 0);
   bool add_forum_notification_count_page(Dialog *d, ForumNotificationCountRepair &repair,
-                                       const telegram_api::messages_forumTopics &page);
+                                         const telegram_api::messages_forumTopics &page);
   void on_forum_notification_counts_reloaded(
-      DialogId dialog_id, uint64 generation, Result<telegram_api::object_ptr<telegram_api::messages_forumTopics>> result);
+      DialogId dialog_id, uint64 generation,
+      Result<telegram_api::object_ptr<telegram_api::messages_forumTopics>> result);
 
   FlatHashMap<ForumTopicFullId, PendingForumNotificationRestoration, ForumTopicFullIdHash>
       pending_forum_notification_restorations_;
