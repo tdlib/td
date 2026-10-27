@@ -5211,7 +5211,7 @@ void MessagesManager::on_update_message_extended_media(
 }
 
 void MessagesManager::on_update_message_widget_data(MessageFullId message_full_id, string &&public_data,
-                                                    int64 public_data_hash, string &&chat_data) {
+                                                    int64 public_data_hash, string &&chat_data, bool update_chat_data) {
   if (!message_full_id.get_message_id().is_valid()) {
     LOG(ERROR) << "Receive widget data for invalid " << message_full_id;
     return;
@@ -5231,7 +5231,7 @@ void MessagesManager::on_update_message_widget_data(MessageFullId message_full_i
 
   bool need_update = false;
   if (update_message_content_widget_data(m->content.get(), std::move(public_data), public_data_hash,
-                                         std::move(chat_data), true, need_update)) {
+                                         std::move(chat_data), update_chat_data, need_update)) {
     if (need_update) {
       send_update_message_content(d, m, true, "on_update_message_widget_data 3");
     }
@@ -5248,29 +5248,6 @@ Result<std::pair<string, int64>> MessagesManager::get_message_widget_public_data
     return Status::Error(400, "Message has no widget");
   }
   return get_message_content_widget_public_data(m->content.get());
-}
-
-void MessagesManager::on_update_message_widget_public_data(MessageFullId message_full_id, string &&public_data,
-                                                           int64 public_data_hash) {
-  auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "on_update_message_widget_public_data 1");
-  if (d == nullptr) {
-    return;
-  }
-
-  auto m = get_message_force(d, message_full_id.get_message_id(), "on_update_message_widget_public_data 2");
-  if (m == nullptr) {
-    return;
-  }
-
-  bool need_update = false;
-  if (update_message_content_widget_data(m->content.get(), std::move(public_data), public_data_hash, string(), false,
-                                         need_update)) {
-    if (need_update) {
-      send_update_message_content(d, m, true, "on_update_message_widget_public_data 3");
-    }
-    on_message_changed(d, m, need_update, "on_update_message_widget_public_data 4");
-  }
 }
 
 bool MessagesManager::need_skip_bot_commands(DialogId dialog_id, const Message *m) const {
@@ -5836,7 +5813,7 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
       LOG(INFO) << "Process updateMessageWidgetData";
       on_update_message_widget_data({DialogId(update->peer_), MessageId(ServerMessageId(update->msg_id_))},
                                     std::move(update->public_data_), update->public_data_hash_,
-                                    std::move(update->chat_data_));
+                                    std::move(update->chat_data_), true);
       break;
     }
     default:

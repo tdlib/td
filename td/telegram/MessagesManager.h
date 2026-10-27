@@ -378,11 +378,8 @@ class MessagesManager final : public Actor {
 
   Result<std::pair<string, int64>> get_message_widget_public_data(MessageFullId message_full_id);
 
-  void on_update_message_widget_public_data(MessageFullId message_full_id, string &&public_data,
-                                            int64 public_data_hash);
-
   void on_update_message_widget_data(MessageFullId message_full_id, string &&public_data, int64 public_data_hash,
-                                     string &&chat_data);
+                                     string &&chat_data, bool update_chat_data);
 
   void on_external_update_message_content(MessageFullId message_full_id, const char *source,
                                           bool expect_no_message = false, bool need_reregister = false);

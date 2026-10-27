@@ -155,7 +155,8 @@ void WidgetManager::on_get_widget_public_data(
     }
     case telegram_api::messages_widgetPublicData::ID: {
       auto data = telegram_api::move_object_as<telegram_api::messages_widgetPublicData>(public_data);
-      td_->messages_manager_->on_update_message_widget_public_data(message_full_id, string(data->data_), data->hash_);
+      td_->messages_manager_->on_update_message_widget_data(message_full_id, string(data->data_), data->hash_, string(),
+                                                            false);
       return promise.set_value(
           td_api::make_object<td_api::widgetPublicData>(std::move(data->data_), max(data->period_, 0)));
     }
