@@ -5231,7 +5231,7 @@ void MessagesManager::on_update_message_widget_data(MessageFullId message_full_i
 
   bool need_update = false;
   if (update_message_content_widget_data(m->content.get(), std::move(public_data), public_data_hash,
-                                         std::move(chat_data), need_update)) {
+                                         std::move(chat_data), true, need_update)) {
     if (need_update) {
       send_update_message_content(d, m, true, "on_update_message_widget_data 3");
     }
@@ -5264,8 +5264,8 @@ void MessagesManager::on_update_message_widget_public_data(MessageFullId message
   }
 
   bool need_update = false;
-  if (update_message_content_widget_public_data(m->content.get(), std::move(public_data), public_data_hash,
-                                                need_update)) {
+  if (update_message_content_widget_data(m->content.get(), std::move(public_data), public_data_hash, string(), false,
+                                         need_update)) {
     if (need_update) {
       send_update_message_content(d, m, true, "on_update_message_widget_public_data 3");
     }

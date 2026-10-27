@@ -13695,7 +13695,7 @@ void extract_message_content_authentication_codes(const MessageContent *content,
 }
 
 bool update_message_content_widget_data(MessageContent *content, string &&public_data, int64 public_data_hash,
-                                        string &&chat_data, bool &need_update) {
+                                        string &&chat_data, bool update_chat_data, bool &need_update) {
   CHECK(content != nullptr);
   need_update = false;
   if (content->get_type() != MessageContentType::Widget) {
@@ -13710,7 +13710,7 @@ bool update_message_content_widget_data(MessageContent *content, string &&public
     m->public_data = std::move(public_data);
     need_update = true;
   }
-  if (m->chat_data != chat_data) {
+  if (update_chat_data && m->chat_data != chat_data) {
     m->chat_data = std::move(chat_data);
     need_update = true;
   }
@@ -13726,26 +13726,6 @@ std::pair<string, int64> get_message_content_widget_public_data(const MessageCon
   CHECK(content->get_type() == MessageContentType::Widget);
   const auto *m = static_cast<const MessageWidget *>(content);
   return {m->public_data, m->public_data_hash};
-}
-
-bool update_message_content_widget_public_data(MessageContent *content, string &&public_data, int64 public_data_hash,
-                                               bool &need_update) {
-  CHECK(content != nullptr);
-  need_update = false;
-  if (content->get_type() != MessageContentType::Widget) {
-    return false;
-  }
-  auto *m = static_cast<MessageWidget *>(content);
-  bool is_changed = false;
-  if (m->public_data != public_data) {
-    m->public_data = std::move(public_data);
-    need_update = true;
-  }
-  if (m->public_data_hash != public_data_hash) {
-    m->public_data_hash = public_data_hash;
-    is_changed = true;
-  }
-  return is_changed || need_update;
 }
 
 bool update_message_content_extended_media(
