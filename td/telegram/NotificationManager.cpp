@@ -65,6 +65,7 @@
 #include <algorithm>
 #include <iterator>
 #include <limits>
+#include <set>
 
 namespace td {
 
@@ -447,6 +448,31 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
   NotificationGroup group;
   group.type = message_group.type;
   group.total_count = message_group.total_count;
+  if (message_group.is_forum) {
+    forum_notification_instance_generations_[group_id.get()] = ++forum_notification_instance_generation_;
+    auto ledger = make_unique<ForumNotificationLedger>(G()->td_db()->get_binlog_pmc(), group_id.get());
+    auto status = ledger->init(message_group.dialog_id.get(), current_notification_id_.get(),
+                               max(message_group.total_count, narrow_cast<int32>(message_group.notifications.size())),
+                               message_group.legacy_max_message_id);
+    if (status.is_ok()) {
+      group.forum_ledger = std::move(ledger);
+      apply_forum_notification_retirements(message_group.dialog_id, group_id, *group.forum_ledger);
+      td::remove_if(message_group.notifications, [&](const Notification &notification) {
+        return !restore_forum_notification(group_key, group, notification);
+      });
+      group.total_count = group.forum_ledger->total_count();
+      group_key.last_notification_date = 0;
+      for (auto &notification : message_group.notifications) {
+        group_key.last_notification_date = max(group_key.last_notification_date, notification.date);
+      }
+    } else {
+      LOG(ERROR) << "Failed to load forum notification accounting: " << status;
+      group.forum_accounting_failed = true;
+      group.total_count = 0;
+      message_group.notifications.clear();
+      group_key.last_notification_date = 0;
+    }
+  }
   group.notifications = std::move(message_group.notifications);
 
   VLOG(notifications) << "Finish to load " << group_id << " of type " << message_group.type << " with total_count "
@@ -468,6 +494,387 @@ void NotificationManager::delete_group(NotificationGroups::iterator &&group_it) 
   auto erased_count = group_keys_.erase(group_it->first.group_id);
   CHECK(erased_count > 0);
   groups_.erase(group_it);
+}
+
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+void NotificationManager::init_forum_notification_ledger(DialogId dialog_id, NotificationGroupId group_id) {
+  ForumNotificationLedger ledger(G()->td_db()->get_binlog_pmc(), group_id.get());
+  auto status = ledger.init(dialog_id.get(), current_notification_id_.get(), 0, 0, true);
+  if (status.is_error()) {
+    LOG(ERROR) << "Failed to initialize forum notification accounting: " << status;
+  }
+}
+
+void NotificationManager::on_forum_notification_mode_changed(DialogId dialog_id, NotificationGroupId group_id,
+                                                             bool is_forum) {
+  if (!group_id.is_valid()) {
+    return;
+  }
+  // A non-forum writer may change unread and admissions without this ledger.
+  // Re-entering forum mode therefore starts a new, explicitly legacy epoch.
+  auto it = get_group(group_id);
+  if (it != groups_.end() && it->first.dialog_id != dialog_id) {
+    return;
+  }
+  if (it != groups_.end()) {
+    // Finish pre-transition real admissions and discard temporary push copies
+    // before capturing an opaque legacy baseline for the new mode.
+    flush_pending_notifications(group_id);
+    if (is_forum) {
+      remove_temporary_notifications(group_id, "enter forum mode");
+    }
+    it = get_group(group_id);
+  }
+  auto invalidated =
+      ForumNotificationLedger::invalidate(G()->td_db()->get_binlog_pmc(), group_id.get(), dialog_id.get());
+  forum_notification_instance_generations_[group_id.get()] = ++forum_notification_instance_generation_;
+  if (invalidated.is_error()) {
+    LOG(ERROR) << "Failed to invalidate forum notification accounting: " << invalidated;
+  }
+  if (it == groups_.end() || it->first.dialog_id != dialog_id || it->second.type != NotificationGroupType::Messages) {
+    return;
+  }
+  it->second.forum_ledger.reset();
+  it->second.forum_accounting_failed = false;
+  if (is_forum) {
+    auto ledger = make_unique<ForumNotificationLedger>(G()->td_db()->get_binlog_pmc(), group_id.get());
+    auto status = ledger->init(dialog_id.get(), current_notification_id_.get(), max(0, it->second.total_count),
+                               std::numeric_limits<int64>::max());
+    if (status.is_ok()) {
+      it->second.forum_ledger = std::move(ledger);
+      for (auto &notification : it->second.notifications) {
+        restore_forum_notification(it->first, it->second, notification);
+      }
+    } else {
+      LOG(ERROR) << "Failed to migrate forum notification accounting: " << status;
+      send_remove_group_update(it->first, it->second, {});
+      auto key = it->first;
+      auto group = std::move(it->second);
+      delete_group(std::move(it));
+      group.forum_accounting_failed = true;
+      group.notifications.clear();
+      group.total_count = 0;
+      key.last_notification_date = 0;
+      add_group(std::move(key), std::move(group), "forum accounting quarantine");
+    }
+  }
+}
+
+int32 NotificationManager::get_forum_notification_total_count(const NotificationGroup &group) {
+  CHECK(group.forum_ledger != nullptr);
+  int64 result = group.forum_ledger->total_count();
+  for (auto &notification : group.notifications) {
+    result += notification.type->is_temporary();
+  }
+  return static_cast<int32>(min(result, static_cast<int64>(std::numeric_limits<int32>::max())));
+}
+
+bool NotificationManager::restore_forum_notification(const NotificationGroupKey &key, NotificationGroup &group,
+                                                     const Notification &notification) {
+  if (group.forum_accounting_failed) {
+    return false;
+  }
+  if (group.forum_ledger == nullptr || notification.type->is_temporary()) {
+    return true;
+  }
+  auto object_id = notification.type->get_object_id();
+  if (!object_id.is_valid() || notification.type->get_notification_type_object(td_, key.dialog_id) == nullptr) {
+    return false;
+  }
+  auto topic_id = td_->messages_manager_->get_notification_forum_topic_id(key.dialog_id, MessageId(object_id.get()));
+  return group.forum_ledger->restore(notification.notification_id.get(), object_id.get(), topic_id.get());
+}
+
+void NotificationManager::deliver_notification_updates(vector<td_api::object_ptr<td_api::Update>> updates,
+                                                       vector<NotificationId> completed, bool needs_sync) {
+  if (is_being_destroyed_ || (!needs_sync && durable_notification_updates_.empty())) {
+    for (auto &update : updates) {
+      send_closure(G()->td(), &Td::send_update, std::move(update));
+    }
+    for (auto id : completed) {
+      on_notification_processed(id);
+    }
+    return;
+  }
+  if (durable_notification_updates_.empty()) {
+    on_delayed_notification_update_count_changed(1, 0, "forum notification durability");
+  }
+  durable_notification_updates_.push_back({std::move(updates), std::move(completed)});
+  sync_notification_deliveries();
+}
+
+void NotificationManager::sync_notification_deliveries() {
+  if (durable_notification_sync_pending_ || durable_notification_updates_.empty() || is_destroyed_) {
+    return;
+  }
+  durable_notification_sync_pending_ = true;
+  if (durable_notification_sync_count_ == 0) {
+    durable_notification_sync_count_ = durable_notification_updates_.size();
+  }
+  forum_notification_sync_checkpoint_ = get_forum_notification_checkpoint(durable_notification_sync_count_);
+  G()->td_db()->get_binlog_pmc()->force_sync(
+      PromiseCreator::lambda([actor = actor_id(this), count = durable_notification_sync_count_](Result<Unit> result) {
+        send_closure(actor, &NotificationManager::on_notification_deliveries_synced, count, std::move(result));
+      }),
+      "forum notification checkpoint");
+}
+
+void NotificationManager::on_notification_deliveries_synced(size_t count, Result<Unit> result) {
+  durable_notification_sync_pending_ = false;
+  if (is_destroyed_) {
+    durable_notification_updates_.clear();
+    durable_notification_sync_count_ = 0;
+    return;
+  }
+  if (result.is_error()) {
+    LOG(ERROR) << "Failed to sync forum notification accounting: " << result.error();
+    if (!G()->close_flag()) {
+      create_actor<SleepActor>("ForumNotificationSyncRetry", 1.0,
+                               PromiseCreator::lambda([actor = actor_id(this)](Unit) {
+                                 send_closure(actor, &NotificationManager::sync_notification_deliveries);
+                               }))
+          .release();
+    }
+    return;
+  }
+  // Policy/read/delete changes may have arrived while fsync was in flight.
+  // Their retirement records must be durable before the old batch is revised.
+  if (forum_notification_sync_checkpoint_ != get_forum_notification_checkpoint(count)) {
+    sync_notification_deliveries();
+    return;
+  }
+  // Preserve cross-group ordering without changing synchronous drain contracts
+  // of flush_all_pending_updates (option changes, group reuse, shutdown).
+  CHECK(count <= durable_notification_updates_.size());
+  durable_notification_sync_pending_ = true;
+  while (count-- != 0) {
+    auto batch = std::move(durable_notification_updates_.front());
+    durable_notification_updates_.pop_front();
+    for (auto &update : batch.updates) {
+      refresh_undelivered_update(update);
+      if (update != nullptr) {
+        send_closure(G()->td(), &Td::send_update, std::move(update));
+      }
+    }
+    for (auto id : batch.completed) {
+      on_notification_processed(id);
+    }
+  }
+  durable_notification_sync_pending_ = false;
+  durable_notification_sync_count_ = 0;
+  if (durable_notification_updates_.empty()) {
+    on_delayed_notification_update_count_changed(-1, 0, "forum notification durability");
+  } else {
+    sync_notification_deliveries();
+  }
+}
+
+NotificationManager::ForumNotificationCheckpoint NotificationManager::get_forum_notification_checkpoint(
+    size_t count) const {
+  // Only retirements in groups referenced by the frozen prefix can invalidate
+  // it. New arrivals, including heavy traffic in unrelated forums, must not
+  // indefinitely postpone a previously durable delivery.
+  std::set<int32> group_ids;
+  CHECK(count <= durable_notification_updates_.size());
+  for (size_t i = 0; i < count; i++) {
+    for (auto &update : durable_notification_updates_[i].updates) {
+      switch (update->get_id()) {
+        case td_api::updateNotificationGroup::ID:
+          group_ids.insert(static_cast<const td_api::updateNotificationGroup *>(update.get())->notification_group_id_);
+          break;
+        case td_api::updateNotification::ID:
+          group_ids.insert(static_cast<const td_api::updateNotification *>(update.get())->notification_group_id_);
+          break;
+        case td_api::updateActiveNotifications::ID:
+          for (auto &group : static_cast<const td_api::updateActiveNotifications *>(update.get())->groups_) {
+            group_ids.insert(group->id_);
+          }
+          break;
+        default:
+          UNREACHABLE();
+      }
+    }
+  }
+  ForumNotificationCheckpoint result;
+  for (auto group_id : group_ids) {
+    auto generation = forum_notification_instance_generations_.find(group_id);
+    uint64 retirement = 0;
+    auto key = group_keys_.find(NotificationGroupId(group_id));
+    if (key != group_keys_.end()) {
+      const auto &group = groups_.at(key->second);
+      if (group.forum_ledger != nullptr) {
+        retirement = group.forum_ledger->retirement_revision();
+      }
+    }
+    result.emplace_back(group_id, generation == forum_notification_instance_generations_.end() ? 0 : generation->second,
+                        retirement);
+  }
+  return result;
+}
+
+void NotificationManager::refresh_undelivered_notification(NotificationGroupId group_id, DialogId dialog_id,
+                                                           td_api::object_ptr<td_api::notification> &notification) {
+  auto it = get_group(group_id);
+  if (it != groups_.end() && (dialog_id == DialogId() || it->first.dialog_id == dialog_id) &&
+      !it->second.forum_accounting_failed && max_notification_group_count_ != 0) {
+    for (auto &current : it->second.notifications) {
+      if (current.notification_id.get() == notification->id_) {
+        // Use the current type (including show_preview), never the object that
+        // was captured before a settings update. An absent body fails closed.
+        notification = get_notification_object(td_, it->first.dialog_id, current);
+        if (notification->type_ != nullptr) {
+          return;
+        }
+        break;
+      }
+    }
+  }
+  notification = nullptr;
+}
+
+void NotificationManager::refresh_undelivered_update(td_api::object_ptr<td_api::Update> &update) {
+  if (update == nullptr) {
+    return;
+  }
+  switch (update->get_id()) {
+    case td_api::updateNotificationGroup::ID: {
+      auto value = static_cast<td_api::updateNotificationGroup *>(update.get());
+      for (auto &notification : value->added_notifications_) {
+        refresh_undelivered_notification(NotificationGroupId(value->notification_group_id_), DialogId(value->chat_id_),
+                                         notification);
+      }
+      td::remove_if(value->added_notifications_, [](const auto &notification) { return notification == nullptr; });
+      break;
+    }
+    case td_api::updateNotification::ID: {
+      auto value = static_cast<td_api::updateNotification *>(update.get());
+      refresh_undelivered_notification(NotificationGroupId(value->notification_group_id_), DialogId(),
+                                       value->notification_);
+      if (value->notification_ == nullptr) {
+        update = nullptr;
+      }
+      break;
+    }
+    case td_api::updateActiveNotifications::ID: {
+      auto value = static_cast<td_api::updateActiveNotifications *>(update.get());
+      for (auto &group : value->groups_) {
+        for (auto &notification : group->notifications_) {
+          refresh_undelivered_notification(NotificationGroupId(group->id_), DialogId(group->chat_id_), notification);
+        }
+        td::remove_if(group->notifications_, [](const auto &notification) { return notification == nullptr; });
+      }
+      td::remove_if(value->groups_, [](const auto &group) { return group->notifications_.empty(); });
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
+void NotificationManager::reconcile_forum_notification_ledger(NotificationGroupId group_id) {
+  auto it = get_group(group_id);
+  if (it == groups_.end() || it->second.forum_ledger == nullptr) {
+    return;
+  }
+  if (max_notification_group_count_ == 0) {
+    // Ledger mutations must survive disabling the UI cache. No new admissions
+    // are accepted while the option is zero, and no visible update is emitted.
+    CHECK(it->second.pending_notifications.empty());
+    G()->td_db()->get_binlog_pmc()->force_sync(Promise<Unit>(), "disabled forum notification retirement");
+    delete_group(std::move(it));
+    return;
+  }
+  vector<NotificationId> removed;
+  auto collect = [&](const auto &notifications) {
+    for (auto &notification : notifications) {
+      if (!notification.type->is_temporary() &&
+          !it->second.forum_ledger->is_visible(notification.notification_id.get())) {
+        removed.push_back(notification.notification_id);
+      }
+    }
+  };
+  collect(it->second.notifications);
+  collect(it->second.pending_notifications);
+  for (auto id : removed) {
+    remove_notification(group_id, id, true, false, Promise<Unit>(), "forum notification ledger");
+  }
+  set_notification_total_count(group_id, 0);  // Managed groups derive the count; zero is not a clear.
+}
+
+void NotificationManager::retire_forum_notifications(DialogId dialog_id, NotificationGroupId group_id,
+                                                     ForumTopicId topic_id, MessageId max_message_id,
+                                                     NotificationId max_notification_id, bool clear_legacy) {
+  if (!group_id.is_valid()) {
+    return;
+  }
+  auto it = get_group_force(group_id, max_notification_group_count_ != 0);
+  if (it == groups_.end() || it->first.dialog_id != dialog_id || it->second.forum_ledger == nullptr) {
+    return;
+  }
+  auto &ledger = *it->second.forum_ledger;
+  ledger.retire_through(topic_id.get(), max(static_cast<int64>(0), max_message_id.get()), max_notification_id.get());
+  if (clear_legacy) {
+    ledger.clear_legacy_count();
+  }
+  reconcile_forum_notification_ledger(group_id);
+}
+
+void NotificationManager::retire_forum_message_notification(DialogId dialog_id, NotificationGroupId group_id,
+                                                            MessageId message_id) {
+  if (!group_id.is_valid()) {
+    return;
+  }
+  auto it = get_group_force(group_id, max_notification_group_count_ != 0);
+  if (it == groups_.end() || it->first.dialog_id != dialog_id || it->second.forum_ledger == nullptr) {
+    return;
+  }
+  apply_forum_notification_retirements(dialog_id, group_id, *it->second.forum_ledger);
+  it->second.forum_ledger->retire_message(message_id.get());
+  reconcile_forum_notification_ledger(group_id);
+}
+
+void NotificationManager::record_forum_message_deleted(DialogId dialog_id, NotificationGroupId group_id,
+                                                       MessageId message_id) {
+  if (!group_id.is_valid() || !message_id.is_valid()) {
+    return;
+  }
+  // Persist intent synchronously before MM can persist the channel PTS. The
+  // corresponding SQL deletion may be asynchronous and contain no file binlog.
+  G()->td_db()->get_binlog_pmc()->set(
+      PSTRING() << "forum_notification_deleted#" << group_id.get() << '/' << dialog_id.get() << '/' << message_id.get(),
+      "1");
+  send_closure_later(actor_id(this), &NotificationManager::retire_forum_message_notification, dialog_id, group_id,
+                     message_id);
+}
+
+void NotificationManager::apply_forum_notification_retirements(DialogId dialog_id, NotificationGroupId group_id,
+                                                               ForumNotificationLedger &ledger) {
+  auto prefix = PSTRING() << "forum_notification_deleted#" << group_id.get() << '/' << dialog_id.get() << '/';
+  auto store = G()->td_db()->get_binlog_pmc();
+  for (auto &entry : store->prefix_get(prefix)) {
+    auto message_id = to_integer_safe<int64>(entry.first);
+    if (message_id.is_error() || message_id.ok() <= 0 || entry.second != "1") {
+      LOG(ERROR) << "Invalid forum notification retirement intent";
+      continue;
+    }
+    ledger.retire_message(message_id.ok());
+    store->erase(prefix + entry.first);  // Membership/frontier writes precede removal of intent.
+  }
+}
+
+vector<ForumTopicId> NotificationManager::get_forum_notification_topics(NotificationGroupId group_id) {
+  vector<ForumTopicId> result;
+  auto it = get_group_force(group_id, max_notification_group_count_ != 0);
+  FlatHashSet<int32> seen;
+  if (it != groups_.end() && it->second.forum_ledger != nullptr) {
+    for (auto &entry : it->second.forum_ledger->members()) {
+      auto topic_id = ForumTopicId(entry.second.topic_id);
+      if (topic_id.is_valid() && seen.insert(topic_id.get()).second) {
+        result.push_back(topic_id);
+      }
+    }
+  }
+  return result;
 }
 
 int32 NotificationManager::load_message_notification_groups_from_database(int32 limit, bool send_update) {
@@ -591,7 +998,7 @@ void NotificationManager::load_notifications_from_database(const NotificationGro
       auto from_message_id = first_object_id.is_valid() ? MessageId(first_object_id.get()) : MessageId::max();
       send_closure(G()->messages_manager(), &MessagesManager::get_message_notifications_from_database,
                    group_key.dialog_id, group_key.group_id, from_notification_id, from_message_id,
-                   static_cast<int32>(limit), std::move(promise));
+                   static_cast<int32>(limit), std::move(promise), nullptr);
       break;
     }
     case NotificationGroupType::Calls:
@@ -607,6 +1014,9 @@ void NotificationManager::on_get_notifications_from_database(NotificationGroupId
   CHECK(group_it != groups_.end());
   auto &group = group_it->second;
   CHECK(group.is_being_loaded_from_database);
+  SCOPE_EXIT {
+    notify_forum_notification_restore_refill_finished(group_id);
+  };
   group.is_being_loaded_from_database = false;
 
   if (r_notifications.is_error()) {
@@ -648,9 +1058,13 @@ void NotificationManager::add_notifications_to_group_begin(NotificationGroups::i
                                                            vector<Notification> notifications) {
   CHECK(group_it != groups_.end());
 
-  td::remove_if(notifications, [td = td_, dialog_id = group_it->first.dialog_id](const Notification &notification) {
-    return notification.type->get_notification_type_object(td, dialog_id) == nullptr;
+  td::remove_if(notifications, [&](const Notification &notification) {
+    return notification.type->get_notification_type_object(td_, group_it->first.dialog_id) == nullptr ||
+           !restore_forum_notification(group_it->first, group_it->second, notification);
   });
+  if (group_it->second.forum_ledger != nullptr) {
+    group_it->second.total_count = get_forum_notification_total_count(group_it->second);
+  }
 
   if (notifications.empty()) {
     return;
@@ -822,6 +1236,7 @@ void NotificationManager::try_reuse_notification_group_id(NotificationGroupId gr
   }
 
   current_notification_group_id_ = NotificationGroupId(current_notification_group_id_.get() - 1);
+  ForumNotificationLedger::invalidate(G()->td_db()->get_binlog_pmc(), group_id.get()).ignore();
   G()->td_db()->get_binlog_pmc()->set("notification_group_id_current", to_string(current_notification_group_id_.get()));
 }
 
@@ -881,7 +1296,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
                                            DialogId dialog_id, int32 date, DialogId notification_settings_dialog_id,
                                            bool disable_notification, int64 ringtone_id, int32 min_delay_ms,
                                            NotificationId notification_id, unique_ptr<NotificationType> type,
-                                           const char *source) {
+                                           const char *source, ForumTopicId forum_topic_id) {
   if (is_disabled() || max_notification_group_count_ == 0) {
     on_notification_removed(notification_id);
     return;
@@ -910,6 +1325,10 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
   CHECK(group_it->second.type == group_type);
 
   NotificationGroup &group = group_it->second;
+  if (group.forum_accounting_failed) {
+    on_notification_removed(notification_id);
+    return;
+  }
   if (notification_id.get() <= get_last_notification_id(group).get()) {
     LOG(ERROR) << "Failed to add " << notification_id << " to " << group_id << " of type " << group_type << " in "
                << dialog_id << ", because have already added " << get_last_notification_id(group);
@@ -926,6 +1345,15 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
   }
   if (notification_settings_dialog_id != dialog_id) {
     td_->dialog_manager_->force_create_dialog(notification_settings_dialog_id, "add_notification", true);
+  }
+
+  if (group.forum_ledger != nullptr && !type->is_temporary()) {
+    // MM may already have applied a later forum-mode update while this mailbox
+    // entry is waiting. Keep the topic from the validated admission, not now.
+    if (!group.forum_ledger->admit(notification_id.get(), object_id.get(), forum_topic_id.get())) {
+      on_notification_removed(notification_id);
+      return;
+    }
   }
 
   PendingNotification notification;
@@ -1371,16 +1799,17 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
       std::sort(update_ptr->removed_notification_ids_.begin(), update_ptr->removed_notification_ids_.end());
     }
     VLOG(notifications) << "Send " << as_notification_update(update.get());
-    send_closure(G()->td(), &Td::send_update, std::move(update));
   }
-  on_delayed_notification_update_count_changed(-1, group_id, "flush_pending_updates");
 
   auto group_it = get_group_force(NotificationGroupId(group_id));
   CHECK(group_it != groups_.end());
   NotificationGroup &group = group_it->second;
+  vector<NotificationId> completed;
   for (auto &notification : group.notifications) {
-    on_notification_processed(notification.notification_id);
+    completed.push_back(notification.notification_id);
   }
+  deliver_notification_updates(std::move(updates), std::move(completed), group.forum_ledger != nullptr);
+  on_delayed_notification_update_count_changed(-1, group_id, "flush_pending_updates");
 }
 
 void NotificationManager::force_flush_pending_updates(NotificationGroupId group_id, const char *source) {
@@ -1443,9 +1872,15 @@ bool NotificationManager::do_flush_pending_notifications(NotificationGroupKey &g
     if (!notification.type->can_be_delayed()) {
       force_update = true;
     }
+    if (group.forum_ledger != nullptr && !notification.type->is_temporary()) {
+      group.forum_ledger->commit(notification.notification_id.get());
+    }
     group.notifications.push_back(std::move(notification));
   }
   group.total_count += narrow_cast<int32>(added_notifications.size());
+  if (group.forum_ledger != nullptr) {
+    group.total_count = get_forum_notification_total_count(group);
+  }
   if (added_notifications.size() > max_notification_group_size_) {
     added_notifications.erase(added_notifications.begin(), added_notifications.end() - max_notification_group_size_);
   }
@@ -1535,12 +1970,30 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
     return;
   }
 
-  td::remove_if(group_it->second.pending_notifications,
-                [td = td_, dialog_id = group_it->first.dialog_id](const PendingNotification &pending_notification) {
-                  return pending_notification.type->get_notification_type_object(td, dialog_id) == nullptr;
-                });
+  bool had_pending = !group_it->second.pending_notifications.empty();
+  td::remove_if(group_it->second.pending_notifications, [&](const PendingNotification &notification) {
+    auto invalid = notification.type->get_notification_type_object(td_, group_it->first.dialog_id) == nullptr;
+    auto &ledger = group_it->second.forum_ledger;
+    if (ledger != nullptr && !notification.type->is_temporary()) {
+      invalid = invalid || !ledger->is_visible(notification.notification_id.get());
+      if (invalid) {
+        ledger->retire(notification.notification_id.get());
+      }
+    }
+    if (invalid) {
+      on_notification_removed(notification.notification_id);
+    }
+    return invalid;
+  });
 
   if (group_it->second.pending_notifications.empty()) {
+    if (had_pending) {
+      group_it->second.pending_notifications_flush_time = 0;
+      if (!G()->close_flag()) {
+        flush_pending_notifications_timeout_.cancel_timeout(group_id.get(), "cancel invalid pending notifications");
+      }
+      on_delayed_notification_update_count_changed(-1, group_id.get(), "cancel invalid pending notifications");
+    }
     return;
   }
 
@@ -1572,8 +2025,14 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
                         << ", because of newer notification groups";
     group.total_count += narrow_cast<int32>(group.pending_notifications.size());
     for (auto &pending_notification : group.pending_notifications) {
+      if (group.forum_ledger != nullptr && !pending_notification.type->is_temporary()) {
+        group.forum_ledger->commit(pending_notification.notification_id.get());
+      }
       group.notifications.emplace_back(pending_notification.notification_id, pending_notification.date,
                                        pending_notification.disable_notification, std::move(pending_notification.type));
+    }
+    if (group.forum_ledger != nullptr) {
+      group.total_count = get_forum_notification_total_count(group);
     }
   } else {
     if (!was_updated) {
@@ -1901,6 +2360,21 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
     }
   }
 
+  if (group_it->second.forum_ledger != nullptr) {
+    promise = PromiseCreator::lambda([promise = std::move(promise)](Result<Unit> result) mutable {
+      if (result.is_error()) {
+        promise.set_error(result.move_as_error());
+      } else {
+        G()->td_db()->get_binlog_pmc()->force_sync(std::move(promise), "forum notification removal");
+      }
+    });
+    if (is_permanent) {
+      group_it->second.forum_ledger->retire(notification_id.get());
+    } else {
+      group_it->second.forum_ledger->dismiss(notification_id.get());
+    }
+  }
+
   for (auto it = group_it->second.pending_notifications.begin(); it != group_it->second.pending_notifications.end();
        ++it) {
     if (it->notification_id == notification_id) {
@@ -1931,7 +2405,8 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
 
   bool have_all_notifications = !is_partial_notification_group_type(group_it->second.type);
   bool is_total_count_changed = false;
-  if ((!have_all_notifications && is_permanent) || (have_all_notifications && is_found)) {
+  if (group_it->second.forum_ledger == nullptr &&
+      ((!have_all_notifications && is_permanent) || (have_all_notifications && is_found))) {
     if (group_it->second.total_count == 0) {
       LOG(ERROR) << "Total notification count became negative in " << group_it->second << " after removing "
                  << notification_id << " with is_permanent = " << is_permanent << ", is_found = " << is_found
@@ -1943,6 +2418,11 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
   }
   if (is_found) {
     group_it->second.notifications.erase(group_it->second.notifications.begin() + notification_pos);
+  }
+  if (group_it->second.forum_ledger != nullptr) {
+    auto total_count = get_forum_notification_total_count(group_it->second);
+    is_total_count_changed = total_count != group_it->second.total_count;
+    group_it->second.total_count = total_count;
   }
 
   vector<td_api::object_ptr<td_api::notification>> added_notifications;
@@ -1974,6 +2454,25 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
       });
 
   promise.set_value(Unit());
+}
+
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+void NotificationManager::remove_notification_if_present(NotificationGroupId group_id, NotificationId notification_id,
+                                                         const char *source) {
+  auto group_it = get_group(group_id);
+  if (group_it == groups_.end()) {
+    return;
+  }
+  auto has_id = [&](const auto &notifications) {
+    return std::any_of(notifications.begin(), notifications.end(), [notification_id](const auto &notification) {
+      return notification.notification_id == notification_id;
+    });
+  };
+  // Check at execution time: a queued pin/chat removal may have won the race.
+  // Removing an absent ID permanently would decrement a partial group's count again.
+  if (has_id(group_it->second.notifications) || has_id(group_it->second.pending_notifications)) {
+    remove_notification(group_id, notification_id, true, false, Promise<Unit>(), source);
+  }
 }
 
 void NotificationManager::remove_temporary_notification_by_object_id(NotificationGroupId group_id,
@@ -2034,6 +2533,25 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     return promise.set_value(Unit());
   }
 
+  if (group_it->second.forum_ledger != nullptr) {
+    auto &ledger = *group_it->second.forum_ledger;
+    promise = PromiseCreator::lambda([promise = std::move(promise)](Result<Unit> result) mutable {
+      if (result.is_error()) {
+        promise.set_error(result.move_as_error());
+      } else {
+        G()->td_db()->get_binlog_pmc()->force_sync(std::move(promise), "forum notification group removal");
+      }
+    });
+    if (max_notification_id.get() > current_notification_id_.get()) {
+      max_notification_id = current_notification_id_;
+    }
+    if (new_total_count == -1) {
+      ledger.dismiss_through(max_notification_id.get());
+    } else {
+      ledger.retire_through(0, max(static_cast<int64>(0), max_object_id.get()), max_notification_id.get());
+    }
+  }
+
   if (max_notification_id.is_valid()) {
     if (max_notification_id.get() > current_notification_id_.get()) {
       max_notification_id = current_notification_id_;
@@ -2074,7 +2592,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
       on_delayed_notification_update_count_changed(-1, group_id.get(), "remove_notification_group");
     }
   }
-  if (new_total_count != -1) {
+  if (new_total_count != -1 && group_it->second.forum_ledger == nullptr) {
     new_total_count += get_temporary_notification_total_count(group_it->second);
     new_total_count -= static_cast<int32>(group_it->second.pending_notifications.size());
     if (new_total_count < 0) {
@@ -2113,6 +2631,9 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   }
   if (!is_partial_notification_group_type(group_it->second.type)) {
     new_total_count = static_cast<int32>(group_it->second.notifications.size());
+  }
+  if (group_it->second.forum_ledger != nullptr) {
+    new_total_count = get_forum_notification_total_count(group_it->second);
   }
   if (group_it->second.total_count == new_total_count) {
     new_total_count = -1;
@@ -2287,9 +2808,17 @@ void NotificationManager::set_notification_total_count(NotificationGroupId group
     VLOG(notifications) << "Can't find " << group_id;
     return;
   }
+  if (group_it->second.forum_accounting_failed) {
+    return;
+  }
 
-  new_total_count += get_temporary_notification_total_count(group_it->second);
-  new_total_count -= static_cast<int32>(group_it->second.pending_notifications.size());
+  if (group_it->second.forum_ledger != nullptr) {
+    // No raw chat unread writer may replace admitted notification membership.
+    new_total_count = get_forum_notification_total_count(group_it->second);
+  } else {
+    new_total_count += get_temporary_notification_total_count(group_it->second);
+    new_total_count -= static_cast<int32>(group_it->second.pending_notifications.size());
+  }
   if (new_total_count < 0) {
     LOG(ERROR) << "Have wrong new_total_count " << new_total_count << " after removing "
                << group_it->second.pending_notifications.size() << " pending notifications";
@@ -2609,7 +3138,9 @@ void NotificationManager::on_notification_group_size_max_changed() {
             td_->dialog_manager_->get_chat_id_object(group_key.dialog_id, "updateNotificationGroup 9"), 0,
             group.total_count, std::move(added_notifications), std::move(removed_notification_ids));
         VLOG(notifications) << "Send " << as_notification_update(update.get());
-        send_closure(G()->td(), &Td::send_update, std::move(update));
+        vector<td_api::object_ptr<td_api::Update>> updates;
+        updates.push_back(std::move(update));
+        deliver_notification_updates(std::move(updates), {}, group.forum_ledger != nullptr);
       }
     }
   }
@@ -4091,6 +4622,15 @@ void NotificationManager::after_get_difference_impl() {
   flush_all_pending_updates(false, "after_get_difference");
 }
 
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+void NotificationManager::on_pending_settings_query_count_changed(int32 diff) {
+  CHECK(diff == 1 || diff == -1);
+  if (is_being_destroyed_ || is_destroyed_) {
+    return;
+  }
+  on_unreceived_notification_update_count_changed(diff, 0, "forum topic notification settings");
+}
+
 void NotificationManager::before_get_chat_difference(NotificationGroupId group_id) {
   if (is_disabled()) {
     return;
@@ -4235,11 +4775,15 @@ void NotificationManager::try_send_update_active_notifications() {
 
   auto update = get_update_active_notifications();
   VLOG(notifications) << "Send " << as_active_notifications_update(update.get());
-  send_closure(G()->td(), &Td::send_update, std::move(update));
-
-  while (!push_notification_promises_.empty()) {
-    on_notification_processed(push_notification_promises_.begin()->first);
+  bool needs_sync = std::any_of(groups_.begin(), groups_.end(),
+                                [](const auto &entry) { return entry.second.forum_ledger != nullptr; });
+  vector<NotificationId> completed;
+  for (auto &entry : push_notification_promises_) {
+    completed.push_back(entry.first);
   }
+  vector<td_api::object_ptr<td_api::Update>> updates;
+  updates.push_back(std::move(update));
+  deliver_notification_updates(std::move(updates), std::move(completed), needs_sync);
 }
 
 void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
@@ -4296,6 +4840,200 @@ void NotificationManager::on_binlog_events(vector<BinlogEvent> &&events) {
   is_binlog_processed_ = true;
   try_send_update_active_notifications();
   VLOG(notifications) << "Finish processing binlog events";
+}
+
+// LLM-assisted: GPT-5 (Codex; exact runtime version unavailable).
+
+void NotificationManager::recover_existing_notification_id(NotificationId notification_id) {
+  if (notification_id.is_valid() && notification_id.get() > current_notification_id_.get()) {
+    current_notification_id_ = notification_id;
+    G()->td_db()->get_binlog_pmc()->set("notification_id_current", to_string(current_notification_id_.get()));
+  }
+}
+
+void NotificationManager::notify_forum_notification_restore_refill_finished(NotificationGroupId group_id) {
+  auto it = forum_notification_restore_waiters_.find(group_id);
+  if (it == forum_notification_restore_waiters_.end()) {
+    return;
+  }
+  auto waiters = std::move(it->second);
+  forum_notification_restore_waiters_.erase(it);
+  for (const auto &waiter : waiters) {
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_forum_notification_restore_refill_finished,
+                       waiter.topic_id, waiter.generation);
+  }
+}
+
+void NotificationManager::cancel_forum_notification_restore_waiters(ForumTopicFullId topic_id, uint64 generation) {
+  vector<NotificationGroupId> empty_groups;
+  for (auto &entry : forum_notification_restore_waiters_) {
+    td::remove_if(entry.second, [&](const ForumNotificationRestoreWaiter &waiter) {
+      return waiter.topic_id == topic_id && waiter.generation == generation;
+    });
+    if (entry.second.empty()) {
+      empty_groups.push_back(entry.first);
+    }
+  }
+  for (auto group_id : empty_groups) {
+    forum_notification_restore_waiters_.erase(group_id);
+  }
+}
+
+NotificationManager::ExistingNotificationRestoreResult NotificationManager::restore_existing_forum_notification(
+    DialogId dialog_id, NotificationGroupId group_id, NotificationGroupType group_type, Notification notification,
+    ForumTopicFullId topic_id, uint64 generation) {
+  using RestoreResult = ExistingNotificationRestoreResult;
+  if (G()->close_flag() || is_disabled() || is_being_destroyed_ || is_destroyed_ ||
+      max_notification_group_count_ == 0 || max_notification_group_size_ == 0 ||
+      !notification.notification_id.is_valid() || notification.date <= 0 || notification.type == nullptr ||
+      notification.type->is_temporary() || generation == 0 || topic_id.get_dialog_id() != dialog_id ||
+      (group_type != NotificationGroupType::Messages && group_type != NotificationGroupType::Mentions)) {
+    return RestoreResult::Skipped;
+  }
+  // Do not resurrect a deleted/reused group. The original restoration created it before our callback.
+  auto group_it = get_group(group_id);
+  if (group_it == groups_.end() || group_it->first.dialog_id != dialog_id || group_it->second.type != group_type) {
+    return RestoreResult::Skipped;
+  }
+  auto object_id = notification.type->get_object_id();
+  if (!object_id.is_valid()) {
+    return RestoreResult::Skipped;
+  }
+  recover_existing_notification_id(notification.notification_id);
+  auto &group = group_it->second;
+  for (const auto &current : group.notifications) {
+    if (current.notification_id == notification.notification_id || current.type->get_object_id() == object_id) {
+      return current.notification_id == notification.notification_id && current.type->get_object_id() == object_id
+                 ? RestoreResult::AlreadyPresent
+                 : RestoreResult::Skipped;
+    }
+  }
+  for (const auto &current : group.pending_notifications) {
+    if (current.notification_id == notification.notification_id || current.type->get_object_id() == object_id) {
+      return current.notification_id == notification.notification_id && current.type->get_object_id() == object_id
+                 ? RestoreResult::AlreadyPresent
+                 : RestoreResult::Skipped;
+    }
+  }
+  // The production DB callback filters against CURRENT first IDs. Never move that
+  // boundary while a request is in flight. Register + report wait atomically here.
+  if (group.is_being_loaded_from_database) {
+    auto &waiters = forum_notification_restore_waiters_[group_id];
+    bool found = false;
+    for (const auto &waiter : waiters) {
+      if (waiter.topic_id == topic_id && waiter.generation == generation) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      waiters.push_back({topic_id, generation});
+    }
+    return RestoreResult::WaitingForDatabase;
+  }
+  if (!group.pending_notifications.empty() &&
+      (notification.notification_id.get() >= group.pending_notifications.front().notification_id.get() ||
+       !(object_id < group.pending_notifications.front().type->get_object_id()))) {
+    return RestoreResult::Skipped;
+  }
+  if (notification.type->get_notification_type_object(td_, dialog_id) == nullptr) {
+    return RestoreResult::Skipped;
+  }
+  if (!restore_forum_notification(group_it->first, group, notification)) {
+    return RestoreResult::Skipped;
+  }
+  auto visible_groups = [&]() {
+    vector<NotificationGroupId> result;
+    for (const auto &entry : groups_) {
+      if (result.size() == max_notification_group_count_ || entry.first.last_notification_date == 0) {
+        break;
+      }
+      result.push_back(entry.first.group_id);
+    }
+    return result;
+  };
+  auto visible_ids = [&](const NotificationGroup &value) {
+    vector<int32> result;
+    auto count = td::min(value.notifications.size(), max_notification_group_size_);
+    for (size_t i = value.notifications.size() - count; i < value.notifications.size(); i++) {
+      result.push_back(value.notifications[i].notification_id.get());
+    }
+    return result;
+  };
+  auto old_visible_groups = visible_groups();
+  auto old_visible_ids = visible_ids(group);
+  auto pos = std::lower_bound(
+      group.notifications.begin(), group.notifications.end(), notification.notification_id,
+      [](const Notification &value, NotificationId id) { return value.notification_id.get() < id.get(); });
+  if ((pos != group.notifications.end() && !(object_id < pos->type->get_object_id())) ||
+      (pos != group.notifications.begin() && !((pos - 1)->type->get_object_id() < object_id))) {
+    return RestoreResult::Skipped;
+  }
+  group.notifications.insert(pos, std::move(notification));
+  if (group.forum_ledger != nullptr) {
+    group.total_count = get_forum_notification_total_count(group);
+  }
+  // Restoration is not a new admission. Only a recoverable pre-crash pending
+  // member can become committed here; existing committed membership is neutral.
+  if (group.notifications.size() > keep_notification_group_size_) {
+    auto erase_end = group.notifications.end() - keep_notification_group_size_;
+    for (auto it = group.notifications.begin(); it != erase_end; ++it) {
+      on_notification_removed(it->notification_id);
+    }
+    group.notifications.erase(group.notifications.begin(), erase_end);
+    group.is_loaded_from_database = false;
+  }
+  auto final_key = group_it->first;
+  final_key.last_notification_date = 0;
+  for (const auto &current : group.notifications) {
+    final_key.last_notification_date = td::max(final_key.last_notification_date, current.date);
+  }
+  auto moved_group = std::move(group);
+  delete_group(std::move(group_it));
+  group_it = add_group(std::move(final_key), std::move(moved_group), "restore_existing_forum_notification");
+  auto new_visible_groups = visible_groups();
+  for (auto id : old_visible_groups) {
+    if (!td::contains(new_visible_groups, id)) {
+      auto it = get_group(id);
+      CHECK(it != groups_.end());
+      send_remove_group_update(it->first, it->second, vector<int32>());
+    }
+  }
+  for (auto id : new_visible_groups) {
+    if (!td::contains(old_visible_groups, id)) {
+      auto it = get_group(id);
+      CHECK(it != groups_.end());
+      send_add_group_update(it->first, it->second, "restore_existing_forum_notification");
+    }
+  }
+  if (td::contains(old_visible_groups, group_id) && td::contains(new_visible_groups, group_id)) {
+    auto &updated = group_it->second;
+    auto new_visible_ids = visible_ids(updated);
+    vector<int32> removed_ids;
+    vector<td_api::object_ptr<td_api::notification>> added;
+    for (auto id : old_visible_ids) {
+      if (!td::contains(new_visible_ids, id)) {
+        removed_ids.push_back(id);
+      }
+    }
+    auto count = td::min(updated.notifications.size(), max_notification_group_size_);
+    for (size_t i = updated.notifications.size() - count; i < updated.notifications.size(); i++) {
+      const auto &current = updated.notifications[i];
+      if (!td::contains(old_visible_ids, current.notification_id.get())) {
+        auto object = get_notification_object(td_, dialog_id, current);
+        if (object->type_ != nullptr) {
+          added.push_back(std::move(object));
+        }
+      }
+    }
+    if (!added.empty() || !removed_ids.empty()) {
+      add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
+          group_id.get(), get_notification_group_type_object(updated.type),
+          td_->dialog_manager_->get_chat_id_object(dialog_id, "restore_existing_forum_notification"), 0, 0,
+          updated.total_count, std::move(added), std::move(removed_ids)));
+    }
+  }
+  return RestoreResult::Restored;
 }
 
 }  // namespace td

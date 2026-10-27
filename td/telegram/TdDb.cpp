@@ -440,6 +440,8 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
 
   if (was_dialog_db_created_) {
     binlog_pmc.erase_by_prefix("pinned_dialog_ids");
+    binlog_pmc.erase_by_prefix("forum_notification_ledger#");
+    binlog_pmc.erase_by_prefix("forum_notification_deleted#");
     binlog_pmc.erase_by_prefix("last_server_dialog_date");
     binlog_pmc.erase_by_prefix("unread_message_count");
     binlog_pmc.erase_by_prefix("unread_dialog_count");
@@ -458,6 +460,10 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
     binlog_pmc.erase("old_featured_sticker_set_count");
     binlog_pmc.erase("invalidate_old_featured_sticker_sets");
     binlog_pmc.erase(AttachMenuManager::get_attach_menu_bots_database_key());
+  }
+  if (!use_message_database) {
+    binlog_pmc.erase_by_prefix("forum_notification_ledger#");
+    binlog_pmc.erase_by_prefix("forum_notification_deleted#");
   }
   binlog_pmc.force_sync(Auto(), "init_sqlite");
 
