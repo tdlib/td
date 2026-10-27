@@ -8753,6 +8753,13 @@ void Requests::on_request(uint64 id, td_api::answerCallbackQuery &request) {
                                                         request.url_, request.cache_time_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::answerWidgetQuery &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.data_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->widget_manager_->answer_widget_query(request.widget_query_id_, request.data_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::answerShippingQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.error_message_);

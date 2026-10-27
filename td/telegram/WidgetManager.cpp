@@ -62,6 +62,36 @@ class GetBotWidgetQueryAnswerQuery final : public Td::ResultHandler {
   }
 };
 
+class SetBotWidgetQueryAnswerQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetBotWidgetQueryAnswerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int64 widget_query_id, const string &data) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_setBotWidgetQueryAnswer(0, widget_query_id, data)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_setBotWidgetQueryAnswer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    if (!result) {
+      LOG(INFO) << "Sending answer to a widget query has failed";
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetWidgetPublicDataQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::widgetPublicData>> promise_;
   DialogId dialog_id_;
@@ -124,6 +154,10 @@ void WidgetManager::send_widget_query(MessageFullId message_full_id, string &&da
   }
 
   td_->create_handler<GetBotWidgetQueryAnswerQuery>(std::move(promise))->send(dialog_id, message_id, data);
+}
+
+void WidgetManager::answer_widget_query(int64 widget_query_id, const string &data, Promise<Unit> &&promise) {
+  td_->create_handler<SetBotWidgetQueryAnswerQuery>(std::move(promise))->send(widget_query_id, data);
 }
 
 void WidgetManager::get_widget_public_data(MessageFullId message_full_id,

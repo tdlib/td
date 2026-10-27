@@ -14146,6 +14146,11 @@ getCallbackQueryAnswer chat_id:int53 message_id:int53 payload:CallbackQueryPaylo
 //@cache_time Time during which the result of the query can be cached, in seconds
 answerCallbackQuery callback_query_id:int64 text:string show_alert:Bool url:string cache_time:int32 = Ok;
 
+//@description Sets the result of a widget query; for bots only
+//@widget_query_id Identifier of the widget query
+//@data Data to be returned to the widget
+answerWidgetQuery widget_query_id:int64 data:string = Ok;
+
 
 //@description Sends a widget query to a bot and returns an answer. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires
 //@chat_id Identifier of the chat with the message

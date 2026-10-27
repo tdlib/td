@@ -7119,6 +7119,11 @@ class CliClient final : public Actor {
       get_args(args, callback_query_id, text);
       send_request(
           td_api::make_object<td_api::answerCallbackQuery>(callback_query_id, text, op == "acqa", string(), 0));
+    } else if (op == "awq") {
+      int64 widget_query_id;
+      string data;
+      get_args(args, widget_query_id, data);
+      send_request(td_api::make_object<td_api::answerWidgetQuery>(widget_query_id, data));
     } else {
       op_not_found_count++;
     }

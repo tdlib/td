@@ -1902,6 +1902,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::answerCallbackQuery &request);
 
+  void on_request(uint64 id, td_api::answerWidgetQuery &request);
+
   void on_request(uint64 id, td_api::answerShippingQuery &request);
 
   void on_request(uint64 id, td_api::answerPreCheckoutQuery &request);

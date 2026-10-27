@@ -31,6 +31,8 @@ class WidgetManager final : public Actor {
   void send_widget_query(MessageFullId message_full_id, string &&data,
                          Promise<td_api::object_ptr<td_api::widgetQueryAnswer>> &&promise);
 
+  void answer_widget_query(int64 widget_query_id, const string &data, Promise<Unit> &&promise);
+
   void get_widget_public_data(MessageFullId message_full_id,
                               Promise<td_api::object_ptr<td_api::widgetPublicData>> &&promise);
 
