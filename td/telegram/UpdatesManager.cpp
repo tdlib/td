@@ -101,6 +101,7 @@
 #include "td/telegram/WebBrowserManager.h"
 #include "td/telegram/WebPagesManager.h"
 #include "td/telegram/WelcomeMessageManager.h"
+#include "td/telegram/WidgetManager.h"
 
 #include "td/actor/MultiPromise.h"
 #include "td/actor/PromiseFuture.h"
@@ -5202,6 +5203,27 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebBrowserExcep
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotWidgetQuery> update, Promise<Unit> &&promise) {
+  td_->widget_manager_->on_new_widget_query(update->query_id_, UserId(update->user_id_), DialogId(update->peer_),
+                                            MessageId(ServerMessageId(update->msg_id_)), std::move(update->data_),
+                                            update->chat_instance_, std::move(update->chat_type_), update->widget_id_);
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateInlineBotWidgetQuery> update,
+                               Promise<Unit> &&promise) {
+  td_->widget_manager_->on_new_inline_widget_query(
+      update->query_id_, UserId(update->user_id_), std::move(update->inline_message_id_), std::move(update->data_),
+      update->chat_instance_, std::move(update->chat_type_), update->widget_id_);
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotWidgetCopyQuery> update, Promise<Unit> &&promise) {
+  td_->widget_manager_->on_new_widget_copy_query(update->query_id_, UserId(update->user_id_), std::move(update->data_),
+                                                 update->widget_id_);
+  promise.set_value(Unit());
+}
+
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
@@ -5214,19 +5236,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditForumTopic> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotWidgetQuery> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateInlineBotWidgetQuery> update,
-                               Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotWidgetCopyQuery> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

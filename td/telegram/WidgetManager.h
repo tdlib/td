@@ -6,12 +6,16 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
 
@@ -30,6 +34,15 @@ class WidgetManager final : public Actor {
 
   void send_widget_query(MessageFullId message_full_id, string &&data,
                          Promise<td_api::object_ptr<td_api::widgetQueryAnswer>> &&promise);
+
+  void on_new_widget_query(int64 widget_query_id, UserId sender_user_id, DialogId dialog_id, MessageId message_id,
+                           BufferSlice &&data, int64 chat_instance, string &&chat_type, int64 widget_id);
+
+  void on_new_inline_widget_query(int64 widget_query_id, UserId sender_user_id,
+                                  telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id,
+                                  BufferSlice &&data, int64 chat_instance, string &&chat_type, int64 widget_id);
+
+  void on_new_widget_copy_query(int64 widget_query_id, UserId sender_user_id, BufferSlice &&data, int64 widget_id);
 
   void answer_widget_query(int64 widget_query_id, const string &data, Promise<Unit> &&promise);
 

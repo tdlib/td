@@ -12065,6 +12065,34 @@ updateNewInlineCallbackQuery id:int64 sender_user_id:int53 inline_message_id:str
 //@payload Query payload
 updateNewBusinessCallbackQuery id:int64 sender_user_id:int53 connection_id:string message:businessMessage chat_instance:int64 payload:CallbackQueryPayload = Update;
 
+//@description A new incoming widget query; for bots only
+//@id Unique query identifier
+//@sender_user_id Identifier of the user who sent the query
+//@chat_id Identifier of the chat where the query was sent
+//@message_id Identifier of the message from which the query originated
+//@chat_instance Identifier that uniquely corresponds to the chat to which the message was sent
+//@chat_type Type of the chat to which the message was sent
+//@data Data of the query
+//@widget_id Identifier of the shared widget from which the query originated; 0 if the widget isn't shared
+updateNewWidgetQuery id:int64 sender_user_id:int53 chat_id:int53 message_id:int53 chat_instance:int64 chat_type:string data:bytes widget_id:int64 = Update;
+
+//@description A new incoming widget query from a message sent via a bot; for bots only
+//@id Unique query identifier
+//@sender_user_id Identifier of the user who sent the query
+//@inline_message_id Identifier of the inline message from which the query originated
+//@chat_instance Identifier that uniquely corresponds to the chat to which the message was sent
+//@chat_type Type of the chat to which the message was sent
+//@data Data of the query
+//@widget_id Identifier of the shared widget from which the query originated; 0 if the widget isn't shared
+updateNewInlineWidgetQuery id:int64 sender_user_id:int53 inline_message_id:string chat_instance:int64 chat_type:string data:bytes widget_id:int64 = Update;
+
+//@description A new incoming widget query from a copy of a shared widget; for bots only
+//@id Unique query identifier
+//@sender_user_id Identifier of the user who sent the query
+//@data Data of the query
+//@widget_id Identifier of the shared widget from which the query originated
+updateNewWidgetCopyQuery id:int64 sender_user_id:int53 data:bytes widget_id:int64 = Update;
+
 //@description A new incoming shipping query; for bots only. Only for invoices with flexible price
 //@id Unique query identifier
 //@sender_user_id Identifier of the user who sent the query

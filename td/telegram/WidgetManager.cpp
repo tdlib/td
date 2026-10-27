@@ -7,11 +7,15 @@
 #include "td/telegram/WidgetManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -154,6 +158,77 @@ void WidgetManager::send_widget_query(MessageFullId message_full_id, string &&da
   }
 
   td_->create_handler<GetBotWidgetQueryAnswerQuery>(std::move(promise))->send(dialog_id, message_id, data);
+}
+
+void WidgetManager::on_new_widget_query(int64 widget_query_id, UserId sender_user_id, DialogId dialog_id,
+                                        MessageId message_id, BufferSlice &&data, int64 chat_instance,
+                                        string &&chat_type, int64 widget_id) {
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive new widget query in invalid " << dialog_id;
+    return;
+  }
+  if (!sender_user_id.is_valid()) {
+    LOG(ERROR) << "Receive new widget query from invalid " << sender_user_id << " in " << dialog_id;
+    return;
+  }
+  LOG_IF(ERROR, !td_->user_manager_->have_min_user(sender_user_id)) << "Receive unknown " << sender_user_id;
+  if (!td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive new widget query";
+    return;
+  }
+  if (!message_id.is_valid()) {
+    LOG(ERROR) << "Receive new widget query from " << message_id << " in " << dialog_id << " sent by "
+               << sender_user_id;
+    return;
+  }
+
+  td_->dialog_manager_->force_create_dialog(dialog_id, "on_new_widget_query", true);
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateNewWidgetQuery>(
+                   widget_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewWidgetQuery"),
+                   td_->dialog_manager_->get_chat_id_object(dialog_id, "updateNewWidgetQuery"), message_id.get(),
+                   chat_instance, std::move(chat_type), data.as_slice().str(), widget_id));
+}
+
+void WidgetManager::on_new_inline_widget_query(
+    int64 widget_query_id, UserId sender_user_id,
+    telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id, BufferSlice &&data,
+    int64 chat_instance, string &&chat_type, int64 widget_id) {
+  if (!sender_user_id.is_valid()) {
+    LOG(ERROR) << "Receive new inline widget query from invalid " << sender_user_id;
+    return;
+  }
+  LOG_IF(ERROR, !td_->user_manager_->have_min_user(sender_user_id)) << "Receive unknown " << sender_user_id;
+  if (!td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive new inline widget query";
+    return;
+  }
+  CHECK(inline_message_id != nullptr);
+
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateNewInlineWidgetQuery>(
+          widget_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewInlineWidgetQuery"),
+          InlineQueriesManager::get_inline_message_id(std::move(inline_message_id)), chat_instance,
+          std::move(chat_type), data.as_slice().str(), widget_id));
+}
+
+void WidgetManager::on_new_widget_copy_query(int64 widget_query_id, UserId sender_user_id, BufferSlice &&data,
+                                             int64 widget_id) {
+  if (!sender_user_id.is_valid()) {
+    LOG(ERROR) << "Receive new widget copy query from invalid " << sender_user_id;
+    return;
+  }
+  LOG_IF(ERROR, !td_->user_manager_->have_min_user(sender_user_id)) << "Receive unknown " << sender_user_id;
+  if (!td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive new widget copy query";
+    return;
+  }
+
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateNewWidgetCopyQuery>(
+                   widget_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewWidgetCopyQuery"),
+                   data.as_slice().str(), widget_id));
 }
 
 void WidgetManager::answer_widget_query(int64 widget_query_id, const string &data, Promise<Unit> &&promise) {
