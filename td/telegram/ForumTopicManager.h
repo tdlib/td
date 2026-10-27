@@ -200,6 +200,8 @@ class ForumTopicManager final : public Actor {
     MessageId sent_read_inbox_message_id_;  // for topics, which aren't loaded yet
     int64 pinned_order_ = 0;
     int64 private_order_ = 0;
+    bool is_database_checked_ = false;  // whether the topic was looked for in the database before a reload
+    bool is_loading_from_database_ = false;
     mutable bool need_save_to_database_ = true;
 
     template <class StorerT>
@@ -218,6 +220,9 @@ class ForumTopicManager final : public Actor {
 
     uint32 generation_ = 0;
     bool is_database_loaded_ = false;
+    // the list is loaded up to the nearer of the ends of the parts read from the database and from the server
+    OrderedTopics<ForumTopicId>::TopicDate last_database_topic_date_ = OrderedTopics<ForumTopicId>::max_topic_date();
+    OrderedTopics<ForumTopicId>::TopicDate last_server_topic_date_ = OrderedTopics<ForumTopicId>::min_topic_date();
     vector<Promise<Unit>> load_queries_;
     int32 offset_date_ = 0;
     MessageId offset_message_id_;
@@ -323,12 +328,31 @@ class ForumTopicManager final : public Actor {
 
   void load_forum_topics_from_server(DialogId dialog_id, DialogTopics *dialog_topics, int32 limit);
 
-  bool load_forum_topics_from_database(DialogId dialog_id, DialogTopics *dialog_topics);
+  bool load_forum_topics_from_database(DialogId dialog_id, DialogTopics *dialog_topics, int32 limit);
 
-  void on_load_forum_topics_from_database(DialogId dialog_id, uint32 generation, string state,
+  void on_load_forum_topics_from_database(DialogId dialog_id, uint32 generation, string state, int32 limit,
                                           Result<MessageThreadDbMessageThreads> result);
 
-  void add_topic_from_database(DialogId dialog_id, DialogTopics *dialog_topics, BufferSlice data);
+  void load_more_forum_topics_from_database(DialogId dialog_id, DialogTopics *dialog_topics, int32 limit);
+
+  void on_load_more_forum_topics_from_database(DialogId dialog_id, uint32 generation, int32 limit,
+                                               Result<MessageThreadDbMessageThreads> result);
+
+  void add_topics_from_database(DialogId dialog_id, DialogTopics *dialog_topics, int32 limit,
+                                MessageThreadDbMessageThreads &&message_threads);
+
+  void on_get_topic_from_database(DialogId dialog_id, uint32 generation, ForumTopicId forum_topic_id,
+                                  Result<BufferSlice> result);
+
+  static unique_ptr<Topic> parse_topic(DialogId dialog_id, BufferSlice data);
+
+  ForumTopicId add_topic_from_database(DialogId dialog_id, DialogTopics *dialog_topics, unique_ptr<Topic> saved_topic);
+
+  void update_last_topic_date(DialogId dialog_id, DialogTopics *dialog_topics);
+
+  void apply_pending_pinned_forum_topics(DialogId dialog_id, DialogTopics *dialog_topics);
+
+  static void apply_sent_read_inbox_message_id(Topic *topic);
 
   void on_load_forum_topics(DialogId dialog_id, uint32 generation,
                             Result<td_api::object_ptr<td_api::forumTopics>> &&result);
