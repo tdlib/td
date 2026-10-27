@@ -145,6 +145,37 @@ class EditMessageWidgetDataQuery final : public Td::ResultHandler {
   }
 };
 
+class EditWidgetDataQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit EditWidgetDataQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int64 widget_id, const string &public_data, int32 cache_time) {
+    int32 flags = 0;
+    if (cache_time > 0) {
+      flags |= telegram_api::messages_editWidgetData::CACHE_TIME_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_editWidgetData(flags, widget_id, public_data, cache_time)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_editWidgetData>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG_IF(ERROR, !result_ptr.ok()) << "Receive false in result of editWidgetData";
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetWidgetPublicDataQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::widgetPublicData>> promise_;
   DialogId dialog_id_;
@@ -305,6 +336,18 @@ void WidgetManager::edit_message_widget_data(MessageFullId message_full_id, bool
 
   td_->create_handler<EditMessageWidgetDataQuery>(std::move(promise))
       ->send(dialog_id, message_id, edit_public_data, public_data, edit_chat_data, chat_data);
+}
+
+void WidgetManager::edit_widget_data(int64 widget_id, const string &public_data, int32 cache_time,
+                                     Promise<Unit> &&promise) {
+  if (widget_id == 0) {
+    return promise.set_error(400, "Invalid widget identifier specified");
+  }
+  if (cache_time != 0 && (cache_time < 5 || cache_time > 3600)) {
+    return promise.set_error(400, "Invalid cache time specified");
+  }
+
+  td_->create_handler<EditWidgetDataQuery>(std::move(promise))->send(widget_id, public_data, cache_time);
 }
 
 void WidgetManager::get_widget_public_data(MessageFullId message_full_id,

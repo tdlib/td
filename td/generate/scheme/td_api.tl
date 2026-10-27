@@ -13406,6 +13406,12 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 //@chat_data New data of the widget, which is specific to the chat; ignored if edit_chat_data is false
 editInlineMessageWidgetData inline_message_id:string edit_public_data:Bool public_data:string edit_chat_data:Bool chat_data:string = Ok;
 
+//@description Edits public data of a shared widget created by the bot; for bots only
+//@widget_id Identifier of the shared widget
+//@public_data New public data of the widget
+//@cache_time Time during which the public data can be cached, in seconds; 5-3600. Pass 0 to keep the current value, which is 30 by default
+editWidgetData widget_id:int64 public_data:string cache_time:int32 = Ok;
+
 //@description Edits the text, media, or reply markup of an ephemeral message sent by the bot; for bots only
 //@chat_id The chat the message belongs to
 //@receiver_user_id Identifier of the user who received the message

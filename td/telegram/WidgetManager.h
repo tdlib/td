@@ -49,6 +49,8 @@ class WidgetManager final : public Actor {
   void edit_message_widget_data(MessageFullId message_full_id, bool edit_public_data, const string &public_data,
                                 bool edit_chat_data, const string &chat_data, Promise<Unit> &&promise);
 
+  void edit_widget_data(int64 widget_id, const string &public_data, int32 cache_time, Promise<Unit> &&promise);
+
   void get_widget_public_data(MessageFullId message_full_id,
                               Promise<td_api::object_ptr<td_api::widgetPublicData>> &&promise);
 

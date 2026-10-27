@@ -4439,6 +4439,14 @@ void Requests::on_request(uint64 id, td_api::editInlineMessageWidgetData &reques
                                                                 request.chat_data_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::editWidgetData &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.public_data_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->widget_manager_->edit_widget_data(request.widget_id_, request.public_data_, request.cache_time_,
+                                         std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::editEphemeralMessage &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();

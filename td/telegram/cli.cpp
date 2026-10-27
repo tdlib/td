@@ -6804,6 +6804,12 @@ class CliClient final : public Actor {
       }
       send_request(td_api::make_object<td_api::editInlineMessageWidgetData>(inline_message_id, op != "eimwdc",
                                                                             public_data, op != "eimwdp", chat_data));
+    } else if (op == "ewd") {
+      int64 widget_id;
+      string public_data;
+      int32 cache_time;
+      get_args(args, widget_id, public_data, cache_time);
+      send_request(td_api::make_object<td_api::editWidgetData>(widget_id, public_data, cache_time));
     } else if (op == "eqrm" || op == "eqrrm") {
       ShortcutId shortcut_id;
       MessageId message_id;
