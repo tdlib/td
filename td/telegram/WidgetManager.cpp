@@ -62,6 +62,44 @@ class GetBotWidgetQueryAnswerQuery final : public Td::ResultHandler {
   }
 };
 
+class GetWidgetPublicDataQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::widgetPublicData>> promise_;
+  DialogId dialog_id_;
+  MessageId message_id_;
+
+ public:
+  explicit GetWidgetPublicDataQuery(Promise<td_api::object_ptr<td_api::widgetPublicData>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id, int64 hash) {
+    dialog_id_ = dialog_id;
+    message_id_ = message_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_getWidgetPublicData(
+        std::move(input_peer), message_id.get_server_message_id().get(), hash)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getWidgetPublicData>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetWidgetPublicDataQuery: " << to_string(ptr);
+    td_->widget_manager_->on_get_widget_public_data({dialog_id_, message_id_}, std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "GetWidgetPublicDataQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 WidgetManager::WidgetManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -86,6 +124,44 @@ void WidgetManager::send_widget_query(MessageFullId message_full_id, string &&da
   }
 
   td_->create_handler<GetBotWidgetQueryAnswerQuery>(std::move(promise))->send(dialog_id, message_id, data);
+}
+
+void WidgetManager::get_widget_public_data(MessageFullId message_full_id,
+                                           Promise<td_api::object_ptr<td_api::widgetPublicData>> &&promise) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "get_widget_public_data"));
+
+  TRY_RESULT_PROMISE(promise, public_data, td_->messages_manager_->get_message_widget_public_data(message_full_id));
+  auto message_id = message_full_id.get_message_id();
+  if (!message_id.is_server()) {
+    return promise.set_error(400, "Wrong message identifier");
+  }
+
+  td_->create_handler<GetWidgetPublicDataQuery>(std::move(promise))->send(dialog_id, message_id, public_data.second);
+}
+
+void WidgetManager::on_get_widget_public_data(
+    MessageFullId message_full_id, telegram_api::object_ptr<telegram_api::messages_WidgetPublicData> &&public_data,
+    Promise<td_api::object_ptr<td_api::widgetPublicData>> &&promise) {
+  CHECK(public_data != nullptr);
+  switch (public_data->get_id()) {
+    case telegram_api::messages_widgetPublicDataNotModified::ID: {
+      auto period = static_cast<const telegram_api::messages_widgetPublicDataNotModified *>(public_data.get())->period_;
+      TRY_RESULT_PROMISE(promise, current_public_data,
+                         td_->messages_manager_->get_message_widget_public_data(message_full_id));
+      return promise.set_value(
+          td_api::make_object<td_api::widgetPublicData>(std::move(current_public_data.first), max(period, 0)));
+    }
+    case telegram_api::messages_widgetPublicData::ID: {
+      auto data = telegram_api::move_object_as<telegram_api::messages_widgetPublicData>(public_data);
+      td_->messages_manager_->on_update_message_widget_public_data(message_full_id, string(data->data_), data->hash_);
+      return promise.set_value(
+          td_api::make_object<td_api::widgetPublicData>(std::move(data->data_), max(data->period_, 0)));
+    }
+    default:
+      UNREACHABLE();
+  }
 }
 
 }  // namespace td

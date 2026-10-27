@@ -8737,6 +8737,13 @@ void Requests::on_request(uint64 id, td_api::getWidgetQueryAnswer &request) {
                                           std::move(request.data_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getWidgetPublicData &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->widget_manager_->get_widget_public_data({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                               std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::answerCallbackQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.text_);

@@ -7094,6 +7094,11 @@ class CliClient final : public Actor {
       string data;
       get_args(args, chat_id, message_id, data);
       send_request(td_api::make_object<td_api::getWidgetQueryAnswer>(chat_id, message_id, data));
+    } else if (op == "gwpd") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_id);
+      send_request(td_api::make_object<td_api::getWidgetPublicData>(chat_id, message_id));
     } else if (op == "gcpqa") {
       ChatId chat_id;
       MessageId message_id;

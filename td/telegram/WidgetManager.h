@@ -8,6 +8,7 @@
 
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 
@@ -29,6 +30,13 @@ class WidgetManager final : public Actor {
 
   void send_widget_query(MessageFullId message_full_id, string &&data,
                          Promise<td_api::object_ptr<td_api::widgetQueryAnswer>> &&promise);
+
+  void get_widget_public_data(MessageFullId message_full_id,
+                              Promise<td_api::object_ptr<td_api::widgetPublicData>> &&promise);
+
+  void on_get_widget_public_data(MessageFullId message_full_id,
+                                 telegram_api::object_ptr<telegram_api::messages_WidgetPublicData> &&public_data,
+                                 Promise<td_api::object_ptr<td_api::widgetPublicData>> &&promise);
 
  private:
   void tear_down() final;

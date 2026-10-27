@@ -8419,6 +8419,11 @@ callbackQueryAnswer text:string show_alert:Bool url:string = CallbackQueryAnswer
 //@description Contains an answer to a widget query @data Data returned by the bot
 widgetQueryAnswer data:string = WidgetQueryAnswer;
 
+//@description Contains public data of a widget
+//@data Public data of the widget
+//@poll_period The number of seconds after which the public data can be polled again
+widgetPublicData data:string poll_period:int32 = WidgetPublicData;
+
 
 //@description Contains the result of a custom request @result A JSON-serialized result
 customRequestResult result:string = CustomRequestResult;
@@ -14147,6 +14152,11 @@ answerCallbackQuery callback_query_id:int64 text:string show_alert:Bool url:stri
 //@message_id Identifier of the widget message from which the query originated. The message must not be scheduled
 //@data Data of the query
 getWidgetQueryAnswer chat_id:int53 message_id:int53 data:bytes = WidgetQueryAnswer;
+
+//@description Returns the current public data of a widget. Must be called only if the widget is visible on the screen and asked to poll its public data
+//@chat_id Identifier of the chat with the message
+//@message_id Identifier of the widget message. The message must not be scheduled
+getWidgetPublicData chat_id:int53 message_id:int53 = WidgetPublicData;
 
 
 //@description Sets the result of a shipping query; for bots only

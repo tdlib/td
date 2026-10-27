@@ -13721,6 +13721,33 @@ bool update_message_content_widget_data(MessageContent *content, string &&public
   return is_changed || need_update;
 }
 
+std::pair<string, int64> get_message_content_widget_public_data(const MessageContent *content) {
+  CHECK(content != nullptr);
+  CHECK(content->get_type() == MessageContentType::Widget);
+  const auto *m = static_cast<const MessageWidget *>(content);
+  return {m->public_data, m->public_data_hash};
+}
+
+bool update_message_content_widget_public_data(MessageContent *content, string &&public_data, int64 public_data_hash,
+                                               bool &need_update) {
+  CHECK(content != nullptr);
+  need_update = false;
+  if (content->get_type() != MessageContentType::Widget) {
+    return false;
+  }
+  auto *m = static_cast<MessageWidget *>(content);
+  bool is_changed = false;
+  if (m->public_data != public_data) {
+    m->public_data = std::move(public_data);
+    need_update = true;
+  }
+  if (m->public_data_hash != public_data_hash) {
+    m->public_data_hash = public_data_hash;
+    is_changed = true;
+  }
+  return is_changed || need_update;
+}
+
 bool update_message_content_extended_media(
     MessageContent *content, vector<telegram_api::object_ptr<telegram_api::MessageExtendedMedia>> extended_media,
     DialogId owner_dialog_id, Td *td) {
