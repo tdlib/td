@@ -583,6 +583,31 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     TRY_RESULT(venue, process_input_message_venue(std::move(input_message_content)));
     return venue.get_input_bot_inline_message_media_venue(std::move(input_reply_markup));
   }
+  if (constructor_id == td_api::inputMessageWidget::ID) {
+    auto input_widget = static_cast<td_api::inputMessageWidget *>(input_message_content.get());
+    if (input_widget->width_ < 0 || input_widget->height_ < 0) {
+      return Status::Error(400, "Invalid widget size specified");
+    }
+    if (!clean_input_string(input_widget->html_)) {
+      return Status::Error(400, "Widget HTML code must be encoded in UTF-8");
+    }
+    if (input_widget->html_.empty()) {
+      return Status::Error(400, "Widget HTML code must be non-empty");
+    }
+    if (!clean_input_string(input_widget->public_data_)) {
+      return Status::Error(400, "Widget public data must be encoded in UTF-8");
+    }
+    if (!clean_input_string(input_widget->chat_data_)) {
+      return Status::Error(400, "Widget chat data must be encoded in UTF-8");
+    }
+    TRY_RESULT(caption, get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(),
+                                           std::move(input_widget->caption_), true, true, true, false));
+    auto entities = get_input_message_entities(td_->user_manager_.get(), caption.entities, "get_inline_message");
+    return telegram_api::make_object<telegram_api::inputBotInlineMessageWidget>(
+        0, input_widget->allow_queries_, input_widget->is_shared_, input_widget->show_caption_above_media_,
+        input_widget->width_, input_widget->height_, input_widget->html_, input_widget->public_data_,
+        input_widget->chat_data_, std::move(input_reply_markup), caption.text, std::move(entities));
+  }
   if (constructor_id == allowed_media_content_id) {
     TRY_RESULT(caption, get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(),
                                            extract_input_caption(input_message_content), true, true, true, false));
