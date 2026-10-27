@@ -781,6 +781,15 @@ bool ForumTopicManager::read_topic_messages(DialogId dialog_id, Topic *topic, Me
   return topic->topic_->update_last_read_inbox_message_id(read_inbox_max_message_id, unread_count);
 }
 
+void ForumTopicManager::apply_sent_read_inbox_message_id(Topic *topic) {
+  CHECK(topic->topic_ != nullptr);
+  if (topic->sent_read_inbox_message_id_ > topic->topic_->get_last_read_inbox_message_id() &&
+      topic->sent_read_inbox_message_id_ >= topic->topic_->get_last_message_id()) {
+    // the topic was read up to its last message before it was received
+    topic->topic_->update_last_read_inbox_message_id(topic->sent_read_inbox_message_id_, 0);
+  }
+}
+
 void ForumTopicManager::on_update_read_all_forum_topics(DialogId dialog_id, MessageId read_inbox_max_message_id) {
   if (td_->auth_manager_->is_bot() || !read_inbox_max_message_id.is_valid()) {
     return;
@@ -1218,14 +1227,17 @@ void ForumTopicManager::load_forum_topics(DialogId dialog_id, int32 limit, Promi
 
   if (!dialog_topics->is_database_loaded_) {
     dialog_topics->is_database_loaded_ = true;
-    if (load_forum_topics_from_database(dialog_id, dialog_topics)) {
+    if (load_forum_topics_from_database(dialog_id, dialog_topics, limit)) {
       return;
     }
+  }
+  if (dialog_topics->last_database_topic_date_ < dialog_topics->last_server_topic_date_) {
+    return load_more_forum_topics_from_database(dialog_id, dialog_topics, limit);
   }
   load_forum_topics_from_server(dialog_id, dialog_topics, limit);
 }
 
-bool ForumTopicManager::load_forum_topics_from_database(DialogId dialog_id, DialogTopics *dialog_topics) {
+bool ForumTopicManager::load_forum_topics_from_database(DialogId dialog_id, DialogTopics *dialog_topics, int32 limit) {
   auto message_thread_db = G()->td_db()->get_message_thread_db_async();
   if (message_thread_db == nullptr) {
     return false;
@@ -1234,20 +1246,38 @@ bool ForumTopicManager::load_forum_topics_from_database(DialogId dialog_id, Dial
   if (state.empty()) {
     return false;
   }
+  ForumTopicListState list_state;
+  if (log_event_parse(list_state, state).is_error()) {
+    LOG(ERROR) << "Failed to parse state of topics of " << dialog_id;
+    G()->td_db()->get_binlog_pmc()->erase(get_topic_list_state_key(dialog_id));
+    return false;
+  }
 
   LOG(INFO) << "Load topics of " << dialog_id << " from database";
+  // pinned topics are saved with their non-pinned order, so they are loaded by identifier;
+  // the database answers in the order of requests, so they are added before the first page of the list
+  for (auto forum_topic_id : list_state.pinned_forum_topic_ids_) {
+    message_thread_db->get_message_thread(
+        dialog_id, forum_topic_id,
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, generation = dialog_topics->generation_,
+                                forum_topic_id](Result<BufferSlice> result) {
+          send_closure(actor_id, &ForumTopicManager::on_get_topic_from_database, dialog_id, generation, forum_topic_id,
+                       std::move(result));
+        }));
+  }
+  limit = min(limit, MAX_LOAD_FORUM_TOPICS_FROM_DATABASE);
   message_thread_db->get_message_threads(
-      dialog_id, std::numeric_limits<int64>::max(), MAX_LOAD_FORUM_TOPICS_FROM_DATABASE,
+      dialog_id, std::numeric_limits<int64>::max(), limit,
       PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, generation = dialog_topics->generation_,
-                              state = std::move(state)](Result<MessageThreadDbMessageThreads> result) mutable {
+                              state = std::move(state), limit](Result<MessageThreadDbMessageThreads> result) mutable {
         send_closure(actor_id, &ForumTopicManager::on_load_forum_topics_from_database, dialog_id, generation,
-                     std::move(state), std::move(result));
+                     std::move(state), limit, std::move(result));
       }));
   return true;
 }
 
 void ForumTopicManager::on_load_forum_topics_from_database(DialogId dialog_id, uint32 generation, string state,
-                                                           Result<MessageThreadDbMessageThreads> result) {
+                                                           int32 limit, Result<MessageThreadDbMessageThreads> result) {
   if (G()->close_flag()) {
     return;
   }
@@ -1259,62 +1289,138 @@ void ForumTopicManager::on_load_forum_topics_from_database(DialogId dialog_id, u
   if (result.is_error() || log_event_parse(list_state, state).is_error()) {
     LOG(ERROR) << "Failed to load topics of " << dialog_id << " from database";
     G()->td_db()->get_binlog_pmc()->erase(get_topic_list_state_key(dialog_id));
-    return load_forum_topics_from_server(dialog_id, dialog_topics, MAX_GET_FORUM_TOPICS);
+    return load_forum_topics_from_server(dialog_id, dialog_topics, limit);
   }
 
   auto message_threads = result.move_as_ok();
-  auto loaded_count = message_threads.message_threads.size();
-  if (loaded_count == 0) {
+  if (message_threads.message_threads.empty()) {
     // a forum has at least the General topic, so the saved topics were deleted with the database
     LOG(INFO) << "Have no saved topics of " << dialog_id;
     G()->td_db()->get_binlog_pmc()->erase(get_topic_list_state_key(dialog_id));
-    return load_forum_topics_from_server(dialog_id, dialog_topics, MAX_GET_FORUM_TOPICS);
+    return load_forum_topics_from_server(dialog_id, dialog_topics, limit);
   }
-  for (auto &data : message_threads.message_threads) {
-    add_topic_from_database(dialog_id, dialog_topics, std::move(data));
-  }
-  if (loaded_count == static_cast<size_t>(MAX_LOAD_FORUM_TOPICS_FROM_DATABASE)) {
-    G()->td_db()->get_message_thread_db_async()->get_message_threads(
-        dialog_id, message_threads.next_order, MAX_LOAD_FORUM_TOPICS_FROM_DATABASE,
-        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, generation,
-                                state = std::move(state)](Result<MessageThreadDbMessageThreads> result) mutable {
-          send_closure(actor_id, &ForumTopicManager::on_load_forum_topics_from_database, dialog_id, generation,
-                       std::move(state), std::move(result));
-        }));
-    return;
-  }
+  add_topics_from_database(dialog_id, dialog_topics, limit, std::move(message_threads));
 
-  // all saved topics are loaded; restore the part of the list, which was loaded from the server
+  // restore the part of the list, which was loaded from the server
   set_local_pinned_forum_topics(dialog_id, dialog_topics, std::move(list_state.pinned_forum_topic_ids_));
   auto &ordered_topics = dialog_topics->ordered_topics_;
   ordered_topics.set_server_total_count(list_state.server_total_count_);
   dialog_topics->offset_date_ = list_state.offset_date_;
   dialog_topics->offset_message_id_ = list_state.offset_message_id_;
   dialog_topics->offset_forum_topic_id_ = list_state.offset_forum_topic_id_;
-  for (auto forum_topic_id :
-       ordered_topics.set_last_topic_date({list_state.last_topic_order_, list_state.last_topic_id_})) {
-    auto *topic = get_topic(dialog_topics, forum_topic_id);
-    CHECK(topic != nullptr);
-    send_update_forum_topic(dialog_id, topic);
-  }
+  dialog_topics->last_server_topic_date_ = {list_state.last_topic_order_, list_state.last_topic_id_};
+  update_last_topic_date(dialog_id, dialog_topics);
   set_promises(dialog_topics->load_queries_);
 
   // the topics could have been changed while they weren't watched
   reload_pinned_forum_topics(dialog_id);
 }
 
-void ForumTopicManager::add_topic_from_database(DialogId dialog_id, DialogTopics *dialog_topics, BufferSlice data) {
+void ForumTopicManager::load_more_forum_topics_from_database(DialogId dialog_id, DialogTopics *dialog_topics,
+                                                             int32 limit) {
+  limit = min(limit, MAX_LOAD_FORUM_TOPICS_FROM_DATABASE);
+  LOG(INFO) << "Load more topics of " << dialog_id << " from database";
+  G()->td_db()->get_message_thread_db_async()->get_message_threads(
+      dialog_id, dialog_topics->last_database_topic_date_.get_order(), limit,
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, generation = dialog_topics->generation_,
+                              limit](Result<MessageThreadDbMessageThreads> result) {
+        send_closure(actor_id, &ForumTopicManager::on_load_more_forum_topics_from_database, dialog_id, generation,
+                     limit, std::move(result));
+      }));
+}
+
+void ForumTopicManager::on_load_more_forum_topics_from_database(DialogId dialog_id, uint32 generation, int32 limit,
+                                                                Result<MessageThreadDbMessageThreads> result) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr || dialog_topics->generation_ != generation) {
+    return;
+  }
+  if (result.is_error()) {
+    LOG(ERROR) << "Failed to load more topics of " << dialog_id << " from database";
+    dialog_topics->last_database_topic_date_ = OrderedTopics<ForumTopicId>::max_topic_date();
+    return load_forum_topics_from_server(dialog_id, dialog_topics, limit);
+  }
+
+  // the topics are counted in the total count received from the server
+  auto &ordered_topics = dialog_topics->ordered_topics_;
+  auto server_total_count = ordered_topics.get_server_total_count();
+  add_topics_from_database(dialog_id, dialog_topics, limit, result.move_as_ok());
+  ordered_topics.set_server_total_count(server_total_count);
+  update_last_topic_date(dialog_id, dialog_topics);
+  set_promises(dialog_topics->load_queries_);
+}
+
+void ForumTopicManager::add_topics_from_database(DialogId dialog_id, DialogTopics *dialog_topics, int32 limit,
+                                                 MessageThreadDbMessageThreads &&message_threads) {
+  auto loaded_count = message_threads.message_threads.size();
+  ForumTopicId last_forum_topic_id;
+  for (auto &data : message_threads.message_threads) {
+    auto saved_topic = parse_topic(dialog_id, std::move(data));
+    if (saved_topic != nullptr) {
+      last_forum_topic_id = add_topic_from_database(dialog_id, dialog_topics, std::move(saved_topic));
+    }
+  }
+  if (loaded_count < static_cast<size_t>(limit)) {
+    dialog_topics->last_database_topic_date_ = OrderedTopics<ForumTopicId>::max_topic_date();
+  } else {
+    dialog_topics->last_database_topic_date_ = {message_threads.next_order, last_forum_topic_id};
+  }
+}
+
+void ForumTopicManager::on_get_topic_from_database(DialogId dialog_id, uint32 generation, ForumTopicId forum_topic_id,
+                                                   Result<BufferSlice> result) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr || dialog_topics->generation_ != generation) {
+    return;
+  }
+  auto *topic = add_topic(dialog_topics, forum_topic_id);
+  if (topic == nullptr) {
+    return;
+  }
+  topic->is_database_checked_ = true;
+  topic->is_loading_from_database_ = false;
+  if (topic->topic_ != nullptr) {
+    // the topic was received from the server in the meantime
+    return;
+  }
+  unique_ptr<Topic> saved_topic;
+  if (result.is_ok() && !result.ok().empty()) {
+    saved_topic = parse_topic(dialog_id, result.move_as_ok());
+  }
+  // the saved topic can't account for messages newer than its last message
+  if (saved_topic != nullptr && saved_topic->topic_ != nullptr &&
+      topic->ordered_messages_.get_last_message_id() <= saved_topic->topic_->get_last_message_id()) {
+    add_topic_from_database(dialog_id, dialog_topics, std::move(saved_topic));
+    apply_pending_pinned_forum_topics(dialog_id, dialog_topics);
+    return;
+  }
+  reload_topic(dialog_id, dialog_topics, forum_topic_id);
+}
+
+unique_ptr<ForumTopicManager::Topic> ForumTopicManager::parse_topic(DialogId dialog_id, BufferSlice data) {
   auto saved_topic = make_unique<Topic>();
   if (log_event_parse(*saved_topic, data.as_slice()).is_error() || saved_topic->info_ == nullptr ||
       saved_topic->info_->get_dialog_id() != dialog_id) {
     LOG(ERROR) << "Failed to parse a topic of " << dialog_id << " from database";
-    return;
+    return nullptr;
   }
+  return saved_topic;
+}
+
+ForumTopicId ForumTopicManager::add_topic_from_database(DialogId dialog_id, DialogTopics *dialog_topics,
+                                                        unique_ptr<Topic> saved_topic) {
+  CHECK(saved_topic != nullptr);
   auto forum_topic_id = saved_topic->info_->get_forum_topic_id();
   auto *topic = add_topic(dialog_topics, forum_topic_id);
   if (topic == nullptr || topic->topic_ != nullptr) {
     // the topic was deleted or was already received from the server
-    return;
+    return forum_topic_id;
   }
 
   topic->topic_ = std::move(saved_topic->topic_);
@@ -1329,11 +1435,29 @@ void ForumTopicManager::add_topic_from_database(DialogId dialog_id, DialogTopics
     if (last_message_id.is_valid()) {
       td_->messages_manager_->have_message_force({dialog_id, last_message_id}, "add_topic_from_database");
     }
+    apply_sent_read_inbox_message_id(topic);
   }
   update_topic_order(dialog_id, topic);
   send_update_forum_topic(dialog_id, topic);
   if (topic->topic_ != nullptr) {
     td_->messages_manager_->on_forum_topic_notification_settings_known(dialog_id);
+  }
+  return forum_topic_id;
+}
+
+OrderedTopics<ForumTopicId>::TopicDate ForumTopicManager::get_last_loaded_topic_date(
+    const DialogTopics *dialog_topics) {
+  return dialog_topics->last_server_topic_date_ < dialog_topics->last_database_topic_date_
+             ? dialog_topics->last_server_topic_date_
+             : dialog_topics->last_database_topic_date_;
+}
+
+void ForumTopicManager::update_last_topic_date(DialogId dialog_id, DialogTopics *dialog_topics) {
+  for (auto forum_topic_id :
+       dialog_topics->ordered_topics_.set_last_topic_date(get_last_loaded_topic_date(dialog_topics))) {
+    auto *topic = get_topic(dialog_topics, forum_topic_id);
+    CHECK(topic != nullptr);
+    send_update_forum_topic(dialog_id, topic);
   }
 }
 
@@ -1411,7 +1535,12 @@ vector<ForumTopicId> ForumTopicManager::on_load_forum_topics_page(DialogId dialo
   } else {
     last_topic_date = {OrderedTopics<ForumTopicId>::MIN_PINNED_TOPIC_ORDER - 1, ForumTopicId()};
   }
-  auto changed_forum_topic_ids = ordered_topics.set_last_topic_date(last_topic_date);
+  if (dialog_topics->last_server_topic_date_ < last_topic_date) {
+    dialog_topics->last_server_topic_date_ = last_topic_date;
+  }
+  // the server is asked only after the database is read up to the part loaded from the server
+  dialog_topics->last_database_topic_date_ = OrderedTopics<ForumTopicId>::max_topic_date();
+  auto changed_forum_topic_ids = ordered_topics.set_last_topic_date(get_last_loaded_topic_date(dialog_topics));
 
   save_topic_list_state(dialog_id, dialog_topics);
   return changed_forum_topic_ids;
@@ -1817,11 +1946,7 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
         // the message may not be added yet, for example while getChannelDifference is running
         topic->last_message_date_ = td_->messages_manager_->get_message_date({dialog_id, last_message_id});
       }
-      if (topic->sent_read_inbox_message_id_ > topic->topic_->get_last_read_inbox_message_id() &&
-          topic->sent_read_inbox_message_id_ >= topic->topic_->get_last_message_id()) {
-        // the topic was read up to its last message before it was received
-        topic->topic_->update_last_read_inbox_message_id(topic->sent_read_inbox_message_id_, 0);
-      }
+      apply_sent_read_inbox_message_id(topic);
       update_topic_order(dialog_id, topic);
       if (need_update) {
         send_update_forum_topic(dialog_id, topic);
@@ -2140,7 +2265,7 @@ void ForumTopicManager::save_topic_list_state(DialogId dialog_id, const DialogTo
     return;
   }
   const auto &ordered_topics = dialog_topics->ordered_topics_;
-  auto last_topic_date = ordered_topics.get_last_topic_date();
+  auto last_topic_date = dialog_topics->last_server_topic_date_;
   if (last_topic_date == OrderedTopics<ForumTopicId>::min_topic_date()) {
     // nothing was loaded yet
     return;
@@ -2197,6 +2322,24 @@ void ForumTopicManager::reload_topic(DialogId dialog_id, DialogTopics *dialog_to
   }
   auto *topic = get_topic(dialog_topics, forum_topic_id);
   if (topic != nullptr && topic->topic_ == nullptr && topic->is_not_received_) {
+    return;
+  }
+  if (topic != nullptr && topic->is_loading_from_database_) {
+    return;
+  }
+  auto message_thread_db = G()->td_db()->get_message_thread_db_async();
+  if (topic != nullptr && topic->topic_ == nullptr && !topic->is_database_checked_ && message_thread_db != nullptr) {
+    // the topic can be saved in the database
+    LOG(INFO) << "Load " << forum_topic_id << " in " << dialog_id << " from database";
+    topic->is_database_checked_ = true;
+    topic->is_loading_from_database_ = true;
+    message_thread_db->get_message_thread(
+        dialog_id, forum_topic_id,
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, generation = dialog_topics->generation_,
+                                forum_topic_id](Result<BufferSlice> result) {
+          send_closure(actor_id, &ForumTopicManager::on_get_topic_from_database, dialog_id, generation, forum_topic_id,
+                       std::move(result));
+        }));
     return;
   }
   LOG(INFO) << "Reload " << forum_topic_id << " in " << dialog_id;
@@ -2270,10 +2413,21 @@ void ForumTopicManager::on_reload_topics(DialogId dialog_id, uint32 generation, 
   }
   dialog_topics->reloading_topic_ids_.clear();
   reload_topics(dialog_id, dialog_topics);
-  if (dialog_topics->have_pending_pinned_topic_ids_ && dialog_topics->reloading_topic_ids_.empty()) {
-    dialog_topics->have_pending_pinned_topic_ids_ = false;
-    set_local_pinned_forum_topics(dialog_id, dialog_topics, std::move(dialog_topics->pending_pinned_topic_ids_));
+  apply_pending_pinned_forum_topics(dialog_id, dialog_topics);
+}
+
+void ForumTopicManager::apply_pending_pinned_forum_topics(DialogId dialog_id, DialogTopics *dialog_topics) {
+  if (!dialog_topics->have_pending_pinned_topic_ids_ || !dialog_topics->reloading_topic_ids_.empty()) {
+    return;
   }
+  for (auto forum_topic_id : dialog_topics->pending_pinned_topic_ids_) {
+    auto *topic = get_topic(dialog_topics, forum_topic_id);
+    if (topic != nullptr && topic->is_loading_from_database_) {
+      return;
+    }
+  }
+  dialog_topics->have_pending_pinned_topic_ids_ = false;
+  set_local_pinned_forum_topics(dialog_id, dialog_topics, std::move(dialog_topics->pending_pinned_topic_ids_));
 }
 
 void ForumTopicManager::on_reload_topics_timeout_callback(void *forum_topic_manager_ptr, int64 dialog_id_int) {
@@ -2425,8 +2579,9 @@ void ForumTopicManager::on_topic_message_deleted(DialogId dialog_id, ForumTopicI
 
 bool ForumTopicManager::unload_forum_topics(DialogId dialog_id) {
   auto *dialog_topics = get_dialog_topics(dialog_id);
-  // a page of the list being loaded would need the topics
-  if (dialog_topics == nullptr || td_->auth_manager_->is_bot() || !dialog_topics->load_queries_.empty()) {
+  // the topics must be possible to load again from the database, and a page of the list being loaded would need them
+  if (dialog_topics == nullptr || td_->auth_manager_->is_bot() || !dialog_topics->load_queries_.empty() ||
+      G()->td_db()->get_message_thread_db_async() == nullptr) {
     return false;
   }
   auto &ordered_topics = dialog_topics->ordered_topics_;
@@ -2446,33 +2601,21 @@ bool ForumTopicManager::unload_forum_topics(DialogId dialog_id) {
     return false;
   }
 
-  // the loaded part of the list can't have gaps, so it shrinks to the kept topics and is loaded again from the server
-  auto changed_forum_topic_ids =
-      is_list_changed ? ordered_topics.reset_last_topic_date(last_kept_topic_date) : vector<ForumTopicId>();
-  if (!changed_forum_topic_ids.empty()) {
-    const auto *last_kept_topic = get_topic(dialog_topics, last_kept_topic_date.get_topic_id());
-    CHECK(last_kept_topic != nullptr);
-    auto last_message_id = last_kept_topic->topic_->get_last_message_id();
-    // the server orders topics by their last message, so a topic placed by its draft can't be an offset
-    if (last_message_id.is_server() &&
-        ForumTopic::get_last_message_order(last_kept_topic_date.get_topic_id(), last_message_id,
-                                           last_kept_topic->last_message_date_) == last_kept_topic->private_order_) {
-      dialog_topics->offset_date_ = last_kept_topic->last_message_date_;
-      dialog_topics->offset_message_id_ = last_message_id;
-      dialog_topics->offset_forum_topic_id_ = last_kept_topic_date.get_topic_id();
-    } else {
-      dialog_topics->offset_date_ = 0;
-      dialog_topics->offset_message_id_ = MessageId();
-      dialog_topics->offset_forum_topic_id_ = ForumTopicId();
+  if (is_list_changed) {
+    // the loaded part of the list can't have gaps, so it shrinks to the kept topics and is read again from the database
+    for (auto changed_forum_topic_id : ordered_topics.reset_last_topic_date(last_kept_topic_date)) {
+      send_update_forum_topic(dialog_id, get_topic(dialog_topics, changed_forum_topic_id));
     }
-  }
-  for (auto changed_forum_topic_id : changed_forum_topic_ids) {
-    send_update_forum_topic(dialog_id, get_topic(dialog_topics, changed_forum_topic_id));
+    if (last_kept_topic_date < dialog_topics->last_database_topic_date_) {
+      dialog_topics->last_database_topic_date_ = last_kept_topic_date;
+    }
   }
   auto server_total_count = ordered_topics.get_server_total_count();
   for (auto forum_topic_id : forum_topic_ids) {
+    auto *topic = get_topic(dialog_topics, forum_topic_id);
     LOG(INFO) << "Unload " << forum_topic_id << " in " << dialog_id;
-    ordered_topics.update_order(forum_topic_id, get_topic(dialog_topics, forum_topic_id)->private_order_, 0);
+    save_topic_to_database(dialog_id, topic);
+    ordered_topics.update_order(forum_topic_id, topic->private_order_, 0);
     dialog_topics->topics_.erase(forum_topic_id);
   }
   ordered_topics.set_server_total_count(server_total_count);
@@ -2482,7 +2625,8 @@ bool ForumTopicManager::unload_forum_topics(DialogId dialog_id) {
 bool ForumTopicManager::can_unload_topic(const DialogTopics *dialog_topics, ForumTopicId forum_topic_id,
                                          const Topic *topic,
                                          OrderedTopics<ForumTopicId>::TopicDate last_kept_topic_date) {
-  if (topic->pinned_order_ != 0 || td::contains(dialog_topics->reload_topic_ids_, forum_topic_id) ||
+  if (topic->pinned_order_ != 0 || topic->is_loading_from_database_ ||
+      td::contains(dialog_topics->reload_topic_ids_, forum_topic_id) ||
       td::contains(dialog_topics->reloading_topic_ids_, forum_topic_id) ||
       (dialog_topics->have_pending_pinned_topic_ids_ &&
        td::contains(dialog_topics->pending_pinned_topic_ids_, forum_topic_id))) {
