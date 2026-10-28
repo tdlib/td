@@ -14,6 +14,10 @@ namespace td {
 // checks whether the string is an emoji; variation selectors are ignored
 bool is_emoji(Slice str);
 
+// returns all non-overlapping emoji in the string in order of their appearance; the longest emoji is chosen at each
+// position; each of the returned emoji satisfies is_emoji
+vector<Slice> find_emojis(Slice str);
+
 // checks whether emoji ends on a Fitzpatrick modifier and returns its number or 0
 int get_fitzpatrick_modifier(Slice emoji);
 

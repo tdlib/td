@@ -9,12 +9,17 @@
 #include "td/utils/base64.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/Gzip.h"
+#include "td/utils/misc.h"
+
+#include <algorithm>
+#include <utility>
 
 namespace td {
 
 static constexpr size_t MAX_EMOJI_LENGTH = 28;
 
-static bool is_emoji_element(Slice str) {
+// returns the list of all supported emoji, which don't contain zero width joiners
+static const FlatHashSet<Slice, SliceHash> &get_all_emojis() {
   static const FlatHashSet<Slice, SliceHash> emojis = [max_emoji_length = MAX_EMOJI_LENGTH] {
 #if TD_HAVE_ZLIB
     Slice packed_emojis(
@@ -127,6 +132,11 @@ static bool is_emoji_element(Slice str) {
     CHECK(all_emojis.size() == EMOJI_COUNT);
     return all_emojis;
   }();
+  return emojis;
+}
+
+static bool is_emoji_element(Slice str) {
+  const auto &emojis = get_all_emojis();
   auto len = str.size();
   if (len > MAX_EMOJI_LENGTH + 3) {
     return false;
@@ -161,6 +171,195 @@ bool is_emoji(Slice str) {
     }
   }
   return is_emoji_element(str.substr(start_pos));
+}
+
+namespace {
+
+// Aho-Corasick automaton for search of all supported emoji
+class EmojiAutomaton {
+  struct Node {
+    // there are less than 32768 nodes and children, so 16-bit integers are enough to store their indices
+    int16 first_child_ = 0;  // identifier of the first child of the node; children have consecutive identifiers
+    int16 fail_ = 0;
+    int16 output_ = -1;      // the nearest node in the failure chain, including the node itself, which ends an emoji
+    uint8 child_count_ = 0;  // number of children of the node
+    uint8 length_ = 0;       // length of the emoji ending in the node or 0 if none
+  };
+  static_assert(sizeof(Node) == 8);
+  vector<Node> nodes_;
+  // the byte on the edge to each node; children of a node have consecutive identifiers and are sorted by the byte
+  vector<unsigned char> bytes_;
+  // children of the root for each byte or 0 if none; the root is the most frequently used node
+  int16 root_children_[256] = {};
+
+  int32 get_child(int32 node_id, unsigned char c) const {
+    const auto &node = nodes_[node_id];
+    size_t left = node.first_child_;
+    size_t right = left + node.child_count_;
+    // binary search until the range becomes small enough for linear search
+    while (right - left > 8) {
+      auto middle = left + (right - left) / 2;
+      if (bytes_[middle] <= c) {
+        left = middle;
+      } else {
+        right = middle;
+      }
+    }
+    for (; left < right; left++) {
+      auto child_c = bytes_[left];
+      if (child_c >= c) {
+        if (child_c == c) {
+          return static_cast<int32>(left);
+        }
+        break;
+      }
+    }
+    return -1;
+  }
+
+  int32 get_next_node(int32 node_id, unsigned char c) const {
+    while (true) {
+      if (node_id == 0) {
+        return root_children_[c];
+      }
+      auto child_id = get_child(node_id, c);
+      if (child_id != -1) {
+        return child_id;
+      }
+      node_id = nodes_[node_id].fail_;
+    }
+  }
+
+ public:
+  EmojiAutomaton() {
+    // build the trie with temporary per-node lists of children
+    vector<vector<std::pair<unsigned char, int16>>> node_children(1);
+    vector<uint8> lengths(1, 0);
+    for (auto emoji : get_all_emojis()) {
+      int32 node_id = 0;
+      for (auto c : emoji) {
+        auto byte = static_cast<unsigned char>(c);
+        auto &children = node_children[node_id];
+        auto it = std::lower_bound(children.begin(), children.end(), std::make_pair(byte, static_cast<int16>(0)));
+        if (it == children.end() || it->first != byte) {
+          auto child_id = narrow_cast<int16>(node_children.size());
+          children.insert(it, std::make_pair(byte, child_id));
+          node_id = child_id;
+          node_children.emplace_back();
+          lengths.push_back(0);
+        } else {
+          node_id = it->second;
+        }
+      }
+      CHECK(lengths[node_id] == 0);
+      lengths[node_id] = narrow_cast<uint8>(emoji.size());
+    }
+
+    // number nodes in breadth-first order, so children of each node have consecutive identifiers
+    auto node_count = node_children.size();
+    vector<int32> order(1, 0);
+    order.reserve(node_count);
+    for (size_t pos = 0; pos < order.size(); pos++) {
+      for (auto &child : node_children[order[pos]]) {
+        order.push_back(child.second);
+      }
+    }
+    CHECK(order.size() == node_count);
+    vector<int16> new_node_ids(node_count);
+    for (size_t node_id = 0; node_id < node_count; node_id++) {
+      new_node_ids[order[node_id]] = narrow_cast<int16>(node_id);
+    }
+
+    nodes_.resize(node_count);
+    bytes_.resize(node_count);
+    for (size_t node_id = 0; node_id < node_count; node_id++) {
+      const auto &children = node_children[order[node_id]];
+      auto &node = nodes_[node_id];
+      node.first_child_ = children.empty() ? 0 : new_node_ids[children[0].second];
+      node.child_count_ = narrow_cast<uint8>(children.size());
+      node.length_ = lengths[order[node_id]];
+      for (size_t i = 0; i < children.size(); i++) {
+        auto child_id = new_node_ids[children[i].second];
+        CHECK(child_id == node.first_child_ + static_cast<int32>(i));
+        bytes_[child_id] = children[i].first;
+      }
+    }
+
+    for (int c = 0; c < 256; c++) {
+      auto child_id = get_child(0, static_cast<unsigned char>(c));
+      root_children_[c] = narrow_cast<int16>(child_id == -1 ? 0 : child_id);
+    }
+
+    // failure links point to nodes with smaller depth, which have smaller identifiers and are processed earlier
+    for (size_t node_id = 0; node_id < node_count; node_id++) {
+      auto &node = nodes_[node_id];
+      if (node_id != 0) {
+        node.output_ = node.length_ != 0 ? narrow_cast<int16>(node_id) : nodes_[node.fail_].output_;
+      }
+      auto first_child = static_cast<size_t>(node.first_child_);
+      for (size_t child_id = first_child; child_id < first_child + node.child_count_; child_id++) {
+        nodes_[child_id].fail_ = node_id == 0 ? 0 : narrow_cast<int16>(get_next_node(node.fail_, bytes_[child_id]));
+      }
+    }
+  }
+
+  // returns length of the longest emoji starting at each position of the string
+  vector<uint8> get_longest_emoji_lengths(Slice str) const {
+    vector<uint8> result(str.size(), 0);
+    int32 node_id = 0;
+    for (size_t i = 0; i < str.size(); i++) {
+      if (node_id == 0) {
+        // skip bytes, which can't start an emoji
+        while (root_children_[static_cast<unsigned char>(str[i])] == 0) {
+          if (++i == str.size()) {
+            return result;
+          }
+        }
+      }
+      node_id = get_next_node(node_id, static_cast<unsigned char>(str[i]));
+      for (auto output_id = nodes_[node_id].output_; output_id != -1;
+           output_id = nodes_[nodes_[output_id].fail_].output_) {
+        auto length = nodes_[output_id].length_;
+        auto &max_length = result[i + 1 - length];
+        if (length > max_length) {
+          max_length = length;
+        }
+      }
+    }
+    return result;
+  }
+};
+
+}  // namespace
+
+static size_t skip_emoji_selector(Slice str, size_t pos) {
+  if (pos + 3 <= str.size() && str[pos] == '\xEF' && str[pos + 1] == '\xB8' && str[pos + 2] == '\x8F') {
+    // skip \uFE0F
+    return pos + 3;
+  }
+  return pos;
+}
+
+vector<Slice> find_emojis(Slice str) {
+  static const EmojiAutomaton automaton;
+  auto lengths = automaton.get_longest_emoji_lengths(str);
+  vector<Slice> result;
+  size_t i = 0;
+  while (i < str.size()) {
+    if (lengths[i] == 0) {
+      i++;
+      continue;
+    }
+    auto end = skip_emoji_selector(str, i + lengths[i]);
+    while (end + 3 < str.size() && str[end] == '\xE2' && str[end + 1] == '\x80' && str[end + 2] == '\x8D' &&
+           lengths[end + 3] != 0) {
+      // zero-width joiner \u200D
+      end = skip_emoji_selector(str, end + 3 + lengths[end + 3]);
+    }
+    result.push_back(str.substr(i, end - i));
+    i = end;
+  }
+  return result;
 }
 
 int get_fitzpatrick_modifier(Slice emoji) {

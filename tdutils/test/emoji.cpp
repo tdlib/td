@@ -6,6 +6,9 @@
 //
 #include "td/utils/common.h"
 #include "td/utils/emoji.h"
+#include "td/utils/misc.h"
+#include "td/utils/Random.h"
+#include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 
 TEST(Emoji, is_emoji) {
@@ -145,4 +148,80 @@ TEST(Emoji, remove_emoji_selectors) {
   test_remove_emoji_selectors("⌚", "⌚");
   test_remove_emoji_selectors("🎄", "🎄");
   test_remove_emoji_selectors("🧑‍🎄", "🧑‍🎄");
+}
+
+static void test_find_emojis(td::Slice str, const td::vector<td::string> &expected) {
+  auto emojis = td::find_emojis(str);
+  td::vector<td::string> result;
+  const char *last_end = str.begin();
+  for (auto emoji : emojis) {
+    ASSERT_TRUE(last_end <= emoji.begin());
+    ASSERT_TRUE(emoji.end() <= str.end());
+    ASSERT_TRUE(!emoji.empty());
+    ASSERT_TRUE(td::is_emoji(emoji));
+    last_end = emoji.end();
+    result.push_back(emoji.str());
+  }
+  ASSERT_EQ(expected, result);
+}
+
+TEST(Emoji, find_emojis) {
+  test_find_emojis("", {});
+  test_find_emojis(" ", {});
+  test_find_emojis("abc 123 #*", {});
+  test_find_emojis("️", {});
+  test_find_emojis("‍", {});
+  test_find_emojis("👋", {"👋"});
+  test_find_emojis("a👋b", {"👋"});
+  test_find_emojis("👋👋", {"👋", "👋"});
+  test_find_emojis("👋🏻👋🏿", {"👋🏻", "👋🏿"});
+  test_find_emojis("🏻", {"🏻"});
+  test_find_emojis("⌚↔🪗", {"⌚", "↔", "🪗"});
+  test_find_emojis("❤️❤", {"❤️", "❤"});
+  test_find_emojis("❤️️", {"❤️"});
+  test_find_emojis("️❤", {"❤"});
+  test_find_emojis("2️⃣3⃣4", {"2️⃣", "3⃣"});
+  test_find_emojis("#️⃣*⃣", {"#️⃣", "*⃣"});
+  test_find_emojis("©️ © ↔", {"©️", "©", "↔"});
+  test_find_emojis("🇺🇸🇩🇪", {"🇺🇸", "🇩🇪"});
+  test_find_emojis("🇦🇺🇸", {"🇦🇺"});
+  test_find_emojis("🏴󠁧󠁢󠁥󠁮󠁧󠁿!", {"🏴󠁧󠁢󠁥󠁮󠁧󠁿"});
+  test_find_emojis("👩🏼‍❤️‍💋‍👩🏻 text 👩🏼‍❤‍💋‍👩🏻",
+                   {"👩🏼‍❤️‍💋‍👩🏻", "👩🏼‍❤‍💋‍👩🏻"});
+  test_find_emojis("👩🏼‍❤‍💋‍👩🏻️", {"👩🏼‍❤‍💋‍👩🏻️"});
+  test_find_emojis("👩🏼‍❤️️‍💋‍👩🏻", {"👩🏼‍❤️", "💋‍👩🏻"});
+  test_find_emojis("🧑‍🎄🎄", {"🧑‍🎄", "🎄"});
+  test_find_emojis("🕵️‍♂️🕵‍♂", {"🕵️‍♂️", "🕵‍♂"});
+  test_find_emojis("👩‍🤝‍👨", {"👩‍🤝‍👨"});
+  test_find_emojis("👩‍a‍👨", {"👩", "👨"});
+  test_find_emojis("👩‍", {"👩"});
+  test_find_emojis("‍👩", {"👩"});
+  test_find_emojis("👩‍‍👨", {"👩", "👨"});
+  test_find_emojis("👩️️‍👨", {"👩️", "👨"});
+}
+
+TEST(Emoji, find_emojis_random) {
+  auto emojis =
+      td::full_split(td::Slice("👋 👋🏻 🏻 ⌚ ⌚️ ↔ 🪗 ❤️ ❤ 2️⃣ 2⃣ © ©️ 🇺🇸 🇦🇺 🏴󠁧󠁢󠁥󠁮󠁧󠁿 🎄 🧑‍🎄 🕵️‍♂️ "
+                               "🕵‍♂ 👩‍🤝‍👨 👩🏼‍❤️‍💋‍👩🏻"),
+                     ' ');
+  const td::vector<td::Slice> separators = {" ", "a", "text", "\n", "1", "#", "абв"};
+  for (auto emoji : emojis) {
+    ASSERT_TRUE(td::is_emoji(emoji));
+  }
+  for (int test = 0; test < 1000; test++) {
+    td::string str;
+    td::vector<td::string> expected;
+    auto count = td::Random::fast(0, 20);
+    for (int i = 0; i < count; i++) {
+      str += separators[td::Random::fast(0, static_cast<int>(separators.size()) - 1)].str();
+      auto emoji = emojis[td::Random::fast(0, static_cast<int>(emojis.size()) - 1)];
+      str += emoji.str();
+      expected.push_back(emoji.str());
+    }
+    if (td::Random::fast_bool()) {
+      str += separators[td::Random::fast(0, static_cast<int>(separators.size()) - 1)].str();
+    }
+    test_find_emojis(str, expected);
+  }
 }
