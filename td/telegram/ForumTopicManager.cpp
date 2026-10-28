@@ -1040,6 +1040,8 @@ void ForumTopicManager::on_channel_difference_too_long(DialogId dialog_id) {
   if (dialog_topics == nullptr) {
     return;
   }
+  // new messages can't continue the stored ranges of topic messages, because messages could have been missed
+  on_all_dialog_messages_deleted(dialog_id);
   if (!dialog_topics->load_queries_.empty()) {
     // the page being loaded was requested before the gap and saves the old list state, so the gap is handled after it
     dialog_topics->load_queries_.push_back(
