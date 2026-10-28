@@ -1017,12 +1017,35 @@ void ForumTopicManager::reload_pinned_forum_topics(DialogId dialog_id) {
 }
 
 void ForumTopicManager::on_channel_difference_too_long(DialogId dialog_id) {
-  if (td_->auth_manager_->is_bot() || is_forum(dialog_id, true).is_error()) {
+  if (G()->close_flag() || td_->auth_manager_->is_bot() || is_forum(dialog_id, true).is_error()) {
     return;
   }
+  // a topic is known to be deleted only if its first message is known or the topic is requested by its identifier,
+  // so deletion of saved topics, which aren't loaded, could have been missed
+  delete_all_dialog_topics_from_database(dialog_id);
   auto *dialog_topics = get_dialog_topics(dialog_id);
   if (dialog_topics == nullptr) {
     return;
+  }
+  if (!dialog_topics->load_queries_.empty()) {
+    // the page being loaded was requested before the gap and saves the old list state, so the gap is handled after it
+    dialog_topics->load_queries_.push_back(
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Result<Unit> result) {
+          send_closure(actor_id, &ForumTopicManager::on_channel_difference_too_long, dialog_id);
+        }));
+    return;
+  }
+
+  // the list is loaded again from the server; topics, which are already in the list, stay there meanwhile
+  dialog_topics->is_database_loaded_ = true;
+  dialog_topics->last_database_topic_date_ = OrderedTopics<ForumTopicId>::max_topic_date();
+  dialog_topics->last_server_topic_date_ = OrderedTopics<ForumTopicId>::min_topic_date();
+  dialog_topics->offset_date_ = 0;
+  dialog_topics->offset_message_id_ = MessageId();
+  dialog_topics->offset_forum_topic_id_ = ForumTopicId();
+  auto &ordered_topics = dialog_topics->ordered_topics_;
+  if (ordered_topics.is_fully_loaded()) {
+    ordered_topics.reset_last_topic_date(ordered_topics.get_last_known_topic_date());
   }
 
   // updates of all topics could have been missed; the first page also contains topics created in the meantime
