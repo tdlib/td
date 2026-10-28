@@ -2479,6 +2479,12 @@ void ForumTopicManager::on_topic_message_added(DialogId dialog_id, ForumTopicId 
         topic->last_database_message_id_ == topic->last_server_message_id_) {
       topic->last_database_message_id_ = message_id;
       topic->need_save_to_database_ = true;
+    } else if (!topic->last_database_message_id_.is_valid() && G()->use_message_database() &&
+               forum_topic_id != ForumTopicId::general() && message_id == forum_topic_id.to_top_thread_message_id()) {
+      // the topic has no messages before the message, which created it
+      topic->first_database_message_id_ = MessageId::min();
+      topic->last_database_message_id_ = message_id;
+      topic->need_save_to_database_ = true;
     }
     topic->last_server_message_id_ = message_id;
   }
