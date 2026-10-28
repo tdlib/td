@@ -129,6 +129,11 @@ class OrderedTopics {
     return *std::next(ordered_topics_.begin(), static_cast<std::ptrdiff_t>(position));
   }
 
+  // returns the date of the last topic in the list, or min_topic_date() if there are no topics
+  TopicDate get_last_known_topic_date() const {
+    return ordered_topics_.empty() ? min_topic_date() : *ordered_topics_.rbegin();
+  }
+
   bool is_fully_loaded() const {
     return last_topic_date_ == max_topic_date();
   }
