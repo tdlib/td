@@ -8822,6 +8822,10 @@ void MessagesManager::unload_dialog(DialogId dialog_id, int32 delay) {
                                                           std::move(unloaded_message_ids), false, true));
   }
 
+  if (td_->forum_topic_manager_->unload_forum_topics(dialog_id)) {
+    has_left_to_unload_messages = true;
+  }
+
   if (has_left_to_unload_messages) {
     LOG(DEBUG) << "Need to unload more messages in " << dialog_id;
     pending_unload_dialog_timeout_.add_timeout_in(

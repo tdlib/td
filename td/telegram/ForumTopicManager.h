@@ -153,6 +153,9 @@ class ForumTopicManager final : public Actor {
   void on_topic_message_deleted(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId message_id,
                                 bool is_permanently_deleted, bool only_from_memory, const char *source);
 
+  // returns whether some topics were unloaded, so that their last messages can be unloaded too
+  bool unload_forum_topics(DialogId dialog_id);
+
   void on_topic_mention_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count, bool is_relative);
 
   void on_topic_reaction_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count, bool is_relative);
@@ -171,6 +174,7 @@ class ForumTopicManager final : public Actor {
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server-side limit for forum topic title
   static constexpr int32 MAX_GET_FORUM_TOPICS = 100;           // server-side limit
   static constexpr size_t MAX_GET_FORUM_TOPICS_BY_ID = 100;    // server-side limit
+  static constexpr size_t MAX_KEPT_FORUM_TOPICS = 20;          // non-pinned topics, which stay loaded with the list
 
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;
@@ -288,6 +292,9 @@ class ForumTopicManager final : public Actor {
   void on_reload_topics_timeout(DialogId dialog_id);
 
   void reload_topic_without_last_message(DialogId dialog_id, ForumTopicId forum_topic_id);
+
+  static bool can_unload_topic(const DialogTopics *dialog_topics, ForumTopicId forum_topic_id, const Topic *topic,
+                               OrderedTopics<ForumTopicId>::TopicDate last_kept_topic_date);
 
   void on_load_forum_topics(DialogId dialog_id, uint32 generation,
                             Result<td_api::object_ptr<td_api::forumTopics>> &&result);
