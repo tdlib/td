@@ -198,6 +198,14 @@ TEST(Emoji, find_emojis) {
   test_find_emojis("‍👩", {"👩"});
   test_find_emojis("👩‍‍👨", {"👩", "👨"});
   test_find_emojis("👩️️‍👨", {"👩️", "👨"});
+
+  td::string long_emoji = "👩";
+  for (int i = 0; i < 1000; i++) {
+    long_emoji += "‍👨";
+  }
+  test_find_emojis(long_emoji, {long_emoji});
+  test_find_emojis(long_emoji + "a" + long_emoji + "‍", {long_emoji, long_emoji});
+  test_find_emojis(td::string(5000, 'a') + "👋" + td::string(5000, 'a') + "👋", {"👋", "👋"});
 }
 
 TEST(Emoji, find_emojis_random) {
@@ -212,7 +220,8 @@ TEST(Emoji, find_emojis_random) {
   for (int test = 0; test < 1000; test++) {
     td::string str;
     td::vector<td::string> expected;
-    auto count = td::Random::fast(0, 20);
+    // long strings are processed in several batches
+    auto count = td::Random::fast(0, test % 10 == 0 ? 1000 : 20);
     for (int i = 0; i < count; i++) {
       str += separators[td::Random::fast(0, static_cast<int>(separators.size()) - 1)].str();
       auto emoji = emojis[td::Random::fast(0, static_cast<int>(emojis.size()) - 1)];

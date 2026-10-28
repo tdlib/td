@@ -303,16 +303,16 @@ class EmojiAutomaton {
     }
   }
 
-  // returns length of the longest emoji starting at each position of the string
-  vector<uint8> get_longest_emoji_lengths(Slice str) const {
-    vector<uint8> result(str.size(), 0);
-    int32 node_id = 0;
-    for (size_t i = 0; i < str.size(); i++) {
+  // processes bytes from begin to end of the string starting from the given node and returns the final node;
+  // updates the circular buffer with lengths of the longest emoji starting at each position
+  template <size_t BUFFER_SIZE>
+  int32 process(Slice str, size_t begin, size_t end, int32 node_id, uint8 (&lengths)[BUFFER_SIZE]) const {
+    for (size_t i = begin; i < end; i++) {
       if (node_id == 0) {
         // skip bytes, which can't start an emoji
         while (root_children_[static_cast<unsigned char>(str[i])] == 0) {
-          if (++i == str.size()) {
-            return result;
+          if (++i == end) {
+            return 0;
           }
         }
       }
@@ -320,13 +320,13 @@ class EmojiAutomaton {
       for (auto output_id = nodes_[node_id].output_; output_id != -1;
            output_id = nodes_[nodes_[output_id].fail_].output_) {
         auto length = nodes_[output_id].length_;
-        auto &max_length = result[i + 1 - length];
+        auto &max_length = lengths[(i + 1 - length) % BUFFER_SIZE];
         if (length > max_length) {
           max_length = length;
         }
       }
     }
-    return result;
+    return node_id;
   }
 };
 
@@ -342,19 +342,55 @@ static size_t skip_emoji_selector(Slice str, size_t pos) {
 
 vector<Slice> find_emojis(Slice str) {
   static const EmojiAutomaton automaton;
-  auto lengths = automaton.get_longest_emoji_lengths(str);
+
+  // the longest emoji starting at a position is known after the next MAX_EMOJI_LENGTH bytes are processed,
+  // so the string is processed in batches and lengths only for the last positions are kept in a circular buffer
+  constexpr size_t BUFFER_SIZE = 2048;
+  constexpr size_t BUFFER_RESERVE = MAX_EMOJI_LENGTH + 4;
+  static_assert(BUFFER_SIZE >= 2 * BUFFER_RESERVE, "");
+  uint8 lengths[BUFFER_SIZE];
+  size_t processed = 0;
+  int32 node_id = 0;
+  // returns length of the longest emoji starting at the position;
+  // the position must not be less than any previously requested position by more than 3
+  auto get_length = [&](size_t position) -> size_t {
+    if (processed < std::min(str.size(), position + MAX_EMOJI_LENGTH)) {
+      // lengths for positions before position - BUFFER_RESERVE are overwritten
+      auto end = std::min(str.size(), position + BUFFER_SIZE - BUFFER_RESERVE);
+      auto begin_index = processed % BUFFER_SIZE;
+      auto end_index = end % BUFFER_SIZE;
+      if (begin_index < end_index) {
+        std::fill(lengths + begin_index, lengths + end_index, static_cast<uint8>(0));
+      } else if (processed < end) {
+        std::fill(lengths + begin_index, lengths + BUFFER_SIZE, static_cast<uint8>(0));
+        std::fill(lengths, lengths + end_index, static_cast<uint8>(0));
+      }
+      node_id = automaton.process(str, processed, end, node_id, lengths);
+      processed = end;
+    }
+    return lengths[position % BUFFER_SIZE];
+  };
+
   vector<Slice> result;
   size_t i = 0;
   while (i < str.size()) {
-    if (lengths[i] == 0) {
-      i++;
+    auto length = get_length(i);
+    if (length == 0) {
+      // skip positions without emoji, for which lengths are already known
+      auto known_end = processed == str.size() ? processed : processed - MAX_EMOJI_LENGTH + 1;
+      do {
+        i++;
+      } while (i < known_end && lengths[i % BUFFER_SIZE] == 0);
       continue;
     }
-    auto end = skip_emoji_selector(str, i + lengths[i]);
-    while (end + 3 < str.size() && str[end] == '\xE2' && str[end + 1] == '\x80' && str[end + 2] == '\x8D' &&
-           lengths[end + 3] != 0) {
+    auto end = skip_emoji_selector(str, i + length);
+    while (end + 3 < str.size() && str[end] == '\xE2' && str[end + 1] == '\x80' && str[end + 2] == '\x8D') {
       // zero-width joiner \u200D
-      end = skip_emoji_selector(str, end + 3 + lengths[end + 3]);
+      auto next_length = get_length(end + 3);
+      if (next_length == 0) {
+        break;
+      }
+      end = skip_emoji_selector(str, end + 3 + next_length);
     }
     result.push_back(str.substr(i, end - i));
     i = end;
