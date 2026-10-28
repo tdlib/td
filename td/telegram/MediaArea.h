@@ -35,6 +35,11 @@ class MediaArea {
       return country_iso2_.empty();
     }
 
+    friend bool operator==(const GeoPointAddress &lhs, const GeoPointAddress &rhs) {
+      return lhs.country_iso2_ == rhs.country_iso2_ && lhs.state_ == rhs.state_ && lhs.city_ == rhs.city_ &&
+             lhs.street_ == rhs.street_;
+    }
+
     template <class StorerT>
     void store(StorerT &storer) const;
 

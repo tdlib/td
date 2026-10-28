@@ -390,10 +390,11 @@ void MediaArea::add_dependencies(Dependencies &dependencies) const {
 
 bool operator==(const MediaArea &lhs, const MediaArea &rhs) {
   return lhs.type_ == rhs.type_ && lhs.coordinates_ == rhs.coordinates_ && lhs.location_ == rhs.location_ &&
-         lhs.venue_ == rhs.venue_ && lhs.message_full_id_ == rhs.message_full_id_ &&
+         lhs.address_ == rhs.address_ && lhs.venue_ == rhs.venue_ && lhs.message_full_id_ == rhs.message_full_id_ &&
          lhs.input_query_id_ == rhs.input_query_id_ && lhs.input_result_id_ == rhs.input_result_id_ &&
-         lhs.reaction_type_ == rhs.reaction_type_ && std::fabs(lhs.temperature_ - rhs.temperature_) < 1e-6 &&
-         lhs.color_ == rhs.color_ && lhs.is_dark_ == rhs.is_dark_ && lhs.is_flipped_ == rhs.is_flipped_ &&
+         lhs.reaction_type_ == rhs.reaction_type_ && lhs.url_ == rhs.url_ &&
+         std::fabs(lhs.temperature_ - rhs.temperature_) < 1e-6 && lhs.color_ == rhs.color_ &&
+         lhs.is_dark_ == rhs.is_dark_ && lhs.is_flipped_ == rhs.is_flipped_ &&
          lhs.is_old_message_ == rhs.is_old_message_;
 }
 
