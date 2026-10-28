@@ -139,11 +139,15 @@ class EmojiAutomaton {
     // there are less than 32768 nodes and children, so 16-bit integers are enough to store their indices
     int16 first_child_ = 0;  // identifier of the first child of the node; children have consecutive identifiers
     int16 fail_ = 0;
-    int16 output_ = -1;      // the nearest node in the failure chain, including the node itself, which ends an emoji
-    uint8 child_count_ = 0;  // number of children of the node
-    uint8 length_ = 0;       // length of the emoji ending in the node or 0 if none
+    int16 output_ = -1;  // the nearest node in the failure chain, including the node itself, which ends an emoji
+    // number of children of the node, combined with CONTIGUOUS_MASK,
+    // which is set if the bytes on the edges to the children are consecutive
+    uint8 child_count_ = 0;
+    uint8 length_ = 0;  // length of the emoji ending in the node or 0 if none
   };
   static_assert(sizeof(Node) == 8);
+  static constexpr uint8 CHILD_COUNT_MASK = 127;
+  static constexpr uint8 CONTIGUOUS_MASK = 128;
   vector<Node> nodes_;
   // the byte on the edge to each node; children of a node have consecutive identifiers and are sorted by the byte
   vector<unsigned char> bytes_;
@@ -153,7 +157,13 @@ class EmojiAutomaton {
   int32 get_child(int32 node_id, unsigned char c) const {
     const auto &node = nodes_[node_id];
     size_t left = node.first_child_;
-    size_t right = left + node.child_count_;
+    size_t child_count = node.child_count_ & CHILD_COUNT_MASK;
+    if ((node.child_count_ & CONTIGUOUS_MASK) != 0) {
+      // the child can be found directly
+      auto offset = static_cast<size_t>(c) - bytes_[left];  // wraps around if c < bytes_[left]
+      return offset < child_count ? static_cast<int32>(left + offset) : -1;
+    }
+    size_t right = left + child_count;
     // binary search until the range becomes small enough for linear search
     while (right - left > 8) {
       auto middle = left + (right - left) / 2;
@@ -235,6 +245,9 @@ class EmojiAutomaton {
       auto &node = nodes_[node_id];
       node.first_child_ = children.empty() ? 0 : new_node_ids[children[0].second];
       node.child_count_ = narrow_cast<uint8>(children.size());
+      if (children.empty() || static_cast<size_t>(children.back().first - children[0].first) + 1 == children.size()) {
+        node.child_count_ |= CONTIGUOUS_MASK;
+      }
       node.length_ = lengths[order[node_id]];
       for (size_t i = 0; i < children.size(); i++) {
         auto child_id = new_node_ids[children[i].second];
@@ -255,7 +268,8 @@ class EmojiAutomaton {
         node.output_ = node.length_ != 0 ? narrow_cast<int16>(node_id) : nodes_[node.fail_].output_;
       }
       auto first_child = static_cast<size_t>(node.first_child_);
-      for (size_t child_id = first_child; child_id < first_child + node.child_count_; child_id++) {
+      auto child_count = node.child_count_ & CHILD_COUNT_MASK;
+      for (size_t child_id = first_child; child_id < first_child + child_count; child_id++) {
         nodes_[child_id].fail_ = node_id == 0 ? 0 : narrow_cast<int16>(get_next_node(node.fail_, bytes_[child_id]));
       }
     }
