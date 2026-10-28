@@ -13640,7 +13640,9 @@ getForumTopicHistory chat_id:int53 forum_topic_id:int32 from_message_id:int53 of
 getForumTopicLink chat_id:int53 forum_topic_id:int32 = MessageLink;
 
 //@description Loads more topics in a forum supergroup chat or a chat with a bot with topics. The loaded topics will be sent through updateForumTopic.
-//-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
+//-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded.
+//-While the chat is closed, the loaded part of the list can be shortened to its first topics, which is reported through updateForumTopic with order 0 for the topics after them.
+//-The General topic is never removed from memory, and a hidden General topic is received with the first topics, so applications showing a hidden General topic above other topics can show it regardless of its order
 //@chat_id Identifier of the chat
 //@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
 loadForumTopics chat_id:int53 limit:int32 = Ok;

@@ -11,6 +11,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/CustomEmojiId.h"
+#include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DraftMessageManager.h"
 #include "td/telegram/ForumTopic.h"
@@ -1965,6 +1966,78 @@ void ForumTopicManager::on_topic_message_deleted(DialogId dialog_id, ForumTopicI
     }
   }
   topic->ordered_messages_.erase(message_id, only_from_memory, source);
+}
+
+bool ForumTopicManager::unload_forum_topics(DialogId dialog_id) {
+  auto *dialog_topics = get_dialog_topics(dialog_id);
+  // a page of the list being loaded would need the topics
+  if (dialog_topics == nullptr || td_->auth_manager_->is_bot() || !dialog_topics->load_queries_.empty()) {
+    return false;
+  }
+  auto &ordered_topics = dialog_topics->ordered_topics_;
+  auto last_kept_topic_date =
+      ordered_topics.get_topic_date(ordered_topics.get_pinned_topic_ids().size() + MAX_KEPT_FORUM_TOPICS - 1);
+  vector<Topic *> topics;
+  dialog_topics->topics_.foreach([&](const ForumTopicId &forum_topic_id, unique_ptr<Topic> &topic) {
+    if (can_unload_topic(dialog_topics, topic.get(), last_kept_topic_date)) {
+      topics.push_back(topic.get());
+    }
+  });
+  if (topics.empty()) {
+    return false;
+  }
+
+  // the loaded part of the list can't have gaps, so it shrinks to the kept topics and is loaded again from the server
+  auto changed_forum_topic_ids = ordered_topics.reset_last_topic_date(last_kept_topic_date);
+  if (!changed_forum_topic_ids.empty()) {
+    const auto *last_kept_topic = get_topic(dialog_topics, last_kept_topic_date.get_topic_id());
+    CHECK(last_kept_topic != nullptr);
+    auto last_message_id = last_kept_topic->topic_->get_last_message_id();
+    // the server orders topics by their last message, so a topic placed by its draft can't be an offset
+    if (last_message_id.is_server() &&
+        DialogDate::get_dialog_order(last_message_id, last_kept_topic->last_message_date_) ==
+            last_kept_topic->private_order_) {
+      dialog_topics->offset_date_ = last_kept_topic->last_message_date_;
+      dialog_topics->offset_message_id_ = last_message_id;
+      dialog_topics->offset_forum_topic_id_ = last_kept_topic_date.get_topic_id();
+    } else {
+      dialog_topics->offset_date_ = 0;
+      dialog_topics->offset_message_id_ = MessageId();
+      dialog_topics->offset_forum_topic_id_ = ForumTopicId();
+    }
+  }
+  for (auto changed_forum_topic_id : changed_forum_topic_ids) {
+    send_update_forum_topic(dialog_id, get_topic(dialog_topics, changed_forum_topic_id));
+  }
+  auto server_total_count = ordered_topics.get_server_total_count();
+  for (auto *topic : topics) {
+    auto forum_topic_id = topic->info_->get_forum_topic_id();
+    LOG(INFO) << "Unload " << forum_topic_id << " in " << dialog_id;
+    ordered_topics.update_order(forum_topic_id, topic->private_order_, 0);
+    dialog_topics->topics_.erase(forum_topic_id);
+  }
+  ordered_topics.set_server_total_count(server_total_count);
+  return true;
+}
+
+bool ForumTopicManager::can_unload_topic(const DialogTopics *dialog_topics, const Topic *topic,
+                                         OrderedTopics<ForumTopicId>::TopicDate last_kept_topic_date) {
+  if (topic->info_ == nullptr || topic->topic_ == nullptr || topic->pinned_order_ != 0) {
+    return false;
+  }
+  auto forum_topic_id = topic->info_->get_forum_topic_id();
+  if (forum_topic_id == ForumTopicId::general()) {
+    // the server returns a hidden General topic only on the first page of the list, so it wouldn't be received again
+    return false;
+  }
+  if (OrderedTopics<ForumTopicId>::TopicDate(topic->private_order_, forum_topic_id) <= last_kept_topic_date ||
+      td::contains(dialog_topics->reload_topic_ids_, forum_topic_id) ||
+      td::contains(dialog_topics->reloading_topic_ids_, forum_topic_id)) {
+    return false;
+  }
+  // the last message of a topic can't be unloaded while the topic is in memory, so it can be the only one left
+  return topic->ordered_messages_.empty() ||
+         topic->ordered_messages_.has_only_message(topic->topic_->get_last_message_id());
 }
 
 void ForumTopicManager::on_topic_mention_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count,
