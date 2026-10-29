@@ -3453,6 +3453,12 @@ void Requests::on_request(uint64 id, const td_api::getCommunityFullInfo &request
   td_->community_manager_->get_community_full(CommunityId(request.community_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getJoinedCommunities &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->community_manager_->get_joined_communities(std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::createCommunity &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.name_);

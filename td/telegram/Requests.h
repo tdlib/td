@@ -468,6 +468,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getCommunityFullInfo &request);
 
+  void on_request(uint64 id, const td_api::getJoinedCommunities &request);
+
   void on_request(uint64 id, td_api::createCommunity &request);
 
   void on_request(uint64 id, td_api::setCommunityName &request);

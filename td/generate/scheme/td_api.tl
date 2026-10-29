@@ -2727,6 +2727,9 @@ communityChat chat_id:int53 can_view_history:Bool is_hidden:Bool = CommunityChat
 //@add_chat_request_count Number of pending requests for addition of chats to the community; 0 if the current user isn't an administrator of the community
 communityFullInfo photo:chatPhoto chats:vector<communityChat> administrator_count:int32 banned_count:int32 add_chat_request_count:int32 = CommunityFullInfo;
 
+//@description Represents a list of communities @community_ids List of community identifiers
+communities community_ids:vector<int53> = Communities;
+
 
 //@description Contains description of user rating
 //@level The level of the user; may be negative
@@ -12799,6 +12802,9 @@ setPinnedSavedMessagesTopics saved_messages_topic_ids:vector<int53> = Ok;
 
 //@description Returns full information about a community @community_id Community identifier
 getCommunityFullInfo community_id:int53 = CommunityFullInfo;
+
+//@description Returns the list of communities joined by the current user
+getJoinedCommunities = Communities;
 
 //@description Creates a new community for the given chat. Returns identifier of the created community
 //@name Name of the new community

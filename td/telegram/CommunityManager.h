@@ -59,6 +59,11 @@ class CommunityManager final : public Actor {
 
   void on_get_community_full(telegram_api::object_ptr<telegram_api::communityFull> &&community);
 
+  void get_joined_communities(Promise<td_api::object_ptr<td_api::communities>> &&promise);
+
+  void on_get_joined_communities(vector<telegram_api::object_ptr<telegram_api::Chat>> &&chats,
+                                 Promise<td_api::object_ptr<td_api::communities>> &&promise);
+
   void create_community(const string &name, DialogId dialog_id, bool is_hidden,
                         Promise<td_api::object_ptr<td_api::communityId>> &&promise);
 

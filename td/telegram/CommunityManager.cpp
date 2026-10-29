@@ -117,6 +117,48 @@ class GetFullCommunityQuery final : public Td::ResultHandler {
   }
 };
 
+class GetJoinedCommunitiesQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::communities>> promise_;
+
+ public:
+  explicit GetJoinedCommunitiesQuery(Promise<td_api::object_ptr<td_api::communities>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::communities_getJoinedCommunities()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::communities_getJoinedCommunities>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto chats_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetJoinedCommunitiesQuery: " << to_string(chats_ptr);
+    switch (chats_ptr->get_id()) {
+      case telegram_api::messages_chats::ID: {
+        auto chats = telegram_api::move_object_as<telegram_api::messages_chats>(chats_ptr);
+        td_->community_manager_->on_get_joined_communities(std::move(chats->chats_), std::move(promise_));
+        break;
+      }
+      case telegram_api::messages_chatsSlice::ID: {
+        LOG(ERROR) << "Receive chatsSlice in result of GetJoinedCommunitiesQuery";
+        auto chats = telegram_api::move_object_as<telegram_api::messages_chatsSlice>(chats_ptr);
+        td_->community_manager_->on_get_joined_communities(std::move(chats->chats_), std::move(promise_));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CreateCommunityQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::communityId>> promise_;
   DialogId dialog_id_;
@@ -1153,6 +1195,31 @@ void CommunityManager::on_get_community_full(telegram_api::object_ptr<telegram_a
 
   community_full->is_update_community_full_sent = true;
   update_community_full(community_full, community_id, "on_get_community_full");
+}
+
+void CommunityManager::get_joined_communities(Promise<td_api::object_ptr<td_api::communities>> &&promise) {
+  td_->create_handler<GetJoinedCommunitiesQuery>(std::move(promise))->send();
+}
+
+void CommunityManager::on_get_joined_communities(vector<telegram_api::object_ptr<telegram_api::Chat>> &&chats,
+                                                 Promise<td_api::object_ptr<td_api::communities>> &&promise) {
+  vector<CommunityId> community_ids;
+  for (auto &chat : chats) {
+    if (chat->get_id() == telegram_api::community::ID) {
+      community_ids.push_back(CommunityId(static_cast<const telegram_api::community *>(chat.get())->id_));
+    } else {
+      LOG(ERROR) << "Receive " << to_string(chat) << " as a joined community";
+    }
+  }
+  td_->chat_manager_->on_get_chats(std::move(chats), "on_get_joined_communities");
+
+  auto result = td_api::make_object<td_api::communities>();
+  for (auto community_id : community_ids) {
+    if (have_community(community_id)) {
+      result->community_ids_.push_back(get_community_id_object(community_id, "on_get_joined_communities"));
+    }
+  }
+  promise.set_value(std::move(result));
 }
 
 void CommunityManager::update_community_full(CommunityFull *community_full, CommunityId community_id,

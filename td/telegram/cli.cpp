@@ -5193,6 +5193,8 @@ class CliClient final : public Actor {
       CommunityId community_id;
       get_args(args, community_id);
       send_request(td_api::make_object<td_api::getCommunityFullInfo>(community_id));
+    } else if (op == "gjc") {
+      send_request(td_api::make_object<td_api::getJoinedCommunities>());
     } else if (op == "open") {
       ChatId chat_id;
       get_args(args, chat_id);
