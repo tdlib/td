@@ -1040,7 +1040,7 @@ void CommunityManager::on_get_community(telegram_api::community &community, cons
   }
   if (c->collapsed_in_dialogs != community.collapsed_in_dialogs_ && !is_min) {
     c->collapsed_in_dialogs = community.collapsed_in_dialogs_;
-    c->need_save_to_database = true;
+    c->is_changed = true;
   }
   if (!is_min) {
     on_update_community_status(c, community_id, std::move(status));
@@ -1656,7 +1656,8 @@ td_api::object_ptr<td_api::community> CommunityManager::get_community_object(Com
   return td_api::make_object<td_api::community>(community_id.get(), c->access_hash != 0, c->title,
                                                 get_chat_photo_info_object(td_->file_manager_.get(), &c->photo),
                                                 c->date, c->status.get_community_member_status_object(),
-                                                c->default_permissions.get_community_permissions_object());
+                                                c->default_permissions.get_community_permissions_object(),
+                                                c->collapsed_in_dialogs);
 }
 
 td_api::object_ptr<td_api::updateCommunity> CommunityManager::get_update_community_object(CommunityId community_id,
@@ -1671,7 +1672,7 @@ td_api::object_ptr<td_api::updateCommunity> CommunityManager::get_update_unknown
     CommunityId community_id) const {
   return td_api::make_object<td_api::updateCommunity>(td_api::make_object<td_api::community>(
       community_id.get(), false, string(), nullptr, 0, td_api::make_object<td_api::communityMemberStatusBanned>(),
-      RestrictedRights::restrict_all().get_community_permissions_object()));
+      RestrictedRights::restrict_all().get_community_permissions_object(), false));
 }
 
 td_api::object_ptr<td_api::communityFullInfo> CommunityManager::get_community_full_info_object(

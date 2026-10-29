@@ -2711,7 +2711,8 @@ communityMemberStatusBanned = CommunityMemberStatus;
 //@date Point in time (Unix timestamp) when the community was joined, or the point in time when the community was created, in case the user is not a member of any chat in the community
 //@status Status of the current user in the community
 //@permissions Actions that non-administrator community members are allowed to take in the community
-community id:int53 have_access:Bool name:string photo:chatPhotoInfo date:int32 status:CommunityMemberStatus permissions:communityPermissions = Community;
+//@are_chats_collapsed True, if all chats of the community are collapsed into one entry in the chat list
+community id:int53 have_access:Bool name:string photo:chatPhotoInfo date:int32 status:CommunityMemberStatus permissions:communityPermissions are_chats_collapsed:Bool = Community;
 
 //@description Describes a chat in a community
 //@chat_id Identifier of the chat in the community
