@@ -521,6 +521,10 @@ class DialogParticipantStatus {
     return get_administrator_rights().can_manage_ranks();
   }
 
+  bool can_manage_linked_peers_as_administrator() const {
+    return get_administrator_rights().can_manage_linked_peers();
+  }
+
   bool can_manage_linked_peers() const {
     return get_administrator_rights().can_manage_linked_peers() || get_restricted_rights().can_manage_linked_peers();
   }

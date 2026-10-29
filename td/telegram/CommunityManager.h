@@ -80,6 +80,8 @@ class CommunityManager final : public Actor {
 
   void add_community_dialog(CommunityId community_id, DialogId dialog_id, bool is_hidden, Promise<Unit> &&promise);
 
+  void remove_community_dialog(CommunityId community_id, DialogId dialog_id, Promise<Unit> &&promise);
+
   void on_change_community_dialogs(CommunityId community_id, Promise<Unit> &&promise);
 
   void delete_community(CommunityId community_id, Promise<Unit> &&promise);
@@ -232,6 +234,8 @@ class CommunityManager final : public Actor {
   DialogParticipantStatus get_community_permissions(CommunityId community_id) const;
 
   DialogParticipantStatus get_community_permissions(const Community *c) const;
+
+  bool is_dialog_owner(DialogId dialog_id) const;
 
   void on_update_community_photo(Community *c, CommunityId community_id,
                                  telegram_api::object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);

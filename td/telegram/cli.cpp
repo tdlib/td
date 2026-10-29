@@ -3917,6 +3917,11 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, community_id, chat_id);
       send_request(td_api::make_object<td_api::addCommunityChat>(community_id, chat_id, op == "acch"));
+    } else if (op == "rcc") {
+      CommunityId community_id;
+      ChatId chat_id;
+      get_args(args, community_id, chat_id);
+      send_request(td_api::make_object<td_api::removeCommunityChat>(community_id, chat_id));
     } else if (op == "DeleteCommunity") {
       CommunityId community_id;
       get_args(args, community_id);

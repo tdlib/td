@@ -12837,6 +12837,12 @@ setCommunityPermissions community_id:int53 permissions:communityPermissions = Ok
 //@is_hidden Pass true if the chat will be visible only to administrators of the community
 addCommunityChat community_id:int53 chat_id:int53 is_hidden:Bool = Ok;
 
+//@description Removes a chat from a community. Members of the chat, which aren't members of other chats in the community, will be removed from the community.
+//-Requires owner privileges in the supergroup or channel chat, or ownership of the bot for chats with bots, or can_edit_chat_list administrator right in the community
+//@community_id Identifier of the community
+//@chat_id Identifier of the chat to remove
+removeCommunityChat community_id:int53 chat_id:int53 = Ok;
+
 //@description Deletes a community; requires owner privileges @community_id Identifier of the community
 deleteCommunity community_id:int53 = Ok;
 

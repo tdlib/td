@@ -279,7 +279,7 @@ class ToggleCommunityPeerLinkQuery final : public Td::ResultHandler {
   explicit ToggleCommunityPeerLinkQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(CommunityId community_id, DialogId dialog_id, bool is_hidden) {
+  void send(CommunityId community_id, DialogId dialog_id, bool is_deleted, bool is_hidden) {
     community_id_ = community_id;
     dialog_id_ = dialog_id;
     auto input_community = td_->community_manager_->get_input_community(community_id);
@@ -287,8 +287,8 @@ class ToggleCommunityPeerLinkQuery final : public Td::ResultHandler {
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::communities_togglePeerLink(0, !is_hidden, is_hidden, false, std::move(input_community),
-                                                 std::move(input_peer)),
+        telegram_api::communities_togglePeerLink(0, !is_deleted && !is_hidden, !is_deleted && is_hidden, is_deleted,
+                                                 std::move(input_community), std::move(input_peer)),
         {{community_id}}));
   }
 
@@ -1394,7 +1394,38 @@ void CommunityManager::add_community_dialog(CommunityId community_id, DialogId d
   }
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "add_community_dialog"));
-  td_->create_handler<ToggleCommunityPeerLinkQuery>(std::move(promise))->send(community_id, dialog_id, is_hidden);
+  td_->create_handler<ToggleCommunityPeerLinkQuery>(std::move(promise))
+      ->send(community_id, dialog_id, false, is_hidden);
+}
+
+bool CommunityManager::is_dialog_owner(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      auto r_bot_data = td_->user_manager_->get_bot_data(dialog_id.get_user_id());
+      return r_bot_data.is_ok() && r_bot_data.ok().can_be_edited;
+    }
+    case DialogType::Chat:
+      return td_->chat_manager_->get_chat_status(dialog_id.get_chat_id()).is_creator();
+    case DialogType::Channel:
+      return td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_creator();
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      return false;
+  }
+}
+
+void CommunityManager::remove_community_dialog(CommunityId community_id, DialogId dialog_id, Promise<Unit> &&promise) {
+  const auto *c = get_community(community_id);
+  if (c == nullptr) {
+    return promise.set_error(400, "Community not found");
+  }
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "remove_community_dialog"));
+  if (!get_community_status(c).can_manage_linked_peers_as_administrator() && !is_dialog_owner(dialog_id)) {
+    return promise.set_error(400, "Have not enough rights");
+  }
+  td_->create_handler<ToggleCommunityPeerLinkQuery>(std::move(promise))->send(community_id, dialog_id, true, false);
 }
 
 void CommunityManager::on_change_community_dialogs(CommunityId community_id, Promise<Unit> &&promise) {
