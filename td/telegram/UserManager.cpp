@@ -481,55 +481,6 @@ class ResetContactsQuery final : public Td::ResultHandler {
   }
 };
 
-class UploadSavedMusicFileQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  FileUploadId file_upload_id_;
-  bool is_url_ = false;
-  bool was_uploaded_ = false;
-
- public:
-  explicit UploadSavedMusicFileQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(telegram_api::object_ptr<telegram_api::InputPeer> &&input_peer, FileUploadId file_upload_id, bool is_url,
-            telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) {
-    CHECK(input_peer != nullptr);
-    CHECK(input_media != nullptr);
-    file_upload_id_ = file_upload_id;
-    is_url_ = is_url;
-    was_uploaded_ = FileManager::extract_was_uploaded(input_media);
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_uploadMedia(0, string(), std::move(input_peer), std::move(input_media))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_uploadMedia>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    td_->user_manager_->on_uploaded_saved_music_file(file_upload_id_, is_url_, result_ptr.move_as_ok(),
-                                                     std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    if (was_uploaded_) {
-      CHECK(file_upload_id_.is_valid());
-      auto bad_parts = FileManager::get_missing_file_parts(status);
-      if (!bad_parts.empty()) {
-        // TODO td_->user_manager_->on_upload_saved_music_file_parts_missing(file_upload_id_, std::move(bad_parts));
-        // return;
-      } else {
-        td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id_, status);
-      }
-    } else if (FileReferenceManager::is_file_reference_error(status)) {
-      LOG(ERROR) << "Receive file reference error for UploadStickerFileQuery";
-    }
-    td_->file_manager_->cancel_upload(file_upload_id_);
-    promise_.set_error(std::move(status));
-  }
-};
-
 class UploadProfilePhotoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
@@ -2804,21 +2755,8 @@ class UserManager::UploadProfilePhotoCallback final : public FileManager::Upload
   }
 };
 
-class UserManager::UploadSavedMusicCallback final : public FileManager::UploadCallback {
- public:
-  void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
-    send_closure_later(G()->user_manager(), &UserManager::on_upload_saved_music, file_upload_id, std::move(input_file));
-  }
-
-  void on_upload_error(FileUploadId file_upload_id, Status error) final {
-    send_closure_later(G()->user_manager(), &UserManager::on_upload_saved_music_error, file_upload_id,
-                       std::move(error));
-  }
-};
-
 UserManager::UserManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_profile_photo_callback_ = std::make_shared<UploadProfilePhotoCallback>();
-  upload_saved_music_callback_ = std::make_shared<UploadSavedMusicCallback>();
 
   my_id_ = load_my_id();
 
@@ -7346,151 +7284,14 @@ void UserManager::check_is_saved_music(FileId file_id, Promise<Unit> &&promise) 
 }
 
 void UserManager::add_new_saved_music(td_api::object_ptr<td_api::inputAudio> &&input_audio, Promise<Unit> &&promise) {
-  upload_audio(std::move(input_audio), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
-                                                                  Result<FileId> r_file_id) mutable {
-                 if (r_file_id.is_error()) {
-                   return promise.set_error(r_file_id.move_as_error());
-                 }
-                 send_closure(actor_id, &UserManager::add_saved_music, r_file_id.ok(), FileId(), std::move(promise));
-               }));
-}
-
-void UserManager::upload_audio(td_api::object_ptr<td_api::inputAudio> &&input_audio, Promise<FileId> &&promise) {
-  if (input_audio == nullptr) {
-    return promise.set_error(400, "Audio must be non-empty");
-  }
-  if (!clean_input_string(input_audio->title_) || !clean_input_string(input_audio->performer_)) {
-    return promise.set_error(400, "Strings must be encoded in UTF-8");
-  }
-  auto audio = std::move(input_audio->audio_);
-  TRY_RESULT_PROMISE(promise, file_id,
-                     td_->file_manager_->get_input_file_id(FileType::Audio, audio, DialogId(), false, false));
-  CHECK(file_id.is_valid());
-
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
-  if (file_view.is_encrypted()) {
-    return promise.set_error(400, "Can't use encrypted file");
-  }
-
-  const auto *main_remote_location = file_view.get_main_remote_location();
-  if (main_remote_location != nullptr && main_remote_location->is_web()) {
-    return promise.set_error(400, "Can't use web file as an audio");
-  }
-
-  if (main_remote_location != nullptr) {
-    return promise.set_value(std::move(file_id));
-  }
-
-  td_->audios_manager_->create_audio(file_id, string(), PhotoSize(), string(), string(), input_audio->duration_,
-                                     input_audio->title_, input_audio->performer_, 0, false);
-  auto upload_promise = PromiseCreator::lambda([file_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
-    if (result.is_error()) {
-      return promise.set_error(result.move_as_error());
-    }
-    promise.set_value(std::move(file_id));
-  });
-  if (file_view.has_url()) {
-    do_upload_saved_music({file_id, FileManager::get_internal_upload_id()}, nullptr, std::move(upload_promise));
-  } else {
-    upload_saved_music(file_id, std::move(upload_promise));
-  }
-}
-
-void UserManager::upload_saved_music(FileId file_id, Promise<Unit> &&promise) {
-  CHECK(td_->audios_manager_->get_input_media(file_id, nullptr, nullptr) == nullptr);
-
-  FileUploadId file_upload_id{file_id, FileManager::get_internal_upload_id()};
-  CHECK(file_upload_id.is_valid());
-  being_uploaded_saved_music_files_[file_upload_id] = std::move(promise);
-  LOG(INFO) << "Ask to upload audio " << file_upload_id;
-  td_->file_manager_->upload(file_upload_id, upload_saved_music_callback_, 2, 0);
-}
-
-void UserManager::on_upload_saved_music(FileUploadId file_upload_id,
-                                        telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-  if (G()->close_flag()) {
-    return;
-  }
-  LOG(INFO) << "Audio " << file_upload_id << " has been uploaded";
-
-  auto it = being_uploaded_saved_music_files_.find(file_upload_id);
-  CHECK(it != being_uploaded_saved_music_files_.end());
-  auto promise = std::move(it->second);
-  being_uploaded_saved_music_files_.erase(it);
-
-  do_upload_saved_music(file_upload_id, std::move(input_file), std::move(promise));
-}
-
-void UserManager::on_upload_saved_music_error(FileUploadId file_upload_id, Status status) {
-  if (G()->close_flag()) {
-    return;
-  }
-
-  LOG(WARNING) << "Audio " << file_upload_id << " has upload error " << status;
-  CHECK(status.is_error());
-
-  auto it = being_uploaded_saved_music_files_.find(file_upload_id);
-  CHECK(it != being_uploaded_saved_music_files_.end());
-  auto promise = std::move(it->second);
-  being_uploaded_saved_music_files_.erase(it);
-
-  promise.set_error(status.code() > 0 ? status.code() : 500,
-                    status.message());  // TODO CHECK that status has always a code
-}
-
-void UserManager::do_upload_saved_music(FileUploadId file_upload_id,
-                                        telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
-                                        Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-
-  bool had_input_file = input_file != nullptr;
-  auto input_media =
-      td_->audios_manager_->get_input_media(file_upload_id.get_file_id(), std::move(input_file), nullptr);
-  CHECK(input_media != nullptr);
-  if (had_input_file && !FileManager::extract_was_uploaded(input_media)) {
-    // if we had InputFile, but has failed to use it for input_media, then we need to immediately cancel file upload
-    // so the next upload with the same file can succeed
-    td_->file_manager_->cancel_upload(file_upload_id);
-  }
-
-  td_->create_handler<UploadSavedMusicFileQuery>(std::move(promise))
-      ->send(telegram_api::make_object<telegram_api::inputPeerSelf>(), file_upload_id, !had_input_file,
-             std::move(input_media));
-}
-
-void UserManager::on_uploaded_saved_music_file(FileUploadId file_upload_id, bool is_url,
-                                               telegram_api::object_ptr<telegram_api::MessageMedia> media,
-                                               Promise<Unit> &&promise) {
-  CHECK(media != nullptr);
-  LOG(INFO) << "Receive uploaded audio file " << to_string(media);
-  if (media->get_id() != telegram_api::messageMediaDocument::ID) {
-    td_->file_manager_->delete_partial_remote_location(file_upload_id);
-    return promise.set_error(400, "Can't upload audio file: wrong file type");
-  }
-
-  auto message_document = telegram_api::move_object_as<telegram_api::messageMediaDocument>(media);
-  auto document_ptr = std::move(message_document->document_);
-  int32 document_id = document_ptr->get_id();
-  if (document_id == telegram_api::documentEmpty::ID) {
-    td_->file_manager_->delete_partial_remote_location(file_upload_id);
-    return promise.set_error(400, "Can't upload audio file: empty file");
-  }
-  CHECK(document_id == telegram_api::document::ID);
-
-  auto parsed_document = td_->documents_manager_->on_get_document(
-      telegram_api::move_object_as<telegram_api::document>(document_ptr), DialogId(), false, false);
-  if (parsed_document.type != Document::Type::Audio) {
-    td_->file_manager_->delete_partial_remote_location(file_upload_id);
-    return promise.set_error(400, "Wrong file type");
-  }
-
-  auto file_id = file_upload_id.get_file_id();
-  if (parsed_document.file_id != file_id) {
-    // must not delete the old audio, because the file_id could be used for simultaneous URL uploads
-    td_->audios_manager_->merge_audios(parsed_document.file_id, file_id);
-  }
-  td_->file_manager_->cancel_upload(file_upload_id);
-  promise.set_value(Unit());
+  td_->audios_manager_->upload_audio(
+      std::move(input_audio), PromiseCreator::lambda([actor_id = actor_id(this),
+                                                      promise = std::move(promise)](Result<FileId> r_file_id) mutable {
+        if (r_file_id.is_error()) {
+          return promise.set_error(r_file_id.move_as_error());
+        }
+        send_closure(actor_id, &UserManager::add_saved_music, r_file_id.ok(), FileId(), std::move(promise));
+      }));
 }
 
 void UserManager::add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise) {

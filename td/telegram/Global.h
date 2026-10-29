@@ -33,6 +33,7 @@ namespace td {
 class AccountManager;
 class AnimationsManager;
 class AttachMenuManager;
+class AudiosManager;
 class AuthManager;
 class AutosaveManager;
 class BackgroundManager;
@@ -227,6 +228,13 @@ class Global final : public ActorContext {
   }
   void set_attach_menu_manager(ActorId<AttachMenuManager> attach_menu_manager) {
     attach_menu_manager_ = attach_menu_manager;
+  }
+
+  ActorId<AudiosManager> audios_manager() const {
+    return audios_manager_;
+  }
+  void set_audios_manager(ActorId<AudiosManager> audios_manager) {
+    audios_manager_ = audios_manager;
   }
 
   ActorId<AuthManager> auth_manager() const {
@@ -793,6 +801,7 @@ class Global final : public ActorContext {
   ActorId<AccountManager> account_manager_;
   ActorId<AnimationsManager> animations_manager_;
   ActorId<AttachMenuManager> attach_menu_manager_;
+  ActorId<AudiosManager> audios_manager_;
   ActorId<AuthManager> auth_manager_;
   ActorId<AutosaveManager> autosave_manager_;
   ActorId<BackgroundManager> background_manager_;

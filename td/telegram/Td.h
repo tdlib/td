@@ -162,7 +162,6 @@ class Td final : public Actor {
 
   bool ignore_background_updates() const;
 
-  unique_ptr<AudiosManager> audios_manager_;
   unique_ptr<CallbackQueriesManager> callback_queries_manager_;
   unique_ptr<DocumentsManager> documents_manager_;
   unique_ptr<OptionManager> option_manager_;
@@ -174,6 +173,8 @@ class Td final : public Actor {
   ActorOwn<AnimationsManager> animations_manager_actor_;
   unique_ptr<AttachMenuManager> attach_menu_manager_;
   ActorOwn<AttachMenuManager> attach_menu_manager_actor_;
+  unique_ptr<AudiosManager> audios_manager_;
+  ActorOwn<AudiosManager> audios_manager_actor_;
   unique_ptr<AuthManager> auth_manager_;
   ActorOwn<AuthManager> auth_manager_actor_;
   unique_ptr<AutosaveManager> autosave_manager_;

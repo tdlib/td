@@ -707,6 +707,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(account_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(animations_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(attach_menu_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(audios_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(auth_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(autosave_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(background_manager_actor_)));
@@ -1161,7 +1162,6 @@ void Td::init_file_manager() {
 
 void Td::init_non_actor_managers() {
   VLOG(td_init) << "Create Managers";
-  audios_manager_ = make_unique<AudiosManager>(this);
   callback_queries_manager_ = make_unique<CallbackQueriesManager>(this);
   documents_manager_ = make_unique<DocumentsManager>(this);
   videos_manager_ = make_unique<VideosManager>(this);
@@ -1177,6 +1177,9 @@ void Td::init_managers() {
   attach_menu_manager_ = make_unique<AttachMenuManager>(this, create_reference());
   attach_menu_manager_actor_ = register_actor("AttachMenuManager", attach_menu_manager_.get());
   G()->set_attach_menu_manager(attach_menu_manager_actor_.get());
+  audios_manager_ = make_unique<AudiosManager>(this, create_reference());
+  audios_manager_actor_ = register_actor("AudiosManager", audios_manager_.get());
+  G()->set_audios_manager(audios_manager_actor_.get());
   autosave_manager_ = make_unique<AutosaveManager>(this, create_reference());
   autosave_manager_actor_ = register_actor("AutosaveManager", autosave_manager_.get());
   G()->set_autosave_manager(autosave_manager_actor_.get());

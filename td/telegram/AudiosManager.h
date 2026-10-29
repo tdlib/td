@@ -7,27 +7,35 @@
 #pragma once
 
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/actor/actor.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
+#include "td/utils/Promise.h"
+#include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
+
+#include <memory>
 
 namespace td {
 
 class Td;
 
-class AudiosManager {
+class AudiosManager final : public Actor {
  public:
-  explicit AudiosManager(Td *td);
+  AudiosManager(Td *td, ActorShared<> parent);
   AudiosManager(const AudiosManager &) = delete;
   AudiosManager &operator=(const AudiosManager &) = delete;
   AudiosManager(AudiosManager &&) = delete;
   AudiosManager &operator=(AudiosManager &&) = delete;
-  ~AudiosManager();
+  ~AudiosManager() final;
 
   int32 get_audio_duration(FileId file_id) const;
 
@@ -39,6 +47,11 @@ class AudiosManager {
 
   void create_audio(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name, string mime_type,
                     int32 duration, string title, string performer, int32 date, bool replace);
+
+  void upload_audio(td_api::object_ptr<td_api::inputAudio> &&input_audio, Promise<FileId> &&promise);
+
+  void on_uploaded_audio_file(FileUploadId file_upload_id, bool is_url,
+                              telegram_api::object_ptr<telegram_api::MessageMedia> media, Promise<Unit> &&promise);
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(
       FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
@@ -67,6 +80,8 @@ class AudiosManager {
   string get_audio_search_text(FileId file_id) const;
 
  private:
+  class UploadAudioFileCallback;
+
   class Audio {
    public:
     string file_name;
@@ -85,8 +100,25 @@ class AudiosManager {
 
   FileId on_get_audio(unique_ptr<Audio> new_audio, bool replace);
 
+  void tear_down() final;
+
+  void upload_audio_file(FileId file_id, Promise<Unit> &&promise);
+
+  void on_upload_audio_file(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+
+  void on_upload_audio_file_error(FileUploadId file_upload_id, Status status);
+
+  void do_upload_audio_file(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
+                            Promise<Unit> &&promise);
+
   Td *td_;
+  ActorShared<> parent_;
+
   WaitFreeHashMap<FileId, unique_ptr<Audio>, FileIdHash> audios_;
+
+  std::shared_ptr<UploadAudioFileCallback> upload_audio_file_callback_;
+
+  FlatHashMap<FileUploadId, Promise<Unit>, FileUploadIdHash> being_uploaded_audio_files_;
 };
 
 }  // namespace td

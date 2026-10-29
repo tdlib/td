@@ -6571,7 +6571,7 @@ void StoryManager::edit_story_music(DialogId owner_dialog_id, StoryId story_id,
   if (music == nullptr) {
     return do_edit_story_music(owner_dialog_id, story_id, FileId(), std::move(promise));
   }
-  td_->user_manager_->upload_audio(
+  td_->audios_manager_->upload_audio(
       std::move(music), PromiseCreator::lambda([actor_id = actor_id(this), owner_dialog_id, story_id,
                                                 promise = std::move(promise)](Result<FileId> r_file_id) mutable {
         if (r_file_id.is_error()) {
