@@ -35,6 +35,7 @@
 #include "td/utils/OptionParser.h"
 #include "td/utils/port/detail/ThreadIdGuard.h"
 #include "td/utils/port/FileFd.h"
+#include "td/utils/port/path.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/signals.h"
 #include "td/utils/port/Stat.h"
@@ -9636,6 +9637,8 @@ void main(int argc, char **argv) {
       combined_log.set_first(&ts_log);
     }
   });
+  options.add_checked_option('C', "working-directory", "Change working directory",
+                             [&](Slice directory) { return chdir(directory.str()); });
   options.add_option('W', "", "Preload chat list", [&] { get_chat_list = true; });
   options.add_option('n', "disable-network", "Disable network", [&] { disable_network = true; });
   options.add_checked_option('\0', "api-id", "Set Telegram API ID", OptionParser::parse_integer(api_id));
