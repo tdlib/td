@@ -462,6 +462,38 @@ class ToggleCommunityCollapsedInDialogsQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleCommunityParticipantBannedQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  CommunityId community_id_;
+
+ public:
+  explicit ToggleCommunityParticipantBannedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(CommunityId community_id, telegram_api::object_ptr<telegram_api::InputPeer> &&input_peer, bool is_banned) {
+    community_id_ = community_id;
+    auto input_community = td_->community_manager_->get_input_community(community_id);
+    CHECK(input_community != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::communities_toggleParticipantBanned(
+                                                   0, !is_banned, std::move(input_community), std::move(input_peer)),
+                                               {{community_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::communities_toggleParticipantBanned>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(INFO) << "Receive result for ToggleCommunityParticipantBannedQuery: " << result_ptr.ok();
+    td_->community_manager_->on_change_community_dialogs(community_id_, std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteCommunityQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1641,6 +1673,23 @@ void CommunityManager::toggle_community_are_dialogs_collapsed(CommunityId commun
   }
   td_->create_handler<ToggleCommunityCollapsedInDialogsQuery>(std::move(promise))
       ->send(community_id, are_dialogs_collapsed);
+}
+
+void CommunityManager::toggle_community_participant_is_banned(CommunityId community_id, DialogId participant_dialog_id,
+                                                              bool is_banned, Promise<Unit> &&promise) {
+  const auto *c = get_community(community_id);
+  if (c == nullptr) {
+    return promise.set_error(400, "Community not found");
+  }
+  if (!get_community_status(c).can_restrict_members()) {
+    return promise.set_error(400, "Have not enough rights");
+  }
+  auto input_peer = td_->dialog_manager_->get_input_peer(participant_dialog_id, AccessRights::Know);
+  if (input_peer == nullptr) {
+    return promise.set_error(400, "Member not found");
+  }
+  td_->create_handler<ToggleCommunityParticipantBannedQuery>(std::move(promise))
+      ->send(community_id, std::move(input_peer), is_banned);
 }
 
 void CommunityManager::delete_community(CommunityId community_id, Promise<Unit> &&promise) {

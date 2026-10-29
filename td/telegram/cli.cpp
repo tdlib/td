@@ -3944,6 +3944,13 @@ class CliClient final : public Actor {
       bool are_chats_collapsed;
       get_args(args, community_id, are_chats_collapsed);
       send_request(td_api::make_object<td_api::toggleCommunityAreChatsCollapsed>(community_id, are_chats_collapsed));
+    } else if (op == "tcmib") {
+      CommunityId community_id;
+      string member_id;
+      bool is_banned;
+      get_args(args, community_id, member_id, is_banned);
+      send_request(td_api::make_object<td_api::toggleCommunityMemberIsBanned>(community_id,
+                                                                              as_message_sender(member_id), is_banned));
     } else if (op == "DeleteCommunity") {
       CommunityId community_id;
       get_args(args, community_id);

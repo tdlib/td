@@ -12880,6 +12880,14 @@ processCommunityAddChatRequests community_id:int53 approve:Bool = Ok;
 //@are_chats_collapsed Pass true to collapse all chats of the community into one entry in the chat list
 toggleCommunityAreChatsCollapsed community_id:int53 are_chats_collapsed:Bool = Ok;
 
+//@description Bans or unbans a member of a community; requires can_ban_members administrator right in the community. A banned member is banned in all chats of the community.
+//-Administrators of the community can be banned only by the owner of the community and administrators, which can edit administrator rights of the member.
+//-If an owner of a chat in the community is banned, then the chat is removed from the community; in this case, can_edit_chat_list administrator right is also required
+//@community_id Identifier of the community
+//@member_id Identifier of the member to ban or unban
+//@is_banned Pass true to ban the member; pass false to unban the member
+toggleCommunityMemberIsBanned community_id:int53 member_id:MessageSender is_banned:Bool = Ok;
+
 //@description Deletes a community; requires owner privileges @community_id Identifier of the community
 deleteCommunity community_id:int53 = Ok;
 
