@@ -1443,7 +1443,7 @@ void CommunityManager::set_community_permissions(CommunityId community_id,
 
 void CommunityManager::add_community_dialog(CommunityId community_id, DialogId dialog_id, bool is_hidden,
                                             Promise<Unit> &&promise) {
-  if (get_community(community_id) == nullptr) {
+  if (!have_community(community_id)) {
     return promise.set_error(400, "Community not found");
   }
   TRY_STATUS_PROMISE(
@@ -1499,7 +1499,7 @@ void CommunityManager::on_change_community_dialogs(CommunityId community_id, Pro
 void CommunityManager::get_community_add_dialog_requests(
     CommunityId community_id, const string &offset, int32 limit,
     Promise<td_api::object_ptr<td_api::communityAddChatRequests>> &&promise) {
-  if (get_community(community_id) == nullptr) {
+  if (!have_community(community_id)) {
     return promise.set_error(400, "Community not found");
   }
   if (limit <= 0) {
@@ -1541,8 +1541,7 @@ FileSourceId CommunityManager::get_community_full_file_source_id(CommunityId com
 }
 
 int64 CommunityManager::get_community_id_object(CommunityId community_id, const char *source) const {
-  if (community_id.is_valid() && get_community(community_id) == nullptr &&
-      unknown_communities_.count(community_id) == 0) {
+  if (community_id.is_valid() && !have_community(community_id) && unknown_communities_.count(community_id) == 0) {
     LOG(ERROR) << "Have no information about " << community_id << " received from " << source;
     unknown_communities_.insert(community_id);
     send_closure(G()->td(), &Td::send_update, get_update_unknown_community_object(community_id));
