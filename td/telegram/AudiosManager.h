@@ -50,6 +50,8 @@ class AudiosManager final : public Actor {
 
   void upload_audio(td_api::object_ptr<td_api::inputAudio> &&input_audio, Promise<FileId> &&promise);
 
+  void reupload_audio(FileId file_id, Promise<Unit> &&promise);
+
   void on_uploaded_audio_file(FileUploadId file_upload_id, bool is_url,
                               telegram_api::object_ptr<telegram_api::MessageMedia> media, Promise<Unit> &&promise);
 

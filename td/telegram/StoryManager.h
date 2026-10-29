@@ -511,7 +511,7 @@ class StoryManager final : public Actor {
   Status check_story_music_can_be_edited(StoryFullId story_full_id) const;
 
   Result<telegram_api::object_ptr<telegram_api::InputDocument>> get_story_music_input_document(
-      FileId &music_file_id) const;
+      FileId music_file_id) const;
 
   bool can_set_story_privacy_settings(StoryFullId story_full_id, const Story *story) const;
 
@@ -669,6 +669,8 @@ class StoryManager final : public Actor {
   void do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
 
   void do_upload_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
+
+  void on_repair_story_music_file_reference(unique_ptr<PendingStory> &&pending_story, Result<Unit> &&result);
 
   void on_upload_story(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 

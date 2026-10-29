@@ -386,12 +386,12 @@ void AudiosManager::upload_audio(td_api::object_ptr<td_api::inputAudio> &&input_
     return promise.set_error(400, "Can't use web file as an audio");
   }
 
+  create_audio(file_id, string(), PhotoSize(), string(), string(), input_audio->duration_, input_audio->title_,
+               input_audio->performer_, 0, false);
   if (main_remote_location != nullptr) {
     return promise.set_value(std::move(file_id));
   }
 
-  create_audio(file_id, string(), PhotoSize(), string(), string(), input_audio->duration_, input_audio->title_,
-               input_audio->performer_, 0, false);
   auto upload_promise = PromiseCreator::lambda([file_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
     if (result.is_error()) {
       return promise.set_error(result.move_as_error());
@@ -403,6 +403,14 @@ void AudiosManager::upload_audio(td_api::object_ptr<td_api::inputAudio> &&input_
   } else {
     upload_audio_file(file_id, std::move(upload_promise));
   }
+}
+
+void AudiosManager::reupload_audio(FileId file_id, Promise<Unit> &&promise) {
+  FileUploadId file_upload_id{file_id, FileManager::get_internal_upload_id()};
+  CHECK(file_upload_id.is_valid());
+  being_uploaded_audio_files_[file_upload_id] = std::move(promise);
+  LOG(INFO) << "Ask to reupload audio " << file_upload_id;
+  td_->file_manager_->resume_upload(file_upload_id, {-1}, upload_audio_file_callback_, 2, 0);
 }
 
 void AudiosManager::upload_audio_file(FileId file_id, Promise<Unit> &&promise) {

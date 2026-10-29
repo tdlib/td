@@ -1462,11 +1462,8 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
       td_->file_reference_manager_->repair_file_reference(
           music_file_id_,
           PromiseCreator::lambda([pending_story = std::move(pending_story_)](Result<Unit> result) mutable {
-            if (result.is_error()) {
-              return send_closure(G()->story_manager(), &StoryManager::delete_pending_story, std::move(pending_story),
-                                  Status::Error(400, "Can't find the audio"));
-            }
-            send_closure(G()->story_manager(), &StoryManager::do_upload_story, std::move(pending_story), vector<int>());
+            send_closure(G()->story_manager(), &StoryManager::on_repair_story_music_file_reference,
+                         std::move(pending_story), std::move(result));
           }));
       return;
     }
@@ -6187,6 +6184,26 @@ void StoryManager::do_upload_story(unique_ptr<PendingStory> &&pending_story, vec
   td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_media_callback_, 1, upload_order);
 }
 
+void StoryManager::on_repair_story_music_file_reference(unique_ptr<PendingStory> &&pending_story,
+                                                        Result<Unit> &&result) {
+  CHECK(pending_story != nullptr);
+  if (result.is_ok()) {
+    return do_upload_story(std::move(pending_story), {});
+  }
+
+  LOG(INFO) << "Failed to repair file reference for story music: " << result.error();
+  auto music_file_id = pending_story->story_->music_file_id_;
+  td_->audios_manager_->reupload_audio(
+      music_file_id, PromiseCreator::lambda([actor_id = actor_id(this),
+                                             pending_story = std::move(pending_story)](Result<Unit> result) mutable {
+        if (result.is_error()) {
+          return send_closure(actor_id, &StoryManager::delete_pending_story, std::move(pending_story),
+                              result.move_as_error());
+        }
+        send_closure(actor_id, &StoryManager::do_upload_story, std::move(pending_story), vector<int>());
+      }));
+}
+
 void StoryManager::on_upload_story(FileUploadId file_upload_id,
                                    telegram_api::object_ptr<telegram_api::InputFile> input_file) {
   if (G()->close_flag()) {
@@ -6613,18 +6630,16 @@ void StoryManager::edit_story_cover(DialogId owner_dialog_id, StoryId story_id, 
 }
 
 Result<telegram_api::object_ptr<telegram_api::InputDocument>> StoryManager::get_story_music_input_document(
-    FileId &music_file_id) const {
+    FileId music_file_id) const {
   auto file_view = td_->file_manager_->get_file_view(music_file_id);
   if (file_view.empty() || file_view.get_type() != FileType::Audio) {
     return Status::Error(400, "Invalid audio file identifier specified");
   }
-  music_file_id = file_view.get_main_file_id();
-  const auto *full_remote_location = file_view.get_full_remote_location();
-  if (td_->audios_manager_->get_audio_object(music_file_id) == nullptr || full_remote_location == nullptr ||
-      full_remote_location->is_web()) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location == nullptr || main_remote_location->is_web()) {
     return Status::Error(400, "Invalid audio file identifier specified");
   }
-  return full_remote_location->as_input_document();
+  return main_remote_location->as_input_document();
 }
 
 Status StoryManager::check_story_music_can_be_edited(StoryFullId story_full_id) const {
