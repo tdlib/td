@@ -3626,6 +3626,12 @@ void Requests::on_request(uint64 id, const td_api::getSuitablePersonalChats &req
   td_->chat_manager_->get_created_public_dialogs(PublicDialogType::ForPersonalDialog, std::move(promise), false);
 }
 
+void Requests::on_request(uint64 id, const td_api::getSuitableCommunityChats &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->chat_manager_->get_created_public_dialogs(PublicDialogType::ForCommunityDialog, std::move(promise), false);
+}
+
 void Requests::on_request(uint64 id, td_api::searchRecentlyFoundChats &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);

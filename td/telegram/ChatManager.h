@@ -565,6 +565,7 @@ class ChatManager final : public Actor {
     bool is_noforwards_changed = true;
     bool is_is_forum_changed = true;
     bool is_creator_changed = true;
+    bool is_linked_community_id_changed = true;
     bool is_admined_monoforum_changed = false;
     bool had_read_access = true;
     bool is_being_updated = false;
@@ -964,9 +965,9 @@ class ChatManager final : public Actor {
   WaitFreeHashSet<ChannelId, ChannelIdHash> invalidated_channels_full_;
   WaitFreeHashMap<ChannelId, FileSourceId, ChannelIdHash> channel_full_file_source_ids_;
 
-  bool created_public_channels_inited_[3] = {false, false, false};
-  vector<ChannelId> created_public_channels_[3];
-  vector<Promise<td_api::object_ptr<td_api::chats>>> get_created_public_channels_queries_[3];
+  bool created_public_channels_inited_[4] = {false, false, false, false};
+  vector<ChannelId> created_public_channels_[4];
+  vector<Promise<td_api::object_ptr<td_api::chats>>> get_created_public_channels_queries_[4];
 
   bool dialogs_for_discussion_inited_ = false;
   vector<DialogId> dialogs_for_discussion_;

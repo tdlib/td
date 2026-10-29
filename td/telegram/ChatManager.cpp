@@ -1439,9 +1439,9 @@ class GetCreatedPublicChannelsQuery final : public Td::ResultHandler {
 
   void send(PublicDialogType type, bool check_limit) {
     type_ = type;
-    send_query(G()->net_query_creator().create(
-        telegram_api::channels_getAdminedPublicChannels(0, type_ == PublicDialogType::IsLocationBased, check_limit,
-                                                        type_ == PublicDialogType::ForPersonalDialog, false)));
+    send_query(G()->net_query_creator().create(telegram_api::channels_getAdminedPublicChannels(
+        0, type_ == PublicDialogType::IsLocationBased, check_limit, type_ == PublicDialogType::ForPersonalDialog,
+        type_ == PublicDialogType::ForCommunityDialog)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -4113,6 +4113,8 @@ bool ChatManager::is_suitable_created_public_channel(PublicDialogType type, cons
       return c->has_location;
     case PublicDialogType::ForPersonalDialog:
       return !c->is_megagroup && c->usernames.has_first_username();
+    case PublicDialogType::ForCommunityDialog:
+      return !c->linked_community_id.is_valid();
     default:
       UNREACHABLE();
       return false;
@@ -4200,8 +4202,8 @@ void ChatManager::finish_get_created_public_dialogs(PublicDialogType type, Resul
 }
 
 void ChatManager::update_created_public_channels(Channel *c, ChannelId channel_id) {
-  for (auto type :
-       {PublicDialogType::HasUsername, PublicDialogType::IsLocationBased, PublicDialogType::ForPersonalDialog}) {
+  for (auto type : {PublicDialogType::HasUsername, PublicDialogType::IsLocationBased,
+                    PublicDialogType::ForPersonalDialog, PublicDialogType::ForCommunityDialog}) {
     auto index = static_cast<int32>(type);
     if (!created_public_channels_inited_[index]) {
       continue;
@@ -5470,6 +5472,12 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
   if (c->is_creator_changed) {
     update_created_public_channels(c, channel_id);
     c->is_creator_changed = false;
+  }
+  if (c->is_linked_community_id_changed) {
+    if (c->status.is_creator()) {
+      update_created_public_channels(c, channel_id);
+    }
+    c->is_linked_community_id_changed = false;
   }
   if (c->is_noforwards_changed) {
     td_->messages_manager_->on_dialog_has_protected_content_updated(DialogId(channel_id));
@@ -8168,6 +8176,7 @@ void ChatManager::on_update_channel_linked_community_id(ChannelId channel_id, Co
   auto c = get_channel(channel_id);
   if (c != nullptr && c->linked_community_id != linked_community_id) {
     c->linked_community_id = linked_community_id;
+    c->is_linked_community_id_changed = true;
     c->need_save_to_database = true;
     update_channel(c, channel_id);
   }
@@ -9432,12 +9441,16 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
         on_update_channel_bot_verification_icon(c, channel_id, CustomEmojiId(channel.bot_verification_icon_));
       }
       if (c->join_to_send != join_to_send || c->join_request != join_request ||
-          c->monoforum_channel_id != monoforum_channel_id || c->linked_community_id != linked_community_id) {
+          c->monoforum_channel_id != monoforum_channel_id) {
         c->join_to_send = join_to_send;
         c->join_request = join_request;
         c->monoforum_channel_id = monoforum_channel_id;
-        c->linked_community_id = linked_community_id;
 
+        c->need_save_to_database = true;
+      }
+      if (c->linked_community_id != linked_community_id) {
+        c->linked_community_id = linked_community_id;
+        c->is_linked_community_id_changed = true;
         c->need_save_to_database = true;
       }
       // sign_messages isn't known for min-channels
@@ -9564,12 +9577,16 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     on_update_channel_bot_verification_icon(c, channel_id, CustomEmojiId(channel.bot_verification_icon_));
   }
   if (c->join_to_send != join_to_send || c->join_request != join_request ||
-      c->monoforum_channel_id != monoforum_channel_id || c->linked_community_id != linked_community_id) {
+      c->monoforum_channel_id != monoforum_channel_id) {
     c->join_to_send = join_to_send;
     c->join_request = join_request;
     c->monoforum_channel_id = monoforum_channel_id;
-    c->linked_community_id = linked_community_id;
 
+    c->need_save_to_database = true;
+  }
+  if (c->linked_community_id != linked_community_id) {
+    c->linked_community_id = linked_community_id;
+    c->is_linked_community_id_changed = true;
     c->need_save_to_database = true;
   }
   if (c->is_verified != is_verified || c->sign_messages != sign_messages ||

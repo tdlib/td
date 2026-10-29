@@ -12716,6 +12716,9 @@ getInactiveSupergroupChats = Chats;
 //@description Returns a list of channel chats, which can be used as a personal chat
 getSuitablePersonalChats = Chats;
 
+//@description Returns a list of supergroup and channel chats owned by the current user, which can be added to a community
+getSuitableCommunityChats = Chats;
+
 
 //@description Loads more topics in a channel direct messages chat administered by the current user. The loaded topics will be sent through updateDirectMessagesChatTopic.
 //-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
