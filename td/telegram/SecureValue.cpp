@@ -484,7 +484,8 @@ telegram_api::object_ptr<telegram_api::secureData> get_secure_data_object(const 
 
 bool operator==(const EncryptedSecureValue &lhs, const EncryptedSecureValue &rhs) {
   return lhs.type == rhs.type && lhs.data == rhs.data && lhs.files == rhs.files && lhs.front_side == rhs.front_side &&
-         lhs.reverse_side == rhs.reverse_side && lhs.selfie == rhs.selfie && lhs.translations == rhs.translations;
+         lhs.reverse_side == rhs.reverse_side && lhs.selfie == rhs.selfie && lhs.translations == rhs.translations &&
+         lhs.hash == rhs.hash;
 }
 
 bool operator!=(const EncryptedSecureValue &lhs, const EncryptedSecureValue &rhs) {

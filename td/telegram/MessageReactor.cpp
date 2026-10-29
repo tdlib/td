@@ -141,8 +141,8 @@ bool operator<(const MessageReactor &lhs, const MessageReactor &rhs) {
 }
 
 bool operator==(const MessageReactor &lhs, const MessageReactor &rhs) {
-  return lhs.dialog_id_ == rhs.dialog_id_ && lhs.count_ == rhs.count_ && lhs.is_top_ == rhs.is_top_ &&
-         lhs.is_me_ == rhs.is_me_ && lhs.is_anonymous_ == rhs.is_anonymous_;
+  return lhs.dialog_id_ == rhs.dialog_id_ && lhs.min_channel_ == rhs.min_channel_ && lhs.count_ == rhs.count_ &&
+         lhs.is_top_ == rhs.is_top_ && lhs.is_me_ == rhs.is_me_ && lhs.is_anonymous_ == rhs.is_anonymous_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactor &reactor) {

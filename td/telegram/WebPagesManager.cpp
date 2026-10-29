@@ -521,17 +521,16 @@ class WebPagesManager::WebPage {
   friend bool operator==(const WebPage &lhs, const WebPage &rhs) {
     return lhs.url_ == rhs.url_ && lhs.display_url_ == rhs.display_url_ && lhs.type_ == rhs.type_ &&
            lhs.site_name_ == rhs.site_name_ && lhs.title_ == rhs.title_ && lhs.description_ == rhs.description_ &&
-           lhs.photo_ == rhs.photo_ && lhs.type_ == rhs.type_ && lhs.embed_url_ == rhs.embed_url_ &&
-           lhs.embed_type_ == rhs.embed_type_ && lhs.embed_dimensions_ == rhs.embed_dimensions_ &&
-           lhs.duration_ == rhs.duration_ && lhs.author_ == rhs.author_ &&
-           lhs.has_large_media_ == rhs.has_large_media_ && lhs.video_cover_photo_ == rhs.video_cover_photo_ &&
-           lhs.document_ == rhs.document_ && lhs.documents_ == rhs.documents_ &&
-           lhs.theme_settings_ == rhs.theme_settings_ && lhs.story_full_ids_ == rhs.story_full_ids_ &&
-           lhs.sticker_ids_ == rhs.sticker_ids_ && lhs.star_gifts_ == rhs.star_gifts_ &&
-           lhs.auction_end_date_ == rhs.auction_end_date_ && lhs.gift_background_ == rhs.gift_background_ &&
-           lhs.custom_emoji_ids_ == rhs.custom_emoji_ids_ &&
+           lhs.photo_ == rhs.photo_ && lhs.embed_url_ == rhs.embed_url_ && lhs.embed_type_ == rhs.embed_type_ &&
+           lhs.embed_dimensions_ == rhs.embed_dimensions_ && lhs.duration_ == rhs.duration_ &&
+           lhs.author_ == rhs.author_ && lhs.has_large_media_ == rhs.has_large_media_ &&
+           lhs.video_cover_photo_ == rhs.video_cover_photo_ && lhs.document_ == rhs.document_ &&
+           lhs.documents_ == rhs.documents_ && lhs.theme_settings_ == rhs.theme_settings_ &&
+           lhs.story_full_ids_ == rhs.story_full_ids_ && lhs.sticker_ids_ == rhs.sticker_ids_ &&
+           lhs.star_gifts_ == rhs.star_gifts_ && lhs.custom_emoji_ids_ == rhs.custom_emoji_ids_ &&
            lhs.instant_view_.is_empty_ == rhs.instant_view_.is_empty_ &&
-           lhs.instant_view_.is_v2_ == rhs.instant_view_.is_v2_;
+           lhs.instant_view_.is_v2_ == rhs.instant_view_.is_v2_ && lhs.auction_end_date_ == rhs.auction_end_date_ &&
+           lhs.gift_background_ == rhs.gift_background_;
   }
 };
 

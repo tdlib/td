@@ -18,6 +18,8 @@ namespace td {
 
 bool operator==(const InputMessageText &lhs, const InputMessageText &rhs) {
   return lhs.text == rhs.text && lhs.disable_web_page_preview == rhs.disable_web_page_preview &&
+         lhs.clear_draft == rhs.clear_draft && lhs.force_small_media == rhs.force_small_media &&
+         lhs.force_large_media == rhs.force_large_media && lhs.show_above_text == rhs.show_above_text &&
          lhs.clear_draft == rhs.clear_draft;
 }
 

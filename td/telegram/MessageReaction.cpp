@@ -480,7 +480,8 @@ td_api::object_ptr<td_api::messageReaction> MessageReaction::get_message_reactio
 bool operator==(const MessageReaction &lhs, const MessageReaction &rhs) {
   return lhs.reaction_type_ == rhs.reaction_type_ && lhs.choose_count_ == rhs.choose_count_ &&
          lhs.is_chosen_ == rhs.is_chosen_ && lhs.my_recent_chooser_dialog_id_ == rhs.my_recent_chooser_dialog_id_ &&
-         lhs.recent_chooser_dialog_ids_ == rhs.recent_chooser_dialog_ids_;
+         lhs.recent_chooser_dialog_ids_ == rhs.recent_chooser_dialog_ids_ &&
+         lhs.recent_chooser_min_channels_ == rhs.recent_chooser_min_channels_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReaction &reaction) {

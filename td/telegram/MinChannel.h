@@ -20,4 +20,9 @@ struct MinChannel {
   bool is_megagroup_ = false;
 };
 
+inline bool operator==(const MinChannel &lhs, const MinChannel &rhs) {
+  return lhs.title_ == rhs.title_ && lhs.photo_ == rhs.photo_ && lhs.accent_color_id_ == rhs.accent_color_id_ &&
+         lhs.is_megagroup_ == rhs.is_megagroup_;
+}
+
 }  // namespace td

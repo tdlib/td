@@ -67,13 +67,16 @@ td_api::object_ptr<td_api::premiumStatePaymentOption> PremiumGiftOption::get_pre
 }
 
 bool operator<(const PremiumGiftOption &lhs, const PremiumGiftOption &rhs) {
-  return std::tie(lhs.months_, lhs.amount_, lhs.currency_, lhs.store_product_, lhs.bot_url_) <
-         std::tie(rhs.months_, rhs.amount_, rhs.currency_, rhs.store_product_, rhs.bot_url_);
+  return std::tie(lhs.months_, lhs.amount_, lhs.is_current_, lhs.is_upgrade_, lhs.currency_, lhs.store_product_,
+                  lhs.bot_url_, lhs.transaction_) < std::tie(rhs.months_, rhs.amount_, rhs.is_current_, rhs.is_upgrade_,
+                                                             rhs.currency_, rhs.store_product_, rhs.bot_url_,
+                                                             rhs.transaction_);
 }
 
 bool operator==(const PremiumGiftOption &lhs, const PremiumGiftOption &rhs) {
-  return lhs.months_ == rhs.months_ && lhs.currency_ == rhs.currency_ && lhs.amount_ == rhs.amount_ &&
-         lhs.bot_url_ == rhs.bot_url_ && lhs.store_product_ == rhs.store_product_;
+  return lhs.months_ == rhs.months_ && lhs.is_current_ == rhs.is_current_ && lhs.is_upgrade_ == rhs.is_upgrade_ &&
+         lhs.currency_ == rhs.currency_ && lhs.amount_ == rhs.amount_ && lhs.bot_url_ == rhs.bot_url_ &&
+         lhs.store_product_ == rhs.store_product_ && lhs.transaction_ == rhs.transaction_;
 }
 
 bool operator!=(const PremiumGiftOption &lhs, const PremiumGiftOption &rhs) {

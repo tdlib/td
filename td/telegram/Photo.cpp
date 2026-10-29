@@ -462,7 +462,8 @@ FileId get_photo_thumbnail_file_id(const Photo &photo) {
 }
 
 bool operator==(const Photo &lhs, const Photo &rhs) {
-  return lhs.id.get() == rhs.id.get() && lhs.photos == rhs.photos && lhs.animations == rhs.animations &&
+  return lhs.id.get() == rhs.id.get() && lhs.date == rhs.date && lhs.minithumbnail == rhs.minithumbnail &&
+         lhs.photos == rhs.photos && lhs.animations == rhs.animations &&
          lhs.sticker_photo_size == rhs.sticker_photo_size;
 }
 
