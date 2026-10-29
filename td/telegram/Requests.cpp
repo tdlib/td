@@ -4881,6 +4881,13 @@ void Requests::on_request(uint64 id, const td_api::editStoryCover &request) {
                                         request.cover_frame_timestamp_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::editStoryMusic &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->story_manager_->edit_story_music(DialogId(request.story_poster_chat_id_), StoryId(request.story_id_),
+                                        std::move(request.music_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setStoryPrivacySettings &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

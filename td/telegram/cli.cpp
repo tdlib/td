@@ -6343,6 +6343,13 @@ class CliClient final : public Actor {
       double cover_frame_timetamp;
       get_args(args, story_poster_chat_id, story_id, cover_frame_timetamp);
       send_request(td_api::make_object<td_api::editStoryCover>(story_poster_chat_id, story_id, cover_frame_timetamp));
+    } else if (op == "esmu") {
+      ChatId story_poster_chat_id;
+      StoryId story_id;
+      string music;
+      get_args(args, story_poster_chat_id, story_id, music);
+      send_request(td_api::make_object<td_api::editStoryMusic>(story_poster_chat_id, story_id,
+                                                               music.empty() ? nullptr : as_input_audio(music)));
     } else if (op == "ssps") {
       StoryId story_id;
       StoryPrivacySettings rules;

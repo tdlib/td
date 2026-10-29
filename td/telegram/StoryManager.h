@@ -260,6 +260,11 @@ class StoryManager final : public Actor {
   void edit_story_cover(DialogId owner_dialog_id, StoryId story_id, double main_frame_timestamp,
                         Promise<Unit> &&promise);
 
+  void edit_story_music(DialogId owner_dialog_id, StoryId story_id, td_api::object_ptr<td_api::inputAudio> &&music,
+                        Promise<Unit> &&promise);
+
+  void do_edit_story_music(DialogId owner_dialog_id, StoryId story_id, FileId music_file_id, Promise<Unit> &&promise);
+
   void set_story_privacy_settings(StoryId story_id, td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
                                   Promise<Unit> &&promise);
 
@@ -501,6 +506,8 @@ class StoryManager final : public Actor {
   bool can_delete_stories(DialogId owner_dialog_id) const;
 
   bool can_edit_story(StoryFullId story_full_id, const Story *story) const;
+
+  Status check_story_music_can_be_edited(StoryFullId story_full_id) const;
 
   bool can_set_story_privacy_settings(StoryFullId story_full_id, const Story *story) const;
 

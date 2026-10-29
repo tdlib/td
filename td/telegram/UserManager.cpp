@@ -7346,6 +7346,16 @@ void UserManager::check_is_saved_music(FileId file_id, Promise<Unit> &&promise) 
 }
 
 void UserManager::add_new_saved_music(td_api::object_ptr<td_api::inputAudio> &&input_audio, Promise<Unit> &&promise) {
+  upload_audio(std::move(input_audio), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                                                  Result<FileId> r_file_id) mutable {
+                 if (r_file_id.is_error()) {
+                   return promise.set_error(r_file_id.move_as_error());
+                 }
+                 send_closure(actor_id, &UserManager::add_saved_music, r_file_id.ok(), FileId(), std::move(promise));
+               }));
+}
+
+void UserManager::upload_audio(td_api::object_ptr<td_api::inputAudio> &&input_audio, Promise<FileId> &&promise) {
   if (input_audio == nullptr) {
     return promise.set_error(400, "Audio must be non-empty");
   }
@@ -7364,22 +7374,21 @@ void UserManager::add_new_saved_music(td_api::object_ptr<td_api::inputAudio> &&i
 
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (main_remote_location != nullptr && main_remote_location->is_web()) {
-    return promise.set_error(400, "Can't use web file to create a profile audio");
+    return promise.set_error(400, "Can't use web file as an audio");
   }
 
   if (main_remote_location != nullptr) {
-    return add_saved_music(file_id, FileId(), std::move(promise));
+    return promise.set_value(std::move(file_id));
   }
 
   td_->audios_manager_->create_audio(file_id, string(), PhotoSize(), string(), string(), input_audio->duration_,
                                      input_audio->title_, input_audio->performer_, 0, false);
-  auto upload_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), file_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
-        if (result.is_error()) {
-          return promise.set_error(result.move_as_error());
-        }
-        send_closure(actor_id, &UserManager::add_saved_music, file_id, FileId(), std::move(promise));
-      });
+  auto upload_promise = PromiseCreator::lambda([file_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      return promise.set_error(result.move_as_error());
+    }
+    promise.set_value(std::move(file_id));
+  });
   if (file_view.has_url()) {
     do_upload_saved_music({file_id, FileManager::get_internal_upload_id()}, nullptr, std::move(upload_promise));
   } else {
@@ -7393,7 +7402,7 @@ void UserManager::upload_saved_music(FileId file_id, Promise<Unit> &&promise) {
   FileUploadId file_upload_id{file_id, FileManager::get_internal_upload_id()};
   CHECK(file_upload_id.is_valid());
   being_uploaded_saved_music_files_[file_upload_id] = std::move(promise);
-  LOG(INFO) << "Ask to upload profile audio " << file_upload_id;
+  LOG(INFO) << "Ask to upload audio " << file_upload_id;
   td_->file_manager_->upload(file_upload_id, upload_saved_music_callback_, 2, 0);
 }
 
@@ -7402,7 +7411,7 @@ void UserManager::on_upload_saved_music(FileUploadId file_upload_id,
   if (G()->close_flag()) {
     return;
   }
-  LOG(INFO) << "Profile audio " << file_upload_id << " has been uploaded";
+  LOG(INFO) << "Audio " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_saved_music_files_.find(file_upload_id);
   CHECK(it != being_uploaded_saved_music_files_.end());
@@ -7417,7 +7426,7 @@ void UserManager::on_upload_saved_music_error(FileUploadId file_upload_id, Statu
     return;
   }
 
-  LOG(WARNING) << "Profile audio " << file_upload_id << " has upload error " << status;
+  LOG(WARNING) << "Audio " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 
   auto it = being_uploaded_saved_music_files_.find(file_upload_id);
@@ -7453,10 +7462,10 @@ void UserManager::on_uploaded_saved_music_file(FileUploadId file_upload_id, bool
                                                telegram_api::object_ptr<telegram_api::MessageMedia> media,
                                                Promise<Unit> &&promise) {
   CHECK(media != nullptr);
-  LOG(INFO) << "Receive uploaded profile audio file " << to_string(media);
+  LOG(INFO) << "Receive uploaded audio file " << to_string(media);
   if (media->get_id() != telegram_api::messageMediaDocument::ID) {
     td_->file_manager_->delete_partial_remote_location(file_upload_id);
-    return promise.set_error(400, "Can't upload profile audio file: wrong file type");
+    return promise.set_error(400, "Can't upload audio file: wrong file type");
   }
 
   auto message_document = telegram_api::move_object_as<telegram_api::messageMediaDocument>(media);
@@ -7464,7 +7473,7 @@ void UserManager::on_uploaded_saved_music_file(FileUploadId file_upload_id, bool
   int32 document_id = document_ptr->get_id();
   if (document_id == telegram_api::documentEmpty::ID) {
     td_->file_manager_->delete_partial_remote_location(file_upload_id);
-    return promise.set_error(400, "Can't upload profile audio file: empty file");
+    return promise.set_error(400, "Can't upload audio file: empty file");
   }
   CHECK(document_id == telegram_api::document::ID);
 

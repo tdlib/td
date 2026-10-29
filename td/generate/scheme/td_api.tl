@@ -14899,6 +14899,12 @@ editStory story_poster_chat_id:int53 story_id:int32 content:InputStoryContent ar
 //@cover_frame_timestamp New timestamp of the frame, which will be used as video thumbnail
 editStoryCover story_poster_chat_id:int53 story_id:int32 cover_frame_timestamp:double = Ok;
 
+//@description Changes music attached to a story. Can be called only if story.can_be_edited == true and the story isn't being edited now
+//@story_poster_chat_id Identifier of the chat that posted the story
+//@story_id Identifier of the story to edit
+//@music The new music; pass null to remove music from the story. The music can be up to 60 seconds long
+editStoryMusic story_poster_chat_id:int53 story_id:int32 music:inputAudio = Ok;
+
 //@description Changes privacy settings of a story. The method can be called only for stories posted on behalf of the current user and if story.can_set_privacy_settings == true
 //@story_id Identifier of the story
 //@privacy_settings The new privacy settings for the story

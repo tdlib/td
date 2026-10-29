@@ -17,6 +17,7 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -591,6 +592,75 @@ class EditStoryCoverQuery final : public Td::ResultHandler {
     }
 
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditStoryCoverQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class EditStoryMusicQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  StoryId story_id_;
+  FileId music_file_id_;
+  string file_reference_;
+
+ public:
+  explicit EditStoryMusicQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId owner_dialog_id, StoryId story_id, FileId music_file_id,
+            telegram_api::object_ptr<telegram_api::InputDocument> input_document) {
+    CHECK(input_document != nullptr);
+    dialog_id_ = owner_dialog_id;
+    story_id_ = story_id;
+    music_file_id_ = music_file_id;
+    file_reference_ = FileManager::extract_file_reference(input_document);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_editStory(0, std::move(input_peer), story_id.get(), nullptr,
+                                        vector<telegram_api::object_ptr<telegram_api::MediaArea>>(), string(),
+                                        vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), Auto(),
+                                        std::move(input_document)),
+        {{StoryFullId{dialog_id_, story_id}}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_editStory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditStoryMusicQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for EditStoryMusicQuery: " << status;
+    if (!td_->auth_manager_->is_bot() && status.message() == "STORY_NOT_MODIFIED") {
+      return promise_.set_value(Unit());
+    }
+    if (!td_->auth_manager_->is_bot() && music_file_id_.is_valid() &&
+        FileReferenceManager::is_file_reference_error(status)) {
+      td_->file_manager_->delete_file_reference(music_file_id_, file_reference_);
+      td_->file_reference_manager_->repair_file_reference(
+          music_file_id_,
+          PromiseCreator::lambda([dialog_id = dialog_id_, story_id = story_id_, music_file_id = music_file_id_,
+                                  promise = std::move(promise_)](Result<Unit> result) mutable {
+            if (result.is_error()) {
+              return promise.set_error(400, "Can't find the audio");
+            }
+
+            send_closure(G()->story_manager(), &StoryManager::do_edit_story_music, dialog_id, story_id, music_file_id,
+                         std::move(promise));
+          }));
+      return;
+    }
+
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditStoryMusicQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -6479,6 +6549,63 @@ void StoryManager::edit_story_cover(DialogId owner_dialog_id, StoryId story_id, 
   td_->create_handler<EditStoryCoverQuery>(std::move(promise))
       ->send(owner_dialog_id, story_id, main_frame_timestamp, get_story_content_any_file_id(story->content_.get()),
              std::move(input_media));
+}
+
+Status StoryManager::check_story_music_can_be_edited(StoryFullId story_full_id) const {
+  const Story *story = get_story(story_full_id);
+  if (story == nullptr || story->content_ == nullptr) {
+    return Status::Error(400, "Story not found");
+  }
+  if (!can_edit_story(story_full_id, story)) {
+    return Status::Error(400, "Story can't be edited");
+  }
+  if (being_edited_stories_.count(story_full_id) > 0) {
+    return Status::Error(400, "Story is being edited");
+  }
+  return Status::OK();
+}
+
+void StoryManager::edit_story_music(DialogId owner_dialog_id, StoryId story_id,
+                                    td_api::object_ptr<td_api::inputAudio> &&music, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_story_music_can_be_edited({owner_dialog_id, story_id}));
+  if (music == nullptr) {
+    return do_edit_story_music(owner_dialog_id, story_id, FileId(), std::move(promise));
+  }
+  td_->user_manager_->upload_audio(
+      std::move(music), PromiseCreator::lambda([actor_id = actor_id(this), owner_dialog_id, story_id,
+                                                promise = std::move(promise)](Result<FileId> r_file_id) mutable {
+        if (r_file_id.is_error()) {
+          return promise.set_error(r_file_id.move_as_error());
+        }
+        send_closure(actor_id, &StoryManager::do_edit_story_music, owner_dialog_id, story_id, r_file_id.ok(),
+                     std::move(promise));
+      }));
+}
+
+void StoryManager::do_edit_story_music(DialogId owner_dialog_id, StoryId story_id, FileId music_file_id,
+                                       Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_STATUS_PROMISE(promise, check_story_music_can_be_edited({owner_dialog_id, story_id}));
+
+  telegram_api::object_ptr<telegram_api::InputDocument> input_document;
+  if (music_file_id == FileId()) {
+    input_document = telegram_api::make_object<telegram_api::inputDocumentEmpty>();
+  } else {
+    auto file_view = td_->file_manager_->get_file_view(music_file_id);
+    if (file_view.empty() || file_view.get_type() != FileType::Audio) {
+      return promise.set_error(400, "Invalid audio file identifier specified");
+    }
+    music_file_id = file_view.get_main_file_id();
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    if (td_->audios_manager_->get_audio_object(music_file_id) == nullptr || full_remote_location == nullptr ||
+        full_remote_location->is_web()) {
+      return promise.set_error(400, "Invalid audio file identifier specified");
+    }
+    input_document = full_remote_location->as_input_document();
+  }
+
+  td_->create_handler<EditStoryMusicQuery>(std::move(promise))
+      ->send(owner_dialog_id, story_id, music_file_id, std::move(input_document));
 }
 
 void StoryManager::delete_pending_story(unique_ptr<PendingStory> &&pending_story, Status status) {
