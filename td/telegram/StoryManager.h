@@ -235,6 +235,7 @@ class StoryManager final : public Actor {
   void send_story(DialogId dialog_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                   td_api::object_ptr<td_api::formattedText> &&input_caption,
+                  td_api::object_ptr<td_api::inputAudio> &&music,
                   td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, vector<StoryAlbumId> story_album_ids,
                   int32 active_period, td_api::object_ptr<td_api::storyFullId> &&from_story_full_id, bool is_pinned,
                   bool protect_content, Promise<td_api::object_ptr<td_api::story>> &&promise);
@@ -509,6 +510,9 @@ class StoryManager final : public Actor {
 
   Status check_story_music_can_be_edited(StoryFullId story_full_id) const;
 
+  Result<telegram_api::object_ptr<telegram_api::InputDocument>> get_story_music_input_document(
+      FileId &music_file_id) const;
+
   bool can_set_story_privacy_settings(StoryFullId story_full_id, const Story *story) const;
 
   bool can_toggle_story_is_pinned(StoryFullId story_full_id, const Story *story) const;
@@ -659,7 +663,12 @@ class StoryManager final : public Actor {
 
   Result<StoryId> get_next_yet_unsent_story_id(DialogId dialog_id);
 
+  void send_new_story(DialogId dialog_id, StoryFullId forward_from_story_full_id, unique_ptr<Story> &&story,
+                      Promise<td_api::object_ptr<td_api::story>> &&promise);
+
   void do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
+
+  void do_upload_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
 
   void on_upload_story(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 

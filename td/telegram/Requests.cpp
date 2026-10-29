@@ -4852,7 +4852,8 @@ void Requests::on_request(uint64 id, const td_api::canPostStory &request) {
 void Requests::on_request(uint64 id, td_api::postStory &request) {
   CREATE_REQUEST_PROMISE();
   td_->story_manager_->send_story(DialogId(request.chat_id_), std::move(request.content_), std::move(request.areas_),
-                                  std::move(request.caption_), std::move(request.privacy_settings_),
+                                  std::move(request.caption_), std::move(request.music_),
+                                  std::move(request.privacy_settings_),
                                   StoryAlbumId::get_story_album_ids(request.album_ids_), request.active_period_,
                                   std::move(request.from_story_full_id_), request.is_posted_to_chat_page_,
                                   request.protect_content_, std::move(promise));

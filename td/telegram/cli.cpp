@@ -1228,6 +1228,13 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
+  td_api::object_ptr<td_api::inputAudio> get_story_music() const {
+    if (story_music_.empty()) {
+      return nullptr;
+    }
+    return as_input_audio(story_music_);
+  }
+
   static int64 as_saved_messages_topic_id(int64 saved_messages_topic_id) {
     if (saved_messages_topic_id == -1) {
       return 2666000;
@@ -6271,6 +6278,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::canPostStory>(chat_id));
     } else if (op == "srsfi") {
       get_args(args, reposted_story_chat_id_, reposted_story_id_);
+    } else if (op == "ssmu") {
+      story_music_ = args;
     } else if (op == "psp" || op == "pspp") {
       ChatId chat_id;
       string photo;
@@ -6283,8 +6292,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::postStory>(
           chat_id,
           td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), get_added_sticker_file_ids()),
-          areas, get_caption(), rules, to_integers<int32>(album_ids), active_period ? active_period : 86400,
-          get_reposted_story_full_id(), op == "pspp", protect_content));
+          areas, get_caption(), get_story_music(), rules, to_integers<int32>(album_ids),
+          active_period ? active_period : 86400, get_reposted_story_full_id(), op == "pspp", protect_content));
     } else if (op == "psv" || op == "psvp") {
       ChatId chat_id;
       string video;
@@ -6299,8 +6308,8 @@ class CliClient final : public Actor {
           chat_id,
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), get_added_sticker_file_ids(),
                                                               duration, 0.5, true),
-          areas, get_caption(), rules, to_integers<int32>(album_ids), active_period ? active_period : 86400,
-          get_reposted_story_full_id(), op == "psvp", protect_content));
+          areas, get_caption(), get_story_music(), rules, to_integers<int32>(album_ids),
+          active_period ? active_period : 86400, get_reposted_story_full_id(), op == "psvp", protect_content));
     } else if (op == "sls" || op == "slsr") {
       ChatId chat_id;
       StoryPrivacySettings rules;
@@ -9500,6 +9509,7 @@ class CliClient final : public Actor {
   StoryId reply_story_id_;
   ChatId reposted_story_chat_id_;
   StoryId reposted_story_id_;
+  string story_music_;
   string link_preview_url_;
   bool link_preview_is_disabled_ = false;
   bool link_preview_force_small_media_ = false;
