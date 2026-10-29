@@ -14,6 +14,8 @@
 
 #include "td/utils/logging.h"
 
+#include <limits>
+
 namespace td {
 
 ForumTopic::ForumTopic(Td *td, telegram_api::object_ptr<telegram_api::ForumTopic> &&forum_topic_ptr,
@@ -113,10 +115,19 @@ bool ForumTopic::set_draft_message(unique_ptr<DraftMessage> &&draft_message, boo
   return true;
 }
 
-int64 ForumTopic::get_order(int32 last_message_date) const {
+int64 ForumTopic::get_last_message_order(ForumTopicId forum_topic_id, MessageId last_message_id,
+                                         int32 last_message_date) {
+  if (forum_topic_id == ForumTopicId::general()) {
+    // the server places the General topic first among topics with the last message sent in the same second
+    return (static_cast<int64>(last_message_date) << 32) + std::numeric_limits<int32>::max();
+  }
+  return DialogDate::get_dialog_order(last_message_id, last_message_date);
+}
+
+int64 ForumTopic::get_order(ForumTopicId forum_topic_id, int32 last_message_date) const {
   int64 order = DEFAULT_ORDER;
   if (last_message_id_ != MessageId() && last_message_date > 0) {
-    order = DialogDate::get_dialog_order(last_message_id_, last_message_date);
+    order = get_last_message_order(forum_topic_id, last_message_id_, last_message_date);
   }
   if (draft_message_ != nullptr) {
     int64 draft_order = DialogDate::get_dialog_order(MessageId(), draft_message_->get_date());

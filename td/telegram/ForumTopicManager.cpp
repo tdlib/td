@@ -11,7 +11,6 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/CustomEmojiId.h"
-#include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DraftMessageManager.h"
 #include "td/telegram/ForumTopic.h"
@@ -1484,7 +1483,9 @@ td_api::object_ptr<td_api::forumTopic> ForumTopicManager::get_forum_topic_object
 int64 ForumTopicManager::get_topic_public_order(DialogId dialog_id, const Topic *topic) const {
   CHECK(topic != nullptr);
   if (td_->auth_manager_->is_bot()) {
-    return topic->topic_ == nullptr ? 0 : topic->topic_->get_order(topic->last_message_date_);
+    return topic->topic_ == nullptr
+               ? 0
+               : topic->topic_->get_order(topic->info_->get_forum_topic_id(), topic->last_message_date_);
   }
   if (topic->info_ == nullptr) {
     return 0;
@@ -1735,7 +1736,8 @@ void ForumTopicManager::update_topic_order(DialogId dialog_id, Topic *topic) {
       ordered_topics.unpin_topic(forum_topic_id);
       topic->pinned_order_ = 0;
     }
-    new_order = topic->pinned_order_ != 0 ? topic->pinned_order_ : topic->topic_->get_order(topic->last_message_date_);
+    new_order = topic->pinned_order_ != 0 ? topic->pinned_order_
+                                          : topic->topic_->get_order(forum_topic_id, topic->last_message_date_);
   }
   ordered_topics.update_order(forum_topic_id, topic->private_order_, new_order);
   topic->private_order_ = new_order;
@@ -1995,8 +1997,8 @@ bool ForumTopicManager::unload_forum_topics(DialogId dialog_id) {
     auto last_message_id = last_kept_topic->topic_->get_last_message_id();
     // the server orders topics by their last message, so a topic placed by its draft can't be an offset
     if (last_message_id.is_server() &&
-        DialogDate::get_dialog_order(last_message_id, last_kept_topic->last_message_date_) ==
-            last_kept_topic->private_order_) {
+        ForumTopic::get_last_message_order(last_kept_topic_date.get_topic_id(), last_message_id,
+                                           last_kept_topic->last_message_date_) == last_kept_topic->private_order_) {
       dialog_topics->offset_date_ = last_kept_topic->last_message_date_;
       dialog_topics->offset_message_id_ = last_message_id;
       dialog_topics->offset_forum_topic_id_ = last_kept_topic_date.get_topic_id();
