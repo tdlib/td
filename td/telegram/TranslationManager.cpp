@@ -796,6 +796,26 @@ void TranslationManager::proofread_rich_message_with_ai(td_api::object_ptr<td_ap
                                   std::move(promise));
 }
 
+telegram_api::object_ptr<telegram_api::InputAiComposeTone>
+TranslationManager::get_recognized_speech_input_ai_compose_tone() {
+  return telegram_api::make_object<telegram_api::inputAiComposeToneDefault>("voice");
+}
+
+void TranslationManager::fix_recognized_text_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
+                                                     Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_text, get_input_text(std::move(text)));
+  td_->create_handler<ComposeMessageWithAiQuery>(std::move(promise))
+      ->send(input_text, string(), get_recognized_speech_input_ai_compose_tone(), false);
+}
+
+void TranslationManager::fix_recognized_rich_message_with_ai(
+    td_api::object_ptr<td_api::inputRichMessage> &&message,
+    Promise<td_api::object_ptr<td_api::richMessage>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_rich_message, get_input_rich_message(std::move(message)));
+  do_compose_rich_message_with_ai(true, std::move(input_rich_message), string(),
+                                  get_recognized_speech_input_ai_compose_tone(), false, false, std::move(promise));
+}
+
 string TranslationManager::get_ai_compose_tones_key() {
   return "ai_compose_styles";
 }

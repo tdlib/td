@@ -13200,6 +13200,16 @@ fixTextWithAi text:formattedText = FixedText;
 //@message The original message
 fixRichMessageWithAi message:inputRichMessage = RichMessage;
 
+//@description Fixes text received as a result of speech recognition using an AI model by correcting recognition errors and adding punctuation; must not be used in secret chats.
+//-May return an error with a message "AICOMPOSE_FLOOD_PREMIUM" if Telegram Premium is required to send further requests
+//@text The recognized text
+fixRecognizedTextWithAi text:formattedText = FormattedText;
+
+//@description Fixes a rich message with text received as a result of speech recognition using an AI model by correcting recognition errors and adding punctuation.
+//-May return an error with a message "AICOMPOSE_FLOOD_PREMIUM" if Telegram Premium is required to send further requests
+//@message The message with the recognized text
+fixRecognizedRichMessageWithAi message:inputRichMessage = RichMessage;
+
 //@description Recognizes speech in a video note or a voice note message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message. Use messageProperties.can_recognize_speech to check whether the message is suitable
@@ -13212,7 +13222,7 @@ recognizeSpeech chat_id:int53 message_id:int53 = Ok;
 rateSpeechRecognition chat_id:int53 message_id:int53 is_good:Bool = Ok;
 
 //@description Recognizes speech in an audio file and returns the recognized text. The file must be in OGG format with Opus codec and must have size up to 1 MB.
-//-The same rules as for recognizeSpeech apply to the Telegram Premium requirement and speech recognition trial
+//-The same rules as for recognizeSpeech apply to the Telegram Premium requirement and speech recognition trial; must not be used in secret chats
 //@audio_file The audio file
 //@recognition_id Unique identifier of the speech recognition, which will be used in updateSpeechRecognitionInFile to send partially recognized text; pass 0 if partial results aren't needed
 recognizeSpeechInFile audio_file:InputFile recognition_id:int64 = Text;

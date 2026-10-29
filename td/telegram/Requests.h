@@ -358,6 +358,10 @@ class Requests {
 
   void on_request(uint64 id, td_api::fixRichMessageWithAi &request);
 
+  void on_request(uint64 id, td_api::fixRecognizedTextWithAi &request);
+
+  void on_request(uint64 id, td_api::fixRecognizedRichMessageWithAi &request);
+
   void on_request(uint64 id, const td_api::recognizeSpeech &request);
 
   void on_request(uint64 id, const td_api::rateSpeechRecognition &request);
