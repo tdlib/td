@@ -92,6 +92,9 @@ class CommunityManager final : public Actor {
 
   void process_community_add_dialog_requests(CommunityId community_id, bool approve, Promise<Unit> &&promise);
 
+  void toggle_community_are_dialogs_collapsed(CommunityId community_id, bool are_dialogs_collapsed,
+                                              Promise<Unit> &&promise);
+
   void delete_community(CommunityId community_id, Promise<Unit> &&promise);
 
   FileSourceId get_community_full_file_source_id(CommunityId community_id);

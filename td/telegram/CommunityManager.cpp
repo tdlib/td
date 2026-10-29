@@ -431,6 +431,37 @@ class ProcessCommunityPeerLinkRequestsQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleCommunityCollapsedInDialogsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ToggleCommunityCollapsedInDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(CommunityId community_id, bool are_dialogs_collapsed) {
+    auto input_community = td_->community_manager_->get_input_community(community_id);
+    CHECK(input_community != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::communities_toggleCommunityCollapsedInDialogs(
+                                                   0, are_dialogs_collapsed, std::move(input_community)),
+                                               {{community_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::communities_toggleCommunityCollapsedInDialogs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ToggleCommunityCollapsedInDialogsQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteCommunityQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1601,6 +1632,15 @@ void CommunityManager::process_community_add_dialog_requests(CommunityId communi
     return promise.set_error(400, "Have not enough rights");
   }
   td_->create_handler<ProcessCommunityPeerLinkRequestsQuery>(std::move(promise))->send(community_id, approve);
+}
+
+void CommunityManager::toggle_community_are_dialogs_collapsed(CommunityId community_id, bool are_dialogs_collapsed,
+                                                              Promise<Unit> &&promise) {
+  if (!have_community(community_id)) {
+    return promise.set_error(400, "Community not found");
+  }
+  td_->create_handler<ToggleCommunityCollapsedInDialogsQuery>(std::move(promise))
+      ->send(community_id, are_dialogs_collapsed);
 }
 
 void CommunityManager::delete_community(CommunityId community_id, Promise<Unit> &&promise) {

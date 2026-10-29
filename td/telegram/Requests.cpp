@@ -3523,6 +3523,13 @@ void Requests::on_request(uint64 id, const td_api::processCommunityAddChatReques
                                                                  std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::toggleCommunityAreChatsCollapsed &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->community_manager_->toggle_community_are_dialogs_collapsed(CommunityId(request.community_id_),
+                                                                  request.are_chats_collapsed_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::deleteCommunity &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
