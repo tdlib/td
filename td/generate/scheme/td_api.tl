@@ -2730,6 +2730,19 @@ communityFullInfo photo:chatPhoto chats:vector<communityChat> administrator_coun
 //@description Represents a list of communities @community_ids List of community identifiers
 communities community_ids:vector<int53> = Communities;
 
+//@description Describes a request to add a chat to a community
+//@chat_id Identifier of the chat to be added
+//@is_hidden True, if the chat will be visible only to administrators of the community
+//@sender_user_id Identifier of the user who sent the request
+//@date Point in time (Unix timestamp) when the request was sent
+communityAddChatRequest chat_id:int53 is_hidden:Bool sender_user_id:int53 date:int32 = CommunityAddChatRequest;
+
+//@description Contains a list of requests to add chats to a community
+//@total_count Approximate total number of requests found
+//@requests List of the requests
+//@next_offset The offset for the next getCommunityAddChatRequests request. If empty, then there are no more results
+communityAddChatRequests total_count:int32 requests:vector<communityAddChatRequest> next_offset:string = CommunityAddChatRequests;
+
 
 //@description Contains description of user rating
 //@level The level of the user; may be negative
@@ -12842,6 +12855,12 @@ addCommunityChat community_id:int53 chat_id:int53 is_hidden:Bool = Ok;
 //@community_id Identifier of the community
 //@chat_id Identifier of the chat to remove
 removeCommunityChat community_id:int53 chat_id:int53 = Ok;
+
+//@description Returns pending requests to add chats to a community. Administrators of the community with can_edit_chat_list right receive all requests; other users receive only requests sent by them
+//@community_id Identifier of the community
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of requests to return
+getCommunityAddChatRequests community_id:int53 offset:string limit:int32 = CommunityAddChatRequests;
 
 //@description Deletes a community; requires owner privileges @community_id Identifier of the community
 deleteCommunity community_id:int53 = Ok;

@@ -84,6 +84,9 @@ class CommunityManager final : public Actor {
 
   void on_change_community_dialogs(CommunityId community_id, Promise<Unit> &&promise);
 
+  void get_community_add_dialog_requests(CommunityId community_id, const string &offset, int32 limit,
+                                         Promise<td_api::object_ptr<td_api::communityAddChatRequests>> &&promise);
+
   void delete_community(CommunityId community_id, Promise<Unit> &&promise);
 
   FileSourceId get_community_full_file_source_id(CommunityId community_id);

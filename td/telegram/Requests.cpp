@@ -3501,6 +3501,14 @@ void Requests::on_request(uint64 id, const td_api::removeCommunityChat &request)
                                                    std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getCommunityAddChatRequests &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  td_->community_manager_->get_community_add_dialog_requests(CommunityId(request.community_id_), request.offset_,
+                                                             request.limit_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::deleteCommunity &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

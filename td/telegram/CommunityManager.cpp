@@ -308,6 +308,60 @@ class ToggleCommunityPeerLinkQuery final : public Td::ResultHandler {
   }
 };
 
+class GetCommunityPeerLinkRequestsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::communityAddChatRequests>> promise_;
+
+ public:
+  explicit GetCommunityPeerLinkRequestsQuery(Promise<td_api::object_ptr<td_api::communityAddChatRequests>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(CommunityId community_id, const string &offset, int32 limit) {
+    auto input_community = td_->community_manager_->get_input_community(community_id);
+    CHECK(input_community != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::communities_getPeerLinkRequests(std::move(input_community), offset, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::communities_getPeerLinkRequests>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetCommunityPeerLinkRequestsQuery: " << to_string(ptr);
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetCommunityPeerLinkRequestsQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetCommunityPeerLinkRequestsQuery");
+
+    auto total_count = ptr->total_count_;
+    if (total_count < static_cast<int32>(ptr->requests_.size())) {
+      LOG(ERROR) << "Receive wrong total count " << total_count << " of " << ptr->requests_.size() << " requests";
+      total_count = static_cast<int32>(ptr->requests_.size());
+    }
+    vector<td_api::object_ptr<td_api::communityAddChatRequest>> requests;
+    for (auto &request : ptr->requests_) {
+      DialogId dialog_id(request->peer_);
+      UserId sender_user_id(request->requested_by_);
+      if (!dialog_id.is_valid() || !sender_user_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << to_string(request);
+        total_count--;
+        continue;
+      }
+      td_->dialog_manager_->force_create_dialog(dialog_id, "GetCommunityPeerLinkRequestsQuery");
+      requests.push_back(td_api::make_object<td_api::communityAddChatRequest>(
+          td_->dialog_manager_->get_chat_id_object(dialog_id, "communityAddChatRequest"), !request->visible_,
+          td_->user_manager_->get_user_id_object(sender_user_id, "communityAddChatRequest"), request->date_));
+    }
+    promise_.set_value(
+        td_api::make_object<td_api::communityAddChatRequests>(total_count, std::move(requests), ptr->next_offset_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteCommunityQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1440,6 +1494,18 @@ void CommunityManager::on_change_community_dialogs(CommunityId community_id, Pro
                           promise.set_value(Unit());
                         }),
                         "on_change_community_dialogs");
+}
+
+void CommunityManager::get_community_add_dialog_requests(
+    CommunityId community_id, const string &offset, int32 limit,
+    Promise<td_api::object_ptr<td_api::communityAddChatRequests>> &&promise) {
+  if (get_community(community_id) == nullptr) {
+    return promise.set_error(400, "Community not found");
+  }
+  if (limit <= 0) {
+    return promise.set_error(400, "Parameter limit must be positive");
+  }
+  td_->create_handler<GetCommunityPeerLinkRequestsQuery>(std::move(promise))->send(community_id, offset, limit);
 }
 
 void CommunityManager::delete_community(CommunityId community_id, Promise<Unit> &&promise) {

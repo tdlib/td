@@ -3922,6 +3922,12 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, community_id, chat_id);
       send_request(td_api::make_object<td_api::removeCommunityChat>(community_id, chat_id));
+    } else if (op == "gcacr") {
+      CommunityId community_id;
+      string offset;
+      string limit;
+      get_args(args, community_id, offset, limit);
+      send_request(td_api::make_object<td_api::getCommunityAddChatRequests>(community_id, offset, as_limit(limit)));
     } else if (op == "DeleteCommunity") {
       CommunityId community_id;
       get_args(args, community_id);
