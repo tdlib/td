@@ -12869,6 +12869,11 @@ getCommunityAddChatRequests community_id:int53 offset:string limit:int32 = Commu
 //-If the community already has the maximum number of chats, then approval fails with the error "COMMUNITY_PEERS_TOO_MUCH"
 processCommunityAddChatRequest community_id:int53 chat_id:int53 approve:Bool = Ok;
 
+//@description Handles all pending requests to add chats to a community; requires can_edit_chat_list administrator right in the community
+//@community_id Identifier of the community
+//@approve Pass true to approve all requests and add the chats to the community; pass false to decline them
+processCommunityAddChatRequests community_id:int53 approve:Bool = Ok;
+
 //@description Deletes a community; requires owner privileges @community_id Identifier of the community
 deleteCommunity community_id:int53 = Ok;
 

@@ -486,6 +486,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::processCommunityAddChatRequest &request);
 
+  void on_request(uint64 id, const td_api::processCommunityAddChatRequests &request);
+
   void on_request(uint64 id, const td_api::deleteCommunity &request);
 
   void on_request(uint64 id, td_api::searchPublicChat &request);

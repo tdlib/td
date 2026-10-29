@@ -399,6 +399,38 @@ class ProcessCommunityPeerLinkRequestQuery final : public Td::ResultHandler {
   }
 };
 
+class ProcessCommunityPeerLinkRequestsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  CommunityId community_id_;
+
+ public:
+  explicit ProcessCommunityPeerLinkRequestsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(CommunityId community_id, bool approve) {
+    community_id_ = community_id;
+    auto input_community = td_->community_manager_->get_input_community(community_id);
+    CHECK(input_community != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::communities_toggleAllPeerLinkRequestApproval(0, !approve, std::move(input_community)),
+        {{community_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::communities_toggleAllPeerLinkRequestApproval>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(INFO) << "Receive result for ProcessCommunityPeerLinkRequestsQuery: " << result_ptr.ok();
+    td_->community_manager_->on_change_community_dialogs(community_id_, std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteCommunityQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1557,6 +1589,18 @@ void CommunityManager::process_community_add_dialog_request(CommunityId communit
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
                                                                         "process_community_add_dialog_request"));
   td_->create_handler<ProcessCommunityPeerLinkRequestQuery>(std::move(promise))->send(community_id, dialog_id, approve);
+}
+
+void CommunityManager::process_community_add_dialog_requests(CommunityId community_id, bool approve,
+                                                             Promise<Unit> &&promise) {
+  const auto *c = get_community(community_id);
+  if (c == nullptr) {
+    return promise.set_error(400, "Community not found");
+  }
+  if (!get_community_status(c).can_manage_linked_peers_as_administrator()) {
+    return promise.set_error(400, "Have not enough rights");
+  }
+  td_->create_handler<ProcessCommunityPeerLinkRequestsQuery>(std::move(promise))->send(community_id, approve);
 }
 
 void CommunityManager::delete_community(CommunityId community_id, Promise<Unit> &&promise) {

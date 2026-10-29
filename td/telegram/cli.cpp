@@ -3934,6 +3934,11 @@ class CliClient final : public Actor {
       bool approve;
       get_args(args, community_id, chat_id, approve);
       send_request(td_api::make_object<td_api::processCommunityAddChatRequest>(community_id, chat_id, approve));
+    } else if (op == "pcacrs") {
+      CommunityId community_id;
+      bool approve;
+      get_args(args, community_id, approve);
+      send_request(td_api::make_object<td_api::processCommunityAddChatRequests>(community_id, approve));
     } else if (op == "DeleteCommunity") {
       CommunityId community_id;
       get_args(args, community_id);
