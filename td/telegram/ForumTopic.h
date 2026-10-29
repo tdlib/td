@@ -78,7 +78,9 @@ class ForumTopic {
     return is_pinned_;
   }
 
-  int64 get_order(int32 last_message_date) const;
+  static int64 get_last_message_order(ForumTopicId forum_topic_id, MessageId last_message_id, int32 last_message_date);
+
+  int64 get_order(ForumTopicId forum_topic_id, int32 last_message_date) const;
 
   bool update_last_read_outbox_message_id(MessageId last_read_outbox_message_id);
 
