@@ -494,6 +494,55 @@ class ToggleCommunityParticipantBannedQuery final : public Td::ResultHandler {
   }
 };
 
+class GetCommunityParticipantJoinedChatsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::communityMemberChats>> promise_;
+
+ public:
+  explicit GetCommunityParticipantJoinedChatsQuery(Promise<td_api::object_ptr<td_api::communityMemberChats>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(CommunityId community_id, telegram_api::object_ptr<telegram_api::InputPeer> &&input_peer) {
+    auto input_community = td_->community_manager_->get_input_community(community_id);
+    CHECK(input_community != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::communities_getParticipantJoinedChats(std::move(input_community), std::move(input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::communities_getParticipantJoinedChats>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetCommunityParticipantJoinedChatsQuery: " << to_string(ptr);
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetCommunityParticipantJoinedChatsQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetCommunityParticipantJoinedChatsQuery");
+
+    auto get_chat_ids = [td = td_](const vector<int64> &channel_ids) {
+      vector<int64> chat_ids;
+      for (auto channel_id_int : channel_ids) {
+        ChannelId channel_id(channel_id_int);
+        if (!td->chat_manager_->have_channel(channel_id)) {
+          LOG(ERROR) << "Receive unknown " << channel_id;
+          continue;
+        }
+        DialogId dialog_id(channel_id);
+        td->dialog_manager_->force_create_dialog(dialog_id, "GetCommunityParticipantJoinedChatsQuery");
+        chat_ids.push_back(td->dialog_manager_->get_chat_id_object(dialog_id, "communityMemberChats"));
+      }
+      return chat_ids;
+    };
+    promise_.set_value(td_api::make_object<td_api::communityMemberChats>(get_chat_ids(ptr->creator_chat_ids_),
+                                                                         get_chat_ids(ptr->joined_chat_ids_)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteCommunityQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1690,6 +1739,24 @@ void CommunityManager::toggle_community_participant_is_banned(CommunityId commun
   }
   td_->create_handler<ToggleCommunityParticipantBannedQuery>(std::move(promise))
       ->send(community_id, std::move(input_peer), is_banned);
+}
+
+void CommunityManager::get_community_participant_dialogs(
+    CommunityId community_id, DialogId participant_dialog_id,
+    Promise<td_api::object_ptr<td_api::communityMemberChats>> &&promise) {
+  const auto *c = get_community(community_id);
+  if (c == nullptr) {
+    return promise.set_error(400, "Community not found");
+  }
+  if (!get_community_status(c).can_restrict_members()) {
+    return promise.set_error(400, "Have not enough rights");
+  }
+  auto input_peer = td_->dialog_manager_->get_input_peer(participant_dialog_id, AccessRights::Know);
+  if (input_peer == nullptr) {
+    return promise.set_error(400, "Member not found");
+  }
+  td_->create_handler<GetCommunityParticipantJoinedChatsQuery>(std::move(promise))
+      ->send(community_id, std::move(input_peer));
 }
 
 void CommunityManager::delete_community(CommunityId community_id, Promise<Unit> &&promise) {

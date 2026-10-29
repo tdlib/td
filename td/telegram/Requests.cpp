@@ -3539,6 +3539,15 @@ void Requests::on_request(uint64 id, const td_api::toggleCommunityMemberIsBanned
       CommunityId(request.community_id_), participant_dialog_id, request.is_banned_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getCommunityMemberChats &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, participant_dialog_id,
+                     get_message_sender_dialog_id(td_, request.member_id_, false, false));
+  td_->community_manager_->get_community_participant_dialogs(CommunityId(request.community_id_), participant_dialog_id,
+                                                             std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::deleteCommunity &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

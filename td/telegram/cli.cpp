@@ -3951,6 +3951,11 @@ class CliClient final : public Actor {
       get_args(args, community_id, member_id, is_banned);
       send_request(td_api::make_object<td_api::toggleCommunityMemberIsBanned>(community_id,
                                                                               as_message_sender(member_id), is_banned));
+    } else if (op == "gcomc") {
+      CommunityId community_id;
+      string member_id;
+      get_args(args, community_id, member_id);
+      send_request(td_api::make_object<td_api::getCommunityMemberChats>(community_id, as_message_sender(member_id)));
     } else if (op == "DeleteCommunity") {
       CommunityId community_id;
       get_args(args, community_id);

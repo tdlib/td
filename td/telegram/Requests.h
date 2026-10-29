@@ -492,6 +492,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::toggleCommunityMemberIsBanned &request);
 
+  void on_request(uint64 id, const td_api::getCommunityMemberChats &request);
+
   void on_request(uint64 id, const td_api::deleteCommunity &request);
 
   void on_request(uint64 id, td_api::searchPublicChat &request);

@@ -2744,6 +2744,11 @@ communityAddChatRequest chat_id:int53 is_hidden:Bool sender_user_id:int53 date:i
 //@next_offset The offset for the next getCommunityAddChatRequests request. If empty, then there are no more results
 communityAddChatRequests total_count:int32 requests:vector<communityAddChatRequest> next_offset:string = CommunityAddChatRequests;
 
+//@description Contains information about chats in a community, which are joined or owned by a member of the community
+//@owned_chat_ids Identifiers of the chats owned by the member. The chats will be removed from the community if the member is banned in the community
+//@joined_chat_ids Identifiers of the non-owned chats joined by the member
+communityMemberChats owned_chat_ids:vector<int53> joined_chat_ids:vector<int53> = CommunityMemberChats;
+
 
 //@description Contains description of user rating
 //@level The level of the user; may be negative
@@ -12887,6 +12892,12 @@ toggleCommunityAreChatsCollapsed community_id:int53 are_chats_collapsed:Bool = O
 //@member_id Identifier of the member to ban or unban
 //@is_banned Pass true to ban the member; pass false to unban the member
 toggleCommunityMemberIsBanned community_id:int53 member_id:MessageSender is_banned:Bool = Ok;
+
+//@description Returns chats in a community, which were joined by a member of the community; requires can_ban_members administrator right in the community.
+//-Can be used to show chats that will be affected by the member ban
+//@community_id Identifier of the community
+//@member_id Identifier of the member
+getCommunityMemberChats community_id:int53 member_id:MessageSender = CommunityMemberChats;
 
 //@description Deletes a community; requires owner privileges @community_id Identifier of the community
 deleteCommunity community_id:int53 = Ok;
