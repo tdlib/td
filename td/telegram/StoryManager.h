@@ -81,6 +81,7 @@ class StoryManager final : public Actor {
     vector<MediaArea> areas_;
     vector<StoryAlbumId> album_ids_;
     FormattedText caption_;
+    FileId music_file_id_;
     int64 global_id_ = 0;
 
     template <class StorerT>

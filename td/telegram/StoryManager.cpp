@@ -7,11 +7,14 @@
 #include "td/telegram/StoryManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/Document.h"
+#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
@@ -1692,6 +1695,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   bool has_forward_info = forward_info_ != nullptr;
   bool has_sender_dialog_id = sender_dialog_id_ != DialogId();
   bool has_album_ids = !album_ids_.empty();
+  bool has_music_file_id = music_file_id_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_edited_);
   STORE_FLAG(is_pinned_);
@@ -1712,6 +1716,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   STORE_FLAG(has_sender_dialog_id);
   STORE_FLAG(has_album_ids);
   STORE_FLAG(is_live_);
+  STORE_FLAG(has_music_file_id);
   END_STORE_FLAGS();
   store(date_, storer);
   store(expire_date_, storer);
@@ -1745,6 +1750,9 @@ void StoryManager::Story::store(StorerT &storer) const {
   if (has_album_ids) {
     store(album_ids_, storer);
   }
+  if (has_music_file_id) {
+    storer.context()->td().get_actor_unsafe()->audios_manager_->store_audio(music_file_id_, storer);
+  }
 }
 
 template <class ParserT>
@@ -1760,6 +1768,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   bool has_forward_info;
   bool has_sender_dialog_id;
   bool has_album_ids;
+  bool has_music_file_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_edited_);
   PARSE_FLAG(is_pinned_);
@@ -1780,6 +1789,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   PARSE_FLAG(has_sender_dialog_id);
   PARSE_FLAG(has_album_ids);
   PARSE_FLAG(is_live_);
+  PARSE_FLAG(has_music_file_id);
   END_PARSE_FLAGS();
   parse(date_, parser);
   parse(expire_date_, parser);
@@ -1812,6 +1822,9 @@ void StoryManager::Story::parse(ParserT &parser) {
   }
   if (has_album_ids) {
     parse(album_ids_, parser);
+  }
+  if (has_music_file_id) {
+    music_file_id_ = parser.context()->td().get_actor_unsafe()->audios_manager_->parse_audio(parser);
   }
 }
 
@@ -4156,6 +4169,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       std::move(interaction_info), story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
       get_story_content_object(td_, content, owner_dialog_id), std::move(story_areas),
       get_formatted_text_object(td_->user_manager_.get(), *caption, true, get_story_content_duration(td_, content)),
+      td_->audios_manager_->get_audio_object(story->music_file_id_),
       StoryAlbumId::get_story_album_ids_object(story->album_ids_));
 }
 
@@ -4258,7 +4272,11 @@ vector<FileId> StoryManager::get_story_file_ids(const Story *story) const {
   if (story == nullptr || story->content_ == nullptr) {
     return {};
   }
-  return get_story_content_file_ids(td_, story->content_.get());
+  auto file_ids = get_story_content_file_ids(td_, story->content_.get());
+  if (story->music_file_id_.is_valid()) {
+    Document{Document::Type::Audio, story->music_file_id_}.append_file_ids(td_, file_ids);
+  }
+  return file_ids;
 }
 
 void StoryManager::delete_story_files(const Story *story) const {
@@ -4351,6 +4369,16 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     LOG(INFO) << "Failed to get content of " << story_full_id;
     return StoryId();
   }
+  FileId music_file_id;
+  if (story_item->music_ != nullptr && story_item->music_->get_id() == telegram_api::document::ID) {
+    auto document = td_->documents_manager_->on_get_document(
+        telegram_api::move_object_as<telegram_api::document>(story_item->music_), owner_dialog_id, false, false);
+    if (document.type != Document::Type::Audio) {
+      LOG(ERROR) << "Receive music " << document << " in " << story_full_id;
+    } else {
+      music_file_id = document.file_id;
+    }
+  }
 
   Story *story = get_story_force(story_full_id, "on_get_new_story");
   bool is_changed = false;
@@ -4384,6 +4412,10 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
   } else {
     merge_story_contents(td_, story->content_.get(), content.get(), owner_dialog_id, need_save_to_database, is_changed);
     story->content_ = std::move(content);
+  }
+  if (story->music_file_id_ != music_file_id) {
+    story->music_file_id_ = music_file_id;
+    is_changed = true;
   }
 
   if (is_changed || need_save_to_database) {
