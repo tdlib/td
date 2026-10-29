@@ -21,6 +21,7 @@
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/ThemeManager.h"
 
+#include "td/utils/emoji.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -80,6 +81,7 @@ bool SynchronousRequests::is_synchronous_request(const td_api::Function *functio
   switch (function->get_id()) {
     case td_api::searchQuote::ID:
     case td_api::getTextEntities::ID:
+    case td_api::getTextEmojiRanges::ID:
     case td_api::parseTextEntities::ID:
     case td_api::parseMarkdown::ID:
     case td_api::getMarkdownText::ID:
@@ -144,6 +146,24 @@ td_api::object_ptr<td_api::Object> SynchronousRequests::do_request(const td_api:
   auto text_entities = find_entities(request.text_, false, false);
   return td_api::make_object<td_api::textEntities>(
       get_text_entities_object(nullptr, text_entities, false, std::numeric_limits<int32>::max()));
+}
+
+td_api::object_ptr<td_api::Object> SynchronousRequests::do_request(const td_api::getTextEmojiRanges &request) {
+  if (!check_utf8(request.text_)) {
+    return make_error(400, "Text must be encoded in UTF-8");
+  }
+  Slice text = request.text_;
+  vector<td_api::object_ptr<td_api::textRange>> ranges;
+  size_t offset = 0;  // in UTF-16 code units
+  const char *last_end = text.begin();
+  for (auto emoji : find_emojis(text)) {
+    offset += utf8_utf16_length(Slice(last_end, emoji.begin()));
+    auto length = utf8_utf16_length(emoji);
+    ranges.push_back(td_api::make_object<td_api::textRange>(static_cast<int32>(offset), static_cast<int32>(length)));
+    offset += length;
+    last_end = emoji.end();
+  }
+  return td_api::make_object<td_api::textRanges>(std::move(ranges));
 }
 
 td_api::object_ptr<td_api::Object> SynchronousRequests::do_request(td_api::parseTextEntities &request) {

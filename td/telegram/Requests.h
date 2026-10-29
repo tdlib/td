@@ -2196,6 +2196,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getTextEntities &request);
 
+  void on_request(uint64 id, const td_api::getTextEmojiRanges &request);
+
   void on_request(uint64 id, const td_api::parseTextEntities &request);
 
   void on_request(uint64 id, const td_api::parseMarkdown &request);

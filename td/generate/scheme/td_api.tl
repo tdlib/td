@@ -115,6 +115,14 @@ textEntity offset:int32 length:int32 type:TextEntityType = TextEntity;
 //@description Contains a list of text entities @entities List of text entities
 textEntities entities:vector<textEntity> = TextEntities;
 
+//@description Describes a part of a text
+//@offset Offset of the part, in UTF-16 code units
+//@length Length of the part, in UTF-16 code units
+textRange offset:int32 length:int32 = TextRange;
+
+//@description Contains a list of text parts @ranges List of text parts
+textRanges ranges:vector<textRange> = TextRanges;
+
 //@description A text with some entities @text The text @entities Entities contained in the text. Entities can be nested, but must not mutually intersect with each other.
 //-Pre, Code, PreCode, and DateTime entities can't contain other entities. BlockQuote entities can't contain other BlockQuote entities.
 //-Bold, Italic, Underline, Strikethrough, and Spoiler entities can contain and can be part of any other entities.
@@ -13916,6 +13924,10 @@ searchQuote text:formattedText quote:formattedText quote_position:int32 = FoundP
 //@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, TON blockchain addresses, URLs, and email addresses) found in the text. Can be called synchronously
 //@text The text in which to look for entities
 getTextEntities text:string = TextEntities;
+
+//@description Returns positions of all emoji found in the text in order of their appearance. Can be called synchronously
+//@text The text in which to look for emoji
+getTextEmojiRanges text:string = TextRanges;
 
 //@description Parses Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, BlockQuote, ExpandableBlockQuote, Code, Pre, PreCode, TextUrl,
 //-MentionName, and DateTime entities from a marked-up text. Can be called synchronously

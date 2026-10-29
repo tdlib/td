@@ -9830,6 +9830,10 @@ void Requests::on_request(uint64 id, const td_api::getTextEntities &request) {
   UNREACHABLE();
 }
 
+void Requests::on_request(uint64 id, const td_api::getTextEmojiRanges &request) {
+  UNREACHABLE();
+}
+
 void Requests::on_request(uint64 id, const td_api::parseTextEntities &request) {
   UNREACHABLE();
 }

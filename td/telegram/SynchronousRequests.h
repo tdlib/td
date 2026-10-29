@@ -35,6 +35,8 @@ class SynchronousRequests {
 
   static td_api::object_ptr<td_api::Object> do_request(const td_api::getTextEntities &request);
 
+  static td_api::object_ptr<td_api::Object> do_request(const td_api::getTextEmojiRanges &request);
+
   static td_api::object_ptr<td_api::Object> do_request(td_api::parseTextEntities &request);
 
   static td_api::object_ptr<td_api::Object> do_request(td_api::parseMarkdown &request);

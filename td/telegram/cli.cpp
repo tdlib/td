@@ -6056,6 +6056,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getTextEntities>(args));
     } else if (op == "gtee") {
       execute(td_api::make_object<td_api::getTextEntities>(args));
+    } else if (op == "gter") {
+      execute(td_api::make_object<td_api::getTextEmojiRanges>(args));
     } else if (op == "pm") {
       send_request(
           td_api::make_object<td_api::parseMarkdown>(td_api::make_object<td_api::formattedText>(args, Auto())));
