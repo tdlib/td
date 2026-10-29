@@ -270,6 +270,44 @@ class EditCommunityDefaultBannedRightsQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleCommunityPeerLinkQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  CommunityId community_id_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ToggleCommunityPeerLinkQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(CommunityId community_id, DialogId dialog_id, bool is_hidden) {
+    community_id_ = community_id;
+    dialog_id_ = dialog_id;
+    auto input_community = td_->community_manager_->get_input_community(community_id);
+    CHECK(input_community != nullptr);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::communities_togglePeerLink(0, !is_hidden, is_hidden, false, std::move(input_community),
+                                                 std::move(input_peer)),
+        {{community_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::communities_togglePeerLink>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(INFO) << "Receive result for ToggleCommunityPeerLinkQuery: " << result_ptr.ok();
+    td_->community_manager_->on_change_community_dialogs(community_id_, std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ToggleCommunityPeerLinkQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteCommunityQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1347,6 +1385,27 @@ void CommunityManager::set_community_permissions(CommunityId community_id,
 
   td_->create_handler<EditCommunityDefaultBannedRightsQuery>(std::move(promise))
       ->send(community_id, RestrictedRights(permissions));
+}
+
+void CommunityManager::add_community_dialog(CommunityId community_id, DialogId dialog_id, bool is_hidden,
+                                            Promise<Unit> &&promise) {
+  if (get_community(community_id) == nullptr) {
+    return promise.set_error(400, "Community not found");
+  }
+  TRY_STATUS_PROMISE(
+      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "add_community_dialog"));
+  td_->create_handler<ToggleCommunityPeerLinkQuery>(std::move(promise))->send(community_id, dialog_id, is_hidden);
+}
+
+void CommunityManager::on_change_community_dialogs(CommunityId community_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (get_community_full_const(community_id) == nullptr) {
+    return promise.set_value(Unit());
+  }
+  reload_community_full(community_id, PromiseCreator::lambda([promise = std::move(promise)](Result<Unit> &&) mutable {
+                          promise.set_value(Unit());
+                        }),
+                        "on_change_community_dialogs");
 }
 
 void CommunityManager::delete_community(CommunityId community_id, Promise<Unit> &&promise) {

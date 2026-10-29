@@ -78,6 +78,10 @@ class CommunityManager final : public Actor {
                                  const td_api::object_ptr<td_api::communityPermissions> &permissions,
                                  Promise<Unit> &&promise);
 
+  void add_community_dialog(CommunityId community_id, DialogId dialog_id, bool is_hidden, Promise<Unit> &&promise);
+
+  void on_change_community_dialogs(CommunityId community_id, Promise<Unit> &&promise);
+
   void delete_community(CommunityId community_id, Promise<Unit> &&promise);
 
   FileSourceId get_community_full_file_source_id(CommunityId community_id);
