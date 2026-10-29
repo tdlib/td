@@ -2961,6 +2961,12 @@ void Requests::on_request(uint64 id, const td_api::rateSpeechRecognition &reques
                                                        request.is_good_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getSpeechRecognitionLanguages &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->transcription_manager_->get_speech_recognition_languages(DialogId(request.chat_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getFile &request) {
   auto file_object = td_->file_manager_->get_file_object(FileId(request.file_id_, 0));
   if (file_object->id_ == 0) {

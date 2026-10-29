@@ -6,8 +6,10 @@
 //
 #include "td/telegram/TranscriptionManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
@@ -16,10 +18,51 @@
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VoiceNotesManager.h"
 
+#include "td/utils/algorithm.h"
+#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
+
+class GetTranscriptionLangsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::speechRecognitionLanguages>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetTranscriptionLangsQuery(Promise<td_api::object_ptr<td_api::speechRecognitionLanguages>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+    telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
+    if (dialog_id != DialogId()) {
+      input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+      CHECK(input_peer != nullptr);
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_getTranscriptionLangs(0, std::move(input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getTranscriptionLangs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto language_codes = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetTranscriptionLangsQuery: " << language_codes;
+    td::remove_if(language_codes, [](const string &language_code) { return language_code.empty(); });
+    promise_.set_value(td_api::make_object<td_api::speechRecognitionLanguages>(std::move(language_codes)));
+  }
+
+  void on_error(Status status) final {
+    if (dialog_id_ != DialogId()) {
+      td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetTranscriptionLangsQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
 
 void TranscriptionManager::TrialParameters::update_left_tries() {
   if (next_reset_date_ <= G()->unix_time()) {
@@ -387,6 +430,15 @@ void TranscriptionManager::rate_speech_recognition(MessageFullId message_full_id
     return promise.set_value(Unit());
   }
   transcription_info->rate_speech_recognition(td_, message_full_id, is_good, std::move(promise));
+}
+
+void TranscriptionManager::get_speech_recognition_languages(
+    DialogId dialog_id, Promise<td_api::object_ptr<td_api::speechRecognitionLanguages>> &&promise) {
+  if (dialog_id != DialogId()) {
+    TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                          "get_speech_recognition_languages"));
+  }
+  td_->create_handler<GetTranscriptionLangsQuery>(std::move(promise))->send(dialog_id);
 }
 
 void TranscriptionManager::subscribe_to_transcribed_audio_updates(int64 transcription_id,

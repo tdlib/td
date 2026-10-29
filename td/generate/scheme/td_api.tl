@@ -8054,6 +8054,9 @@ speechRecognitionResultText text:string = SpeechRecognitionResult;
 //@description The speech recognition failed @error Recognition error. An error with a message "MSG_VOICE_TOO_LONG" is returned when media duration is too big to be recognized
 speechRecognitionResultError error:error = SpeechRecognitionResult;
 
+//@description Contains a list of probable languages of speech @language_codes IETF language tags of the languages in descending order of their probability; for example, "en-US"
+speechRecognitionLanguages language_codes:vector<string> = SpeechRecognitionLanguages;
+
 
 //@description Describes a connection of the bot with a business account
 //@id Unique identifier of the connection
@@ -13202,6 +13205,9 @@ recognizeSpeech chat_id:int53 message_id:int53 = Ok;
 //@message_id Identifier of the message
 //@is_good Pass true if the speech recognition is good
 rateSpeechRecognition chat_id:int53 message_id:int53 is_good:Bool = Ok;
+
+//@description Returns 1-3 most probable languages of speech in voice notes @chat_id Identifier of the chat; pass 0 if none
+getSpeechRecognitionLanguages chat_id:int53 = SpeechRecognitionLanguages;
 
 
 //@description Returns the list of message sender identifiers, which can be used to send messages in a chat @chat_id Chat identifier

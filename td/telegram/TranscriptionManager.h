@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageFullId.h"
@@ -52,6 +53,9 @@ class TranscriptionManager final : public Actor {
   void on_transcription_completed(FileId file_id);
 
   void rate_speech_recognition(MessageFullId message_full_id, bool is_good, Promise<Unit> &&promise);
+
+  void get_speech_recognition_languages(DialogId dialog_id,
+                                        Promise<td_api::object_ptr<td_api::speechRecognitionLanguages>> &&promise);
 
   void on_update_transcribed_audio(telegram_api::object_ptr<telegram_api::updateTranscribedAudio> &&update);
 
