@@ -1583,7 +1583,15 @@ class SaveMusicQuery final : public Td::ResultHandler {
           file_id_, PromiseCreator::lambda([file_id = file_id_, after_file_id = after_file_id_,
                                             promise = std::move(promise_)](Result<Unit> result) mutable {
             if (result.is_error()) {
-              return promise.set_error(400, "Can't find the audio");
+              return send_closure(G()->audios_manager(), &AudiosManager::reupload_audio, file_id,
+                                  PromiseCreator::lambda([file_id, after_file_id,
+                                                          promise = std::move(promise)](Result<Unit> result) mutable {
+                                    if (result.is_error()) {
+                                      return promise.set_error(result.move_as_error());
+                                    }
+                                    send_closure(G()->user_manager(), &UserManager::add_saved_music, file_id,
+                                                 after_file_id, std::move(promise));
+                                  }));
             }
 
             send_closure(G()->user_manager(), &UserManager::add_saved_music, file_id, after_file_id,
@@ -7248,15 +7256,15 @@ Result<telegram_api::object_ptr<telegram_api::inputDocument>> UserManager::check
     return Status::Error(400, "Invalid file identifier specified");
   }
 
-  const auto *full_remote_location = file_view.get_full_remote_location();
-  if (full_remote_location == nullptr) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location == nullptr) {
     return Status::Error(400, "Invalid file identifier specified");
   }
-  if (full_remote_location->is_web()) {
+  if (main_remote_location->is_web()) {
     return Status::Error(400, "Invalid file identifier specified");
   }
 
-  return full_remote_location->as_input_document();
+  return main_remote_location->as_input_document();
 }
 
 void UserManager::is_saved_music(FileId file_id, Promise<Unit> &&promise) {

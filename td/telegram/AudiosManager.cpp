@@ -389,6 +389,7 @@ void AudiosManager::upload_audio(td_api::object_ptr<td_api::inputAudio> &&input_
   create_audio(file_id, string(), PhotoSize(), string(), string(), input_audio->duration_, input_audio->title_,
                input_audio->performer_, 0, false);
   if (main_remote_location != nullptr) {
+    dup_audio(file_view.get_main_file_id(), file_id);
     return promise.set_value(std::move(file_id));
   }
 
