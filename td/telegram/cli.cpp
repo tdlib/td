@@ -3928,6 +3928,12 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, community_id, offset, limit);
       send_request(td_api::make_object<td_api::getCommunityAddChatRequests>(community_id, offset, as_limit(limit)));
+    } else if (op == "pcacr") {
+      CommunityId community_id;
+      ChatId chat_id;
+      bool approve;
+      get_args(args, community_id, chat_id, approve);
+      send_request(td_api::make_object<td_api::processCommunityAddChatRequest>(community_id, chat_id, approve));
     } else if (op == "DeleteCommunity") {
       CommunityId community_id;
       get_args(args, community_id);

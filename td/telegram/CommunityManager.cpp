@@ -362,6 +362,43 @@ class GetCommunityPeerLinkRequestsQuery final : public Td::ResultHandler {
   }
 };
 
+class ProcessCommunityPeerLinkRequestQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  CommunityId community_id_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ProcessCommunityPeerLinkRequestQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(CommunityId community_id, DialogId dialog_id, bool approve) {
+    community_id_ = community_id;
+    dialog_id_ = dialog_id;
+    auto input_community = td_->community_manager_->get_input_community(community_id);
+    CHECK(input_community != nullptr);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::communities_togglePeerLinkRequestApproval(
+                                                   0, !approve, std::move(input_community), std::move(input_peer)),
+                                               {{community_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::communities_togglePeerLinkRequestApproval>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(INFO) << "Receive result for ProcessCommunityPeerLinkRequestQuery: " << result_ptr.ok();
+    td_->community_manager_->on_change_community_dialogs(community_id_, std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ProcessCommunityPeerLinkRequestQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteCommunityQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1506,6 +1543,20 @@ void CommunityManager::get_community_add_dialog_requests(
     return promise.set_error(400, "Parameter limit must be positive");
   }
   td_->create_handler<GetCommunityPeerLinkRequestsQuery>(std::move(promise))->send(community_id, offset, limit);
+}
+
+void CommunityManager::process_community_add_dialog_request(CommunityId community_id, DialogId dialog_id, bool approve,
+                                                            Promise<Unit> &&promise) {
+  const auto *c = get_community(community_id);
+  if (c == nullptr) {
+    return promise.set_error(400, "Community not found");
+  }
+  if (!get_community_status(c).can_manage_linked_peers_as_administrator()) {
+    return promise.set_error(400, "Have not enough rights");
+  }
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "process_community_add_dialog_request"));
+  td_->create_handler<ProcessCommunityPeerLinkRequestQuery>(std::move(promise))->send(community_id, dialog_id, approve);
 }
 
 void CommunityManager::delete_community(CommunityId community_id, Promise<Unit> &&promise) {

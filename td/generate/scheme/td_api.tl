@@ -12862,6 +12862,13 @@ removeCommunityChat community_id:int53 chat_id:int53 = Ok;
 //@limit The maximum number of requests to return
 getCommunityAddChatRequests community_id:int53 offset:string limit:int32 = CommunityAddChatRequests;
 
+//@description Handles a pending request to add a chat to a community; requires can_edit_chat_list administrator right in the community
+//@community_id Identifier of the community
+//@chat_id Identifier of the chat from the request
+//@approve Pass true to approve the request and add the chat to the community; pass false to decline it.
+//-If the community already has the maximum number of chats, then approval fails with the error "COMMUNITY_PEERS_TOO_MUCH"
+processCommunityAddChatRequest community_id:int53 chat_id:int53 approve:Bool = Ok;
+
 //@description Deletes a community; requires owner privileges @community_id Identifier of the community
 deleteCommunity community_id:int53 = Ok;
 
