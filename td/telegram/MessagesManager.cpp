@@ -44,6 +44,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/ForumTopicManager.h"
+#include "td/telegram/ForumUnreadCounts.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/InlineMessageContent.h"
@@ -3051,6 +3052,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_background = background_info.is_valid();
   bool has_business_bot_manage_bar = business_bot_manage_bar != nullptr;
   bool has_ephemeral_message_ids = !ephemeral_message_ids.empty();
+  bool has_forum_unread_counts = forum_unread_counts != ForumUnreadCounts();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -3149,6 +3151,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(need_repair_unread_poll_vote_count);
     STORE_FLAG(has_ephemeral_message_ids);  // 25
     STORE_FLAG(has_welcome_messages);
+    STORE_FLAG(has_forum_unread_counts);
     END_STORE_FLAGS();
   }
 
@@ -3281,6 +3284,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     }
     store(stored_data, storer);
   }
+  if (has_forum_unread_counts) {
+    store(forum_unread_counts, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -3334,6 +3340,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_background = false;
   bool has_business_bot_manage_bar = false;
   bool has_ephemeral_message_ids = false;
+  bool has_forum_unread_counts = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -3432,6 +3439,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(need_repair_unread_poll_vote_count);
     PARSE_FLAG(has_ephemeral_message_ids);
     PARSE_FLAG(has_welcome_messages);
+    PARSE_FLAG(has_forum_unread_counts);
     END_PARSE_FLAGS();
   }
 
@@ -3611,6 +3619,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
         ephemeral_message_ids.emplace(it.first, EphemeralMessageInfo{it.second, max_ephemeral_message_num++});
       }
     }
+  }
+  if (has_forum_unread_counts) {
+    parse(forum_unread_counts, parser);
   }
 
   (void)legacy_know_can_report_spam;
@@ -4471,6 +4482,11 @@ void MessagesManager::on_update_read_channel_inbox(tl_object_ptr<telegram_api::u
   on_update_dialog_folder_id(DialogId(channel_id), FolderId(update->folder_id_));
   on_read_channel_inbox(channel_id, MessageId(ServerMessageId(update->max_id_)), update->still_unread_count_,
                         update->pts_, "updateReadChannelInbox");
+  if (td_->chat_manager_->is_forum_tabs_channel(channel_id)) {
+    // reading of the whole chat reads all its topics only if they are shown as tabs
+    td_->forum_topic_manager_->on_update_read_all_forum_topics(DialogId(channel_id),
+                                                               MessageId(ServerMessageId(update->max_id_)));
+  }
 }
 
 void MessagesManager::on_update_read_channel_outbox(tl_object_ptr<telegram_api::updateReadChannelOutbox> &&update) {
@@ -4535,14 +4551,16 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
     return;
   }
 
+  if (td_->chat_manager_->is_forum_channel(dialog_id.get_channel_id())) {
+    // the topic doesn't need its first message to be known
+    td_->forum_topic_manager_->on_update_forum_topic_unread(
+        dialog_id, ForumTopicId::from_top_thread_message_id(top_thread_message_id), max_message_id,
+        last_read_inbox_message_id, last_read_outbox_message_id, unread_count);
+  }
+
   auto m = get_message_force(d, top_thread_message_id, "on_update_read_message_comments");
   if (m == nullptr || !m->message_id.is_server() || m->top_thread_message_id != m->message_id) {
     return;
-  }
-  if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_update_forum_topic_unread(dialog_id, get_message_forum_topic_id(dialog_id, m),
-                                                            max_message_id, last_read_inbox_message_id,
-                                                            last_read_outbox_message_id, unread_count);
   }
   if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
     return;
@@ -5958,7 +5976,7 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool &old_use_defa
   auto scope_mute_until = td_->notification_settings_manager_->get_scope_mute_until(scope);
   bool was_muted = (old_use_default ? scope_mute_until : old_mute_until) != 0;
   bool is_muted = (new_use_default ? scope_mute_until : new_mute_until) != 0;
-  if (was_muted != is_muted && need_unread_counter(d->order)) {
+  if (was_muted != is_muted && need_unread_counter(d->order) && !d->is_forum) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
     if (unread_count != 0 || d->is_marked_as_unread) {
       for (auto &list : get_dialog_lists(d)) {
@@ -5982,6 +6000,13 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool &old_use_defa
   old_use_default = new_use_default;
   old_mute_until = new_mute_until;
 
+  if (was_muted != is_muted && d->is_forum) {
+    change_dialog_unread_counts(d, get_forum_dialog_unread_counts(d, was_muted),
+                                get_forum_dialog_unread_counts(d, is_muted), "update_dialog_unmute_timeout");
+    // topics without own notification settings follow the chat
+    td_->forum_topic_manager_->on_dialog_mute_changed(d->dialog_id);
+  }
+
   if (was_muted != is_muted && td_->dialog_filter_manager_->have_dialog_filters()) {
     update_dialog_lists(d, get_dialog_positions(d), true, false, "update_dialog_unmute_timeout");
   }
@@ -6001,6 +6026,12 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
       Dialog *d = dialog.get();
       if (need_unread_counter(d->order) && d->notification_settings.use_default_mute_until &&
           td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id) == scope) {
+        if (d->is_forum) {
+          change_dialog_unread_counts(d, get_forum_dialog_unread_counts(d, !is_muted),
+                                      get_forum_dialog_unread_counts(d, is_muted),
+                                      "on_update_notification_scope_is_muted");
+          return;
+        }
         int32 unread_count = d->server_unread_count + d->local_unread_count;
         if (unread_count != 0) {
           for (auto dialog_list_id : get_dialog_list_ids(d)) {
@@ -6040,6 +6071,9 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
       }
     }
   }
+
+  // topics without own notification settings follow the chat
+  td_->forum_topic_manager_->on_notification_scope_mute_changed();
 
   if (td_->dialog_filter_manager_->have_dialog_filters()) {
     dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
@@ -7651,6 +7685,10 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
     first_added_message_id = MessageId::min();
   }
   bool can_be_in_different_dialog = message_topic.is_thread() && td_->dialog_manager_->is_broadcast_channel(dialog_id);
+  bool is_forum_topic_history = query.empty() && !sender_dialog_id.is_valid() && filter == MessageSearchFilter::Empty &&
+                                message_topic.is_forum() && tag.is_empty();
+  // all received messages, including the ones, which were deleted locally
+  vector<MessageId> received_message_ids;
   DialogId real_dialog_id;
   MessageId next_from_message_id;
   Dialog *d = get_dialog(dialog_id);
@@ -7658,6 +7696,9 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
   for (auto &message : messages) {
     auto message_id = MessageId::get_message_id(message, false);
     next_from_message_id = message_id;
+    if (is_forum_topic_history) {
+      received_message_ids.push_back(message_id);
+    }
     auto expected_dialog_id = can_be_in_different_dialog ? real_dialog_id : dialog_id;
     auto new_message_full_id =
         on_get_message(expected_dialog_id, std::move(message), false, false, "on_get_dialog_messages_search_result");
@@ -7698,6 +7739,23 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
     LOG(ERROR) << "Receive " << result.size() << " valid messages out of " << total_count << " in " << messages.size()
                << " messages";
     total_count = static_cast<int32>(result.size());
+  }
+  if (is_forum_topic_history && !real_dialog_id.is_valid()) {
+    auto forum_topic_id = message_topic.get_forum_topic_id();
+    bool are_all_messages_from_topic = true;
+    for (auto message_id : result) {
+      const Message *m = get_message(d, message_id);
+      if (m != nullptr && get_message_forum_topic_id(dialog_id, m) != forum_topic_id) {
+        are_all_messages_from_topic = false;
+        break;
+      }
+    }
+    td_->forum_topic_manager_->on_get_topic_history_from_server(
+        dialog_id, forum_topic_id, from_message_id, offset, limit, received_message_ids, are_all_messages_from_topic);
+    if (are_all_messages_from_topic) {
+      td_->forum_topic_manager_->on_get_topic_history_messages(dialog_id, forum_topic_id, from_message_id, result,
+                                                               "on_get_dialog_messages_search_result");
+    }
   }
   if (query.empty() && !sender_dialog_id.is_valid() && filter != MessageSearchFilter::Empty &&
       message_topic.is_empty() && tag.is_empty()) {
@@ -8822,6 +8880,10 @@ void MessagesManager::unload_dialog(DialogId dialog_id, int32 delay) {
                                                           std::move(unloaded_message_ids), false, true));
   }
 
+  if (td_->forum_topic_manager_->unload_forum_topics(dialog_id)) {
+    has_left_to_unload_messages = true;
+  }
+
   if (has_left_to_unload_messages) {
     LOG(DEBUG) << "Need to unload more messages in " << dialog_id;
     pending_unload_dialog_timeout_.add_timeout_in(
@@ -8906,6 +8968,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     clear_dialog_message_list(d, remove_from_dialog_list, last_message_date);
 
     td_->saved_messages_manager_->on_all_dialog_messages_deleted(d->dialog_id);
+    td_->forum_topic_manager_->on_all_dialog_messages_deleted(d->dialog_id);
   }
 
   bool was_live_location_deleted = false;
@@ -8923,6 +8986,13 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
       was_live_location_deleted = true;
     }
     remove_message_file_sources(d->dialog_id, m, "delete_all_dialog_messages");
+
+    auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+    if (forum_topic_id.is_valid()) {
+      // topics are deleted only by the server, even if their first messages are deleted with the whole history
+      td_->forum_topic_manager_->on_topic_message_deleted(d->dialog_id, forum_topic_id, message_id, false, false,
+                                                          "delete_all_dialog_messages");
+    }
 
     on_message_deleted(d, m, is_permanently_deleted, "delete_all_dialog_messages");
 
@@ -9730,21 +9800,16 @@ void MessagesManager::recalc_unread_count(DialogListId dialog_list_id, int32 old
         continue;
       }
 
-      int unread_count = d->server_unread_count + d->local_unread_count;
-      if (need_unread_counter(d->order) && (unread_count > 0 || d->is_marked_as_unread)) {
-        message_total_count += unread_count;
-        dialog_total_count++;
-        if (unread_count == 0 && d->is_marked_as_unread) {
-          dialog_marked_count++;
-        }
-
-        LOG(DEBUG) << "Have " << unread_count << " messages in " << dialog_id;
-        if (is_dialog_muted(d)) {
-          message_muted_count += unread_count;
-          dialog_muted_count++;
-          if (unread_count == 0 && d->is_marked_as_unread) {
-            dialog_muted_marked_count++;
-          }
+      if (need_unread_counter(d->order)) {
+        auto unread_counts = get_dialog_unread_counts(d);
+        message_total_count += unread_counts.message_count;
+        message_muted_count += unread_counts.muted_message_count;
+        dialog_total_count += unread_counts.dialog_count;
+        dialog_muted_count += unread_counts.muted_dialog_count;
+        dialog_marked_count += unread_counts.marked_dialog_count;
+        dialog_muted_marked_count += unread_counts.muted_marked_dialog_count;
+        if (unread_counts.dialog_count != 0) {
+          LOG(DEBUG) << "Have " << unread_counts.message_count << " messages in " << dialog_id;
         }
       }
       if (d->order != DEFAULT_ORDER) {  // must not count sponsored dialog, which is added independently
@@ -9845,7 +9910,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
   d->server_unread_count = server_unread_count;
   d->local_unread_count = local_unread_count;
 
-  if (need_unread_counter(d->order)) {
+  if (need_unread_counter(d->order) && !d->is_forum) {
     const int32 new_unread_count = d->server_unread_count + d->local_unread_count;
     for (auto &list : get_dialog_lists(d)) {
       int32 delta = new_unread_count - old_unread_count;
@@ -13147,6 +13212,11 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
       td_->saved_messages_manager_->is_last_topic_message(d->dialog_id, m->saved_messages_topic_id, m->message_id)) {
     return false;
   }
+  auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+  if (forum_topic_id.is_valid() &&
+      td_->forum_topic_manager_->is_last_topic_message(d->dialog_id, forum_topic_id, m->message_id)) {
+    return false;
+  }
   return d->open_count == 0 && m->message_id != d->last_message_id && m->message_id != d->last_database_message_id &&
          !m->message_id.is_yet_unsent() && active_live_location_message_full_ids_.count(message_full_id) == 0 &&
          replied_by_yet_unsent_messages_.count(message_full_id) == 0 &&
@@ -13572,6 +13642,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       td_->saved_messages_manager_->on_topic_message_deleted(d->dialog_id, m->saved_messages_topic_id, m->message_id,
                                                              only_from_memory, source);
     }
+    auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+    if (forum_topic_id.is_valid()) {
+      td_->forum_topic_manager_->on_topic_message_deleted(d->dialog_id, forum_topic_id, m->message_id,
+                                                          is_permanently_deleted, only_from_memory, source);
+    }
   }
 
   auto result = std::move(d->messages[message_id]);
@@ -13703,10 +13778,6 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   if (m->message_id.is_yet_unsent() || dialog_type == DialogType::SecretChat) {
     delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
   }
-  if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, get_message_forum_topic_id(d->dialog_id, m),
-                                                              -1);
-  }
 
   added_message_count_--;
 }
@@ -13778,10 +13849,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
   unregister_message_reply(d->dialog_id, m);
   if (message_id.is_yet_unsent()) {
     delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
-  }
-  if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, get_message_forum_topic_id(d->dialog_id, m),
-                                                              -1);
   }
 
   return result;
@@ -14392,9 +14459,8 @@ void MessagesManager::mark_dialog_as_read(Dialog *d) {
     return;
   }
   if (d->is_forum) {
-    // TODO read forum topics
-  }
-  if (d->server_unread_count + d->local_unread_count > 0 && d->last_message_id.is_valid()) {
+    td_->forum_topic_manager_->read_all_forum_topics(d->dialog_id, Auto());
+  } else if (d->server_unread_count + d->local_unread_count > 0 && d->last_message_id.is_valid()) {
     auto message_id = d->ordered_messages.get_last_sent_message_id();
     if (message_id == MessageId()) {
       // if can't find the last message, then d->last_new_message_id is the best guess
@@ -15839,10 +15905,8 @@ void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, DialogI
   auto message_id = info.message_id;
   get_message_force_from_server(d, message_id,
                                 PromiseCreator::lambda([actor_id = actor_id(this), info = std::move(info), dialog_id,
-                                                        promise = std::move(promise)](Result<Unit> &&result) mutable {
-                                  if (result.is_error()) {
-                                    return promise.set_value(std::move(info));
-                                  }
+                                                        promise = std::move(promise)](Result<Unit> &&) mutable {
+                                  // a message, which can't be loaded, is handled as not found
                                   send_closure(actor_id, &MessagesManager::on_get_message_link_message, std::move(info),
                                                dialog_id, std::move(promise));
                                 }));
@@ -15854,6 +15918,13 @@ void MessagesManager::on_get_message_link_message(MessageLinkInfo &&info, Dialog
 
   auto message_id = info.message_id;
   Message *m = get_message_force({dialog_id, message_id}, "on_get_message_link_message");
+  if (m == nullptr && info.top_thread_message_id.is_valid() && !td_->auth_manager_->is_bot()) {
+    // the topic from the link is returned without the message, so it must be known
+    auto message_topic = MessageTopic::autodetect(td_, dialog_id, info.top_thread_message_id);
+    if (message_topic.is_forum()) {
+      td_->forum_topic_manager_->load_forum_topic(dialog_id, message_topic.get_forum_topic_id());
+    }
+  }
   if (info.comment_message_id == MessageId() || m == nullptr ||
       !td_->dialog_manager_->is_broadcast_channel(dialog_id) || !m->reply_info.is_comment_ ||
       !is_active_message_reply_info(dialog_id, m->reply_info)) {
@@ -16508,6 +16579,101 @@ int32 MessagesManager::get_dialog_mute_until(const Dialog *d) const {
 
 bool MessagesManager::is_dialog_muted(const Dialog *d) const {
   return get_dialog_mute_until(d) != 0;
+}
+
+bool MessagesManager::is_dialog_muted(DialogId dialog_id) const {
+  const Dialog *d = get_dialog(dialog_id);
+  return d != nullptr && is_dialog_muted(d);
+}
+
+void MessagesManager::on_forum_topic_notification_settings_known(DialogId dialog_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  const Dialog *d = get_dialog(dialog_id);
+  if (d == nullptr || d->notification_info == nullptr ||
+      d->notification_info->pending_new_message_notifications_.empty()) {
+    return;
+  }
+  flush_pending_new_message_notifications(dialog_id, false, dialog_id);
+}
+
+MessagesManager::DialogUnreadCounts MessagesManager::get_dialog_unread_counts(const Dialog *d) const {
+  return get_dialog_unread_counts(d, d->is_forum);
+}
+
+MessagesManager::DialogUnreadCounts MessagesManager::get_dialog_unread_counts(const Dialog *d, bool is_forum) const {
+  if (is_forum) {
+    // the chat's own mute matters only for a forum, which is marked as unread without unread topics
+    return get_forum_dialog_unread_counts(
+        d, d->forum_unread_counts.topic_count_ == 0 && d->is_marked_as_unread && is_dialog_muted(d));
+  }
+  DialogUnreadCounts result;
+  auto unread_count = d->server_unread_count + d->local_unread_count;
+  if (unread_count == 0 && !d->is_marked_as_unread) {
+    return result;
+  }
+  bool is_muted = is_dialog_muted(d);
+  result.message_count = unread_count;
+  result.muted_message_count = is_muted ? unread_count : 0;
+  result.dialog_count = 1;
+  result.muted_dialog_count = is_muted ? 1 : 0;
+  if (unread_count == 0) {
+    result.marked_dialog_count = 1;
+    result.muted_marked_dialog_count = result.muted_dialog_count;
+  }
+  return result;
+}
+
+MessagesManager::DialogUnreadCounts MessagesManager::get_forum_dialog_unread_counts(const Dialog *d,
+                                                                                    bool is_dialog_muted) {
+  // a forum is counted by its known topics and is muted only if all its unread topics are muted
+  const auto &counts = d->forum_unread_counts;
+  DialogUnreadCounts result;
+  if (counts.topic_count_ == 0 && !d->is_marked_as_unread) {
+    return result;
+  }
+  bool is_muted = counts.topic_count_ != 0 ? counts.unmuted_topic_count_ == 0 : is_dialog_muted;
+  result.message_count = counts.message_count_;
+  result.muted_message_count = counts.muted_message_count_;
+  result.dialog_count = 1;
+  result.muted_dialog_count = is_muted ? 1 : 0;
+  if (counts.topic_count_ == 0) {
+    result.marked_dialog_count = 1;
+    result.muted_marked_dialog_count = result.muted_dialog_count;
+  }
+  return result;
+}
+
+void MessagesManager::change_dialog_unread_counts(Dialog *d, const DialogUnreadCounts &old_counts,
+                                                  const DialogUnreadCounts &new_counts, const char *source) {
+  if (!need_unread_counter(d->order)) {
+    return;
+  }
+  bool is_message_count_changed = old_counts.message_count != new_counts.message_count ||
+                                  old_counts.muted_message_count != new_counts.muted_message_count;
+  bool is_dialog_count_changed = old_counts.dialog_count != new_counts.dialog_count ||
+                                 old_counts.muted_dialog_count != new_counts.muted_dialog_count ||
+                                 old_counts.marked_dialog_count != new_counts.marked_dialog_count ||
+                                 old_counts.muted_marked_dialog_count != new_counts.muted_marked_dialog_count;
+  for (auto &list : get_dialog_lists(d)) {
+    if (is_message_count_changed && list.is_message_unread_count_inited_) {
+      list.unread_message_total_count_ += new_counts.message_count - old_counts.message_count;
+      list.unread_message_muted_count_ += new_counts.muted_message_count - old_counts.muted_message_count;
+      send_update_unread_message_count(list, d->dialog_id, true, source);
+    }
+    if (is_dialog_count_changed && list.is_dialog_unread_count_inited_) {
+      list.unread_dialog_total_count_ += new_counts.dialog_count - old_counts.dialog_count;
+      list.unread_dialog_muted_count_ += new_counts.muted_dialog_count - old_counts.muted_dialog_count;
+      list.unread_dialog_marked_count_ += new_counts.marked_dialog_count - old_counts.marked_dialog_count;
+      list.unread_dialog_muted_marked_count_ +=
+          new_counts.muted_marked_dialog_count - old_counts.muted_marked_dialog_count;
+      send_update_unread_chat_count(list, d->dialog_id, true, source);
+    }
+  }
+  if (old_counts.dialog_count != new_counts.dialog_count && td_->dialog_filter_manager_->have_dialog_filters()) {
+    update_dialog_lists(d, get_dialog_positions(d), true, false, source);
+  }
 }
 
 bool MessagesManager::is_dialog_pinned_message_notifications_disabled(const Dialog *d) const {
@@ -17371,7 +17537,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       can_delete.for_all_users_, td_->dialog_manager_->can_report_dialog(d->dialog_id),
       d->notification_settings.silent_send_message, d->server_unread_count + d->local_unread_count,
       d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
-      d->unread_reaction_count, d->unread_poll_vote_count,
+      d->unread_reaction_count, d->unread_poll_vote_count, d->is_forum ? d->forum_unread_counts.topic_count_ : 0,
+      d->is_forum ? d->forum_unread_counts.unmuted_topic_count_ : 0,
       get_chat_notification_settings_object(&d->notification_settings), std::move(available_reactions),
       d->message_ttl.get_message_auto_delete_time_object(),
       td_->dialog_manager_->get_dialog_emoji_status_object(d->dialog_id), get_chat_background_object(d),
@@ -17978,12 +18145,12 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
 
   CHECK(message_id.is_server());
   return get_message_thread_history(dialog_id, MessageTopic::thread(dialog_id, message_id), top_thread_message_full_id,
-                                    from_message_id, offset, limit, random_id, std::move(promise));
+                                    from_message_id, offset, limit, false, random_id, std::move(promise));
 }
 
 std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_history(
     DialogId dialog_id, MessageTopic topic, MessageFullId top_thread_message_full_id, MessageId from_message_id,
-    int32 offset, int32 limit, int64 &random_id, Promise<Unit> &&promise) {
+    int32 offset, int32 limit, bool from_memory, int64 &random_id, Promise<Unit> &&promise) {
   if (limit <= 0) {
     promise.set_error(400, "Parameter limit must be positive");
     return {};
@@ -18087,9 +18254,33 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
                                        result.end(), from_message_id, offset, limit);
 
     LOG(INFO) << "Return " << result.size() << " messages in result to getMessageThreadHistory";
+    if (topic.is_forum() && !result.empty()) {
+      // getChatHistory answers from memory after loading, and preloads from there
+      auto minmax = std::minmax_element(result.begin(), result.end());
+      td_->forum_topic_manager_->preload_topic_history(dialog_id, topic.get_forum_topic_id(), *minmax.first,
+                                                       *minmax.second);
+    }
 
     promise.set_value(Unit());
     return {dialog_id, std::move(result)};
+  }
+
+  if (from_memory && topic.is_forum()) {
+    auto forum_topic_id = topic.get_forum_topic_id();
+    if (forum_topic_id != ForumTopicId::general() && offset == 0 &&
+        from_message_id <= forum_topic_id.to_top_thread_message_id()) {
+      // a topic other than General begins with the message, which created it
+      promise.set_value(Unit());
+      return {dialog_id, {}};
+    }
+    // messages, which are already known, are returned at once, as in getChatHistory
+    auto message_ids = td_->forum_topic_manager_->get_topic_history_from_memory(
+        dialog_id, topic.get_forum_topic_id(), from_message_id, offset, is_limit_increased ? limit - 1 : limit);
+    if (!message_ids.empty()) {
+      LOG(INFO) << "Return " << message_ids.size() << " messages of " << topic << " from memory";
+      promise.set_value(Unit());
+      return {dialog_id, std::move(message_ids)};
+    }
   }
 
   do {
@@ -18097,10 +18288,102 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
   } while (random_id == 0 || found_dialog_messages_.count(random_id) > 0);
   found_dialog_messages_[random_id];  // reserve place for result
 
+  if (topic.is_forum() && G()->use_message_database()) {
+    MessageId first_database_message_id;
+    MessageId last_database_message_id;
+    bool is_last_database_message = false;
+    if (td_->forum_topic_manager_->get_topic_database_range(dialog_id, topic.get_forum_topic_id(),
+                                                            first_database_message_id, last_database_message_id,
+                                                            is_last_database_message) &&
+        (from_message_id == MessageId::max()
+             ? is_last_database_message
+             : first_database_message_id < from_message_id && from_message_id <= last_database_message_id)) {
+      MessageDbMessagesQuery db_query;
+      db_query.dialog_id = dialog_id;
+      db_query.from_message_id =
+          from_message_id == MessageId::max() ? from_message_id : from_message_id.get_next_server_message_id();
+      db_query.offset = offset;
+      db_query.limit = limit;
+      db_query.topic_id = topic.get_forum_topic_id().get();
+      G()->td_db()->get_message_db_async()->get_messages(
+          db_query, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, topic, from_message_id, offset, limit,
+                                            random_id, first_database_message_id, last_database_message_id,
+                                            is_last_database_message, promise = std::move(promise)](
+                                               Result<vector<MessageDbDialogMessage>> r_messages) mutable {
+            send_closure(actor_id, &MessagesManager::on_get_forum_topic_history_from_database, dialog_id, topic,
+                         from_message_id, offset, limit, random_id, first_database_message_id, last_database_message_id,
+                         is_last_database_message, std::move(r_messages), std::move(promise));
+          }));
+      return {};
+    }
+  }
+
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
       ->send(dialog_id, topic, string(), DialogId(), from_message_id.get_next_server_message_id(), offset, limit,
              MessageSearchFilter::Empty, ReactionType(), random_id);
   return {};
+}
+
+void MessagesManager::on_get_forum_topic_history_from_database(
+    DialogId dialog_id, MessageTopic topic, MessageId from_message_id, int32 offset, int32 limit, int64 random_id,
+    MessageId first_database_message_id, MessageId last_database_message_id, bool is_last_database_message,
+    Result<vector<MessageDbDialogMessage>> r_messages, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  auto it = found_dialog_messages_.find(random_id);
+  CHECK(it != found_dialog_messages_.end());
+
+  auto from_server_message_id =
+      from_message_id == MessageId::max() ? from_message_id : from_message_id.get_next_server_message_id();
+  vector<MessageId> message_ids;
+  int32 older_message_count = 0;
+  if (r_messages.is_ok()) {
+    for (auto &message : r_messages.ok_ref()) {
+      auto m = on_get_message_from_database(d, message, false, "on_get_forum_topic_history_from_database");
+      // local messages are added from the thread's list, and messages outside the range may have gaps before them
+      if (m == nullptr || !m->message_id.is_server() || m->message_id < first_database_message_id ||
+          m->message_id > last_database_message_id) {
+        continue;
+      }
+      if (m->message_id < from_server_message_id) {
+        older_message_count++;
+      }
+      message_ids.push_back(m->message_id);
+    }
+  }
+  auto newer_message_count = static_cast<int32>(message_ids.size()) - older_message_count;
+  bool is_complete = r_messages.is_ok() &&
+                     (older_message_count == limit + offset || first_database_message_id == MessageId::min()) &&
+                     (newer_message_count == -offset || is_last_database_message);
+  if (is_complete && is_last_database_message &&
+      (from_message_id == MessageId::max() || newer_message_count < -offset)) {
+    // the found messages must end with the last message of the topic
+    auto forum_topic_id = topic.get_forum_topic_id();
+    auto last_message_id = td_->forum_topic_manager_->get_topic_last_message_id(dialog_id, forum_topic_id);
+    MessageId max_message_id;
+    for (auto message_id : message_ids) {
+      max_message_id = max(max_message_id, message_id);
+    }
+    if (last_message_id.is_server() && max_message_id < last_message_id) {
+      LOG(INFO) << "Have no " << last_message_id << " of " << topic << " in the database";
+      td_->forum_topic_manager_->forget_topic_database_range(dialog_id, forum_topic_id);
+      is_complete = false;
+    }
+  }
+  if (is_complete) {
+    LOG(INFO) << "Found " << message_ids.size() << " messages of " << topic << " in the database";
+    td_->forum_topic_manager_->on_get_topic_history_messages(dialog_id, topic.get_forum_topic_id(),
+                                                             from_server_message_id, message_ids,
+                                                             "on_get_forum_topic_history_from_database");
+    it->second.message_ids = std::move(message_ids);
+    return promise.set_value(Unit());
+  }
+
+  // some messages aren't in the database; they must be loaded from the server
+  td_->create_handler<SearchMessagesQuery>(std::move(promise))
+      ->send(dialog_id, topic, string(), DialogId(), from_server_message_id, offset, limit, MessageSearchFilter::Empty,
+             ReactionType(), random_id);
 }
 
 std::pair<DialogId, vector<MessageId>> MessagesManager::get_forum_topic_history(DialogId dialog_id,
@@ -18129,7 +18412,32 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_forum_topic_history(
 
   return get_message_thread_history(dialog_id, MessageTopic::forum(dialog_id, forum_topic_id),
                                     {dialog_id, forum_topic_id.to_top_thread_message_id()}, from_message_id, offset,
-                                    limit, random_id, std::move(promise));
+                                    limit, true, random_id, std::move(promise));
+}
+
+void MessagesManager::preload_forum_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                  MessageId from_message_id, int32 offset, int32 limit,
+                                                  Promise<Unit> &&promise) {
+  // the result is known only to this query, so it must be removed when the query finishes
+  auto random_id_holder = std::make_shared<int64>(0);
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), random_id_holder, promise = std::move(promise)](Result<Unit> result) mutable {
+        send_closure(actor_id, &MessagesManager::on_preload_forum_topic_history, *random_id_holder, std::move(result),
+                     std::move(promise));
+      });
+  int64 random_id = 0;
+  get_message_thread_history(dialog_id, MessageTopic::forum(dialog_id, forum_topic_id),
+                             {dialog_id, forum_topic_id.to_top_thread_message_id()}, from_message_id, offset, limit,
+                             false, random_id, std::move(query_promise));
+  *random_id_holder = random_id;
+}
+
+void MessagesManager::on_preload_forum_topic_history(int64 random_id, Result<Unit> &&result, Promise<Unit> &&promise) {
+  if (random_id != 0) {
+    found_dialog_messages_.erase(random_id);
+    found_dialog_messages_dialog_id_.erase(random_id);
+  }
+  promise.set_result(std::move(result));
 }
 
 void MessagesManager::get_dialog_message_calendar(DialogId dialog_id,
@@ -19412,15 +19720,8 @@ void MessagesManager::preload_newer_messages(const Dialog *d, MessageId max_mess
   CHECK(max_message_id.is_valid());
   CHECK(!td_->auth_manager_->is_bot());
 
-  auto it = d->ordered_messages.get_const_iterator(max_message_id);
-  int32 limit = MAX_GET_HISTORY * 3 / 10;
-  while (*it != nullptr && limit-- > 0) {
-    ++it;
-    if (*it) {
-      max_message_id = (*it)->get_message_id();
-    }
-  }
-  if (limit > 0 && (d->last_message_id == MessageId() || max_message_id < d->last_message_id)) {
+  if (d->ordered_messages.need_preload_newer_messages(max_message_id, MAX_GET_HISTORY * 3 / 10) &&
+      (d->last_message_id == MessageId() || max_message_id < d->last_message_id)) {
     // need to preload some new messages
     LOG(INFO) << "Preloading newer after " << max_message_id;
     load_messages_impl(d, max_message_id, -MAX_GET_HISTORY + 1, MAX_GET_HISTORY, 3, false, Promise<Unit>());
@@ -19438,13 +19739,7 @@ void MessagesManager::preload_older_messages(const Dialog *d, MessageId min_mess
       return;
     }
   */
-  auto it = d->ordered_messages.get_const_iterator(min_message_id);
-  int32 limit = MAX_GET_HISTORY * 3 / 10 + 1;
-  while (*it != nullptr && limit-- > 0) {
-    min_message_id = (*it)->get_message_id();
-    --it;
-  }
-  if (limit > 0) {
+  if (d->ordered_messages.need_preload_older_messages(min_message_id, MAX_GET_HISTORY * 3 / 10 + 1)) {
     // need to preload some old messages
     LOG(INFO) << "Preloading older before " << min_message_id;
     load_messages_impl(d, min_message_id, 0, MAX_GET_HISTORY / 2, 3, false, Promise<Unit>());
@@ -26653,6 +26948,15 @@ bool MessagesManager::may_need_message_notification(const Dialog *d, const Messa
   bool have_settings;
   int32 mute_until;
   std::tie(have_settings, mute_until) = get_dialog_mute_until(d->dialog_id, d);
+  auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+  if (forum_topic_id.is_valid()) {
+    if (td_->forum_topic_manager_->get_forum_topic_mute_until(d->dialog_id, forum_topic_id, mute_until)) {
+      have_settings = true;
+    } else if (!td_->forum_topic_manager_->have_forum_topic_notification_settings(d->dialog_id, forum_topic_id)) {
+      // the topic can have its own settings
+      return true;
+    }
+  }
   return !have_settings || mute_until <= m->date;
 }
 
@@ -26715,7 +27019,21 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   bool have_settings;
   int32 mute_until;
   std::tie(have_settings, mute_until) = get_dialog_mute_until(settings_dialog_id, settings_dialog);
-  if (mute_until > m->date && (have_settings || force)) {
+  ForumTopicId unknown_forum_topic_id;
+  if (settings_dialog_id == d->dialog_id) {
+    // a topic with its own notification settings overrides the chat's ones
+    auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+    if (forum_topic_id.is_valid()) {
+      if (td_->forum_topic_manager_->get_forum_topic_mute_until(d->dialog_id, forum_topic_id, mute_until)) {
+        have_settings = true;
+      } else if (!force &&
+                 !td_->forum_topic_manager_->have_forum_topic_notification_settings(d->dialog_id, forum_topic_id)) {
+        // the topic can have its own settings, so the notification waits for the topic
+        unknown_forum_topic_id = forum_topic_id;
+      }
+    }
+  }
+  if (!unknown_forum_topic_id.is_valid() && mute_until > m->date && (have_settings || force)) {
     VLOG(notifications) << "Disable notification, because " << settings_dialog_id << " is muted";
     if (is_pinned && from_mentions) {
       remove_dialog_pinned_message_notification(d, "add_new_message_notification");
@@ -26736,7 +27054,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   auto notification_info = add_dialog_notification_info(d);
   auto &pending_notifications = from_mentions ? notification_info->pending_new_mention_notifications_
                                               : notification_info->pending_new_message_notifications_;
-  if (!force && (!have_settings || !pending_notifications.empty() || missing_pinned_message_id.is_valid())) {
+  if (!force && (!have_settings || unknown_forum_topic_id.is_valid() || !pending_notifications.empty() ||
+                 missing_pinned_message_id.is_valid())) {
     VLOG(notifications) << "Delay new message notification for " << m->message_id << " in " << d->dialog_id << " with "
                         << pending_notifications.size() << " already waiting messages";
     if (pending_notifications.empty()) {
@@ -26751,7 +27070,12 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
           .release();
     }
     auto last_settings_dialog_id = (pending_notifications.empty() ? DialogId() : pending_notifications.back().first);
-    pending_notifications.emplace_back((have_settings ? DialogId() : settings_dialog_id), m->message_id);
+    bool need_settings = !have_settings || unknown_forum_topic_id.is_valid();
+    pending_notifications.emplace_back((need_settings ? settings_dialog_id : DialogId()), m->message_id);
+    if (unknown_forum_topic_id.is_valid()) {
+      VLOG(notifications) << "Wait for " << unknown_forum_topic_id << " in " << d->dialog_id;
+      td_->forum_topic_manager_->load_forum_topic(d->dialog_id, unknown_forum_topic_id);
+    }
     if (!have_settings && last_settings_dialog_id != settings_dialog_id) {
       VLOG(notifications) << "Fetch notification settings for " << settings_dialog_id;
       auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id, from_mentions,
@@ -27209,6 +27533,10 @@ void MessagesManager::send_update_last_message_if_needed(const Dialog *d, const 
   }
   if (m->saved_messages_topic_id.is_valid()) {
     td_->saved_messages_manager_->on_topic_message_updated(d->dialog_id, m->saved_messages_topic_id, m->message_id);
+  }
+  auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+  if (forum_topic_id.is_valid()) {
+    td_->forum_topic_manager_->on_topic_message_updated(d->dialog_id, forum_topic_id, m->message_id);
   }
 }
 
@@ -28615,12 +28943,65 @@ void MessagesManager::set_dialog_is_forum(Dialog *d, bool is_forum, bool is_foru
     return;
   }
   auto old_view_as_topics = get_dialog_view_as_topics(d);
+  bool is_bot = td_->auth_manager_->is_bot();
+  auto old_unread_counts = is_bot ? DialogUnreadCounts() : get_dialog_unread_counts(d);
+  bool was_forum = d->is_forum;
+  bool had_forum_unread_counts = false;
+  if (was_forum != is_forum) {
+    td_->forum_topic_manager_->on_dialog_is_forum_changed(d->dialog_id);
+    // the topics are forgotten, and are counted again after they are received again
+    had_forum_unread_counts = d->forum_unread_counts != ForumUnreadCounts();
+    d->forum_unread_counts = ForumUnreadCounts();
+  }
   d->is_forum = is_forum;
   d->is_forum_tabs = is_forum_tabs;
   on_dialog_updated(d->dialog_id, "set_dialog_is_forum");
 
   LOG(INFO) << "Set " << d->dialog_id << " is_forum to " << is_forum << '/' << is_forum_tabs;
   on_update_dialog_view_as_topics(d, old_view_as_topics);
+
+  if (was_forum != is_forum && !is_bot) {
+    change_dialog_unread_counts(d, old_unread_counts, get_dialog_unread_counts(d), "set_dialog_is_forum");
+    if (had_forum_unread_counts) {
+      send_update_chat_unread_topic_count(d);
+    }
+    if (is_forum && !get_dialog_list_ids(d).empty()) {
+      td_->forum_topic_manager_->preload_forum_topics(d->dialog_id);
+    }
+  }
+}
+
+void MessagesManager::on_update_forum_unread_counts(DialogId dialog_id, ForumUnreadCounts forum_unread_counts) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  Dialog *d = get_dialog_force(dialog_id, "on_update_forum_unread_counts");
+  if (d == nullptr || d->forum_unread_counts == forum_unread_counts) {
+    return;
+  }
+
+  LOG(INFO) << "Set unread counts of topics in " << dialog_id << " to " << forum_unread_counts;
+  auto old_unread_counts = get_dialog_unread_counts(d);
+  bool is_topic_count_changed = d->forum_unread_counts.topic_count_ != forum_unread_counts.topic_count_ ||
+                                d->forum_unread_counts.unmuted_topic_count_ != forum_unread_counts.unmuted_topic_count_;
+  d->forum_unread_counts = forum_unread_counts;
+  on_dialog_updated(dialog_id, "on_update_forum_unread_counts");
+  if (is_topic_count_changed && d->is_forum) {
+    send_update_chat_unread_topic_count(d);
+  }
+  change_dialog_unread_counts(d, old_unread_counts, get_dialog_unread_counts(d), "on_update_forum_unread_counts");
+}
+
+void MessagesManager::send_update_chat_unread_topic_count(const Dialog *d) const {
+  CHECK(d != nullptr);
+  if (!d->is_update_new_chat_sent) {
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatUnreadTopicCount>(
+                   get_chat_id_object(d->dialog_id, "updateChatUnreadTopicCount"),
+                   d->is_forum ? d->forum_unread_counts.topic_count_ : 0,
+                   d->is_forum ? d->forum_unread_counts.unmuted_topic_count_ : 0));
 }
 
 void MessagesManager::on_update_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages) {
@@ -28697,6 +29078,7 @@ void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_a
 
   CHECK(d != nullptr);
   CHECK(d->is_marked_as_unread != is_marked_as_unread);
+  auto old_unread_counts = get_dialog_unread_counts(d);
   d->is_marked_as_unread = is_marked_as_unread;
   on_dialog_updated(d->dialog_id, "set_dialog_is_marked_as_unread");
 
@@ -28705,6 +29087,11 @@ void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_a
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatIsMarkedAsUnread>(
                    get_chat_id_object(d->dialog_id, "updateChatIsMarkedAsUnread"), is_marked_as_unread));
+
+  if (d->is_forum) {
+    return change_dialog_unread_counts(d, old_unread_counts, get_dialog_unread_counts(d),
+                                       "set_dialog_is_marked_as_unread");
+  }
 
   if (d->server_unread_count + d->local_unread_count == 0 && need_unread_counter(d->order)) {
     int32 delta = d->is_marked_as_unread ? 1 : -1;
@@ -30069,25 +30456,13 @@ void MessagesManager::edit_dialog_list_for_dialog_filter(unique_ptr<DialogFilter
           new_list.server_dialog_total_count_++;
         }
 
-        auto unread_count = d->server_unread_count + d->local_unread_count;
-        if (unread_count != 0) {
-          new_list.unread_message_total_count_ += unread_count;
-          if (is_dialog_muted(d)) {
-            new_list.unread_message_muted_count_ += unread_count;
-          }
-        }
-        if (unread_count != 0 || d->is_marked_as_unread) {
-          new_list.unread_dialog_total_count_++;
-          if (unread_count == 0 && d->is_marked_as_unread) {
-            new_list.unread_dialog_marked_count_++;
-          }
-          if (is_dialog_muted(d)) {
-            new_list.unread_dialog_muted_count_++;
-            if (unread_count == 0 && d->is_marked_as_unread) {
-              new_list.unread_dialog_muted_marked_count_++;
-            }
-          }
-        }
+        auto unread_counts = get_dialog_unread_counts(d);
+        new_list.unread_message_total_count_ += unread_counts.message_count;
+        new_list.unread_message_muted_count_ += unread_counts.muted_message_count;
+        new_list.unread_dialog_total_count_ += unread_counts.dialog_count;
+        new_list.unread_dialog_marked_count_ += unread_counts.marked_dialog_count;
+        new_list.unread_dialog_muted_count_ += unread_counts.muted_dialog_count;
+        new_list.unread_dialog_muted_marked_count_ += unread_counts.muted_marked_dialog_count;
       } else {
         if (was_in_list) {
           remove_dialog_from_list(d, dialog_list_id);
@@ -31527,10 +31902,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(dialog_id, m), +1);
-  }
-
   Message *result_message = message.get();
   d->messages.set(message_id, std::move(message));
 
@@ -31566,6 +31937,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       td_->saved_messages_manager_->on_topic_message_added(dialog_id, m->saved_messages_topic_id, message_id, m->date,
                                                            from_update, *need_update,
                                                            message_id >= d->last_new_message_id, source);
+    }
+    auto forum_topic_id = get_message_forum_topic_id(dialog_id, m);
+    if (forum_topic_id.is_valid()) {
+      td_->forum_topic_manager_->on_topic_message_added(dialog_id, forum_topic_id, message_id, m->date, from_update,
+                                                        *need_update, message_id >= d->last_new_message_id, source);
     }
 
     if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid()) {
@@ -31725,10 +32101,6 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     update_has_outgoing_messages(dialog_id, m);
   }
 
-  if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(dialog_id, m), +1);
-  }
-
   auto *scheduled_messages = add_dialog_scheduled_messages(d);
   if (m->message_id.is_scheduled_server()) {
     auto is_inserted =
@@ -31873,11 +32245,17 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   if (m->ttl_period != 0 && (ttl_expires_at == 0 || m->date + m->ttl_period < ttl_expires_at)) {
     ttl_expires_at = m->date + m->ttl_period;
   }
-  G()->td_db()->get_message_db_async()->add_message({d->dialog_id, message_id}, unique_message_id,
-                                                    get_message_sender(m), random_id, ttl_expires_at,
-                                                    get_message_index_mask(d->dialog_id, m), search_id, text,
-                                                    m->notification_id, m->top_thread_message_id, log_event_store(*m),
-                                                    Auto());  // TODO Promise
+  int64 topic_id = 0;
+  auto forum_topic_id = get_message_forum_topic_id(d->dialog_id, m);
+  if (forum_topic_id.is_valid()) {
+    topic_id = forum_topic_id.get();
+  } else if (m->saved_messages_topic_id.is_valid()) {
+    topic_id = m->saved_messages_topic_id.get_unique_id();
+  }
+  G()->td_db()->get_message_db_async()->add_message(
+      {d->dialog_id, message_id}, unique_message_id, get_message_sender(m), random_id, ttl_expires_at,
+      get_message_index_mask(d->dialog_id, m), search_id, text, m->notification_id, m->top_thread_message_id, topic_id,
+      log_event_store(*m), Auto());  // TODO Promise
 }
 
 void MessagesManager::delete_all_dialog_notifications(Dialog *d, MessageId max_message_id, const char *source) {
@@ -31907,6 +32285,8 @@ void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, Messag
   auto dialog_id = d->dialog_id;
   LOG(INFO) << "Delete all messages in " << dialog_id << " from database up to " << max_message_id << " from "
             << source;
+  // the stored ranges of topic messages can't be used anymore
+  td_->forum_topic_manager_->on_all_dialog_messages_deleted(dialog_id);
   /*
   if (dialog_id.get_type() == DialogType::User && max_message_id.is_server()) {
     bool need_save = false;
@@ -32469,11 +32849,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       }
     }
 
-    if ((is_top_thread_message_id_changed || is_is_topic_message_changed) && is_message_in_dialog &&
-        old_message->is_topic_message && old_message->top_thread_message_id != MessageId()) {
-      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id,
-                                                                get_message_forum_topic_id(dialog_id, old_message), -1);
-    }
+    auto old_forum_topic_id = get_message_forum_topic_id(dialog_id, old_message);
 
     if (is_message_in_dialog) {
       unregister_message_reply(d->dialog_id, old_message);
@@ -32488,10 +32864,16 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       register_message_reply(d->dialog_id, old_message);
     }
     update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
-    if ((is_top_thread_message_id_changed || is_is_topic_message_changed) && is_message_in_dialog &&
-        old_message->is_topic_message && old_message->top_thread_message_id != MessageId()) {
-      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id,
-                                                                get_message_forum_topic_id(dialog_id, old_message), +1);
+    auto new_forum_topic_id = get_message_forum_topic_id(dialog_id, old_message);
+    if (is_message_in_dialog && new_forum_topic_id != old_forum_topic_id && !message_id.is_scheduled()) {
+      if (old_forum_topic_id.is_valid()) {
+        td_->forum_topic_manager_->on_topic_message_deleted(dialog_id, old_forum_topic_id, message_id, false, false,
+                                                            "update_message");
+      }
+      if (new_forum_topic_id.is_valid()) {
+        td_->forum_topic_manager_->on_topic_message_added(dialog_id, new_forum_topic_id, message_id, old_message->date,
+                                                          false, false, false, "update_message");
+      }
     }
     need_send_update = true;
   }
@@ -33032,6 +33414,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
   auto dialog_id = d->dialog_id;
   LOG_CHECK(is_inited_) << dialog_id << ' ' << is_loaded_from_database << ' ' << source;
   LOG_CHECK(!have_dialog(dialog_id)) << dialog_id << ' ' << is_loaded_from_database << ' ' << source;
+  bool was_forum = d->is_forum;
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       auto user_id = dialog_id.get_user_id();
@@ -33225,6 +33608,11 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
                  last_clear_history_date, last_clear_history_message_id, default_join_group_call_as_dialog_id,
                  default_send_message_as_dialog_id, need_drop_default_send_message_as_dialog_id,
                  is_loaded_from_database, source);
+
+  if (is_loaded_from_database && was_forum != d->is_forum && !td_->auth_manager_->is_bot()) {
+    // the stored counters of chat lists count the chat as it was stored
+    change_dialog_unread_counts(d, get_dialog_unread_counts(d, was_forum), get_dialog_unread_counts(d), source);
+  }
 
   return d;
 }
@@ -33774,6 +34162,11 @@ int64 MessagesManager::get_next_pinned_dialog_order() {
   return current_pinned_dialog_order_;
 }
 
+int32 MessagesManager::get_message_date(MessageFullId message_full_id) const {
+  auto m = get_message(message_full_id);
+  return m == nullptr ? 0 : m->date;
+}
+
 int64 MessagesManager::get_message_order(DialogId dialog_id, MessageId message_id) const {
   auto m = get_message({dialog_id, message_id});
   if (m == nullptr) {
@@ -34017,28 +34410,18 @@ void MessagesManager::update_dialog_lists(
       if (!is_loaded_from_database) {
         need_update_unread_chat_count =
             list.is_dialog_unread_count_inited_ && old_position.total_dialog_count != get_dialog_total_count(list);
-        auto unread_count = d->server_unread_count + d->local_unread_count;
+        auto unread_counts = get_dialog_unread_counts(d);
         const char *change_source = was_in_list ? "on_dialog_remove" : "on_dialog_add";
-        if (unread_count != 0 && list.is_message_unread_count_inited_) {
-          unread_count *= delta;
-
-          list.unread_message_total_count_ += unread_count;
-          if (is_dialog_muted(d)) {
-            list.unread_message_muted_count_ += unread_count;
-          }
+        if (unread_counts.message_count != 0 && list.is_message_unread_count_inited_) {
+          list.unread_message_total_count_ += delta * unread_counts.message_count;
+          list.unread_message_muted_count_ += delta * unread_counts.muted_message_count;
           send_update_unread_message_count(list, dialog_id, true, change_source);
         }
-        if ((unread_count != 0 || d->is_marked_as_unread) && list.is_dialog_unread_count_inited_) {
+        if (unread_counts.dialog_count != 0 && list.is_dialog_unread_count_inited_) {
           list.unread_dialog_total_count_ += delta;
-          if (unread_count == 0 && d->is_marked_as_unread) {
-            list.unread_dialog_marked_count_ += delta;
-          }
-          if (is_dialog_muted(d)) {
-            list.unread_dialog_muted_count_ += delta;
-            if (unread_count == 0 && d->is_marked_as_unread) {
-              list.unread_dialog_muted_marked_count_ += delta;
-            }
-          }
+          list.unread_dialog_marked_count_ += delta * unread_counts.marked_dialog_count;
+          list.unread_dialog_muted_count_ += delta * unread_counts.muted_dialog_count;
+          list.unread_dialog_muted_marked_count_ += delta * unread_counts.muted_marked_dialog_count;
           need_update_unread_chat_count = true;
         }
         if (need_update_unread_chat_count) {
@@ -34050,6 +34433,9 @@ void MessagesManager::update_dialog_lists(
         remove_dialog_from_list(d, dialog_list_id);
       } else {
         add_dialog_to_list(d, dialog_list_id);
+        if (d->is_forum) {
+          td_->forum_topic_manager_->preload_forum_topics(dialog_id);
+        }
       }
     }
     if (!need_update_unread_chat_count && list.is_dialog_unread_count_inited_ &&
@@ -34452,7 +34838,7 @@ DialogFilterDialogInfo MessagesManager::get_dialog_info_for_dialog_filter(const 
   dialog_info.folder_id_ = d->folder_id;
   dialog_info.has_unread_mentions_ = d->unread_mention_count != 0 && !is_dialog_mention_notifications_disabled(d);
   dialog_info.is_muted_ = is_dialog_muted(d);
-  dialog_info.has_unread_messages_ = d->server_unread_count + d->local_unread_count != 0 || d->is_marked_as_unread;
+  dialog_info.has_unread_messages_ = get_dialog_unread_counts(d).dialog_count != 0;
   return dialog_info;
 }
 
@@ -35371,6 +35757,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
                             dialog->unread_poll_votes_count_, MessageId(ServerMessageId(dialog->read_outbox_max_id_)),
                             std::move(difference->messages_));
       update_dialog_pos(d, "updates.channelDifferenceTooLong");
+      td_->forum_topic_manager_->on_channel_difference_too_long(dialog_id);
 
       if (!td_->auth_manager_->is_bot()) {
         // set is_pinned only after updating chat position to ensure that order is initialized

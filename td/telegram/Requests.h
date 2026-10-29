@@ -672,6 +672,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::readAllForumTopicMentions &request);
 
+  void on_request(uint64 id, const td_api::readAllForumTopics &request);
+
   void on_request(uint64 id, const td_api::readAllChatReactions &request);
 
   void on_request(uint64 id, const td_api::readAllForumTopicReactions &request);
@@ -841,6 +843,8 @@ class Requests {
   void on_request(uint64 id, const td_api::getForumTopicHistory &request);
 
   void on_request(uint64 id, const td_api::getForumTopicLink &request);
+
+  void on_request(uint64 id, const td_api::loadForumTopics &request);
 
   void on_request(uint64 id, td_api::getForumTopics &request);
 
