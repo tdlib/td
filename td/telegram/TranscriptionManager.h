@@ -55,7 +55,7 @@ class TranscriptionManager final : public Actor {
 
   void rate_speech_recognition(MessageFullId message_full_id, bool is_good, Promise<Unit> &&promise);
 
-  void recognize_speech_in_file(td_api::object_ptr<td_api::InputFile> &&audio_file,
+  void recognize_speech_in_file(td_api::object_ptr<td_api::InputFile> &&audio_file, int64 recognition_id,
                                 Promise<td_api::object_ptr<td_api::text>> &&promise);
 
   void get_speech_recognition_languages(DialogId dialog_id,
@@ -132,6 +132,8 @@ class TranscriptionManager final : public Actor {
   void on_transcribed_audio_file_update(
       FileUploadId file_upload_id, Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update);
 
+  void on_partial_audio_file_transcription(FileUploadId file_upload_id, string &&partial_text) const;
+
   void finish_audio_file_transcription(FileUploadId file_upload_id, Result<string> r_text);
 
   using TranscribedAudioHandler =
@@ -157,7 +159,11 @@ class TranscriptionManager final : public Actor {
   FlatHashMap<FileId, FlatHashSet<MessageFullId, MessageFullIdHash>, FileIdHash> voice_messages_;
   FlatHashMap<MessageFullId, FileInfo, MessageFullIdHash> message_file_ids_;
 
-  FlatHashMap<FileUploadId, Promise<td_api::object_ptr<td_api::text>>, FileUploadIdHash> audio_file_transcriptions_;
+  struct AudioFileTranscription {
+    int64 recognition_id_ = 0;
+    Promise<td_api::object_ptr<td_api::text>> promise_;
+  };
+  FlatHashMap<FileUploadId, AudioFileTranscription, FileUploadIdHash> audio_file_transcriptions_;
 };
 
 }  // namespace td

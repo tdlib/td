@@ -475,13 +475,16 @@ void TranscriptionManager::rate_speech_recognition(MessageFullId message_full_id
 }
 
 void TranscriptionManager::recognize_speech_in_file(td_api::object_ptr<td_api::InputFile> &&audio_file,
+                                                    int64 recognition_id,
                                                     Promise<td_api::object_ptr<td_api::text>> &&promise) {
   TRY_RESULT_PROMISE(
       promise, file_id,
       td_->file_manager_->get_input_file_id(FileType::SpeechRecognitionAudio, audio_file, DialogId(), false, false));
   FileUploadId file_upload_id(file_id, FileManager::get_internal_upload_id());
-  bool is_inserted = audio_file_transcriptions_.emplace(file_upload_id, std::move(promise)).second;
-  CHECK(is_inserted);
+  auto &transcription = audio_file_transcriptions_[file_upload_id];
+  CHECK(!transcription.promise_);
+  transcription.recognition_id_ = recognition_id;
+  transcription.promise_ = std::move(promise);
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
@@ -555,6 +558,7 @@ void TranscriptionManager::on_transcribed_audio_file(
   if (!audio->pending_) {
     return finish_audio_file_transcription(file_upload_id, std::move(audio->text_));
   }
+  on_partial_audio_file_transcription(file_upload_id, std::move(audio->text_));
   subscribe_to_transcribed_audio_updates(
       audio->transcription_id_, [actor_id = actor_id(this), file_upload_id](
                                     Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
@@ -571,13 +575,27 @@ void TranscriptionManager::on_transcribed_audio_file_update(
   auto update = r_update.move_as_ok();
   if (!update->pending_) {
     finish_audio_file_transcription(file_upload_id, std::move(update->text_));
+  } else {
+    on_partial_audio_file_transcription(file_upload_id, std::move(update->text_));
   }
+}
+
+void TranscriptionManager::on_partial_audio_file_transcription(FileUploadId file_upload_id,
+                                                               string &&partial_text) const {
+  auto it = audio_file_transcriptions_.find(file_upload_id);
+  CHECK(it != audio_file_transcriptions_.end());
+  auto recognition_id = it->second.recognition_id_;
+  if (recognition_id == 0) {
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateSpeechRecognitionInFile>(recognition_id, std::move(partial_text)));
 }
 
 void TranscriptionManager::finish_audio_file_transcription(FileUploadId file_upload_id, Result<string> r_text) {
   auto it = audio_file_transcriptions_.find(file_upload_id);
   CHECK(it != audio_file_transcriptions_.end());
-  auto promise = std::move(it->second);
+  auto promise = std::move(it->second.promise_);
   audio_file_transcriptions_.erase(it);
 
   td_->file_manager_->delete_partial_remote_location(file_upload_id);

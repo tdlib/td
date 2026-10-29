@@ -11972,6 +11972,11 @@ updateGramRevenueStatus status:gramRevenueStatus = Update;
 //@next_reset_date Point in time (Unix timestamp) when the weekly number of tries will reset; 0 if unknown
 updateSpeechRecognitionTrial max_media_duration:int32 weekly_count:int32 left_count:int32 next_reset_date:int32 = Update;
 
+//@description Speech in an audio file was partially recognized. The final result will be returned by the corresponding recognizeSpeechInFile request
+//@recognition_id Identifier of the speech recognition as specified in recognizeSpeechInFile
+//@partial_text Partially recognized text
+updateSpeechRecognitionInFile recognition_id:int64 partial_text:string = Update;
+
 //@description The levels of live story group call messages have changed @levels New description of the levels in decreasing order of groupCallMessageLevel.min_star_count
 updateGroupCallMessageLevels levels:vector<groupCallMessageLevel> = Update;
 
@@ -13209,7 +13214,8 @@ rateSpeechRecognition chat_id:int53 message_id:int53 is_good:Bool = Ok;
 //@description Recognizes speech in an audio file and returns the recognized text. The file must be in OGG format with Opus codec and must have size up to 1 MB.
 //-The same rules as for recognizeSpeech apply to the Telegram Premium requirement and speech recognition trial
 //@audio_file The audio file
-recognizeSpeechInFile audio_file:InputFile = Text;
+//@recognition_id Unique identifier of the speech recognition, which will be used in updateSpeechRecognitionInFile to send partially recognized text; pass 0 if partial results aren't needed
+recognizeSpeechInFile audio_file:InputFile recognition_id:int64 = Text;
 
 //@description Returns 1-3 most probable languages of speech in voice notes @chat_id Identifier of the chat; pass 0 if none
 getSpeechRecognitionLanguages chat_id:int53 = SpeechRecognitionLanguages;
