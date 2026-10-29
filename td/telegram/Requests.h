@@ -842,6 +842,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getForumTopicLink &request);
 
+  void on_request(uint64 id, const td_api::loadForumTopics &request);
+
   void on_request(uint64 id, td_api::getForumTopics &request);
 
   void on_request(uint64 id, const td_api::toggleForumTopicIsClosed &request);
