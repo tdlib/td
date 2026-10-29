@@ -651,7 +651,15 @@ class EditStoryMusicQuery final : public Td::ResultHandler {
           PromiseCreator::lambda([dialog_id = dialog_id_, story_id = story_id_, music_file_id = music_file_id_,
                                   promise = std::move(promise_)](Result<Unit> result) mutable {
             if (result.is_error()) {
-              return promise.set_error(400, "Can't find the audio");
+              return send_closure(G()->audios_manager(), &AudiosManager::reupload_audio, music_file_id,
+                                  PromiseCreator::lambda([dialog_id, story_id, music_file_id,
+                                                          promise = std::move(promise)](Result<Unit> result) mutable {
+                                    if (result.is_error()) {
+                                      return promise.set_error(result.move_as_error());
+                                    }
+                                    send_closure(G()->story_manager(), &StoryManager::do_edit_story_music, dialog_id,
+                                                 story_id, music_file_id, std::move(promise));
+                                  }));
             }
 
             send_closure(G()->story_manager(), &StoryManager::do_edit_story_music, dialog_id, story_id, music_file_id,
