@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/td_api.h"
@@ -54,10 +55,15 @@ class TranscriptionManager final : public Actor {
 
   void rate_speech_recognition(MessageFullId message_full_id, bool is_good, Promise<Unit> &&promise);
 
+  void recognize_speech_in_file(td_api::object_ptr<td_api::InputFile> &&audio_file,
+                                Promise<td_api::object_ptr<td_api::text>> &&promise);
+
   void get_speech_recognition_languages(DialogId dialog_id,
                                         Promise<td_api::object_ptr<td_api::speechRecognitionLanguages>> &&promise);
 
   void on_update_transcribed_audio(telegram_api::object_ptr<telegram_api::updateTranscribedAudio> &&update);
+
+  void on_update_transcribed_audio_file(telegram_api::object_ptr<telegram_api::updateTranscribedAudioFile> &&update);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
@@ -112,6 +118,22 @@ class TranscriptionManager final : public Actor {
   void on_transcribed_audio(FileInfo file_info,
                             Result<telegram_api::object_ptr<telegram_api::messages_transcribedAudio>> r_audio);
 
+  void on_transcription_error(const Status &error);
+
+  void on_transcription_trial_parameters(const telegram_api::messages_transcribedAudio *audio);
+
+  void on_upload_audio_file(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+
+  void on_upload_audio_file_error(FileUploadId file_upload_id, Status status);
+
+  void on_transcribed_audio_file(FileUploadId file_upload_id,
+                                 Result<telegram_api::object_ptr<telegram_api::messages_transcribedAudio>> r_audio);
+
+  void on_transcribed_audio_file_update(
+      FileUploadId file_upload_id, Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update);
+
+  void finish_audio_file_transcription(FileUploadId file_upload_id, Result<string> r_text);
+
   using TranscribedAudioHandler =
       std::function<void(Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>>)>;
   void subscribe_to_transcribed_audio_updates(int64 transcription_id, TranscribedAudioHandler on_update);
@@ -134,6 +156,8 @@ class TranscriptionManager final : public Actor {
 
   FlatHashMap<FileId, FlatHashSet<MessageFullId, MessageFullIdHash>, FileIdHash> voice_messages_;
   FlatHashMap<MessageFullId, FileInfo, MessageFullIdHash> message_file_ids_;
+
+  FlatHashMap<FileUploadId, Promise<td_api::object_ptr<td_api::text>>, FileUploadIdHash> audio_file_transcriptions_;
 };
 
 }  // namespace td

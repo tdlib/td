@@ -2961,6 +2961,12 @@ void Requests::on_request(uint64 id, const td_api::rateSpeechRecognition &reques
                                                        request.is_good_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::recognizeSpeechInFile &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->transcription_manager_->recognize_speech_in_file(std::move(request.audio_file_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getSpeechRecognitionLanguages &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

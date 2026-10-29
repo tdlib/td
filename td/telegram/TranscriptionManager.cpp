@@ -10,6 +10,8 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
@@ -60,6 +62,37 @@ class GetTranscriptionLangsQuery final : public Td::ResultHandler {
     if (dialog_id_ != DialogId()) {
       td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetTranscriptionLangsQuery");
     }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class TranscribeAudioFileQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::messages_transcribedAudio>> promise_;
+
+ public:
+  explicit TranscribeAudioFileQuery(
+      Promise<telegram_api::object_ptr<telegram_api::messages_transcribedAudio>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputFile> &&input_file) {
+    auto query = G()->net_query_creator().create(telegram_api::messages_transcribeAudioFile(std::move(input_file)));
+    query->total_timeout_limit_ = 8;
+    send_query(std::move(query));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_transcribeAudioFile>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for TranscribeAudioFileQuery: " << to_string(result);
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -330,14 +363,9 @@ void TranscriptionManager::on_transcribed_audio(
     return;
   }
   if (r_audio.is_error()) {
-    auto retry_after = Global::get_retry_after(r_audio.error());
-    on_transcribed_audio_update(file_info, true, r_audio.move_as_error());
-    if (retry_after > 0 && trial_parameters_.left_tries_ > 0) {
-      TrialParameters new_trial_parameters = trial_parameters_;
-      new_trial_parameters.next_reset_date_ = G()->unix_time() + retry_after;
-      new_trial_parameters.left_tries_ = 0;
-      set_trial_parameters(new_trial_parameters);
-    }
+    auto error = r_audio.move_as_error();
+    on_transcribed_audio_update(file_info, true, error.clone());
+    on_transcription_error(error);
     return;
   }
   auto audio = r_audio.move_as_ok();
@@ -350,6 +378,20 @@ void TranscriptionManager::on_transcribed_audio(
   update->pending_ = audio->pending_;
   on_transcribed_audio_update(file_info, true, std::move(update));
 
+  on_transcription_trial_parameters(audio.get());
+}
+
+void TranscriptionManager::on_transcription_error(const Status &error) {
+  auto retry_after = Global::get_retry_after(error);
+  if (retry_after > 0 && trial_parameters_.left_tries_ > 0) {
+    TrialParameters new_trial_parameters = trial_parameters_;
+    new_trial_parameters.next_reset_date_ = G()->unix_time() + retry_after;
+    new_trial_parameters.left_tries_ = 0;
+    set_trial_parameters(new_trial_parameters);
+  }
+}
+
+void TranscriptionManager::on_transcription_trial_parameters(const telegram_api::messages_transcribedAudio *audio) {
   if ((audio->flags_ & telegram_api::messages_transcribedAudio::TRIAL_REMAINS_NUM_MASK) != 0) {
     TrialParameters new_trial_parameters = trial_parameters_;
     new_trial_parameters.next_reset_date_ = max(0, audio->trial_remains_until_date_);
@@ -432,6 +474,124 @@ void TranscriptionManager::rate_speech_recognition(MessageFullId message_full_id
   transcription_info->rate_speech_recognition(td_, message_full_id, is_good, std::move(promise));
 }
 
+void TranscriptionManager::recognize_speech_in_file(td_api::object_ptr<td_api::InputFile> &&audio_file,
+                                                    Promise<td_api::object_ptr<td_api::text>> &&promise) {
+  TRY_RESULT_PROMISE(
+      promise, file_id,
+      td_->file_manager_->get_input_file_id(FileType::SpeechRecognitionAudio, audio_file, DialogId(), false, false));
+  FileUploadId file_upload_id(file_id, FileManager::get_internal_upload_id());
+  bool is_inserted = audio_file_transcriptions_.emplace(file_upload_id, std::move(promise)).second;
+  CHECK(is_inserted);
+
+  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  if (file_view.is_encrypted()) {
+    return finish_audio_file_transcription(file_upload_id, Status::Error(400, "Can't use encrypted file"));
+  }
+  if (!file_view.has_full_local_location() && !file_view.has_generate_location()) {
+    return finish_audio_file_transcription(file_upload_id,
+                                           Status::Error(400, "Need local or generate location to upload the file"));
+  }
+
+  class UploadAudioFileCallback final : public FileManager::UploadCallback {
+    ActorId<TranscriptionManager> actor_id_;
+
+   public:
+    explicit UploadAudioFileCallback(ActorId<TranscriptionManager> actor_id) : actor_id_(actor_id) {
+    }
+
+    void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
+      send_closure_later(actor_id_, &TranscriptionManager::on_upload_audio_file, file_upload_id, std::move(input_file));
+    }
+
+    void on_upload_error(FileUploadId file_upload_id, Status error) final {
+      send_closure_later(actor_id_, &TranscriptionManager::on_upload_audio_file_error, file_upload_id,
+                         std::move(error));
+    }
+  };
+
+  LOG(INFO) << "Upload audio " << file_upload_id << " for speech recognition";
+  td_->file_manager_->upload(file_upload_id, std::make_shared<UploadAudioFileCallback>(actor_id(this)), 1, 0);
+}
+
+void TranscriptionManager::on_upload_audio_file(FileUploadId file_upload_id,
+                                                telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  LOG(INFO) << "Audio " << file_upload_id << " has been uploaded";
+  if (G()->close_flag()) {
+    return finish_audio_file_transcription(file_upload_id, G()->close_status());
+  }
+  if (input_file == nullptr) {
+    return finish_audio_file_transcription(file_upload_id, Status::Error(500, "Failed to reupload the file"));
+  }
+
+  td_->create_handler<TranscribeAudioFileQuery>(
+         PromiseCreator::lambda([actor_id = actor_id(this), file_upload_id](
+                                    Result<telegram_api::object_ptr<telegram_api::messages_transcribedAudio>> r_audio) {
+           send_closure(actor_id, &TranscriptionManager::on_transcribed_audio_file, file_upload_id, std::move(r_audio));
+         }))
+      ->send(std::move(input_file));
+}
+
+void TranscriptionManager::on_upload_audio_file_error(FileUploadId file_upload_id, Status status) {
+  LOG(INFO) << "Audio " << file_upload_id << " has upload error " << status;
+  CHECK(status.is_error());
+  finish_audio_file_transcription(file_upload_id,
+                                  Status::Error(status.code() > 0 ? status.code() : 500, status.message()));
+}
+
+void TranscriptionManager::on_transcribed_audio_file(
+    FileUploadId file_upload_id, Result<telegram_api::object_ptr<telegram_api::messages_transcribedAudio>> r_audio) {
+  if (G()->close_flag()) {
+    return finish_audio_file_transcription(file_upload_id, G()->close_status());
+  }
+  if (r_audio.is_error()) {
+    on_transcription_error(r_audio.error());
+    return finish_audio_file_transcription(file_upload_id, r_audio.move_as_error());
+  }
+  auto audio = r_audio.move_as_ok();
+  on_transcription_trial_parameters(audio.get());
+  if (audio->transcription_id_ == 0) {
+    return finish_audio_file_transcription(file_upload_id, Status::Error(500, "Receive no transcription identifier"));
+  }
+  if (!audio->pending_) {
+    return finish_audio_file_transcription(file_upload_id, std::move(audio->text_));
+  }
+  subscribe_to_transcribed_audio_updates(
+      audio->transcription_id_, [actor_id = actor_id(this), file_upload_id](
+                                    Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
+        send_closure(actor_id, &TranscriptionManager::on_transcribed_audio_file_update, file_upload_id,
+                     std::move(r_update));
+      });
+}
+
+void TranscriptionManager::on_transcribed_audio_file_update(
+    FileUploadId file_upload_id, Result<telegram_api::object_ptr<telegram_api::updateTranscribedAudio>> r_update) {
+  if (r_update.is_error()) {
+    return finish_audio_file_transcription(file_upload_id, r_update.move_as_error());
+  }
+  auto update = r_update.move_as_ok();
+  if (!update->pending_) {
+    finish_audio_file_transcription(file_upload_id, std::move(update->text_));
+  }
+}
+
+void TranscriptionManager::finish_audio_file_transcription(FileUploadId file_upload_id, Result<string> r_text) {
+  auto it = audio_file_transcriptions_.find(file_upload_id);
+  CHECK(it != audio_file_transcriptions_.end());
+  auto promise = std::move(it->second);
+  audio_file_transcriptions_.erase(it);
+
+  td_->file_manager_->delete_partial_remote_location(file_upload_id);
+  auto file_id = file_upload_id.get_file_id();
+  if (td_->file_manager_->get_file_view(file_id).get_type() == FileType::SpeechRecognitionAudio) {
+    td_->file_manager_->delete_file(file_id, Promise<Unit>(), "finish_audio_file_transcription");
+  }
+
+  if (r_text.is_error()) {
+    return promise.set_error(r_text.move_as_error());
+  }
+  promise.set_value(td_api::make_object<td_api::text>(r_text.move_as_ok()));
+}
+
 void TranscriptionManager::get_speech_recognition_languages(
     DialogId dialog_id, Promise<td_api::object_ptr<td_api::speechRecognitionLanguages>> &&promise) {
   if (dialog_id != DialogId()) {
@@ -468,6 +628,15 @@ void TranscriptionManager::on_update_transcribed_audio(
   } else {
     it->second(std::move(update));
   }
+}
+
+void TranscriptionManager::on_update_transcribed_audio_file(
+    telegram_api::object_ptr<telegram_api::updateTranscribedAudioFile> &&update) {
+  auto audio_update = telegram_api::make_object<telegram_api::updateTranscribedAudio>();
+  audio_update->pending_ = update->pending_;
+  audio_update->transcription_id_ = update->transcription_id_;
+  audio_update->text_ = std::move(update->text_);
+  on_update_transcribed_audio(std::move(audio_update));
 }
 
 void TranscriptionManager::on_pending_audio_transcription_failed(int64 transcription_id, Status &&error) {

@@ -1415,6 +1415,7 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
     case FileType::SecureEncrypted:
     case FileType::SecureDecrypted:
     case FileType::CallLog:
+    case FileType::SpeechRecognitionAudio:
       break;
     default:
       UNREACHABLE();

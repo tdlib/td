@@ -128,6 +128,8 @@ tl_object_ptr<td_api::FileType> get_file_type_object(FileType file_type) {
       return make_tl_object<td_api::fileTypeLivePhotoVideo>();
     case FileType::SelfDestructingLivePhoto:
       return make_tl_object<td_api::fileTypeSelfDestructingLivePhotoVideo>();
+    case FileType::SpeechRecognitionAudio:
+      return make_tl_object<td_api::fileTypeVoiceNote>();
     case FileType::None:
       return make_tl_object<td_api::fileTypeNone>();
     default:
@@ -146,6 +148,8 @@ FileType get_main_file_type(FileType file_type) {
       return FileType::Document;
     case FileType::CallLog:
       return FileType::Document;
+    case FileType::SpeechRecognitionAudio:
+      return FileType::VoiceNote;
     default:
       return file_type;
   }
@@ -235,6 +239,7 @@ FileTypeClass get_file_type_class(FileType file_type) {
     case FileType::SelfDestructingVoiceNote:
     case FileType::LivePhoto:
     case FileType::SelfDestructingLivePhoto:
+    case FileType::SpeechRecognitionAudio:
       return FileTypeClass::Document;
     case FileType::SecureDecrypted:
     case FileType::SecureEncrypted:
@@ -313,6 +318,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, FileType file_type) {
       return string_builder << "LivePhotoVideo";
     case FileType::SelfDestructingLivePhoto:
       return string_builder << "SelfDestructingLivePhotoVideo";
+    case FileType::SpeechRecognitionAudio:
+      return string_builder << "SpeechRecognitionAudio";
     case FileType::Size:
     case FileType::None:
     default:
@@ -357,6 +364,7 @@ bool is_file_big(FileType file_type, int64 expected_size) {
     case FileType::VideoStory:
     case FileType::LivePhoto:
     case FileType::SelfDestructingLivePhoto:
+    case FileType::SpeechRecognitionAudio:
       return false;
     default:
       break;
@@ -379,6 +387,7 @@ bool can_reuse_remote_file(FileType file_type) {
     case FileType::SelfDestructingVideoNote:
     case FileType::SelfDestructingVoiceNote:
     case FileType::SelfDestructingLivePhoto:
+    case FileType::SpeechRecognitionAudio:
       return false;
     default:
       return true;

@@ -5432,6 +5432,8 @@ class CliClient final : public Actor {
       bool is_good;
       get_args(args, chat_id, message_id, is_good);
       send_request(td_api::make_object<td_api::rateSpeechRecognition>(chat_id, message_id, is_good));
+    } else if (op == "rsif") {
+      send_request(td_api::make_object<td_api::recognizeSpeechInFile>(as_input_file(args)));
     } else if (op == "gsrl") {
       ChatId chat_id;
       get_args(args, chat_id);

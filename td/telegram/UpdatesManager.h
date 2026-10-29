@@ -743,6 +743,8 @@ class UpdatesManager final : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateTranscribedAudio> update, Promise<Unit> &&promise);
 
+  void on_update(tl_object_ptr<telegram_api::updateTranscribedAudioFile> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateAutoSaveSettings> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateStory> update, Promise<Unit> &&promise);
@@ -810,8 +812,6 @@ class UpdatesManager final : public Actor {
   // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updateTranscribedAudioFile> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateEditForumTopic> update, Promise<Unit> &&promise);
 };

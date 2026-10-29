@@ -43,6 +43,7 @@ enum class FileType : int32 {
   SelfDestructingVoiceNote,
   LivePhoto,
   SelfDestructingLivePhoto,
+  SpeechRecognitionAudio,
   Size,
   None
 };

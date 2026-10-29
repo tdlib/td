@@ -5006,6 +5006,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudioFile> update,
+                               Promise<Unit> &&promise) {
+  td_->transcription_manager_->on_update_transcribed_audio_file(std::move(update));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAutoSaveSettings> update, Promise<Unit> &&promise) {
   td_->autosave_manager_->reload_autosave_settings();
   promise.set_value(Unit());
@@ -5227,11 +5233,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotWidgetCopyQu
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudioFile> update,
-                               Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 
