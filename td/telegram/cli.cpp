@@ -4166,7 +4166,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::searchChatMessages>(search_chat_id_, get_message_topic_id(), "", nullptr,
                                                                    0, 0, 100, as_search_messages_filter("pvi")));
     } else if (op == "Search" || op == "SearchA" || op == "SearchM" || op == "SearchP" || op == "SearchG" ||
-               begins_with(op, "SearchC")) {
+               (begins_with(op, "SearchC") && op != "SearchChatPhoto")) {
       string query;
       string limit;
       string filter;
