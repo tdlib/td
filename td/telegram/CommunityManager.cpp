@@ -1394,6 +1394,9 @@ void CommunityManager::add_community_dialog(CommunityId community_id, DialogId d
   }
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "add_community_dialog"));
+  if (!is_dialog_owner(dialog_id)) {
+    return promise.set_error(400, "Have not enough rights");
+  }
   td_->create_handler<ToggleCommunityPeerLinkQuery>(std::move(promise))
       ->send(community_id, dialog_id, false, is_hidden);
 }
