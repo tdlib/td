@@ -4084,8 +4084,17 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings>
       }
       break;
     }
-    case telegram_api::notifyCommunity::ID:
+    case telegram_api::notifyCommunity::ID: {
+      auto notify_community = static_cast<const telegram_api::notifyCommunity *>(update->peer_.get());
+      CommunityId community_id(notify_community->community_id_);
+      if (community_id.is_valid()) {
+        td_->community_manager_->on_update_community_notify_settings(community_id, std::move(update->notify_settings_),
+                                                                     "updateNotifySettings");
+      } else {
+        LOG(ERROR) << "Receive wrong " << to_string(update);
+      }
       break;
+    }
     default:
       UNREACHABLE();
   }

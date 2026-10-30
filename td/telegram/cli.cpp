@@ -8890,7 +8890,7 @@ class CliClient final : public Actor {
           as_notification_settings_scope(args), op == "gcnses"));
     } else if (op == "gsns") {
       send_request(td_api::make_object<td_api::getScopeNotificationSettings>(as_notification_settings_scope(args)));
-    } else if (op == "scns" || op == "ssns" || op == "sftns") {
+    } else if (op == "scns" || op == "ssns" || op == "sftns" || op == "scons") {
       string scope;
       string mute_for;
       int64 sound_id;
@@ -8919,6 +8919,9 @@ class CliClient final : public Actor {
         if (op == "scns") {
           send_request(
               td_api::make_object<td_api::setChatNotificationSettings>(as_chat_id(scope), std::move(settings)));
+        } else if (op == "scons") {
+          send_request(td_api::make_object<td_api::setCommunityNotificationSettings>(as_community_id(scope),
+                                                                                     std::move(settings)));
         } else {
           string chat_id;
           string forum_topic_id;

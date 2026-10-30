@@ -8,6 +8,7 @@
 
 #include "td/telegram/CommunityId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogNotificationSettings.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogPhoto.h"
 #include "td/telegram/files/FileId.h"
@@ -59,6 +60,10 @@ class CommunityManager final : public Actor {
 
   void on_get_community_full(telegram_api::object_ptr<telegram_api::communityFull> &&community);
 
+  void on_update_community_notify_settings(
+      CommunityId community_id, telegram_api::object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings,
+      const char *source);
+
   void get_joined_communities(Promise<td_api::object_ptr<td_api::communities>> &&promise);
 
   void on_get_joined_communities(vector<telegram_api::object_ptr<telegram_api::Chat>> &&chats,
@@ -73,6 +78,10 @@ class CommunityManager final : public Actor {
 
   void set_community_photo(CommunityId community_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
                            Promise<Unit> &&promise);
+
+  void set_community_notification_settings(CommunityId community_id,
+                                           td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings,
+                                           Promise<Unit> &&promise);
 
   void set_community_permissions(CommunityId community_id,
                                  const td_api::object_ptr<td_api::communityPermissions> &permissions,
@@ -193,6 +202,7 @@ class CommunityManager final : public Actor {
     int32 administrator_count = 0;
     int32 banned_count = 0;
     int32 peer_link_requests_pending = 0;
+    DialogNotificationSettings notification_settings;
 
     vector<FileId> registered_photo_file_ids;
     FileSourceId file_source_id;
@@ -282,6 +292,9 @@ class CommunityManager final : public Actor {
   static void save_community_full(const CommunityFull *community_full, CommunityId community_id);
 
   void on_update_community_full_photo(CommunityFull *community_full, CommunityId community_id, Photo photo);
+
+  bool update_community_notification_settings(CommunityFull *community_full, CommunityId community_id,
+                                              DialogNotificationSettings &&new_settings, const char *source);
 
   void update_community_full(CommunityFull *community_full, CommunityId community_id, const char *source,
                              bool from_database = false);

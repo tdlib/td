@@ -2669,6 +2669,71 @@ profileAccentColors palette_colors:vector<int32> background_colors:vector<int32>
 profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_colors:profileAccentColors min_supergroup_chat_boost_level:int32 min_channel_chat_boost_level:int32 = ProfileAccentColor;
 
 
+//@class NotificationSettingsScope @description Describes the types of chats to which notification settings are relevant
+
+//@description Notification settings applied to all private and secret chats when the corresponding chat setting has a default value
+notificationSettingsScopePrivateChats = NotificationSettingsScope;
+
+//@description Notification settings applied to all basic group and supergroup chats when the corresponding chat setting has a default value
+notificationSettingsScopeGroupChats = NotificationSettingsScope;
+
+//@description Notification settings applied to all channel chats when the corresponding chat setting has a default value
+notificationSettingsScopeChannelChats = NotificationSettingsScope;
+
+
+//@description Contains information about notification settings for a chat or a forum topic
+//@use_default_mute_for If true, the value for the relevant type of chat or the forum chat is used instead of mute_for
+//@mute_for Time left before notifications will be unmuted, in seconds
+//@use_default_sound If true, the value for the relevant type of chat or the forum chat is used instead of sound_id
+//@sound_id Identifier of the notification sound to be played for messages; 0 if sound is disabled
+//@use_default_show_preview If true, the value for the relevant type of chat or the forum chat is used instead of show_preview
+//@show_preview True, if message content must be displayed in notifications
+//@use_default_mute_stories If true, the value for the relevant type of chat is used instead of mute_stories
+//@mute_stories True, if story notifications are disabled for the chat
+//@use_default_story_sound If true, the value for the relevant type of chat is used instead of story_sound_id
+//@story_sound_id Identifier of the notification sound to be played for stories; 0 if sound is disabled
+//@use_default_show_story_poster If true, the value for the relevant type of chat is used instead of show_story_poster
+//@show_story_poster True, if the chat that posted a story must be displayed in notifications
+//@use_default_disable_pinned_message_notifications If true, the value for the relevant type of chat or the forum chat is used instead of disable_pinned_message_notifications
+//@disable_pinned_message_notifications If true, notifications for incoming pinned messages will be created as for an ordinary unread message
+//@use_default_disable_mention_notifications If true, the value for the relevant type of chat or the forum chat is used instead of disable_mention_notifications
+//@disable_mention_notifications If true, notifications for messages with mentions will be created as for an ordinary unread message
+chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound_id:int64 use_default_show_preview:Bool show_preview:Bool use_default_mute_stories:Bool mute_stories:Bool use_default_story_sound:Bool story_sound_id:int64 use_default_show_story_poster:Bool show_story_poster:Bool use_default_disable_pinned_message_notifications:Bool disable_pinned_message_notifications:Bool use_default_disable_mention_notifications:Bool disable_mention_notifications:Bool = ChatNotificationSettings;
+
+//@description Contains information about notification settings for several chats
+//@mute_for Time left before notifications will be unmuted, in seconds
+//@sound_id Identifier of the notification sound to be played; 0 if sound is disabled; pass -1 to use the app-dependent default sound
+//@show_preview True, if message content must be displayed in notifications
+//@use_default_mute_stories If true, story notifications are received only for the first 5 chats from topChatCategoryUsers regardless of the value of mute_stories
+//@mute_stories True, if story notifications are disabled
+//@story_sound_id Identifier of the notification sound to be played for stories; 0 if sound is disabled; pass -1 to use the app-dependent default sound
+//@show_story_poster True, if the chat that posted a story must be displayed in notifications
+//@disable_pinned_message_notifications True, if notifications for incoming pinned messages will be created as for an ordinary unread message
+//@disable_mention_notifications True, if notifications for messages with mentions will be created as for an ordinary unread message
+scopeNotificationSettings mute_for:int32 sound_id:int64 show_preview:Bool use_default_mute_stories:Bool mute_stories:Bool story_sound_id:int64 show_story_poster:Bool disable_pinned_message_notifications:Bool disable_mention_notifications:Bool = ScopeNotificationSettings;
+
+
+//@class ReactionNotificationSource @description Describes sources of reactions for which notifications will be shown
+
+//@description Notifications for reactions are disabled
+reactionNotificationSourceNone = ReactionNotificationSource;
+
+//@description Notifications for reactions are shown only for reactions from contacts
+reactionNotificationSourceContacts = ReactionNotificationSource;
+
+//@description Notifications for reactions are shown for all reactions
+reactionNotificationSourceAll = ReactionNotificationSource;
+
+
+//@description Contains information about notification settings for reactions and poll votes
+//@message_reaction_source Source of message reactions for which notifications are shown
+//@story_reaction_source Source of story reactions for which notifications are shown
+//@poll_vote_source Source of poll votes for which notifications are shown
+//@sound_id Identifier of the notification sound to be played; 0 if sound is disabled; pass -1 to use the app-dependent default sound
+//@show_preview True, if reaction sender and emoji must be displayed in notifications
+reactionNotificationSettings message_reaction_source:ReactionNotificationSource story_reaction_source:ReactionNotificationSource poll_vote_source:ReactionNotificationSource sound_id:int64 show_preview:Bool = ReactionNotificationSettings;
+
+
 //@description Contains identifier of a community @id Community identifier
 communityId id:int53 = CommunityId;
 
@@ -2726,7 +2791,8 @@ communityChat chat_id:int53 can_view_history:Bool is_hidden:Bool = CommunityChat
 //@administrator_count Number of privileged users in the community; 0 if the current user isn't an administrator of the community
 //@banned_count Number of users banned from the community; 0 if the current user isn't an administrator of the community
 //@add_chat_request_count Number of pending requests for addition of chats to the community; 0 if the current user isn't an administrator of the community
-communityFullInfo photo:chatPhoto chats:vector<communityChat> administrator_count:int32 banned_count:int32 add_chat_request_count:int32 = CommunityFullInfo;
+//@notification_settings Notification settings for the community. Default notification settings are chosen based on the type of a chat in the community
+communityFullInfo photo:chatPhoto chats:vector<communityChat> administrator_count:int32 banned_count:int32 add_chat_request_count:int32 notification_settings:chatNotificationSettings = CommunityFullInfo;
 
 //@description Represents a list of communities @community_ids List of community identifiers
 communities community_ids:vector<int53> = Communities;
@@ -3807,71 +3873,6 @@ downloadedFileCounts active_count:int32 paused_count:int32 completed_count:int32
 //@files The list of files
 //@next_offset The offset for the next request. If empty, then there are no more results
 foundFileDownloads total_counts:downloadedFileCounts files:vector<fileDownload> next_offset:string = FoundFileDownloads;
-
-
-//@class NotificationSettingsScope @description Describes the types of chats to which notification settings are relevant
-
-//@description Notification settings applied to all private and secret chats when the corresponding chat setting has a default value
-notificationSettingsScopePrivateChats = NotificationSettingsScope;
-
-//@description Notification settings applied to all basic group and supergroup chats when the corresponding chat setting has a default value
-notificationSettingsScopeGroupChats = NotificationSettingsScope;
-
-//@description Notification settings applied to all channel chats when the corresponding chat setting has a default value
-notificationSettingsScopeChannelChats = NotificationSettingsScope;
-
-
-//@description Contains information about notification settings for a chat or a forum topic
-//@use_default_mute_for If true, the value for the relevant type of chat or the forum chat is used instead of mute_for
-//@mute_for Time left before notifications will be unmuted, in seconds
-//@use_default_sound If true, the value for the relevant type of chat or the forum chat is used instead of sound_id
-//@sound_id Identifier of the notification sound to be played for messages; 0 if sound is disabled
-//@use_default_show_preview If true, the value for the relevant type of chat or the forum chat is used instead of show_preview
-//@show_preview True, if message content must be displayed in notifications
-//@use_default_mute_stories If true, the value for the relevant type of chat is used instead of mute_stories
-//@mute_stories True, if story notifications are disabled for the chat
-//@use_default_story_sound If true, the value for the relevant type of chat is used instead of story_sound_id
-//@story_sound_id Identifier of the notification sound to be played for stories; 0 if sound is disabled
-//@use_default_show_story_poster If true, the value for the relevant type of chat is used instead of show_story_poster
-//@show_story_poster True, if the chat that posted a story must be displayed in notifications
-//@use_default_disable_pinned_message_notifications If true, the value for the relevant type of chat or the forum chat is used instead of disable_pinned_message_notifications
-//@disable_pinned_message_notifications If true, notifications for incoming pinned messages will be created as for an ordinary unread message
-//@use_default_disable_mention_notifications If true, the value for the relevant type of chat or the forum chat is used instead of disable_mention_notifications
-//@disable_mention_notifications If true, notifications for messages with mentions will be created as for an ordinary unread message
-chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound_id:int64 use_default_show_preview:Bool show_preview:Bool use_default_mute_stories:Bool mute_stories:Bool use_default_story_sound:Bool story_sound_id:int64 use_default_show_story_poster:Bool show_story_poster:Bool use_default_disable_pinned_message_notifications:Bool disable_pinned_message_notifications:Bool use_default_disable_mention_notifications:Bool disable_mention_notifications:Bool = ChatNotificationSettings;
-
-//@description Contains information about notification settings for several chats
-//@mute_for Time left before notifications will be unmuted, in seconds
-//@sound_id Identifier of the notification sound to be played; 0 if sound is disabled; pass -1 to use the app-dependent default sound
-//@show_preview True, if message content must be displayed in notifications
-//@use_default_mute_stories If true, story notifications are received only for the first 5 chats from topChatCategoryUsers regardless of the value of mute_stories
-//@mute_stories True, if story notifications are disabled
-//@story_sound_id Identifier of the notification sound to be played for stories; 0 if sound is disabled; pass -1 to use the app-dependent default sound
-//@show_story_poster True, if the chat that posted a story must be displayed in notifications
-//@disable_pinned_message_notifications True, if notifications for incoming pinned messages will be created as for an ordinary unread message
-//@disable_mention_notifications True, if notifications for messages with mentions will be created as for an ordinary unread message
-scopeNotificationSettings mute_for:int32 sound_id:int64 show_preview:Bool use_default_mute_stories:Bool mute_stories:Bool story_sound_id:int64 show_story_poster:Bool disable_pinned_message_notifications:Bool disable_mention_notifications:Bool = ScopeNotificationSettings;
-
-
-//@class ReactionNotificationSource @description Describes sources of reactions for which notifications will be shown
-
-//@description Notifications for reactions are disabled
-reactionNotificationSourceNone = ReactionNotificationSource;
-
-//@description Notifications for reactions are shown only for reactions from contacts
-reactionNotificationSourceContacts = ReactionNotificationSource;
-
-//@description Notifications for reactions are shown for all reactions
-reactionNotificationSourceAll = ReactionNotificationSource;
-
-
-//@description Contains information about notification settings for reactions and poll votes
-//@message_reaction_source Source of message reactions for which notifications are shown
-//@story_reaction_source Source of story reactions for which notifications are shown
-//@poll_vote_source Source of poll votes for which notifications are shown
-//@sound_id Identifier of the notification sound to be played; 0 if sound is disabled; pass -1 to use the app-dependent default sound
-//@show_preview True, if reaction sender and emoji must be displayed in notifications
-reactionNotificationSettings message_reaction_source:ReactionNotificationSource story_reaction_source:ReactionNotificationSource poll_vote_source:ReactionNotificationSource sound_id:int64 show_preview:Bool = ReactionNotificationSettings;
 
 
 //@class DraftMessageContent @description Content of the message draft
@@ -12849,6 +12850,11 @@ setCommunityPhoto community_id:int53 photo:InputChatPhoto = Ok;
 //@community_id Identifier of the community
 //@permissions New permissions of the community
 setCommunityPermissions community_id:int53 permissions:communityPermissions = Ok;
+
+//@description Changes notification settings of a community
+//@community_id Identifier of the community
+//@notification_settings New notification settings for the community
+setCommunityNotificationSettings community_id:int53 notification_settings:chatNotificationSettings = Ok;
 
 //@description Adds a chat to a community. If the current user isn't allowed to change the list of chats in the community, then a request to add the chat
 //-is sent to administrators of the community instead and the method fails with the error "COMMUNITY_REQUEST_CREATED"

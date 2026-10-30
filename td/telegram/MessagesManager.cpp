@@ -19,6 +19,8 @@
 #include "td/telegram/ChatReactions.hpp"
 #include "td/telegram/ChatTheme.h"
 #include "td/telegram/ChatTheme.hpp"
+#include "td/telegram/CommunityId.h"
+#include "td/telegram/CommunityManager.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogAction.h"
@@ -12725,8 +12727,17 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         LOG(ERROR) << "Receive unexpected " << to_string(folder);
         break;
       }
-      case telegram_api::dialogCommunity::ID:
+      case telegram_api::dialogCommunity::ID: {
+        auto dialog_community = telegram_api::move_object_as<telegram_api::dialogCommunity>(dialog_folder);
+        CommunityId community_id(dialog_community->community_id_);
+        if (community_id.is_valid()) {
+          td_->community_manager_->on_update_community_notify_settings(
+              community_id, std::move(dialog_community->notify_settings_), "on_get_dialogs");
+        } else {
+          LOG(ERROR) << "Receive " << to_string(dialog_community);
+        }
         break;
+      }
       default:
         UNREACHABLE();
     }
