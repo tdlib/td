@@ -5231,23 +5231,26 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebBrowserExcep
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotWidgetQuery> update, Promise<Unit> &&promise) {
-  td_->widget_manager_->on_new_widget_query(update->query_id_, UserId(update->user_id_), DialogId(update->peer_),
-                                            MessageId(ServerMessageId(update->msg_id_)), std::move(update->data_),
-                                            update->chat_instance_, std::move(update->chat_type_), update->widget_id_);
+  td_->widget_manager_->on_new_widget_query(
+      update->query_id_, std::move(update->query_type_), UserId(update->user_id_), DialogId(update->peer_),
+      MessageId(ServerMessageId(update->msg_id_)), std::move(update->data_), update->chat_instance_,
+      std::move(update->chat_type_), update->widget_id_, std::move(update->wallet_card_));
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateInlineBotWidgetQuery> update,
                                Promise<Unit> &&promise) {
   td_->widget_manager_->on_new_inline_widget_query(
-      update->query_id_, UserId(update->user_id_), std::move(update->inline_message_id_), std::move(update->data_),
-      update->chat_instance_, std::move(update->chat_type_), update->widget_id_);
+      update->query_id_, std::move(update->query_type_), UserId(update->user_id_),
+      std::move(update->inline_message_id_), std::move(update->data_), update->chat_instance_,
+      std::move(update->chat_type_), update->widget_id_, std::move(update->wallet_card_));
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotWidgetCopyQuery> update, Promise<Unit> &&promise) {
-  td_->widget_manager_->on_new_widget_copy_query(update->query_id_, UserId(update->user_id_), std::move(update->data_),
-                                                 update->widget_id_);
+  td_->widget_manager_->on_new_widget_copy_query(update->query_id_, std::move(update->query_type_),
+                                                 UserId(update->user_id_), std::move(update->data_), update->widget_id_,
+                                                 std::move(update->wallet_card_));
   promise.set_value(Unit());
 }
 

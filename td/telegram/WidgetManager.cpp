@@ -16,6 +16,7 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TonWalletCard.h"
 #include "td/telegram/TonWalletManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
@@ -74,6 +75,51 @@ static Result<telegram_api::object_ptr<telegram_api::WidgetQueryType>> get_input
       UNREACHABLE();
       return nullptr;
   }
+}
+
+static td_api::object_ptr<td_api::widgetQueryWallet> get_widget_query_wallet_object(
+    telegram_api::object_ptr<telegram_api::userWallet> &&wallet) {
+  CHECK(wallet != nullptr);
+  auto balance = wallet->balance_;
+  if (balance < 0) {
+    LOG(ERROR) << "Receive TON wallet balance " << balance;
+    balance = 0;
+  }
+  return td_api::make_object<td_api::widgetQueryWallet>(
+      std::move(wallet->address_), balance, wallet->public_key_.as_slice().str(), wallet->state_init_.as_slice().str());
+}
+
+static td_api::object_ptr<td_api::WidgetQueryType> get_widget_query_type_object(
+    telegram_api::object_ptr<telegram_api::WidgetQueryType> &&query_type) {
+  CHECK(query_type != nullptr);
+  switch (query_type->get_id()) {
+    case telegram_api::widgetQueryTypeData::ID: {
+      auto type = telegram_api::move_object_as<telegram_api::widgetQueryTypeData>(query_type);
+      return td_api::make_object<td_api::widgetQueryTypeData>(type->with_wallet_);
+    }
+    case telegram_api::widgetQueryTypeSignData::ID: {
+      auto type = telegram_api::move_object_as<telegram_api::widgetQueryTypeSignData>(query_type);
+      return td_api::make_object<td_api::widgetQueryTypeSignData>(
+          get_widget_query_wallet_object(std::move(type->wallet_)), std::move(type->sign_data_->data_));
+    }
+    case telegram_api::widgetQueryTypeSentTransaction::ID: {
+      auto type = telegram_api::move_object_as<telegram_api::widgetQueryTypeSentTransaction>(query_type);
+      return td_api::make_object<td_api::widgetQueryTypeSentTransaction>(
+          get_widget_query_wallet_object(std::move(type->wallet_)), std::move(type->msg_hash_));
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+static td_api::object_ptr<td_api::tonWalletCard> get_widget_query_ton_wallet_card_object(
+    Td *td, telegram_api::object_ptr<telegram_api::wallet_card> &&wallet_card) {
+  auto card = TonWalletCard::get_ton_wallet_card(td, std::move(wallet_card));
+  if (card == nullptr) {
+    return nullptr;
+  }
+  return card->get_ton_wallet_card_object(td);
 }
 
 class GetBotWidgetQueryAnswerQuery final : public Td::ResultHandler {
@@ -295,9 +341,11 @@ void WidgetManager::send_widget_query(MessageFullId message_full_id,
       ->send(dialog_id, message_id, std::move(input_query_type), data);
 }
 
-void WidgetManager::on_new_widget_query(int64 widget_query_id, UserId sender_user_id, DialogId dialog_id,
-                                        MessageId message_id, BufferSlice &&data, int64 chat_instance,
-                                        string &&chat_type, int64 widget_id) {
+void WidgetManager::on_new_widget_query(int64 widget_query_id,
+                                        telegram_api::object_ptr<telegram_api::WidgetQueryType> &&query_type,
+                                        UserId sender_user_id, DialogId dialog_id, MessageId message_id,
+                                        BufferSlice &&data, int64 chat_instance, string &&chat_type, int64 widget_id,
+                                        telegram_api::object_ptr<telegram_api::wallet_card> &&wallet_card) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive new widget query in invalid " << dialog_id;
     return;
@@ -318,17 +366,20 @@ void WidgetManager::on_new_widget_query(int64 widget_query_id, UserId sender_use
   }
 
   td_->dialog_manager_->force_create_dialog(dialog_id, "on_new_widget_query", true);
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateNewWidgetQuery>(
-                   widget_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewWidgetQuery"),
-                   td_->dialog_manager_->get_chat_id_object(dialog_id, "updateNewWidgetQuery"), message_id.get(),
-                   chat_instance, std::move(chat_type), data.as_slice().str(), widget_id));
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateNewWidgetQuery>(
+          widget_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewWidgetQuery"),
+          td_->dialog_manager_->get_chat_id_object(dialog_id, "updateNewWidgetQuery"), message_id.get(), chat_instance,
+          std::move(chat_type), get_widget_query_type_object(std::move(query_type)), data.as_slice().str(), widget_id,
+          get_widget_query_ton_wallet_card_object(td_, std::move(wallet_card))));
 }
 
 void WidgetManager::on_new_inline_widget_query(
-    int64 widget_query_id, UserId sender_user_id,
+    int64 widget_query_id, telegram_api::object_ptr<telegram_api::WidgetQueryType> &&query_type, UserId sender_user_id,
     telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id, BufferSlice &&data,
-    int64 chat_instance, string &&chat_type, int64 widget_id) {
+    int64 chat_instance, string &&chat_type, int64 widget_id,
+    telegram_api::object_ptr<telegram_api::wallet_card> &&wallet_card) {
   if (!sender_user_id.is_valid()) {
     LOG(ERROR) << "Receive new inline widget query from invalid " << sender_user_id;
     return;
@@ -345,11 +396,14 @@ void WidgetManager::on_new_inline_widget_query(
       td_api::make_object<td_api::updateNewInlineWidgetQuery>(
           widget_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewInlineWidgetQuery"),
           InlineQueriesManager::get_inline_message_id(std::move(inline_message_id)), chat_instance,
-          std::move(chat_type), data.as_slice().str(), widget_id));
+          std::move(chat_type), get_widget_query_type_object(std::move(query_type)), data.as_slice().str(), widget_id,
+          get_widget_query_ton_wallet_card_object(td_, std::move(wallet_card))));
 }
 
-void WidgetManager::on_new_widget_copy_query(int64 widget_query_id, UserId sender_user_id, BufferSlice &&data,
-                                             int64 widget_id) {
+void WidgetManager::on_new_widget_copy_query(int64 widget_query_id,
+                                             telegram_api::object_ptr<telegram_api::WidgetQueryType> &&query_type,
+                                             UserId sender_user_id, BufferSlice &&data, int64 widget_id,
+                                             telegram_api::object_ptr<telegram_api::wallet_card> &&wallet_card) {
   if (!sender_user_id.is_valid()) {
     LOG(ERROR) << "Receive new widget copy query from invalid " << sender_user_id;
     return;
@@ -363,7 +417,8 @@ void WidgetManager::on_new_widget_copy_query(int64 widget_query_id, UserId sende
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewWidgetCopyQuery>(
                    widget_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewWidgetCopyQuery"),
-                   data.as_slice().str(), widget_id));
+                   get_widget_query_type_object(std::move(query_type)), data.as_slice().str(), widget_id,
+                   get_widget_query_ton_wallet_card_object(td_, std::move(wallet_card))));
 }
 
 void WidgetManager::answer_widget_query(int64 widget_query_id, const string &data, Promise<Unit> &&promise) {

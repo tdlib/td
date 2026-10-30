@@ -35,14 +35,22 @@ class WidgetManager final : public Actor {
   void send_widget_query(MessageFullId message_full_id, td_api::object_ptr<td_api::WidgetQueryType> &&query_type,
                          string &&data, Promise<td_api::object_ptr<td_api::widgetQueryAnswer>> &&promise);
 
-  void on_new_widget_query(int64 widget_query_id, UserId sender_user_id, DialogId dialog_id, MessageId message_id,
-                           BufferSlice &&data, int64 chat_instance, string &&chat_type, int64 widget_id);
+  void on_new_widget_query(int64 widget_query_id, telegram_api::object_ptr<telegram_api::WidgetQueryType> &&query_type,
+                           UserId sender_user_id, DialogId dialog_id, MessageId message_id, BufferSlice &&data,
+                           int64 chat_instance, string &&chat_type, int64 widget_id,
+                           telegram_api::object_ptr<telegram_api::wallet_card> &&wallet_card);
 
-  void on_new_inline_widget_query(int64 widget_query_id, UserId sender_user_id,
+  void on_new_inline_widget_query(int64 widget_query_id,
+                                  telegram_api::object_ptr<telegram_api::WidgetQueryType> &&query_type,
+                                  UserId sender_user_id,
                                   telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id,
-                                  BufferSlice &&data, int64 chat_instance, string &&chat_type, int64 widget_id);
+                                  BufferSlice &&data, int64 chat_instance, string &&chat_type, int64 widget_id,
+                                  telegram_api::object_ptr<telegram_api::wallet_card> &&wallet_card);
 
-  void on_new_widget_copy_query(int64 widget_query_id, UserId sender_user_id, BufferSlice &&data, int64 widget_id);
+  void on_new_widget_copy_query(int64 widget_query_id,
+                                telegram_api::object_ptr<telegram_api::WidgetQueryType> &&query_type,
+                                UserId sender_user_id, BufferSlice &&data, int64 widget_id,
+                                telegram_api::object_ptr<telegram_api::wallet_card> &&wallet_card);
 
   void answer_widget_query(int64 widget_query_id, const string &data, Promise<Unit> &&promise);
 
