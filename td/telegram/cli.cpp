@@ -4331,6 +4331,15 @@ class CliClient final : public Actor {
       get_args(args, chat_id, filter, return_local);
       send_request(td_api::make_object<td_api::getChatMessageCount>(chat_id, get_message_topic_id(),
                                                                     as_search_messages_filter(filter), return_local));
+    } else if (op == "gcmcs") {
+      ChatId chat_id;
+      bool return_local;
+      string filters;
+      get_args(args, chat_id, return_local, filters);
+      send_request(td_api::make_object<td_api::getChatMessageCounts>(
+          chat_id, get_message_topic_id(),
+          transform(autosplit_str(filters), [](const string &filter) { return as_search_messages_filter(filter); }),
+          return_local));
     } else if (op == "gcmp") {
       ChatId chat_id;
       MessageId message_id;

@@ -3637,6 +3637,10 @@ messageCalendarDay total_count:int32 message:message = MessageCalendarDay;
 //@days Information about messages sent
 messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalendar;
 
+//@description Contains approximate numbers of messages in a chat
+//@counts Approximate number of messages for each of the requested filters in the same order; -1 for the numbers of messages, which are unknown locally, if only local data was requested
+chatMessageCounts counts:vector<int32> = ChatMessageCounts;
+
 
 //@description Describes a message from a business account as received by a bot
 //@message The message
@@ -12923,6 +12927,13 @@ getChatMessageCalendar chat_id:int53 topic_id:MessageTopic filter:SearchMessages
 //@filter Filter for message content; searchMessagesFilterEmpty is unsupported in this function
 //@return_local Pass true to get the number of messages without sending network requests, or -1 if the number of messages is unknown locally
 getChatMessageCount chat_id:int53 topic_id:MessageTopic filter:SearchMessagesFilter return_local:Bool = Count;
+
+//@description Returns approximate numbers of messages of the specified types in the chat or its topic. Unknown numbers are requested from the server at once
+//@chat_id Identifier of the chat in which to count messages
+//@topic_id Pass topic identifier to get numbers of messages only in specific topic; pass null to get numbers of messages in all topics; message threads aren't supported
+//@filters Filters for message content; searchMessagesFilterEmpty is unsupported in this function
+//@return_local Pass true to get the numbers of messages without sending network requests; -1 is returned for the numbers of messages, which are unknown locally
+getChatMessageCounts chat_id:int53 topic_id:MessageTopic filters:vector<SearchMessagesFilter> return_local:Bool = ChatMessageCounts;
 
 //@description Returns approximate 1-based position of a message among messages, which can be found by the specified filter in the chat and topic. Cannot be used in secret chats
 //@chat_id Identifier of the chat in which to find message position
