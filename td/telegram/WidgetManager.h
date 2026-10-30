@@ -32,8 +32,8 @@ class WidgetManager final : public Actor {
   WidgetManager &operator=(WidgetManager &&) = delete;
   ~WidgetManager() final;
 
-  void send_widget_query(MessageFullId message_full_id, string &&data,
-                         Promise<td_api::object_ptr<td_api::widgetQueryAnswer>> &&promise);
+  void send_widget_query(MessageFullId message_full_id, td_api::object_ptr<td_api::WidgetQueryType> &&query_type,
+                         string &&data, Promise<td_api::object_ptr<td_api::widgetQueryAnswer>> &&promise);
 
   void on_new_widget_query(int64 widget_query_id, UserId sender_user_id, DialogId dialog_id, MessageId message_id,
                            BufferSlice &&data, int64 chat_instance, string &&chat_type, int64 widget_id);

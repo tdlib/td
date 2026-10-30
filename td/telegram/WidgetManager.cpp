@@ -12,9 +12,11 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TonWalletManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
 
@@ -23,6 +25,56 @@
 #include "td/utils/Status.h"
 
 namespace td {
+
+static Result<telegram_api::object_ptr<telegram_api::userWallet>> get_input_user_wallet(
+    td_api::object_ptr<td_api::widgetQueryWallet> &&wallet) {
+  if (wallet == nullptr) {
+    return Status::Error(400, "Wallet must be non-empty");
+  }
+  TRY_STATUS(TonWalletManager::check_ton_address(wallet->address_, true));
+  if (wallet->gram_amount_ < 0) {
+    return Status::Error(400, "Invalid wallet balance specified");
+  }
+  if (wallet->public_key_.empty() != wallet->state_init_.empty()) {
+    return Status::Error(400, "Wallet public key and state init must be specified together");
+  }
+  return telegram_api::make_object<telegram_api::userWallet>(
+      0, wallet->address_, wallet->gram_amount_, BufferSlice(wallet->public_key_), BufferSlice(wallet->state_init_));
+}
+
+static Result<telegram_api::object_ptr<telegram_api::WidgetQueryType>> get_input_widget_query_type(
+    td_api::object_ptr<td_api::WidgetQueryType> &&query_type) {
+  if (query_type == nullptr) {
+    return Status::Error(400, "Query type must be non-empty");
+  }
+  switch (query_type->get_id()) {
+    case td_api::widgetQueryTypeData::ID: {
+      auto type = td_api::move_object_as<td_api::widgetQueryTypeData>(query_type);
+      return telegram_api::make_object<telegram_api::widgetQueryTypeData>(0, type->with_wallet_);
+    }
+    case td_api::widgetQueryTypeSignData::ID: {
+      auto type = td_api::move_object_as<td_api::widgetQueryTypeSignData>(query_type);
+      TRY_RESULT(wallet, get_input_user_wallet(std::move(type->wallet_)));
+      if (!clean_input_string(type->sign_data_)) {
+        return Status::Error(400, "Strings must be encoded in UTF-8");
+      }
+      return telegram_api::make_object<telegram_api::widgetQueryTypeSignData>(
+          std::move(wallet), telegram_api::make_object<telegram_api::dataJSON>(std::move(type->sign_data_)));
+    }
+    case td_api::widgetQueryTypeSentTransaction::ID: {
+      auto type = td_api::move_object_as<td_api::widgetQueryTypeSentTransaction>(query_type);
+      TRY_RESULT(wallet, get_input_user_wallet(std::move(type->wallet_)));
+      if (!clean_input_string(type->msg_hash_)) {
+        return Status::Error(400, "Strings must be encoded in UTF-8");
+      }
+      return telegram_api::make_object<telegram_api::widgetQueryTypeSentTransaction>(std::move(wallet),
+                                                                                     std::move(type->msg_hash_));
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
 
 class GetBotWidgetQueryAnswerQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::widgetQueryAnswer>> promise_;
@@ -34,14 +86,14 @@ class GetBotWidgetQueryAnswerQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageId message_id, const string &data) {
+  void send(DialogId dialog_id, MessageId message_id,
+            telegram_api::object_ptr<telegram_api::WidgetQueryType> &&query_type, const string &data) {
     dialog_id_ = dialog_id;
     message_id_ = message_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
-    auto query_type = telegram_api::make_object<telegram_api::widgetQueryTypeData>(0, false);
     auto net_query = G()->net_query_creator().create(telegram_api::messages_getBotWidgetQueryAnswer(
         std::move(input_peer), message_id.get_server_message_id().get(), std::move(query_type), BufferSlice(data)));
     net_query->need_resend_on_503_ = false;
@@ -223,7 +275,8 @@ void WidgetManager::tear_down() {
   parent_.reset();
 }
 
-void WidgetManager::send_widget_query(MessageFullId message_full_id, string &&data,
+void WidgetManager::send_widget_query(MessageFullId message_full_id,
+                                      td_api::object_ptr<td_api::WidgetQueryType> &&query_type, string &&data,
                                       Promise<td_api::object_ptr<td_api::widgetQueryAnswer>> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
   TRY_STATUS_PROMISE(
@@ -236,8 +289,10 @@ void WidgetManager::send_widget_query(MessageFullId message_full_id, string &&da
   if (!message_id.is_server()) {
     return promise.set_error(400, "Wrong message identifier");
   }
+  TRY_RESULT_PROMISE(promise, input_query_type, get_input_widget_query_type(std::move(query_type)));
 
-  td_->create_handler<GetBotWidgetQueryAnswerQuery>(std::move(promise))->send(dialog_id, message_id, data);
+  td_->create_handler<GetBotWidgetQueryAnswerQuery>(std::move(promise))
+      ->send(dialog_id, message_id, std::move(input_query_type), data);
 }
 
 void WidgetManager::on_new_widget_query(int64 widget_query_id, UserId sender_user_id, DialogId dialog_id,

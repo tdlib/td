@@ -8451,6 +8451,30 @@ callbackQueryPayloadGame game_short_name:string = CallbackQueryPayload;
 //@url URL to be opened
 callbackQueryAnswer text:string show_alert:Bool url:string = CallbackQueryAnswer;
 
+//@description Describes a TON wallet of the current user, which is used in a widget query
+//@address Address of the wallet
+//@gram_amount Balance of the wallet, in the smallest units of the cryptocurrency
+//@public_key Public key of the wallet; may be empty if unknown
+//@state_init Serialized StateInit of the wallet contract; must be empty if and only if public_key is empty
+widgetQueryWallet address:string gram_amount:int64 public_key:bytes state_init:bytes = WidgetQueryWallet;
+
+
+//@class WidgetQueryType @description Describes type of a widget query
+
+//@description The query contains data for the bot @with_wallet Pass true to send the TON wallet card of the current user to the bot along with the query
+widgetQueryTypeData with_wallet:Bool = WidgetQueryType;
+
+//@description The query contains data signed by a TON wallet of the current user
+//@wallet The wallet that signed the data
+//@sign_data JSON-serialized signed data
+widgetQueryTypeSignData wallet:widgetQueryWallet sign_data:string = WidgetQueryType;
+
+//@description The query notifies the bot about a transaction sent from a TON wallet of the current user
+//@wallet The wallet from which the transaction was sent
+//@msg_hash Value of msg_hash of the transaction
+widgetQueryTypeSentTransaction wallet:widgetQueryWallet msg_hash:string = WidgetQueryType;
+
+
 //@description Contains an answer to a widget query @data Data returned by the bot
 widgetQueryAnswer data:string = WidgetQueryAnswer;
 
@@ -14332,8 +14356,9 @@ answerWidgetQuery widget_query_id:int64 data:string = Ok;
 //@description Sends a widget query to a bot and returns an answer. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires
 //@chat_id Identifier of the chat with the message
 //@message_id Identifier of the widget message from which the query originated. The message must not be scheduled
+//@query_type Type of the query
 //@data Data of the query
-getWidgetQueryAnswer chat_id:int53 message_id:int53 data:bytes = WidgetQueryAnswer;
+getWidgetQueryAnswer chat_id:int53 message_id:int53 query_type:WidgetQueryType data:bytes = WidgetQueryAnswer;
 
 //@description Returns the current public data of a widget. Must be called only if the widget is visible on the screen and asked to poll its public data
 //@chat_id Identifier of the chat with the message

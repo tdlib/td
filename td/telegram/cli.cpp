@@ -7203,12 +7203,31 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, data);
       send_request(td_api::make_object<td_api::getCallbackQueryAnswer>(
           chat_id, message_id, td_api::make_object<td_api::callbackQueryPayloadData>(data)));
-    } else if (op == "gwqa") {
+    } else if (op == "gwqa" || op == "gwqaw") {
       ChatId chat_id;
       MessageId message_id;
       string data;
       get_args(args, chat_id, message_id, data);
-      send_request(td_api::make_object<td_api::getWidgetQueryAnswer>(chat_id, message_id, data));
+      send_request(td_api::make_object<td_api::getWidgetQueryAnswer>(
+          chat_id, message_id, td_api::make_object<td_api::widgetQueryTypeData>(op == "gwqaw"), data));
+    } else if (op == "gwqas" || op == "gwqat") {
+      ChatId chat_id;
+      MessageId message_id;
+      string address;
+      int64 gram_amount;
+      string public_key;
+      string state_init;
+      string value;
+      string data;
+      get_args(args, chat_id, message_id, address, gram_amount, public_key, state_init, value, data);
+      auto wallet = td_api::make_object<td_api::widgetQueryWallet>(address, gram_amount, public_key, state_init);
+      td_api::object_ptr<td_api::WidgetQueryType> query_type;
+      if (op == "gwqas") {
+        query_type = td_api::make_object<td_api::widgetQueryTypeSignData>(std::move(wallet), value);
+      } else {
+        query_type = td_api::make_object<td_api::widgetQueryTypeSentTransaction>(std::move(wallet), value);
+      }
+      send_request(td_api::make_object<td_api::getWidgetQueryAnswer>(chat_id, message_id, std::move(query_type), data));
     } else if (op == "gwpd") {
       ChatId chat_id;
       MessageId message_id;
