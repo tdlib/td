@@ -703,7 +703,7 @@ class SearchPublicPostsQuery final : public Td::ResultHandler {
     auto input_peer = DialogManager::get_input_peer_force(offset.dialog_id_);
     CHECK(input_peer != nullptr);
 
-    int32 flags = telegram_api::channels_searchPosts::QUERY_MASK;
+    int32 flags = 0;
     if (star_count > 0) {
       td_->star_manager_->add_pending_owned_star_count(-star_count, false);
       flags |= telegram_api::channels_searchPosts::ALLOW_PAID_STARS_MASK;
