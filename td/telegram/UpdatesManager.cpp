@@ -34,6 +34,7 @@
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/EphemeralMessageId.h"
 #include "td/telegram/FolderId.h"
+#include "td/telegram/ForumTopicEditedData.h"
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
@@ -4024,6 +4025,17 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedForumTopi
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditForumTopic> update, Promise<Unit> &&promise) {
+  auto edit_icon_custom_emoji_id = (update->flags_ & telegram_api::updateEditForumTopic::ICON_EMOJI_ID_MASK) != 0;
+  auto edit_is_closed = (update->flags_ & telegram_api::updateEditForumTopic::CLOSED_MASK) != 0;
+  auto edit_is_hidden = (update->flags_ & telegram_api::updateEditForumTopic::HIDDEN_MASK) != 0;
+  td_->forum_topic_manager_->on_update_forum_topic_edited(
+      DialogId(update->peer_), ForumTopicId(update->topic_id_),
+      ForumTopicEditedData{std::move(update->title_), edit_icon_custom_emoji_id, update->icon_emoji_id_, edit_is_closed,
+                           update->closed_, edit_is_hidden, update->hidden_});
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedMessages> update, Promise<Unit> &&promise) {
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
@@ -5242,10 +5254,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotWidgetCopyQu
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEditForumTopic> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

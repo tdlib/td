@@ -121,6 +121,9 @@ class ForumTopicManager final : public Actor {
 
   void on_update_pinned_forum_topics(DialogId dialog_id, vector<ForumTopicId> forum_topic_ids);
 
+  void on_update_forum_topic_edited(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                    const ForumTopicEditedData &edited_data);
+
   void on_forum_topic_edited(DialogId dialog_id, ForumTopicId forum_topic_id, const ForumTopicEditedData &edited_data);
 
   bool on_get_forum_topic_error(DialogId dialog_id, ForumTopicId forum_topic_id, const Status &status,

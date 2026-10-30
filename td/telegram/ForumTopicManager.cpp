@@ -763,6 +763,19 @@ void ForumTopicManager::on_update_pinned_forum_topics(DialogId dialog_id, vector
   });
 }
 
+void ForumTopicManager::on_update_forum_topic_edited(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                     const ForumTopicEditedData &edited_data) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "on_update_forum_topic_edited")) {
+    return;
+  }
+  if (!can_be_forum(dialog_id) || can_be_forum_topic_id(forum_topic_id).is_error()) {
+    LOG(ERROR) << "Receive edited " << forum_topic_id << " in " << dialog_id;
+    return;
+  }
+
+  on_forum_topic_edited(dialog_id, forum_topic_id, edited_data);
+}
+
 Status ForumTopicManager::set_forum_topic_notification_settings(
     DialogId dialog_id, ForumTopicId forum_topic_id,
     td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings) {
