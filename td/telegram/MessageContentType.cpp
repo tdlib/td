@@ -389,7 +389,6 @@ bool is_allowed_ephemeral_message_content(MessageContentType content_type) {
     case MessageContentType::Video:
     case MessageContentType::VideoNote:
     case MessageContentType::VoiceNote:
-    case MessageContentType::Widget:
       return true;
     default:
       return false;
