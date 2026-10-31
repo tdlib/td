@@ -13383,7 +13383,7 @@ sendBotStartMessage bot_user_id:int53 chat_id:int53 parameter:string = Message;
 //@options Options to be used to send the message; pass null to use default options
 //@query_id Identifier of the inline query
 //@result_id Identifier of the inline query result
-//@hide_via_bot Pass true to hide the bot, via which the message is sent. Can be used only for bots getOption("animation_search_bot_username"), getOption("photo_search_bot_username"), and getOption("venue_search_bot_username")
+//@hide_via_bot Pass true to hide the bot, via which the message is sent. Can be used only for bots getOption("animation_search_bot_username") and getOption("photo_search_bot_username")
 sendInlineQueryResultMessage chat_id:int53 topic_id:MessageTopic reply_to:InputMessageReplyTo options:messageSendOptions query_id:int64 result_id:string hide_via_bot:Bool = Message;
 
 //@description Forwards previously sent messages. Returns the forwarded messages in the same order as the message identifiers passed in message_ids. If a message can't be forwarded, null will be returned instead of the message
@@ -13792,7 +13792,7 @@ addQuickReplyShortcutMessage shortcut_name:string reply_to_message_id:int53 inpu
 //@reply_to_message_id Identifier of a quick reply message in the same shortcut to be replied; pass 0 if none
 //@query_id Identifier of the inline query
 //@result_id Identifier of the inline query result
-//@hide_via_bot Pass true to hide the bot, via which the message is sent. Can be used only for bots getOption("animation_search_bot_username"), getOption("photo_search_bot_username"), and getOption("venue_search_bot_username")
+//@hide_via_bot Pass true to hide the bot, via which the message is sent. Can be used only for bots getOption("animation_search_bot_username") and getOption("photo_search_bot_username")
 addQuickReplyShortcutInlineQueryResultMessage shortcut_name:string reply_to_message_id:int53 query_id:int64 result_id:string hide_via_bot:Bool = QuickReplyMessage;
 
 //@description Adds 2-10 messages grouped together into an album to a quick reply shortcut. Currently, only audio, document, photo and video messages can be grouped into an album.

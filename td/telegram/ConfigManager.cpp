@@ -1254,13 +1254,6 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   } else {
     options.set_option_string("animation_search_bot_username", config->gif_search_username_);
   }
-  if (!options.have_option("venue_search_bot_username")) {
-    if (config->venue_search_username_.empty()) {
-      options.set_option_empty("venue_search_bot_username");
-    } else {
-      options.set_option_string("venue_search_bot_username", config->venue_search_username_);
-    }
-  }
   if (config->img_search_username_.empty()) {
     options.set_option_empty("photo_search_bot_username");
   } else {
@@ -1502,7 +1495,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"music_search_username", "audio_search_bot_username"},
       {"phone_country_iso2", ""},
       {"premium_manage_subscription_url", ""},
-      {"stories_venue_search_username", "venue_search_bot_username"},
       {"ton_blockchain_explorer_url", ""},
       {"ton_proxy_address", ""},
       {"ton_topup_url", "gram_top_up_url"},
@@ -1514,7 +1506,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
        "message_animated_emoji_max", "qr_login_camera", "qr_login_code", "round_video_recorder_2_allowed",
        "stargifts_blocked", "starref_connect_allowed", "starref_program_allowed", "stars_purchase_blocked",
        "stars_rating_learnmore_url", "stickers_emoji_cache_time", "stories_export_nopublic_link", "stories_posting",
-       "story_expire_period", "test", "upload_max_fileparts_default",
+       "stories_venue_search_username", "story_expire_period", "test", "upload_max_fileparts_default",
        //
        "upload_max_fileparts_premium"});
   if (config->get_id() == telegram_api::jsonObject::ID) {

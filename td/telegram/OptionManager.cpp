@@ -257,6 +257,7 @@ OptionManager::OptionManager(Td *td)
   set_option_empty("gift_resale_toncoin_cent_count_max");
   set_option_empty("gift_resale_toncoin_earnings_per_mille");
   set_option_empty("toncoin_top_up_url");
+  set_option_empty("venue_search_bot_username");
 }
 
 OptionManager::~OptionManager() = default;
