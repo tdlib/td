@@ -4390,7 +4390,7 @@ oauthLinkInfo user_id:int53 url:string domain:string from_app:Bool verified_app_
 //@message_thread_id Message thread identifier, unique within the chat
 //@reply_info Information about the message thread; may be null for forum topic threads
 //@unread_message_count Approximate number of unread messages in the message thread
-//@messages The messages from which the thread starts. The messages are returned in reverse chronological order (i.e., in order of decreasing message_id)
+//@messages The messages from which the thread starts. The messages are returned in reverse chronological order (i.e., in order of decreasing message.id)
 //@draft_message A draft of a message in the message thread; may be null if none
 messageThreadInfo chat_id:int53 message_thread_id:int53 reply_info:messageReplyInfo unread_message_count:int32 messages:vector<message> draft_message:draftMessage = MessageThreadInfo;
 
@@ -6443,7 +6443,7 @@ diffEntityTypeDelete = DiffEntityType;
 
 
 //@description A thumbnail to be sent along with a file; must be in JPEG or WEBP format for stickers, and less than 200 KB in size
-//@thumbnail Thumbnail file to send. Sending thumbnails by file_id is currently not supported
+//@thumbnail Thumbnail file to send. Sending thumbnails by inputFileId or inputFileRemote is currently not supported
 //@width Thumbnail width, usually shouldn't exceed 320. Use 0 if unknown
 //@height Thumbnail height, usually shouldn't exceed 320. Use 0 if unknown
 inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
@@ -7439,7 +7439,7 @@ storyInfo story_id:int32 date:int32 is_for_close_friends:Bool is_live:Bool = Sto
 //@description Describes active stories posted by a chat
 //@chat_id Identifier of the chat that posted the stories
 //@list Identifier of the story list in which the stories are shown; may be null if the stories aren't shown in a story list
-//@order A parameter used to determine order of the stories in the story list; 0 if the stories don't need to be shown in the story list. Stories must be sorted by the pair (order, story_poster_chat_id) in descending order
+//@order A parameter used to determine order of the stories in the story list; 0 if the stories don't need to be shown in the story list. Stories must be sorted by the pair (order, chat_id) in descending order
 //@can_be_archived True, if the stories are shown in the main story list and can be archived; otherwise, the stories can be hidden from the main story list
 //-only by calling removeTopChat with topChatCategoryUsers and the chat_id. Stories of the current user can't be archived nor hidden using removeTopChat
 //@max_read_story_id Identifier of the last read active story
@@ -12759,7 +12759,7 @@ loadDirectMessagesChatTopics chat_id:int53 limit:int32 = Ok;
 //@topic_id Identifier of the topic to get
 getDirectMessagesChatTopic chat_id:int53 topic_id:int53 = DirectMessagesChatTopic;
 
-//@description Returns messages in the topic in a channel direct messages chat administered by the current user. The messages are returned in reverse chronological order (i.e., in order of decreasing message_id)
+//@description Returns messages in the topic in a channel direct messages chat administered by the current user. The messages are returned in reverse chronological order (i.e., in order of decreasing message.id)
 //@chat_id Chat identifier of the channel direct messages chat
 //@topic_id Identifier of the topic which messages will be fetched
 //@from_message_id Identifier of the message starting from which messages must be fetched; use 0 to get results from the last message
@@ -12819,7 +12819,7 @@ toggleDirectMessagesChatTopicCanSendUnpaidMessages chat_id:int53 topic_id:int53 
 //@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
 loadSavedMessagesTopics limit:int32 = Ok;
 
-//@description Returns messages in a Saved Messages topic. The messages are returned in reverse chronological order (i.e., in order of decreasing message_id)
+//@description Returns messages in a Saved Messages topic. The messages are returned in reverse chronological order (i.e., in order of decreasing message.id)
 //@saved_messages_topic_id Identifier of Saved Messages topic which messages will be fetched
 //@from_message_id Identifier of the message starting from which messages must be fetched; use 0 to get results from the last message
 //@offset Specify 0 to get results from exactly the message from_message_id or a negative number from -99 to -1 to get additionally -offset newer messages
@@ -12946,7 +12946,7 @@ deleteCommunity community_id:int53 = Ok;
 getGroupsInCommon user_id:int53 offset_chat_id:int53 limit:int32 = Chats;
 
 
-//@description Returns messages in a chat. The messages are returned in reverse chronological order (i.e., in order of decreasing message_id).
+//@description Returns messages in a chat. The messages are returned in reverse chronological order (i.e., in order of decreasing message.id).
 //-For optimal performance, the number of returned messages is chosen by TDLib. This is an offline method if only_local is true
 //@chat_id Chat identifier
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
@@ -12957,7 +12957,7 @@ getGroupsInCommon user_id:int53 offset_chat_id:int53 limit:int32 = Chats;
 getChatHistory chat_id:int53 from_message_id:int53 offset:int32 limit:int32 only_local:Bool = Messages;
 
 //@description Returns messages in a message thread of a message. Can be used only if messageProperties.can_get_message_thread == true. Message thread of a channel message is in the channel's linked supergroup.
-//-The messages are returned in reverse chronological order (i.e., in order of decreasing message_id). For optimal performance, the number of returned messages is chosen by TDLib
+//-The messages are returned in reverse chronological order (i.e., in order of decreasing message.id). For optimal performance, the number of returned messages is chosen by TDLib
 //@chat_id Chat identifier
 //@message_id Message identifier, which thread history needs to be returned
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
@@ -12977,7 +12977,7 @@ deleteChatHistory chat_id:int53 remove_from_chat_list:Bool revoke:Bool = Ok;
 //@chat_id Chat identifier
 deleteChat chat_id:int53 = Ok;
 
-//@description Searches for messages with given words in the chat. Returns the results in reverse chronological order, i.e. in order of decreasing message_id. Cannot be used in secret chats with a non-empty query
+//@description Searches for messages with given words in the chat. Returns the results in reverse chronological order, i.e. in order of decreasing message.id. Cannot be used in secret chats with a non-empty query
 //-(searchSecretMessages must be used instead), or without an enabled message database. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit.
 //-A combination of query, sender_id, filter and topic_id search criteria is expected to be supported, only if it is required for Telegram official application implementation
 //@chat_id Identifier of the chat in which to search messages
@@ -12991,7 +12991,7 @@ deleteChat chat_id:int53 = Ok;
 //@filter Additional filter for messages to search; pass null to search for all messages
 searchChatMessages chat_id:int53 topic_id:MessageTopic query:string sender_id:MessageSender from_message_id:int53 offset:int32 limit:int32 filter:SearchMessagesFilter = FoundChatMessages;
 
-//@description Searches for messages in all chats except secret chats. Returns the results in reverse chronological order (i.e., in order of decreasing (date, chat_id, message_id)).
+//@description Searches for messages in all chats except secret chats. Returns the results in reverse chronological order (i.e., in order of decreasing (message.date, message.chat_id, message.id)).
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@chat_list Chat list in which to search messages; pass null to search in all chats regardless of their chat list. Only Main and Archive chat lists are supported
 //@query Query to search for
@@ -13013,7 +13013,7 @@ searchMessages chat_list:ChatList query:string offset:string limit:int32 filter:
 searchSecretMessages chat_id:int53 query:string offset:string limit:int32 filter:SearchMessagesFilter = FoundMessages;
 
 //@description Searches for messages tagged by the given reaction and with the given words in the Saved Messages chat; for Telegram Premium users only.
-//-Returns the results in reverse chronological order, i.e. in order of decreasing message_id.
+//-Returns the results in reverse chronological order, i.e. in order of decreasing message.id.
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@saved_messages_topic_id If not 0, only messages in the specified Saved Messages topic will be considered; pass 0 to consider all messages
 //@tag Tag to search for; pass null to return all suitable messages
@@ -13024,7 +13024,7 @@ searchSecretMessages chat_id:int53 query:string offset:string limit:int32 filter
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 searchSavedMessages saved_messages_topic_id:int53 tag:ReactionType query:string from_message_id:int53 offset:int32 limit:int32 = FoundChatMessages;
 
-//@description Searches for call and group call messages. Returns the results in reverse chronological order (i.e., in order of decreasing message_id). For optimal performance, the number of returned messages is chosen by TDLib
+//@description Searches for call and group call messages. Returns the results in reverse chronological order (i.e., in order of decreasing message.id). For optimal performance, the number of returned messages is chosen by TDLib
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages to be returned; up to 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@only_missed Pass true to search only for messages with missed/declined calls
@@ -13131,7 +13131,7 @@ getChatMessageCount chat_id:int53 topic_id:MessageTopic filter:SearchMessagesFil
 //@message_id Message identifier
 getChatMessagePosition chat_id:int53 topic_id:MessageTopic filter:SearchMessagesFilter message_id:int53 = Count;
 
-//@description Returns all scheduled messages in a chat. The messages are returned in reverse chronological order (i.e., in order of decreasing message_id) @chat_id Chat identifier
+//@description Returns all scheduled messages in a chat. The messages are returned in reverse chronological order (i.e., in order of decreasing message.id) @chat_id Chat identifier
 getChatScheduledMessages chat_id:int53 = Messages;
 
 //@description Returns sponsored messages to be shown in a chat; for channel chats and chats with bots only @chat_id Identifier of the chat
@@ -13873,7 +13873,7 @@ editForumTopic chat_id:int53 forum_topic_id:int32 name:string edit_icon_custom_e
 getForumTopic chat_id:int53 forum_topic_id:int32 = ForumTopic;
 
 //@description Returns messages in a topic in a forum supergroup chat or a chat with a bot with topics. The messages are returned in reverse chronological order
-//-(i.e., in order of decreasing message_id). For optimal performance, the number of returned messages is chosen by TDLib
+//-(i.e., in order of decreasing message.id). For optimal performance, the number of returned messages is chosen by TDLib
 //@chat_id Chat identifier
 //@forum_topic_id Forum topic identifier
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
@@ -15040,7 +15040,7 @@ deleteStory story_poster_chat_id:int53 story_id:int32 = Ok;
 getStoryNotificationSettingsExceptions = Chats;
 
 //@description Loads more active stories from a story list. The loaded stories will be sent through updates. Active stories are sorted by
-//-the pair (active_stories.order, active_stories.story_poster_chat_id) in descending order. Returns a 404 error if all active stories have been loaded
+//-the pair (active_stories.order, active_stories.chat_id) in descending order. Returns a 404 error if all active stories have been loaded
 //@story_list The story list in which to load active stories
 loadActiveStories story_list:StoryList = Ok;
 
@@ -15053,7 +15053,7 @@ setChatActiveStoriesList chat_id:int53 story_list:StoryList = Ok;
 getChatActiveStories chat_id:int53 = ChatActiveStories;
 
 //@description Returns the list of stories that were posted by the given chat to its chat page. If from_story_id == 0, then pinned stories are returned first.
-//-Then, stories are returned in reverse chronological order (i.e., in order of decreasing story_id). For optimal performance, the number of returned stories is chosen by TDLib
+//-Then, stories are returned in reverse chronological order (i.e., in order of decreasing story.id). For optimal performance, the number of returned stories is chosen by TDLib
 //@chat_id Chat identifier
 //@from_story_id Identifier of the story starting from which stories must be returned; use 0 to get results from pinned and the newest story
 //@limit The maximum number of stories to be returned.
@@ -15061,7 +15061,7 @@ getChatActiveStories chat_id:int53 = ChatActiveStories;
 getChatPostedToChatPageStories chat_id:int53 from_story_id:int32 limit:int32 = Stories;
 
 //@description Returns the list of all stories posted by the given chat; requires can_edit_stories administrator right in the chat.
-//-The stories are returned in reverse chronological order (i.e., in order of decreasing story_id). For optimal performance, the number of returned stories is chosen by TDLib
+//-The stories are returned in reverse chronological order (i.e., in order of decreasing story.id). For optimal performance, the number of returned stories is chosen by TDLib
 //@chat_id Chat identifier
 //@from_story_id Identifier of the story starting from which stories must be returned; use 0 to get results from the last story
 //@limit The maximum number of stories to be returned.
@@ -16613,7 +16613,7 @@ closeSecretChat secret_chat_id:int32 = Ok;
 
 
 //@description Returns a list of service actions taken by chat members and administrators in the last 48 hours. Available only in supergroups and channels.
-//-Requires administrator rights. Returns results in reverse chronological order (i.e., in order of decreasing event_id)
+//-Requires administrator rights. Returns results in reverse chronological order (i.e., in order of decreasing chatEvent.id)
 //@chat_id Chat identifier
 //@query Search query by which to filter events
 //@from_event_id Identifier of an event from which to return results. Use 0 to get results from the latest events
