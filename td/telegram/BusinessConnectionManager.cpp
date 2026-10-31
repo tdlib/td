@@ -1162,6 +1162,10 @@ Result<InputMessageContent> BusinessConnectionManager::process_input_message_con
   if (message_content_id == td_api::inputMessageForwarded::ID) {
     return Status::Error(400, "Can't forward messages as business");
   }
+  if (message_content_id == td_api::inputMessageWidget::ID ||
+      message_content_id == td_api::inputMessageSharedWidget::ID) {
+    return Status::Error(400, "Can't send widgets as business");
+  }
   return get_input_message_content(td_->dialog_manager_->get_my_dialog_id(), std::move(input_message_content), td_,
                                    true);
 }
