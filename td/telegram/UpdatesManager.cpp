@@ -1511,7 +1511,8 @@ bool UpdatesManager::is_additional_service_message(const telegram_api::Message *
     return false;
   }
   auto action_id = static_cast<const telegram_api::messageService *>(message)->action_->get_id();
-  return action_id == telegram_api::messageActionSetMessagesTTL::ID;
+  return action_id == telegram_api::messageActionSetMessagesTTL::ID ||
+         action_id == telegram_api::messageActionNoPaidMessagesTokenUsed::ID;
 }
 
 vector<std::pair<const telegram_api::Message *, bool>> UpdatesManager::get_new_messages(
