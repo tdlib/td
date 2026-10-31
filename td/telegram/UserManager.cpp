@@ -1902,6 +1902,7 @@ void UserManager::User::store(StorerT &storer) const {
     STORE_FLAG(is_noforwards_inited);
     STORE_FLAG(noforwards_my_enabled);  // 25
     STORE_FLAG(noforwards_peer_enabled);
+    STORE_FLAG(has_bot_forum_sidebar);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -2064,6 +2065,7 @@ void UserManager::User::parse(ParserT &parser) {
     PARSE_FLAG(is_noforwards_inited);
     PARSE_FLAG(noforwards_my_enabled);
     PARSE_FLAG(noforwards_peer_enabled);
+    PARSE_FLAG(has_bot_forum_sidebar);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -3243,6 +3245,9 @@ UserId UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&u
   bool can_be_added_to_attach_menu = user->bot_attach_menu_;
   bool has_main_app = user->bot_has_main_app_;
   bool has_bot_forum_view = user->bot_forum_view_;
+  bool has_bot_forum_sidebar = has_bot_forum_view && user->bot_forum_sidebar_;
+  LOG_IF(ERROR, user->bot_forum_sidebar_ && !has_bot_forum_view)
+      << "Receive forum sidebar without forum view for " << user_id << " from " << source;
   bool can_bot_create_topics = has_bot_forum_view && !user->bot_forum_can_manage_topics_;
   bool can_manage_bots = user->bot_can_manage_bots_;
   bool attach_menu_enabled = user->attach_menu_enabled_;
@@ -3273,6 +3278,7 @@ UserId UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&u
     can_be_edited_bot = false;
     has_main_app = false;
     has_bot_forum_view = false;
+    has_bot_forum_sidebar = false;
     can_bot_create_topics = false;
     can_manage_bots = false;
     is_inline_bot = false;
@@ -3297,6 +3303,7 @@ UserId UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&u
     can_be_edited_bot = false;
     has_main_app = false;
     has_bot_forum_view = false;
+    has_bot_forum_sidebar = false;
     can_bot_create_topics = false;
     can_manage_bots = false;
     is_inline_bot = false;
@@ -3316,9 +3323,9 @@ UserId UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&u
       is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
       is_business_bot != u->is_business_bot || inline_query_placeholder != u->inline_query_placeholder ||
       need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
-      has_main_app != u->has_main_app || can_bot_create_topics != u->can_bot_create_topics ||
-      can_manage_bots != u->can_manage_bots || is_guestchat_bot != u->is_guestchat_bot ||
-      is_guard_bot != u->is_guard_bot) {
+      has_main_app != u->has_main_app || has_bot_forum_sidebar != u->has_bot_forum_sidebar ||
+      can_bot_create_topics != u->can_bot_create_topics || can_manage_bots != u->can_manage_bots ||
+      is_guestchat_bot != u->is_guestchat_bot || is_guard_bot != u->is_guard_bot) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -3338,6 +3345,7 @@ UserId UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&u
     u->need_location_bot = need_location_bot;
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
     u->has_main_app = has_main_app;
+    u->has_bot_forum_sidebar = has_bot_forum_sidebar;
     u->can_bot_create_topics = can_bot_create_topics;
     u->can_manage_bots = can_manage_bots;
     u->is_guestchat_bot = is_guestchat_bot;
@@ -10314,9 +10322,9 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
   } else if (u->is_bot) {
     type = td_api::make_object<td_api::userTypeBot>(
         u->can_be_edited_bot, u->can_join_groups, u->can_read_all_group_messages, u->has_main_app,
-        u->has_bot_forum_view, u->has_bot_forum_view && !u->can_bot_create_topics, u->can_manage_bots, u->is_inline_bot,
-        u->inline_query_placeholder, u->is_guestchat_bot, u->is_guard_bot, u->need_location_bot, u->is_business_bot,
-        u->can_be_added_to_attach_menu, u->bot_active_users);
+        u->has_bot_forum_view, u->has_bot_forum_sidebar, u->has_bot_forum_view && !u->can_bot_create_topics,
+        u->can_manage_bots, u->is_inline_bot, u->inline_query_placeholder, u->is_guestchat_bot, u->is_guard_bot,
+        u->need_location_bot, u->is_business_bot, u->can_be_added_to_attach_menu, u->bot_active_users);
   } else {
     type = td_api::make_object<td_api::userTypeRegular>();
   }

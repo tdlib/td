@@ -651,6 +651,7 @@ class UserManager final : public Actor {
     bool can_be_edited_bot = false;
     bool has_main_app = false;
     bool has_bot_forum_view = false;
+    bool has_bot_forum_sidebar = false;
     bool can_bot_create_topics = false;
     bool can_manage_bots = false;
     bool is_inline_bot = false;
