@@ -13887,7 +13887,7 @@ getForumTopic chat_id:int53 forum_topic_id:int32 = ForumTopic;
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getForumTopicHistory chat_id:int53 forum_topic_id:int32 from_message_id:int53 offset:int32 limit:int32 = Messages;
 
-//@description Returns an HTTPS link to a topic in a forum supergroup chat. This is an offline method @chat_id Identifier of the chat @forum_topic_id Forum topic identifier
+//@description Returns an HTTPS link to a topic in a forum supergroup chat or a chat with a bot. This is an offline method @chat_id Identifier of the chat @forum_topic_id Forum topic identifier
 getForumTopicLink chat_id:int53 forum_topic_id:int32 = MessageLink;
 
 //@description Returns found forum topics in a forum supergroup chat or a chat with a bot with topics. This is a temporary method for getting information about topic list from the server
