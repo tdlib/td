@@ -258,12 +258,14 @@ class TlWriterDotNet final : public TL_writer {
     if (field_name == class_name) {
       fixed_field_name += "Value";
     }
-    auto is_web_page_stickers =
-        (class_name == "WebPage" && field_name == "Stickers" && type_name == "Array<Sticker^>^");
+    // array element type is shadowed by another property of the class
+    auto is_shadowed_array_type =
+        (class_name == "WebPage" && field_name == "Stickers" && type_name == "Array<Sticker^>^") ||
+        (class_name == "UpdateNewGuestQuery" && field_name == "ReferenceMessages" && type_name == "Array<Message^>^");
     if (type_name == field_name + "^" || (type_name == "Message^" && field_name == "ReplyToMessage") ||
-        is_web_page_stickers) {
-      auto fixed_type_name =
-          is_web_page_stickers ? "Array<::Telegram::Td::Api::Sticker^>^" : "::Telegram::Td::Api::" + type_name;
+        is_shadowed_array_type) {
+      auto fixed_type_name = is_shadowed_array_type ? "Array<::Telegram::Td::Api::" + type_name.substr(6)
+                                                    : "::Telegram::Td::Api::" + type_name;
       std::stringstream ss;
       ss << "private:\n";
       ss << "  " << fixed_type_name << " " << fixed_field_name << "PrivateField;\n";
