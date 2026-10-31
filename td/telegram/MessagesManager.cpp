@@ -15897,6 +15897,10 @@ void MessagesManager::on_get_message_link_dialog(MessageLinkInfo &&info, DialogI
 
   Dialog *d = get_dialog_force(dialog_id, "on_get_message_link_dialog");
   CHECK(d != nullptr);
+  if (dialog_id.get_type() == DialogType::User) {
+    // there are no links to messages in private chats, but there are links to topics in chats with bots
+    return promise.set_value(std::move(info));
+  }
   auto message_id = info.message_id;
   get_message_force_from_server(d, message_id,
                                 PromiseCreator::lambda([actor_id = actor_id(this), info = std::move(info), dialog_id,
@@ -15980,6 +15984,12 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
   const Dialog *d = get_dialog(dialog_id);
   if (d == nullptr) {
     dialog_id = DialogId();
+  } else if (dialog_id.get_type() == DialogType::User) {
+    if (d->is_forum) {
+      // there are no links to messages in bot forums; if a message is specified, then open its topic
+      auto top_thread_message_id = info.top_thread_message_id.is_valid() ? info.top_thread_message_id : info.message_id;
+      message_topic = MessageTopic::forum(dialog_id, ForumTopicId::from_top_thread_message_id(top_thread_message_id));
+    }
   } else {
     const Message *m = get_message(d, message_id);
     if (m != nullptr) {
