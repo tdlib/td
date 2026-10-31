@@ -11,9 +11,6 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
-#include "td/telegram/InlineMessageContent.h"
-#include "td/telegram/InlineQueriesManager.h"
-#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -157,23 +154,6 @@ MediaArea::MediaArea(Td *td, td_api::object_ptr<td_api::inputStoryArea> &&input_
       if (!location_.empty()) {
         type_ = Type::Location;
       }
-      break;
-    }
-    case td_api::inputStoryAreaTypeFoundVenue::ID: {
-      auto type = td_api::move_object_as<td_api::inputStoryAreaTypeFoundVenue>(input_story_area->type_);
-      const InlineMessageContent *inline_message_content =
-          td->inline_queries_manager_->get_inline_message_content(type->query_id_, type->result_id_);
-      if (inline_message_content == nullptr || inline_message_content->message_content == nullptr) {
-        break;
-      }
-      auto venue_ptr = get_message_content_venue(inline_message_content->message_content.get());
-      if (venue_ptr == nullptr || venue_ptr->empty()) {
-        break;
-      }
-      venue_ = *venue_ptr;
-      input_query_id_ = type->query_id_;
-      input_result_id_ = std::move(type->result_id_);
-      type_ = Type::Venue;
       break;
     }
     case td_api::inputStoryAreaTypePreviousVenue::ID: {

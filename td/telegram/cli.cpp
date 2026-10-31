@@ -1812,11 +1812,6 @@ class CliClient final : public Actor {
           type = td_api::make_object<td_api::inputStoryAreaTypeLocation>(
               td_api::make_object<td_api::location>(Random::fast(-50, 50), Random::fast(-50, 50), 0.0),
               td_api::make_object<td_api::locationAddress>("US", "ZZ", "Deniles", "Road"));
-        } else if (area[0] == 'v') {
-          string query_id;
-          string result_id;
-          std::tie(query_id, result_id) = split(area.substr(1), ':');
-          type = td_api::make_object<td_api::inputStoryAreaTypeFoundVenue>(to_integer<int64>(query_id), result_id);
         } else if (area[0] == 'p') {
           string venue_provider;
           string venue_id;

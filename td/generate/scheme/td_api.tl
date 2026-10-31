@@ -7234,11 +7234,6 @@ storyArea position:areaPosition type:StoryAreaType = StoryArea;
 //@description An area pointing to a location @location The location @address Address of the location; pass null if unknown
 inputStoryAreaTypeLocation location:location address:locationAddress = InputStoryAreaType;
 
-//@description An area pointing to a venue found by the bot getOption("venue_search_bot_username")
-//@query_id Identifier of the inline query, used to find the venue
-//@result_id Identifier of the inline query result
-inputStoryAreaTypeFoundVenue query_id:int64 result_id:string = InputStoryAreaType;
-
 //@description An area pointing to a venue already added to the story
 //@venue_provider Provider of the venue
 //@venue_id Identifier of the venue in the provider database
@@ -7273,7 +7268,7 @@ inputStoryAreaTypeUpgradedGift gift_name:string = InputStoryAreaType;
 inputStoryArea position:areaPosition type:InputStoryAreaType = InputStoryArea;
 
 //@description Contains a list of story areas to be added @areas List of input story areas. Currently, a story can have
-//-up to 10 inputStoryAreaTypeLocation, inputStoryAreaTypeFoundVenue, and inputStoryAreaTypePreviousVenue areas,
+//-up to 10 inputStoryAreaTypeLocation and inputStoryAreaTypePreviousVenue areas,
 //-up to getOption("story_suggested_reaction_area_count_max") inputStoryAreaTypeSuggestedReaction areas,
 //-up to 1 inputStoryAreaTypeMessage area,
 //-up to getOption("story_link_area_count_max") inputStoryAreaTypeLink areas if the current user is a Telegram Premium user,
