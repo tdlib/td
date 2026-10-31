@@ -8175,8 +8175,10 @@ class CliClient final : public Actor {
       SupergroupId supergroup_id;
       bool is_forum;
       bool has_forum_tabs;
-      get_args(args, supergroup_id, is_forum, has_forum_tabs);
-      send_request(td_api::make_object<td_api::toggleSupergroupIsForum>(supergroup_id, is_forum, has_forum_tabs));
+      bool has_forum_sidebar;
+      get_args(args, supergroup_id, is_forum, has_forum_tabs, has_forum_sidebar);
+      send_request(td_api::make_object<td_api::toggleSupergroupIsForum>(supergroup_id, is_forum, has_forum_tabs,
+                                                                        has_forum_sidebar));
     } else if (op == "tsibg") {
       SupergroupId supergroup_id;
       get_args(args, supergroup_id);

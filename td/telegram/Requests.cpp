@@ -7560,7 +7560,7 @@ void Requests::on_request(uint64 id, const td_api::toggleSupergroupIsForum &requ
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->chat_manager_->toggle_channel_is_forum(ChannelId(request.supergroup_id_), request.is_forum_,
-                                              request.has_forum_tabs_, std::move(promise));
+                                              request.has_forum_tabs_, request.has_forum_sidebar_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::toggleSupergroupIsBroadcastGroup &request) {

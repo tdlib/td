@@ -979,13 +979,13 @@ class ToggleForumQuery final : public Td::ResultHandler {
   explicit ToggleForumQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, bool is_forum, bool is_forum_tabs) {
+  void send(ChannelId channel_id, bool is_forum, bool is_forum_tabs, bool is_forum_sidebar) {
     channel_id_ = channel_id;
 
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_toggleForum(std::move(input_channel), is_forum, is_forum && is_forum_tabs, false),
+        telegram_api::channels_toggleForum(std::move(input_channel), is_forum, is_forum_tabs, is_forum_sidebar),
         {{channel_id}}));
   }
 
@@ -2105,6 +2105,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(is_admined_monoforum);
     STORE_FLAG(has_live_story);
     STORE_FLAG(has_linked_community_id);
+    STORE_FLAG(is_forum_sidebar);
     END_STORE_FLAGS();
   }
 
@@ -2260,6 +2261,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(is_admined_monoforum);
     PARSE_FLAG(has_live_story);
     PARSE_FLAG(has_linked_community_id);
+    PARSE_FLAG(is_forum_sidebar);
     END_PARSE_FLAGS();
   }
 
@@ -3653,12 +3655,21 @@ void ChatManager::toggle_channel_has_aggressive_anti_spam_enabled(ChannelId chan
 }
 
 void ChatManager::toggle_channel_is_forum(ChannelId channel_id, bool is_forum, bool is_forum_tabs,
-                                          Promise<Unit> &&promise) {
+                                          bool is_forum_sidebar, Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(400, "Supergroup not found");
   }
-  if (c->is_forum == is_forum && c->is_forum_tabs == is_forum_tabs) {
+  if (!is_forum) {
+    is_forum_tabs = false;
+    is_forum_sidebar = false;
+  } else if (is_forum_sidebar) {
+    if (is_forum_tabs) {
+      return promise.set_error(400, "Forum tabs and sidebar can't be enabled simultaneously");
+    }
+    is_forum_tabs = true;  // the server always sets forum_tabs together with forum_sidebar
+  }
+  if (c->is_forum == is_forum && c->is_forum_tabs == is_forum_tabs && c->is_forum_sidebar == is_forum_sidebar) {
     return promise.set_value(Unit());
   }
   if (!get_channel_status(c).is_creator()) {
@@ -3668,7 +3679,8 @@ void ChatManager::toggle_channel_is_forum(ChannelId channel_id, bool is_forum, b
     return promise.set_error(400, "Forums can be enabled in supergroups only");
   }
 
-  td_->create_handler<ToggleForumQuery>(std::move(promise))->send(channel_id, is_forum, is_forum_tabs);
+  td_->create_handler<ToggleForumQuery>(std::move(promise))
+      ->send(channel_id, is_forum, is_forum_tabs, is_forum_sidebar);
 }
 
 void ChatManager::convert_channel_to_gigagroup(ChannelId channel_id, Promise<Unit> &&promise) {
@@ -7856,11 +7868,14 @@ void ChatManager::on_update_channel_noforwards(Channel *c, ChannelId channel_id,
   }
 }
 
-void ChatManager::on_update_channel_is_forum(Channel *c, ChannelId channel_id, bool is_forum, bool is_forum_tabs) {
-  if (c->is_forum != is_forum || c->is_forum_tabs != is_forum_tabs) {
-    LOG(INFO) << "Update " << channel_id << " is_forum to " << is_forum << '/' << is_forum_tabs;
+void ChatManager::on_update_channel_is_forum(Channel *c, ChannelId channel_id, bool is_forum, bool is_forum_tabs,
+                                             bool is_forum_sidebar) {
+  if (c->is_forum != is_forum || c->is_forum_tabs != is_forum_tabs || c->is_forum_sidebar != is_forum_sidebar) {
+    LOG(INFO) << "Update " << channel_id << " is_forum to " << is_forum << '/' << is_forum_tabs << '/'
+              << is_forum_sidebar;
     c->is_forum = is_forum;
     c->is_forum_tabs = is_forum_tabs;
+    c->is_forum_sidebar = is_forum_sidebar;
     c->is_is_forum_changed = true;
     c->is_changed = true;
   }
@@ -9333,6 +9348,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
   bool is_gigagroup = channel.gigagroup_;
   bool is_forum = channel.forum_;
   bool is_forum_tabs = channel.forum_tabs_;
+  bool is_forum_sidebar = channel.forum_sidebar_;
   bool is_monoforum = channel.monoforum_;
   bool have_participant_count = (channel.flags_ & telegram_api::channel::PARTICIPANTS_COUNT_MASK) != 0;
   int32 participant_count = channel.participants_count_;
@@ -9364,9 +9380,14 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
       << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << " from " << source << ": "
       << oneline(to_string(channel));
 
+  if (is_forum_sidebar && !is_forum_tabs) {
+    LOG(ERROR) << "Receive forum sidebar without forum tabs in " << channel_id << " from " << source;
+    is_forum_tabs = true;
+  }
   if (is_forum_tabs && !is_forum) {
     LOG(ERROR) << "Receive forum tabs in non-forum " << channel_id << " from " << source;
     is_forum_tabs = false;
+    is_forum_sidebar = false;
   }
 
   if (is_megagroup) {
@@ -9386,6 +9407,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     is_gigagroup = false;
     is_forum = false;
     is_forum_tabs = false;
+    is_forum_sidebar = false;
     is_monoforum = false;
     paid_message_star_count = 0;
   }
@@ -9409,7 +9431,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
       }
       on_update_channel_has_location(c, channel_id, channel.has_geo_);
       on_update_channel_noforwards(c, channel_id, channel.noforwards_);
-      on_update_channel_is_forum(c, channel_id, is_forum, is_forum_tabs);
+      on_update_channel_is_forum(c, channel_id, is_forum, is_forum_tabs, is_forum_sidebar);
       on_update_channel_emoji_status(c, channel_id, EmojiStatus::get_emoji_status(std::move(channel.emoji_status_)));
 
       if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
@@ -9622,7 +9644,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
                 std::move(channel.usernames_)));  // uses status, must be called after on_update_channel_status
   on_update_channel_has_location(c, channel_id, channel.has_geo_);
   on_update_channel_noforwards(c, channel_id, channel.noforwards_);
-  on_update_channel_is_forum(c, channel_id, is_forum, is_forum_tabs);
+  on_update_channel_is_forum(c, channel_id, is_forum, is_forum_tabs, is_forum_sidebar);
   on_update_channel_emoji_status(c, channel_id, EmojiStatus::get_emoji_status(std::move(channel.emoji_status_)));
   if (!td_->auth_manager_->is_bot() && !channel.stories_hidden_min_) {
     on_update_channel_stories_hidden(c, channel_id, channel.stories_hidden_);
@@ -9882,7 +9904,7 @@ td_api::object_ptr<td_api::updateSupergroup> ChatManager::get_update_unknown_sup
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0, string()).get_chat_member_status_object(nullptr),
       0, 0, false, false, false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, false,
-      nullptr, false, false, nullptr, 0, nullptr));
+      nullptr, false, false, false, nullptr, 0, nullptr));
 }
 
 int64 ChatManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -9923,8 +9945,9 @@ td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(Channe
       c->autotranslation, c->has_linked_channel, c->has_location, c->sign_messages, c->show_message_sender,
       get_channel_join_to_send(c), get_channel_join_request(c), c->is_slow_mode_enabled, !c->is_megagroup,
       c->is_gigagroup, c->is_forum, c->is_monoforum, c->is_admined_monoforum, get_channel_verification_status_object(c),
-      c->broadcast_messages_allowed, c->is_forum_tabs, get_restriction_info_object(c->restriction_reasons),
-      c->paid_message_star_count, get_channel_active_story_state(c).get_active_story_state_object());
+      c->broadcast_messages_allowed, c->is_forum_tabs && !c->is_forum_sidebar, c->is_forum_sidebar,
+      get_restriction_info_object(c->restriction_reasons), c->paid_message_star_count,
+      get_channel_active_story_state(c).get_active_story_state_object());
 }
 
 td_api::object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_object(

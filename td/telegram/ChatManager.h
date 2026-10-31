@@ -288,7 +288,8 @@ class ChatManager final : public Actor {
   void toggle_channel_has_aggressive_anti_spam_enabled(ChannelId channel_id, bool has_aggressive_anti_spam_enabled,
                                                        Promise<Unit> &&promise);
 
-  void toggle_channel_is_forum(ChannelId channel_id, bool is_forum, bool is_forum_tabs, Promise<Unit> &&promise);
+  void toggle_channel_is_forum(ChannelId channel_id, bool is_forum, bool is_forum_tabs, bool is_forum_sidebar,
+                               Promise<Unit> &&promise);
 
   void convert_channel_to_gigagroup(ChannelId channel_id, Promise<Unit> &&promise);
 
@@ -547,6 +548,7 @@ class ChatManager final : public Actor {
     bool is_gigagroup = false;
     bool is_forum = false;
     bool is_forum_tabs = false;
+    bool is_forum_sidebar = false;
     bool is_monoforum = false;
     bool is_admined_monoforum = false;
     bool is_verified = false;
@@ -776,7 +778,8 @@ class ChatManager final : public Actor {
                                                     RestrictedRights default_permissions);
   static void on_update_channel_has_location(Channel *c, ChannelId channel_id, bool has_location);
   static void on_update_channel_noforwards(Channel *c, ChannelId channel_id, bool noforwards);
-  static void on_update_channel_is_forum(Channel *c, ChannelId channel_id, bool is_forum, bool is_forum_tabs);
+  static void on_update_channel_is_forum(Channel *c, ChannelId channel_id, bool is_forum, bool is_forum_tabs,
+                                         bool is_forum_sidebar);
   void on_update_channel_stories_hidden(Channel *c, ChannelId channel_id, bool stories_hidden);
   void on_update_channel_story_ids_impl(Channel *c, ChannelId channel_id,
                                         telegram_api::object_ptr<telegram_api::recentStory> &&recent_story,
