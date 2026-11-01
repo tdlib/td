@@ -53,7 +53,7 @@ class TlWriterDotNet final : public TL_writer {
   }
 
   Mode get_parser_mode(int type) const final {
-    return All;  // Server;
+    return Client;
   }
 
   std::vector<std::string> get_storers() const final {
@@ -215,7 +215,8 @@ class TlWriterDotNet final : public TL_writer {
   }
 
   std::string gen_output_end() const final {
-    return "}\n"
+    return "\n"
+           "}\n"
            "}\n"
            "}\n";
   }
