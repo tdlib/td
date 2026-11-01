@@ -94,12 +94,23 @@ inline auto CLRCALL BytesFromUnmanaged(const std::vector<std::string> &vec) {
   return res;
 }
 
-template <class T>
-auto CLRCALL FromUnmanaged(td::td_api::object_ptr<T> &from) -> decltype(FromUnmanaged(*from.get())) {
+template <class FromT, class Func>
+auto CLRCALL FromUnmanaged(td::td_api::object_ptr<FromT> &from, Func func) -> decltype(func(*from)) {
   if (!from) {
     return nullptr;
   }
-  return FromUnmanaged(*from.get());
+  return func(*from);
+}
+
+template <class FromT, class Func>
+auto CLRCALL FromUnmanaged(std::vector<FromT> &vec, Func func) {
+  using ToT = decltype(FromUnmanaged(vec[0], func));
+  Array<ToT>^ res = REF_NEW Vector<ToT>(static_cast<ArrayIndexType>(vec.size()));
+  ArrayIndexType i = 0;
+  for (auto &from : vec) {
+    ArraySet(res, i++, FromUnmanaged(from, func));
+  }
+  return res;
 }
 
 // to unmanaged

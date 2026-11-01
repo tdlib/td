@@ -534,11 +534,15 @@ class TlWriterDotNet final : public TL_writer {
       tree_type = static_cast<const tl_tree_type *>(tree_type->children[0]);
       vector_depth++;
     }
-    if (tree_type->type->name == "Bytes") {
+    const std::string &name = tree_type->type->name;
+    if (name == "Bytes") {
       assert(vector_depth <= 1);  // unsupported
       return "BytesFromUnmanaged(" + field_name + ")";
     }
-    return "FromUnmanaged(" + field_name + ")";
+    if (is_built_in_simple_type(name)) {
+      return "FromUnmanaged(" + field_name + ")";
+    }
+    return "FromUnmanaged(" + field_name + ", &FromUnmanaged_" + gen_main_class_name(tree_type->type) + ")";
   }
 
   std::string gen_type_store(const std::string &field_name, const tl_tree_type *tree_type,
@@ -576,7 +580,7 @@ class TlWriterDotNet final : public TL_writer {
     assert(arity == 0);
     assert(vars.empty());
     bool is_proxy = parser_type == -1;
-    std::string result = "\n" + class_name + "^ " + parser_name +
+    std::string result = "\n" + class_name + "^ " + parser_name + "_" + class_name +
                          "(td::td_api::" + gen_native_class_name_by_class_name(class_name, is_proxy) + " &from)";
     if (is_header_) {
       return result + ";\n";
@@ -632,8 +636,8 @@ class TlWriterDotNet final : public TL_writer {
     auto native_class_name = gen_native_class_name(t->name);
     return "    case td::td_api::" + native_class_name +
            "::ID:\n"
-           "      return FromUnmanaged(static_cast<td::td_api::" +
-           native_class_name + " &>(from));\n";
+           "      return FromUnmanaged_" +
+           gen_class_name(t->name) + "(static_cast<td::td_api::" + native_class_name + " &>(from));\n";
   }
 
   std::string gen_fetch_switch_end() const final {

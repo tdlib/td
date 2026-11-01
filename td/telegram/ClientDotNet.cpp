@@ -73,7 +73,7 @@ public:
   /// <exception cref="NullReferenceException">Thrown when query is null.</exception>
   static Api::BaseObject^ Execute(Api::Function^ function) {
     auto request = td::td_api::move_object_as<td::td_api::Function>(ToUnmanaged(function)->get_object_ptr());
-    return Api::FromUnmanaged(*td::ClientManager::execute(std::move(request)));
+    return Api::FromUnmanaged_Object(*td::ClientManager::execute(std::move(request)));
   }
 
   /// <summary>
@@ -93,7 +93,7 @@ public:
         if (response.request_id == 0 ? updateHandlers.TryGetValue(response.client_id, handler) :
             handlers.TryRemove(response.request_id, handler)) {
           // TODO try/catch
-          handler->OnResult(Api::FromUnmanaged(*response.object));
+          handler->OnResult(Api::FromUnmanaged_Object(*response.object));
         }
 
         if (isClosed) {
