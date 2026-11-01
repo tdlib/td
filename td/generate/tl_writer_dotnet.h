@@ -61,7 +61,7 @@ class TlWriterDotNet final : public TL_writer {
   }
 
   std::vector<std::string> get_additional_functions() const final {
-    return {"ToUnmanaged", "FromUnmanaged"};
+    return {"ToUnmanaged"};
   }
 
   int get_storer_type(const tl_combinator *t, const std::string &name) const final {
@@ -120,6 +120,15 @@ class TlWriterDotNet final : public TL_writer {
     assert(name.size() > 0);
     assert(name[name.size() - 1] != '_');
     return name + "_";
+  }
+
+  // names of managed and native classes differ only in the case of the first letter for constructors and functions
+  static std::string gen_native_class_name_by_class_name(const std::string &class_name, bool is_proxy) {
+    assert(!class_name.empty());
+    if (is_proxy) {
+      return class_name;
+    }
+    return to_lower(class_name[0]) + class_name.substr(1);
   }
 
   std::string gen_native_class_name(std::string name) const {
@@ -283,26 +292,29 @@ class TlWriterDotNet final : public TL_writer {
     return "  property " + type_name + " " + fixed_field_name + ";\n";
   }
 
+  static std::string gen_store_function_declaration(int storer_type) {
+    if (storer_type) {
+      return "\n  virtual String^ ToString() override;\n";
+    } else {
+      return "\n  virtual NativeObject^ ToUnmanaged();\n";
+    }
+  }
+
   std::string gen_store_function_begin(const std::string &storer_name, const std::string &class_name, int arity,
                                        std::vector<var_description> &vars, int storer_type) const final {
-    if (storer_type < 0) {
+    if (storer_type < 0 || is_header_) {
+      // store functions are declared in gen_get_id
       return "";
     }
     std::stringstream ss;
     ss << "\n";
     if (storer_type) {
-      ss << (is_header_ ? "  virtual " : "") << "String^ " << (is_header_ ? "" : gen_class_name(class_name) + "::")
-         << "ToString()" << (is_header_ ? " override;" : " {\n  return ::Telegram::Td::Api::ToString(this);\n}")
-         << "\n";
+      ss << "String^ " << gen_class_name(class_name)
+         << "::ToString() {\n  return ::Telegram::Td::Api::ToString(this);\n}\n";
     } else {
-      ss << (is_header_ ? "  virtual " : "") << "NativeObject^ "
-         << (is_header_ ? "" : gen_class_name(class_name) + "::") << "ToUnmanaged()";
-      if (is_header_) {
-        ss << ";\n";
-      } else {
-        ss << " {\n  return REF_NEW NativeObject(::Telegram::Td::Api::ToUnmanaged_" << gen_class_name(class_name)
-           << "(this).release());\n}\n";
-      }
+      ss << "NativeObject^ " << gen_class_name(class_name)
+         << "::ToUnmanaged() {\n  return REF_NEW NativeObject(::Telegram::Td::Api::ToUnmanaged_"
+         << gen_class_name(class_name) << "(this).release());\n}\n";
     }
     return ss.str();
   }
@@ -371,16 +383,10 @@ class TlWriterDotNet final : public TL_writer {
 
   std::string gen_additional_function(const std::string &function_name, const tl_combinator *t,
                                       bool is_function) const final {
+    assert(function_name == "ToUnmanaged");
     std::stringstream ss;
-    if (is_header_ && function_name == "ToUnmanaged") {
-      ss << "};\n";
-    }
     ss << "\n";
-    if (function_name == "ToUnmanaged") {
-      gen_to_unmanaged(ss, t);
-    } else {
-      gen_from_unmanaged(ss, t);
-    }
+    gen_to_unmanaged(ss, t);
     return ss.str();
   }
 
@@ -443,29 +449,6 @@ class TlWriterDotNet final : public TL_writer {
     ss << ");\n}\n";
   }
 
-  void gen_from_unmanaged(std::stringstream &ss, const tl_combinator *t) const {
-    auto native_class_name = gen_native_class_name(t->name);
-    auto class_name = gen_class_name(t->name);
-    ss << class_name << "^ FromUnmanaged(td::td_api::" << native_class_name << " &from)";
-    if (is_header_) {
-      ss << ";\n";
-      return;
-    }
-    ss << " {\n"
-       << "  return REF_NEW " << class_name << "(";
-    bool is_first = true;
-    for (auto &it : t->args) {
-      if (is_first) {
-        is_first = false;
-      } else {
-        ss << ", ";
-      }
-      bool need_bytes = gen_field_type(it) == "Array<BYTE>^" || gen_field_type(it) == "Array<Array<BYTE>^>^";
-      ss << (need_bytes ? "Bytes" : "") << "FromUnmanaged(from." << gen_native_field_name(it.name) << ")";
-    }
-    ss << ");\n}\n";
-  }
-
   std::string gen_array_type_name(const tl_tree_array *arr, const std::string &field_name) const final {
     assert(0);
     return std::string();
@@ -518,10 +501,13 @@ class TlWriterDotNet final : public TL_writer {
 
   std::string gen_field_fetch(int field_num, const arg &a, std::vector<var_description> &vars, bool flat,
                               int parser_type) const final {
-    return "";
-    // std::stringstream ss;
-    // ss << gen_field_name(a.name) << " = from_unmanaged(from->" <<
-    // gen_native_field_name(a.name) << ");\n"; return ss.str();
+    if (is_header_) {
+      return "";
+    }
+    assert(a.type->get_type() == NODE_TYPE_TYPE);
+    const tl_tree_type *tree_type = static_cast<const tl_tree_type *>(a.type);
+    return (field_num == 0 ? "" : ", ") +
+           gen_type_fetch("from." + gen_native_field_name(a.name), tree_type, vars, parser_type);
   }
 
   std::string gen_field_store(const arg &a, const std::vector<tl::arg> &args, std::vector<var_description> &vars,
@@ -535,7 +521,23 @@ class TlWriterDotNet final : public TL_writer {
   std::string gen_type_fetch(const std::string &field_name, const tl_tree_type *tree_type,
                              const std::vector<var_description> &vars, int parser_type) const final {
     assert(vars.empty());
-    return "";
+    if (field_name.empty()) {
+      // function results aren't fetched
+      return "";
+    }
+
+    int vector_depth = 0;
+    while (tree_type->type->name == "Vector") {
+      assert(tree_type->children.size() == 1);
+      assert(tree_type->children[0]->get_type() == NODE_TYPE_TYPE);
+      tree_type = static_cast<const tl_tree_type *>(tree_type->children[0]);
+      vector_depth++;
+    }
+    if (tree_type->type->name == "Bytes") {
+      assert(vector_depth <= 1);  // unsupported
+      return "BytesFromUnmanaged(" + field_name + ")";
+    }
+    return "FromUnmanaged(" + field_name + ")";
   }
 
   std::string gen_type_store(const std::string &field_name, const tl_tree_type *tree_type,
@@ -549,7 +551,18 @@ class TlWriterDotNet final : public TL_writer {
   }
 
   std::string gen_get_id(const std::string &class_name, std::int32_t id, bool is_proxy) const final {
-    return "";
+    if (!is_header_) {
+      return "";
+    }
+
+    // the class must be closed before declaration of the fetch function, so store functions are declared here
+    std::string result;
+    if (!is_proxy) {
+      for (auto &storer_name : get_storers()) {
+        result += gen_store_function_declaration(get_storer_type(nullptr, storer_name));
+      }
+    }
+    return result + "};\n";
   }
 
   std::string gen_function_result_type(const tl_tree *result) const final {
@@ -559,12 +572,30 @@ class TlWriterDotNet final : public TL_writer {
   std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
                                        const std::string &parent_class_name, int arity, int field_count,
                                        std::vector<var_description> &vars, int parser_type) const final {
-    return "";
+    assert(arity == 0);
+    assert(vars.empty());
+    bool is_proxy = parser_type == -1;
+    std::string result = "\n" + class_name + "^ " + parser_name +
+                         "(td::td_api::" + gen_native_class_name_by_class_name(class_name, is_proxy) + " &from)";
+    if (is_header_) {
+      return result + ";\n";
+    }
+    result += " {\n";
+    if (!is_proxy) {
+      result += "  return REF_NEW " + class_name + "(";
+    }
+    return result;
   }
 
   std::string gen_fetch_function_end(bool has_parent, int field_count, const std::vector<var_description> &vars,
                                      int parser_type) const final {
-    return "";
+    if (is_header_) {
+      return "";
+    }
+    if (parser_type == -1) {
+      return "}\n";
+    }
+    return ");\n}\n";
   }
 
   std::string gen_fetch_function_result_begin(const std::string &parser_name, const std::string &class_name,
@@ -586,51 +617,54 @@ class TlWriterDotNet final : public TL_writer {
   }
 
   std::string gen_fetch_switch_begin() const final {
-    return "";
+    if (is_header_) {
+      return "";
+    }
+    return "  switch (from.get_id()) {\n";
   }
 
   std::string gen_fetch_switch_case(const tl_combinator *t, int arity) const final {
-    return "";
+    if (is_header_) {
+      return "";
+    }
+    assert(arity == 0);
+    auto native_class_name = gen_native_class_name(t->name);
+    return "    case td::td_api::" + native_class_name +
+           "::ID:\n"
+           "      return FromUnmanaged(static_cast<td::td_api::" +
+           native_class_name + " &>(from));\n";
   }
 
   std::string gen_fetch_switch_end() const final {
-    return "";
+    if (is_header_) {
+      return "";
+    }
+    return "    default:\n"
+           "      return nullptr;\n"
+           "  }\n";
   }
 
   std::string gen_additional_proxy_function_begin(const std::string &function_name, const tl_type *type,
                                                   const std::string &name, int arity, bool is_function) const final {
-    std::stringstream ss;
-    if (is_header_ && function_name == "ToUnmanaged") {
-      ss << "};\n";
-    }
+    assert(function_name == "ToUnmanaged");
     if (type == nullptr) {
-      return ss.str();
+      return "";
     }
     auto native_class_name = gen_native_class_name(type->name);
     auto class_name = gen_class_name(type->name);
-    if (function_name == "ToUnmanaged") {
-      ss << "td::td_api::object_ptr<td::td_api::" << native_class_name << "> ToUnmanaged_" << class_name << "("
-         << class_name << "^ from)";
-      if (is_header_) {
-        ss << ";\n";
-        return ss.str();
-      }
-      ss << " {\n"
-         << "  if (!from) {\n"
-         << "    return nullptr;\n"
-         << "  }\n"
-         << "  return td::td_api::move_object_as<td::td_api::" << native_class_name
-         << ">(from->ToUnmanaged()->get_object_ptr());\n}\n";
-    } else {
-      ss << class_name << "^ FromUnmanaged(td::td_api::" << native_class_name << " &from)";
-      if (is_header_) {
-        ss << ";\n";
-        return ss.str();
-      }
-      ss << " {\n";
-      ss << "  return DoFromUnmanaged<" << class_name << "^>(from);\n";
-      ss << "}\n";
+    std::stringstream ss;
+    ss << "\ntd::td_api::object_ptr<td::td_api::" << native_class_name << "> ToUnmanaged_" << class_name << "("
+       << class_name << "^ from)";
+    if (is_header_) {
+      ss << ";\n";
+      return ss.str();
     }
+    ss << " {\n"
+       << "  if (!from) {\n"
+       << "    return nullptr;\n"
+       << "  }\n"
+       << "  return td::td_api::move_object_as<td::td_api::" << native_class_name
+       << ">(from->ToUnmanaged()->get_object_ptr());\n}\n";
     return ss.str();
   }
 
