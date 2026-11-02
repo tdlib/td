@@ -63,6 +63,8 @@ class NotificationSettingsManager final : public Actor {
 
   bool get_scope_disable_mention_notifications(NotificationSettingsScope scope) const;
 
+  const DialogNotificationSettings *get_dialog_community_notification_settings(DialogId dialog_id) const;
+
   int32 get_dialog_default_mute_until(DialogId dialog_id) const;
 
   bool get_dialog_default_disable_pinned_message_notifications(DialogId dialog_id) const;

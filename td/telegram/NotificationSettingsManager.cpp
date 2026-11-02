@@ -11,6 +11,7 @@
 #include "td/telegram/AudiosManager.hpp"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/CommunityId.h"
 #include "td/telegram/CommunityManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
@@ -719,6 +720,15 @@ bool NotificationSettingsManager::get_scope_disable_pinned_message_notifications
 
 bool NotificationSettingsManager::get_scope_disable_mention_notifications(NotificationSettingsScope scope) const {
   return get_scope_notification_settings(scope)->disable_mention_notifications;
+}
+
+const DialogNotificationSettings *NotificationSettingsManager::get_dialog_community_notification_settings(
+    DialogId dialog_id) const {
+  auto community_id = td_->dialog_manager_->get_dialog_linked_community_id(dialog_id);
+  if (!community_id.is_valid()) {
+    return nullptr;
+  }
+  return td_->community_manager_->get_community_notification_settings(community_id);
 }
 
 int32 NotificationSettingsManager::get_dialog_default_mute_until(DialogId dialog_id) const {
