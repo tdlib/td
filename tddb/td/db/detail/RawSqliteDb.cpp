@@ -21,7 +21,7 @@ namespace detail {
 
 static std::atomic<bool> was_database_destroyed{false};
 
-Status RawSqliteDb::last_error(tdsqlite3 *db, CSlice path) {
+Status RawSqliteDb::last_error(tdsqlite3 *db, Slice path) {
   return Status::Error(PSLICE() << Slice(tdsqlite3_errmsg(db)) << " for database \"" << path << '"');
 }
 

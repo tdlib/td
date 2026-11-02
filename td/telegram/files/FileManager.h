@@ -566,7 +566,7 @@ class FileManager final : public Actor {
                                        Promise<> promise);
   void external_file_generate_finish(int64 generation_id, Status status, Promise<> promise);
 
-  Result<FileId> from_persistent_id(CSlice persistent_id, FileType file_type) TD_WARN_UNUSED_RESULT;
+  Result<FileId> from_persistent_id(Slice persistent_id, FileType file_type) TD_WARN_UNUSED_RESULT;
   FileView get_file_view(FileId file_id) const;
   FileView get_sync_file_view(FileId file_id);
   td_api::object_ptr<td_api::file> get_file_object(FileId file_id);

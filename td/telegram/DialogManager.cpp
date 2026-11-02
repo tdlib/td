@@ -1998,17 +1998,17 @@ bool DialogManager::can_dialog_have_threads(DialogId dialog_id) const {
 
 bool DialogManager::on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source) {
   auto message = status.message();
-  if (message == CSlice("BOT_METHOD_INVALID")) {
+  if (message == Slice("BOT_METHOD_INVALID")) {
     return true;
   }
   if (G()->is_expected_error(status)) {
     return true;
   }
-  if (message == CSlice("SEND_AS_PEER_INVALID")) {
+  if (message == Slice("SEND_AS_PEER_INVALID")) {
     reload_dialog_info_full(dialog_id, "SEND_AS_PEER_INVALID");
     return true;
   }
-  if (message == CSlice("QUOTE_TEXT_INVALID") || message == CSlice("REPLY_MESSAGE_ID_INVALID") ||
+  if (message == Slice("QUOTE_TEXT_INVALID") || message == Slice("REPLY_MESSAGE_ID_INVALID") ||
       begins_with(message, "ALLOW_PAYMENT_REQUIRED_")) {
     return true;
   }

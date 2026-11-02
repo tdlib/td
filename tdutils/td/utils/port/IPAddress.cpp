@@ -556,7 +556,7 @@ Status IPAddress::init_host_port(CSlice host, CSlice port, bool prefer_ipv6) {
   return init_sockaddr(best_info->ai_addr, narrow_cast<socklen_t>(best_info->ai_addrlen));
 }
 
-Status IPAddress::init_host_port(CSlice host_port) {
+Status IPAddress::init_host_port(Slice host_port) {
   auto pos = host_port.rfind(':');
   if (pos == static_cast<size_t>(-1)) {
     return Status::Error("Can't split string into host and port");

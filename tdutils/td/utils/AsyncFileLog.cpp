@@ -56,7 +56,7 @@ Status AsyncFileLog::init(string path, int64 rotate_threshold, bool redirect_std
           }
           size = r_size.move_as_ok();
         };
-        auto append = [&](CSlice slice) {
+        auto append = [&](Slice slice) {
           if (size > rotate_threshold) {
             auto status = rename(path, PSLICE() << path << ".old");
             if (status.is_error()) {

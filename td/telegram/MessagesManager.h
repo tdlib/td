@@ -167,7 +167,7 @@ class MessagesManager final : public Actor {
   static bool process_send_message_fail_error(int32 &error_code, string &error_message, DialogId dialog_id, bool is_bot,
                                               MessageContentType content_type);
 
-  static int64 get_required_paid_message_star_count(int32 error_code, CSlice error_message);
+  static int64 get_required_paid_message_star_count(int32 error_code, Slice error_message);
 
   static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
 

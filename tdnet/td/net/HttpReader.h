@@ -99,8 +99,8 @@ class HttpReader {
   Status parse_http_version(Slice version) TD_WARN_UNUSED_RESULT;
   Status parse_head(MutableSlice head) TD_WARN_UNUSED_RESULT;
 
-  Status open_temp_file(CSlice desired_file_name) TD_WARN_UNUSED_RESULT;
-  Status try_open_temp_file(Slice directory_name, CSlice desired_file_name) TD_WARN_UNUSED_RESULT;
+  Status open_temp_file(Slice desired_file_name) TD_WARN_UNUSED_RESULT;
+  Status try_open_temp_file(Slice directory_name, Slice desired_file_name) TD_WARN_UNUSED_RESULT;
   Status save_file_part(BufferSlice &&file_part) TD_WARN_UNUSED_RESULT;
   void close_temp_file();
   void clean_temporary_file();

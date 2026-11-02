@@ -30,7 +30,7 @@ class Requests {
   Td *td_ = nullptr;
   ActorId<Td> td_actor_;
 
-  void send_error_raw(uint64 id, int32 code, CSlice error);
+  void send_error_raw(uint64 id, int32 code, Slice error);
 
   void answer_ok_query(uint64 id, Status status);
 

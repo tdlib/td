@@ -12,7 +12,7 @@
 namespace td {
 
 std::shared_ptr<PublicRsaKeySharedMain> PublicRsaKeySharedMain::create(bool is_test) {
-  auto add_pem = [](vector<RsaKey> &keys, CSlice pem) {
+  auto add_pem = [](vector<RsaKey> &keys, Slice pem) {
     auto rsa = mtproto::RSA::from_pem_public_key(pem).move_as_ok();
     auto fingerprint = rsa.get_fingerprint();
     keys.push_back(RsaKey{std::move(rsa), fingerprint});

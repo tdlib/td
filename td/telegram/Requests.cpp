@@ -1910,7 +1910,7 @@ void Requests::run_request(uint64 id, td_api::object_ptr<td_api::Function> &&fun
   downcast_call(*function, [this, id](auto &request) { this->on_request(id, request); });
 }
 
-void Requests::send_error_raw(uint64 id, int32 code, CSlice error) {
+void Requests::send_error_raw(uint64 id, int32 code, Slice error) {
   send_closure(td_actor_, &Td::send_error_impl, id, td_api::make_object<td_api::error>(code, error.str()));
 }
 

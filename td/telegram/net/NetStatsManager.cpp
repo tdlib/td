@@ -57,7 +57,7 @@ void NetStatsManager::init() {
     }
   };
 
-  for_each_stat([&](NetStatsInfo &stat, size_t id, CSlice name, FileType file_type) {
+  for_each_stat([&](NetStatsInfo &stat, size_t id, Slice name, FileType file_type) {
     auto main_file_type = get_main_file_type(file_type);
     id += static_cast<size_t>(main_file_type) - static_cast<size_t>(file_type);
 
@@ -71,14 +71,14 @@ void NetStatsManager::get_network_stats(bool current, Promise<NetworkStats> prom
 
   result.since = current ? since_current_ : since_total_;
 
-  for_each_stat([&](NetStatsInfo &info, size_t id, CSlice name, FileType file_type) { update(info, false); });
+  for_each_stat([&](NetStatsInfo &info, size_t id, Slice name, FileType file_type) { update(info, false); });
 
   for (size_t net_type_i = 0; net_type_i < net_type_size(); net_type_i++) {
     auto net_type = NetType(net_type_i);
     NetStatsData total;
     NetStatsData total_files;
 
-    for_each_stat([&](NetStatsInfo &info, size_t id, CSlice name, FileType file_type) {
+    for_each_stat([&](NetStatsInfo &info, size_t id, Slice name, FileType file_type) {
       const auto &type_stats = info.stats_by_type[net_type_i];
       auto stats = current ? type_stats.mem_stats : type_stats.mem_stats + type_stats.db_stats;
       if (id == 0) {
@@ -91,7 +91,7 @@ void NetStatsManager::get_network_stats(bool current, Promise<NetworkStats> prom
     });
 
     NetStatsData check;
-    for_each_stat([&](NetStatsInfo &info, size_t id, CSlice name, FileType file_type) {
+    for_each_stat([&](NetStatsInfo &info, size_t id, Slice name, FileType file_type) {
       if (id == 1) {
         return;
       }
@@ -151,7 +151,7 @@ void NetStatsManager::reset_network_stats() {
     }
   };
 
-  for_each_stat([&](NetStatsInfo &info, size_t id, CSlice name, FileType) { do_reset_network_stats(info); });
+  for_each_stat([&](NetStatsInfo &info, size_t id, Slice name, FileType) { do_reset_network_stats(info); });
 
   auto unix_time = G()->unix_time();
   since_total_ = unix_time;
@@ -190,7 +190,7 @@ void NetStatsManager::add_network_stats_impl(NetStatsInfo &info, const NetworkSt
 }
 
 void NetStatsManager::start_up() {
-  for_each_stat([&](NetStatsInfo &info, size_t id, CSlice name, FileType file_type) {
+  for_each_stat([&](NetStatsInfo &info, size_t id, Slice name, FileType file_type) {
     if (get_main_file_type(file_type) != file_type) {
       return;
     }
@@ -317,7 +317,7 @@ void NetStatsManager::info_loop(NetStatsInfo &info) {
 }
 
 void NetStatsManager::on_stats_updated(size_t id) {
-  for_each_stat([&](NetStatsInfo &stat, size_t stat_id, CSlice name, FileType) {
+  for_each_stat([&](NetStatsInfo &stat, size_t stat_id, Slice name, FileType) {
     if (stat_id == id) {
       info_loop(stat);
     }
@@ -338,7 +338,7 @@ void NetStatsManager::on_net_type_updated(NetType net_type) {
     info.net_type = net_type;
   };
 
-  for_each_stat([&](NetStatsInfo &stat, size_t stat_id, CSlice name, FileType) { do_on_net_type_updated(stat); });
+  for_each_stat([&](NetStatsInfo &stat, size_t stat_id, Slice name, FileType) { do_on_net_type_updated(stat); });
 }
 
 }  // namespace td

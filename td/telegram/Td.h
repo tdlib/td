@@ -471,7 +471,7 @@ class Td final : public Actor {
   Result<std::pair<Parameters, TdDb::Parameters>> get_parameters(
       td_api::object_ptr<td_api::setTdlibParameters> parameters) TD_WARN_UNUSED_RESULT;
 
-  static td_api::object_ptr<td_api::error> make_error(int32 code, CSlice error) {
+  static td_api::object_ptr<td_api::error> make_error(int32 code, Slice error) {
     return td_api::make_object<td_api::error>(code, error.str());
   }
 

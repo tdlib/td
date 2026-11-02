@@ -783,7 +783,7 @@ Status HttpReader::parse_head(MutableSlice head) {
   return parser.status().is_ok() ? Status::OK() : Status::Error(400, "Bad Request");
 }
 
-Status HttpReader::open_temp_file(CSlice desired_file_name) {
+Status HttpReader::open_temp_file(Slice desired_file_name) {
   CHECK(temp_file_.empty());
 
   auto tmp_dir = get_temporary_dir();
@@ -810,7 +810,7 @@ Status HttpReader::open_temp_file(CSlice desired_file_name) {
   return first_try.move_as_error();
 }
 
-Status HttpReader::try_open_temp_file(Slice directory_name, CSlice desired_file_name) {
+Status HttpReader::try_open_temp_file(Slice directory_name, Slice desired_file_name) {
   CHECK(temp_file_.empty());
   CHECK(!directory_name.empty());
 

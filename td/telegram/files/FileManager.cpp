@@ -3992,7 +3992,7 @@ static bool is_background_type(FileType type) {
   return type == FileType::Wallpaper || type == FileType::Background;
 }
 
-Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType file_type) {
+Result<FileId> FileManager::from_persistent_id(Slice persistent_id, FileType file_type) {
   if (persistent_id.find('.') != string::npos) {
     auto r_http_url = parse_url(persistent_id);
     if (r_http_url.is_error()) {
@@ -5187,7 +5187,7 @@ void FileManager::on_download_error_impl(FileNodePtr node, DownloadQuery::Type t
         !begins_with(status.message(), "FILE_DOWNLOAD_ID_INVALID") &&
         !begins_with(status.message(), "FILE_DOWNLOAD_LIMIT")) {
       // Remove partial location
-      CSlice path = node->local_.partial().path_;
+      Slice path = node->local_.partial().path_;
       if (begins_with(path, get_files_temp_dir(FileType::SecureDecrypted)) ||
           begins_with(path, get_files_temp_dir(FileType::Video))) {
         LOG(INFO) << "Unlink file " << path;

@@ -8,7 +8,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 
-static void test_clean_filename(td::CSlice name, td::Slice result) {
+static void test_clean_filename(td::Slice name, td::Slice result) {
   ASSERT_STREQ(td::clean_filename(name), result);
 }
 

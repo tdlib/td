@@ -44,7 +44,7 @@ class RawSqliteDb {
   }
 
   Status last_error();
-  static Status last_error(tdsqlite3 *db, CSlice path);
+  static Status last_error(tdsqlite3 *db, Slice path);
 
   static bool was_any_database_destroyed();
 

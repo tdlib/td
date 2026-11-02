@@ -1577,7 +1577,7 @@ void AuthManager::on_result(NetQueryPtr net_query) {
            type == NetQueryType::VerifyEmailAddress || type == NetQueryType::SignIn ||
            type == NetQueryType::RequestQrCode || type == NetQueryType::ImportQrCode ||
            type == NetQueryType::FinishPasskeyLogin) &&
-          net_query->error().code() == 401 && net_query->error().message() == CSlice("SESSION_PASSWORD_NEEDED")) {
+          net_query->error().code() == 401 && net_query->error().message() == Slice("SESSION_PASSWORD_NEEDED")) {
         auto dc_id = DcId::main();
         if (type == NetQueryType::ImportQrCode) {
           CHECK(DcId::is_valid(imported_dc_id_));
@@ -1588,7 +1588,7 @@ void AuthManager::on_result(NetQueryPtr net_query) {
                         G()->net_query_creator().create_unauth(telegram_api::account_getPassword(), dc_id));
         return;
       }
-      if (net_query->error().message() == CSlice("PHONE_NUMBER_BANNED")) {
+      if (net_query->error().message() == Slice("PHONE_NUMBER_BANNED")) {
         on_account_banned();
       }
       if (type != NetQueryType::LogOut && type != NetQueryType::DeleteAccount) {

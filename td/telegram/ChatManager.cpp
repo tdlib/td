@@ -6404,7 +6404,7 @@ tl_object_ptr<td_api::chatMember> ChatManager::get_chat_member_object(const Dial
 
 bool ChatManager::on_get_channel_error(ChannelId channel_id, const Status &status, const char *source) {
   LOG(INFO) << "Receive " << status << " in " << channel_id << " from " << source;
-  if (status.message() == CSlice("BOT_METHOD_INVALID")) {
+  if (status.message() == Slice("BOT_METHOD_INVALID")) {
     return true;
   }
   if (status.message() == "CHANNEL_MONOFORUM_UNSUPPORTED") {

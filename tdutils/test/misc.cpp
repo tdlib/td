@@ -562,7 +562,7 @@ TEST(Misc, to_integer) {
   ASSERT_TRUE(td::to_integer_safe<td::uint64>("-12345678910111213").is_error());
 }
 
-static void test_to_double_one(td::CSlice str, td::Slice expected, int precision = 6) {
+static void test_to_double_one(td::Slice str, td::Slice expected, int precision = 6) {
   auto result = PSTRING() << td::StringBuilder::FixedDouble(to_double(str), precision);
   if (expected != result) {
     LOG(ERROR) << "To double conversion failed: have " << str << ", expected " << expected << ", parsed "

@@ -27,7 +27,7 @@ class DebugContext {
     return *instance;
   }
   template <typename T>
-  void add(Slice name, const T &value, CSlice file = {}, int line = 0) {
+  void add(Slice name, const T &value, Slice file = {}, int line = 0) {
     StringBuilder sb;
     sb << name << '=' << value;
 
@@ -63,7 +63,7 @@ class DebugContext {
 template <typename T>
 class ScopedDebugValue {
  public:
-  ScopedDebugValue(Slice name, const T &value, CSlice file = {}, int line = 0) : name_(name.str()) {
+  ScopedDebugValue(Slice name, const T &value, Slice file = {}, int line = 0) : name_(name.str()) {
     DebugContext::instance().add(name_, value, file, line);
   }
 

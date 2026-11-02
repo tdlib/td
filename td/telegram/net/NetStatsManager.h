@@ -123,14 +123,14 @@ class NetStatsManager final : public Actor {
 
   template <class F>
   void for_each_stat(F &&f) {
-    f(common_net_stats_, 0, CSlice("common"), FileType::None);
-    f(media_net_stats_, 1, CSlice("media"), FileType::None);
+    f(common_net_stats_, 0, Slice("common"), FileType::None);
+    f(media_net_stats_, 1, Slice("media"), FileType::None);
     for (int32 file_type_i = 0; file_type_i < MAX_FILE_TYPE; file_type_i++) {
       auto &stat = files_stats_[file_type_i];
       auto file_type = static_cast<FileType>(file_type_i);
       f(stat, file_type_i + 2, get_file_type_unique_name(file_type), file_type);
     }
-    f(call_net_stats_, CALL_NET_STATS_ID, CSlice("calls"), FileType::None);
+    f(call_net_stats_, CALL_NET_STATS_ID, Slice("calls"), FileType::None);
   }
 
   static void add_network_stats_impl(NetStatsInfo &info, const NetworkStatsEntry &entry);

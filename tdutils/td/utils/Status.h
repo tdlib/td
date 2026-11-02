@@ -252,12 +252,12 @@ class Status {
     }
   }
 #else
-  void ensure_impl(CSlice file_name, int line) const {
+  void ensure_impl(Slice file_name, int line) const {
     if (!is_ok()) {
       LOG(FATAL) << "Unexpected Status " << to_string() << " in file " << file_name << " at line " << line;
     }
   }
-  void ensure_error_impl(CSlice file_name, int line) const {
+  void ensure_error_impl(Slice file_name, int line) const {
     if (is_ok()) {
       LOG(FATAL) << "Unexpected Status::OK in file " << file_name << " at line " << line;
     }
@@ -478,10 +478,10 @@ class Result {
     status_.ensure_error();
   }
 #else
-  void ensure_impl(CSlice file_name, int line) const {
+  void ensure_impl(Slice file_name, int line) const {
     status_.ensure_impl(file_name, line);
   }
-  void ensure_error_impl(CSlice file_name, int line) const {
+  void ensure_error_impl(Slice file_name, int line) const {
     status_.ensure_error_impl(file_name, line);
   }
 #endif

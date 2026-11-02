@@ -29,7 +29,7 @@ int VERBOSITY_NAME(file_loader) = VERBOSITY_NAME(DEBUG);
 
 namespace {
 
-Result<std::pair<FileFd, string>> try_create_new_file(CSlice path, CSlice file_name) {
+Result<std::pair<FileFd, string>> try_create_new_file(CSlice path, Slice file_name) {
   LOG(DEBUG) << "Trying to create new file \"" << file_name << "\" in the directory \"" << path << '"';
   auto name = PSTRING() << path << file_name;
   auto r_fd = FileFd::open(name, FileFd::Read | FileFd::Write | FileFd::CreateNew, 0640);
@@ -97,7 +97,7 @@ Result<std::pair<FileFd, string>> open_temp_file(FileType file_type) {
 }
 
 template <class F>
-bool for_suggested_file_name(CSlice name, bool use_pmc, bool use_random, F &&callback) {
+bool for_suggested_file_name(Slice name, bool use_pmc, bool use_random, F &&callback) {
   auto cleaned_name = clean_filename(name);
   PathView path_view(cleaned_name);
   auto stem = path_view.file_stem();
@@ -123,12 +123,12 @@ bool for_suggested_file_name(CSlice name, bool use_pmc, bool use_random, F &&cal
   return active;
 }
 
-Result<string> create_from_temp(FileType file_type, CSlice temp_path, CSlice name) {
+Result<string> create_from_temp(FileType file_type, CSlice temp_path, Slice name) {
   auto dir = get_files_dir(file_type);
   LOG(INFO) << "Create file of type " << file_type << " in directory " << dir << " with suggested name " << name
             << " from temporary file " << temp_path;
   Result<std::pair<FileFd, string>> res = Status::Error(500, "Can't find suitable file name");
-  for_suggested_file_name(name, true, true, [&](CSlice suggested_name) {
+  for_suggested_file_name(name, true, true, [&](Slice suggested_name) {
     res = try_create_new_file(dir, suggested_name);
     return res.is_error();
   });
@@ -139,10 +139,10 @@ Result<string> create_from_temp(FileType file_type, CSlice temp_path, CSlice nam
   return perm_path;
 }
 
-Result<string> search_file(FileType file_type, CSlice name, int64 expected_size) {
+Result<string> search_file(FileType file_type, Slice name, int64 expected_size) {
   Result<string> res = Status::Error(500, "Can't find suitable file name");
   auto dir = get_files_dir(file_type);
-  for_suggested_file_name(name, false, false, [&](CSlice suggested_name) {
+  for_suggested_file_name(name, false, false, [&](Slice suggested_name) {
     auto r_pair = try_open_file(PSLICE() << dir << suggested_name);
     if (r_pair.is_error()) {
       return false;
@@ -206,7 +206,7 @@ Result<string> get_suggested_file_name(CSlice directory, Slice file_name) {
   return PSTRING() << stem << " - " << StringBuilder::FixedDouble(Clocks::system(), 3) << Ext{ext};
 }
 
-Result<FullLocalFileLocation> save_file_bytes(FileType file_type, BufferSlice bytes, CSlice file_name) {
+Result<FullLocalFileLocation> save_file_bytes(FileType file_type, BufferSlice bytes, Slice file_name) {
   auto r_old_path = search_file(file_type, file_name, bytes.size());
   if (r_old_path.is_ok()) {
     auto r_old_bytes = read_file(r_old_path.ok());

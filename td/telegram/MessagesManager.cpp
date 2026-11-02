@@ -1977,13 +1977,13 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
       return;
     }
     // no on_get_dialog_error call, because two dialogs are involved
-    if (status.code() == 400 && status.message() == CSlice("CHAT_FORWARDS_RESTRICTED")) {
+    if (status.code() == 400 && status.message() == Slice("CHAT_FORWARDS_RESTRICTED")) {
       td_->dialog_manager_->reload_dialog_info(from_dialog_id_, Promise<Unit>());
     }
-    if (status.code() == 400 && status.message() == CSlice("SEND_AS_PEER_INVALID")) {
+    if (status.code() == 400 && status.message() == Slice("SEND_AS_PEER_INVALID")) {
       td_->dialog_manager_->reload_dialog_info_full(to_dialog_id_, "SEND_AS_PEER_INVALID");
     }
-    if (message_id_.is_valid() && status.message() == CSlice("MESSAGE_ID_INVALID")) {
+    if (message_id_.is_valid() && status.message() == Slice("MESSAGE_ID_INVALID")) {
       td_->messages_manager_->get_message_from_server({from_dialog_id_, message_id_}, Promise<Unit>(),
                                                       "ForwardMessagesQuery");
     }
@@ -2079,7 +2079,7 @@ class SendQuickReplyMessagesQuery final : public Td::ResultHandler {
       return;
     }
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendQuickReplyMessagesQuery");
-    if (status.code() == 400 && status.message() == CSlice("MESSAGE_IDS_MISMATCH")) {
+    if (status.code() == 400 && status.message() == Slice("MESSAGE_IDS_MISMATCH")) {
       td_->quick_reply_manager_->reload_quick_reply_messages(shortcut_id_, Auto());
     }
     for (auto &random_id : random_ids_) {
@@ -20456,8 +20456,8 @@ void MessagesManager::on_set_message_reactions(MessageFullId message_full_id, Re
   promise.set_result(std::move(result));
 }
 
-int64 MessagesManager::get_required_paid_message_star_count(int32 error_code, CSlice error_message) {
-  auto allow_payment_required_prefix = CSlice("ALLOW_PAYMENT_REQUIRED_");
+int64 MessagesManager::get_required_paid_message_star_count(int32 error_code, Slice error_message) {
+  auto allow_payment_required_prefix = Slice("ALLOW_PAYMENT_REQUIRED_");
   if ((error_code == 400 || error_code == 403) && begins_with(error_message, allow_payment_required_prefix)) {
     return StarManager::get_star_count(to_integer<int64>(error_message.substr(allow_payment_required_prefix.size())));
   }
@@ -20472,12 +20472,10 @@ tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_
   if (m->is_failed_to_send) {
     auto can_retry = can_resend_message(m);
     auto error_code = m->send_error_code > 0 ? m->send_error_code : 400;
-    auto need_another_sender =
-        can_retry && error_code == 400 && m->send_error_message == CSlice("SEND_AS_PEER_INVALID");
+    auto need_another_sender = can_retry && error_code == 400 && m->send_error_message == Slice("SEND_AS_PEER_INVALID");
     auto need_another_reply_quote =
-        can_retry && error_code == 400 && m->send_error_message == CSlice("QUOTE_TEXT_INVALID");
-    auto need_drop_reply =
-        can_retry && error_code == 400 && m->send_error_message == CSlice("REPLY_MESSAGE_ID_INVALID");
+        can_retry && error_code == 400 && m->send_error_message == Slice("QUOTE_TEXT_INVALID");
+    auto need_drop_reply = can_retry && error_code == 400 && m->send_error_message == Slice("REPLY_MESSAGE_ID_INVALID");
     return td_api::make_object<td_api::messageSendingStateFailed>(
         td_api::make_object<td_api::error>(error_code, m->send_error_message), can_retry, need_another_sender,
         need_another_reply_quote, need_drop_reply,
@@ -25223,9 +25221,9 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     send_update_delete_messages(dialog_id, {message->message_id.get()}, true);
 
     auto error_code = message->send_error_code > 0 ? message->send_error_code : 400;
-    auto need_another_sender = error_code == 400 && message->send_error_message == CSlice("SEND_AS_PEER_INVALID");
-    auto need_another_reply_quote = error_code == 400 && message->send_error_message == CSlice("QUOTE_TEXT_INVALID");
-    auto need_drop_reply = error_code == 400 && message->send_error_message == CSlice("REPLY_MESSAGE_ID_INVALID");
+    auto need_another_sender = error_code == 400 && message->send_error_message == Slice("SEND_AS_PEER_INVALID");
+    auto need_another_reply_quote = error_code == 400 && message->send_error_message == Slice("QUOTE_TEXT_INVALID");
+    auto need_drop_reply = error_code == 400 && message->send_error_message == Slice("REPLY_MESSAGE_ID_INVALID");
     auto required_paid_message_star_count =
         get_required_paid_message_star_count(error_code, message->send_error_message);
     if (need_another_reply_quote && message_ids.size() == 1 && quote != nullptr) {
