@@ -1795,6 +1795,9 @@ class GetSavedStarGiftQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetSavedStarGiftQuery: " << to_string(ptr);
 
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetSavedStarGiftQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetSavedStarGiftQuery");
+
     for (auto &gift : ptr->gifts_) {
       UserStarGift user_gift(td_, std::move(gift), dialog_id_);
       if (!user_gift.is_valid()) {
