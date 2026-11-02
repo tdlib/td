@@ -6010,25 +6010,8 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool &old_use_defa
   auto scope_mute_until = td_->notification_settings_manager_->get_scope_mute_until(scope);
   bool was_muted = (old_use_default ? scope_mute_until : old_mute_until) != 0;
   bool is_muted = (new_use_default ? scope_mute_until : new_mute_until) != 0;
-  if (was_muted != is_muted && need_unread_counter(d->order)) {
-    auto unread_count = d->server_unread_count + d->local_unread_count;
-    if (unread_count != 0 || d->is_marked_as_unread) {
-      for (auto &list : get_dialog_lists(d)) {
-        if (unread_count != 0 && list.is_message_unread_count_inited_) {
-          int32 delta = was_muted ? -unread_count : unread_count;
-          list.unread_message_muted_count_ += delta;
-          send_update_unread_message_count(list, d->dialog_id, true, "update_dialog_unmute_timeout");
-        }
-        if (list.is_dialog_unread_count_inited_) {
-          int32 delta = was_muted ? -1 : 1;
-          list.unread_dialog_muted_count_ += delta;
-          if (unread_count == 0 && d->is_marked_as_unread) {
-            list.unread_dialog_muted_marked_count_ += delta;
-          }
-          send_update_unread_chat_count(list, d->dialog_id, true, "update_dialog_unmute_timeout");
-        }
-      }
-    }
+  if (was_muted != is_muted) {
+    update_dialog_muted_unread_count(d, is_muted, "update_dialog_unmute_timeout");
   }
 
   old_use_default = new_use_default;
@@ -6036,6 +6019,31 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool &old_use_defa
 
   if (was_muted != is_muted && td_->dialog_filter_manager_->have_dialog_filters()) {
     update_dialog_lists(d, get_dialog_positions(d), true, false, "update_dialog_unmute_timeout");
+  }
+}
+
+void MessagesManager::update_dialog_muted_unread_count(Dialog *d, bool is_muted, const char *source) {
+  if (!need_unread_counter(d->order)) {
+    return;
+  }
+  auto unread_count = d->server_unread_count + d->local_unread_count;
+  if (unread_count == 0 && !d->is_marked_as_unread) {
+    return;
+  }
+  for (auto &list : get_dialog_lists(d)) {
+    if (unread_count != 0 && list.is_message_unread_count_inited_) {
+      int32 delta = is_muted ? unread_count : -unread_count;
+      list.unread_message_muted_count_ += delta;
+      send_update_unread_message_count(list, d->dialog_id, true, source);
+    }
+    if (list.is_dialog_unread_count_inited_) {
+      int32 delta = is_muted ? 1 : -1;
+      list.unread_dialog_muted_count_ += delta;
+      if (unread_count == 0 && d->is_marked_as_unread) {
+        list.unread_dialog_muted_marked_count_ += delta;
+      }
+      send_update_unread_chat_count(list, d->dialog_id, true, source);
+    }
   }
 }
 

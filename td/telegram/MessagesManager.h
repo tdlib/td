@@ -2701,6 +2701,8 @@ class MessagesManager final : public Actor {
   void update_dialog_unmute_timeout(Dialog *d, bool &old_use_default, int32 &old_mute_until, bool new_use_default,
                                     int32 new_mute_until);
 
+  void update_dialog_muted_unread_count(Dialog *d, bool is_muted, const char *source);
+
   void on_dialog_unmute(DialogId dialog_id);
 
   bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
