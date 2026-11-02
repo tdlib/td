@@ -17,6 +17,8 @@
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 
+#include <type_traits>
+
 namespace td {
 
 class SendCodeQuery final : public Td::ResultHandler {
@@ -32,6 +34,12 @@ class SendCodeQuery final : public Td::ResultHandler {
   }
 
   void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::account_sendVerifyPhoneCode::ReturnType,
+                               telegram_api::account_sendChangePhoneCode::ReturnType>::value);
+    static_assert(std::is_same<telegram_api::account_sendConfirmPhoneCode::ReturnType,
+                               telegram_api::account_sendChangePhoneCode::ReturnType>::value);
+    static_assert(std::is_same<telegram_api::auth_resendCode::ReturnType,
+                               telegram_api::account_sendChangePhoneCode::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::account_sendChangePhoneCode>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());

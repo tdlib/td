@@ -1122,6 +1122,8 @@ void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentC
 }
 
 void AuthManager::on_send_code_result(NetQueryPtr &&net_query) {
+  static_assert(
+      std::is_same<telegram_api::auth_resendCode::ReturnType, telegram_api::auth_sendCode::ReturnType>::value);
   auto r_sent_code = fetch_result<telegram_api::auth_sendCode>(std::move(net_query));
   if (r_sent_code.is_error()) {
     return on_current_query_error(r_sent_code.move_as_error());
@@ -1206,6 +1208,8 @@ void AuthManager::on_reset_email_address_result(NetQueryPtr &&net_query) {
 }
 
 void AuthManager::on_request_qr_code_result(NetQueryPtr &&net_query, bool is_import) {
+  static_assert(std::is_same<telegram_api::auth_importLoginToken::ReturnType,
+                             telegram_api::auth_exportLoginToken::ReturnType>::value);
   auto r_login_token = fetch_result<telegram_api::auth_exportLoginToken>(std::move(net_query));
   if (r_login_token.is_ok()) {
     auto login_token = r_login_token.move_as_ok();
@@ -1402,6 +1406,13 @@ void AuthManager::on_request_firebase_sms_result(NetQueryPtr &&net_query) {
 }
 
 void AuthManager::on_authentication_result(NetQueryPtr &&net_query, bool is_from_current_query) {
+  static_assert(std::is_same<telegram_api::auth_signUp::ReturnType, telegram_api::auth_signIn::ReturnType>::value);
+  static_assert(std::is_same<telegram_api::auth_importBotAuthorization::ReturnType,
+                             telegram_api::auth_signIn::ReturnType>::value);
+  static_assert(
+      std::is_same<telegram_api::auth_checkPassword::ReturnType, telegram_api::auth_signIn::ReturnType>::value);
+  static_assert(
+      std::is_same<telegram_api::auth_recoverPassword::ReturnType, telegram_api::auth_signIn::ReturnType>::value);
   auto r_sign_in = fetch_result<telegram_api::auth_signIn>(std::move(net_query));
   if (r_sign_in.is_error()) {
     if (is_from_current_query) {

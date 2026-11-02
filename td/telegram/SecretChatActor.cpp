@@ -1521,6 +1521,10 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
   state->net_query_id = 0;
   state->net_query_ref = NetQueryRef();
 
+  static_assert(std::is_same<telegram_api::messages_sendEncryptedService::ReturnType,
+                             telegram_api::messages_sendEncrypted::ReturnType>::value);
+  static_assert(std::is_same<telegram_api::messages_sendEncryptedFile::ReturnType,
+                             telegram_api::messages_sendEncrypted::ReturnType>::value);
   auto r_result = fetch_result<telegram_api::messages_sendEncrypted>(std::move(query));
   if (r_result.is_error()) {
     auto error = r_result.move_as_error();
