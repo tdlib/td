@@ -1595,6 +1595,22 @@ void CommunityManager::update_community_notification_settings(Community *c, Comm
   }
 }
 
+void CommunityManager::reset_all_community_notification_settings() {
+  vector<CommunityId> community_ids;
+  communities_.foreach(
+      [&](const CommunityId &community_id, unique_ptr<Community> &) { community_ids.push_back(community_id); });
+  for (auto community_id : community_ids) {
+    DialogNotificationSettings new_settings;
+    new_settings.is_synchronized = true;
+    auto community_full = get_community_full_force(community_id, true, "reset_all_community_notification_settings");
+    if (community_full != nullptr) {
+      update_community_full_notification_settings(community_full, community_id, new_settings.clone(),
+                                                  "reset_all_community_notification_settings");
+    }
+    update_community_notification_settings(get_community(community_id), community_id, std::move(new_settings));
+  }
+}
+
 bool CommunityManager::update_community_full_notification_settings(CommunityFull *community_full,
                                                                    CommunityId community_id,
                                                                    DialogNotificationSettings &&new_settings,

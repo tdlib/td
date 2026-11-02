@@ -83,6 +83,8 @@ class CommunityManager final : public Actor {
                                            td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings,
                                            Promise<Unit> &&promise);
 
+  void reset_all_community_notification_settings();
+
   void set_community_permissions(CommunityId community_id,
                                  const td_api::object_ptr<td_api::communityPermissions> &permissions,
                                  Promise<Unit> &&promise);

@@ -11,6 +11,7 @@
 #include "td/telegram/AudiosManager.hpp"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/CommunityManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
@@ -1691,6 +1692,8 @@ void NotificationSettingsManager::get_story_notification_settings_exceptions(
 
 void NotificationSettingsManager::reset_all_notification_settings() {
   CHECK(!td_->auth_manager_->is_bot());
+
+  td_->community_manager_->reset_all_community_notification_settings();
 
   td_->messages_manager_->reset_all_dialog_notification_settings();
 
