@@ -299,8 +299,16 @@ class CommunityManager final : public Actor {
 
   void on_update_community_full_photo(CommunityFull *community_full, CommunityId community_id, Photo photo);
 
+  static bool need_update_community_dialogs(const DialogNotificationSettings &old_settings,
+                                            const DialogNotificationSettings &new_settings);
+
   void update_community_notification_settings(Community *c, CommunityId community_id,
                                               DialogNotificationSettings &&new_settings);
+
+  void on_reload_community_full_for_notification_settings(CommunityId community_id);
+
+  void do_update_community_notification_settings(Community *c, CommunityId community_id,
+                                                 DialogNotificationSettings &&new_settings);
 
   bool update_community_full_notification_settings(CommunityFull *community_full, CommunityId community_id,
                                                    DialogNotificationSettings &&new_settings, const char *source);
@@ -339,6 +347,8 @@ class CommunityManager final : public Actor {
   FlatHashSet<CommunityId, CommunityIdHash> loaded_from_database_communities_;
   FlatHashSet<CommunityId, CommunityIdHash> unavailable_community_fulls_;
   FlatHashSet<CommunityId, CommunityIdHash> get_community_notification_settings_queries_;
+  FlatHashMap<CommunityId, unique_ptr<DialogNotificationSettings>, CommunityIdHash>
+      pending_community_notification_settings_;
 
   MultiTimeout community_unmute_timeout_{"CommunityUnmuteTimeout"};
 

@@ -44,6 +44,8 @@
 #include "td/utils/tl_helpers.h"
 #include "td/utils/utf8.h"
 
+#include <tuple>
+
 namespace td {
 
 class GetCommunitiesQuery final : public Td::ResultHandler {
@@ -1046,7 +1048,8 @@ void CommunityManager::on_load_community_from_database(CommunityId community_id,
     CHECK(!c->is_saved);  // community can't be saved before load completes
     CHECK(!c->is_being_saved);
     DialogNotificationSettings notification_settings;
-    if (!value.empty() && !c->notification_settings.is_synchronized) {
+    if (!value.empty() && !c->notification_settings.is_synchronized &&
+        pending_community_notification_settings_.count(community_id) == 0) {
       Community temp_c;
       if (log_event_parse(temp_c, value).is_ok()) {
         notification_settings = std::move(temp_c.notification_settings);
@@ -1618,18 +1621,77 @@ void CommunityManager::on_update_community_notify_settings(
   update_community_notification_settings(c, community_id, std::move(notification_settings));
 }
 
+// returns true if the change can affect notification state of community chats, maintained by MessagesManager
+bool CommunityManager::need_update_community_dialogs(const DialogNotificationSettings &old_settings,
+                                                     const DialogNotificationSettings &new_settings) {
+  auto get_state = [](const DialogNotificationSettings &settings) {
+    if (!settings.is_synchronized) {
+      return std::make_tuple(-1, -1, -1);
+    }
+    return std::make_tuple(settings.use_default_mute_until ? -1 : static_cast<int>(settings.mute_until != 0),
+                           settings.use_default_disable_pinned_message_notifications
+                               ? -1
+                               : static_cast<int>(settings.disable_pinned_message_notifications),
+                           settings.use_default_disable_mention_notifications
+                               ? -1
+                               : static_cast<int>(settings.disable_mention_notifications));
+  };
+  return get_state(old_settings) != get_state(new_settings);
+}
+
 void CommunityManager::update_community_notification_settings(Community *c, CommunityId community_id,
                                                               DialogNotificationSettings &&new_settings) {
   CHECK(c != nullptr);
   new_settings.fix_expired_mute_until();
   auto need_update = need_update_dialog_notification_settings(&c->notification_settings, new_settings);
-  if (need_update.are_changed || need_update.need_update_local) {
-    c->notification_settings = std::move(new_settings);
-    c->need_save_to_database = true;
-    schedule_community_unmute(community_id, c->notification_settings.use_default_mute_until,
-                              c->notification_settings.mute_until, G()->unix_time());
-    update_community(c, community_id);
+  if (!need_update.are_changed && !need_update.need_update_local) {
+    pending_community_notification_settings_.erase(community_id);
+    return;
   }
+
+  if (!td_->auth_manager_->is_bot() && need_update_community_dialogs(c->notification_settings, new_settings) &&
+      get_community_full_force(community_id, true, "update_community_notification_settings") == nullptr) {
+    // the list of community chats is needed to apply the new settings
+    auto &pending_settings = pending_community_notification_settings_[community_id];
+    if (pending_settings == nullptr) {
+      reload_community_full(
+          community_id, PromiseCreator::lambda([actor_id = actor_id(this), community_id](Result<Unit> &&) {
+            send_closure(actor_id, &CommunityManager::on_reload_community_full_for_notification_settings, community_id);
+          }),
+          "update_community_notification_settings");
+    }
+    pending_settings = make_unique<DialogNotificationSettings>(std::move(new_settings));
+    return;
+  }
+
+  pending_community_notification_settings_.erase(community_id);
+  do_update_community_notification_settings(c, community_id, std::move(new_settings));
+}
+
+void CommunityManager::on_reload_community_full_for_notification_settings(CommunityId community_id) {
+  auto it = pending_community_notification_settings_.find(community_id);
+  if (it == pending_community_notification_settings_.end()) {
+    return;
+  }
+  auto new_settings = std::move(*it->second);
+  pending_community_notification_settings_.erase(it);
+
+  auto c = get_community(community_id);
+  CHECK(c != nullptr);
+  new_settings.fix_expired_mute_until();
+  auto need_update = need_update_dialog_notification_settings(&c->notification_settings, new_settings);
+  if (need_update.are_changed || need_update.need_update_local) {
+    do_update_community_notification_settings(c, community_id, std::move(new_settings));
+  }
+}
+
+void CommunityManager::do_update_community_notification_settings(Community *c, CommunityId community_id,
+                                                                 DialogNotificationSettings &&new_settings) {
+  c->notification_settings = std::move(new_settings);
+  c->need_save_to_database = true;
+  schedule_community_unmute(community_id, c->notification_settings.use_default_mute_until,
+                            c->notification_settings.mute_until, G()->unix_time());
+  update_community(c, community_id);
 }
 
 void CommunityManager::schedule_community_unmute(CommunityId community_id, bool use_default, int32 mute_until,
@@ -1651,7 +1713,8 @@ void CommunityManager::on_community_unmute(CommunityId community_id) {
   CHECK(c != nullptr);
 
   const auto &notification_settings = c->notification_settings;
-  if (notification_settings.use_default_mute_until || notification_settings.mute_until == 0) {
+  if (notification_settings.use_default_mute_until || notification_settings.mute_until == 0 ||
+      pending_community_notification_settings_.count(community_id) != 0) {
     return;
   }
 
