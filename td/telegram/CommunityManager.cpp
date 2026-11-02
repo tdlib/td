@@ -1671,6 +1671,23 @@ void CommunityManager::on_community_unmute(CommunityId community_id) {
   update_community_notification_settings(c, community_id, std::move(new_settings));
 }
 
+const DialogNotificationSettings *CommunityManager::get_community_notification_settings(CommunityId community_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return nullptr;
+  }
+  auto c = get_community_force(community_id, "get_community_notification_settings");
+  if (c == nullptr) {
+    return nullptr;
+  }
+  if (!c->notification_settings.is_synchronized) {
+    if (get_community_notification_settings_queries_.insert(community_id).second) {
+      td_->create_handler<GetCommunityNotifySettingsQuery>()->send(community_id);
+    }
+    return nullptr;
+  }
+  return &c->notification_settings;
+}
+
 void CommunityManager::reset_all_community_notification_settings() {
   vector<CommunityId> community_ids;
   communities_.foreach(

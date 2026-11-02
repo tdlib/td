@@ -84,6 +84,8 @@ class CommunityManager final : public Actor {
                                            td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings,
                                            Promise<Unit> &&promise);
 
+  const DialogNotificationSettings *get_community_notification_settings(CommunityId community_id);
+
   void reset_all_community_notification_settings();
 
   void set_community_permissions(CommunityId community_id,
@@ -336,6 +338,7 @@ class CommunityManager final : public Actor {
   FlatHashMap<CommunityId, vector<Promise<Unit>>, CommunityIdHash> load_community_from_database_queries_;
   FlatHashSet<CommunityId, CommunityIdHash> loaded_from_database_communities_;
   FlatHashSet<CommunityId, CommunityIdHash> unavailable_community_fulls_;
+  FlatHashSet<CommunityId, CommunityIdHash> get_community_notification_settings_queries_;
 
   MultiTimeout community_unmute_timeout_{"CommunityUnmuteTimeout"};
 
