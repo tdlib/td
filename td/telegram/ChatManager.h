@@ -788,6 +788,7 @@ class ChatManager final : public Actor {
                                         StoryId max_read_story_id);
   void on_update_channel_max_read_story_id(Channel *c, ChannelId channel_id, StoryId max_read_story_id);
   void on_update_channel_bot_verification_icon(Channel *c, ChannelId channel_id, CustomEmojiId bot_verification_icon);
+  void on_update_channel_linked_community_id(Channel *c, ChannelId channel_id, CommunityId linked_community_id);
 
   void on_update_channel_full_photo(ChannelFull *channel_full, ChannelId channel_id, Photo photo);
   void on_update_channel_full_invite_link(ChannelFull *channel_full,

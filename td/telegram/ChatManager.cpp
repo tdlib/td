@@ -8197,16 +8197,23 @@ void ChatManager::on_update_channel_linked_channel_id(ChannelId channel_id, Chan
 
 void ChatManager::on_update_channel_linked_community_id(ChannelId channel_id, CommunityId linked_community_id) {
   auto c = get_channel(channel_id);
-  if (c != nullptr && c->linked_community_id != linked_community_id) {
-    c->linked_community_id = linked_community_id;
-    c->is_linked_community_id_changed = true;
-    c->need_save_to_database = true;
+  if (c != nullptr) {
+    on_update_channel_linked_community_id(c, channel_id, linked_community_id);
     update_channel(c, channel_id);
   }
   auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_linked_community_id");
   if (channel_full != nullptr) {
     on_update_channel_full_linked_community_id(channel_full, channel_id, linked_community_id);
     update_channel_full(channel_full, channel_id, "on_update_channel_linked_community_id");
+  }
+}
+
+void ChatManager::on_update_channel_linked_community_id(Channel *c, ChannelId channel_id,
+                                                        CommunityId linked_community_id) {
+  if (c->linked_community_id != linked_community_id) {
+    c->linked_community_id = linked_community_id;
+    c->is_linked_community_id_changed = true;
+    c->need_save_to_database = true;
   }
 }
 
@@ -9478,11 +9485,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
 
         c->need_save_to_database = true;
       }
-      if (c->linked_community_id != linked_community_id) {
-        c->linked_community_id = linked_community_id;
-        c->is_linked_community_id_changed = true;
-        c->need_save_to_database = true;
-      }
+      on_update_channel_linked_community_id(c, channel_id, linked_community_id);
       // sign_messages isn't known for min-channels
       if (c->is_verified != is_verified) {
         c->is_verified = is_verified;
@@ -9614,11 +9617,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
 
     c->need_save_to_database = true;
   }
-  if (c->linked_community_id != linked_community_id) {
-    c->linked_community_id = linked_community_id;
-    c->is_linked_community_id_changed = true;
-    c->need_save_to_database = true;
-  }
+  on_update_channel_linked_community_id(c, channel_id, linked_community_id);
   if (c->is_verified != is_verified || c->sign_messages != sign_messages ||
       c->show_message_sender != show_message_sender || c->autotranslation != autotranslation) {
     c->is_verified = is_verified;
