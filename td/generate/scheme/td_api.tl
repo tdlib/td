@@ -4420,7 +4420,7 @@ forumTopicInfo chat_id:int53 forum_topic_id:int32 name:string icon:forumTopicIco
 //@description Describes a forum topic
 //@info Basic information about the topic
 //@last_message Last message in the topic; may be null if unknown
-//@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order
+//@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order. If order is 0, then the topic must not be shown in the topic list
 //@is_pinned True, if the topic is pinned in the topic list
 //@unread_count Number of unread messages in the topic
 //@last_read_inbox_message_id Identifier of the last read incoming message
@@ -11470,18 +11470,13 @@ updateChatWelcomeMessages chat_id:int53 messages:vector<welcomeMessage> = Update
 //@description Basic information about a topic in a forum chat was changed @info New information about the topic
 updateForumTopicInfo info:forumTopicInfo = Update;
 
-//@description Information about a topic in a forum chat was changed
+//@description Information about a topic in a forum chat was changed @topic New data about the topic
+updateForumTopic topic:forumTopic = Update;
+
+//@description A topic in a forum chat was deleted. The General topic is deleted only when the chat stops being a forum, in which case the update is sent for all known topics
 //@chat_id Chat identifier
-//@forum_topic_id Forum topic identifier of the topic
-//@is_pinned True, if the topic is pinned in the topic list
-//@last_read_inbox_message_id Identifier of the last read incoming message
-//@last_read_outbox_message_id Identifier of the last read outgoing message
-//@unread_mention_count Number of unread messages with a mention/reply in the topic
-//@unread_reaction_count Number of messages with unread reactions in the topic
-//@unread_poll_vote_count Number of messages with unread poll votes in the topic
-//@notification_settings Notification settings for the topic
-//@draft_message A draft of a message in the topic; may be null if none
-updateForumTopic chat_id:int53 forum_topic_id:int32 is_pinned:Bool last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 unread_poll_vote_count:int32 notification_settings:chatNotificationSettings draft_message:draftMessage = Update;
+//@forum_topic_id Forum topic identifier of the deleted topic
+updateForumTopicDeleted chat_id:int53 forum_topic_id:int32 = Update;
 
 //@description Notification settings for some type of chats were updated
 //@scope Types of chats for which notification settings were updated
@@ -13643,6 +13638,14 @@ getForumTopicHistory chat_id:int53 forum_topic_id:int32 from_message_id:int53 of
 
 //@description Returns an HTTPS link to a topic in a forum supergroup chat. This is an offline method @chat_id Identifier of the chat @forum_topic_id Forum topic identifier
 getForumTopicLink chat_id:int53 forum_topic_id:int32 = MessageLink;
+
+//@description Loads more topics in a forum supergroup chat or a chat with a bot with topics. The loaded topics will be sent through updateForumTopic.
+//-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded.
+//-While the chat is closed, the loaded part of the list can be shortened to its first topics, which is reported through updateForumTopic with order 0 for the topics after them.
+//-The General topic is never removed from memory, and a hidden General topic is received with the first topics, so applications showing a hidden General topic above other topics can show it regardless of its order
+//@chat_id Identifier of the chat
+//@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
+loadForumTopics chat_id:int53 limit:int32 = Ok;
 
 //@description Returns found forum topics in a forum supergroup chat or a chat with a bot with topics. This is a temporary method for getting information about topic list from the server
 //@chat_id Identifier of the chat

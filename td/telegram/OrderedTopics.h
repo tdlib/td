@@ -9,6 +9,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 
+#include <iterator>
 #include <limits>
 #include <set>
 
@@ -41,6 +42,10 @@ class OrderedTopics {
 
     bool operator!=(const TopicDate &other) const {
       return !(*this == other);
+    }
+
+    int64 get_order() const {
+      return order_;
     }
 
     TopicIdT get_topic_id() const {
@@ -96,6 +101,37 @@ class OrderedTopics {
       result.push_back(it->get_topic_id());
     }
     return result;
+  }
+
+  // returns topics, which public order has changed
+  vector<TopicIdT> reset_last_topic_date(TopicDate topic_date) {
+    vector<TopicIdT> result;
+    if (last_topic_date_ <= topic_date) {
+      return result;
+    }
+    for (auto it = ordered_topics_.upper_bound(topic_date); it != ordered_topics_.end() && *it <= last_topic_date_;
+         ++it) {
+      result.push_back(it->get_topic_id());
+    }
+    last_topic_date_ = topic_date;
+    return result;
+  }
+
+  TopicDate get_last_topic_date() const {
+    return last_topic_date_;
+  }
+
+  // returns the date of the topic at the given position in the list, or max_topic_date() if there are fewer topics
+  TopicDate get_topic_date(size_t position) const {
+    if (position >= ordered_topics_.size()) {
+      return max_topic_date();
+    }
+    return *std::next(ordered_topics_.begin(), static_cast<std::ptrdiff_t>(position));
+  }
+
+  // returns the date of the last topic in the list, or min_topic_date() if there are no topics
+  TopicDate get_last_known_topic_date() const {
+    return ordered_topics_.empty() ? min_topic_date() : *ordered_topics_.rbegin();
   }
 
   bool is_fully_loaded() const {

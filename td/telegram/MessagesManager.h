@@ -278,6 +278,8 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_is_forum(DialogId dialog_id, bool is_forum, bool is_forum_tabs);
 
+  void on_forum_topic_notification_settings_known(DialogId dialog_id);
+
   void on_update_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages);
 
   void on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread);
@@ -603,6 +605,9 @@ class MessagesManager final : public Actor {
 
   int64 get_message_order(DialogId dialog_id, MessageId message_id) const;
 
+  // returns 0 if the message isn't in memory
+  int32 get_message_date(MessageFullId message_full_id) const;
+
   void block_message_sender_from_replies(MessageId message_id, bool need_delete_message, bool need_delete_all_messages,
                                          bool report_spam, Promise<Unit> &&promise);
 
@@ -767,6 +772,9 @@ class MessagesManager final : public Actor {
                                                                     MessageId from_message_id, int32 offset,
                                                                     int32 limit, int64 &random_id,
                                                                     Promise<Unit> &&promise);
+
+  void preload_forum_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId from_message_id,
+                                   int32 offset, int32 limit, Promise<Unit> &&promise);
 
   std::pair<DialogId, vector<MessageId>> get_forum_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                                  MessageId from_message_id, int32 offset, int32 limit,
@@ -2241,8 +2249,17 @@ class MessagesManager final : public Actor {
   std::pair<DialogId, vector<MessageId>> get_message_thread_history(DialogId dialog_id, MessageTopic topic,
                                                                     MessageFullId top_thread_message_full_id,
                                                                     MessageId from_message_id, int32 offset,
-                                                                    int32 limit, int64 &random_id,
+                                                                    int32 limit, bool from_memory, int64 &random_id,
                                                                     Promise<Unit> &&promise);
+
+  void on_preload_forum_topic_history(int64 random_id, Result<Unit> &&result, Promise<Unit> &&promise);
+
+  void on_get_forum_topic_history_from_database(DialogId dialog_id, MessageTopic topic, MessageId from_message_id,
+                                                int32 offset, int32 limit, int64 random_id,
+                                                MessageId first_database_message_id, MessageId last_database_message_id,
+                                                bool is_last_database_message,
+                                                Result<vector<MessageDbDialogMessage>> r_messages,
+                                                Promise<Unit> &&promise);
 
   static bool have_dialog_scheduled_messages_in_memory(const Dialog *d);
 
