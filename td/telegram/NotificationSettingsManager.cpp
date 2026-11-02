@@ -686,42 +686,6 @@ void NotificationSettingsManager::timeout_expired() {
   reload_saved_ringtones(Promise<Unit>());
 }
 
-int32 NotificationSettingsManager::get_scope_mute_until(NotificationSettingsScope scope) const {
-  return get_scope_notification_settings(scope)->mute_until;
-}
-
-std::pair<bool, bool> NotificationSettingsManager::get_scope_mute_stories(NotificationSettingsScope scope) const {
-  auto *settings = get_scope_notification_settings(scope);
-  return {settings->use_default_mute_stories, settings->mute_stories};
-}
-
-const unique_ptr<NotificationSound> &NotificationSettingsManager::get_scope_notification_sound(
-    NotificationSettingsScope scope) const {
-  return get_scope_notification_settings(scope)->sound;
-}
-
-const unique_ptr<NotificationSound> &NotificationSettingsManager::get_scope_story_notification_sound(
-    NotificationSettingsScope scope) const {
-  return get_scope_notification_settings(scope)->story_sound;
-}
-
-bool NotificationSettingsManager::get_scope_show_preview(NotificationSettingsScope scope) const {
-  return get_scope_notification_settings(scope)->show_preview;
-}
-
-bool NotificationSettingsManager::get_scope_hide_story_sender(NotificationSettingsScope scope) const {
-  return get_scope_notification_settings(scope)->hide_story_sender;
-}
-
-bool NotificationSettingsManager::get_scope_disable_pinned_message_notifications(
-    NotificationSettingsScope scope) const {
-  return get_scope_notification_settings(scope)->disable_pinned_message_notifications;
-}
-
-bool NotificationSettingsManager::get_scope_disable_mention_notifications(NotificationSettingsScope scope) const {
-  return get_scope_notification_settings(scope)->disable_mention_notifications;
-}
-
 const DialogNotificationSettings *NotificationSettingsManager::get_dialog_community_notification_settings(
     DialogId dialog_id) const {
   auto community_id = td_->dialog_manager_->get_dialog_linked_community_id(dialog_id);
@@ -733,42 +697,43 @@ const DialogNotificationSettings *NotificationSettingsManager::get_dialog_commun
 
 int32 NotificationSettingsManager::get_dialog_default_mute_until(DialogId dialog_id) const {
   auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
-  return get_scope_mute_until(scope);
+  return get_scope_notification_settings(scope)->mute_until;
 }
 
 bool NotificationSettingsManager::get_dialog_default_disable_pinned_message_notifications(DialogId dialog_id) const {
   auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
-  return get_scope_disable_pinned_message_notifications(scope);
+  return get_scope_notification_settings(scope)->disable_pinned_message_notifications;
 }
 
 bool NotificationSettingsManager::get_dialog_default_disable_mention_notifications(DialogId dialog_id) const {
   auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
-  return get_scope_disable_mention_notifications(scope);
+  return get_scope_notification_settings(scope)->disable_mention_notifications;
 }
 
 bool NotificationSettingsManager::get_dialog_default_show_preview(DialogId dialog_id) const {
   auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
-  return get_scope_show_preview(scope);
+  return get_scope_notification_settings(scope)->show_preview;
 }
 
 int64 NotificationSettingsManager::get_dialog_default_notification_ringtone_id(DialogId dialog_id) const {
   auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
-  return get_notification_sound_ringtone_id(get_scope_notification_sound(scope));
+  return get_notification_sound_ringtone_id(get_scope_notification_settings(scope)->sound);
 }
 
 std::pair<bool, bool> NotificationSettingsManager::get_dialog_default_mute_stories(DialogId dialog_id) const {
   auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
-  return get_scope_mute_stories(scope);
+  auto *settings = get_scope_notification_settings(scope);
+  return {settings->use_default_mute_stories, settings->mute_stories};
 }
 
 int64 NotificationSettingsManager::get_dialog_default_story_notification_ringtone_id(DialogId dialog_id) const {
   auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
-  return get_notification_sound_ringtone_id(get_scope_story_notification_sound(scope));
+  return get_notification_sound_ringtone_id(get_scope_notification_settings(scope)->story_sound);
 }
 
 bool NotificationSettingsManager::get_dialog_default_hide_story_sender(DialogId dialog_id) const {
   auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
-  return get_scope_hide_story_sender(scope);
+  return get_scope_notification_settings(scope)->hide_story_sender;
 }
 
 tl_object_ptr<telegram_api::InputNotifyPeer> NotificationSettingsManager::get_input_notify_peer(
