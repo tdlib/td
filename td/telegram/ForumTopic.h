@@ -9,7 +9,6 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogNotificationSettings.h"
 #include "td/telegram/DraftMessage.h"
-#include "td/telegram/ForumTopicId.h"
 #include "td/telegram/ForumTopicInfo.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
@@ -34,8 +33,6 @@ class ForumTopic {
   DialogNotificationSettings notification_settings_;
   unique_ptr<DraftMessage> draft_message_;
 
-  int64 get_forum_topic_order(Td *td, DialogId dialog_id) const;
-
  public:
   ForumTopic() = default;
 
@@ -45,6 +42,49 @@ class ForumTopic {
   bool is_short() const {
     return is_short_;
   }
+
+  MessageId get_last_message_id() const {
+    return last_message_id_;
+  }
+
+  MessageId get_last_read_inbox_message_id() const {
+    return last_read_inbox_message_id_;
+  }
+
+  MessageId get_last_read_outbox_message_id() const {
+    return last_read_outbox_message_id_;
+  }
+
+  int32 get_unread_count() const {
+    return unread_count_;
+  }
+
+  bool set_unread_count(int32 unread_count) {
+    if (unread_count < 0) {
+      unread_count = 0;
+    }
+    if (unread_count_ == unread_count) {
+      return false;
+    }
+    unread_count_ = unread_count;
+    return true;
+  }
+
+  bool set_last_message_id(MessageId last_message_id) {
+    if (last_message_id_ == last_message_id) {
+      return false;
+    }
+    last_message_id_ = last_message_id;
+    return true;
+  }
+
+  bool is_pinned() const {
+    return is_pinned_;
+  }
+
+  static int64 get_last_message_order(ForumTopicId forum_topic_id, MessageId last_message_id, int32 last_message_date);
+
+  int64 get_order(ForumTopicId forum_topic_id, int32 last_message_date) const;
 
   bool update_last_read_outbox_message_id(MessageId last_read_outbox_message_id);
 
@@ -78,11 +118,8 @@ class ForumTopic {
     return draft_message_;
   }
 
-  td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(Td *td, DialogId dialog_id,
-                                                                const ForumTopicInfo &info) const;
-
-  td_api::object_ptr<td_api::updateForumTopic> get_update_forum_topic_object(Td *td, DialogId dialog_id,
-                                                                             ForumTopicId forum_topic_id) const;
+  td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(Td *td, DialogId dialog_id, const ForumTopicInfo &info,
+                                                                int64 order) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

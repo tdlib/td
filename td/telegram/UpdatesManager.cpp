@@ -4009,6 +4009,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedForumTopi
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedForumTopics> update, Promise<Unit> &&promise) {
+  if ((update->flags_ & 1) == 0) {
+    // the order isn't known
+    td_->forum_topic_manager_->reload_pinned_forum_topics(DialogId(update->peer_));
+    return promise.set_value(Unit());
+  }
   vector<ForumTopicId> forum_topic_ids;
   for (auto topic_id : update->order_) {
     auto forum_topic_id = ForumTopicId(topic_id);
