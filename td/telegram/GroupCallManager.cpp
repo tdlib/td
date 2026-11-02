@@ -932,7 +932,7 @@ class LeaveGroupCallPresentationQuery final : public Td::ResultHandler {
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::phone_editGroupCallTitle>(packet);
+    auto result_ptr = fetch_result<telegram_api::phone_leaveGroupCallPresentation>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
