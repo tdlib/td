@@ -51,7 +51,7 @@ class LinkManager final : public Actor {
   };
 
   // checks whether the link is a valid supported URL and returns it in a canonical form
-  static Result<string> check_link(CSlice link, bool http_only = false, bool https_only = false);
+  static Result<string> check_link(Slice link, bool http_only = false, bool https_only = false);
 
   // same as check_link, but returns an empty string instead of an error
   static string get_checked_link(Slice link, bool http_only = false, bool https_only = false);

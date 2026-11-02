@@ -40,7 +40,7 @@ class RangeSet {
     return res;
   }
 
-  static td::Result<RangeSet> decode(td::CSlice data) {
+  static td::Result<RangeSet> decode(td::Slice data) {
     if (!td::check_utf8(data)) {
       return td::Status::Error("Invalid encoding");
     }

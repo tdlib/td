@@ -218,7 +218,7 @@ class TlBufferParser : public TlParser {
 
   BufferSlice as_buffer_slice(Slice slice);
 
-  bool is_valid_utf8(CSlice str) const;
+  bool is_valid_utf8(Slice str) const;
 
   static size_t last_utf8_character_position(Slice str);
 };

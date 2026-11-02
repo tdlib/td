@@ -19,7 +19,7 @@
 
 namespace td {
 
-Result<string> idn_to_ascii(CSlice host);
+Result<string> idn_to_ascii(Slice host);
 
 class ServerSocketFd;
 class SocketFd;

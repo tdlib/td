@@ -91,11 +91,10 @@ string oneline(Slice str) {
 
 namespace detail {
 Status get_to_integer_safe_error(Slice str) {
-  auto error_message = PSTRING() << "Can't parse as an integer string \"" << str << '"';
-  if (!check_utf8(error_message)) {
+  if (!check_utf8(str)) {
     return Status::Error("Strings must be encoded in UTF-8");
   }
-  return Status::Error(error_message);
+  return Status::Error(PSLICE() << "Can't parse as an integer string \"" << str << '"');
 }
 }  // namespace detail
 

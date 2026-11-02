@@ -12,7 +12,7 @@
 namespace td {
 
 /// checks UTF-8 string for correctness
-bool check_utf8(CSlice str);
+bool check_utf8(Slice str);
 
 /// checks if a code unit is a first code unit of a UTF-8 character
 inline bool is_utf8_character_first_code_unit(unsigned char c) {
@@ -113,6 +113,6 @@ vector<string> utf8_get_search_words(Slice str);
 string utf8_prepare_search_string(Slice str);
 
 /// Returns valid UTF-8 representation of the string.
-string utf8_encode(CSlice data);
+string utf8_encode(Slice data);
 
 }  // namespace td

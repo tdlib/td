@@ -162,7 +162,7 @@ Result<string> search_file(FileType file_type, CSlice name, int64 expected_size)
 }
 
 Result<string> get_suggested_file_name(CSlice directory, Slice file_name) {
-  string cleaned_name = clean_filename(file_name.str());
+  string cleaned_name = clean_filename(file_name);
   file_name = cleaned_name;
 
   if (directory.empty()) {

@@ -714,7 +714,7 @@ TEST(Misc, to_wstring) {
 }
 #endif
 
-static void test_check_utf8(td::CSlice str, bool result) {
+static void test_check_utf8(td::Slice str, bool result) {
   ASSERT_EQ(result, td::check_utf8(str));
 }
 

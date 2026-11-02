@@ -43,7 +43,7 @@ BufferSlice TlBufferParser::as_buffer_slice(Slice slice) {
   return BufferSlice(slice);
 }
 
-bool TlBufferParser::is_valid_utf8(CSlice str) const {
+bool TlBufferParser::is_valid_utf8(Slice str) const {
   if (check_utf8(str)) {
     return true;
   }

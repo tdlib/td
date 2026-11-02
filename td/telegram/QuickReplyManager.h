@@ -46,7 +46,7 @@ class QuickReplyManager final : public Actor {
   QuickReplyManager &operator=(QuickReplyManager &&) = delete;
   ~QuickReplyManager() final;
 
-  static Status check_shortcut_name(CSlice name);
+  static Status check_shortcut_name(Slice name);
 
   void get_quick_reply_shortcuts(Promise<Unit> &&promise);
 

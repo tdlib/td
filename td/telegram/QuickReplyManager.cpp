@@ -853,7 +853,7 @@ bool QuickReplyManager::is_shortcut_name_letter(uint32 code) {
   }
 }
 
-Status QuickReplyManager::check_shortcut_name(CSlice name) {
+Status QuickReplyManager::check_shortcut_name(Slice name) {
   if (!check_utf8(name)) {
     return Status::Error("Strings must be encoded in UTF-8");
   }

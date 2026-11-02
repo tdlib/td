@@ -88,7 +88,7 @@ static constexpr Utf8Dfa get_utf8_dfa() {
   return result;
 }
 
-bool check_utf8(CSlice str) {
+bool check_utf8(Slice str) {
   static constexpr Utf8Dfa UTF8_DFA = get_utf8_dfa();
 
   // the lowest 6 bits of state contain the current DFA state, other bits are ignored
@@ -196,7 +196,7 @@ string utf8_prepare_search_string(Slice str) {
   return implode(utf8_get_search_words(str));
 }
 
-string utf8_encode(CSlice data) {
+string utf8_encode(Slice data) {
   if (check_utf8(data)) {
     return data.str();
   }

@@ -18,7 +18,7 @@ char disable_linker_warning_about_empty_file_wstring_convert_cpp TD_UNUSED;
 
 namespace td {
 
-Result<std::wstring> to_wstring(CSlice slice) {
+Result<std::wstring> to_wstring(Slice slice) {
   if (!check_utf8(slice)) {
     return Status::Error(PSLICE() << "String was expected to be encoded in UTF-8: " << base64_encode(slice));
   }

@@ -153,7 +153,7 @@ static string clean_filename_part(Slice name, int max_length) {
   return new_name;
 }
 
-string clean_filename(CSlice name) {
+string clean_filename(Slice name) {
   if (!check_utf8(name)) {
     return {};
   }

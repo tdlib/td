@@ -26,7 +26,7 @@ struct WriteFileOptions {
 };
 Status write_file(CSlice to, Slice data, WriteFileOptions options = {}) TD_WARN_UNUSED_RESULT;
 
-string clean_filename(CSlice name);
+string clean_filename(Slice name);
 
 // writes data to file and ensures that the file is either fully overridden, or is left intact
 // uses path_tmp to temporary store data, then calls rename

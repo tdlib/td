@@ -129,7 +129,7 @@ static void punycode(string &result, Slice part) {
 }
 #endif
 
-Result<string> idn_to_ascii(CSlice host) {
+Result<string> idn_to_ascii(Slice host) {
   if (is_ascii_host(host)) {
     return to_lower(host);
   }
@@ -154,7 +154,7 @@ Result<string> idn_to_ascii(CSlice host) {
   TRY_RESULT(idn_host, from_wstring(punycode, result_length));
   return idn_host;
 #else
-  auto parts = full_split(Slice(host), '.');
+  auto parts = full_split(host, '.');
   bool is_first = true;
   string result;
   result.reserve(host.size());

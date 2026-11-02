@@ -95,11 +95,11 @@ static bool is_valid_game_name(Slice name) {
   return name.size() >= 3 && is_valid_username(name);
 }
 
-static bool is_valid_text_composition_style_name(CSlice name) {
+static bool is_valid_text_composition_style_name(Slice name) {
   return name.size() >= 8u && is_base64url_characters(name);
 }
 
-static bool is_valid_theme_name(CSlice name) {
+static bool is_valid_theme_name(Slice name) {
   return !name.empty() && check_utf8(name);
 }
 
@@ -115,7 +115,7 @@ static bool is_valid_language_pack_id(Slice language_pack_id) {
   return !language_pack_id.empty() && LanguagePackManager::check_language_code_name(language_pack_id);
 }
 
-static bool is_valid_upgraded_gift_name(CSlice name) {
+static bool is_valid_upgraded_gift_name(Slice name) {
   if (name.empty()) {
     return false;
   }
@@ -125,43 +125,43 @@ static bool is_valid_upgraded_gift_name(CSlice name) {
   return true;
 }
 
-static bool is_valid_user_token(CSlice token) {
+static bool is_valid_user_token(Slice token) {
   return !token.empty() && check_utf8(token);
 }
 
-static bool is_valid_login_code(CSlice code) {
+static bool is_valid_login_code(Slice code) {
   return !code.empty() && check_utf8(code);
 }
 
-static bool is_valid_premium_referrer(CSlice referrer) {
+static bool is_valid_premium_referrer(Slice referrer) {
   return check_utf8(referrer);
 }
 
-static bool is_valid_proxy_server(CSlice server) {
+static bool is_valid_proxy_server(Slice server) {
   return !server.empty() && server.size() <= 255u && check_utf8(server);
 }
 
-static bool is_valid_proxy_username(CSlice username) {
+static bool is_valid_proxy_username(Slice username) {
   return check_utf8(username);
 }
 
-static bool is_valid_proxy_password(CSlice password) {
+static bool is_valid_proxy_password(Slice password) {
   return check_utf8(password);
 }
 
-static bool is_valid_invoice_name(CSlice invoice_name) {
+static bool is_valid_invoice_name(Slice invoice_name) {
   return !invoice_name.empty() && check_utf8(invoice_name);
 }
 
-static bool is_valid_gift_code(CSlice gift_code) {
+static bool is_valid_gift_code(Slice gift_code) {
   return !gift_code.empty() && check_utf8(gift_code);
 }
 
-static bool is_valid_business_link_name(CSlice link_name) {
+static bool is_valid_business_link_name(Slice link_name) {
   return !link_name.empty() && check_utf8(link_name);
 }
 
-static bool is_valid_star_top_up_purpose(CSlice purpose) {
+static bool is_valid_star_top_up_purpose(Slice purpose) {
   return check_utf8(purpose);
 }
 
@@ -2137,7 +2137,7 @@ static bool tolower_begins_with(Slice str, Slice prefix) {
   return true;
 }
 
-Result<string> LinkManager::check_link(CSlice link, bool http_only, bool https_only) {
+Result<string> LinkManager::check_link(Slice link, bool http_only, bool https_only) {
   auto result = check_link_impl(link, http_only, https_only);
   if (result.is_ok()) {
     return result;
@@ -3293,10 +3293,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
   auto get_arg = [&args](Slice key) {
     for (auto &arg : args) {
       if (arg.first == key) {
-        return CSlice(arg.second);
+        return Slice(arg.second);
       }
     }
-    return CSlice();
+    return Slice();
   };
 
   UserId bot_user_id(to_integer<int64>(get_arg("bot_id")));
