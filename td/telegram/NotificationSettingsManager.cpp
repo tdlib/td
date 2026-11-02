@@ -696,16 +696,42 @@ const DialogNotificationSettings *NotificationSettingsManager::get_dialog_commun
 }
 
 int32 NotificationSettingsManager::get_dialog_default_mute_until(DialogId dialog_id) const {
+  return get_dialog_default_mute_until(dialog_id, get_dialog_community_notification_settings(dialog_id));
+}
+
+int32 NotificationSettingsManager::get_dialog_default_mute_until(
+    DialogId dialog_id, const DialogNotificationSettings *community_settings) const {
+  if (community_settings != nullptr && !community_settings->use_default_mute_until) {
+    return community_settings->mute_until;
+  }
   auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
   return get_scope_notification_settings(scope)->mute_until;
 }
 
 bool NotificationSettingsManager::get_dialog_default_disable_pinned_message_notifications(DialogId dialog_id) const {
+  return get_dialog_default_disable_pinned_message_notifications(dialog_id,
+                                                                 get_dialog_community_notification_settings(dialog_id));
+}
+
+bool NotificationSettingsManager::get_dialog_default_disable_pinned_message_notifications(
+    DialogId dialog_id, const DialogNotificationSettings *community_settings) const {
+  if (community_settings != nullptr && !community_settings->use_default_disable_pinned_message_notifications) {
+    return community_settings->disable_pinned_message_notifications;
+  }
   auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
   return get_scope_notification_settings(scope)->disable_pinned_message_notifications;
 }
 
 bool NotificationSettingsManager::get_dialog_default_disable_mention_notifications(DialogId dialog_id) const {
+  return get_dialog_default_disable_mention_notifications(dialog_id,
+                                                          get_dialog_community_notification_settings(dialog_id));
+}
+
+bool NotificationSettingsManager::get_dialog_default_disable_mention_notifications(
+    DialogId dialog_id, const DialogNotificationSettings *community_settings) const {
+  if (community_settings != nullptr && !community_settings->use_default_disable_mention_notifications) {
+    return community_settings->disable_mention_notifications;
+  }
   auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
   return get_scope_notification_settings(scope)->disable_mention_notifications;
 }

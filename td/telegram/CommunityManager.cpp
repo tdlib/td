@@ -19,6 +19,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
@@ -1687,11 +1688,27 @@ void CommunityManager::on_reload_community_full_for_notification_settings(Commun
 
 void CommunityManager::do_update_community_notification_settings(Community *c, CommunityId community_id,
                                                                  DialogNotificationSettings &&new_settings) {
+  auto old_settings = std::move(c->notification_settings);
   c->notification_settings = std::move(new_settings);
   c->need_save_to_database = true;
   schedule_community_unmute(community_id, c->notification_settings.use_default_mute_until,
                             c->notification_settings.mute_until, G()->unix_time());
   update_community(c, community_id);
+
+  if (td_->auth_manager_->is_bot() || !need_update_community_dialogs(old_settings, c->notification_settings)) {
+    return;
+  }
+  auto community_full = get_community_full_force(community_id, true, "do_update_community_notification_settings");
+  if (community_full == nullptr) {
+    LOG(WARNING) << "Failed to load the list of chats in " << community_id;
+    return;
+  }
+  auto dialog_ids =
+      transform(community_full->dialogs, [](const CommunityDialog &dialog) { return dialog.get_dialog_id(); });
+  for (auto dialog_id : dialog_ids) {
+    td_->messages_manager_->on_update_dialog_community_notification_settings(dialog_id, community_id, old_settings,
+                                                                             c->notification_settings);
+  }
 }
 
 void CommunityManager::schedule_community_unmute(CommunityId community_id, bool use_default, int32 mute_until,

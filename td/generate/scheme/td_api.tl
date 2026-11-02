@@ -2683,7 +2683,7 @@ notificationSettingsScopeChannelChats = NotificationSettingsScope;
 
 
 //@description Contains information about notification settings for a chat or a forum topic
-//@use_default_mute_for If true, the value for the relevant type of chat or the forum chat is used instead of mute_for
+//@use_default_mute_for If true, the value for the topic's chat, the chat's community, or the relevant type of chat is used instead of mute_for
 //@mute_for Time left before notifications will be unmuted, in seconds
 //@use_default_sound If true, the value for the topic's chat, the chat's community, or the relevant type of chat is used instead of sound_id
 //@sound_id Identifier of the notification sound to be played for messages; 0 if sound is disabled
@@ -2695,9 +2695,9 @@ notificationSettingsScopeChannelChats = NotificationSettingsScope;
 //@story_sound_id Identifier of the notification sound to be played for stories; 0 if sound is disabled
 //@use_default_show_story_poster If true, the value for the chat's community or the relevant type of chat is used instead of show_story_poster
 //@show_story_poster True, if the chat that posted a story must be displayed in notifications
-//@use_default_disable_pinned_message_notifications If true, the value for the relevant type of chat or the forum chat is used instead of disable_pinned_message_notifications
+//@use_default_disable_pinned_message_notifications If true, the value for the topic's chat, the chat's community, or the relevant type of chat is used instead of disable_pinned_message_notifications
 //@disable_pinned_message_notifications If true, notifications for incoming pinned messages will be created as for an ordinary unread message
-//@use_default_disable_mention_notifications If true, the value for the relevant type of chat or the forum chat is used instead of disable_mention_notifications
+//@use_default_disable_mention_notifications If true, the value for the topic's chat, the chat's community, or the relevant type of chat is used instead of disable_mention_notifications
 //@disable_mention_notifications If true, notifications for messages with mentions will be created as for an ordinary unread message
 chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound_id:int64 use_default_show_preview:Bool show_preview:Bool use_default_mute_stories:Bool mute_stories:Bool use_default_story_sound:Bool story_sound_id:int64 use_default_show_story_poster:Bool show_story_poster:Bool use_default_disable_pinned_message_notifications:Bool disable_pinned_message_notifications:Bool use_default_disable_mention_notifications:Bool disable_mention_notifications:Bool = ChatNotificationSettings;
 

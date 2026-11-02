@@ -8211,9 +8211,11 @@ void ChatManager::on_update_channel_linked_community_id(ChannelId channel_id, Co
 void ChatManager::on_update_channel_linked_community_id(Channel *c, ChannelId channel_id,
                                                         CommunityId linked_community_id) {
   if (c->linked_community_id != linked_community_id) {
+    auto old_linked_community_id = c->linked_community_id;
     c->linked_community_id = linked_community_id;
     c->is_linked_community_id_changed = true;
     c->need_save_to_database = true;
+    td_->messages_manager_->on_update_dialog_linked_community_id(DialogId(channel_id), old_linked_community_id);
   }
 }
 

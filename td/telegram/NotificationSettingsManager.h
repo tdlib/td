@@ -49,9 +49,17 @@ class NotificationSettingsManager final : public Actor {
 
   int32 get_dialog_default_mute_until(DialogId dialog_id) const;
 
+  int32 get_dialog_default_mute_until(DialogId dialog_id, const DialogNotificationSettings *community_settings) const;
+
   bool get_dialog_default_disable_pinned_message_notifications(DialogId dialog_id) const;
 
+  bool get_dialog_default_disable_pinned_message_notifications(
+      DialogId dialog_id, const DialogNotificationSettings *community_settings) const;
+
   bool get_dialog_default_disable_mention_notifications(DialogId dialog_id) const;
+
+  bool get_dialog_default_disable_mention_notifications(DialogId dialog_id,
+                                                        const DialogNotificationSettings *community_settings) const;
 
   bool get_dialog_default_show_preview(DialogId dialog_id) const;
 

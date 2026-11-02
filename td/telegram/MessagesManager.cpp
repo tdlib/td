@@ -6051,6 +6051,16 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
     // just in case
     return;
   }
+
+  auto is_affected_dialog = [&](const Dialog *d) {
+    if (!need_unread_counter(d->order) || !d->notification_settings.use_default_mute_until ||
+        td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id) != scope) {
+      return false;
+    }
+    auto community_settings =
+        td_->notification_settings_manager_->get_dialog_community_notification_settings(d->dialog_id);
+    return community_settings == nullptr || community_settings->use_default_mute_until;
+  };
   if (G()->use_message_database()) {
     std::unordered_map<DialogListId, int32, DialogListIdHash> delta;
     std::unordered_map<DialogListId, int32, DialogListIdHash> total_count;
@@ -6058,8 +6068,7 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
     std::unordered_set<DialogListId, DialogListIdHash> dialog_list_ids;
     dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
       Dialog *d = dialog.get();
-      if (need_unread_counter(d->order) && d->notification_settings.use_default_mute_until &&
-          td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id) == scope) {
+      if (is_affected_dialog(d)) {
         int32 unread_count = d->server_unread_count + d->local_unread_count;
         if (unread_count != 0) {
           for (auto dialog_list_id : get_dialog_list_ids(d)) {
@@ -6103,8 +6112,7 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
   if (td_->dialog_filter_manager_->have_dialog_filters()) {
     dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
       Dialog *d = dialog.get();
-      if (need_unread_counter(d->order) && d->notification_settings.use_default_mute_until &&
-          td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id) == scope) {
+      if (is_affected_dialog(d)) {
         update_dialog_lists(d, get_dialog_positions(d), true, false, "on_update_notification_scope_is_muted");
       }
     });
@@ -6113,11 +6121,96 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
   if (is_muted) {
     dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
       Dialog *d = dialog.get();
-      if (need_unread_counter(d->order) && d->notification_settings.use_default_mute_until &&
-          td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id) == scope) {
+      if (is_affected_dialog(d)) {
         remove_all_dialog_notifications(d, false, "on_update_notification_scope_is_muted");
       }
     });
+  }
+}
+
+void MessagesManager::on_update_dialog_community_notification_settings(DialogId dialog_id, CommunityId community_id,
+                                                                       const DialogNotificationSettings &old_settings,
+                                                                       const DialogNotificationSettings &new_settings) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  // the chat must be loaded from the database, because unread chat counters include it
+  Dialog *d = get_dialog_force(dialog_id, "on_update_dialog_community_notification_settings");
+  if (d == nullptr || td_->dialog_manager_->get_dialog_linked_community_id(dialog_id) != community_id) {
+    return;
+  }
+  on_dialog_default_notification_settings_changed(d, old_settings.is_synchronized ? &old_settings : nullptr,
+                                                  new_settings.is_synchronized ? &new_settings : nullptr,
+                                                  "on_update_dialog_community_notification_settings");
+}
+
+void MessagesManager::on_update_dialog_linked_community_id(DialogId dialog_id, CommunityId old_linked_community_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  Dialog *d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    return;
+  }
+
+  const DialogNotificationSettings *old_community_settings = nullptr;
+  if (old_linked_community_id.is_valid()) {
+    old_community_settings = td_->community_manager_->get_community_notification_settings(old_linked_community_id);
+  }
+  on_dialog_default_notification_settings_changed(
+      d, old_community_settings,
+      td_->notification_settings_manager_->get_dialog_community_notification_settings(dialog_id),
+      "on_update_dialog_linked_community_id");
+}
+
+void MessagesManager::on_dialog_default_notification_settings_changed(
+    Dialog *d, const DialogNotificationSettings *old_community_settings,
+    const DialogNotificationSettings *new_community_settings, const char *source) {
+  if (old_community_settings == new_community_settings) {
+    return;
+  }
+
+  auto dialog_id = d->dialog_id;
+  auto notification_settings_manager = td_->notification_settings_manager_.get();
+  if (d->notification_settings.use_default_mute_until) {
+    bool was_muted =
+        notification_settings_manager->get_dialog_default_mute_until(dialog_id, old_community_settings) != 0;
+    bool is_muted =
+        notification_settings_manager->get_dialog_default_mute_until(dialog_id, new_community_settings) != 0;
+    if (was_muted != is_muted) {
+      update_dialog_muted_unread_count(d, is_muted, source);
+      if (td_->dialog_filter_manager_->have_dialog_filters()) {
+        update_dialog_lists(d, get_dialog_positions(d), true, false, source);
+      }
+      if (is_muted) {
+        remove_all_dialog_notifications(d, false, source);
+      }
+    }
+  }
+  if (d->notification_settings.use_default_disable_pinned_message_notifications &&
+      !notification_settings_manager->get_dialog_default_disable_pinned_message_notifications(dialog_id,
+                                                                                              old_community_settings) &&
+      notification_settings_manager->get_dialog_default_disable_pinned_message_notifications(dialog_id,
+                                                                                             new_community_settings) &&
+      d->notification_info != nullptr && d->notification_info->mention_notification_group_.is_valid() &&
+      d->notification_info->pinned_message_notification_message_id_.is_valid()) {
+    remove_dialog_pinned_message_notification(d, source);
+  }
+  if (d->notification_settings.use_default_disable_mention_notifications) {
+    bool were_disabled = notification_settings_manager->get_dialog_default_disable_mention_notifications(
+        dialog_id, old_community_settings);
+    bool are_disabled = notification_settings_manager->get_dialog_default_disable_mention_notifications(
+        dialog_id, new_community_settings);
+    if (were_disabled != are_disabled) {
+      if (were_disabled) {
+        update_dialog_mention_notification_count(d);
+      } else {
+        remove_dialog_mention_notifications(d);
+      }
+    }
   }
 }
 
@@ -12525,7 +12618,11 @@ void MessagesManager::remove_scope_pinned_message_notifications(NotificationSett
         d->notification_info->mention_notification_group_.is_valid() &&
         d->notification_info->pinned_message_notification_message_id_.is_valid() &&
         td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id) == scope) {
-      remove_dialog_pinned_message_notification(d, "remove_scope_pinned_message_notifications");
+      auto community_settings =
+          td_->notification_settings_manager_->get_dialog_community_notification_settings(dialog_id);
+      if (community_settings == nullptr || community_settings->use_default_disable_pinned_message_notifications) {
+        remove_dialog_pinned_message_notification(d, "remove_scope_pinned_message_notifications");
+      }
     }
   });
 }
@@ -12537,6 +12634,11 @@ void MessagesManager::on_update_scope_mention_notifications(NotificationSettings
     Dialog *d = dialog.get();
     if (d->notification_settings.use_default_disable_mention_notifications &&
         td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id) == scope) {
+      auto community_settings =
+          td_->notification_settings_manager_->get_dialog_community_notification_settings(dialog_id);
+      if (community_settings != nullptr && !community_settings->use_default_disable_mention_notifications) {
+        return;
+      }
       if (!disable_mention_notifications) {
         update_dialog_mention_notification_count(d);
       } else {

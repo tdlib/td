@@ -3816,8 +3816,10 @@ void UserManager::on_update_user_linked_community_id(User *u, UserId user_id, Co
     linked_community_id = CommunityId();
   }
   if (u->linked_community_id != linked_community_id) {
+    auto old_linked_community_id = u->linked_community_id;
     u->linked_community_id = linked_community_id;
     u->need_save_to_database = true;
+    td_->messages_manager_->on_update_dialog_linked_community_id(DialogId(user_id), old_linked_community_id);
   }
 }
 

@@ -11,6 +11,7 @@
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatReactions.h"
+#include "td/telegram/CommunityId.h"
 #include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/DialogFilterDialogInfo.h"
@@ -908,6 +909,12 @@ class MessagesManager final : public Actor {
   void drop_dialog_pending_join_requests(DialogId dialog_id);
 
   void on_update_notification_scope_is_muted(NotificationSettingsScope scope, bool is_muted);
+
+  void on_update_dialog_community_notification_settings(DialogId dialog_id, CommunityId community_id,
+                                                        const DialogNotificationSettings &old_settings,
+                                                        const DialogNotificationSettings &new_settings);
+
+  void on_update_dialog_linked_community_id(DialogId dialog_id, CommunityId old_linked_community_id);
 
   void on_update_dialog_notify_settings(DialogId dialog_id,
                                         tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings,
@@ -2702,6 +2709,11 @@ class MessagesManager final : public Actor {
                                     int32 new_mute_until);
 
   void update_dialog_muted_unread_count(Dialog *d, bool is_muted, const char *source);
+
+  void on_dialog_default_notification_settings_changed(Dialog *d,
+                                                       const DialogNotificationSettings *old_community_settings,
+                                                       const DialogNotificationSettings *new_community_settings,
+                                                       const char *source);
 
   void on_dialog_unmute(DialogId dialog_id);
 
