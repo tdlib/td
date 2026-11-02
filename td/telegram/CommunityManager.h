@@ -307,6 +307,8 @@ class CommunityManager final : public Actor {
 
   void on_reload_community_full_for_notification_settings(CommunityId community_id);
 
+  void on_get_community_notification_settings_error(CommunityId community_id);
+
   void do_update_community_notification_settings(Community *c, CommunityId community_id,
                                                  DialogNotificationSettings &&new_settings);
 

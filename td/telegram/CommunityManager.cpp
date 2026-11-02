@@ -122,9 +122,13 @@ class GetFullCommunityQuery final : public Td::ResultHandler {
 };
 
 class GetCommunityNotifySettingsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
   CommunityId community_id_;
 
  public:
+  explicit GetCommunityNotifySettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
   void send(CommunityId community_id) {
     community_id_ = community_id;
     auto input_community = td_->community_manager_->get_input_community(community_id);
@@ -141,10 +145,12 @@ class GetCommunityNotifySettingsQuery final : public Td::ResultHandler {
 
     td_->community_manager_->on_update_community_notify_settings(community_id_, result_ptr.move_as_ok(),
                                                                  "GetCommunityNotifySettingsQuery");
+    promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for GetCommunityNotifySettingsQuery: " << status;
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -180,7 +186,7 @@ class UpdateCommunityNotifySettingsQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for UpdateCommunityNotifySettingsQuery: " << status;
     // trying to repair notification settings for the community
-    td_->create_handler<GetCommunityNotifySettingsQuery>()->send(community_id_);
+    td_->create_handler<GetCommunityNotifySettingsQuery>(Promise<Unit>())->send(community_id_);
     promise_.set_error(std::move(status));
   }
 };
@@ -1589,7 +1595,7 @@ void CommunityManager::on_get_community_full(telegram_api::object_ptr<telegram_a
   update_community_full(community_full, community_id, "on_get_community_full");
 
   if (!community_full->notification_settings.is_synchronized && !td_->auth_manager_->is_bot()) {
-    td_->create_handler<GetCommunityNotifySettingsQuery>()->send(community_id);
+    td_->create_handler<GetCommunityNotifySettingsQuery>(Promise<Unit>())->send(community_id);
   }
 }
 
@@ -1687,6 +1693,7 @@ void CommunityManager::do_update_community_notification_settings(Community *c, C
   auto old_settings = std::move(c->notification_settings);
   c->notification_settings = std::move(new_settings);
   c->need_save_to_database = true;
+  get_community_notification_settings_queries_.erase(community_id);
   schedule_community_unmute(community_id, c->notification_settings.use_default_mute_until,
                             c->notification_settings.mute_until, G()->unix_time());
   update_community(c, community_id);
@@ -1755,11 +1762,21 @@ const DialogNotificationSettings *CommunityManager::get_community_notification_s
   }
   if (!c->notification_settings.is_synchronized) {
     if (get_community_notification_settings_queries_.insert(community_id).second) {
-      td_->create_handler<GetCommunityNotifySettingsQuery>()->send(community_id);
+      td_->create_handler<GetCommunityNotifySettingsQuery>(
+             PromiseCreator::lambda([actor_id = actor_id(this), community_id](Result<Unit> &&result) {
+               if (result.is_error()) {
+                 send_closure(actor_id, &CommunityManager::on_get_community_notification_settings_error, community_id);
+               }
+             }))
+          ->send(community_id);
     }
     return nullptr;
   }
   return &c->notification_settings;
+}
+
+void CommunityManager::on_get_community_notification_settings_error(CommunityId community_id) {
+  get_community_notification_settings_queries_.erase(community_id);
 }
 
 void CommunityManager::reset_all_community_notification_settings() {
