@@ -817,6 +817,9 @@ CommunityManager::CommunityManager(Td *td, ActorShared<> parent) : td_(td), pare
     }
     td_->create_handler<GetCommunitiesQuery>(std::move(promise))->send(std::move(input_community));
   });
+
+  community_unmute_timeout_.set_callback(on_community_unmute_timeout_callback);
+  community_unmute_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 CommunityManager::~CommunityManager() {
@@ -827,6 +830,16 @@ CommunityManager::~CommunityManager() {
 
 void CommunityManager::tear_down() {
   parent_.reset();
+}
+
+void CommunityManager::on_community_unmute_timeout_callback(void *community_manager_ptr, int64 community_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto community_manager = static_cast<CommunityManager *>(community_manager_ptr);
+  send_closure_later(community_manager->actor_id(community_manager), &CommunityManager::on_community_unmute,
+                     CommunityId(community_id_int));
 }
 
 class CommunityManager::CommunityLogEvent {
@@ -1160,6 +1173,17 @@ void CommunityManager::update_community(Community *c, CommunityId community_id, 
   SCOPE_EXIT {
     c->is_being_updated = false;
   };
+
+  if (from_binlog || from_database) {
+    auto &notification_settings = c->notification_settings;
+    auto unix_time = G()->unix_time();
+    if (td_->auth_manager_->is_bot() || notification_settings.use_default_mute_until ||
+        notification_settings.mute_until <= unix_time) {
+      notification_settings.mute_until = 0;
+    } else {
+      schedule_community_unmute(community_id, false, notification_settings.mute_until, unix_time);
+    }
+  }
 
   LOG(DEBUG) << "Update " << community_id << ": need_save_to_database = " << c->need_save_to_database
              << ", is_changed = " << c->is_changed;
@@ -1591,8 +1615,47 @@ void CommunityManager::update_community_notification_settings(Community *c, Comm
   if (need_update.are_changed || need_update.need_update_local) {
     c->notification_settings = std::move(new_settings);
     c->need_save_to_database = true;
+    schedule_community_unmute(community_id, c->notification_settings.use_default_mute_until,
+                              c->notification_settings.mute_until, G()->unix_time());
     update_community(c, community_id);
   }
+}
+
+void CommunityManager::schedule_community_unmute(CommunityId community_id, bool use_default, int32 mute_until,
+                                                 int32 unix_time) {
+  if (!use_default && mute_until >= unix_time && mute_until < unix_time + 366 * 86400) {
+    community_unmute_timeout_.set_timeout_in(community_id.get(), mute_until - unix_time + 1);
+  } else {
+    community_unmute_timeout_.cancel_timeout(community_id.get());
+  }
+}
+
+void CommunityManager::on_community_unmute(CommunityId community_id) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+
+  auto c = get_community(community_id);
+  CHECK(c != nullptr);
+
+  const auto &notification_settings = c->notification_settings;
+  if (notification_settings.use_default_mute_until || notification_settings.mute_until == 0) {
+    return;
+  }
+
+  auto unix_time = G()->unix_time();
+  if (notification_settings.mute_until > unix_time) {
+    LOG(INFO) << "Failed to unmute " << community_id << " in " << unix_time << ", will be unmuted in "
+              << notification_settings.mute_until;
+    schedule_community_unmute(community_id, false, notification_settings.mute_until, unix_time);
+    return;
+  }
+
+  LOG(INFO) << "Unmute " << community_id;
+  auto new_settings = notification_settings.clone();
+  new_settings.mute_until = 0;
+  update_community_notification_settings(c, community_id, std::move(new_settings));
 }
 
 void CommunityManager::reset_all_community_notification_settings() {

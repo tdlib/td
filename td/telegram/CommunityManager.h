@@ -20,6 +20,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -302,6 +303,12 @@ class CommunityManager final : public Actor {
   bool update_community_full_notification_settings(CommunityFull *community_full, CommunityId community_id,
                                                    DialogNotificationSettings &&new_settings, const char *source);
 
+  static void on_community_unmute_timeout_callback(void *community_manager_ptr, int64 community_id_int);
+
+  void schedule_community_unmute(CommunityId community_id, bool use_default, int32 mute_until, int32 unix_time);
+
+  void on_community_unmute(CommunityId community_id);
+
   void update_community_full(CommunityFull *community_full, CommunityId community_id, const char *source,
                              bool from_database = false);
 
@@ -329,6 +336,8 @@ class CommunityManager final : public Actor {
   FlatHashMap<CommunityId, vector<Promise<Unit>>, CommunityIdHash> load_community_from_database_queries_;
   FlatHashSet<CommunityId, CommunityIdHash> loaded_from_database_communities_;
   FlatHashSet<CommunityId, CommunityIdHash> unavailable_community_fulls_;
+
+  MultiTimeout community_unmute_timeout_{"CommunityUnmuteTimeout"};
 
   QueryMerger get_community_queries_{"GetCommunityMerger", 10, 1};
 
