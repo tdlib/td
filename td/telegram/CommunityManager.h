@@ -137,6 +137,7 @@ class CommunityManager final : public Actor {
     RestrictedRights default_permissions = RestrictedRights::restrict_all();
     int32 date = 0;
     bool collapsed_in_dialogs = false;
+    DialogNotificationSettings notification_settings;  // copy of CommunityFull::notification_settings
 
     static constexpr uint32 CACHE_VERSION = 1;
     uint32 cache_version = 0;
@@ -293,8 +294,11 @@ class CommunityManager final : public Actor {
 
   void on_update_community_full_photo(CommunityFull *community_full, CommunityId community_id, Photo photo);
 
-  bool update_community_notification_settings(CommunityFull *community_full, CommunityId community_id,
-                                              DialogNotificationSettings &&new_settings, const char *source);
+  void update_community_notification_settings(Community *c, CommunityId community_id,
+                                              DialogNotificationSettings &&new_settings);
+
+  bool update_community_full_notification_settings(CommunityFull *community_full, CommunityId community_id,
+                                                   DialogNotificationSettings &&new_settings, const char *source);
 
   void update_community_full(CommunityFull *community_full, CommunityId community_id, const char *source,
                              bool from_database = false);

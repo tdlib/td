@@ -642,9 +642,11 @@ template <class StorerT>
 void CommunityManager::Community::store(StorerT &storer) const {
   using td::store;
   bool has_photo = photo.small_file_id.is_valid();
+  bool has_notification_settings = notification_settings.is_synchronized;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_photo);
   STORE_FLAG(collapsed_in_dialogs);
+  STORE_FLAG(has_notification_settings);
   END_STORE_FLAGS();
   store(access_hash, storer);
   store(title, storer);
@@ -655,15 +657,20 @@ void CommunityManager::Community::store(StorerT &storer) const {
   if (has_photo) {
     store(photo, storer);
   }
+  if (has_notification_settings) {
+    store(notification_settings, storer);
+  }
 }
 
 template <class ParserT>
 void CommunityManager::Community::parse(ParserT &parser) {
   using td::parse;
   bool has_photo;
+  bool has_notification_settings;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_photo);
   PARSE_FLAG(collapsed_in_dialogs);
+  PARSE_FLAG(has_notification_settings);
   END_PARSE_FLAGS();
   parse(access_hash, parser);
   parse(title, parser);
@@ -673,6 +680,9 @@ void CommunityManager::Community::parse(ParserT &parser) {
   parse(default_permissions, parser);
   if (has_photo) {
     parse(photo, parser);
+  }
+  if (has_notification_settings) {
+    parse(notification_settings, parser);
   }
 
   if (!check_utf8(title)) {
@@ -1556,23 +1566,39 @@ void CommunityManager::on_update_community_notify_settings(
     return;
   }
 
-  auto community_full = get_community_full_force(community_id, true, source);
-  if (community_full == nullptr) {
+  auto c = get_community_force(community_id, source);
+  if (c == nullptr) {
     return;
   }
 
   auto notification_settings =
-      get_dialog_notification_settings(std::move(peer_notify_settings), &community_full->notification_settings);
+      get_dialog_notification_settings(std::move(peer_notify_settings), &c->notification_settings);
   if (!notification_settings.is_synchronized) {
     return;
   }
 
-  update_community_notification_settings(community_full, community_id, std::move(notification_settings), source);
+  auto community_full = get_community_full_force(community_id, true, source);
+  if (community_full != nullptr) {
+    update_community_full_notification_settings(community_full, community_id, notification_settings.clone(), source);
+  }
+  update_community_notification_settings(c, community_id, std::move(notification_settings));
 }
 
-bool CommunityManager::update_community_notification_settings(CommunityFull *community_full, CommunityId community_id,
-                                                              DialogNotificationSettings &&new_settings,
-                                                              const char *source) {
+void CommunityManager::update_community_notification_settings(Community *c, CommunityId community_id,
+                                                              DialogNotificationSettings &&new_settings) {
+  CHECK(c != nullptr);
+  auto need_update = need_update_dialog_notification_settings(&c->notification_settings, new_settings);
+  if (need_update.are_changed || need_update.need_update_local) {
+    c->notification_settings = std::move(new_settings);
+    c->need_save_to_database = true;
+    update_community(c, community_id);
+  }
+}
+
+bool CommunityManager::update_community_full_notification_settings(CommunityFull *community_full,
+                                                                   CommunityId community_id,
+                                                                   DialogNotificationSettings &&new_settings,
+                                                                   const char *source) {
   CHECK(community_full != nullptr);
   auto need_update = need_update_dialog_notification_settings(&community_full->notification_settings, new_settings);
   if (need_update.are_changed) {
@@ -1600,8 +1626,9 @@ void CommunityManager::set_community_notification_settings(
   TRY_RESULT_PROMISE(
       promise, new_settings,
       get_dialog_notification_settings(std::move(notification_settings), &community_full->notification_settings));
-  if (!update_community_notification_settings(community_full, community_id, std::move(new_settings),
-                                              "set_community_notification_settings")) {
+  update_community_notification_settings(get_community(community_id), community_id, new_settings.clone());
+  if (!update_community_full_notification_settings(community_full, community_id, std::move(new_settings),
+                                                   "set_community_notification_settings")) {
     return promise.set_value(Unit());
   }
   td_->create_handler<UpdateCommunityNotifySettingsQuery>(std::move(promise))
