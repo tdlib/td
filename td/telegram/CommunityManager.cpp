@@ -1189,13 +1189,9 @@ void CommunityManager::update_community(Community *c, CommunityId community_id, 
   };
 
   if (from_binlog || from_database) {
-    auto &notification_settings = c->notification_settings;
-    auto unix_time = G()->unix_time();
-    if (td_->auth_manager_->is_bot() || notification_settings.use_default_mute_until ||
-        notification_settings.mute_until <= unix_time) {
-      notification_settings.mute_until = 0;
-    } else {
-      schedule_community_unmute(community_id, false, notification_settings.mute_until, unix_time);
+    c->notification_settings.fix_mute_until(td_->auth_manager_->is_bot());
+    if (c->notification_settings.mute_until != 0) {
+      schedule_community_unmute(community_id, false, c->notification_settings.mute_until, G()->unix_time());
     }
   }
 
@@ -1643,7 +1639,7 @@ bool CommunityManager::need_update_community_dialogs(const DialogNotificationSet
 void CommunityManager::update_community_notification_settings(Community *c, CommunityId community_id,
                                                               DialogNotificationSettings &&new_settings) {
   CHECK(c != nullptr);
-  new_settings.fix_expired_mute_until();
+  new_settings.fix_mute_until(td_->auth_manager_->is_bot());
   auto need_update = need_update_dialog_notification_settings(&c->notification_settings, new_settings);
   if (!need_update.are_changed && !need_update.need_update_local) {
     pending_community_notification_settings_.erase(community_id);
@@ -1679,7 +1675,7 @@ void CommunityManager::on_reload_community_full_for_notification_settings(Commun
 
   auto c = get_community(community_id);
   CHECK(c != nullptr);
-  new_settings.fix_expired_mute_until();
+  new_settings.fix_mute_until(td_->auth_manager_->is_bot());
   auto need_update = need_update_dialog_notification_settings(&c->notification_settings, new_settings);
   if (need_update.are_changed || need_update.need_update_local) {
     do_update_community_notification_settings(c, community_id, std::move(new_settings));

@@ -70,7 +70,7 @@ class DialogNotificationSettings {
 
   DialogNotificationSettings clone_for_secret_chat() const;
 
-  void fix_expired_mute_until();
+  void fix_mute_until(bool is_bot);
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogNotificationSettings &notification_settings);

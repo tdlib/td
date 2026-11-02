@@ -33470,10 +33470,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
   if (d->has_active_group_call && !d->active_group_call_id.is_valid() && !td_->auth_manager_->is_bot()) {
     repair_dialog_active_group_call_id(dialog_id);
   }
-  if (td_->auth_manager_->is_bot() || d->notification_settings.use_default_mute_until ||
-      d->notification_settings.mute_until <= G()->unix_time()) {
-    d->notification_settings.mute_until = 0;
-  } else {
+  d->notification_settings.fix_mute_until(td_->auth_manager_->is_bot());
+  if (d->notification_settings.mute_until != 0) {
     schedule_dialog_unmute(dialog_id, false, d->notification_settings.mute_until, G()->unix_time());
   }
   if (d->notification_info != nullptr && d->notification_info->pinned_message_notification_message_id_.is_valid()) {

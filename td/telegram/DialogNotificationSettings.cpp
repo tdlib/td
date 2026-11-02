@@ -53,8 +53,8 @@ DialogNotificationSettings DialogNotificationSettings::clone_for_secret_chat() c
   return notification_settings;
 }
 
-void DialogNotificationSettings::fix_expired_mute_until() {
-  if (!use_default_mute_until && mute_until <= G()->unix_time()) {
+void DialogNotificationSettings::fix_mute_until(bool is_bot) {
+  if (is_bot || use_default_mute_until || mute_until <= G()->unix_time()) {
     mute_until = 0;
   }
 }
