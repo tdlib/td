@@ -29,10 +29,10 @@ class DebugContext {
   template <typename T>
   void add(Slice name, const T &value, CSlice file = {}, int line = 0) {
     StringBuilder sb;
-    sb << name << "=" << value;
+    sb << name << '=' << value;
 
-    if (file.empty()) {
-      sb << " (at " << PathView(file).file_name() << ":" << line << ")";
+    if (!file.empty()) {
+      sb << " (at " << PathView(file).file_name() << ':' << line << ')';
     }
 
     values_.emplace_back(name.str(), sb.as_cslice().str());
@@ -76,7 +76,7 @@ class ScopedDebugValue {
 };
 
 inline Status format_error(StringBuilder &sb, const char *file, int line) {
-  sb << "\n\tat " << PathView(Slice(file)).file_name() << ":" << line << DebugContext::instance();
+  sb << "\n\tat " << PathView(Slice(file)).file_name() << ':' << line << DebugContext::instance();
   return Status::Error(sb.as_cslice());
 }
 
