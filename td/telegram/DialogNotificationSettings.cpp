@@ -53,6 +53,12 @@ DialogNotificationSettings DialogNotificationSettings::clone_for_secret_chat() c
   return notification_settings;
 }
 
+void DialogNotificationSettings::fix_expired_mute_until() {
+  if (!use_default_mute_until && mute_until <= G()->unix_time()) {
+    mute_until = 0;
+  }
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogNotificationSettings &notification_settings) {
   return string_builder << "[" << notification_settings.mute_until << ", " << notification_settings.sound << ", "
                         << notification_settings.show_preview << ", " << notification_settings.mute_stories << ", "

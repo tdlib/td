@@ -69,6 +69,8 @@ class DialogNotificationSettings {
   DialogNotificationSettings clone() const;
 
   DialogNotificationSettings clone_for_secret_chat() const;
+
+  void fix_expired_mute_until();
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogNotificationSettings &notification_settings);

@@ -1045,17 +1045,11 @@ void CommunityManager::on_load_community_from_database(CommunityId community_id,
   } else {
     CHECK(!c->is_saved);  // community can't be saved before load completes
     CHECK(!c->is_being_saved);
+    DialogNotificationSettings notification_settings;
     if (!value.empty() && !c->notification_settings.is_synchronized) {
       Community temp_c;
-      if (log_event_parse(temp_c, value).is_ok() && temp_c.notification_settings.is_synchronized) {
-        auto &notification_settings = temp_c.notification_settings;
-        auto unix_time = G()->unix_time();
-        if (notification_settings.use_default_mute_until || notification_settings.mute_until <= unix_time) {
-          notification_settings.mute_until = 0;
-        }
-        c->notification_settings = std::move(notification_settings);
-        schedule_community_unmute(community_id, c->notification_settings.use_default_mute_until,
-                                  c->notification_settings.mute_until, unix_time);
+      if (log_event_parse(temp_c, value).is_ok()) {
+        notification_settings = std::move(temp_c.notification_settings);
       }
     }
     auto new_value = get_community_database_value(c);
@@ -1064,6 +1058,9 @@ void CommunityManager::on_load_community_from_database(CommunityId community_id,
     } else if (c->log_event_id != 0) {
       binlog_erase(G()->td_db()->get_binlog(), c->log_event_id);
       c->log_event_id = 0;
+    }
+    if (notification_settings.is_synchronized) {
+      update_community_notification_settings(c, community_id, std::move(notification_settings));
     }
   }
   set_promises(promises);
@@ -1624,6 +1621,7 @@ void CommunityManager::on_update_community_notify_settings(
 void CommunityManager::update_community_notification_settings(Community *c, CommunityId community_id,
                                                               DialogNotificationSettings &&new_settings) {
   CHECK(c != nullptr);
+  new_settings.fix_expired_mute_until();
   auto need_update = need_update_dialog_notification_settings(&c->notification_settings, new_settings);
   if (need_update.are_changed || need_update.need_update_local) {
     c->notification_settings = std::move(new_settings);
