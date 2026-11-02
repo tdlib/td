@@ -63,6 +63,14 @@ class NotificationSettingsManager final : public Actor {
 
   bool get_scope_disable_mention_notifications(NotificationSettingsScope scope) const;
 
+  int32 get_dialog_default_mute_until(DialogId dialog_id) const;
+
+  bool get_dialog_default_disable_pinned_message_notifications(DialogId dialog_id) const;
+
+  bool get_dialog_default_disable_mention_notifications(DialogId dialog_id) const;
+
+  bool get_dialog_default_show_preview(DialogId dialog_id) const;
+
   tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(DialogId dialog_id,
                                                                      ForumTopicId forum_topic_id) const;
 

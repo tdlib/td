@@ -6006,10 +6006,9 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool &old_use_defa
 
   schedule_dialog_unmute(d->dialog_id, new_use_default, new_mute_until, G()->unix_time());
 
-  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id);
-  auto scope_mute_until = td_->notification_settings_manager_->get_scope_mute_until(scope);
-  bool was_muted = (old_use_default ? scope_mute_until : old_mute_until) != 0;
-  bool is_muted = (new_use_default ? scope_mute_until : new_mute_until) != 0;
+  auto default_mute_until = td_->notification_settings_manager_->get_dialog_default_mute_until(d->dialog_id);
+  bool was_muted = (old_use_default ? default_mute_until : old_mute_until) != 0;
+  bool is_muted = (new_use_default ? default_mute_until : new_mute_until) != 0;
   if (was_muted != is_muted) {
     update_dialog_muted_unread_count(d, is_muted, "update_dialog_unmute_timeout");
   }
@@ -16578,8 +16577,7 @@ int32 MessagesManager::get_dialog_mute_until(const Dialog *d) const {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   if (d->notification_settings.use_default_mute_until) {
-    auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id);
-    return td_->notification_settings_manager_->get_scope_mute_until(scope);
+    return td_->notification_settings_manager_->get_dialog_default_mute_until(d->dialog_id);
   } else {
     return d->notification_settings.mute_until;
   }
@@ -16593,8 +16591,7 @@ bool MessagesManager::is_dialog_pinned_message_notifications_disabled(const Dial
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   if (d->notification_settings.use_default_disable_pinned_message_notifications) {
-    auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id);
-    return td_->notification_settings_manager_->get_scope_disable_pinned_message_notifications(scope);
+    return td_->notification_settings_manager_->get_dialog_default_disable_pinned_message_notifications(d->dialog_id);
   }
 
   return d->notification_settings.disable_pinned_message_notifications;
@@ -16604,8 +16601,7 @@ bool MessagesManager::is_dialog_mention_notifications_disabled(const Dialog *d) 
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   if (d->notification_settings.use_default_disable_mention_notifications) {
-    auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id);
-    return td_->notification_settings_manager_->get_scope_disable_mention_notifications(scope);
+    return td_->notification_settings_manager_->get_dialog_default_disable_mention_notifications(d->dialog_id);
   }
 
   return d->notification_settings.disable_mention_notifications;
@@ -17486,8 +17482,7 @@ unique_ptr<DraftMessage> MessagesManager::get_dialog_draft_message(DialogId dial
 std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const {
   CHECK(!td_->auth_manager_->is_bot());
   if (d == nullptr || !d->notification_settings.is_synchronized) {
-    auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
-    return {false, td_->notification_settings_manager_->get_scope_mute_until(scope)};
+    return {false, td_->notification_settings_manager_->get_dialog_default_mute_until(dialog_id)};
   }
 
   return {true, get_dialog_mute_until(d)};
@@ -26012,8 +26007,7 @@ bool MessagesManager::get_dialog_show_preview(const Dialog *d) const {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   if (d->notification_settings.use_default_show_preview) {
-    auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id);
-    return td_->notification_settings_manager_->get_scope_show_preview(scope);
+    return td_->notification_settings_manager_->get_dialog_default_show_preview(d->dialog_id);
   } else {
     return d->notification_settings.show_preview;
   }
@@ -26032,8 +26026,7 @@ bool MessagesManager::is_message_preview_enabled(const Dialog *d, const Message 
   }
   d = get_dialog_force(sender_dialog_id, "is_message_preview_enabled");
   if (d == nullptr) {
-    auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(sender_dialog_id);
-    return td_->notification_settings_manager_->get_scope_show_preview(scope);
+    return td_->notification_settings_manager_->get_dialog_default_show_preview(sender_dialog_id);
   }
   return get_dialog_show_preview(d);
 }

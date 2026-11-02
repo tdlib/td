@@ -721,6 +721,26 @@ bool NotificationSettingsManager::get_scope_disable_mention_notifications(Notifi
   return get_scope_notification_settings(scope)->disable_mention_notifications;
 }
 
+int32 NotificationSettingsManager::get_dialog_default_mute_until(DialogId dialog_id) const {
+  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  return get_scope_mute_until(scope);
+}
+
+bool NotificationSettingsManager::get_dialog_default_disable_pinned_message_notifications(DialogId dialog_id) const {
+  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  return get_scope_disable_pinned_message_notifications(scope);
+}
+
+bool NotificationSettingsManager::get_dialog_default_disable_mention_notifications(DialogId dialog_id) const {
+  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  return get_scope_disable_mention_notifications(scope);
+}
+
+bool NotificationSettingsManager::get_dialog_default_show_preview(DialogId dialog_id) const {
+  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  return get_scope_show_preview(scope);
+}
+
 tl_object_ptr<telegram_api::InputNotifyPeer> NotificationSettingsManager::get_input_notify_peer(
     DialogId dialog_id, ForumTopicId forum_topic_id) const {
   if (!td_->messages_manager_->have_dialog(dialog_id)) {
