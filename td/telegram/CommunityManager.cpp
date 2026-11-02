@@ -1045,6 +1045,19 @@ void CommunityManager::on_load_community_from_database(CommunityId community_id,
   } else {
     CHECK(!c->is_saved);  // community can't be saved before load completes
     CHECK(!c->is_being_saved);
+    if (!value.empty() && !c->notification_settings.is_synchronized) {
+      Community temp_c;
+      if (log_event_parse(temp_c, value).is_ok() && temp_c.notification_settings.is_synchronized) {
+        auto &notification_settings = temp_c.notification_settings;
+        auto unix_time = G()->unix_time();
+        if (notification_settings.use_default_mute_until || notification_settings.mute_until <= unix_time) {
+          notification_settings.mute_until = 0;
+        }
+        c->notification_settings = std::move(notification_settings);
+        schedule_community_unmute(community_id, c->notification_settings.use_default_mute_until,
+                                  c->notification_settings.mute_until, unix_time);
+      }
+    }
     auto new_value = get_community_database_value(c);
     if (value != new_value) {
       save_community_to_database_impl(c, community_id, std::move(new_value));
