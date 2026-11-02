@@ -12,54 +12,101 @@
 
 namespace td {
 
-bool check_utf8(CSlice str) {
-  const char *data = str.data();
-  const char *data_end = data + str.size();
-  do {
-    uint32 a = static_cast<unsigned char>(*data++);
-    if ((a & 0x80) == 0) {
-      if (data == data_end + 1) {
-        return true;
-      }
-      continue;
-    }
+// states of the shift-based DFA, which checks UTF-8 validity
+// transitions by a byte are packed into a uint64: the next state for a state S is stored in 6 bits starting from bit S
+enum : uint32 {
+  UTF8_REJECT = 0,  // must be zero, so that all unspecified transitions lead to it
+  UTF8_ACCEPT = 6,
+  UTF8_NEED_1 = 12,    // 1 more continuation byte is needed
+  UTF8_NEED_2 = 18,    // 2 more continuation bytes are needed
+  UTF8_NEED_3 = 24,    // 3 more continuation bytes are needed
+  UTF8_AFTER_E0 = 30,  // continuation byte 0xa0-0xbf and 1 more continuation byte are needed
+  UTF8_AFTER_ED = 36,  // continuation byte 0x80-0x9f and 1 more continuation byte are needed
+  UTF8_AFTER_F0 = 42,  // continuation byte 0x90-0xbf and 2 more continuation bytes are needed
+  UTF8_AFTER_F4 = 48   // continuation byte 0x80-0x8f and 2 more continuation bytes are needed
+};
 
-#define ENSURE(condition) \
-  if (!(condition)) {     \
-    return false;         \
+static constexpr uint64 utf8_transition(uint32 from_state, uint32 to_state) {
+  return static_cast<uint64>(to_state) << from_state;
+}
+
+static constexpr uint64 get_utf8_transitions(uint32 c) {
+  if (c < 0x80) {
+    return utf8_transition(UTF8_ACCEPT, UTF8_ACCEPT);
   }
-
-    ENSURE((a & 0x40) != 0);
-
-    uint32 b = static_cast<unsigned char>(*data++);
-    ENSURE((b & 0xc0) == 0x80);
-    if ((a & 0x20) == 0) {
-      ENSURE((a & 0x1e) > 0);
-      continue;
+  if (c < 0xc0) {
+    uint64 result = utf8_transition(UTF8_NEED_1, UTF8_ACCEPT) | utf8_transition(UTF8_NEED_2, UTF8_NEED_1) |
+                    utf8_transition(UTF8_NEED_3, UTF8_NEED_2);
+    if (c < 0xa0) {
+      result |= utf8_transition(UTF8_AFTER_ED, UTF8_NEED_1);
+    } else {
+      result |= utf8_transition(UTF8_AFTER_E0, UTF8_NEED_1);
     }
-
-    uint32 c = static_cast<unsigned char>(*data++);
-    ENSURE((c & 0xc0) == 0x80);
-    if ((a & 0x10) == 0) {
-      uint32 x = (((a & 0x0f) << 6) | (b & 0x20));
-      ENSURE(x != 0 && x != 0x360);  // surrogates
-      continue;
+    if (c < 0x90) {
+      result |= utf8_transition(UTF8_AFTER_F4, UTF8_NEED_2);
+    } else {
+      result |= utf8_transition(UTF8_AFTER_F0, UTF8_NEED_2);
     }
+    return result;
+  }
+  if (c < 0xc2) {
+    return 0;  // overlong encoding
+  }
+  if (c < 0xe0) {
+    return utf8_transition(UTF8_ACCEPT, UTF8_NEED_1);
+  }
+  if (c == 0xe0) {
+    return utf8_transition(UTF8_ACCEPT, UTF8_AFTER_E0);  // prevent overlong encoding
+  }
+  if (c == 0xed) {
+    return utf8_transition(UTF8_ACCEPT, UTF8_AFTER_ED);  // prevent surrogates
+  }
+  if (c < 0xf0) {
+    return utf8_transition(UTF8_ACCEPT, UTF8_NEED_2);
+  }
+  if (c == 0xf0) {
+    return utf8_transition(UTF8_ACCEPT, UTF8_AFTER_F0);  // prevent overlong encoding
+  }
+  if (c < 0xf4) {
+    return utf8_transition(UTF8_ACCEPT, UTF8_NEED_3);
+  }
+  if (c == 0xf4) {
+    return utf8_transition(UTF8_ACCEPT, UTF8_AFTER_F4);  // prevent code points after U+10FFFF
+  }
+  return 0;
+}
 
-    uint32 d = static_cast<unsigned char>(*data++);
-    ENSURE((d & 0xc0) == 0x80);
-    if ((a & 0x08) == 0) {
-      uint32 t = (((a & 0x07) << 6) | (b & 0x30));
-      ENSURE(0 < t && t < 0x110);  // end of unicode
-      continue;
-    }
+struct Utf8Dfa {
+  uint64 transitions[256] = {};
+};
 
-    return false;
-#undef ENSURE
-  } while (true);
+static constexpr Utf8Dfa get_utf8_dfa() {
+  Utf8Dfa result;
+  for (uint32 c = 0; c < 256; c++) {
+    result.transitions[c] = get_utf8_transitions(c);
+  }
+  return result;
+}
 
-  UNREACHABLE();
-  return false;
+bool check_utf8(CSlice str) {
+  static constexpr Utf8Dfa UTF8_DFA = get_utf8_dfa();
+
+  // the lowest 6 bits of state contain the current DFA state, other bits are ignored
+  // transitions are loaded independently of the state, so each byte adds only a shift to the dependency chain
+  const unsigned char *data = str.ubegin();
+  const unsigned char *data_end = str.uend();
+  uint64 state = UTF8_ACCEPT;
+  while (data_end - data >= 4) {
+    state = UTF8_DFA.transitions[data[0]] >> (state & 63);
+    state = UTF8_DFA.transitions[data[1]] >> (state & 63);
+    state = UTF8_DFA.transitions[data[2]] >> (state & 63);
+    state = UTF8_DFA.transitions[data[3]] >> (state & 63);
+    data += 4;
+  }
+  while (data != data_end) {
+    state = UTF8_DFA.transitions[*data++] >> (state & 63);
+  }
+  return (state & 63) == UTF8_ACCEPT;
 }
 
 const unsigned char *next_utf8_unsafe(const unsigned char *ptr, uint32 *code) {
