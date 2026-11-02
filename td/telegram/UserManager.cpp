@@ -5466,6 +5466,14 @@ bool UserManager::is_user_bot(const User *u) {
   return u != nullptr && !u->is_deleted && u->is_bot;
 }
 
+CommunityId UserManager::get_user_linked_community_id(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
+    return CommunityId();
+  }
+  return u->linked_community_id;
+}
+
 bool UserManager::is_user_forum_bot(UserId user_id) const {
   return is_user_forum_bot(get_user(user_id));
 }

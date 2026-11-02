@@ -264,6 +264,8 @@ class UserManager final : public Actor {
 
   bool is_user_forum_bot(UserId user_id) const;
 
+  CommunityId get_user_linked_community_id(UserId user_id) const;
+
   struct BotData {
     string username;
     bool can_be_edited = false;

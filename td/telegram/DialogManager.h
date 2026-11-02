@@ -10,6 +10,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
+#include "td/telegram/CommunityId.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogLocation.h"
@@ -123,6 +124,8 @@ class DialogManager final : public Actor {
   td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id, const char *source) const;
 
   NotificationSettingsScope get_dialog_notification_setting_scope(DialogId dialog_id) const;
+
+  CommunityId get_dialog_linked_community_id(DialogId dialog_id) const;
 
   void migrate_dialog_to_megagroup(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
 

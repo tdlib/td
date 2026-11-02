@@ -3114,6 +3114,14 @@ bool ChatManager::get_channel_autotranslation(ChannelId channel_id) const {
   return c->autotranslation;
 }
 
+CommunityId ChatManager::get_channel_linked_community_id(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return CommunityId();
+  }
+  return c->linked_community_id;
+}
+
 bool ChatManager::can_poll_channel_active_stories(ChannelId channel_id) const {
   const Channel *c = get_channel(channel_id);
   return need_poll_channel_active_stories(c, channel_id) && Time::now() >= c->max_active_story_id_next_reload_time;

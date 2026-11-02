@@ -1755,6 +1755,20 @@ NotificationSettingsScope DialogManager::get_dialog_notification_setting_scope(D
   }
 }
 
+CommunityId DialogManager::get_dialog_linked_community_id(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->user_manager_->get_user_linked_community_id(dialog_id.get_user_id());
+    case DialogType::Channel:
+      return td_->chat_manager_->get_channel_linked_community_id(dialog_id.get_channel_id());
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      return CommunityId();
+  }
+}
+
 void DialogManager::migrate_dialog_to_megagroup(DialogId dialog_id,
                                                 Promise<td_api::object_ptr<td_api::chat>> &&promise) {
   if (!have_dialog_force(dialog_id, "migrate_dialog_to_megagroup")) {
