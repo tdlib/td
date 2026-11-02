@@ -1494,7 +1494,7 @@ class EditCallbackQueryMessageQuery final : public Td::ResultHandler {
     td_->message_query_manager_->on_start_sending_message_content(upload_id_, input_media);
     send_query(G()->net_query_creator().create(telegram_api::ephemeral_sendMessage(
         flags, invert_media, false, anchor, noforwards, nullptr,
-        telegram_api::make_object<telegram_api::inputUserSelf>(), callback_query_id,
+        telegram_api::make_object<telegram_api::inputUserEmpty>(), callback_query_id,
         text == nullptr ? string() : text->text, std::move(entities), std::move(input_media.media_),
         std::move(input_reply_markup), std::move(input_media.rich_message_), Random::secure_int64(), nullptr)));
   }
