@@ -73,6 +73,14 @@ class NotificationSettingsManager final : public Actor {
 
   bool get_dialog_default_show_preview(DialogId dialog_id) const;
 
+  int64 get_dialog_default_notification_ringtone_id(DialogId dialog_id) const;
+
+  std::pair<bool, bool> get_dialog_default_mute_stories(DialogId dialog_id) const;
+
+  int64 get_dialog_default_story_notification_ringtone_id(DialogId dialog_id) const;
+
+  bool get_dialog_default_hide_story_sender(DialogId dialog_id) const;
+
   tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(DialogId dialog_id,
                                                                      ForumTopicId forum_topic_id) const;
 

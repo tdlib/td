@@ -751,6 +751,26 @@ bool NotificationSettingsManager::get_dialog_default_show_preview(DialogId dialo
   return get_scope_show_preview(scope);
 }
 
+int64 NotificationSettingsManager::get_dialog_default_notification_ringtone_id(DialogId dialog_id) const {
+  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  return get_notification_sound_ringtone_id(get_scope_notification_sound(scope));
+}
+
+std::pair<bool, bool> NotificationSettingsManager::get_dialog_default_mute_stories(DialogId dialog_id) const {
+  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  return get_scope_mute_stories(scope);
+}
+
+int64 NotificationSettingsManager::get_dialog_default_story_notification_ringtone_id(DialogId dialog_id) const {
+  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  return get_notification_sound_ringtone_id(get_scope_story_notification_sound(scope));
+}
+
+bool NotificationSettingsManager::get_dialog_default_hide_story_sender(DialogId dialog_id) const {
+  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  return get_scope_hide_story_sender(scope);
+}
+
 tl_object_ptr<telegram_api::InputNotifyPeer> NotificationSettingsManager::get_input_notify_peer(
     DialogId dialog_id, ForumTopicId forum_topic_id) const {
   if (!td_->messages_manager_->have_dialog(dialog_id)) {

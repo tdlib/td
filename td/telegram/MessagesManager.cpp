@@ -17492,8 +17492,7 @@ int64 MessagesManager::get_dialog_notification_ringtone_id(DialogId dialog_id, c
   CHECK(!td_->auth_manager_->is_bot());
   if (d == nullptr || !d->notification_settings.is_synchronized ||
       is_notification_sound_default(d->notification_settings.sound)) {
-    auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
-    return get_notification_sound_ringtone_id(td_->notification_settings_manager_->get_scope_notification_sound(scope));
+    return td_->notification_settings_manager_->get_dialog_default_notification_ringtone_id(dialog_id);
   }
 
   return get_notification_sound_ringtone_id(d->notification_settings.sound);
@@ -17510,10 +17509,9 @@ StoryNotificationSettings MessagesManager::get_story_notification_settings(Dialo
   if (d == nullptr || !d->notification_settings.is_synchronized) {
     need_dialog_settings = true;
   }
-  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
   if (need_dialog_settings || d->notification_settings.use_default_mute_stories) {
     bool use_default;
-    std::tie(use_default, are_muted) = td_->notification_settings_manager_->get_scope_mute_stories(scope);
+    std::tie(use_default, are_muted) = td_->notification_settings_manager_->get_dialog_default_mute_stories(dialog_id);
     if (use_default) {
       auto is_top_dialog = td_->top_dialog_manager_->is_top_dialog(TopDialogCategory::Correspondent, 5, dialog_id);
       if (is_top_dialog == -1) {
@@ -17526,13 +17524,12 @@ StoryNotificationSettings MessagesManager::get_story_notification_settings(Dialo
     are_muted = d->notification_settings.mute_stories;
   }
   if (need_dialog_settings || d->notification_settings.use_default_hide_story_sender) {
-    hide_sender = td_->notification_settings_manager_->get_scope_hide_story_sender(scope);
+    hide_sender = td_->notification_settings_manager_->get_dialog_default_hide_story_sender(dialog_id);
   } else {
     hide_sender = d->notification_settings.hide_story_sender;
   }
   if (need_dialog_settings || is_notification_sound_default(d->notification_settings.story_sound)) {
-    ringtone_id = get_notification_sound_ringtone_id(
-        td_->notification_settings_manager_->get_scope_story_notification_sound(scope));
+    ringtone_id = td_->notification_settings_manager_->get_dialog_default_story_notification_ringtone_id(dialog_id);
   } else {
     ringtone_id = get_notification_sound_ringtone_id(d->notification_settings.story_sound);
   }
