@@ -4163,9 +4163,7 @@ void MessageQueryManager::edit_callback_query_message(
   TRY_RESULT_PROMISE(promise, new_reply_markup, get_inline_reply_markup(std::move(reply_markup), is_bot, true));
   TRY_RESULT_PROMISE(promise, content,
                      get_input_message_content(DialogId(), std::move(input_message_content), td_, true));
-  auto content_type = content.content->get_type();
-  if (!is_editable_media_message_content(content_type) && content_type != MessageContentType::RichText &&
-      content_type != MessageContentType::Text) {
+  if (!is_allowed_ephemeral_message_content(content.content->get_type())) {
     return promise.set_error(400, "Unsupported input message content type");
   }
   if (!content.ttl.is_empty()) {
