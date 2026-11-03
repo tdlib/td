@@ -1054,23 +1054,22 @@ void CommunityManager::on_load_community_from_database(CommunityId community_id,
   } else {
     CHECK(!c->is_saved);  // community can't be saved before load completes
     CHECK(!c->is_being_saved);
-    DialogNotificationSettings notification_settings;
     if (!value.empty() && !c->notification_settings.is_synchronized &&
         pending_community_notification_settings_.count(community_id) == 0) {
       Community temp_c;
-      if (log_event_parse(temp_c, value).is_ok()) {
-        notification_settings = std::move(temp_c.notification_settings);
+      if (log_event_parse(temp_c, value).is_ok() && temp_c.notification_settings.is_synchronized) {
+        // saves the community if the settings are applied immediately
+        update_community_notification_settings(c, community_id, std::move(temp_c.notification_settings));
       }
     }
-    auto new_value = get_community_database_value(c);
-    if (value != new_value) {
-      save_community_to_database_impl(c, community_id, std::move(new_value));
-    } else if (c->log_event_id != 0) {
-      binlog_erase(G()->td_db()->get_binlog(), c->log_event_id);
-      c->log_event_id = 0;
-    }
-    if (notification_settings.is_synchronized) {
-      update_community_notification_settings(c, community_id, std::move(notification_settings));
+    if (!c->is_saved) {
+      auto new_value = get_community_database_value(c);
+      if (value != new_value) {
+        save_community_to_database_impl(c, community_id, std::move(new_value));
+      } else if (c->log_event_id != 0) {
+        binlog_erase(G()->td_db()->get_binlog(), c->log_event_id);
+        c->log_event_id = 0;
+      }
     }
   }
   set_promises(promises);
