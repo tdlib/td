@@ -54,7 +54,7 @@ class DialogFilterManager final : public Actor {
 
   bool is_dialog_pinned(DialogFilterId dialog_filter_id, DialogId dialog_id) const;
 
-  const vector<InputDialogId> &get_pinned_input_dialog_ids(DialogFilterId dialog_filter_id) const;
+  vector<InputDialogId> get_pinned_input_dialog_ids(DialogFilterId dialog_filter_id) const;
 
   vector<DialogId> get_pinned_dialog_ids(DialogFilterId dialog_filter_id) const;
 

@@ -30163,7 +30163,8 @@ void MessagesManager::edit_dialog_list_for_dialog_filter(unique_ptr<DialogFilter
   new_list.dialog_list_id = dialog_list_id;
 
   auto old_it = old_list.pinned_dialogs_.rbegin();
-  for (const auto &input_dialog_id : reversed(new_dialog_filter->get_pinned_input_dialog_ids())) {
+  auto pinned_input_dialog_ids = new_dialog_filter->get_pinned_input_dialog_ids();
+  for (const auto &input_dialog_id : reversed(pinned_input_dialog_ids)) {
     auto dialog_id = input_dialog_id.get_dialog_id();
     if (!dialog_id.is_valid()) {
       continue;

@@ -766,7 +766,7 @@ bool DialogFilterManager::is_dialog_pinned(DialogFilterId dialog_filter_id, Dial
   return dialog_filter != nullptr && dialog_filter->is_dialog_pinned(dialog_id);
 }
 
-const vector<InputDialogId> &DialogFilterManager::get_pinned_input_dialog_ids(DialogFilterId dialog_filter_id) const {
+vector<InputDialogId> DialogFilterManager::get_pinned_input_dialog_ids(DialogFilterId dialog_filter_id) const {
   auto *dialog_filter = get_dialog_filter(dialog_filter_id);
   CHECK(dialog_filter != nullptr);
   return dialog_filter->get_pinned_input_dialog_ids();
@@ -972,7 +972,8 @@ void DialogFilterManager::load_dialog_filter(const DialogFilter *dialog_filter, 
   CHECK(!td_->auth_manager_->is_bot());
   vector<InputDialogId> needed_dialog_ids;
   dialog_filter->for_each_dialog([&](const InputDialogId &input_dialog_id) {
-    if (!td_->messages_manager_->have_dialog(input_dialog_id.get_dialog_id())) {
+    auto dialog_id = input_dialog_id.get_dialog_id();
+    if (!td_->messages_manager_->have_dialog(dialog_id) && !DialogFilter::is_community_dialog_id(dialog_id)) {
       needed_dialog_ids.push_back(input_dialog_id);
     }
   });

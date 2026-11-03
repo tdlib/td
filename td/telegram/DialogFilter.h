@@ -56,9 +56,7 @@ class DialogFilter {
     return dialog_filter_id_;
   }
 
-  const vector<InputDialogId> &get_pinned_input_dialog_ids() const {
-    return pinned_dialog_ids_;
-  }
+  vector<InputDialogId> get_pinned_input_dialog_ids() const;
 
   void set_has_my_invite_links(bool has_my_invite_links) {
     has_my_invites_ = has_my_invite_links;
@@ -110,6 +108,9 @@ class DialogFilter {
                                        vector<DialogFilterId> dialog_filter_ids);
 
   static bool are_similar(const DialogFilter &lhs, const DialogFilter &rhs);
+
+  // communities are stored as channels with the same identifier
+  static bool is_community_dialog_id(DialogId dialog_id);
 
   static bool are_equivalent(const DialogFilter &lhs, const DialogFilter &rhs);
 
