@@ -11,6 +11,7 @@
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogFilterManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogNotificationSettings.hpp"
@@ -1274,6 +1275,9 @@ void CommunityManager::on_get_community(telegram_api::community &community, cons
   if (c->collapsed_in_dialogs != community.collapsed_in_dialogs_ && !is_min) {
     c->collapsed_in_dialogs = community.collapsed_in_dialogs_;
     c->is_changed = true;
+    if (!c->collapsed_in_dialogs) {
+      td_->dialog_filter_manager_->remove_community_from_dialog_filters(community_id);
+    }
   }
   if (!is_min) {
     on_update_community_status(c, community_id, std::move(status));

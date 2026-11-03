@@ -12916,7 +12916,7 @@ processCommunityAddChatRequest community_id:int53 chat_id:int53 approve:Bool = O
 //@approve Pass true to approve all requests and add the chats to the community; pass false to decline them
 processCommunityAddChatRequests community_id:int53 approve:Bool = Ok;
 
-//@description Changes whether all chats of a community are collapsed into one entry in the chat list
+//@description Changes whether all chats of a community are collapsed into one entry in the chat list. If the chats are expanded, then the community is removed from all chat folders
 //@community_id Identifier of the community
 //@are_chats_collapsed Pass true to collapse all chats of the community into one entry in the chat list
 toggleCommunityAreChatsCollapsed community_id:int53 are_chats_collapsed:Bool = Ok;
