@@ -1054,22 +1054,23 @@ void CommunityManager::on_load_community_from_database(CommunityId community_id,
   } else {
     CHECK(!c->is_saved);  // community can't be saved before load completes
     CHECK(!c->is_being_saved);
-    if (!value.empty() && !c->notification_settings.is_synchronized &&
-        pending_community_notification_settings_.count(community_id) == 0) {
+    if (!value.empty() && !c->notification_settings.is_synchronized) {
       Community temp_c;
       if (log_event_parse(temp_c, value).is_ok() && temp_c.notification_settings.is_synchronized) {
-        // saves the community if the settings are applied immediately
-        update_community_notification_settings(c, community_id, std::move(temp_c.notification_settings));
+        // unread chat counters were calculated using the saved settings, so they are applied silently
+        c->notification_settings = std::move(temp_c.notification_settings);
+        c->notification_settings.fix_mute_until(td_->auth_manager_->is_bot());
+        if (c->notification_settings.mute_until != 0) {
+          schedule_community_unmute(community_id, false, c->notification_settings.mute_until, G()->unix_time());
+        }
       }
     }
-    if (!c->is_saved) {
-      auto new_value = get_community_database_value(c);
-      if (value != new_value) {
-        save_community_to_database_impl(c, community_id, std::move(new_value));
-      } else if (c->log_event_id != 0) {
-        binlog_erase(G()->td_db()->get_binlog(), c->log_event_id);
-        c->log_event_id = 0;
-      }
+    auto new_value = get_community_database_value(c);
+    if (value != new_value) {
+      save_community_to_database_impl(c, community_id, std::move(new_value));
+    } else if (c->log_event_id != 0) {
+      binlog_erase(G()->td_db()->get_binlog(), c->log_event_id);
+      c->log_event_id = 0;
     }
   }
   set_promises(promises);
@@ -1609,6 +1610,17 @@ void CommunityManager::on_update_community_notify_settings(
   if (c == nullptr) {
     return;
   }
+  if (load_community_from_database_queries_.count(community_id) != 0) {
+    // the current settings must be loaded from the database first
+    load_community_from_database(c, community_id,
+                                 PromiseCreator::lambda([actor_id = actor_id(this), community_id,
+                                                         peer_notify_settings = std::move(peer_notify_settings),
+                                                         source](Result<Unit> &&) mutable {
+                                   send_closure(actor_id, &CommunityManager::on_update_community_notify_settings,
+                                                community_id, std::move(peer_notify_settings), source);
+                                 }));
+    return;
+  }
 
   auto notification_settings =
       get_dialog_notification_settings(std::move(peer_notify_settings), &c->notification_settings);
@@ -1760,7 +1772,8 @@ const DialogNotificationSettings *CommunityManager::get_community_notification_s
     return nullptr;
   }
   if (!c->notification_settings.is_synchronized) {
-    if (get_community_notification_settings_queries_.insert(community_id).second) {
+    if (load_community_from_database_queries_.count(community_id) == 0 &&
+        get_community_notification_settings_queries_.insert(community_id).second) {
       td_->create_handler<GetCommunityNotifySettingsQuery>(
              PromiseCreator::lambda([actor_id = actor_id(this), community_id](Result<Unit> &&result) {
                if (result.is_error()) {
