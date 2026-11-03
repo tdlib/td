@@ -17,6 +17,7 @@
 #include "td/telegram/CommunityId.h"
 #include "td/telegram/CommunityManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/EphemeralMessageId.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
@@ -509,30 +510,7 @@ class ReportPeerQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ReportPeerQuery: " << to_string(ptr);
-    switch (ptr->get_id()) {
-      case telegram_api::reportResultReported::ID:
-        return promise_.set_value(td_api::make_object<td_api::reportChatResultOk>());
-      case telegram_api::reportResultChooseOption::ID: {
-        auto options = telegram_api::move_object_as<telegram_api::reportResultChooseOption>(ptr);
-        if (options->options_.empty()) {
-          return promise_.set_value(td_api::make_object<td_api::reportChatResultOk>());
-        }
-        vector<td_api::object_ptr<td_api::reportOption>> report_options;
-        for (auto &option : options->options_) {
-          report_options.push_back(
-              td_api::make_object<td_api::reportOption>(option->option_.as_slice().str(), option->text_));
-        }
-        return promise_.set_value(
-            td_api::make_object<td_api::reportChatResultOptionRequired>(options->title_, std::move(report_options)));
-      }
-      case telegram_api::reportResultAddComment::ID: {
-        auto option = telegram_api::move_object_as<telegram_api::reportResultAddComment>(ptr);
-        return promise_.set_value(td_api::make_object<td_api::reportChatResultTextRequired>(
-            option->option_.as_slice().str(), option->optional_));
-      }
-      default:
-        UNREACHABLE();
-    }
+    promise_.set_value(DialogManager::get_report_chat_result_object(std::move(ptr)));
   }
 
   void on_error(Status status) final {
@@ -541,6 +519,44 @@ class ReportPeerQuery final : public Td::ResultHandler {
     }
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportPeerQuery");
     td_->messages_manager_->reload_dialog_action_bar(dialog_id_, "ReportPeerQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ReportEphemeralMessageQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::ReportChatResult>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ReportEphemeralMessageQuery(Promise<td_api::object_ptr<td_api::ReportChatResult>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, EphemeralMessageId ephemeral_message_id, const string &option_id, const string &text) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::ephemeral_reportMessage(std::move(input_peer), ephemeral_message_id.get(), BufferSlice(option_id),
+                                              text),
+        {{dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::ephemeral_reportMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ReportEphemeralMessageQuery: " << to_string(ptr);
+    promise_.set_value(DialogManager::get_report_chat_result_object(std::move(ptr)));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportEphemeralMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2850,9 +2866,51 @@ bool DialogManager::can_report_dialog(DialogId dialog_id) const {
   }
 }
 
+td_api::object_ptr<td_api::ReportChatResult> DialogManager::get_report_chat_result_object(
+    telegram_api::object_ptr<telegram_api::ReportResult> &&result) {
+  switch (result->get_id()) {
+    case telegram_api::reportResultReported::ID:
+      return td_api::make_object<td_api::reportChatResultOk>();
+    case telegram_api::reportResultChooseOption::ID: {
+      auto options = telegram_api::move_object_as<telegram_api::reportResultChooseOption>(result);
+      if (options->options_.empty()) {
+        return td_api::make_object<td_api::reportChatResultOk>();
+      }
+      vector<td_api::object_ptr<td_api::reportOption>> report_options;
+      for (auto &option : options->options_) {
+        report_options.push_back(
+            td_api::make_object<td_api::reportOption>(option->option_.as_slice().str(), option->text_));
+      }
+      return td_api::make_object<td_api::reportChatResultOptionRequired>(options->title_, std::move(report_options));
+    }
+    case telegram_api::reportResultAddComment::ID: {
+      auto option = telegram_api::move_object_as<telegram_api::reportResultAddComment>(result);
+      return td_api::make_object<td_api::reportChatResultTextRequired>(option->option_.as_slice().str(),
+                                                                       option->optional_);
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 void DialogManager::report_dialog(DialogId dialog_id, const string &option_id, const vector<MessageId> &message_ids,
                                   const string &text, Promise<td_api::object_ptr<td_api::ReportChatResult>> &&promise) {
   TRY_STATUS_PROMISE(promise, check_dialog_access(dialog_id, true, AccessRights::Read, "report_dialog"));
+
+  for (auto message_id : message_ids) {
+    if (!message_id.is_valid()) {
+      continue;
+    }
+    auto ephemeral_message_id = td_->messages_manager_->get_ephemeral_message_id_of_message_id({dialog_id, message_id});
+    if (ephemeral_message_id.is_valid()) {
+      if (message_ids.size() != 1) {
+        return promise.set_error(400, "Ephemeral messages must be reported separately");
+      }
+      return td_->create_handler<ReportEphemeralMessageQuery>(std::move(promise))
+          ->send(dialog_id, ephemeral_message_id, option_id, text);
+    }
+  }
 
   MessagesManager::ReportDialogFromActionBar report_from_action_bar;
   if (option_id.empty() && message_ids.empty() && text.empty()) {

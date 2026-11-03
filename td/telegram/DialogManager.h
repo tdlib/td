@@ -228,6 +228,9 @@ class DialogManager final : public Actor {
 
   bool can_report_dialog(DialogId dialog_id) const;
 
+  static td_api::object_ptr<td_api::ReportChatResult> get_report_chat_result_object(
+      telegram_api::object_ptr<telegram_api::ReportResult> &&result);
+
   void report_dialog(DialogId dialog_id, const string &option_id, const vector<MessageId> &message_ids,
                      const string &text, Promise<td_api::object_ptr<td_api::ReportChatResult>> &&promise);
 

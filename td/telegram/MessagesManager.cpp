@@ -15563,7 +15563,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_get_embedding_code = can_get_message_embedding_code(dialog_id, m).is_ok();
   auto can_mark_tasks_as_done = can_mark_message_tasks_as_done(dialog_id, m);
   auto can_recognize_speech = can_recognize_message_speech(dialog_id, m);
-  auto can_report_chat = ephemeral_message_id.is_valid() ? false
+  auto can_report_chat = ephemeral_message_id.is_valid() ? !is_bot && !m->is_outgoing
                                                          : td_->dialog_manager_->can_report_dialog(dialog_id) &&
                                                                can_report_message(message_id).is_ok();
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
