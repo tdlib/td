@@ -6151,7 +6151,8 @@ void MessagesManager::on_update_dialog_linked_community_id(DialogId dialog_id, C
     return;
   }
 
-  Dialog *d = get_dialog(dialog_id);
+  // the chat must be loaded from the database, because unread chat counters include it
+  Dialog *d = get_dialog_force(dialog_id, "on_update_dialog_linked_community_id");
   if (d == nullptr) {
     return;
   }

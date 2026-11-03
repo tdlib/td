@@ -3819,7 +3819,10 @@ void UserManager::on_update_user_linked_community_id(User *u, UserId user_id, Co
     auto old_linked_community_id = u->linked_community_id;
     u->linked_community_id = linked_community_id;
     u->need_save_to_database = true;
-    td_->messages_manager_->on_update_dialog_linked_community_id(DialogId(user_id), old_linked_community_id);
+    if (u->is_update_user_sent && (!G()->use_chat_info_database() || loaded_from_database_users_.count(user_id) != 0)) {
+      // otherwise, the change is applied in on_load_user_from_database
+      td_->messages_manager_->on_update_dialog_linked_community_id(DialogId(user_id), old_linked_community_id);
+    }
   }
 }
 
@@ -5080,6 +5083,13 @@ void UserManager::on_load_user_from_database(UserId user_id, string value, bool 
   } else {
     CHECK(!u->is_saved);  // user can't be saved before load completes
     CHECK(!u->is_being_saved);
+    if (!value.empty() && u->is_bot) {
+      User temp_u;
+      if (log_event_parse(temp_u, value).is_ok() && temp_u.linked_community_id != u->linked_community_id) {
+        td_->messages_manager_->on_update_dialog_linked_community_id(DialogId(user_id), temp_u.linked_community_id);
+        CHECK(!u->is_being_saved);
+      }
+    }
     auto new_value = get_user_database_value(u);
     if (value != new_value) {
       save_user_to_database_impl(u, user_id, std::move(new_value));

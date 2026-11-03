@@ -4937,6 +4937,12 @@ void ChatManager::on_load_channel_from_database(ChannelId channel_id, string val
           on_channel_usernames_changed(c, channel_id, temp_c.usernames, c->usernames);
           CHECK(!c->is_being_saved);
         }
+
+        if (temp_c.linked_community_id != c->linked_community_id) {
+          td_->messages_manager_->on_update_dialog_linked_community_id(DialogId(channel_id),
+                                                                       temp_c.linked_community_id);
+          CHECK(!c->is_being_saved);
+        }
       } else {
         is_new = true;
       }
@@ -8215,7 +8221,11 @@ void ChatManager::on_update_channel_linked_community_id(Channel *c, ChannelId ch
     c->linked_community_id = linked_community_id;
     c->is_linked_community_id_changed = true;
     c->need_save_to_database = true;
-    td_->messages_manager_->on_update_dialog_linked_community_id(DialogId(channel_id), old_linked_community_id);
+    if (c->is_update_supergroup_sent &&
+        (!G()->use_chat_info_database() || loaded_from_database_channels_.count(channel_id) != 0)) {
+      // otherwise, the change is applied in on_load_channel_from_database
+      td_->messages_manager_->on_update_dialog_linked_community_id(DialogId(channel_id), old_linked_community_id);
+    }
   }
 }
 
