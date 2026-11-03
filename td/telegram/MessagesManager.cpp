@@ -32922,7 +32922,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     send_update_message_interaction_info(dialog_id, old_message);
   }
 
-  if (is_edited && !td_->auth_manager_->is_bot()) {
+  if (is_edited && (!td_->auth_manager_->is_bot() || is_ephemeral_message(old_message))) {
+    // bots receive updateMessageEdited for other messages from on_message_edited
     send_update_message_edited(dialog_id, old_message);
   }
 
