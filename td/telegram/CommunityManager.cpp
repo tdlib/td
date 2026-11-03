@@ -1059,10 +1059,8 @@ void CommunityManager::on_load_community_from_database(CommunityId community_id,
       if (log_event_parse(temp_c, value).is_ok() && temp_c.notification_settings.is_synchronized) {
         // unread chat counters were calculated using the saved settings, so they are applied silently
         c->notification_settings = std::move(temp_c.notification_settings);
-        c->notification_settings.fix_mute_until(td_->auth_manager_->is_bot());
-        if (c->notification_settings.mute_until != 0) {
-          schedule_community_unmute(community_id, false, c->notification_settings.mute_until, G()->unix_time());
-        }
+        schedule_community_unmute(community_id, c->notification_settings.use_default_mute_until,
+                                  c->notification_settings.mute_until, G()->unix_time());
       }
     }
     auto new_value = get_community_database_value(c);
@@ -1195,10 +1193,8 @@ void CommunityManager::update_community(Community *c, CommunityId community_id, 
   };
 
   if (from_binlog || from_database) {
-    c->notification_settings.fix_mute_until(td_->auth_manager_->is_bot());
-    if (c->notification_settings.mute_until != 0) {
-      schedule_community_unmute(community_id, false, c->notification_settings.mute_until, G()->unix_time());
-    }
+    schedule_community_unmute(community_id, c->notification_settings.use_default_mute_until,
+                              c->notification_settings.mute_until, G()->unix_time());
   }
 
   LOG(DEBUG) << "Update " << community_id << ": need_save_to_database = " << c->need_save_to_database
@@ -1727,8 +1723,9 @@ void CommunityManager::do_update_community_notification_settings(Community *c, C
 
 void CommunityManager::schedule_community_unmute(CommunityId community_id, bool use_default, int32 mute_until,
                                                  int32 unix_time) {
-  if (!use_default && mute_until >= unix_time && mute_until < unix_time + 366 * 86400) {
-    community_unmute_timeout_.set_timeout_in(community_id.get(), mute_until - unix_time + 1);
+  if (!use_default && mute_until != 0 && mute_until < unix_time + 366 * 86400) {
+    // an expired mute is removed immediately through on_community_unmute to update community chats
+    community_unmute_timeout_.set_timeout_in(community_id.get(), max(mute_until - unix_time + 1, 0));
   } else {
     community_unmute_timeout_.cancel_timeout(community_id.get());
   }

@@ -5984,8 +5984,9 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
 }
 
 void MessagesManager::schedule_dialog_unmute(DialogId dialog_id, bool use_default, int32 mute_until, int32 unix_time) {
-  if (!use_default && mute_until >= unix_time && mute_until < unix_time + 366 * 86400) {
-    dialog_unmute_timeout_.set_timeout_in(dialog_id.get(), mute_until - unix_time + 1);
+  if (!use_default && mute_until != 0 && mute_until < unix_time + 366 * 86400) {
+    // an expired mute is removed immediately through on_dialog_unmute to update unread chat counters
+    dialog_unmute_timeout_.set_timeout_in(dialog_id.get(), max(mute_until - unix_time + 1, 0));
   } else {
     dialog_unmute_timeout_.cancel_timeout(dialog_id.get());
   }
@@ -33471,8 +33472,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
   if (d->has_active_group_call && !d->active_group_call_id.is_valid() && !td_->auth_manager_->is_bot()) {
     repair_dialog_active_group_call_id(dialog_id);
   }
-  d->notification_settings.fix_mute_until(td_->auth_manager_->is_bot());
-  if (d->notification_settings.mute_until != 0) {
+  if (td_->auth_manager_->is_bot() || d->notification_settings.use_default_mute_until) {
+    d->notification_settings.mute_until = 0;
+  } else if (d->notification_settings.mute_until != 0) {
     schedule_dialog_unmute(dialog_id, false, d->notification_settings.mute_until, G()->unix_time());
   }
   if (d->notification_info != nullptr && d->notification_info->pinned_message_notification_message_id_.is_valid()) {
