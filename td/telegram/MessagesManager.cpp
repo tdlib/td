@@ -32800,8 +32800,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     old_message->reactions_are_possible = new_message->reactions_are_possible;
   }
 
-  if (old_message->edit_date > 0) {
-    // inline keyboard can be edited
+  if (old_message->edit_date > 0 || is_ephemeral_message(old_message)) {
+    // inline keyboard can be edited; ephemeral messages have no edit date, but can be edited too
     bool reply_markup_changed =
         ((old_message->reply_markup == nullptr) != (new_message->reply_markup == nullptr)) ||
         (old_message->reply_markup != nullptr && *old_message->reply_markup != *new_message->reply_markup);
