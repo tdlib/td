@@ -16755,7 +16755,8 @@ buyGiftUpgrade owner_id:MessageSender prepaid_upgrade_hash:string star_count:int
 
 //@description Crafts a new gift from other gifts that will be permanently lost
 //@received_gift_ids Identifier of the gifts to use for crafting. In the case of a successful craft, the resulting gift will have the number of the first gift.
-//-Consequently, the first gift must not have been withdrawn to the TON blockchain as an NFT and must have an empty gift_address
+//-Consequently, unless getOption("can_craft_from_withdrawn_first_gift") is true, the first gift must not have been withdrawn to the TON blockchain as an NFT
+//-and must have an empty gift_address
 craftGift received_gift_ids:vector<string> = CraftGiftResult;
 
 //@description Sends an upgraded gift to another user or channel chat

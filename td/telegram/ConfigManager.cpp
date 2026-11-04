@@ -1364,6 +1364,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"premium_gift_attach_menu_icon", "gift_premium_from_attachment_menu"},
       {"premium_gift_text_field_icon", "gift_premium_from_input_field"},
       {"settings_display_passkeys", "can_use_login_passkey"},
+      {"stargifts_craft_minted_first_source", "can_craft_from_withdrawn_first_gift"},
       {"stars_gifts_enabled", "can_gift_stars"},
       {"stars_paid_messages_available", "can_enable_paid_messages"},
       {"stars_spend_topup_invoice_disabled", "star_top_up_disabled"},
