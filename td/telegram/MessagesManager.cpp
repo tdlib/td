@@ -9115,6 +9115,9 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     d->notification_info->notification_id_to_message_id_.clear();
   }
 
+  // ephemeral messages could have been unloaded
+  d->ephemeral_message_ids.clear();
+
   on_dialog_updated(d->dialog_id, "delete_all_dialog_messages 11");
 
   send_update_delete_messages(d->dialog_id, std::move(deleted_message_ids), is_permanently_deleted);
@@ -13776,6 +13779,10 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     send_closure_later(actor_id(this), &MessagesManager::load_last_dialog_message_later, d->dialog_id, false);
   }
 
+  if (!only_from_memory || !G()->use_message_database()) {
+    // unloaded messages can be loaded again from the database
+    unregister_dialog_ephemeral_message(d, get_message_ephemeral_message_id(result.get()));
+  }
   on_message_deleted(d, result.get(), is_permanently_deleted, source);
 
   return result;
@@ -13877,7 +13884,6 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
     default:
       UNREACHABLE();
   }
-  unregister_dialog_ephemeral_message(d, get_message_ephemeral_message_id(m));
   ttl_unregister_message(d->dialog_id, m, source);
   ttl_period_unregister_message(d->dialog_id, m);
   delete_bot_command_message_id(d->dialog_id, m->message_id);
