@@ -3253,6 +3253,8 @@ class MessagesManager final : public Actor {
 
   static bool is_ephemeral_message(const Message *m);
 
+  bool is_bot_ephemeral_message_channel(DialogId dialog_id) const;
+
   static EphemeralMessageId get_message_ephemeral_message_id(const Message *m);
 
   static const MessageContent *get_message_actual_content(const Message *m);

@@ -4202,7 +4202,7 @@ void MessagesManager::on_new_ephemeral_message(telegram_api::object_ptr<telegram
 
   Dialog *d = get_dialog_force(dialog_id, "on_new_ephemeral_message");
   if (d == nullptr && td_->dialog_manager_->have_dialog_info_force(dialog_id, "on_new_ephemeral_message")) {
-    force_create_dialog(dialog_id, "on_new_ephemeral_message");
+    force_create_dialog(dialog_id, "on_new_ephemeral_message", is_bot_ephemeral_message_channel(dialog_id));
     d = get_dialog(dialog_id);
   }
   if (d == nullptr || d->ephemeral_message_ids.count(message_info.ephemeral_message_id) != 0 ||
@@ -12130,7 +12130,8 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
   }
 
   if (dialog_id.get_type() == DialogType::Channel &&
-      !td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+      !td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) &&
+      !is_bot_ephemeral_message_channel(dialog_id)) {
     auto message = delete_message(d, message_id, false, &need_update_dialog_pos, "get a message in inaccessible chat");
     CHECK(message.get() == m);
     send_update_delete_messages(dialog_id, {m->message_id.get()}, false);
@@ -15336,8 +15337,16 @@ MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, Promise
 
 void MessagesManager::get_callback_query_message(DialogId dialog_id, MessageId message_id, int64 callback_query_id,
                                                  Promise<Unit> &&promise) {
-  TRY_RESULT_PROMISE(promise, d,
-                     check_dialog_access(dialog_id, true, AccessRights::Read, "get_callback_query_message"));
+  Dialog *d = nullptr;
+  if (!message_id.is_server() && is_bot_ephemeral_message_channel(dialog_id)) {
+    d = get_dialog_force(dialog_id, "get_callback_query_message");
+    if (d == nullptr) {
+      return promise.set_error(400, "Chat not found");
+    }
+  } else {
+    TRY_RESULT_PROMISE_ASSIGN(promise, d,
+                              check_dialog_access(dialog_id, true, AccessRights::Read, "get_callback_query_message"));
+  }
   if (!message_id.is_server()) {
     const auto *m = get_message_force(d, message_id, "get_callback_query_message");
     if (is_ephemeral_message(m)) {
@@ -23497,6 +23506,18 @@ bool MessagesManager::is_deleted_secret_chat(const Dialog *d) const {
 
 bool MessagesManager::is_ephemeral_message(const Message *m) {
   return m != nullptr && m->receiver_user_id != UserId();
+}
+
+bool MessagesManager::is_bot_ephemeral_message_channel(DialogId dialog_id) const {
+  // bots can receive ephemeral messages in the channels without being their members
+  if (!td_->auth_manager_->is_bot() || dialog_id.get_type() != DialogType::Channel) {
+    return false;
+  }
+  auto channel_id = dialog_id.get_channel_id().get();
+  if (G()->is_test_dc()) {
+    return channel_id == 8000042883 || channel_id == 8001701879;
+  }
+  return channel_id == 3937063115 || channel_id == 4412713723;
 }
 
 EphemeralMessageId MessagesManager::get_message_ephemeral_message_id(const Message *m) {
