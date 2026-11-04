@@ -1716,7 +1716,7 @@ void BusinessConnectionManager::on_fail_send_message(unique_ptr<PendingMessage> 
   int32 error_code = error.code();
   string error_message = error.message().str();
   MessagesManager::process_send_message_fail_error(error_code, error_message, message->dialog_id_,
-                                                   td_->auth_manager_->is_bot(), message->content_->get_type());
+                                                   td_->auth_manager_->is_bot(), false, message->content_->get_type());
   if (error_code != 403 && !(error_code == 500 && G()->close_flag())) {
     LOG(WARNING) << "Failed to send business message by "
                  << get_business_connection_user_id(message->business_connection_id_) << " in " << message->dialog_id_

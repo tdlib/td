@@ -166,7 +166,7 @@ class MessagesManager final : public Actor {
   static bool is_invalid_poll_message(const telegram_api::Message *message);
 
   static bool process_send_message_fail_error(int32 &error_code, string &error_message, DialogId dialog_id, bool is_bot,
-                                              MessageContentType content_type);
+                                              bool is_ephemeral, MessageContentType content_type);
 
   static int64 get_required_paid_message_star_count(int32 error_code, Slice error_message);
 

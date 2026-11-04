@@ -28248,7 +28248,7 @@ void MessagesManager::on_send_media_group_file_reference_error(DialogId dialog_i
 }
 
 bool MessagesManager::process_send_message_fail_error(int32 &error_code, string &error_message, DialogId dialog_id,
-                                                      bool is_bot, MessageContentType content_type) {
+                                                      bool is_bot, bool is_ephemeral, MessageContentType content_type) {
   switch (error_code) {
     case 420:
       error_code = 429;
@@ -28274,7 +28274,8 @@ bool MessagesManager::process_send_message_fail_error(int32 &error_code, string 
         }
       } else if (error_message == "PEER_ID_INVALID") {
         error_code = 403;
-        if (is_bot && (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
+        if (is_bot && !is_ephemeral &&
+            (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
           error_message = "Bot can't initiate conversation with a user";
         }
       } else if (error_message == "REPLY_TO_MONOFORUM_PEER_INVALID") {
@@ -28349,7 +28350,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
   int32 error_code = error.code();
   string error_message = error.message().str();
   if (!process_send_message_fail_error(error_code, error_message, dialog_id, td_->auth_manager_->is_bot(),
-                                       m->content->get_type())) {
+                                       is_ephemeral_message(m), m->content->get_type())) {
     if (error_message == "QUOTE_TEXT_INVALID") {
       auto *input_reply_to = get_message_input_reply_to(m);
       if (input_reply_to != nullptr && !input_reply_to->is_empty() && input_reply_to->has_quote()) {
