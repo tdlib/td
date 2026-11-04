@@ -8683,6 +8683,19 @@ void MessagesManager::on_failed_message_deletion(DialogId dialog_id, const vecto
   get_messages_from_server(std::move(message_full_ids), Promise<Unit>(), "on_failed_message_deletion");
 }
 
+void MessagesManager::on_failed_ephemeral_message_deletion(DialogId dialog_id,
+                                                           EphemeralMessageId ephemeral_message_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+  Dialog *d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    return;
+  }
+  // the message can't be reloaded from the server, but it can be received again
+  d->deleted_ephemeral_message_ids.erase(ephemeral_message_id);
+}
+
 void MessagesManager::on_scheduled_messages_deleted(DialogId dialog_id, const vector<MessageId> &message_ids) {
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);

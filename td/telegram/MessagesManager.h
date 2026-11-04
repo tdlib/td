@@ -413,6 +413,8 @@ class MessagesManager final : public Actor {
 
   void on_failed_message_deletion(DialogId dialog_id, const vector<int32> &server_message_ids);
 
+  void on_failed_ephemeral_message_deletion(DialogId dialog_id, EphemeralMessageId ephemeral_message_id);
+
   void on_scheduled_messages_deleted(DialogId dialog_id, const vector<MessageId> &message_ids);
 
   void on_failed_scheduled_message_deletion(DialogId dialog_id, const vector<MessageId> &message_ids);

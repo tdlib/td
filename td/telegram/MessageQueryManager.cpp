@@ -1841,6 +1841,7 @@ class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
 class DeleteEphemeralMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  EphemeralMessageId ephemeral_message_id_;
 
  public:
   explicit DeleteEphemeralMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -1848,6 +1849,7 @@ class DeleteEphemeralMessageQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, DialogId receiver_dialog_id, EphemeralMessageId ephemeral_message_id) {
     dialog_id_ = dialog_id;
+    ephemeral_message_id_ = ephemeral_message_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr || receiver_dialog_id.get_type() != DialogType::User) {
@@ -1873,6 +1875,7 @@ class DeleteEphemeralMessageQuery final : public Td::ResultHandler {
     if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeleteEphemeralMessageQuery")) {
       LOG(ERROR) << "Receive error for delete ephemeral messages: " << status;
     }
+    td_->messages_manager_->on_failed_ephemeral_message_deletion(dialog_id_, ephemeral_message_id_);
     promise_.set_error(std::move(status));
   }
 };
