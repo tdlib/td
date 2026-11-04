@@ -4118,7 +4118,7 @@ void MessageQueryManager::edit_ephemeral_message(
                      get_input_message_content(dialog_id, std::move(input_message_content), td_, true));
   auto content_type = content.content->get_type();
   if (!is_editable_media_message_content(content_type) && content_type != MessageContentType::RichText) {
-    return promise.set_error(400, "Unsupported input message content type");
+    return promise.set_error(400, "Unallowed message content specified");
   }
   if (!content.ttl.is_empty()) {
     return promise.set_error(400, "Can't enable self-destruction for media");
@@ -4167,7 +4167,7 @@ void MessageQueryManager::edit_callback_query_message(
   TRY_RESULT_PROMISE(promise, content,
                      get_input_message_content(DialogId(), std::move(input_message_content), td_, true));
   if (!is_allowed_ephemeral_message_content(content.content->get_type())) {
-    return promise.set_error(400, "Unsupported input message content type");
+    return promise.set_error(400, "Unallowed message content specified");
   }
   if (!content.ttl.is_empty()) {
     return promise.set_error(400, "Can't enable self-destruction for media");

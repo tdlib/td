@@ -5215,7 +5215,7 @@ static Result<InputMessageContent> create_input_message_content(
       }
       vector<MessageExtendedMedia> extended_media;
       for (auto &paid_media : input_paid_media->paid_media_) {
-        TRY_RESULT(media, MessageExtendedMedia::get_message_extended_media(td, std::move(paid_media), dialog_id));
+        TRY_RESULT(media, MessageExtendedMedia::get_message_extended_media(td, std::move(paid_media), dialog_id, true));
         if (media.is_empty()) {
           return Status::Error(400, "Paid media must be non-empty");
         }
@@ -5644,7 +5644,7 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessageForwarded::ID:
       // must be processed by the caller if supported
-      return Status::Error(400, "Unsupported input message content type");
+      return Status::Error(400, "Unallowed message content specified");
     default:
       break;
   }

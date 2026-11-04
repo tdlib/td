@@ -1806,7 +1806,7 @@ void BusinessConnectionManager::edit_business_message_media(
                      get_input_message_content(DialogId(), std::move(input_message_content), td_, true));
   auto content_type = content.content->get_type();
   if (!is_editable_media_message_content(content_type)) {
-    return promise.set_error(400, "Unsupported input message content type");
+    return promise.set_error(400, "Unallowed message content specified");
   }
   if (!content.ttl.is_empty()) {
     return promise.set_error(400, "Can't enable self-destruction for media");

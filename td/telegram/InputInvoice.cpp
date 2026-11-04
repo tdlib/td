@@ -220,7 +220,7 @@ Result<InputInvoice> InputInvoice::process_input_message_invoice(
   result.provider_data_ = std::move(input_invoice->provider_data_);
 
   TRY_RESULT(extended_media, MessageExtendedMedia::get_message_extended_media(td, std::move(input_invoice->paid_media_),
-                                                                              owner_dialog_id));
+                                                                              owner_dialog_id, false));
   result.extended_media_ = std::move(extended_media);
   if (!result.extended_media_.is_empty()) {
     bool is_bot = td->auth_manager_->is_bot();

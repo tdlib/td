@@ -23872,7 +23872,7 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
   TRY_RESULT_PROMISE(promise, content, process_input_message_content(dialog_id, std::move(input_message_content)));
   auto new_content_type = content.content->get_type();
   if (!is_editable_media_message_content(new_content_type)) {
-    return promise.set_error(400, "Unsupported input message content type");
+    return promise.set_error(400, "Unallowed message content specified");
   }
   if (!content.ttl.is_empty()) {
     return promise.set_error(400, "Can't enable self-destruction for media");

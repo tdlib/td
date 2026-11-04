@@ -128,11 +128,14 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
 }
 
 Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
-    Td *td, td_api::object_ptr<td_api::inputPaidMedia> &&paid_media, DialogId owner_dialog_id) {
+    Td *td, td_api::object_ptr<td_api::inputPaidMedia> &&paid_media, DialogId owner_dialog_id, bool is_paid_media) {
   if (paid_media == nullptr) {
     return MessageExtendedMedia();
   }
   if (!owner_dialog_id.is_valid()) {
+    if (is_paid_media) {
+      return Status::Error(400, "Unallowed message content specified");
+    }
     return Status::Error(400, "Extended media can't be added to the invoice");
   }
   if (paid_media->type_ == nullptr) {
