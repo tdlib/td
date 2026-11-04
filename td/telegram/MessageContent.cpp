@@ -5642,6 +5642,9 @@ Result<InputMessageContent> get_input_message_content(
       input_file = std::move(voice_note->voice_note_);
       break;
     }
+    case td_api::inputMessageForwarded::ID:
+      // must be processed by the caller if supported
+      return Status::Error(400, "Unsupported input message content type");
     default:
       break;
   }
