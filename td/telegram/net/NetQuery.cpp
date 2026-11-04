@@ -51,11 +51,12 @@ NetQuery::NetQuery(uint64 id, BufferSlice &&query, DcId dc_id, Type type, AuthFl
   chain_ids_ = transform(chain_ids, [](ChainId chain_id) { return chain_id.get() == 0 ? 1 : chain_id.get(); });
   td::unique(chain_ids_);
 
-  auto &data = get_data_unsafe();
-  data.my_id_ = G()->get_option_integer("my_id");
-  data.start_timestamp_ = data.state_timestamp_ = Time::now();
   LOG(INFO) << *this;
   if (stats) {
+    // debug data is read only by NetQueryStats, so fill it in only for registered queries, before registering
+    auto &data = get_data_unsafe();
+    data.my_id_ = G()->get_option_integer("my_id");
+    data.start_timestamp_ = data.state_timestamp_ = Time::now();
     nq_counter_ = stats->register_query(this);
   }
 }
