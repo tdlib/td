@@ -1350,6 +1350,10 @@ void SecretChatActor::on_save_changes_start(ChangesProcessor<StateChange>::Id sa
   for (auto &save_changes_finish : save_changes_finish_promises) {
     save_changes_finish.set_value(Unit());
   }
+  if (pfs_state_change) {
+    // AcceptKey and CommitKey are sent only after the new key is saved, so send them now
+    loop();
+  }
 }
 
 void SecretChatActor::on_inbound_save_message_finish(uint64 state_id) {
