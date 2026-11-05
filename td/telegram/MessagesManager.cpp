@@ -14054,7 +14054,8 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
         default:
           UNREACHABLE();
       }
-      if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
+      if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read) &&
+          !is_bot_ephemeral_message_channel(dialog_id)) {
         return false;
       }
 

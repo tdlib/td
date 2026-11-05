@@ -323,6 +323,8 @@ class MessagesManager final : public Actor {
 
   MessageId get_message_id_of_ephemeral_message_id(DialogId dialog_id, EphemeralMessageId ephemeral_message_id);
 
+  bool is_bot_ephemeral_message_channel(DialogId dialog_id) const;
+
   EphemeralMessageId get_ephemeral_message_id_of_message_id(MessageFullId message_full_id);
 
   void on_new_ephemeral_message(telegram_api::object_ptr<telegram_api::ephemeralMessage> &&message);
@@ -3254,8 +3256,6 @@ class MessagesManager final : public Actor {
   bool is_deleted_secret_chat(const Dialog *d) const;
 
   static bool is_ephemeral_message(const Message *m);
-
-  bool is_bot_ephemeral_message_channel(DialogId dialog_id) const;
 
   static EphemeralMessageId get_message_ephemeral_message_id(const Message *m);
 

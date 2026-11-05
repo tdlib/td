@@ -1430,7 +1430,7 @@ class EditEphemeralMessageQuery final : public Td::ResultHandler {
             InputMedia &&input_media, bool invert_media, const unique_ptr<ReplyMarkup> &reply_markup) {
     upload_id_ = upload_id;
     int32 flags = 0;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = MessageQueryManager::get_ephemeral_message_input_peer(td_, dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -1851,7 +1851,7 @@ class DeleteEphemeralMessageQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     ephemeral_message_id_ = ephemeral_message_id;
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = MessageQueryManager::get_ephemeral_message_input_peer(td_, dialog_id, AccessRights::Read);
     if (input_peer == nullptr || receiver_dialog_id.get_type() != DialogType::User) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -4094,8 +4094,10 @@ void MessageQueryManager::edit_ephemeral_message(
   auto is_bot = td_->auth_manager_->is_bot();
   CHECK(is_bot);
 
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
-                                                                        "edit_ephemeral_message"));
+  if (!td_->messages_manager_->is_bot_ephemeral_message_channel(dialog_id)) {
+    TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
+                                                                          "edit_ephemeral_message"));
+  }
   TRY_RESULT_PROMISE(promise, new_reply_markup, get_inline_reply_markup(std::move(reply_markup), is_bot, true));
   if (input_message_content == nullptr) {
     td_->create_handler<EditEphemeralMessageQuery>(std::move(promise))
@@ -4146,8 +4148,10 @@ void MessageQueryManager::edit_ephemeral_message_caption(DialogId dialog_id, Use
   auto is_bot = td_->auth_manager_->is_bot();
   CHECK(is_bot);
 
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
-                                                                        "edit_ephemeral_message_caption"));
+  if (!td_->messages_manager_->is_bot_ephemeral_message_channel(dialog_id)) {
+    TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
+                                                                          "edit_ephemeral_message_caption"));
+  }
   TRY_RESULT_PROMISE(promise, new_reply_markup, get_inline_reply_markup(std::move(reply_markup), is_bot, true));
   TRY_RESULT_PROMISE(promise, caption,
                      get_formatted_text(td_, dialog_id, std::move(input_caption), is_bot, true, false, false));
@@ -4203,6 +4207,15 @@ void MessageQueryManager::cancel_edit_ephemeral_message(MessageContentUploadId u
   } else {
     promise.set_value(Unit());
   }
+}
+
+telegram_api::object_ptr<telegram_api::InputPeer> MessageQueryManager::get_ephemeral_message_input_peer(
+    Td *td, DialogId dialog_id, AccessRights access_rights) {
+  if (td->messages_manager_->is_bot_ephemeral_message_channel(dialog_id)) {
+    // the chat is inaccessible, but ephemeral messages can be edited and deleted there
+    return telegram_api::make_object<telegram_api::inputPeerChannel>(dialog_id.get_channel_id().get(), 0);
+  }
+  return td->dialog_manager_->get_input_peer(dialog_id, access_rights);
 }
 
 void MessageQueryManager::delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id,

@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AffectedHistory.h"
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/ChannelId.h"
@@ -261,6 +262,9 @@ class MessageQueryManager final : public Actor {
                                    Promise<Unit> &&promise);
 
   void cancel_edit_ephemeral_message(MessageContentUploadId upload_id, Status status);
+
+  static telegram_api::object_ptr<telegram_api::InputPeer> get_ephemeral_message_input_peer(Td *td, DialogId dialog_id,
+                                                                                            AccessRights access_rights);
 
   void delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id, Promise<Unit> &&promise);
 
