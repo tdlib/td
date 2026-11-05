@@ -4126,9 +4126,13 @@ void MessageQueryManager::edit_ephemeral_message(
     return promise.set_error(400, "Can't enable self-destruction for media");
   }
 
+  // files can't be uploaded to inaccessible chats, so upload them for the bot itself
+  auto upload_dialog_id = td_->messages_manager_->is_bot_ephemeral_message_channel(dialog_id)
+                              ? td_->dialog_manager_->get_my_dialog_id()
+                              : dialog_id;
   auto upload_id =
-      create_upload_message_content_query(dialog_id, content.content.get(), MessageSelfDestructType(), content.emoji,
-                                          false, false, upload_ephemeral_message_content_callback_);
+      create_upload_message_content_query(upload_dialog_id, content.content.get(), MessageSelfDestructType(),
+                                          content.emoji, false, false, upload_ephemeral_message_content_callback_);
   auto &query = edit_ephemeral_message_queries_[upload_id];
   query.dialog_id_ = dialog_id;
   query.receiver_user_id_ = receiver_user_id;
