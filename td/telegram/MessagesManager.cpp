@@ -1507,7 +1507,9 @@ class SendMediaQuery final : public Td::ResultHandler {
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     was_thumbnail_uploaded_ = FileManager::extract_was_thumbnail_uploaded(input_media);
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = receiver_user_id != UserId()
+                          ? MessageQueryManager::get_ephemeral_message_input_peer(td_, dialog_id, AccessRights::Write)
+                          : td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Have no write access to the chat"));
     }
@@ -1674,7 +1676,11 @@ class UploadMediaQuery final : public Td::ResultHandler {
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     was_thumbnail_uploaded_ = FileManager::extract_was_thumbnail_uploaded(input_media);
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    // files can't be uploaded to inaccessible chats, so upload them for the bot itself
+    auto upload_dialog_id = td_->messages_manager_->is_bot_ephemeral_message_channel(dialog_id)
+                                ? td_->dialog_manager_->get_my_dialog_id()
+                                : dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(upload_dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Have no write access to the chat"));
     }
@@ -8622,7 +8628,8 @@ void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageI
 
   // being sent message was deleted by the user or is in an inaccessible channel
   // don't need to send an update to the user, because the message has already been deleted
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read) &&
+      !is_bot_ephemeral_message_channel(dialog_id)) {
     LOG(INFO) << "Ignore sent " << message_id << " in inaccessible " << dialog_id;
     return;
   }
@@ -21260,7 +21267,8 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   message->random_id = generate_new_random_id(d);
 
   bool need_update = false;
-  CHECK(td_->dialog_manager_->have_input_peer(d->dialog_id, true, AccessRights::Read));
+  CHECK(td_->dialog_manager_->have_input_peer(d->dialog_id, true, AccessRights::Read) ||
+        is_bot_ephemeral_message_channel(d->dialog_id));
   auto result =
       add_message_to_dialog(d, std::move(message), false, true, &need_update, need_update_dialog_pos, "send message");
   LOG_CHECK(result != nullptr) << message_id << ' ' << debug_add_message_to_dialog_fail_reason_;
@@ -22216,8 +22224,11 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
   if (!is_secret) {
     auto covers = get_message_content_need_to_upload_covers(td_, content);
     if (!covers.empty()) {
+      // files can't be uploaded to inaccessible chats, so upload them for the bot itself
+      auto upload_dialog_id =
+          is_bot_ephemeral_message_channel(dialog_id) ? td_->dialog_manager_->get_my_dialog_id() : dialog_id;
       return td_->message_query_manager_->upload_message_covers(
-          BusinessConnectionId(), dialog_id, std::move(covers),
+          BusinessConnectionId(), upload_dialog_id, std::move(covers),
           PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id = m->message_id,
                                   edit_generation = m->edit_generation, media_pos,
                                   bad_parts = std::move(bad_parts)](Result<Unit> result) mutable {
@@ -22537,7 +22548,8 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
     return;
   }
 
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read) &&
+      !is_bot_ephemeral_message_channel(dialog_id)) {
     return;  // the message should be deleted soon
   }
 
@@ -22594,7 +22606,8 @@ void MessagesManager::on_upload_message_media_file_error(DialogId dialog_id, Mes
     return;
   }
 
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read) &&
+      !is_bot_ephemeral_message_channel(dialog_id)) {
     return;  // the message should be deleted soon
   }
 
@@ -22619,7 +22632,8 @@ void MessagesManager::on_upload_message_media_fail(DialogId dialog_id, MessageId
     return;
   }
 
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read) &&
+      !is_bot_ephemeral_message_channel(dialog_id)) {
     return;  // the message should be deleted soon
   }
 
@@ -25605,7 +25619,20 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_ephemeral_mess
     int64 callback_query_id, bool anchor, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
     bool protect_content, int32 sending_id, bool only_preview, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) {
-  TRY_RESULT(d, check_dialog_access(dialog_id, false, AccessRights::Write, "send_ephemeral_message"));
+  Dialog *d = nullptr;
+  if (is_bot_ephemeral_message_channel(dialog_id)) {
+    // the chat is inaccessible, but replies to ephemeral messages can be sent there
+    if (!td_->dialog_manager_->have_dialog_info_force(dialog_id, "send_ephemeral_message")) {
+      return Status::Error(400, "Chat not found");
+    }
+    force_create_dialog(dialog_id, "send_ephemeral_message", true);
+    d = get_dialog(dialog_id);
+    if (d == nullptr) {
+      return Status::Error(400, "Chat not found");
+    }
+  } else {
+    TRY_RESULT_ASSIGN(d, check_dialog_access(dialog_id, false, AccessRights::Write, "send_ephemeral_message"));
+  }
   TRY_STATUS(td_->user_manager_->get_input_user(receiver_user_id));
   TRY_RESULT(message_topic, MessageTopic::get_send_message_topic(td_, dialog_id, topic_id));
   auto input_reply_to = create_message_input_reply_to(d, message_topic, std::move(reply_to), false, true);
@@ -36071,7 +36098,8 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
     binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     return nullptr;
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read) &&
+      !is_bot_ephemeral_message_channel(dialog_id)) {
     binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     return nullptr;
   }
