@@ -21415,8 +21415,9 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
       if (!reply_to_message->poll_option_id_.empty() && m->content->get_type() != MessageContentType::Poll) {
         reply_to_message->poll_option_id_.clear();
       }
+      // ephemeral messages reply to the ephemeral message, which replaced the message, if any
       return MessageInputReplyTo{m->message_id,
-                                 m->ephemeral_message_id,
+                                 for_ephemeral_message ? get_message_ephemeral_message_id(m) : EphemeralMessageId(),
                                  DialogId(),
                                  MessageQuote{td_, std::move(reply_to_message->quote_)},
                                  checklist_task_id,
