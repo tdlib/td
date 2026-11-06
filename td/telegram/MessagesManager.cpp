@@ -24024,10 +24024,19 @@ void MessagesManager::delete_message_ephemeral_message(MessageFullId message_ful
   if (m == nullptr) {
     return promise.set_error(400, "Message not found");
   }
-  if (m->ephemeral_message != nullptr) {
-    set_message_ephemeral_message(get_dialog(message_full_id.get_dialog_id()), m, nullptr);
+  if (m->ephemeral_message == nullptr) {
+    return promise.set_value(Unit());
   }
-  promise.set_value(Unit());
+
+  auto dialog_id = message_full_id.get_dialog_id();
+  auto receiver_user_id = m->ephemeral_message->receiver_user_id;
+  auto ephemeral_message_id = m->ephemeral_message->ephemeral_message_id;
+  set_message_ephemeral_message(get_dialog(dialog_id), m, nullptr);
+  if (!receiver_user_id.is_valid() || !ephemeral_message_id.is_valid()) {
+    return promise.set_value(Unit());
+  }
+  td_->message_query_manager_->delete_ephemeral_message_on_server(dialog_id, DialogId(receiver_user_id),
+                                                                  ephemeral_message_id, 0, std::move(promise));
 }
 
 void MessagesManager::do_delete_message_ephemeral_message(MessageFullId message_full_id) {
