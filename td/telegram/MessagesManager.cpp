@@ -21055,7 +21055,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     Dialog *d, const MessageTopic &message_topic, MessageInputReplyTo &&input_reply_to,
     const MessageSendOptions &options, unique_ptr<MessageContent> &&content, bool invert_media,
     bool suppress_reply_info, unique_ptr<MessageForwardInfo> forward_info, DialogId real_forward_from_dialog_id,
-    bool is_copy, DialogId send_as_dialog_id, bool is_quick_reply_message) {
+    bool is_copy, DialogId send_as_dialog_id, bool is_quick_reply_message, bool is_ephemeral) {
   CHECK(d != nullptr);
   CHECK(content != nullptr);
 
@@ -21102,8 +21102,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   auto message = make_unique<Message>();
   auto *m = message.get();
   bool is_channel_post = td_->dialog_manager_->is_broadcast_channel(dialog_id);
-  if (!is_channel_post ||
-      (!is_scheduled && td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id()))) {
+  if (is_ephemeral) {
+    // ephemeral messages are always sent by the user itself
+    m->sender_user_id = my_id;
+  } else if (!is_channel_post ||
+             (!is_scheduled && td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id()))) {
     if (message_topic.is_monoforum()) {
       CHECK(dialog_id.get_type() == DialogType::Channel);
       auto channel_id = td_->chat_manager_->get_monoforum_channel_id(dialog_id.get_channel_id());
@@ -21136,7 +21139,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   } else {
     m->sender_dialog_id = dialog_id;
   }
-  if (is_channel_post && !is_scheduled && td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
+  if (is_channel_post && !is_scheduled && !is_ephemeral &&
+      td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
     auto show_message_sender = td_->chat_manager_->get_channel_show_message_sender(dialog_id.get_channel_id());
     if (m->sender_dialog_id != dialog_id || !m->has_explicit_sender) {
       m->author_signature = m->sender_dialog_id == dialog_id || m->sender_dialog_id == DialogId()
@@ -21170,10 +21174,10 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->noforwards = options.protect_content;
   m->allow_paid = options.allow_paid;
   m->paid_message_star_count = options.paid_message_star_count;
-  m->view_count = is_channel_post && !is_scheduled ? 1 : 0;
+  m->view_count = is_channel_post && !is_scheduled && !is_ephemeral ? 1 : 0;
   m->forward_count = 0;
   if ([&] {
-        if (suppress_reply_info) {
+        if (suppress_reply_info || is_ephemeral) {
           return false;
         }
         if (is_scheduled) {
@@ -21200,7 +21204,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
       }
     }
   }
-  if (m->sender_user_id == my_id && dialog_type == DialogType::Channel && !is_channel_post) {
+  if (m->sender_user_id == my_id && dialog_type == DialogType::Channel && !is_channel_post && !is_ephemeral) {
     m->sender_boost_count = td_->chat_manager_->get_channel_my_boost_count(dialog_id.get_channel_id());
     // m->sender_rank = td_->dialog_manager_->get_my_rank(dialog_id);
   }
@@ -21244,12 +21248,14 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
     Dialog *d, const MessageTopic &message_topic, MessageInputReplyTo &&input_reply_to,
     const MessageSendOptions &options, unique_ptr<MessageContent> &&content, bool invert_media,
     bool *need_update_dialog_pos, bool suppress_reply_info, unique_ptr<MessageForwardInfo> forward_info,
-    DialogId real_forward_from_dialog_id, bool is_copy, DialogId send_as_dialog_id, bool is_quick_reply_message) {
+    DialogId real_forward_from_dialog_id, bool is_copy, DialogId send_as_dialog_id, bool is_quick_reply_message,
+    bool is_ephemeral) {
   d->was_opened = true;
 
-  auto message = create_message_to_send(
-      d, message_topic, std::move(input_reply_to), options, std::move(content), invert_media, suppress_reply_info,
-      std::move(forward_info), real_forward_from_dialog_id, is_copy, send_as_dialog_id, is_quick_reply_message);
+  auto message =
+      create_message_to_send(d, message_topic, std::move(input_reply_to), options, std::move(content), invert_media,
+                             suppress_reply_info, std::move(forward_info), real_forward_from_dialog_id, is_copy,
+                             send_as_dialog_id, is_quick_reply_message, is_ephemeral);
   auto message_id = message->message_id;
   message->random_id = generate_new_random_id(d);
 
@@ -25617,13 +25623,14 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_ephemeral_mess
   unique_ptr<Message> message;
   Message *m;
   if (only_preview) {
-    message =
-        create_message_to_send(d, message_topic, std::move(input_reply_to), MessageSendOptions(), std::move(content),
-                               message_content.invert_media, false, nullptr, DialogId(), false, DialogId(), false);
+    message = create_message_to_send(d, message_topic, std::move(input_reply_to), MessageSendOptions(),
+                                     std::move(content), message_content.invert_media, false, nullptr, DialogId(),
+                                     false, DialogId(), false, true);
     m = message.get();
   } else {
     m = get_message_to_send(d, message_topic, std::move(input_reply_to), MessageSendOptions(), std::move(content),
-                            message_content.invert_media, &need_update_dialog_pos);
+                            message_content.invert_media, &need_update_dialog_pos, false, nullptr, DialogId(), false,
+                            DialogId(), false, true);
   }
   m->receiver_user_id = receiver_user_id;
   m->noforwards = protect_content;
