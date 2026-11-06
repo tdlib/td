@@ -28302,8 +28302,10 @@ void MessagesManager::on_send_media_group_file_reference_error(DialogId dialog_i
   }
 }
 
-bool MessagesManager::process_send_message_fail_error(int32 &error_code, string &error_message, DialogId dialog_id,
-                                                      bool is_bot, bool is_ephemeral, MessageContentType content_type) {
+Status MessagesManager::process_send_message_fail_error(Status &&error, DialogId dialog_id, bool is_bot,
+                                                        bool is_ephemeral, MessageContentType content_type) {
+  int32 error_code = error.code();
+  string error_message = error.message().str();
   switch (error_code) {
     case 420:
       error_code = 429;
@@ -28356,7 +28358,7 @@ bool MessagesManager::process_send_message_fail_error(int32 &error_code, string 
       } else if (error_message == "PHOTO_EXT_INVALID") {
         error_message = "Photo has unsupported extension. Use one of .jpg, .jpeg, .gif, .png, .tif or .bmp";
       } else {
-        return false;
+        return std::move(error);
       }
       break;
     case 403:
@@ -28364,13 +28366,13 @@ bool MessagesManager::process_send_message_fail_error(int32 &error_code, string 
           error_message != "USER_BOT_INVALID" && error_message != "USER_DELETED") {
         error_code = 400;
       } else {
-        return false;
+        return std::move(error);
       }
       break;
     default:
-      return false;
+      return std::move(error);
   }
-  return true;
+  return Status::Error(error_code, error_message);
 }
 
 void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
@@ -28402,55 +28404,53 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
       << "Receive error " << error << " about sent message with random_id = " << random_id;
 
   auto dialog_id = message_full_id.get_dialog_id();
-  int32 error_code = error.code();
-  string error_message = error.message().str();
-  if (!process_send_message_fail_error(error_code, error_message, dialog_id, td_->auth_manager_->is_bot(),
-                                       is_ephemeral_message(m), m->content->get_type())) {
-    if (error_message == "QUOTE_TEXT_INVALID") {
-      auto *input_reply_to = get_message_input_reply_to(m);
-      if (input_reply_to != nullptr && !input_reply_to->is_empty() && input_reply_to->has_quote()) {
-        auto reply_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
-        if (reply_message_full_id.get_message_id().is_valid()) {
-          get_message_from_server(reply_message_full_id, Auto(), "QUOTE_TEXT_INVALID");
-        }
-      } else {
-        error_code = 500;
-        error_message = "Unexpected QUOTE_TEXT_INVALID error";
+  auto processed_error = process_send_message_fail_error(error.clone(), dialog_id, td_->auth_manager_->is_bot(),
+                                                         is_ephemeral_message(m), m->content->get_type());
+  int32 error_code = processed_error.code();
+  string error_message = processed_error.message().str();
+  if (error_message == "QUOTE_TEXT_INVALID") {
+    auto *input_reply_to = get_message_input_reply_to(m);
+    if (input_reply_to != nullptr && !input_reply_to->is_empty() && input_reply_to->has_quote()) {
+      auto reply_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
+      if (reply_message_full_id.get_message_id().is_valid()) {
+        get_message_from_server(reply_message_full_id, Auto(), "QUOTE_TEXT_INVALID");
       }
-    } else if (error_message == "REPLY_MESSAGE_ID_INVALID") {
-      auto *input_reply_to = get_message_input_reply_to(m);
-      if (input_reply_to != nullptr && !input_reply_to->is_empty()) {
-        auto reply_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
-        if (reply_message_full_id.get_message_id().is_valid()) {
-          get_message_from_server(reply_message_full_id, Auto(), "REPLY_MESSAGE_ID_INVALID");
-        }
-      } else {
-        error_code = 500;
-        error_message = "Unexpected REPLY_MESSAGE_ID_INVALID error";
+    } else {
+      error_code = 500;
+      error_message = "Unexpected QUOTE_TEXT_INVALID error";
+    }
+  } else if (error_message == "REPLY_MESSAGE_ID_INVALID") {
+    auto *input_reply_to = get_message_input_reply_to(m);
+    if (input_reply_to != nullptr && !input_reply_to->is_empty()) {
+      auto reply_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
+      if (reply_message_full_id.get_message_id().is_valid()) {
+        get_message_from_server(reply_message_full_id, Auto(), "REPLY_MESSAGE_ID_INVALID");
       }
-    } else if (begins_with(error_message, "ALLOW_PAYMENT_REQUIRED_")) {
-      td_->dialog_manager_->reload_dialog_info_full(dialog_id, "ALLOW_PAYMENT_REQUIRED");
-    } else if (error_message == "CHAT_GUEST_SEND_FORBIDDEN") {
-      error_code = 400;
-      if (dialog_id.get_type() == DialogType::Channel) {
-        td_->chat_manager_->reload_channel(dialog_id.get_channel_id(), Promise<Unit>(), "CHAT_GUEST_SEND_FORBIDDEN");
-      }
-    } else if (error_message == "REPLY_MARKUP_INVALID") {
-      if (m->reply_markup == nullptr) {
-        LOG(ERROR) << "Receive " << error_message << " for "
-                   << oneline(to_string(get_message_object(dialog_id, m, "on_send_message_fail")));
-      } else {
-        LOG(ERROR) << "Receive " << error_message << " for " << message_full_id << " with keyboard "
-                   << *m->reply_markup;
-      }
-    } else if (error_message == "ENTITY_BOUNDS_INVALID") {
-      LOG(ERROR) << "Receive ENTITY_BOUNDS_INVALID for "
-                 << to_string(get_message_object(dialog_id, m, "on_send_message_fail"));
-      auto text = get_message_content_text(m->content.get());
-      if (text != nullptr) {
-        LOG(ERROR) << "Receive ENTITY_BOUNDS_INVALID for " << hex_encode(text->text) << " with entities "
-                   << text->entities;
-      }
+    } else {
+      error_code = 500;
+      error_message = "Unexpected REPLY_MESSAGE_ID_INVALID error";
+    }
+  } else if (begins_with(error_message, "ALLOW_PAYMENT_REQUIRED_")) {
+    td_->dialog_manager_->reload_dialog_info_full(dialog_id, "ALLOW_PAYMENT_REQUIRED");
+  } else if (error_message == "CHAT_GUEST_SEND_FORBIDDEN") {
+    error_code = 400;
+    if (dialog_id.get_type() == DialogType::Channel) {
+      td_->chat_manager_->reload_channel(dialog_id.get_channel_id(), Promise<Unit>(), "CHAT_GUEST_SEND_FORBIDDEN");
+    }
+  } else if (error_message == "REPLY_MARKUP_INVALID") {
+    if (m->reply_markup == nullptr) {
+      LOG(ERROR) << "Receive " << error_message << " for "
+                 << oneline(to_string(get_message_object(dialog_id, m, "on_send_message_fail")));
+    } else {
+      LOG(ERROR) << "Receive " << error_message << " for " << message_full_id << " with keyboard " << *m->reply_markup;
+    }
+  } else if (error_message == "ENTITY_BOUNDS_INVALID") {
+    LOG(ERROR) << "Receive ENTITY_BOUNDS_INVALID for "
+               << to_string(get_message_object(dialog_id, m, "on_send_message_fail"));
+    auto text = get_message_content_text(m->content.get());
+    if (text != nullptr) {
+      LOG(ERROR) << "Receive ENTITY_BOUNDS_INVALID for " << hex_encode(text->text) << " with entities "
+                 << text->entities;
     }
   }
   if (error_code != 403 && !(error_code == 500 && G()->close_flag()) && error_message != "USER_IS_BLOCKED") {

@@ -1477,11 +1477,8 @@ class EditEphemeralMessageQuery final : public Td::ResultHandler {
     if (upload_id_ != MessageContentUploadId()) {
       td_->message_query_manager_->process_send_message_content_error(upload_id_, std::move(status));
     } else {
-      auto error_code = status.code();
-      auto error_message = status.message().str();
-      MessagesManager::process_send_message_fail_error(error_code, error_message, dialog_id_,
-                                                       td_->auth_manager_->is_bot(), true, MessageContentType::None);
-      promise_.set_error(error_code, std::move(error_message));
+      promise_.set_error(MessagesManager::process_send_message_fail_error(
+          std::move(status), dialog_id_, td_->auth_manager_->is_bot(), true, MessageContentType::None));
     }
   }
 };
@@ -4210,12 +4207,8 @@ void MessageQueryManager::cancel_edit_ephemeral_message(MessageContentUploadId u
   }
   auto promise = std::move(it->second.promise_);
   if (status.is_error()) {
-    auto error_code = status.code();
-    auto error_message = status.message().str();
-    MessagesManager::process_send_message_fail_error(error_code, error_message, it->second.dialog_id_,
-                                                     td_->auth_manager_->is_bot(), true,
-                                                     it->second.content_->get_type());
-    status = Status::Error(error_code, error_message);
+    status = MessagesManager::process_send_message_fail_error(
+        std::move(status), it->second.dialog_id_, td_->auth_manager_->is_bot(), true, it->second.content_->get_type());
   }
   edit_ephemeral_message_queries_.erase(upload_id);
 
