@@ -1419,6 +1419,7 @@ class BlockFromRepliesQuery final : public Td::ResultHandler {
 
 class EditEphemeralMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  DialogId dialog_id_;
   MessageContentUploadId upload_id_;
 
  public:
@@ -1428,6 +1429,7 @@ class EditEphemeralMessageQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, UserId receiver_user_id, EphemeralMessageId ephemeral_message_id, bool force_edit_text,
             const FormattedText *text, bool disable_web_page_preview, MessageContentUploadId upload_id,
             InputMedia &&input_media, bool invert_media, const unique_ptr<ReplyMarkup> &reply_markup) {
+    dialog_id_ = dialog_id;
     upload_id_ = upload_id;
     int32 flags = 0;
     auto input_peer = MessageQueryManager::get_ephemeral_message_input_peer(td_, dialog_id, AccessRights::Write);
@@ -1475,7 +1477,11 @@ class EditEphemeralMessageQuery final : public Td::ResultHandler {
     if (upload_id_ != MessageContentUploadId()) {
       td_->message_query_manager_->process_send_message_content_error(upload_id_, std::move(status));
     } else {
-      promise_.set_error(std::move(status));
+      auto error_code = status.code();
+      auto error_message = status.message().str();
+      MessagesManager::process_send_message_fail_error(error_code, error_message, dialog_id_,
+                                                       td_->auth_manager_->is_bot(), true, MessageContentType::None);
+      promise_.set_error(error_code, std::move(error_message));
     }
   }
 };
@@ -4203,6 +4209,14 @@ void MessageQueryManager::cancel_edit_ephemeral_message(MessageContentUploadId u
     return;
   }
   auto promise = std::move(it->second.promise_);
+  if (status.is_error()) {
+    auto error_code = status.code();
+    auto error_message = status.message().str();
+    MessagesManager::process_send_message_fail_error(error_code, error_message, it->second.dialog_id_,
+                                                     td_->auth_manager_->is_bot(), true,
+                                                     it->second.content_->get_type());
+    status = Status::Error(error_code, error_message);
+  }
   edit_ephemeral_message_queries_.erase(upload_id);
 
   cancel_upload_message_content(upload_id);
