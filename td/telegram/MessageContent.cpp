@@ -6792,6 +6792,9 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::Widget:
+      if (!permissions.can_use_inline_bots()) {
+        return Status::Error(400, "Not enough rights to send widgets to the chat");
+      }
       break;
     case MessageContentType::Unsupported:
       break;
