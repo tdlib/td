@@ -1876,7 +1876,7 @@ class DeleteEphemeralMessageQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeleteEphemeralMessageQuery")) {
-      LOG(ERROR) << "Receive error for delete ephemeral messages: " << status;
+      LOG(INFO) << "Receive error for delete ephemeral messages: " << status;
     }
     td_->messages_manager_->on_failed_ephemeral_message_deletion(dialog_id_, ephemeral_message_id_);
     promise_.set_error(std::move(status));
