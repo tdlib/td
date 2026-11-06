@@ -1477,7 +1477,7 @@ class EditEphemeralMessageQuery final : public Td::ResultHandler {
     if (upload_id_ != MessageContentUploadId()) {
       td_->message_query_manager_->process_send_message_content_error(upload_id_, std::move(status));
     } else {
-      promise_.set_error(MessagesManager::process_send_message_fail_error(
+      promise_.set_error(MessageQueryManager::process_send_message_fail_error(
           std::move(status), dialog_id_, td_->auth_manager_->is_bot(), true, MessageContentType::None));
     }
   }
@@ -4207,8 +4207,8 @@ void MessageQueryManager::cancel_edit_ephemeral_message(MessageContentUploadId u
   }
   auto promise = std::move(it->second.promise_);
   if (status.is_error()) {
-    status = MessagesManager::process_send_message_fail_error(
-        std::move(status), it->second.dialog_id_, td_->auth_manager_->is_bot(), true, it->second.content_->get_type());
+    status = process_send_message_fail_error(std::move(status), it->second.dialog_id_, td_->auth_manager_->is_bot(),
+                                             true, it->second.content_->get_type());
   }
   edit_ephemeral_message_queries_.erase(upload_id);
 
@@ -4227,6 +4227,79 @@ telegram_api::object_ptr<telegram_api::InputPeer> MessageQueryManager::get_ephem
     return telegram_api::make_object<telegram_api::inputPeerChannel>(dialog_id.get_channel_id().get(), 0);
   }
   return td->dialog_manager_->get_input_peer(dialog_id, access_rights);
+}
+
+Status MessageQueryManager::process_send_message_fail_error(Status &&error, DialogId dialog_id, bool is_bot,
+                                                            bool is_ephemeral, MessageContentType content_type) {
+  int32 error_code = error.code();
+  string error_message = error.message().str();
+  switch (error_code) {
+    case 420:
+      error_code = 429;
+      LOG(ERROR) << "Receive error 420: " << error_message;
+      break;
+    case 429:
+      if (!begins_with(error_message, "Too Many Requests: retry after ")) {
+        LOG(ERROR) << "Wrong error message: " << error_message;
+      }
+      break;
+    case 400:
+      if (error_message == "MESSAGE_TOO_LONG") {
+        error_message = "Message is too long";
+      } else if (error_message == "MEDIA_CAPTION_TOO_LONG") {
+        error_message = "Message caption is too long";
+      } else if (error_message == "INPUT_USER_DEACTIVATED") {
+        error_code = 403;
+        error_message = "User is deactivated";
+      } else if (error_message == "USER_IS_BOT") {
+        if (is_bot && (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
+          error_code = 403;
+          error_message = "The bot can't send messages to the bot";
+        }
+      } else if (error_message == "PEER_ID_INVALID") {
+        error_code = 403;
+        if (is_bot && !is_ephemeral &&
+            (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
+          error_message = "Bot can't initiate conversation with a user";
+        }
+      } else if (error_message == "REPLY_TO_MONOFORUM_PEER_INVALID") {
+        error_message = "Wrong direct messages topic identifier specified";
+      } else if (error_message == "CHAT_FORWARDS_RESTRICTED") {
+        error_message = "Message has protected content and can't be forwarded";
+      } else if (error_message == "MEDIA_EMPTY") {
+        if (content_type == MessageContentType::Game) {
+          error_message = "Wrong game short name specified";
+        } else if (content_type == MessageContentType::Invoice) {
+          error_message = "Wrong invoice information specified";
+        } else if (content_type == MessageContentType::Poll) {
+          error_message = "Wrong poll data specified";
+        } else if (content_type == MessageContentType::Contact) {
+          error_message = "Wrong phone number specified";
+        } else if (content_type == MessageContentType::Story) {
+          error_message = "Wrong story file specified";
+        } else {
+          error_message = "Wrong file identifier/HTTP URL specified";
+        }
+      } else if (error_message == "EXTENDED_MEDIA_INVALID") {
+        error_message = "Invalid paid media file specified";
+      } else if (error_message == "PHOTO_EXT_INVALID") {
+        error_message = "Photo has unsupported extension. Use one of .jpg, .jpeg, .gif, .png, .tif or .bmp";
+      } else {
+        return std::move(error);
+      }
+      break;
+    case 403:
+      if (error_message != "CHANNEL_PUBLIC_GROUP_NA" && error_message != "USER_IS_BLOCKED" &&
+          error_message != "USER_BOT_INVALID" && error_message != "USER_DELETED") {
+        error_code = 400;
+      } else {
+        return std::move(error);
+      }
+      break;
+    default:
+      return std::move(error);
+  }
+  return Status::Error(error_code, error_message);
 }
 
 void MessageQueryManager::delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id,

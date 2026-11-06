@@ -28302,79 +28302,6 @@ void MessagesManager::on_send_media_group_file_reference_error(DialogId dialog_i
   }
 }
 
-Status MessagesManager::process_send_message_fail_error(Status &&error, DialogId dialog_id, bool is_bot,
-                                                        bool is_ephemeral, MessageContentType content_type) {
-  int32 error_code = error.code();
-  string error_message = error.message().str();
-  switch (error_code) {
-    case 420:
-      error_code = 429;
-      LOG(ERROR) << "Receive error 420: " << error_message;
-      break;
-    case 429:
-      if (!begins_with(error_message, "Too Many Requests: retry after ")) {
-        LOG(ERROR) << "Wrong error message: " << error_message;
-      }
-      break;
-    case 400:
-      if (error_message == "MESSAGE_TOO_LONG") {
-        error_message = "Message is too long";
-      } else if (error_message == "MEDIA_CAPTION_TOO_LONG") {
-        error_message = "Message caption is too long";
-      } else if (error_message == "INPUT_USER_DEACTIVATED") {
-        error_code = 403;
-        error_message = "User is deactivated";
-      } else if (error_message == "USER_IS_BOT") {
-        if (is_bot && (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
-          error_code = 403;
-          error_message = "The bot can't send messages to the bot";
-        }
-      } else if (error_message == "PEER_ID_INVALID") {
-        error_code = 403;
-        if (is_bot && !is_ephemeral &&
-            (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
-          error_message = "Bot can't initiate conversation with a user";
-        }
-      } else if (error_message == "REPLY_TO_MONOFORUM_PEER_INVALID") {
-        error_message = "Wrong direct messages topic identifier specified";
-      } else if (error_message == "CHAT_FORWARDS_RESTRICTED") {
-        error_message = "Message has protected content and can't be forwarded";
-      } else if (error_message == "MEDIA_EMPTY") {
-        if (content_type == MessageContentType::Game) {
-          error_message = "Wrong game short name specified";
-        } else if (content_type == MessageContentType::Invoice) {
-          error_message = "Wrong invoice information specified";
-        } else if (content_type == MessageContentType::Poll) {
-          error_message = "Wrong poll data specified";
-        } else if (content_type == MessageContentType::Contact) {
-          error_message = "Wrong phone number specified";
-        } else if (content_type == MessageContentType::Story) {
-          error_message = "Wrong story file specified";
-        } else {
-          error_message = "Wrong file identifier/HTTP URL specified";
-        }
-      } else if (error_message == "EXTENDED_MEDIA_INVALID") {
-        error_message = "Invalid paid media file specified";
-      } else if (error_message == "PHOTO_EXT_INVALID") {
-        error_message = "Photo has unsupported extension. Use one of .jpg, .jpeg, .gif, .png, .tif or .bmp";
-      } else {
-        return std::move(error);
-      }
-      break;
-    case 403:
-      if (error_message != "CHANNEL_PUBLIC_GROUP_NA" && error_message != "USER_IS_BLOCKED" &&
-          error_message != "USER_BOT_INVALID" && error_message != "USER_DELETED") {
-        error_code = 400;
-      } else {
-        return std::move(error);
-      }
-      break;
-    default:
-      return std::move(error);
-  }
-  return Status::Error(error_code, error_message);
-}
-
 void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
   CHECK(error.is_error());
 
@@ -28404,8 +28331,8 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
       << "Receive error " << error << " about sent message with random_id = " << random_id;
 
   auto dialog_id = message_full_id.get_dialog_id();
-  auto processed_error = process_send_message_fail_error(error.clone(), dialog_id, td_->auth_manager_->is_bot(),
-                                                         is_ephemeral_message(m), m->content->get_type());
+  auto processed_error = MessageQueryManager::process_send_message_fail_error(
+      error.clone(), dialog_id, td_->auth_manager_->is_bot(), is_ephemeral_message(m), m->content->get_type());
   int32 error_code = processed_error.code();
   string error_message = processed_error.message().str();
   if (error_message == "QUOTE_TEXT_INVALID") {

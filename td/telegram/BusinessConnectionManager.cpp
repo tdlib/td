@@ -1713,7 +1713,7 @@ void BusinessConnectionManager::finish_upload_message_internal_media(int64 reque
 }
 
 void BusinessConnectionManager::on_fail_send_message(unique_ptr<PendingMessage> &&message, const Status &error) {
-  auto processed_error = MessagesManager::process_send_message_fail_error(
+  auto processed_error = MessageQueryManager::process_send_message_fail_error(
       error.clone(), message->dialog_id_, td_->auth_manager_->is_bot(), false, message->content_->get_type());
   auto error_code = processed_error.code();
   if (error_code != 403 && !(error_code == 500 && G()->close_flag())) {
