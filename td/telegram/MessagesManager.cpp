@@ -24053,11 +24053,11 @@ void MessagesManager::delete_message_ephemeral_message(MessageFullId message_ful
   auto receiver_user_id = m->ephemeral_message->receiver_user_id;
   auto ephemeral_message_id = m->ephemeral_message->ephemeral_message_id;
   set_message_ephemeral_message(get_dialog(dialog_id), m, nullptr);
-  if (!receiver_user_id.is_valid() || !ephemeral_message_id.is_valid()) {
-    return promise.set_value(Unit());
+  if (receiver_user_id.is_valid() && ephemeral_message_id.is_valid()) {
+    td_->message_query_manager_->delete_ephemeral_message_on_server(dialog_id, DialogId(receiver_user_id),
+                                                                    ephemeral_message_id, 0, Promise<Unit>());
   }
-  td_->message_query_manager_->delete_ephemeral_message_on_server(dialog_id, DialogId(receiver_user_id),
-                                                                  ephemeral_message_id, 0, std::move(promise));
+  promise.set_value(Unit());
 }
 
 void MessagesManager::do_delete_message_ephemeral_message(MessageFullId message_full_id) {
