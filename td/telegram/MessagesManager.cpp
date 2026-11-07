@@ -11651,7 +11651,10 @@ MessagesManager::MessageInfo MessagesManager::parse_ephemeral_message(
   if (message->top_msg_id_ > 0) {
     auto top_thread_message_id = MessageId(ServerMessageId(message->top_msg_id_));
     message_info.reply_header.top_thread_message_id_ = top_thread_message_id;
-    message_info.reply_header.is_topic_message_ = td->dialog_manager_->can_dialog_have_threads(dialog_id);
+    message_info.reply_header.is_topic_message_ =
+        dialog_id.get_type() == DialogType::User
+            ? td->user_manager_->is_user_forum_bot(dialog_id.get_user_id()) || td->auth_manager_->is_bot()
+            : td->dialog_manager_->is_forum_channel(dialog_id);
   }
   message_info.content = get_message_content(
       td,
