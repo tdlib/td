@@ -6858,9 +6858,9 @@ inputMessageChecklist checklist:inputChecklist = InputMessageContent;
 //@description A message with an HTML widget; for bots only
 //@width Width of the widget; 0 if the widget must occupy the whole width of the message bubble
 //@height Height of the widget; 0 if the height of the widget isn't fixed
-//@html HTML code of the widget; 1-32768 bytes; must not contain zero character and must not exceed 4096 bytes when compressed by zlib with the maximal compression level
-//@public_data Public data of the widget, which will be available in copies and forwards of the message; must not contain zero character
-//@chat_data Data of the widget, which is specific to the chat; must not contain zero character
+//@html HTML code of the widget; 1-32768 bytes; must not exceed 4096 bytes when compressed by zlib with the maximal compression level
+//@public_data Public data of the widget, which will be available in copies and forwards of the message
+//@chat_data Data of the widget, which is specific to the chat
 //@caption Widget caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@show_caption_above_media True, if the caption must be shown above the widget; otherwise, the caption must be shown below the widget
 //@allow_queries Pass true to allow the widget to send queries to the bot
@@ -6869,7 +6869,7 @@ inputMessageWidget width:int32 height:int32 html:string public_data:string chat_
 
 //@description A message with an existing shared widget; for bots only
 //@widget_id Identifier of the shared widget
-//@chat_data Data of the widget, which is specific to the chat; must not contain zero character
+//@chat_data Data of the widget, which is specific to the chat
 //@caption Widget caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@show_caption_above_media True, if the caption must be shown above the widget; otherwise, the caption must be shown below the widget
 inputMessageSharedWidget widget_id:int64 chat_data:string caption:formattedText show_caption_above_media:Bool = InputMessageContent;
@@ -13511,9 +13511,9 @@ editMessageReplyMarkup chat_id:int53 message_id:int53 reply_markup:ReplyMarkup =
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the widget message
 //@edit_public_data Pass true to edit public data of the widget
-//@public_data New public data of the widget; must not contain zero character; ignored if edit_public_data is false
+//@public_data New public data of the widget; ignored if edit_public_data is false
 //@edit_chat_data Pass true to edit data of the widget, which is specific to the chat
-//@chat_data New data of the widget, which is specific to the chat; must not contain zero character; ignored if edit_chat_data is false
+//@chat_data New data of the widget, which is specific to the chat; ignored if edit_chat_data is false
 editMessageWidgetData chat_id:int53 message_id:int53 edit_public_data:Bool public_data:string edit_chat_data:Bool chat_data:string = Ok;
 
 //@description Edits the text of an inline text or game message sent via the bot; for bots only
@@ -13550,14 +13550,14 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 //@description Edits data of a widget in an inline message sent via the bot; for bots only
 //@inline_message_id Inline message identifier
 //@edit_public_data Pass true to edit public data of the widget
-//@public_data New public data of the widget; must not contain zero character; ignored if edit_public_data is false
+//@public_data New public data of the widget; ignored if edit_public_data is false
 //@edit_chat_data Pass true to edit data of the widget, which is specific to the chat
-//@chat_data New data of the widget, which is specific to the chat; must not contain zero character; ignored if edit_chat_data is false
+//@chat_data New data of the widget, which is specific to the chat; ignored if edit_chat_data is false
 editInlineMessageWidgetData inline_message_id:string edit_public_data:Bool public_data:string edit_chat_data:Bool chat_data:string = Ok;
 
 //@description Edits public data of a shared widget created by the bot; for bots only
 //@widget_id Identifier of the shared widget
-//@public_data New public data of the widget; must not contain zero character
+//@public_data New public data of the widget
 //@cache_time Time during which the public data can be cached, in seconds; 5-3600. Pass 0 to keep the current value, which is 30 by default
 editWidgetData widget_id:int64 public_data:string cache_time:int32 = Ok;
 
