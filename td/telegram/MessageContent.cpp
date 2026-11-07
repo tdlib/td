@@ -10855,12 +10855,14 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       return std::move(result);
     }
     case MessageContentType::Widget: {
+      if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
+        return nullptr;
+      }
       auto result = make_unique<MessageWidget>(*static_cast<const MessageWidget *>(content));
       if (replace_caption) {
         result->caption = std::move(copy_options.new_caption);
       }
-      if (type == MessageContentDupType::Forward || type == MessageContentDupType::Copy ||
-          type == MessageContentDupType::ServerCopy) {
+      if (type == MessageContentDupType::Forward) {
         result->chat_data.clear();
         result->is_copy = true;
         result->can_query = false;
