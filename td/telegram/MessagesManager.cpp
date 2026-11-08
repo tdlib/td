@@ -58,6 +58,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentDupType.h"
+#include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageDb.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageEntity.hpp"

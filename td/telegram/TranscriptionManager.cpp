@@ -25,6 +25,8 @@
 #include "td/utils/logging.h"
 #include "td/utils/tl_helpers.h"
 
+#include <memory>
+
 namespace td {
 
 class GetTranscriptionLangsQuery final : public Td::ResultHandler {

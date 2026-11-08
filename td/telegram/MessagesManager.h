@@ -32,7 +32,6 @@
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContentDupType.h"
-#include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageDb.h"
 #include "td/telegram/MessageEffectId.h"

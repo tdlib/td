@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
@@ -28,6 +29,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"

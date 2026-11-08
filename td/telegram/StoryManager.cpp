@@ -6074,10 +6074,7 @@ void StoryManager::send_new_story(DialogId dialog_id, StoryFullId forward_from_s
                                   Promise<td_api::object_ptr<td_api::story>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   if (story->music_file_id_.is_valid()) {
-    auto r_input_music = get_story_music_input_document(story->music_file_id_);
-    if (r_input_music.is_error()) {
-      return promise.set_error(r_input_music.move_as_error());
-    }
+    TRY_STATUS_PROMISE(promise, get_story_music_input_document(story->music_file_id_));
   }
   TRY_RESULT_PROMISE(promise, story_id, get_next_yet_unsent_story_id(dialog_id));
 

@@ -8448,7 +8448,7 @@ callbackQueryPayloadGame game_short_name:string = CallbackQueryPayload;
 //@url URL to be opened
 callbackQueryAnswer text:string show_alert:Bool url:string = CallbackQueryAnswer;
 
-//@description Describes a TON wallet of the user, which is used in a widget query
+//@description Describes a TON wallet of the user, who is used in a widget query
 //@address Address of the wallet
 //@gram_amount Balance of the wallet, in the smallest units of the cryptocurrency
 //@public_key Public key of the wallet; may be empty if unknown
@@ -8458,15 +8458,15 @@ widgetQueryWallet address:string gram_amount:int64 public_key:bytes state_init:b
 
 //@class WidgetQueryType @description Describes type of a widget query
 
-//@description The query contains data for the bot @with_wallet True, if the TON wallet card of the user that sends the query is sent to the bot along with the query
+//@description The query contains data for the bot @with_wallet True, if the TON wallet card of the user who sends the query is sent to the bot along with the query
 widgetQueryTypeData with_wallet:Bool = WidgetQueryType;
 
-//@description The query contains data signed by a TON wallet of the user that sends the query
+//@description The query contains data signed by a TON wallet of the user who sends the query
 //@wallet The wallet that signed the data
 //@sign_data JSON-serialized signed data
 widgetQueryTypeSignData wallet:widgetQueryWallet sign_data:string = WidgetQueryType;
 
-//@description The query notifies the bot about a transaction sent from a TON wallet of the user that sends the query
+//@description The query notifies the bot about a transaction sent from a TON wallet of the user who sends the query
 //@wallet The wallet from which the transaction was sent
 //@msg_hash Value of msg_hash of the transaction
 widgetQueryTypeSentTransaction wallet:widgetQueryWallet msg_hash:string = WidgetQueryType;

@@ -11,7 +11,6 @@
 #include "td/telegram/AudiosManager.hpp"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
-#include "td/telegram/CommunityId.h"
 #include "td/telegram/CommunityManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
