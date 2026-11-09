@@ -92,12 +92,12 @@ class inputUser final : public InputUser {
   int64 user_id_{};
   int64 access_hash_{};
 
-  static const int32 ID = -668391402;
+  static const int32 ID = static_cast<int32>(0xf21158c6);
   inputUser() = default;
 
   explicit inputUser(TlBufferParser &p)
 #define FAIL(error) p.set_error(error)
-      : user_id_(TlFetchInt::parse(p))
+      : user_id_(TlFetchLong::parse(p))
       , access_hash_(TlFetchLong::parse(p))
 #undef FAIL
   {
@@ -275,7 +275,7 @@ class encryptedChat final {
       , key_fingerprint_(key_fingerprint) {
   }
 
-  static const int32 ID = -94974410;
+  static const int32 ID = 0x61f0d4c7;
   int32 get_id() const {
     return ID;
   }
@@ -999,7 +999,6 @@ void FakeSecretChatContext::on_read_message(int64, Promise<> promise) {
 }
 
 TEST(Secret, go) {
-  return;
   ConcurrentScheduler sched(0, 0);
 
   Status result;
