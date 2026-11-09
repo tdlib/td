@@ -14983,7 +14983,7 @@ canPostStory chat_id:int53 = CanPostStoryResult;
 //@content Content of the story
 //@areas Clickable rectangle areas to be shown on the story media; pass null if none
 //@caption Story caption; pass null to use an empty caption; 0-getOption("story_caption_length_max") characters; can have entities only if getOption("can_use_text_entities_in_story_caption")
-//@music Music to be attached to the story; pass null if none. The music can be up to 60 seconds long
+//@music Music to be attached to the story; pass null if none. The music can be up to 60 seconds long. The bot getOption("audio_search_bot_username") can be used to find the music files
 //@privacy_settings The privacy settings for the story; ignored for stories posted on behalf of supergroup and channel chats
 //@album_ids Identifiers of story albums to which the story will be added upon posting. An album can have up to getOption("story_album_size_max") stories
 //@active_period Period after which the story is moved to archive, in seconds; must be one of 6 * 3600, 12 * 3600, 86400, or 2 * 86400 for Telegram Premium users, and 86400 otherwise
