@@ -3092,19 +3092,11 @@ void MessageQueryManager::on_upload_message_media_success(
 
 void MessageQueryManager::on_upload_message_media_file_error(MessageContentUploadId upload_id, int32 media_pos,
                                                              vector<int> &&bad_parts) {
-  auto it = upload_message_content_queries_.find(upload_id);
-  if (it == upload_message_content_queries_.end()) {
-    return;  // the upload was canceled
-  }
   do_upload_message_content(upload_id, media_pos, std::move(bad_parts), Unit());
 }
 
 void MessageQueryManager::on_upload_message_media_fail(MessageContentUploadId upload_id, int32 media_pos,
                                                        Status error) {
-  auto it = upload_message_content_queries_.find(upload_id);
-  if (it == upload_message_content_queries_.end()) {
-    return;  // the upload was canceled
-  }
   send_closure_later(actor_id(this), &MessageQueryManager::on_upload_message_media_finished, upload_id, media_pos,
                      std::move(error));
 }
