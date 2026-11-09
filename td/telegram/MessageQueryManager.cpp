@@ -2647,6 +2647,17 @@ MessageContentUploadId MessageQueryManager::create_upload_message_content_query(
 void MessageQueryManager::start_upload_message_content(MessageContentUploadId upload_id,
                                                        bool after_file_reference_error) {
   LOG(INFO) << "Start to upload message content as " << upload_id;
+  auto it = upload_message_content_queries_.find(upload_id);
+  if (it == upload_message_content_queries_.end()) {
+    return;  // the upload was canceled
+  }
+  auto &query = it->second;
+  if (after_file_reference_error) {
+    CHECK(query.is_started_);
+  } else {
+    CHECK(!query.is_started_);
+    query.is_started_ = true;
+  }
   do_upload_message_content(upload_id, -1, after_file_reference_error ? vector<int>{-1} : vector<int>(), Unit());
 }
 
@@ -2758,12 +2769,7 @@ void MessageQueryManager::do_upload_message_content(MessageContentUploadId uploa
     return;  // the upload was canceled
   }
   auto &query = it->second;
-  if (bad_parts.empty()) {
-    CHECK(!query.is_started_);
-    query.is_started_ = true;
-  } else {
-    CHECK(query.is_started_);
-  }
+  CHECK(query.is_started_);
   const auto *content = query.content_.get();
   CHECK(content != nullptr);
   auto content_type = content->get_type();
