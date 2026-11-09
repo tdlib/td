@@ -4571,7 +4571,7 @@ void Requests::on_request(uint64 id, td_api::editEphemeralMessageCaption &reques
 
 void Requests::on_request(uint64 id, td_api::replyToCallbackQueryWithEphemeralMessage &request) {
   CHECK_IS_BOT();
-  CREATE_OK_REQUEST_PROMISE();
+  CREATE_REQUEST_PROMISE();
   td_->message_query_manager_->edit_callback_query_message(
       request.callback_query_id_, request.replace_callback_query_message_, request.protect_content_,
       std::move(request.reply_markup_), std::move(request.input_message_content_), std::move(promise));
