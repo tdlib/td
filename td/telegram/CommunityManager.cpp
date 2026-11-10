@@ -1596,9 +1596,7 @@ void CommunityManager::on_get_community_full(telegram_api::object_ptr<telegram_a
   community_full->is_update_community_full_sent = true;
   update_community_full(community_full, community_id, "on_get_community_full");
 
-  if (!community_full->notification_settings.is_synchronized && !td_->auth_manager_->is_bot()) {
-    td_->create_handler<GetCommunityNotifySettingsQuery>(Promise<Unit>())->send(community_id);
-  }
+  on_update_community_notify_settings(community_id, std::move(community->notify_settings_), "on_get_community_full");
 }
 
 void CommunityManager::on_update_community_notify_settings(
