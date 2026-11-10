@@ -381,7 +381,7 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getForumTopics(0, std::move(input_peer), query, offset_date,
+        telegram_api::messages_getForumTopics(0, std::move(input_peer), query, 0, false, offset_date,
                                               offset_message_id.get_server_message_id().get(),
                                               offset_forum_topic_id.get(), limit),
         {{dialog_id}}));

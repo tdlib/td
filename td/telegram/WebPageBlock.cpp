@@ -3588,7 +3588,7 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
 
   telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(InputContext &context) const final {
     return telegram_api::make_object<telegram_api::pageBlockBlockquoteBlocks>(
-        get_input_page_blocks(page_blocks, context), caption.get_input_rich_text(context));
+        0, false, get_input_page_blocks(page_blocks, context), caption.get_input_rich_text(context));
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {

@@ -2124,7 +2124,7 @@ class GetResaleStarGiftsQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_getResaleStarGifts(
         flags, order_id == td_api::giftForResaleOrderPrice::ID, order_id == td_api::giftForResaleOrderNumber::ID,
-        for_craft, for_stars, 0, gift_id, std::move(attributes), offset, limit)));
+        for_craft, for_stars, false, false, 0, gift_id, std::move(attributes), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {

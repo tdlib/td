@@ -11026,6 +11026,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionPollDeleteAnswer::ID:
       case telegram_api::messageActionGramTransfer::ID:
       case telegram_api::messageActionNoPaidMessagesTokenUsed::ID:
+      case telegram_api::messageActionStarGiftOnchainOffer::ID:
         // ok
         break;
       case telegram_api::messageActionBotAllowed::ID:
@@ -11036,6 +11037,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionRequestedPeer::ID:
       case telegram_api::messageActionManagedBotCreated::ID:
       case telegram_api::messageActionChangeCommunity::ID:
+      case telegram_api::messageActionBotInvite::ID:
         // ok in chats with bots
         if (owner_dialog_id.get_type() == DialogType::User) {
           auto user_id = owner_dialog_id.get_user_id();
@@ -11857,6 +11859,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionNoPaidMessagesTokenUsed::ID:
       return td::make_unique<MessageUnpaidMessagesAllowedByLink>();
+    case telegram_api::messageActionStarGiftOnchainOffer::ID:
+      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionBotInvite::ID:
+      return td::make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

@@ -1006,6 +1006,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionGramTransfer::ID:
         case telegram_api::messageActionWalletTonConnectRequest::ID:
         case telegram_api::messageActionNoPaidMessagesTokenUsed::ID:
+        case telegram_api::messageActionStarGiftOnchainOffer::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto action = static_cast<const telegram_api::messageActionChatCreate *>(action_ptr);
@@ -1133,6 +1134,13 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionChatJoinedViaCommunity::ID: {
           auto action = static_cast<const telegram_api::messageActionChatJoinedViaCommunity *>(action_ptr);
           if (action->community_id_ != 0 && !is_acceptable_community(CommunityId(action->community_id_))) {
+            return false;
+          }
+          break;
+        }
+        case telegram_api::messageActionBotInvite::ID: {
+          auto action = static_cast<const telegram_api::messageActionBotInvite *>(action_ptr);
+          if (!is_acceptable_user(UserId(action->inviter_id_))) {
             return false;
           }
           break;
@@ -2220,9 +2228,9 @@ void UpdatesManager::on_get_pts_update(int32 pts,
     case telegram_api::updates_difference::ID: {
       auto difference = move_tl_object_as<telegram_api::updates_difference>(difference_ptr);
       difference_ptr = telegram_api::make_object<telegram_api::updates_differenceSlice>(
-          std::move(difference->new_messages_), std::move(difference->new_encrypted_messages_),
-          std::move(difference->other_updates_), std::move(difference->chats_), std::move(difference->users_),
-          std::move(difference->state_));
+          difference->flags_, std::move(difference->topics_), std::move(difference->new_messages_),
+          std::move(difference->new_encrypted_messages_), std::move(difference->other_updates_),
+          std::move(difference->chats_), std::move(difference->users_), std::move(difference->state_));
     }
     // fallthrough
     case telegram_api::updates_differenceSlice::ID: {
@@ -2635,7 +2643,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
                 // don't replace service messages, because they can be about bot's kicking
                 LOG(INFO) << "Replace update about new message with updateChannelTooLong in " << dialog_id;
                 update = telegram_api::make_object<telegram_api::updateChannelTooLong>(
-                    telegram_api::updateChannelTooLong::PTS_MASK, channel_id.get(), pts);
+                    telegram_api::updateChannelTooLong::PTS_MASK, channel_id.get(), pts, 0, 0);
                 continue;
               }
             }

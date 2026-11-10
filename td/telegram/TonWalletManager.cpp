@@ -2348,6 +2348,8 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
       is_saved = peer->own_profile_;
       break;
     }
+    case telegram_api::walletTransactionPeerOnchainGift::ID:
+      break;
     case telegram_api::walletTransactionPeerUnsupported::ID:
       break;
     default:
