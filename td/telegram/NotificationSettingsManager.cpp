@@ -685,6 +685,23 @@ void NotificationSettingsManager::timeout_expired() {
   reload_saved_ringtones(Promise<Unit>());
 }
 
+NotificationSettingsScope NotificationSettingsManager::get_dialog_notification_setting_scope(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::SecretChat:
+      return NotificationSettingsScope::Private;
+    case DialogType::Chat:
+      return NotificationSettingsScope::Group;
+    case DialogType::Channel:
+      return td_->dialog_manager_->is_broadcast_channel(dialog_id) ? NotificationSettingsScope::Channel
+                                                                   : NotificationSettingsScope::Group;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return NotificationSettingsScope::Private;
+  }
+}
+
 const DialogNotificationSettings *NotificationSettingsManager::get_dialog_community_notification_settings(
     DialogId dialog_id) const {
   auto community_id = td_->dialog_manager_->get_dialog_linked_community_id(dialog_id);
@@ -703,7 +720,7 @@ int32 NotificationSettingsManager::get_dialog_default_mute_until(
   if (community_settings != nullptr && !community_settings->use_default_mute_until) {
     return community_settings->mute_until;
   }
-  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  auto scope = get_dialog_notification_setting_scope(dialog_id);
   return get_scope_notification_settings(scope)->mute_until;
 }
 
@@ -717,7 +734,7 @@ bool NotificationSettingsManager::get_dialog_default_disable_pinned_message_noti
   if (community_settings != nullptr && !community_settings->use_default_disable_pinned_message_notifications) {
     return community_settings->disable_pinned_message_notifications;
   }
-  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  auto scope = get_dialog_notification_setting_scope(dialog_id);
   return get_scope_notification_settings(scope)->disable_pinned_message_notifications;
 }
 
@@ -731,7 +748,7 @@ bool NotificationSettingsManager::get_dialog_default_disable_mention_notificatio
   if (community_settings != nullptr && !community_settings->use_default_disable_mention_notifications) {
     return community_settings->disable_mention_notifications;
   }
-  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  auto scope = get_dialog_notification_setting_scope(dialog_id);
   return get_scope_notification_settings(scope)->disable_mention_notifications;
 }
 
@@ -740,7 +757,7 @@ bool NotificationSettingsManager::get_dialog_default_show_preview(DialogId dialo
   if (community_settings != nullptr && !community_settings->use_default_show_preview) {
     return community_settings->show_preview;
   }
-  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  auto scope = get_dialog_notification_setting_scope(dialog_id);
   return get_scope_notification_settings(scope)->show_preview;
 }
 
@@ -749,7 +766,7 @@ int64 NotificationSettingsManager::get_dialog_default_notification_ringtone_id(D
   if (community_settings != nullptr && !is_notification_sound_default(community_settings->sound)) {
     return get_notification_sound_ringtone_id(community_settings->sound);
   }
-  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  auto scope = get_dialog_notification_setting_scope(dialog_id);
   return get_notification_sound_ringtone_id(get_scope_notification_settings(scope)->sound);
 }
 
@@ -758,7 +775,7 @@ std::pair<bool, bool> NotificationSettingsManager::get_dialog_default_mute_stori
   if (community_settings != nullptr && !community_settings->use_default_mute_stories) {
     return {false, community_settings->mute_stories};
   }
-  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  auto scope = get_dialog_notification_setting_scope(dialog_id);
   auto *settings = get_scope_notification_settings(scope);
   return {settings->use_default_mute_stories, settings->mute_stories};
 }
@@ -768,7 +785,7 @@ int64 NotificationSettingsManager::get_dialog_default_story_notification_rington
   if (community_settings != nullptr && !is_notification_sound_default(community_settings->story_sound)) {
     return get_notification_sound_ringtone_id(community_settings->story_sound);
   }
-  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  auto scope = get_dialog_notification_setting_scope(dialog_id);
   return get_notification_sound_ringtone_id(get_scope_notification_settings(scope)->story_sound);
 }
 
@@ -777,7 +794,7 @@ bool NotificationSettingsManager::get_dialog_default_hide_story_sender(DialogId 
   if (community_settings != nullptr && !community_settings->use_default_hide_story_sender) {
     return community_settings->hide_story_sender;
   }
-  auto scope = td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id);
+  auto scope = get_dialog_notification_setting_scope(dialog_id);
   return get_scope_notification_settings(scope)->hide_story_sender;
 }
 

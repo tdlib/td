@@ -6062,7 +6062,7 @@ void MessagesManager::on_update_notification_scope_is_muted(NotificationSettings
 
   auto is_affected_dialog = [&](const Dialog *d) {
     if (!need_unread_counter(d->order) || !d->notification_settings.use_default_mute_until ||
-        td_->dialog_manager_->get_dialog_notification_setting_scope(d->dialog_id) != scope) {
+        td_->notification_settings_manager_->get_dialog_notification_setting_scope(d->dialog_id) != scope) {
       return false;
     }
     auto community_settings =
@@ -12651,7 +12651,7 @@ void MessagesManager::remove_scope_pinned_message_notifications(NotificationSett
     if (d->notification_settings.use_default_disable_pinned_message_notifications && d->notification_info != nullptr &&
         d->notification_info->mention_notification_group_.is_valid() &&
         d->notification_info->pinned_message_notification_message_id_.is_valid() &&
-        td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id) == scope) {
+        td_->notification_settings_manager_->get_dialog_notification_setting_scope(dialog_id) == scope) {
       auto community_settings =
           td_->notification_settings_manager_->get_dialog_community_notification_settings(dialog_id);
       if (community_settings == nullptr || community_settings->use_default_disable_pinned_message_notifications) {
@@ -12667,7 +12667,7 @@ void MessagesManager::on_update_scope_mention_notifications(NotificationSettings
   dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
     Dialog *d = dialog.get();
     if (d->notification_settings.use_default_disable_mention_notifications &&
-        td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id) == scope) {
+        td_->notification_settings_manager_->get_dialog_notification_setting_scope(dialog_id) == scope) {
       auto community_settings =
           td_->notification_settings_manager_->get_dialog_community_notification_settings(dialog_id);
       if (community_settings != nullptr && !community_settings->use_default_disable_mention_notifications) {
@@ -17702,7 +17702,8 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
     for (const auto &list : dialog_folders_) {
       for (const auto &dialog_date : list.second.ordered_dialogs_) {
         auto dialog_id = dialog_date.get_dialog_id();
-        if (filter_scope && td_->dialog_manager_->get_dialog_notification_setting_scope(dialog_id) != scope) {
+        if (filter_scope &&
+            td_->notification_settings_manager_->get_dialog_notification_setting_scope(dialog_id) != scope) {
           continue;
         }
         if (dialog_id == my_dialog_id) {

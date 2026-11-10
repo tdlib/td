@@ -45,6 +45,8 @@ class NotificationSettingsManager final : public Actor {
   NotificationSettingsManager &operator=(NotificationSettingsManager &&) = delete;
   ~NotificationSettingsManager() final;
 
+  NotificationSettingsScope get_dialog_notification_setting_scope(DialogId dialog_id) const;
+
   const DialogNotificationSettings *get_dialog_community_notification_settings(DialogId dialog_id) const;
 
   int32 get_dialog_default_mute_until(DialogId dialog_id) const;

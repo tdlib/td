@@ -21,7 +21,6 @@
 #include "td/telegram/FolderId.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/RecentDialogList.h"
 #include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/td_api.h"
@@ -122,8 +121,6 @@ class DialogManager final : public Actor {
                                                      const char *source) const;
 
   td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id, const char *source) const;
-
-  NotificationSettingsScope get_dialog_notification_setting_scope(DialogId dialog_id) const;
 
   CommunityId get_dialog_linked_community_id(DialogId dialog_id) const;
 

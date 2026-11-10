@@ -1755,22 +1755,6 @@ td_api::object_ptr<td_api::ChatType> DialogManager::get_chat_type_object(DialogI
   }
 }
 
-NotificationSettingsScope DialogManager::get_dialog_notification_setting_scope(DialogId dialog_id) const {
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::SecretChat:
-      return NotificationSettingsScope::Private;
-    case DialogType::Chat:
-      return NotificationSettingsScope::Group;
-    case DialogType::Channel:
-      return is_broadcast_channel(dialog_id) ? NotificationSettingsScope::Channel : NotificationSettingsScope::Group;
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      return NotificationSettingsScope::Private;
-  }
-}
-
 CommunityId DialogManager::get_dialog_linked_community_id(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
