@@ -2315,6 +2315,11 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
   string peer_provider_name;
   bool is_telegram_gift = false;
   bool is_saved = false;
+  auto amount = transaction->amount_;
+  if (!transaction->incoming_ && amount > 0) {
+    amount = -amount;
+  }
+  td_api::object_ptr<td_api::TonWalletTransactionType> onchain_gift_type;
   switch (transaction->peer_->get_id()) {
     case telegram_api::walletTransactionPeerUser::ID: {
       auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerUser>(transaction->peer_);
@@ -2348,16 +2353,75 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
       is_saved = peer->own_profile_;
       break;
     }
-    case telegram_api::walletTransactionPeerOnchainGift::ID:
+    case telegram_api::walletTransactionPeerOnchainGift::ID: {
+      auto peer = telegram_api::move_object_as<telegram_api::walletTransactionPeerOnchainGift>(transaction->peer_);
+      td_api::object_ptr<td_api::tonNft> nft;
+      if (transaction->nft_ != nullptr) {
+        nft = TonNft(td, std::move(transaction->nft_)).get_ton_nft_object(td);
+      }
+      switch (peer->action_->get_id()) {
+        case telegram_api::walletOnchainGiftActionBuy::ID:
+          onchain_gift_type =
+              td_api::make_object<td_api::tonWalletTransactionTypeTelegramGiftPurchase>(std::move(nft), amount);
+          break;
+        case telegram_api::walletOnchainGiftActionChangePrice::ID: {
+          auto action = telegram_api::move_object_as<telegram_api::walletOnchainGiftActionChangePrice>(peer->action_);
+          auto old_price = (action->flags_ & telegram_api::walletOnchainGiftActionChangePrice::OLD_PRICE_MASK) != 0
+                               ? action->old_price_
+                               : 0;
+          onchain_gift_type = td_api::make_object<td_api::tonWalletTransactionTypeTelegramGiftListing>(
+              std::move(nft), old_price, action->new_price_, amount);
+          break;
+        }
+        case telegram_api::walletOnchainGiftActionDelist::ID:
+          onchain_gift_type =
+              td_api::make_object<td_api::tonWalletTransactionTypeTelegramGiftDelisting>(std::move(nft), amount);
+          break;
+        case telegram_api::walletOnchainGiftActionOfferCreate::ID: {
+          auto action = telegram_api::move_object_as<telegram_api::walletOnchainGiftActionOfferCreate>(peer->action_);
+          onchain_gift_type = td_api::make_object<td_api::tonWalletTransactionTypeTelegramGiftOfferCreation>(
+              std::move(nft), std::move(action->offer_address_), std::move(action->counterparty_address_),
+              action->price_, action->amount_, action->service_fee_, action->expires_at_);
+          break;
+        }
+        case telegram_api::walletOnchainGiftActionOfferAccept::ID: {
+          auto action = telegram_api::move_object_as<telegram_api::walletOnchainGiftActionOfferAccept>(peer->action_);
+          onchain_gift_type = td_api::make_object<td_api::tonWalletTransactionTypeTelegramGiftOfferAcceptance>(
+              std::move(nft), action->buyer_, std::move(action->offer_address_),
+              std::move(action->counterparty_address_), action->price_, action->service_fee_);
+          break;
+        }
+        case telegram_api::walletOnchainGiftActionOfferCancel::ID: {
+          auto action = telegram_api::move_object_as<telegram_api::walletOnchainGiftActionOfferCancel>(peer->action_);
+          onchain_gift_type = td_api::make_object<td_api::tonWalletTransactionTypeTelegramGiftOfferCancellation>(
+              std::move(nft), std::move(action->offer_address_), std::move(action->counterparty_address_),
+              action->price_, action->refund_amount_,
+              (action->flags_ & telegram_api::walletOnchainGiftActionOfferCancel::FINE_MASK) != 0 ? action->fine_ : -1);
+          break;
+        }
+        case telegram_api::walletOnchainGiftActionOfferDecline::ID: {
+          auto action = telegram_api::move_object_as<telegram_api::walletOnchainGiftActionOfferDecline>(peer->action_);
+          onchain_gift_type = td_api::make_object<td_api::tonWalletTransactionTypeTelegramGiftOfferDecline>(
+              std::move(nft), std::move(action->offer_address_), std::move(action->counterparty_address_),
+              action->price_, action->refund_amount_);
+          break;
+        }
+        case telegram_api::walletOnchainGiftActionOfferExpire::ID: {
+          auto action = telegram_api::move_object_as<telegram_api::walletOnchainGiftActionOfferExpire>(peer->action_);
+          onchain_gift_type = td_api::make_object<td_api::tonWalletTransactionTypeTelegramGiftOfferExpiration>(
+              std::move(nft), std::move(action->offer_address_), std::move(action->counterparty_address_),
+              action->price_, action->refund_amount_);
+          break;
+        }
+        default:
+          UNREACHABLE();
+      }
       break;
+    }
     case telegram_api::walletTransactionPeerUnsupported::ID:
       break;
     default:
       UNREACHABLE();
-  }
-  auto amount = transaction->amount_;
-  if (!transaction->incoming_ && amount > 0) {
-    amount = -amount;
   }
   auto state = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionState> {
     if (transaction->failed_) {
@@ -2366,6 +2430,9 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
     return td_api::make_object<td_api::tonWalletTransactionStateSucceeded>(transaction->tx_hash_);
   }();
   auto type = [&]() -> td_api::object_ptr<td_api::TonWalletTransactionType> {
+    if (onchain_gift_type != nullptr) {
+      return std::move(onchain_gift_type);
+    }
     if (transaction->nft_ != nullptr) {
       auto nft = TonNft(td, std::move(transaction->nft_)).get_ton_nft_object(td);
       if (is_telegram_gift) {

@@ -2445,6 +2445,67 @@ tonWalletTransactionTypeNftTransfer nft:tonNft is_outgoing:Bool comment:string i
 //@is_saved True, if the gift was displayed on the current user's profile page before or after the transfer
 tonWalletTransactionTypeTelegramGiftTransfer nft:tonNft is_outgoing:Bool is_saved:Bool = TonWalletTransactionType;
 
+//@description A Telegram gift was bought on the TON blockchain
+//@nft The bought NFT; may be null if unknown
+//@amount The amount of cryptocurrency paid for the gift, in the smallest units of the cryptocurrency; negative for outgoing transactions
+tonWalletTransactionTypeTelegramGiftPurchase nft:tonNft amount:int64 = TonWalletTransactionType;
+
+//@description A Telegram gift was put up for sale on the TON blockchain or its price was changed
+//@nft The NFT put up for sale; may be null if unknown
+//@old_price The previous price of the gift, in the smallest units of the cryptocurrency; 0 if the gift wasn't on sale before
+//@price The new price of the gift, in the smallest units of the cryptocurrency
+//@amount The cost of the action including refunds, in the smallest units of the cryptocurrency; negative for outgoing transactions
+tonWalletTransactionTypeTelegramGiftListing nft:tonNft old_price:int64 price:int64 amount:int64 = TonWalletTransactionType;
+
+//@description A Telegram gift was removed from sale on the TON blockchain
+//@nft The NFT removed from sale; may be null if unknown
+//@amount The cost of the action including refunds, in the smallest units of the cryptocurrency; negative for outgoing transactions
+tonWalletTransactionTypeTelegramGiftDelisting nft:tonNft amount:int64 = TonWalletTransactionType;
+
+//@description An offer to buy a Telegram gift was created on the TON blockchain and the funds were placed in escrow
+//@nft The NFT for which the offer was created; may be null if unknown
+//@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
+//@counterparty_address Address of the seller in the TON blockchain; may be empty if unknown
+//@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of the cryptocurrency
+//@amount The total amount of cryptocurrency placed in escrow, including the price, the service fee, and the rent and execution fees, in the smallest units of the cryptocurrency
+//@service_fee_amount The service fee for the offer, in the smallest units of the cryptocurrency; included in amount
+//@expiration_date Point in time (Unix timestamp) when the offer expires; 0 if unknown
+tonWalletTransactionTypeTelegramGiftOfferCreation nft:tonNft offer_address:string counterparty_address:string price:int64 amount:int64 service_fee_amount:int64 expiration_date:int32 = TonWalletTransactionType;
+
+//@description An offer to buy a Telegram gift was accepted on the TON blockchain. The buyer received the NFT and the seller received the price
+//@nft The NFT for which the offer was created; may be null if unknown
+//@is_buyer True, if the current user is the buyer of the NFT; otherwise, the current user is the seller of the NFT
+//@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
+//@counterparty_address Address of the other party in the TON blockchain: the seller for the buyer and the buyer for the seller
+//@price The price of the NFT without the service fee and blockchain fees, in the smallest units of the cryptocurrency
+//@service_fee_amount The service fee for the offer, in the smallest units of the cryptocurrency
+tonWalletTransactionTypeTelegramGiftOfferAcceptance nft:tonNft is_buyer:Bool offer_address:string counterparty_address:string price:int64 service_fee_amount:int64 = TonWalletTransactionType;
+
+//@description An offer to buy a Telegram gift was canceled by the buyer on the TON blockchain
+//@nft The NFT for which the offer was created; may be null if unknown
+//@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
+//@counterparty_address Address of the seller in the TON blockchain; may be empty if unknown
+//@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of the cryptocurrency; 0 if unknown
+//@refund_amount The amount of cryptocurrency returned to the buyer, in the smallest units of the cryptocurrency
+//@fine_amount The fine for the cancellation of the offer, in the smallest units of the cryptocurrency; -1 if unknown
+tonWalletTransactionTypeTelegramGiftOfferCancellation nft:tonNft offer_address:string counterparty_address:string price:int64 refund_amount:int64 fine_amount:int64 = TonWalletTransactionType;
+
+//@description An offer to buy a Telegram gift was declined by the owner of the NFT or canceled by Telegram on the TON blockchain
+//@nft The NFT for which the offer was created; may be null if unknown
+//@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
+//@counterparty_address Address of the seller in the TON blockchain; may be empty if unknown
+//@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of the cryptocurrency; 0 if unknown
+//@refund_amount The amount of cryptocurrency returned to the buyer, in the smallest units of the cryptocurrency
+tonWalletTransactionTypeTelegramGiftOfferDecline nft:tonNft offer_address:string counterparty_address:string price:int64 refund_amount:int64 = TonWalletTransactionType;
+
+//@description An offer to buy a Telegram gift has expired on the TON blockchain
+//@nft The NFT for which the offer was created; may be null if unknown
+//@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
+//@counterparty_address Address of the seller in the TON blockchain; may be empty if unknown
+//@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of the cryptocurrency; 0 if unknown
+//@refund_amount The amount of cryptocurrency returned to the buyer, in the smallest units of the cryptocurrency
+tonWalletTransactionTypeTelegramGiftOfferExpiration nft:tonNft offer_address:string counterparty_address:string price:int64 refund_amount:int64 = TonWalletTransactionType;
+
 //@description Change of the wallet key
 tonWalletTransactionTypeKeyChange = TonWalletTransactionType;
 
