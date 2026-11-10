@@ -1,0 +1,32 @@
+#pragma once
+
+#include <sqlite3.h>
+
+#define tdsqlite3_bind_blob sqlite3_bind_blob
+#define tdsqlite3_bind_int sqlite3_bind_int
+#define tdsqlite3_bind_int64 sqlite3_bind_int64
+#define tdsqlite3_bind_null sqlite3_bind_null
+#define tdsqlite3_bind_text sqlite3_bind_text
+#define tdsqlite3_busy_timeout sqlite3_busy_timeout
+#define tdsqlite3_close sqlite3_close
+#define tdsqlite3_column_blob sqlite3_column_blob
+#define tdsqlite3_column_bytes sqlite3_column_bytes
+#define tdsqlite3_column_int sqlite3_column_int
+#define tdsqlite3_column_int64 sqlite3_column_int64
+#define tdsqlite3_column_text sqlite3_column_text
+#define tdsqlite3_column_type sqlite3_column_type
+#define tdsqlite3_db_handle sqlite3_db_handle
+#define tdsqlite3_errcode sqlite3_errcode
+#define tdsqlite3_errmsg sqlite3_errmsg
+#define tdsqlite3_exec sqlite3_exec
+#define tdsqlite3_expanded_sql sqlite3_expanded_sql
+#define tdsqlite3_finalize sqlite3_finalize
+#define tdsqlite3_free sqlite3_free
+#define tdsqlite3_mprintf sqlite3_mprintf
+#define tdsqlite3_open_v2 sqlite3_open_v2
+#define tdsqlite3_prepare_v2 sqlite3_prepare_v2
+#define tdsqlite3_reset sqlite3_reset
+#define tdsqlite3_sql sqlite3_sql
+#define tdsqlite3_step sqlite3_step
+#define tdsqlite3_threadsafe sqlite3_threadsafe
+#define tdsqlite3_trace_v2 sqlite3_trace_v2
