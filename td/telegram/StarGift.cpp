@@ -77,6 +77,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> star
       }
     }
     offer_min_star_count_ = StarManager::get_star_count(star_gift->offer_min_stars_);
+    offer_min_gram_amount_ = max(star_gift->offer_min_amount_, static_cast<int64>(0));
     is_burned_ = star_gift->burned_;
     is_crafted_ = star_gift->crafted_;
     is_theme_available_ = star_gift->theme_available_;
@@ -261,7 +262,8 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
       model_.get_upgraded_gift_model_object(td), pattern_.get_upgraded_gift_symbol_object(td),
       backdrop_.get_upgraded_gift_backdrop_object(), original_details_.get_upgraded_gift_original_details_object(td),
       peer_color_ == nullptr ? nullptr : peer_color_->get_upgraded_gift_colors_object(), std::move(resale_parameters),
-      offer_min_star_count_ > 0, craft_chance_permille_, value_currency_, value_amount_, value_usd_amount_);
+      offer_min_star_count_ > 0, offer_min_gram_amount_, craft_chance_permille_, value_currency_, value_amount_,
+      value_usd_amount_);
 }
 
 td_api::object_ptr<td_api::giftForResale> StarGift::get_gift_for_resale_object(Td *td) const {
@@ -310,7 +312,8 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_ &&
          lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.resale_ton_count_ == rhs.resale_ton_count_ &&
-         lhs.offer_min_star_count_ == rhs.offer_min_star_count_ && lhs.regular_gift_id_ == rhs.regular_gift_id_ &&
+         lhs.offer_min_star_count_ == rhs.offer_min_star_count_ &&
+         lhs.offer_min_gram_amount_ == rhs.offer_min_gram_amount_ && lhs.regular_gift_id_ == rhs.regular_gift_id_ &&
          lhs.gifts_per_round_ == rhs.gifts_per_round_ && lhs.auction_start_date_ == rhs.auction_start_date_ &&
          lhs.craft_chance_permille_ == rhs.craft_chance_permille_ && lhs.value_currency_ == rhs.value_currency_ &&
          lhs.value_amount_ == rhs.value_amount_ && lhs.value_usd_amount_ == rhs.value_usd_amount_ &&
