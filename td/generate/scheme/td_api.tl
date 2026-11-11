@@ -16938,6 +16938,12 @@ sendGiftOnchainPurchaseOffer gift_name:string gram_amount:int64 duration:int32 =
 //@message_id Identifier of the message messageUpgradedGiftOnchainPurchaseOffer with the offer in the chat 777000
 cancelGiftOnchainPurchaseOffer message_id:int53 = GiftOnchainPurchaseOfferTransaction;
 
+//@description Accepts an on-chain gift purchase offer received by the current user. The gift must not be listed for sale. Other offers for the gift will be canceled after the gift is sold.
+//-Returns the transaction that must be sent from the TON wallet of the current user to accept the offer. The offer is accepted only after the transaction is executed in the TON blockchain
+//-and the gift is transferred to the buyer
+//@message_id Identifier of the message messageUpgradedGiftOnchainPurchaseOffer with the offer in the chat 777000
+acceptGiftOnchainPurchaseOffer message_id:int53 = GiftOnchainPurchaseOfferTransaction;
+
 //@description Returns gifts received by the given user or chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@owner_id Identifier of the gift receiver

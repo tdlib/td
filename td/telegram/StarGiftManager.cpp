@@ -1734,6 +1734,36 @@ class CancelStarGiftOnchainOfferQuery final : public Td::ResultHandler {
   }
 };
 
+class AcceptStarGiftOnchainOfferQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> promise_;
+
+ public:
+  explicit AcceptStarGiftOnchainOfferQuery(
+      Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(MessageId message_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_acceptStarGiftOnchainOffer(message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_acceptStarGiftOnchainOffer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for AcceptStarGiftOnchainOfferQuery: " << to_string(ptr);
+    promise_.set_value(StarGiftManager::get_gift_onchain_purchase_offer_transaction_object(std::move(ptr)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetSavedStarGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
   DialogId dialog_id_;
@@ -3335,6 +3365,14 @@ void StarGiftManager::cancel_gift_onchain_offer(
     return promise.set_error(400, "Invalid offer message identifier specified");
   }
   td_->create_handler<CancelStarGiftOnchainOfferQuery>(std::move(promise))->send(message_id);
+}
+
+void StarGiftManager::accept_gift_onchain_offer(
+    MessageId message_id, Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> &&promise) {
+  if (!message_id.is_server()) {
+    return promise.set_error(400, "Invalid offer message identifier specified");
+  }
+  td_->create_handler<AcceptStarGiftOnchainOfferQuery>(std::move(promise))->send(message_id);
 }
 
 td_api::object_ptr<td_api::tonWalletMessage> StarGiftManager::get_ton_wallet_message_object(
