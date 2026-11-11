@@ -105,6 +105,10 @@ void AudiosManager::tear_down() {
   parent_.reset();
 }
 
+bool AudiosManager::have_audio(FileId file_id) const {
+  return get_audio(file_id) != nullptr;
+}
+
 int32 AudiosManager::get_audio_duration(FileId file_id) const {
   const auto *audio = get_audio(file_id);
   if (audio == nullptr) {

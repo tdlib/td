@@ -37,6 +37,8 @@ class AudiosManager final : public Actor {
   AudiosManager &operator=(AudiosManager &&) = delete;
   ~AudiosManager() final;
 
+  bool have_audio(FileId file_id) const;
+
   int32 get_audio_duration(FileId file_id) const;
 
   tl_object_ptr<td_api::audio> get_audio_object(FileId file_id) const;

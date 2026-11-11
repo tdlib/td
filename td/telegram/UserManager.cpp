@@ -7280,7 +7280,7 @@ Result<telegram_api::object_ptr<telegram_api::inputDocument>> UserManager::check
     return Status::Error(400, "Invalid file identifier specified");
   }
   file_id = file_view.get_main_file_id();
-  if (td_->audios_manager_->get_audio_object(file_id) == nullptr) {
+  if (!td_->audios_manager_->have_audio(file_id)) {
     return Status::Error(400, "Invalid file identifier specified");
   }
 
