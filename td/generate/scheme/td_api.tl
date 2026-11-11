@@ -1683,12 +1683,12 @@ upgradedGift id:int64 regular_gift_id:int64 publisher_chat_id:int53 title:string
 //@last_sale_date Point in time (Unix timestamp) when the upgraded gift was purchased last time; 0 if never
 //@last_sale_price Last purchase price of the gift; in the smallest units of the currency; 0 if the gift has never been resold
 //@is_last_sale_on_fragment True, if the last sale was completed on Fragment
-//@minimum_price The current minimum price of gifts upgraded from the same gift; in the smallest units of the currency; 0 if there are no such gifts
+//@min_price The current minimum price of gifts upgraded from the same gift; in the smallest units of the currency; 0 if there are no such gifts
 //@average_sale_price The average sale price in the last month of gifts upgraded from the same gift; in the smallest units of the currency; 0 if there were no such sales
 //@telegram_listed_gift_count Number of gifts upgraded from the same gift being resold on Telegram
 //@fragment_listed_gift_count Number of gifts upgraded from the same gift being resold on Fragment
 //@fragment_url The HTTPS link to the Fragment for the gift; may be empty if there are no such gifts being sold on Fragment
-upgradedGiftValueInfo currency:string value:int53 is_value_average:Bool initial_sale_date:int32 initial_sale_star_count:int53 initial_sale_price:int53 last_sale_date:int32 last_sale_price:int53 is_last_sale_on_fragment:Bool minimum_price:int53 average_sale_price:int53 telegram_listed_gift_count:int32 fragment_listed_gift_count:int32 fragment_url:string = UpgradedGiftValueInfo;
+upgradedGiftValueInfo currency:string value:int53 is_value_average:Bool initial_sale_date:int32 initial_sale_star_count:int53 initial_sale_price:int53 last_sale_date:int32 last_sale_price:int53 is_last_sale_on_fragment:Bool min_price:int53 average_sale_price:int53 telegram_listed_gift_count:int32 fragment_listed_gift_count:int32 fragment_url:string = UpgradedGiftValueInfo;
 
 //@description Contains information needed to deposit an upgraded gift from the TON wallet of the current user to a Telegram account.
 //-The gift must be transferred by an internal message from the wallet to nft_address with gram_amount attached and with payload as the message body
