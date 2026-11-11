@@ -5086,8 +5086,8 @@ void UserManager::on_load_user_from_database(UserId user_id, string value, bool 
     if (!value.empty() && u->is_bot) {
       User temp_u;
       if (log_event_parse(temp_u, value).is_ok() && temp_u.linked_community_id != u->linked_community_id) {
-        td_->messages_manager_->on_update_dialog_linked_community_id(DialogId(user_id), temp_u.linked_community_id);
-        CHECK(!u->is_being_saved);
+        send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_linked_community_id,
+                           DialogId(user_id), temp_u.linked_community_id);
       }
     }
     auto new_value = get_user_database_value(u);

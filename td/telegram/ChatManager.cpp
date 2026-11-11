@@ -4939,9 +4939,8 @@ void ChatManager::on_load_channel_from_database(ChannelId channel_id, string val
         }
 
         if (temp_c.linked_community_id != c->linked_community_id) {
-          td_->messages_manager_->on_update_dialog_linked_community_id(DialogId(channel_id),
-                                                                       temp_c.linked_community_id);
-          CHECK(!c->is_being_saved);
+          send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_linked_community_id,
+                             DialogId(channel_id), temp_c.linked_community_id);
         }
       } else {
         is_new = true;
