@@ -1764,6 +1764,34 @@ class AcceptStarGiftOnchainOfferQuery final : public Td::ResultHandler {
   }
 };
 
+class DeclineStarGiftOnchainOfferQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeclineStarGiftOnchainOfferQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(MessageId message_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_declineStarGiftOnchainOffer(message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_declineStarGiftOnchainOffer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeclineStarGiftOnchainOfferQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetSavedStarGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
   DialogId dialog_id_;
@@ -3373,6 +3401,13 @@ void StarGiftManager::accept_gift_onchain_offer(
     return promise.set_error(400, "Invalid offer message identifier specified");
   }
   td_->create_handler<AcceptStarGiftOnchainOfferQuery>(std::move(promise))->send(message_id);
+}
+
+void StarGiftManager::decline_gift_onchain_offer(MessageId message_id, Promise<Unit> &&promise) {
+  if (!message_id.is_server()) {
+    return promise.set_error(400, "Invalid offer message identifier specified");
+  }
+  td_->create_handler<DeclineStarGiftOnchainOfferQuery>(std::move(promise))->send(message_id);
 }
 
 td_api::object_ptr<td_api::tonWalletMessage> StarGiftManager::get_ton_wallet_message_object(

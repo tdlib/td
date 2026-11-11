@@ -124,6 +124,8 @@ class StarGiftManager final : public Actor {
   void accept_gift_onchain_offer(MessageId message_id,
                                  Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> &&promise);
 
+  void decline_gift_onchain_offer(MessageId message_id, Promise<Unit> &&promise);
+
   static td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>
   get_gift_onchain_purchase_offer_transaction_object(
       telegram_api::object_ptr<telegram_api::payments_starGiftOnchainOfferTx> &&transaction);

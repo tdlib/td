@@ -16944,6 +16944,10 @@ cancelGiftOnchainPurchaseOffer message_id:int53 = GiftOnchainPurchaseOfferTransa
 //@message_id Identifier of the message messageUpgradedGiftOnchainPurchaseOffer with the offer in the chat 777000
 acceptGiftOnchainPurchaseOffer message_id:int53 = GiftOnchainPurchaseOfferTransaction;
 
+//@description Declines an on-chain gift purchase offer received by the current user. The offer is declined and the buyer is refunded only after the offer is canceled in the TON blockchain
+//@message_id Identifier of the message messageUpgradedGiftOnchainPurchaseOffer with the offer in the chat 777000
+declineGiftOnchainPurchaseOffer message_id:int53 = Ok;
+
 //@description Returns gifts received by the given user or chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@owner_id Identifier of the gift receiver
