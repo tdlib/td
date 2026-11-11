@@ -1725,6 +1725,34 @@ upgradedGiftValueInfo currency:string value:int53 is_value_average:Bool initial_
 //@gram_amount The amount that must be attached to the message to cover fees, in the smallest units of TON Grams; excess amount will be returned to the wallet
 upgradedGiftDepositInfo nft_address:string payload:bytes gram_amount:int64 = UpgradedGiftDepositInfo;
 
+//@description Describes initial state of a smart contract in the TON blockchain
+//@code Code of the smart contract
+//@data Initial data of the smart contract
+tonSmartContractInitialState code:bytes data:bytes = TonSmartContractInitialState;
+
+//@description Describes an internal message that must be sent from the TON wallet of the current user. The message must be signed and sent without any changes
+//@destination_address Address in the TON blockchain to which the message must be sent
+//@gram_amount The amount that must be attached to the message, in the smallest units of TON Grams; already includes all the required amounts
+//@send_mode Send mode of the message
+//@body Body of the message
+//@initial_state Initial state of the smart contract that must be deployed with the message; may be null if none
+tonWalletMessage destination_address:string gram_amount:int64 send_mode:int32 body:bytes initial_state:tonSmartContractInitialState = TonWalletMessage;
+
+//@description Contains information about a transaction that must be sent from the TON wallet of the current user to send, accept, or cancel an on-chain gift purchase offer.
+//-Use sendTonWalletTransfer with message.destination_address and message.gram_amount as the receiver address and the amount, and with regular_transfer_data and gasless_transfer_data
+//-created from message and gasless_message respectively to send the transaction. Successful sending of the transaction doesn't mean that the operation was completed;
+//-the result of the operation must be checked in the corresponding messageUpgradedGiftOnchainPurchaseOffer message in the chat 777000
+//@offer_address Address of the smart contract of the offer in the TON blockchain
+//@expiration_date Point in time (Unix timestamp) when the offer will expire
+//@message The message that must be sent for a regular transfer
+//@gasless_message The message that must be sent for a gasless transfer; may be null if gasless transfer isn't available
+//@rent_budget_amount The amount included in the message for rent of the offer smart contract, in the smallest units of TON Grams; 0 if none
+//@execution_allowance_amount The amount included in the message for execution of the offer smart contract, in the smallest units of TON Grams; 0 if none
+//@forward_amount The amount forwarded with the gift transfer on acceptance of the offer, in the smallest units of TON Grams; 0 if none
+//@fine_amount The expected fine for cancellation of the offer, in the smallest units of TON Grams; 0 if none.
+//-The final fine will be known after the cancellation is executed in the TON blockchain
+giftOnchainPurchaseOfferTransaction offer_address:string expiration_date:int32 message:tonWalletMessage gasless_message:tonWalletMessage rent_budget_amount:int64 execution_allowance_amount:int64 forward_amount:int64 fine_amount:int64 = GiftOnchainPurchaseOfferTransaction;
+
 //@description Contains result of gift upgrading
 //@gift The upgraded gift
 //@received_gift_id Unique identifier of the received gift for the current user
@@ -6335,8 +6363,8 @@ messageUpgradedGiftPurchaseOfferRejected gift:upgradedGift price:GiftResalePrice
 //@is_buyer True, if the offer was sent by the current user; otherwise, the offer was received by the current user as the owner of the gift
 //@state State of the offer
 //@offer_address Address of the TON smart contract of the offer; can be used to match TON wallet transactions related to the offer
-//@gram_amount The amount of the offer, in the smallest units of TON Grams
-//@fee_basis_points The fee charged for the offer, in basis points; 1 basis point is 0.01%
+//@gram_amount The price offered for the gift, in the smallest units of TON Grams; the owner of the gift receives the full price if the offer is accepted
+//@fee_basis_points The fee paid by the buyer in addition to the price, in basis points; 1 basis point is 0.01%
 //@expiration_date Point in time (Unix timestamp) when the offer will expire or has expired
 messageUpgradedGiftOnchainPurchaseOffer gift:upgradedGift is_buyer:Bool state:GiftOnchainPurchaseOfferState offer_address:string gram_amount:int64 fee_basis_points:int32 expiration_date:int32 = MessageContent;
 

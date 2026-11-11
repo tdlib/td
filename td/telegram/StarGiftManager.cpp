@@ -3260,6 +3260,33 @@ void StarGiftManager::process_gift_offer(MessageId message_id, bool decline, Pro
   td_->create_handler<ResolveStarGiftOfferQuery>(std::move(promise))->send(message_id, decline);
 }
 
+td_api::object_ptr<td_api::tonWalletMessage> StarGiftManager::get_ton_wallet_message_object(
+    telegram_api::object_ptr<telegram_api::payments_starGiftOnchainOfferTxMessage> &&message) {
+  CHECK(message != nullptr);
+  td_api::object_ptr<td_api::tonSmartContractInitialState> initial_state;
+  if (message->init_state_ != nullptr) {
+    initial_state = td_api::make_object<td_api::tonSmartContractInitialState>(
+        message->init_state_->code_.as_slice().str(), message->init_state_->data_.as_slice().str());
+  }
+  return td_api::make_object<td_api::tonWalletMessage>(std::move(message->destination_), message->value_,
+                                                       message->mode_, message->body_.as_slice().str(),
+                                                       std::move(initial_state));
+}
+
+td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>
+StarGiftManager::get_gift_onchain_purchase_offer_transaction_object(
+    telegram_api::object_ptr<telegram_api::payments_starGiftOnchainOfferTx> &&transaction) {
+  CHECK(transaction != nullptr);
+  td_api::object_ptr<td_api::tonWalletMessage> gasless_message;
+  if (transaction->gasless_message_ != nullptr) {
+    gasless_message = get_ton_wallet_message_object(std::move(transaction->gasless_message_));
+  }
+  return td_api::make_object<td_api::giftOnchainPurchaseOfferTransaction>(
+      std::move(transaction->offer_address_), transaction->expires_at_,
+      get_ton_wallet_message_object(std::move(transaction->message_)), std::move(gasless_message),
+      transaction->rent_budget_, transaction->execution_allowance_, transaction->forward_amount_, transaction->fine_);
+}
+
 void StarGiftManager::get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,
                                            StarGiftCollectionId collection_id, bool exclude_unsaved, bool exclude_saved,
                                            bool exclude_unlimited, bool exclude_upgradable, bool exclude_non_upgradable,
