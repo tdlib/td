@@ -1218,6 +1218,34 @@ giftPurchaseOfferStateAccepted = GiftPurchaseOfferState;
 giftPurchaseOfferStateRejected = GiftPurchaseOfferState;
 
 
+//@class GiftOnchainPurchaseOfferState @description Describes state of an on-chain gift purchase offer
+
+//@description The offer is waiting for a response from the owner of the gift
+giftOnchainPurchaseOfferStatePending = GiftOnchainPurchaseOfferState;
+
+//@description The offer was accepted and executed in the TON blockchain; the gift is being transferred to the buyer
+giftOnchainPurchaseOfferStateSettled = GiftOnchainPurchaseOfferState;
+
+//@description The offer was accepted and the gift was transferred to the TON wallet of the buyer
+giftOnchainPurchaseOfferStateAccepted = GiftOnchainPurchaseOfferState;
+
+//@description The offer is being canceled and the buyer is being refunded
+giftOnchainPurchaseOfferStateCanceling = GiftOnchainPurchaseOfferState;
+
+//@description The offer was declined
+//@refund_amount The amount returned to the buyer, in the smallest units of TON Grams; -1 if unknown
+giftOnchainPurchaseOfferStateDeclined refund_amount:int64 = GiftOnchainPurchaseOfferState;
+
+//@description The offer was canceled
+//@refund_amount The amount returned to the buyer, in the smallest units of TON Grams; -1 if unknown
+//@fine_amount The fine for the cancellation of the offer, in the smallest units of TON Grams; -1 if unknown
+giftOnchainPurchaseOfferStateCanceled refund_amount:int64 fine_amount:int64 = GiftOnchainPurchaseOfferState;
+
+//@description The offer has expired and the buyer was refunded
+//@refund_amount The amount returned to the buyer, in the smallest units of TON Grams; -1 if unknown
+giftOnchainPurchaseOfferStateExpired refund_amount:int64 = GiftOnchainPurchaseOfferState;
+
+
 //@class SuggestedPostPrice @description Describes price of a suggested post
 
 //@description Describes price of a suggested post in Telegram Stars
@@ -6301,6 +6329,16 @@ messageUpgradedGiftPurchaseOffer gift:upgradedGift state:GiftPurchaseOfferState 
 //@offer_message_id Identifier of the message with purchase offer which was rejected or expired; may be 0 or an identifier of a deleted message
 //@was_expired True, if the offer has expired; otherwise, the offer was explicitly rejected
 messageUpgradedGiftPurchaseOfferRejected gift:upgradedGift price:GiftResalePrice offer_message_id:int53 was_expired:Bool = MessageContent;
+
+//@description An on-chain offer to purchase an upgraded gift was sent or received
+//@gift The gift
+//@is_buyer True, if the offer was sent by the current user; otherwise, the offer was received by the current user as the owner of the gift
+//@state State of the offer
+//@offer_address Address of the TON smart contract of the offer; can be used to match TON wallet transactions related to the offer
+//@gram_amount The amount of the offer, in the smallest units of TON Grams
+//@fee_basis_points The fee charged for the offer, in basis points; 1 basis point is 0.01%
+//@expiration_date Point in time (Unix timestamp) when the offer will expire or has expired
+messageUpgradedGiftOnchainPurchaseOffer gift:upgradedGift is_buyer:Bool state:GiftOnchainPurchaseOfferState offer_address:string gram_amount:int64 fee_basis_points:int32 expiration_date:int32 = MessageContent;
 
 //@description Paid messages were refunded @message_count The number of refunded messages @star_count The number of refunded Telegram Stars
 messagePaidMessagesRefunded message_count:int32 star_count:int53 = MessageContent;
