@@ -16933,6 +16933,11 @@ processGiftPurchaseOffer message_id:int53 accept:Bool = Ok;
 //@duration Duration of the offer, in seconds; must be one of 21600, 43200, 86400, 129600, 172800, or 259200
 sendGiftOnchainPurchaseOffer gift_name:string gram_amount:int64 duration:int32 = GiftOnchainPurchaseOfferTransaction;
 
+//@description Cancels an on-chain gift purchase offer sent by the current user. A fine may be charged if the offer is canceled before it expires.
+//-Returns the transaction that must be sent from the TON wallet of the current user to cancel the offer. The offer is canceled only after the transaction is executed in the TON blockchain
+//@message_id Identifier of the message messageUpgradedGiftOnchainPurchaseOffer with the offer in the chat 777000
+cancelGiftOnchainPurchaseOffer message_id:int53 = GiftOnchainPurchaseOfferTransaction;
+
 //@description Returns gifts received by the given user or chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@owner_id Identifier of the gift receiver
