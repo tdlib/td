@@ -1666,7 +1666,7 @@ gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_s
 //@colors Colors that can be set for user's name, background of empty chat photo, replies to messages and link previews; may be null if none or unknown
 //@resale_parameters Resale parameters of the gift; may be null if resale isn't possible
 //@can_send_purchase_offer True, if an offer to purchase the gift can be sent using sendGiftPurchaseOffer
-//@min_onchain_purchase_offer_gram_amount The minimum price for an on-chain offer to purchase the gift, in the smallest units of the cryptocurrency; 0 if on-chain purchase offers can't be sent for the gift
+//@min_onchain_purchase_offer_gram_amount The minimum price for an on-chain offer to purchase the gift, in the smallest units of TON Grams; 0 if on-chain purchase offers can't be sent for the gift
 //@craft_probability_per_mille Probability that the gift adds to the chance of successful crafting of a new gift; 0 if the gift can't be used for crafting
 //@value_currency ISO 4217 currency code of the currency in which value of the gift is represented; may be empty if unavailable
 //@value_amount Estimated value of the gift; in the smallest units of the currency; 0 if unavailable
@@ -1694,7 +1694,7 @@ upgradedGiftValueInfo currency:string value:int53 is_value_average:Bool initial_
 //-The gift must be transferred by an internal message from the wallet to nft_address with gram_amount attached and with payload as the message body
 //@nft_address Address in TON blockchain to which the message must be sent
 //@payload Body of the NFT transfer message
-//@gram_amount The amount of TON Grams that must be attached to the message to cover fees, in the smallest units of the cryptocurrency; excess amount will be returned to the wallet
+//@gram_amount The amount that must be attached to the message to cover fees, in the smallest units of TON Grams; excess amount will be returned to the wallet
 upgradedGiftDepositInfo nft_address:string payload:bytes gram_amount:int64 = UpgradedGiftDepositInfo;
 
 //@description Contains result of gift upgrading
@@ -2220,14 +2220,14 @@ tonTransactionTypeUnsupported = TonTransactionType;
 
 //@description Represents a transaction changing the amount of owned TON Grams
 //@id Unique identifier of the transaction
-//@gram_amount The amount of added owned Grams, in the smallest units of the cryptocurrency; negative for outgoing transactions
+//@gram_amount The added amount, in the smallest units of TON Grams; negative for outgoing transactions
 //@is_refund True, if the transaction is a refund of a previous transaction
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@type Type of the transaction
 tonTransaction id:string gram_amount:int53 is_refund:Bool date:int32 type:TonTransactionType = TonTransaction;
 
 //@description Represents a list of TON Gram transactions
-//@gram_amount The total amount of owned Grams, in the smallest units of the cryptocurrency
+//@gram_amount The total owned amount, in the smallest units of TON Grams
 //@transactions List of Gram transactions
 //@next_offset The offset for the next request. If empty, then there are no more results
 tonTransactions gram_amount:int53 transactions:vector<tonTransaction> next_offset:string = TonTransactions;
@@ -2354,7 +2354,7 @@ onRampPaymentSession session_id:string expiration_date:int32 url:string = OnRamp
 //@description Describes state of the wallet of the current user in the TON blockchain
 //@address Address of the wallet; may be empty if none
 //@public_key Public key of the wallet; may be empty if none
-//@gram_amount The total amount of owned TON Grams, in the smallest units of the cryptocurrency
+//@gram_amount The total owned amount, in the smallest units of TON Grams
 //@is_being_created True, if the wallet is being created
 //@is_backup_enabled True, if backup for the wallet key is enabled
 //@can_enable_backup True, if the user can enable backup for the wallet key
@@ -2395,7 +2395,7 @@ tonWalletCardSticker position:areaPosition nft:tonNft = TonWalletCardSticker;
 
 //@description Describes a TON wallet card, which is shown on the profile page of a user to everyone
 //@address Address of the wallet
-//@gram_amount Balance of the wallet, in the smallest units of the cryptocurrency; may be slightly outdated
+//@gram_amount Balance of the wallet, in the smallest units of TON Grams; may be slightly outdated
 //@stickers Stickers placed on the card
 //@background_nft_address Address of the NFT of one of the stickers, whose colors must be used for the card background; may be empty if the default background must be used
 tonWalletCard address:string gram_amount:int64 stickers:vector<tonWalletCardSticker> background_nft_address:string = TonWalletCard;
@@ -2422,12 +2422,12 @@ tonWalletTransactionStateFailed = TonWalletTransactionState;
 //@class TonWalletTransactionType @description Describes type of transaction with a TON wallet
 
 //@description The transaction is a deposit from an on-ramp provider
-//@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency
+//@amount The received amount, in the smallest units of TON Grams
 //@provider_name Name of the on-ramp provider
 tonWalletTransactionTypeOnRampDeposit amount:int64 provider_name:string = TonWalletTransactionType;
 
 //@description A transfer of TON Grams to or from the wallet
-//@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
+//@amount The received amount, in the smallest units of TON Grams; negative for outgoing transactions
 //@is_gasless True, if the fee was paid by Telegram
 //@comment Comment added to the transaction
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
@@ -2448,28 +2448,28 @@ tonWalletTransactionTypeTelegramGiftTransfer nft:tonNft is_outgoing:Bool is_save
 
 //@description A Telegram gift was bought on the TON blockchain
 //@nft The bought NFT; may be null if unknown
-//@amount The amount of cryptocurrency paid for the gift, in the smallest units of the cryptocurrency; negative for outgoing transactions
+//@amount The amount paid for the gift, in the smallest units of TON Grams; negative for outgoing transactions
 tonWalletTransactionTypeTelegramGiftPurchase nft:tonNft amount:int64 = TonWalletTransactionType;
 
 //@description A Telegram gift was put up for sale on the TON blockchain or its price was changed
 //@nft The NFT put up for sale; may be null if unknown
 //@old_price The previous price of the gift, in the smallest units of the cryptocurrency; 0 if the gift wasn't on sale before
 //@price The new price of the gift, in the smallest units of the cryptocurrency
-//@amount The cost of the action including refunds, in the smallest units of the cryptocurrency; negative for outgoing transactions
+//@amount The cost of the action including refunds, in the smallest units of TON Grams; negative for outgoing transactions
 tonWalletTransactionTypeTelegramGiftListing nft:tonNft old_price:int64 price:int64 amount:int64 = TonWalletTransactionType;
 
 //@description A Telegram gift was removed from sale on the TON blockchain
 //@nft The NFT removed from sale; may be null if unknown
-//@amount The cost of the action including refunds, in the smallest units of the cryptocurrency; negative for outgoing transactions
+//@amount The cost of the action including refunds, in the smallest units of TON Grams; negative for outgoing transactions
 tonWalletTransactionTypeTelegramGiftDelisting nft:tonNft amount:int64 = TonWalletTransactionType;
 
 //@description An offer to buy a Telegram gift was created on the TON blockchain and the funds were placed in escrow
 //@nft The NFT for which the offer was created; may be null if unknown
 //@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
 //@counterparty_address Address of the seller in the TON blockchain; may be empty if unknown
-//@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of the cryptocurrency
-//@amount The total amount of cryptocurrency placed in escrow, including the price, the service fee, and the rent and execution fees, in the smallest units of the cryptocurrency
-//@service_fee_amount The service fee for the offer, in the smallest units of the cryptocurrency; included in amount
+//@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of TON Grams
+//@amount The total amount placed in escrow, including the price, the service fee, and the rent and execution fees, in the smallest units of TON Grams
+//@service_fee_amount The service fee for the offer, in the smallest units of TON Grams; included in amount
 //@expiration_date Point in time (Unix timestamp) when the offer expires; 0 if unknown
 tonWalletTransactionTypeTelegramGiftOfferCreation nft:tonNft offer_address:string counterparty_address:string price:int64 amount:int64 service_fee_amount:int64 expiration_date:int32 = TonWalletTransactionType;
 
@@ -2478,33 +2478,33 @@ tonWalletTransactionTypeTelegramGiftOfferCreation nft:tonNft offer_address:strin
 //@is_buyer True, if the current user is the buyer of the NFT; otherwise, the current user is the seller of the NFT
 //@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
 //@counterparty_address Address of the other party in the TON blockchain: the seller for the buyer and the buyer for the seller
-//@price The price of the NFT without the service fee and blockchain fees, in the smallest units of the cryptocurrency
-//@service_fee_amount The service fee for the offer, in the smallest units of the cryptocurrency
+//@price The price of the NFT without the service fee and blockchain fees, in the smallest units of TON Grams
+//@service_fee_amount The service fee for the offer, in the smallest units of TON Grams
 tonWalletTransactionTypeTelegramGiftOfferAcceptance nft:tonNft is_buyer:Bool offer_address:string counterparty_address:string price:int64 service_fee_amount:int64 = TonWalletTransactionType;
 
 //@description An offer to buy a Telegram gift was canceled by the buyer on the TON blockchain
 //@nft The NFT for which the offer was created; may be null if unknown
 //@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
 //@counterparty_address Address of the seller in the TON blockchain; may be empty if unknown
-//@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of the cryptocurrency; 0 if unknown
-//@refund_amount The amount of cryptocurrency returned to the buyer, in the smallest units of the cryptocurrency
-//@fine_amount The fine for the cancellation of the offer, in the smallest units of the cryptocurrency; -1 if unknown
+//@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of TON Grams; 0 if unknown
+//@refund_amount The amount returned to the buyer, in the smallest units of TON Grams
+//@fine_amount The fine for the cancellation of the offer, in the smallest units of TON Grams; -1 if unknown
 tonWalletTransactionTypeTelegramGiftOfferCancellation nft:tonNft offer_address:string counterparty_address:string price:int64 refund_amount:int64 fine_amount:int64 = TonWalletTransactionType;
 
 //@description An offer to buy a Telegram gift was declined by the owner of the NFT or canceled by Telegram on the TON blockchain
 //@nft The NFT for which the offer was created; may be null if unknown
 //@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
 //@counterparty_address Address of the seller in the TON blockchain; may be empty if unknown
-//@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of the cryptocurrency; 0 if unknown
-//@refund_amount The amount of cryptocurrency returned to the buyer, in the smallest units of the cryptocurrency
+//@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of TON Grams; 0 if unknown
+//@refund_amount The amount returned to the buyer, in the smallest units of TON Grams
 tonWalletTransactionTypeTelegramGiftOfferDecline nft:tonNft offer_address:string counterparty_address:string price:int64 refund_amount:int64 = TonWalletTransactionType;
 
 //@description An offer to buy a Telegram gift has expired on the TON blockchain
 //@nft The NFT for which the offer was created; may be null if unknown
 //@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
 //@counterparty_address Address of the seller in the TON blockchain; may be empty if unknown
-//@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of the cryptocurrency; 0 if unknown
-//@refund_amount The amount of cryptocurrency returned to the buyer, in the smallest units of the cryptocurrency
+//@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of TON Grams; 0 if unknown
+//@refund_amount The amount returned to the buyer, in the smallest units of TON Grams
 tonWalletTransactionTypeTelegramGiftOfferExpiration nft:tonNft offer_address:string counterparty_address:string price:int64 refund_amount:int64 = TonWalletTransactionType;
 
 //@description Change of the wallet key
@@ -2517,13 +2517,13 @@ tonWalletTransactionTypeKeyChange = TonWalletTransactionType;
 //@peer_user_id Identifier of the other user who participated in the transaction; 0 if unknown
 //@peer_domain Identifier of the domain assigned to the peer address; may be empty if none
 //@date Point in time (Unix timestamp) when the transaction was completed
-//@fee_amount The fee amount paid for the transaction in TON Grams, in the smallest units of the cryptocurrency
+//@fee_amount The fee amount paid for the transaction, in the smallest units of TON Grams
 //@state State of the transaction
 //@type Type of the transaction
 tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domain:string date:int32 fee_amount:int64 state:TonWalletTransactionState type:TonWalletTransactionType = TonWalletTransaction;
 
 //@description Represents a list of TON Gram transactions
-//@gram_amount The total amount of owned TON Grams, in the smallest units of the cryptocurrency
+//@gram_amount The total owned amount, in the smallest units of TON Grams
 //@transactions List of transactions
 //@next_offset The offset for the next request. If empty, then there are no more results
 tonWalletTransactions gram_amount:int64 transactions:vector<tonWalletTransaction> next_offset:string = TonWalletTransactions;
@@ -2632,7 +2632,7 @@ tonConnectChallenge challenge:bytes event_id:int64 = TonConnectChallenge;
 tonConnectSessionEventId event_id:int64 = TonConnectSessionEventId;
 
 
-//@description Represents result of cryptocurrency transfer from the current user's TON wallet
+//@description Represents result of a transfer of TON Grams from the current user's TON wallet
 //@is_gasless True, if the transfer is gasless
 //@msg_hash Unique identifier of the sent message; use getTonWalletTransactionByMsgHash to poll information about the transaction
 //@transaction The completed transaction; may be null if the transaction is still pending
@@ -6207,7 +6207,7 @@ messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string a
 //@description TON Grams were gifted to a user
 //@gifter_user_id The identifier of a user who gifted Grams; 0 if the gift was anonymous or is outgoing
 //@receiver_user_id The identifier of a user who received Grams; 0 if the gift is incoming
-//@gram_amount The received Gram amount, in the smallest units of the cryptocurrency
+//@gram_amount The received amount, in the smallest units of TON Grams
 //@transaction_id Identifier of the transaction for Gram credit; for receiver only
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiftedGrams gifter_user_id:int53 receiver_user_id:int53 gram_amount:int53 transaction_id:string sticker:sticker = MessageContent;
@@ -6225,7 +6225,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@sender_user_id Sender of the transfer; 0 if unknown
 //@transaction_id Unique identifier of the transaction; may be empty if the transfer isn't sent yet. Use getTonWalletTransaction to get additional information about the transaction
 //@peer_address Address in the TON blockchain of the transaction peer
-//@amount The amount of received cryptocurrency, in the smallest units of the cryptocurrency; negative for outgoing transactions
+//@amount The received amount, in the smallest units of TON Grams; negative for outgoing transactions
 //@comment Comment added to the transaction
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the receiver's or sender's private key
 messageTonWalletTransfer sender_user_id:int53 transaction_id:string peer_address:string amount:int64 comment:string is_comment_encrypted:Bool = MessageContent;
@@ -6348,7 +6348,7 @@ messageSuggestedPostDeclined suggested_post_message_id:int53 comment:string = Me
 //@description A suggested post was published for getOption("suggested_post_lifetime_min") seconds and payment for the post was received
 //@suggested_post_message_id Identifier of the message with the suggested post; may be 0 or an identifier of a deleted message
 //@star_amount The amount of received Telegram Stars
-//@gram_amount The amount of received TON Grams; in the smallest units of the cryptocurrency
+//@gram_amount The received amount; in the smallest units of TON Grams
 messageSuggestedPostPaid suggested_post_message_id:int53 star_amount:starAmount gram_amount:int53 = MessageContent;
 
 //@description A suggested post was refunded
@@ -8514,7 +8514,7 @@ callbackQueryAnswer text:string show_alert:Bool url:string = CallbackQueryAnswer
 
 //@description Describes a TON wallet of the user, who is used in a widget query
 //@address Address of the wallet
-//@gram_amount Balance of the wallet, in the smallest units of the cryptocurrency
+//@gram_amount Balance of the wallet, in the smallest units of TON Grams
 //@public_key Public key of the wallet; may be empty if unknown
 //@state_init Serialized StateInit of the wallet contract; must be empty if and only if public_key is empty
 widgetQueryWallet address:string gram_amount:int64 public_key:bytes state_init:bytes = WidgetQueryWallet;
@@ -10509,7 +10509,7 @@ internalLinkTypeTonConnect version:int32 dapp_client_id:string connect_request:t
 
 //@description The link is a link for sending Grams from the user's TON wallet
 //@receiver Chosen receiver of the transfer; may be null if none
-//@gram_amount The pre-filled amount of TON Grams to send; in the smallest units of the cryptocurrency
+//@gram_amount The pre-filled amount to send; in the smallest units of TON Grams
 internalLinkTypeTonWalletTransfer receiver:TonWalletTransferReceiver gram_amount:int64 = InternalLinkType;
 
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link @link Link to be passed to getDeepLinkInfo
@@ -11261,7 +11261,7 @@ chatRevenueTransactionTypeFragmentRefund refund_date:int32 = ChatRevenueTransact
 chatRevenueTransaction cryptocurrency:string cryptocurrency_amount:int64 type:ChatRevenueTransactionType = ChatRevenueTransaction;
 
 //@description Contains a list of chat revenue transactions
-//@gram_amount The amount of owned TON Grams; in the smallest units of the cryptocurrency
+//@gram_amount The owned amount; in the smallest units of TON Grams
 //@transactions List of transactions
 //@next_offset The offset for the next request. If empty, then there are no more results
 chatRevenueTransactions gram_amount:int53 transactions:vector<chatRevenueTransaction> next_offset:string = ChatRevenueTransactions;
@@ -11282,9 +11282,9 @@ starRevenueStatus total_amount:starAmount current_amount:starAmount available_am
 starRevenueStatistics revenue_by_day_graph:StatisticalGraph status:starRevenueStatus usd_rate:double = StarRevenueStatistics;
 
 //@description Contains information about TON Grams earned by the current user
-//@total_amount Total Gram amount earned; in the smallest units of the cryptocurrency
-//@balance_amount The Gram amount that isn't withdrawn yet; in the smallest units of the cryptocurrency
-//@available_amount The Gram amount that is available for withdrawal; in the smallest units of the cryptocurrency
+//@total_amount Total amount earned; in the smallest units of TON Grams
+//@balance_amount The amount that isn't withdrawn yet; in the smallest units of TON Grams
+//@available_amount The amount that is available for withdrawal; in the smallest units of TON Grams
 //@withdrawal_enabled True, if Grams can be withdrawn
 gramRevenueStatus total_amount:int64 balance_amount:int64 available_amount:int64 withdrawal_enabled:Bool = GramRevenueStatus;
 
@@ -12045,7 +12045,7 @@ updateActiveLiveLocationMessages messages:vector<message> = Update;
 //@description The number of Telegram Stars owned by the current user has changed @star_amount The new amount of owned Telegram Stars
 updateOwnedStarCount star_amount:starAmount = Update;
 
-//@description The number of TON Grams owned by the current user has changed @gram_amount The new amount of owned Grams; in the smallest units of the cryptocurrency
+//@description The number of TON Grams owned by the current user has changed @gram_amount The new owned amount; in the smallest units of TON Grams
 updateOwnedGramCount gram_amount:int53 = Update;
 
 //@description The state of the TON wallet of the current user has changed @state The new state of the wallet
@@ -17267,15 +17267,15 @@ disableTonWalletBackup password:string = Ok;
 //@proof Proof of the TON wallet ownership; use getTonWalletOwnershipProofChallenge to get a challenge for the proof
 disableTonWalletBackupWithProof proof:tonWalletOwnershipProof = Ok;
 
-//@description Sends a cryptocurrency from the user's TON wallet; can be used only if getOption("can_use_ton_wallet")
+//@description Sends TON Grams from the user's TON wallet; can be used only if getOption("can_use_ton_wallet")
 //@user_id Identifier of the user who will receive the transfer; pass 0 if unknown
 //@address Address in the TON blockchain of the transaction peer
-//@amount The amount of the sent cryptocurrency, in the smallest units of the cryptocurrency
+//@amount The sent amount, in the smallest units of TON Grams
 //@comment Comment added to the transaction
 //@is_comment_encrypted Pass true if the comment is encrypted and must be decrypted using the receiver's or sender's private key
 //@sending_id Non-persistent identifier, which will be returned back in messageSendingStatePending object and can be used to match sent messages and corresponding updateNewMessage updates
-//@regular_transfer_data Serialized data for regular cryptocurrency transfer request. The minimum allowed transfer amount is getOption("ton_wallet_transfer_amount_min")
-//@gasless_transfer_data Serialized data for gasless cryptocurrency transfer request; pass an empty string to force a regular request.
+//@regular_transfer_data Serialized data for a regular transfer request. The minimum allowed transfer amount is getOption("ton_wallet_transfer_amount_min")
+//@gasless_transfer_data Serialized data for a gasless transfer request; pass an empty string to force a regular request.
 //-The minimum allowed transfer amount for a gasless transfer is getOption("ton_wallet_gasless_transfer_amount_min")
 sendTonWalletTransfer user_id:int53 address:string amount:int64 comment:string is_comment_encrypted:Bool sending_id:int32 regular_transfer_data:bytes gasless_transfer_data:bytes = TonWalletTransferResult;
 
