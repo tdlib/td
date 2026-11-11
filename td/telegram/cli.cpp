@@ -3549,6 +3549,12 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, message_id);
       send_request(td_api::make_object<td_api::processGiftPurchaseOffer>(message_id, op == "pgpoa"));
+    } else if (op == "sgopo") {
+      string gift_name;
+      int64 gram_amount;
+      int32 duration;
+      get_args(args, gift_name, gram_amount, duration);
+      send_request(td_api::make_object<td_api::sendGiftOnchainPurchaseOffer>(gift_name, gram_amount, duration));
     } else if (op == "grgs" || op == "grgsp") {
       string owner_id;
       int32 limit;

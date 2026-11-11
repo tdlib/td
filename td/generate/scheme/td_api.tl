@@ -16926,6 +16926,13 @@ sendGiftPurchaseOffer owner_id:MessageSender gift_name:string price:GiftResalePr
 //@accept Pass true to accept the request; pass false to reject it
 processGiftPurchaseOffer message_id:int53 accept:Bool = Ok;
 
+//@description Sends an on-chain offer to purchase an upgraded gift for TON Grams; can be used only if getOption("can_use_ton_wallet").
+//-Returns the transaction that must be sent from the TON wallet of the current user to create the offer. The offer is created only after the transaction is executed in the TON blockchain
+//@gift_name Name of the upgraded gift
+//@gram_amount The price offered for the gift, in the smallest units of TON Grams; must be at least upgradedGift.min_onchain_purchase_offer_gram_amount
+//@duration Duration of the offer, in seconds; must be one of 21600, 43200, 86400, 129600, 172800, or 259200
+sendGiftOnchainPurchaseOffer gift_name:string gram_amount:int64 duration:int32 = GiftOnchainPurchaseOfferTransaction;
+
 //@description Returns gifts received by the given user or chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@owner_id Identifier of the gift receiver

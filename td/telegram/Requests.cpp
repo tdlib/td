@@ -9155,6 +9155,14 @@ void Requests::on_request(uint64 id, const td_api::processGiftPurchaseOffer &req
   td_->star_gift_manager_->process_gift_offer(MessageId(request.message_id_), !request.accept_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::sendGiftOnchainPurchaseOffer &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.gift_name_);
+  CREATE_REQUEST_PROMISE();
+  td_->star_gift_manager_->send_gift_onchain_offer(request.gift_name_, request.gram_amount_, request.duration_,
+                                                   std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getReceivedGifts &request) {
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();

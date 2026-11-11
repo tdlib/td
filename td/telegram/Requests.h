@@ -2012,6 +2012,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::processGiftPurchaseOffer &request);
 
+  void on_request(uint64 id, td_api::sendGiftOnchainPurchaseOffer &request);
+
   void on_request(uint64 id, td_api::getReceivedGifts &request);
 
   void on_request(uint64 id, const td_api::getReceivedGift &request);

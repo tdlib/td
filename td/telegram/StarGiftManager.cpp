@@ -1674,6 +1674,36 @@ class ResolveStarGiftOfferQuery final : public Td::ResultHandler {
   }
 };
 
+class SendStarGiftOnchainOfferQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> promise_;
+
+ public:
+  explicit SendStarGiftOnchainOfferQuery(
+      Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &slug, int64 amount, int32 duration) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_sendStarGiftOnchainOffer(slug, amount, duration, Random::secure_int64())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_sendStarGiftOnchainOffer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendStarGiftOnchainOfferQuery: " << to_string(ptr);
+    promise_.set_value(StarGiftManager::get_gift_onchain_purchase_offer_transaction_object(std::move(ptr)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetSavedStarGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
   DialogId dialog_id_;
@@ -3258,6 +3288,15 @@ void StarGiftManager::process_gift_offer(MessageId message_id, bool decline, Pro
     return promise.set_error(400, "Invalid offer message identifier specified");
   }
   td_->create_handler<ResolveStarGiftOfferQuery>(std::move(promise))->send(message_id, decline);
+}
+
+void StarGiftManager::send_gift_onchain_offer(
+    const string &gift_name, int64 gram_amount, int32 duration,
+    Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> &&promise) {
+  if (gram_amount <= 0) {
+    return promise.set_error(400, "Invalid amount specified");
+  }
+  td_->create_handler<SendStarGiftOnchainOfferQuery>(std::move(promise))->send(gift_name, gram_amount, duration);
 }
 
 td_api::object_ptr<td_api::tonWalletMessage> StarGiftManager::get_ton_wallet_message_object(
