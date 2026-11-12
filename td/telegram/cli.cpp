@@ -3577,6 +3577,10 @@ class CliClient final : public Actor {
       int64 gram_amount;
       get_args(args, gift_name, gram_amount);
       send_request(td_api::make_object<td_api::getGiftOnchainListingTransaction>(gift_name, gram_amount));
+    } else if (op == "ggodt") {
+      string gift_name;
+      get_args(args, gift_name);
+      send_request(td_api::make_object<td_api::getGiftOnchainDelistingTransaction>(gift_name));
     } else if (op == "grgs" || op == "grgsp") {
       string owner_id;
       int32 limit;

@@ -1849,6 +1849,34 @@ class UpdateStarGiftOnchainPriceQuery final : public Td::ResultHandler {
   }
 };
 
+class CancelStarGiftOnchainSaleQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> promise_;
+
+ public:
+  explicit CancelStarGiftOnchainSaleQuery(Promise<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &slug) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_cancelStarGiftOnchainSale(slug)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_cancelStarGiftOnchainSale>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for CancelStarGiftOnchainSaleQuery: " << to_string(ptr);
+    promise_.set_result(StarGiftManager::get_gift_onchain_sale_transaction_object(std::move(ptr)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetSavedStarGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
   DialogId dialog_id_;
@@ -3528,6 +3556,11 @@ void StarGiftManager::sell_gift_onchain(const string &gift_name, int64 gram_amou
     return promise.set_error(400, "Invalid amount specified");
   }
   td_->create_handler<UpdateStarGiftOnchainPriceQuery>(std::move(promise))->send(gift_name, gram_amount);
+}
+
+void StarGiftManager::cancel_gift_onchain_sale(
+    const string &gift_name, Promise<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> &&promise) {
+  td_->create_handler<CancelStarGiftOnchainSaleQuery>(std::move(promise))->send(gift_name);
 }
 
 void StarGiftManager::get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,
