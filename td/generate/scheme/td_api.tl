@@ -17036,7 +17036,7 @@ setGiftResalePrice received_gift_id:string price:GiftResalePrice = Ok;
 //@for_stars Pass true to get gifts that can be bought using Telegram Stars.
 //-If none of for_stars, for_grams, and for_onchain is true, then gifts that can be bought using Telegram Stars or TON Grams are returned, except gifts sold on-chain
 //@for_grams Pass true to get gifts that can be bought using TON Grams
-//@for_onchain Pass true to get gifts sold on-chain; must be false if for_crafting is true
+//@for_onchain Pass true to get gifts sold on-chain; can be true only if getOption("can_buy_onchain_gifts") is true. Must be false if for_crafting is true
 //@attributes Attributes used to filter received gifts. If multiple attributes of the same type are specified, then all of them are allowed.
 //-If none attributes of specific type are specified, then all values for this attribute type are allowed
 //@offset Offset of the first entry to return as received from the previous request with the same order and attributes; use empty string to get the first chunk of results
