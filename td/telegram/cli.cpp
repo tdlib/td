@@ -9121,6 +9121,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::sendTonWalletTransfer>(
           peer_user_id, peer_address, amount, comment, is_comment_encrypted, sending_id,
           hex_decode(regular_transfer_data).move_as_ok(), hex_decode(gasless_transfer_data).move_as_ok()));
+    } else if (op == "stwtx") {
+      string regular_transaction_data;
+      string gasless_transaction_data;
+      get_args(args, regular_transaction_data, gasless_transaction_data);
+      send_request(td_api::make_object<td_api::sendTonWalletTransaction>(
+          hex_decode(regular_transaction_data).move_as_ok(), hex_decode(gasless_transaction_data).move_as_ok()));
     } else if (op == "deleteTonWallet") {
       string password;
       get_args(args, password);

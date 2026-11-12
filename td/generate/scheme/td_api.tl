@@ -1720,7 +1720,7 @@ upgradedGift id:int64 regular_gift_id:int64 publisher_chat_id:int53 title:string
 upgradedGiftValueInfo currency:string value:int53 is_value_average:Bool initial_sale_date:int32 initial_sale_star_count:int53 initial_sale_price:int53 last_sale_date:int32 last_sale_price:int53 is_last_sale_on_fragment:Bool min_price:int53 average_sale_price:int53 telegram_listed_gift_count:int32 fragment_listed_gift_count:int32 fragment_url:string = UpgradedGiftValueInfo;
 
 //@description Contains information needed to deposit an upgraded gift from the TON wallet of the current user to a Telegram account.
-//-The gift must be transferred by an internal message from the wallet to nft_address with gram_amount attached and with payload as the message body
+//-The gift must be transferred by an internal message from the wallet to nft_address with gram_amount attached and with payload as the message body. Use sendTonWalletTransaction to send the message
 //@nft_address Address in TON blockchain to which the message must be sent
 //@payload Body of the NFT transfer message
 //@gram_amount The amount that must be attached to the message to cover fees, in the smallest units of TON Grams; excess amount will be returned to the wallet
@@ -1740,8 +1740,8 @@ tonSmartContractInitialState code:bytes data:bytes = TonSmartContractInitialStat
 tonWalletMessage destination_address:string gram_amount:int64 send_mode:int32 body:bytes initial_state:tonSmartContractInitialState = TonWalletMessage;
 
 //@description Contains information about a transaction that must be sent from the TON wallet of the current user to send, accept, or cancel an on-chain gift purchase offer.
-//-Use sendTonWalletTransfer with message.destination_address and message.gram_amount as the receiver address and the amount, and with regular_transfer_data and gasless_transfer_data
-//-created from message and gasless_message respectively to send the transaction. Successful sending of the transaction doesn't mean that the operation was completed;
+//-Use sendTonWalletTransaction with regular_transaction_data and gasless_transaction_data created from message and gasless_message respectively
+//-to send the transaction. Successful sending of the transaction doesn't mean that the operation was completed;
 //-the result of the operation must be checked in the corresponding messageUpgradedGiftOnchainPurchaseOffer message in the chat 777000
 //@offer_address Address of the smart contract of the offer in the TON blockchain
 //@expiration_date Point in time (Unix timestamp) when the offer will expire
@@ -1755,7 +1755,7 @@ tonWalletMessage destination_address:string gram_amount:int64 send_mode:int32 bo
 giftOnchainPurchaseOfferTransaction offer_address:string expiration_date:int32 message:tonWalletMessage gasless_message:tonWalletMessage rent_budget_amount:int64 execution_allowance_amount:int64 forward_amount:int64 fine_amount:int64 = GiftOnchainPurchaseOfferTransaction;
 
 //@description Contains information about a transaction that must be sent from the TON wallet of the current user to buy or sell an upgraded gift on-chain, or to cancel its sale.
-//-Use sendTonWalletTransfer with nft_address and gram_amount as the receiver address and the amount to send the transaction
+//-Use sendTonWalletTransaction to send the transaction
 //@nft_address Address in the TON blockchain to which the transaction must be sent
 //@payload Body of the transaction message; may be empty
 //@gram_amount The amount that must be sent with the transaction, in the smallest units of TON Grams
@@ -17022,7 +17022,7 @@ getUpgradedGiftWithdrawalUrl received_gift_id:string = HttpUrl;
 //@keep_on_profile Pass true to keep the gift displayed on the user's or the chat's profile page after withdrawal
 withdrawUpgradedGift received_gift_id:string keep_on_profile:Bool = Ok;
 
-//@description Returns information needed to deposit an upgraded gift from the TON wallet of the current user to a Telegram account. Use sendTonWalletTransfer to complete transfer of the gift.
+//@description Returns information needed to deposit an upgraded gift from the TON wallet of the current user to a Telegram account. Use sendTonWalletTransaction to complete transfer of the gift.
 //-The gift will be received by the new owner with a message about the gift after the transfer is confirmed in the blockchain
 //@owner_id Identifier of the user or the channel chat that will receive the gift
 //@name Unique name of the upgraded gift
@@ -17399,6 +17399,13 @@ disableTonWalletBackupWithProof proof:tonWalletOwnershipProof = Ok;
 //@gasless_transfer_data Serialized data for a gasless transfer request; pass an empty string to force a regular request.
 //-The minimum allowed transfer amount for a gasless transfer is getOption("ton_wallet_gasless_transfer_amount_min")
 sendTonWalletTransfer user_id:int53 address:string amount:int64 comment:string is_comment_encrypted:Bool sending_id:int32 regular_transfer_data:bytes gasless_transfer_data:bytes = TonWalletTransferResult;
+
+//@description Sends a transaction signed by the application from the TON wallet of the current user without adding a message about it to any chat;
+//-can be used only if getOption("can_use_ton_wallet"). Use the method to send transactions described by upgradedGiftDepositInfo, giftOnchainPurchaseOfferTransaction,
+//-and giftOnchainSaleTransaction objects
+//@regular_transaction_data Serialized signed data for a regular transaction
+//@gasless_transaction_data Serialized signed data for a gasless transaction; pass an empty string to force a regular transaction
+sendTonWalletTransaction regular_transaction_data:bytes gasless_transaction_data:bytes = TonWalletTransferResult;
 
 //@description Deletes the current TON wallet of the user and creates a new one; can be used only if getOption("can_use_ton_wallet")
 //@password Password of the current user; pass an empty string unless receive an error with a message "PASSWORD_MISSING" for a passwordless request

@@ -8203,6 +8203,13 @@ void Requests::on_request(uint64 id, td_api::sendTonWalletTransfer &request) {
       request.amount_, request.comment_, request.is_comment_encrypted_, request.sending_id_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::sendTonWalletTransaction &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->ton_wallet_manager_->send_ton_wallet_transaction(request.regular_transaction_data_,
+                                                        request.gasless_transaction_data_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::deleteTonWallet &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);

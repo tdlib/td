@@ -75,6 +75,9 @@ class TonWalletManager final : public Actor {
                                 bool is_comment_encrypted, int32 sending_id,
                                 Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise);
 
+  void send_ton_wallet_transaction(const string &data_normal, const string &data_gasless,
+                                   Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise);
+
   void delete_ton_wallet(const string &password, Promise<Unit> &&promise);
 
   void replace_ton_wallet(const string &password, const string &anchor_public_key,

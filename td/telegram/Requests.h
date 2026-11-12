@@ -1774,6 +1774,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::sendTonWalletTransfer &request);
 
+  void on_request(uint64 id, const td_api::sendTonWalletTransaction &request);
+
   void on_request(uint64 id, td_api::deleteTonWallet &request);
 
   void on_request(uint64 id, td_api::replaceTonWallet &request);

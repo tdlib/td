@@ -580,7 +580,11 @@ class SendWalletTransferQuery final : public Td::ResultHandler {
   }
 
   void send(const string &data_normal, const string &data_gasless, UserId user_id, int64 random_id) {
+    // random_id_ == 0 means that there is no message about the transfer
     random_id_ = random_id;
+    if (random_id == 0) {
+      random_id = Random::secure_int64();
+    }
     auto r_input_user = td_->user_manager_->get_input_user(user_id);
     send_query(G()->net_query_creator().create(telegram_api::wallet_sendTransfer(
         0, BufferSlice(data_normal), BufferSlice(data_gasless),
@@ -614,7 +618,9 @@ class SendWalletTransferQuery final : public Td::ResultHandler {
     if (status.message() == "WALLET_KEY_MISMATCH") {
       td_->ton_wallet_manager_->reload_wallet_state(Promise<Unit>());
     }
-    td_->messages_manager_->on_send_message_fail(random_id_, status.clone());
+    if (random_id_ != 0) {
+      td_->messages_manager_->on_send_message_fail(random_id_, status.clone());
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -1867,6 +1873,12 @@ void TonWalletManager::do_send_ton_wallet_transfer(
                                                                     is_comment_encrypted, sending_id);
   td_->create_handler<SendWalletTransferQuery>(std::move(promise))
       ->send(data_normal, data_gasless, peer_user_id, random_id);
+}
+
+void TonWalletManager::send_ton_wallet_transaction(
+    const string &data_normal, const string &data_gasless,
+    Promise<td_api::object_ptr<td_api::tonWalletTransferResult>> &&promise) {
+  td_->create_handler<SendWalletTransferQuery>(std::move(promise))->send(data_normal, data_gasless, UserId(), 0);
 }
 
 void TonWalletManager::delete_ton_wallet(const string &password, Promise<Unit> &&promise) {
