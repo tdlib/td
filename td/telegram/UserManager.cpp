@@ -8976,12 +8976,11 @@ void UserManager::send_get_user_full_query(UserId user_id,
   if (!user_id.is_valid()) {
     return promise.set_error(500, "Invalid user_id");
   }
-  auto send_query =
-      PromiseCreator::lambda([td = td_, input_user = std::move(input_user)](Result<Promise<Unit>> &&promise) mutable {
-        if (promise.is_ok() && !G()->close_flag()) {
-          td->create_handler<GetFullUserQuery>(promise.move_as_ok())->send(std::move(input_user));
-        }
-      });
+  auto send_query = [td = td_, input_user = std::move(input_user)](Promise<Unit> &&promise) mutable {
+    if (!G()->close_flag()) {
+      td->create_handler<GetFullUserQuery>(std::move(promise))->send(std::move(input_user));
+    }
+  };
   get_user_full_queries_.add_query(user_id.get(), std::move(send_query), std::move(promise));
 }
 

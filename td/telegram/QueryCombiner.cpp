@@ -17,7 +17,7 @@ QueryCombiner::QueryCombiner(Slice name, double min_delay) : next_query_time_(Ti
   register_actor(name, this).release();
 }
 
-void QueryCombiner::add_query(int64 query_id, Promise<Promise<Unit>> &&send_query, Promise<Unit> &&promise) {
+void QueryCombiner::add_query(int64 query_id, Action<void(Promise<Unit>)> &&send_query, Promise<Unit> &&promise) {
   LOG(INFO) << "Add query " << query_id << " with" << (promise ? "" : "out") << " promise";
   CHECK(query_id != 0);
   auto &query = queries_[query_id];
@@ -54,7 +54,7 @@ void QueryCombiner::do_send_query(int64 query_id, QueryInfo &query) {
   CHECK(!query.send_query);
   next_query_time_ = Time::now() + min_delay_;
   query_count_++;
-  send_query.set_value(PromiseCreator::lambda([actor_id = actor_id(this), query_id](Result<Unit> &&result) {
+  send_query(PromiseCreator::lambda([actor_id = actor_id(this), query_id](Result<Unit> &&result) {
     send_closure(actor_id, &QueryCombiner::on_get_query_result, query_id, std::move(result));
   }));
 }

@@ -1541,12 +1541,12 @@ void CommunityManager::reload_community_full(CommunityId community_id, Promise<U
   }
 
   LOG(INFO) << "Get full " << community_id << " from " << source;
-  auto send_query = PromiseCreator::lambda([td = td_, community_id, input_community = std::move(input_community)](
-                                               Result<Promise<Unit>> &&promise) mutable {
-    if (promise.is_ok() && !G()->close_flag()) {
-      td->create_handler<GetFullCommunityQuery>(promise.move_as_ok())->send(community_id, std::move(input_community));
+  auto send_query = [td = td_, community_id,
+                     input_community = std::move(input_community)](Promise<Unit> &&promise) mutable {
+    if (!G()->close_flag()) {
+      td->create_handler<GetFullCommunityQuery>(std::move(promise))->send(community_id, std::move(input_community));
     }
-  });
+  };
   get_community_full_queries_.add_query(community_id.get(), std::move(send_query), std::move(promise));
 }
 

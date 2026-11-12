@@ -8577,11 +8577,11 @@ void ChatManager::send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&promi
   if (!chat_id.is_valid()) {
     return promise.set_error(500, "Invalid chat_id");
   }
-  auto send_query = PromiseCreator::lambda([td = td_, chat_id](Result<Promise<Unit>> &&promise) {
-    if (promise.is_ok() && !G()->close_flag()) {
-      td->create_handler<GetFullChatQuery>(promise.move_as_ok())->send(chat_id);
+  auto send_query = [td = td_, chat_id](Promise<Unit> &&promise) {
+    if (!G()->close_flag()) {
+      td->create_handler<GetFullChatQuery>(std::move(promise))->send(chat_id);
     }
-  });
+  };
 
   get_chat_full_queries_.add_query(DialogId(chat_id).get(), std::move(send_query), std::move(promise));
 }
@@ -9095,12 +9095,11 @@ void ChatManager::send_get_channel_full_query(ChannelFull *channel_full, Channel
   }
 
   LOG(INFO) << "Get full " << channel_id << " from " << source;
-  auto send_query = PromiseCreator::lambda(
-      [td = td_, channel_id, input_channel = std::move(input_channel)](Result<Promise<Unit>> &&promise) mutable {
-        if (promise.is_ok() && !G()->close_flag()) {
-          td->create_handler<GetFullChannelQuery>(promise.move_as_ok())->send(channel_id, std::move(input_channel));
-        }
-      });
+  auto send_query = [td = td_, channel_id, input_channel = std::move(input_channel)](Promise<Unit> &&promise) mutable {
+    if (!G()->close_flag()) {
+      td->create_handler<GetFullChannelQuery>(std::move(promise))->send(channel_id, std::move(input_channel));
+    }
+  };
   get_chat_full_queries_.add_query(DialogId(channel_id).get(), std::move(send_query), std::move(promise));
 }
 

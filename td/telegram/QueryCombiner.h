@@ -8,6 +8,7 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/Action.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
@@ -23,13 +24,13 @@ class QueryCombiner final : public Actor {
  public:
   QueryCombiner(Slice name, double min_delay);
 
-  void add_query(int64 query_id, Promise<Promise<Unit>> &&send_query, Promise<Unit> &&promise);
+  void add_query(int64 query_id, Action<void(Promise<Unit>)> &&send_query, Promise<Unit> &&promise);
 
  private:
   struct QueryInfo {
     vector<Promise<Unit>> promises;
     bool is_sent = false;
-    Promise<Promise<Unit>> send_query;
+    Action<void(Promise<Unit>)> send_query;
   };
 
   int32 query_count_ = 0;
