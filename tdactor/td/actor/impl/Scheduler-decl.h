@@ -96,7 +96,7 @@ class Scheduler {
   void send_to_scheduler(int32 sched_id, const ActorId<> &actor_id, Event &&event);
   void send_to_other_scheduler(int32 sched_id, const ActorId<> &actor_id, Event &&event);
 
-  void run_on_scheduler(int32 sched_id, Promise<Unit> action);  // TODO Action
+  void run_on_scheduler(int32 sched_id, SimpleAction action);
 
   template <class T>
   void destroy_on_scheduler(int32 sched_id, T &value);

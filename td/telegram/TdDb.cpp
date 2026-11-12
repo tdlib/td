@@ -285,7 +285,7 @@ void TdDb::flush_all() {
 
 void TdDb::close(int32 scheduler_id, bool destroy_flag, Promise<Unit> on_finished) {
   Scheduler::instance()->run_on_scheduler(scheduler_id,
-                                          [this, destroy_flag, on_finished = std::move(on_finished)](Unit) mutable {
+                                          [this, destroy_flag, on_finished = std::move(on_finished)]() mutable {
                                             do_close(destroy_flag, std::move(on_finished));
                                           });
 }
@@ -499,10 +499,10 @@ Status TdDb::init_sqlite(const Parameters &parameters, const DbKey &key, const D
 }
 
 void TdDb::open(int32 scheduler_id, Parameters parameters, Promise<OpenedDatabase> &&promise) {
-  Scheduler::instance()->run_on_scheduler(
-      scheduler_id, [parameters = std::move(parameters), promise = std::move(promise)](Unit) mutable {
-        TdDb::open_impl(std::move(parameters), std::move(promise));
-      });
+  Scheduler::instance()->run_on_scheduler(scheduler_id,
+                                          [parameters = std::move(parameters), promise = std::move(promise)]() mutable {
+                                            TdDb::open_impl(std::move(parameters), std::move(promise));
+                                          });
 }
 
 void TdDb::open_impl(Parameters parameters, Promise<OpenedDatabase> &&promise) {

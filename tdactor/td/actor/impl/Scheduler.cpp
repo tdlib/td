@@ -22,7 +22,6 @@
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/ObjectPool.h"
 #include "td/utils/port/thread_local.h"
-#include "td/utils/Promise.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
@@ -366,18 +365,18 @@ void Scheduler::send_to_other_scheduler(int32 sched_id, const ActorId<> &actor_i
   }
 }
 
-void Scheduler::run_on_scheduler(int32 sched_id, Promise<Unit> action) {
+void Scheduler::run_on_scheduler(int32 sched_id, SimpleAction action) {
   if (sched_id >= 0 && sched_id_ != sched_id) {
     class Worker final : public Actor {
      public:
-      explicit Worker(Promise<Unit> action) : action_(std::move(action)) {
+      explicit Worker(SimpleAction action) : action_(std::move(action)) {
       }
 
      private:
-      Promise<Unit> action_;
+      SimpleAction action_;
 
       void start_up() final {
-        action_.set_value(Unit());
+        action_();
         stop();
       }
     };
@@ -385,7 +384,7 @@ void Scheduler::run_on_scheduler(int32 sched_id, Promise<Unit> action) {
     return;
   }
 
-  action.set_value(Unit());
+  action();
 }
 
 void Scheduler::destroy_on_scheduler_impl(int32 sched_id, SimpleAction action) {
@@ -397,7 +396,7 @@ void Scheduler::destroy_on_scheduler_impl(int32 sched_id, SimpleAction action) {
   const char *current_tag = LOG_TAG;
   LOG_TAG = nullptr;
 
-  run_on_scheduler(sched_id, PromiseCreator::lambda([action = std::move(action)](Unit) mutable { action(); }));
+  run_on_scheduler(sched_id, std::move(action));
 
   context_ = current_context;
   LOG_TAG = current_tag;
