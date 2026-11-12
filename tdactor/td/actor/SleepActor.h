@@ -8,25 +8,25 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/Action.h"
 #include "td/utils/common.h"
-#include "td/utils/Promise.h"
 
 namespace td {
 
 class SleepActor final : public Actor {
  public:
-  SleepActor(double timeout, Promise<> promise) : timeout_(timeout), promise_(std::move(promise)) {
+  SleepActor(double timeout, SimpleAction action) : timeout_(timeout), action_(std::move(action)) {
   }
 
  private:
   double timeout_;
-  Promise<> promise_;
+  SimpleAction action_;
 
   void start_up() final {
     set_timeout_in(timeout_);
   }
   void timeout_expired() final {
-    promise_.set_value(Unit());
+    action_();
     stop();
   }
 };

@@ -506,7 +506,9 @@ class MultiPromise2 final : public td::Actor {
     td::MultiPromiseActorSafe multi_promise{"MultiPromiseActor2"};
     multi_promise.add_promise(std::move(promise));
     for (int i = 0; i < 10; i++) {
-      td::create_actor<td::SleepActor>("Sleep", 0.1, multi_promise.get_promise()).release();
+      td::create_actor<td::SleepActor>("Sleep", 0.1, [promise = multi_promise.get_promise()]() mutable {
+        promise.set_value(td::Unit());
+      }).release();
     }
   }
 };
@@ -575,13 +577,11 @@ TEST(Actors, stop_in_teardown) {
 class AlwaysWaitForMailbox final : public td::Actor {
  public:
   void start_up() final {
-    td::create_actor<td::SleepActor>("Sleep", 0.1,
-                                     td::PromiseCreator::lambda([actor_id = actor_id(this), ptr = this](td::Unit) {
-                                       td::send_closure(actor_id, &AlwaysWaitForMailbox::g);
-                                       td::send_closure(actor_id, &AlwaysWaitForMailbox::g);
-                                       CHECK(!ptr->was_f_);
-                                     }))
-        .release();
+    td::create_actor<td::SleepActor>("Sleep", 0.1, [actor_id = actor_id(this), ptr = this] {
+      td::send_closure(actor_id, &AlwaysWaitForMailbox::g);
+      td::send_closure(actor_id, &AlwaysWaitForMailbox::g);
+      CHECK(!ptr->was_f_);
+    }).release();
   }
 
   void f() {

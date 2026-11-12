@@ -3846,12 +3846,9 @@ void MessageQueryManager::try_reload_message_reactions(DialogId dialog_id, bool 
   }
 
   if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) || message_ids.empty()) {
-    create_actor<SleepActor>("RetryReloadMessageReactionsActor", 0.2,
-                             PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) mutable {
-                               send_closure(actor_id, &MessageQueryManager::try_reload_message_reactions, dialog_id,
-                                            true);
-                             }))
-        .release();
+    create_actor<SleepActor>("RetryReloadMessageReactionsActor", 0.2, [actor_id = actor_id(this), dialog_id]() mutable {
+      send_closure(actor_id, &MessageQueryManager::try_reload_message_reactions, dialog_id, true);
+    }).release();
     return;
   }
 

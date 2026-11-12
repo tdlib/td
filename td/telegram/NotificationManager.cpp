@@ -2753,7 +2753,9 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
         user_promise.set_error(result.move_as_error());
       }
     } else {
-      create_actor<SleepActor>("FinishProcessPushNotificationActor", 0.01, std::move(user_promise)).release();
+      create_actor<SleepActor>("FinishProcessPushNotificationActor", 0.01,
+                               [user_promise = std::move(user_promise)]() mutable { user_promise.set_value(Unit()); })
+          .release();
     }
   });
 

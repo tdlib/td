@@ -1041,11 +1041,11 @@ void SavedMessagesManager::repair_topic_unread_count(const SavedMessagesTopic *t
 
   LOG(INFO) << "Repair unread count in " << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_;
   create_actor<SleepActor>("RepairTopicUnreadCountSleepActor", 0.05,
-                           PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = topic->dialog_id_,
-                                                   saved_messages_topic_id = topic->saved_messages_topic_id_](Unit) {
+                           [actor_id = actor_id(this), dialog_id = topic->dialog_id_,
+                            saved_messages_topic_id = topic->saved_messages_topic_id_] {
                              send_closure(actor_id, &SavedMessagesManager::reload_monoforum_topic, dialog_id,
                                           saved_messages_topic_id, Auto());
-                           }))
+                           })
       .release();
 }
 

@@ -2925,13 +2925,12 @@ void GroupCallManager::finish_check_group_call_is_joined(InputGroupCallId input_
   }
 
   if (group_call->is_conference) {
-    create_actor<SleepActor>(
-        "SyncConferenceCallParticipantsActor", 1.0,
-        PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id,
-                                blockchain_participant_ids = group_call->blockchain_participant_ids](Unit) mutable {
-          send_closure(actor_id, &GroupCallManager::sync_conference_call_participants, input_group_call_id,
-                       std::move(blockchain_participant_ids));
-        }))
+    create_actor<SleepActor>("SyncConferenceCallParticipantsActor", 1.0,
+                             [actor_id = actor_id(this), input_group_call_id,
+                              blockchain_participant_ids = group_call->blockchain_participant_ids]() mutable {
+                               send_closure(actor_id, &GroupCallManager::sync_conference_call_participants,
+                                            input_group_call_id, std::move(blockchain_participant_ids));
+                             })
         .release();
   }
 

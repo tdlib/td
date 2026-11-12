@@ -1945,10 +1945,10 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
 
     // failed to load the special sticker set; repeat after some time
     create_actor<SleepActor>("RetryLoadSpecialStickerSetActor", Random::fast(300, 600),
-                             PromiseCreator::lambda([actor_id = actor_id(this), type](Unit) mutable {
+                             [actor_id = actor_id(this), type]() mutable {
                                send_closure(actor_id, &StickersManager::load_special_sticker_set_by_type,
                                             std::move(type));
-                             }))
+                             })
         .release();
     return;
   }
@@ -6895,12 +6895,12 @@ void StickersManager::choose_animated_emoji_click_sticker(const StickerSet *stic
     next_click_animated_emoji_message_time_ = now + MIN_ANIMATED_EMOJI_CLICK_DELAY;
     promise.set_value(get_sticker_object(result.second, false, true));
   } else {
-    create_actor<SleepActor>("SendClickAnimatedEmojiMessageResponse", next_click_animated_emoji_message_time_ - now,
-                             PromiseCreator::lambda([actor_id = actor_id(this), sticker_id = result.second,
-                                                     promise = std::move(promise)](Unit) mutable {
-                               send_closure(actor_id, &StickersManager::send_click_animated_emoji_message_response,
-                                            sticker_id, std::move(promise));
-                             }))
+    create_actor<SleepActor>(
+        "SendClickAnimatedEmojiMessageResponse", next_click_animated_emoji_message_time_ - now,
+        [actor_id = actor_id(this), sticker_id = result.second, promise = std::move(promise)]() mutable {
+          send_closure(actor_id, &StickersManager::send_click_animated_emoji_message_response, sticker_id,
+                       std::move(promise));
+        })
         .release();
     next_click_animated_emoji_message_time_ += MIN_ANIMATED_EMOJI_CLICK_DELAY;
   }
@@ -7111,10 +7111,10 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
       return;
     }
     create_actor<SleepActor>("SendUpdateAnimatedEmojiClicked", start_time + click.second - now,
-                             PromiseCreator::lambda([actor_id = actor_id(this), message_full_id, sticker_id](Unit) {
+                             [actor_id = actor_id(this), message_full_id, sticker_id] {
                                send_closure(actor_id, &StickersManager::send_update_animated_emoji_clicked,
                                             message_full_id, sticker_id);
-                             }))
+                             })
         .release();
   }
   next_update_animated_emoji_clicked_time_ = start_time + clicks.back().second + MIN_ANIMATED_EMOJI_CLICK_DELAY;

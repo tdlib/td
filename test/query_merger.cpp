@@ -36,16 +36,15 @@ class TestQueryMerger final : public td::Actor {
         ASSERT_EQ(current_query_count_, MAX_CONCURRENT_QUERY_COUNT);
       }
       td::create_actor<td::SleepActor>("CompleteMergeQuery", 0.02,
-                                       td::PromiseCreator::lambda([this, query_ids, promise = std::move(promise)](
-                                                                      td::Result<td::Unit> result) mutable {
+                                       [this, query_ids, promise = std::move(promise)]() mutable {
                                          for (auto query_id : query_ids) {
                                            LOG(INFO) << "Complete " << query_id;
                                            bool is_erased = pending_query_ids_.erase(query_id) > 0;
                                            ASSERT_TRUE(is_erased);
                                          }
                                          current_query_count_--;
-                                         promise.set_result(std::move(result));
-                                       }))
+                                         promise.set_value(td::Unit());
+                                       })
           .release();
       yield();
     });

@@ -105,9 +105,9 @@ void ProxyChecker::test_proxy_address(Proxy &&proxy, IPAddress ip_address, int32
   test_proxy_requests_.emplace(request_id, std::move(request));
 
   create_actor<SleepActor>("TestProxyTimeoutActor", timeout + start_time - Time::now(),
-                           PromiseCreator::lambda([actor_id = actor_id(this), request_id](Unit) {
+                           [actor_id = actor_id(this), request_id] {
                              send_closure(actor_id, &ProxyChecker::on_test_proxy_timeout, request_id);
-                           }))
+                           })
       .release();
 }
 

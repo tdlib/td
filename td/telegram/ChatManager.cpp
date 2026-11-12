@@ -5331,11 +5331,9 @@ void ChatManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, bool fr
 
       if (c->is_update_basic_group_sent) {
         // reload the chat to repair its status if it is changed back after receiving of outdated data
-        create_actor<SleepActor>(
-            "ReloadChatSleepActor", 1.0, PromiseCreator::lambda([actor_id = actor_id(this), chat_id](Unit) {
-              send_closure(actor_id, &ChatManager::reload_chat, chat_id, Promise<Unit>(), "ReloadChatSleepActor");
-            }))
-            .release();
+        create_actor<SleepActor>("ReloadChatSleepActor", 1.0, [actor_id = actor_id(this), chat_id] {
+          send_closure(actor_id, &ChatManager::reload_chat, chat_id, Promise<Unit>(), "ReloadChatSleepActor");
+        }).release();
       }
     }
     td_->messages_manager_->on_dialog_access_updated(DialogId(chat_id));
@@ -5462,12 +5460,9 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
     }
     if (!from_database && c->is_update_supergroup_sent) {
       // reload the channel to repair its status if it is changed back after receiving of outdated data
-      create_actor<SleepActor>("ReloadChannelSleepActor", 1.0,
-                               PromiseCreator::lambda([actor_id = actor_id(this), channel_id](Unit) {
-                                 send_closure(actor_id, &ChatManager::reload_channel, channel_id, Promise<Unit>(),
-                                              "ReloadChannelSleepActor");
-                               }))
-          .release();
+      create_actor<SleepActor>("ReloadChannelSleepActor", 1.0, [actor_id = actor_id(this), channel_id] {
+        send_closure(actor_id, &ChatManager::reload_channel, channel_id, Promise<Unit>(), "ReloadChannelSleepActor");
+      }).release();
     }
     td_->messages_manager_->on_dialog_access_updated(DialogId(channel_id));
     c->is_status_changed = false;

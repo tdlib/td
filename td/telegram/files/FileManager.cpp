@@ -2888,28 +2888,27 @@ void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int 
     is_partial = true;
   }
 
-  auto read_file_part_promise =
-      PromiseCreator::lambda([actor_id = actor_id(this), file_id, offset, count, left_tries, is_partial,
-                              promise = std::move(promise)](Result<string> r_bytes) mutable {
-        if (r_bytes.is_error()) {
-          LOG(INFO) << "Failed to read file bytes: " << r_bytes.error();
-          if (left_tries == 1 || !is_partial) {
-            return promise.set_error(400, "Failed to read the file");
-          }
+  auto read_file_part_promise = PromiseCreator::lambda([actor_id = actor_id(this), file_id, offset, count, left_tries,
+                                                        is_partial,
+                                                        promise = std::move(promise)](Result<string> r_bytes) mutable {
+    if (r_bytes.is_error()) {
+      LOG(INFO) << "Failed to read file bytes: " << r_bytes.error();
+      if (left_tries == 1 || !is_partial) {
+        return promise.set_error(400, "Failed to read the file");
+      }
 
-          // the temporary file could be moved from temp to persistent directory
-          // we need to wait for the corresponding update and repeat the reading
-          create_actor<SleepActor>("RepeatReadFilePartActor", 0.01,
-                                   PromiseCreator::lambda([actor_id, file_id, offset, count, left_tries,
-                                                           promise = std::move(promise)](Unit) mutable {
-                                     send_closure(actor_id, &FileManager::read_file_part, file_id, offset, count,
-                                                  left_tries - 1, std::move(promise));
-                                   }))
-              .release();
-        } else {
-          promise.set_value(r_bytes.move_as_ok());
-        }
-      });
+      // the temporary file could be moved from temp to persistent directory
+      // we need to wait for the corresponding update and repeat the reading
+      create_actor<SleepActor>("RepeatReadFilePartActor", 0.01,
+                               [actor_id, file_id, offset, count, left_tries, promise = std::move(promise)]() mutable {
+                                 send_closure(actor_id, &FileManager::read_file_part, file_id, offset, count,
+                                              left_tries - 1, std::move(promise));
+                               })
+          .release();
+    } else {
+      promise.set_value(r_bytes.move_as_ok());
+    }
+  });
   send_closure(file_load_manager_, &FileLoadManager::read_file_part, *path, offset, count,
                std::move(read_file_part_promise));
 }
