@@ -914,7 +914,8 @@ class MessagesManager final : public Actor {
                                                         const DialogNotificationSettings &old_settings,
                                                         const DialogNotificationSettings &new_settings);
 
-  void on_update_dialog_linked_community_id(DialogId dialog_id, CommunityId old_linked_community_id);
+  void on_update_dialog_linked_community_id(DialogId dialog_id, CommunityId old_linked_community_id,
+                                            CommunityId new_linked_community_id);
 
   void on_update_dialog_notify_settings(DialogId dialog_id,
                                         tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings,

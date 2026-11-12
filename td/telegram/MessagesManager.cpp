@@ -6154,7 +6154,8 @@ void MessagesManager::on_update_dialog_community_notification_settings(DialogId 
                                                   "on_update_dialog_community_notification_settings");
 }
 
-void MessagesManager::on_update_dialog_linked_community_id(DialogId dialog_id, CommunityId old_linked_community_id) {
+void MessagesManager::on_update_dialog_linked_community_id(DialogId dialog_id, CommunityId old_linked_community_id,
+                                                           CommunityId new_linked_community_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -6169,10 +6170,12 @@ void MessagesManager::on_update_dialog_linked_community_id(DialogId dialog_id, C
   if (old_linked_community_id.is_valid()) {
     old_community_settings = td_->community_manager_->get_community_notification_settings(old_linked_community_id);
   }
-  on_dialog_default_notification_settings_changed(
-      d, old_community_settings,
-      td_->notification_settings_manager_->get_dialog_community_notification_settings(dialog_id),
-      "on_update_dialog_linked_community_id");
+  const DialogNotificationSettings *new_community_settings = nullptr;
+  if (new_linked_community_id.is_valid()) {
+    new_community_settings = td_->community_manager_->get_community_notification_settings(new_linked_community_id);
+  }
+  on_dialog_default_notification_settings_changed(d, old_community_settings, new_community_settings,
+                                                  "on_update_dialog_linked_community_id");
 }
 
 void MessagesManager::on_dialog_default_notification_settings_changed(

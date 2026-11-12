@@ -3822,7 +3822,7 @@ void UserManager::on_update_user_linked_community_id(User *u, UserId user_id, Co
     if (u->is_update_user_sent && (!G()->use_chat_info_database() || loaded_from_database_users_.count(user_id) != 0)) {
       // otherwise, the change is applied in on_load_user_from_database
       send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_linked_community_id,
-                         DialogId(user_id), old_linked_community_id);
+                         DialogId(user_id), old_linked_community_id, linked_community_id);
     }
   }
 }
@@ -5088,7 +5088,7 @@ void UserManager::on_load_user_from_database(UserId user_id, string value, bool 
       User temp_u;
       if (log_event_parse(temp_u, value).is_ok() && temp_u.linked_community_id != u->linked_community_id) {
         send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_linked_community_id,
-                           DialogId(user_id), temp_u.linked_community_id);
+                           DialogId(user_id), temp_u.linked_community_id, u->linked_community_id);
       }
     }
     auto new_value = get_user_database_value(u);

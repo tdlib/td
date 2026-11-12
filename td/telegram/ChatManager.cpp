@@ -4940,7 +4940,7 @@ void ChatManager::on_load_channel_from_database(ChannelId channel_id, string val
 
         if (temp_c.linked_community_id != c->linked_community_id) {
           send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_linked_community_id,
-                             DialogId(channel_id), temp_c.linked_community_id);
+                             DialogId(channel_id), temp_c.linked_community_id, c->linked_community_id);
         }
       } else {
         is_new = true;
@@ -8219,7 +8219,7 @@ void ChatManager::on_update_channel_linked_community_id(Channel *c, ChannelId ch
         (!G()->use_chat_info_database() || loaded_from_database_channels_.count(channel_id) != 0)) {
       // otherwise, the change is applied in on_load_channel_from_database
       send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_linked_community_id,
-                         DialogId(channel_id), old_linked_community_id);
+                         DialogId(channel_id), old_linked_community_id, linked_community_id);
     }
   }
 }
