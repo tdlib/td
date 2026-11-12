@@ -8,6 +8,7 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/Action.h"
 #include "td/utils/common.h"
 #include "td/utils/port/config.h"
 #include "td/utils/port/thread.h"
@@ -19,7 +20,6 @@
 #endif
 
 #include <atomic>
-#include <functional>
 #include <mutex>
 #include <utility>
 
@@ -96,7 +96,7 @@ class ConcurrentScheduler final : private Scheduler::Callback {
   enum class State { Start, Run };
   State state_ = State::Start;
   std::mutex at_finish_mutex_;
-  vector<std::function<void()>> at_finish_;  // can be used during destruction by Scheduler destructors
+  vector<Action<void()>> at_finish_;  // can be used during destruction by Scheduler destructors
   vector<unique_ptr<Scheduler>> schedulers_;
   std::atomic<bool> is_finished_{false};
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
@@ -111,7 +111,7 @@ class ConcurrentScheduler final : private Scheduler::Callback {
 
   void on_finish() final;
 
-  void register_at_finish(std::function<void()> f) final;
+  void register_at_finish(Action<void()> f) final;
 };
 
 }  // namespace td

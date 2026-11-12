@@ -10,6 +10,7 @@
 #include "td/actor/impl/ActorId-decl.h"
 #include "td/actor/impl/EventFull-decl.h"
 
+#include "td/utils/Action.h"
 #include "td/utils/Closure.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -28,7 +29,6 @@
 #include "td/utils/Time.h"
 #include "td/utils/type_traits.h"
 
-#include <functional>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -67,7 +67,7 @@ class Scheduler {
     Callback &operator=(const Callback &) = delete;
     virtual ~Callback() = default;
     virtual void on_finish() = 0;
-    virtual void register_at_finish(std::function<void()>) = 0;
+    virtual void register_at_finish(Action<void()>) = 0;
   };
   Scheduler() = default;
   Scheduler(const Scheduler &) = delete;

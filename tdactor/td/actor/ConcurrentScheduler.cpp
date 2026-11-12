@@ -197,7 +197,7 @@ void ConcurrentScheduler::on_finish() {
   }
 }
 
-void ConcurrentScheduler::register_at_finish(std::function<void()> f) {
+void ConcurrentScheduler::register_at_finish(Action<void()> f) {
   std::lock_guard<std::mutex> lock(at_finish_mutex_);
   at_finish_.push_back(std::move(f));
 }

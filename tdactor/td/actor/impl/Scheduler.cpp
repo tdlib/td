@@ -27,7 +27,6 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 
-#include <functional>
 #include <memory>
 #include <utility>
 
@@ -255,9 +254,8 @@ void Scheduler::clear() {
   poll_.clear();
 
   if (callback_ && !ExitGuard::is_exited()) {
-    // can't move lambda with unique_ptr inside into std::function
-    auto ptr = actor_info_pool_.release();
-    callback_->register_at_finish([ptr] { delete ptr; });
+    callback_->register_at_finish(
+        [actor_info_pool = std::move(actor_info_pool_)]() mutable { actor_info_pool.reset(); });
   } else {
     actor_info_pool_.reset();
   }
