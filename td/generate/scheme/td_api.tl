@@ -1754,7 +1754,7 @@ tonWalletMessage destination_address:string gram_amount:int64 send_mode:int32 bo
 //-The final fine will be known after the cancellation is executed in the TON blockchain
 giftOnchainPurchaseOfferTransaction offer_address:string expiration_date:int32 message:tonWalletMessage gasless_message:tonWalletMessage rent_budget_amount:int64 execution_allowance_amount:int64 forward_amount:int64 fine_amount:int64 = GiftOnchainPurchaseOfferTransaction;
 
-//@description Contains information about a transaction that must be sent from the TON wallet of the current user to buy an upgraded gift sold on-chain.
+//@description Contains information about a transaction that must be sent from the TON wallet of the current user to buy or sell an upgraded gift on-chain.
 //-Use sendTonWalletTransfer with nft_address and gram_amount as the receiver address and the amount to send the transaction
 //@nft_address Address in the TON blockchain to which the transaction must be sent
 //@payload Body of the transaction message; may be empty
@@ -16962,6 +16962,14 @@ declineGiftOnchainPurchaseOffer message_id:int53 = Ok;
 //@gift_name Name of the upgraded gift
 //@gram_amount The price of the gift shown to the user, in the smallest units of TON Grams; the request fails with the error "STARGIFT_ONCHAIN_PRICE_CHANGED" if the price has changed
 getGiftOnchainPurchaseTransaction gift_name:string gram_amount:int64 = GiftOnchainSaleTransaction;
+
+//@description Returns a transaction that must be sent from the TON wallet of the current user to put an upgraded gift from the wallet up for sale on-chain;
+//-can be used only if getOption("can_use_ton_wallet"). The gift is put up for sale only after the transaction is executed in the TON blockchain.
+//-The price of the gift will be received by the TON wallet of the current user when the gift is sold. To change the price, the current sale must be canceled first
+//@gift_name Name of the upgraded gift
+//@gram_amount The price of the gift, in the smallest units of TON Grams. The price in 1/100 of Gram must be in the range
+//-getOption("gift_resale_gram_cent_count_min")-getOption("gift_resale_gram_cent_count_max")
+getGiftOnchainListingTransaction gift_name:string gram_amount:int64 = GiftOnchainSaleTransaction;
 
 //@description Returns gifts received by the given user or chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only

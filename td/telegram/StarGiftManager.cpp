@@ -1821,6 +1821,34 @@ class BuyStarGiftOnchainQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateStarGiftOnchainPriceQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> promise_;
+
+ public:
+  explicit UpdateStarGiftOnchainPriceQuery(Promise<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &slug, int64 amount) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_updateStarGiftOnchainPrice(slug, amount)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_updateStarGiftOnchainPrice>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for UpdateStarGiftOnchainPriceQuery: " << to_string(ptr);
+    promise_.set_result(StarGiftManager::get_gift_onchain_sale_transaction_object(std::move(ptr)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetSavedStarGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
   DialogId dialog_id_;
@@ -3492,6 +3520,14 @@ StarGiftManager::get_gift_onchain_sale_transaction_object(
       UNREACHABLE();
       return Status::Error(500, "Receive unsupported sale payload");
   }
+}
+
+void StarGiftManager::sell_gift_onchain(const string &gift_name, int64 gram_amount,
+                                        Promise<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> &&promise) {
+  if (gram_amount <= 0) {
+    return promise.set_error(400, "Invalid amount specified");
+  }
+  td_->create_handler<UpdateStarGiftOnchainPriceQuery>(std::move(promise))->send(gift_name, gram_amount);
 }
 
 void StarGiftManager::get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,

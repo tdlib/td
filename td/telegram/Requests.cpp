@@ -9194,6 +9194,13 @@ void Requests::on_request(uint64 id, td_api::getGiftOnchainPurchaseTransaction &
   td_->star_gift_manager_->buy_gift_onchain(request.gift_name_, request.gram_amount_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getGiftOnchainListingTransaction &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.gift_name_);
+  CREATE_REQUEST_PROMISE();
+  td_->star_gift_manager_->sell_gift_onchain(request.gift_name_, request.gram_amount_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getReceivedGifts &request) {
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
