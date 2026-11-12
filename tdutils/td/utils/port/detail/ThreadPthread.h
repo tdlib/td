@@ -10,8 +10,8 @@
 
 #ifdef TD_THREAD_PTHREAD
 
+#include "td/utils/Action.h"
 #include "td/utils/common.h"
-#include "td/utils/Destructor.h"
 #include "td/utils/invoke.h"
 #include "td/utils/MovableValue.h"
 #include "td/utils/port/detail/ThreadIdGuard.h"
@@ -50,8 +50,8 @@ class ThreadPthread {
   }
   template <class Function, class... Args>
   explicit ThreadPthread(Function &&f, Args &&...args) {
-    auto func = create_destructor([args = std::make_tuple(decay_copy(std::forward<Function>(f)),
-                                                          decay_copy(std::forward<Args>(args))...)]() mutable {
+    auto func = make_unique<SimpleAction>([args = std::make_tuple(decay_copy(std::forward<Function>(f)),
+                                                                  decay_copy(std::forward<Args>(args))...)]() mutable {
       invoke_tuple(std::move(args));
       clear_thread_locals();
     });
@@ -98,7 +98,8 @@ class ThreadPthread {
 
   static void *run_thread(void *ptr) {
     ThreadIdGuard thread_id_guard;
-    auto func = unique_ptr<Destructor>(static_cast<Destructor *>(ptr));
+    auto func = unique_ptr<SimpleAction>(static_cast<SimpleAction *>(ptr));
+    (*func)();
     return nullptr;
   }
 };
