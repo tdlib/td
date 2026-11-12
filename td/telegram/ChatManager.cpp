@@ -8218,7 +8218,8 @@ void ChatManager::on_update_channel_linked_community_id(Channel *c, ChannelId ch
     if (c->is_update_supergroup_sent &&
         (!G()->use_chat_info_database() || loaded_from_database_channels_.count(channel_id) != 0)) {
       // otherwise, the change is applied in on_load_channel_from_database
-      td_->messages_manager_->on_update_dialog_linked_community_id(DialogId(channel_id), old_linked_community_id);
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_linked_community_id,
+                         DialogId(channel_id), old_linked_community_id);
     }
   }
 }

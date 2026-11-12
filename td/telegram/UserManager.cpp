@@ -3821,7 +3821,8 @@ void UserManager::on_update_user_linked_community_id(User *u, UserId user_id, Co
     u->need_save_to_database = true;
     if (u->is_update_user_sent && (!G()->use_chat_info_database() || loaded_from_database_users_.count(user_id) != 0)) {
       // otherwise, the change is applied in on_load_user_from_database
-      td_->messages_manager_->on_update_dialog_linked_community_id(DialogId(user_id), old_linked_community_id);
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_linked_community_id,
+                         DialogId(user_id), old_linked_community_id);
     }
   }
 }
