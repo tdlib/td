@@ -1879,15 +1879,17 @@ class MessageGramTransfer final : public MessageContent {
   string peer_address;
   string transaction_id;
   string comment;
+  string on_ramp_provider_name;
   bool is_comment_encrypted = false;
 
   MessageGramTransfer() = default;
   MessageGramTransfer(int64 amount, string peer_address, string transaction_id, string comment,
-                      bool is_comment_encrypted)
+                      bool is_comment_encrypted, string on_ramp_provider_name)
       : amount(amount)
       , peer_address(std::move(peer_address))
       , transaction_id(std::move(transaction_id))
       , comment(std::move(comment))
+      , on_ramp_provider_name(std::move(on_ramp_provider_name))
       , is_comment_encrypted(is_comment_encrypted) {
   }
 
@@ -3208,15 +3210,20 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::GramTransfer: {
       const auto *m = static_cast<const MessageGramTransfer *>(content);
       bool has_comment = !m->comment.empty();
+      bool has_on_ramp_provider_name = !m->on_ramp_provider_name.empty();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_comment);
       STORE_FLAG(m->is_comment_encrypted);
+      STORE_FLAG(has_on_ramp_provider_name);
       END_STORE_FLAGS();
       store(m->amount, storer);
       store(m->peer_address, storer);
       store(m->transaction_id, storer);
       if (has_comment) {
         store(m->comment, storer);
+      }
+      if (has_on_ramp_provider_name) {
+        store(m->on_ramp_provider_name, storer);
       }
       break;
     }
@@ -4821,15 +4828,20 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::GramTransfer: {
       auto m = make_unique<MessageGramTransfer>();
       bool has_comment;
+      bool has_on_ramp_provider_name;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_comment);
       PARSE_FLAG(m->is_comment_encrypted);
+      PARSE_FLAG(has_on_ramp_provider_name);
       END_PARSE_FLAGS();
       parse(m->amount, parser);
       parse(m->peer_address, parser);
       parse(m->transaction_id, parser);
       if (has_comment) {
         parse(m->comment, parser);
+      }
+      if (has_on_ramp_provider_name) {
+        parse(m->on_ramp_provider_name, parser);
       }
       content = std::move(m);
       break;
@@ -5133,7 +5145,8 @@ unique_ptr<MessageContent> create_contact_registered_message_content() {
 unique_ptr<MessageContent> create_gram_transfer_message_content(int64 amount, const string &peer_address,
                                                                 const string &transaction_id, const string &comment,
                                                                 bool is_comment_encrypted) {
-  return td::make_unique<MessageGramTransfer>(amount, peer_address, transaction_id, comment, is_comment_encrypted);
+  return td::make_unique<MessageGramTransfer>(amount, peer_address, transaction_id, comment, is_comment_encrypted,
+                                              string());
 }
 
 unique_ptr<MessageContent> create_screenshot_taken_message_content() {
@@ -9400,7 +9413,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *rhs = static_cast<const MessageGramTransfer *>(new_content);
       if (lhs->amount != rhs->amount || lhs->peer_address != rhs->peer_address ||
           lhs->transaction_id != rhs->transaction_id || lhs->comment != rhs->comment ||
-          lhs->is_comment_encrypted != rhs->is_comment_encrypted) {
+          lhs->is_comment_encrypted != rhs->is_comment_encrypted ||
+          lhs->on_ramp_provider_name != rhs->on_ramp_provider_name) {
         need_update = true;
       }
       break;
@@ -12019,7 +12033,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return td::make_unique<MessageGramTransfer>(action->amount_, std::move(action->peer_address_),
                                                   std::move(action->transaction_id_), std::move(action->comment_),
-                                                  action->comment_encrypted_);
+                                                  action->comment_encrypted_, std::move(action->onramp_provider_name_));
     }
     case telegram_api::messageActionWalletTonConnectRequest::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionWalletTonConnectRequest>(action_ptr);
@@ -12899,7 +12913,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       }
       return td_api::make_object<td_api::messageTonWalletTransfer>(
           td->user_manager_->get_user_id_object(sender_user_id, "messageTonWalletTransfer"), m->transaction_id,
-          m->peer_address, m->amount, m->comment, m->is_comment_encrypted);
+          m->peer_address, m->amount, m->comment, m->is_comment_encrypted, m->on_ramp_provider_name);
     }
     case MessageContentType::WalletTonConnectRequest: {
       const auto *m = static_cast<const MessageWalletTonConnectRequest *>(content);

@@ -6306,7 +6306,8 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@amount The received amount, in the smallest units of TON Grams; negative for outgoing transactions
 //@comment Comment added to the transaction
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the receiver's or sender's private key
-messageTonWalletTransfer sender_user_id:int53 transaction_id:string peer_address:string amount:int64 comment:string is_comment_encrypted:Bool = MessageContent;
+//@on_ramp_provider_name Name of the on-ramp provider if the transfer is an on-ramp deposit; empty otherwise
+messageTonWalletTransfer sender_user_id:int53 transaction_id:string peer_address:string amount:int64 comment:string is_comment_encrypted:Bool on_ramp_provider_name:string = MessageContent;
 
 //@description A request from a dApp was received through TON Connect
 //@session_id Unique identifier of the TON Connect session
