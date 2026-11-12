@@ -162,7 +162,7 @@ class Scheduler {
  private:
   static void set_scheduler(Scheduler *scheduler);
 
-  void destroy_on_scheduler_impl(int32 sched_id, Promise<Unit> action);
+  void destroy_on_scheduler_impl(int32 sched_id, SimpleAction action);
 
   class ServiceActor final : public Actor {
    public:
