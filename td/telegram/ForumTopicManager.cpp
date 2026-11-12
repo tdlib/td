@@ -1130,7 +1130,7 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
       dialog_id = forum_topic_info->get_dialog_id();
       if (!can_be_forum(dialog_id)) {
         LOG(ERROR) << "Receive forum topics in " << dialog_id << " from " << source;
-        return;
+        continue;
       }
       auto *dialog_topics = add_dialog_topics(dialog_id);
       CHECK(dialog_topics != nullptr);

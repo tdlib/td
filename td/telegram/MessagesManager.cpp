@@ -163,6 +163,7 @@ class GetDialogQuery final : public Td::ResultHandler {
 
     td_->user_manager_->on_get_users(std::move(result->users_), "GetDialogQuery");
     td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetDialogQuery");
+    td_->forum_topic_manager_->on_get_forum_topic_infos(DialogId(), std::move(result->topics_), "GetDialogQuery");
     td_->messages_manager_->on_get_dialogs(FolderId(), std::move(result->dialogs_), -1, std::move(result->messages_),
                                            PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(),
                                                                    dialog_id = dialog_id_](Result<> result) {
@@ -206,6 +207,8 @@ class GetPinnedDialogsQuery final : public Td::ResultHandler {
 
     td_->user_manager_->on_get_users(std::move(result->users_), "GetPinnedDialogsQuery");
     td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetPinnedDialogsQuery");
+    td_->forum_topic_manager_->on_get_forum_topic_infos(DialogId(), std::move(result->topics_),
+                                                        "GetPinnedDialogsQuery");
     td_->messages_manager_->on_get_dialogs(folder_id_, std::move(result->dialogs_), -2, std::move(result->messages_),
                                            std::move(promise_));
   }
@@ -491,6 +494,8 @@ class GetDialogListQuery final : public Td::ResultHandler {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogs>(ptr);
         td_->user_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListQuery");
         td_->chat_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListQuery");
+        td_->forum_topic_manager_->on_get_forum_topic_infos(DialogId(), std::move(dialogs->topics_),
+                                                            "GetDialogListQuery");
         auto total_count = narrow_cast<int32>(dialogs->dialogs_.size());
         td_->messages_manager_->on_get_dialogs(folder_id_, std::move(dialogs->dialogs_), total_count,
                                                std::move(dialogs->messages_), std::move(promise_));
@@ -500,6 +505,8 @@ class GetDialogListQuery final : public Td::ResultHandler {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogsSlice>(ptr);
         td_->user_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListQuery slice");
         td_->chat_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListQuery slice");
+        td_->forum_topic_manager_->on_get_forum_topic_infos(DialogId(), std::move(dialogs->topics_),
+                                                            "GetDialogListQuery slice");
         td_->messages_manager_->on_get_dialogs(folder_id_, std::move(dialogs->dialogs_), max(dialogs->count_, 0),
                                                std::move(dialogs->messages_), std::move(promise_));
         break;
@@ -35469,6 +35476,8 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
       have_new_messages = !difference->new_messages_.empty();
       td_->user_manager_->on_get_users(std::move(difference->users_), "updates.channelDifference");
       td_->chat_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifference");
+      td_->forum_topic_manager_->on_get_forum_topic_infos(dialog_id, std::move(difference->topics_),
+                                                          "updates.channelDifference");
       for (const auto &message : difference->new_messages_) {
         if (is_invalid_poll_message(message.get())) {
           LOG(ERROR) << "Receive invalid poll message in updates.channelDifference: " << oneline(to_string(message));
@@ -35484,6 +35493,8 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
       have_new_messages = difference->dialog_->get_id() == telegram_api::dialog::ID && !difference->messages_.empty();
       td_->user_manager_->on_get_users(std::move(difference->users_), "updates.channelDifferenceTooLong");
       td_->chat_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifferenceTooLong");
+      td_->forum_topic_manager_->on_get_forum_topic_infos(dialog_id, std::move(difference->topics_),
+                                                          "updates.channelDifferenceTooLong");
       break;
     }
     default:

@@ -2109,6 +2109,8 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
                            << difference->chats_.size() << " chats";
       td_->user_manager_->on_get_users(std::move(difference->users_), "updates.difference");
       td_->chat_manager_->on_get_chats(std::move(difference->chats_), "updates.difference");
+      td_->forum_topic_manager_->on_get_forum_topic_infos(DialogId(), std::move(difference->topics_),
+                                                          "updates.difference");
 
       if (get_difference_retry_count_ <= 5) {
         for (const auto &message : difference->new_messages_) {
@@ -2145,6 +2147,8 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
                            << difference->chats_.size() << " chats";
       td_->user_manager_->on_get_users(std::move(difference->users_), "updates.differenceSlice");
       td_->chat_manager_->on_get_chats(std::move(difference->chats_), "updates.differenceSlice");
+      td_->forum_topic_manager_->on_get_forum_topic_infos(DialogId(), std::move(difference->topics_),
+                                                          "updates.differenceSlice");
 
       if (get_difference_retry_count_ <= 5) {
         for (const auto &message : difference->new_messages_) {
@@ -2242,6 +2246,8 @@ void UpdatesManager::on_get_pts_update(int32 pts,
 
       td_->user_manager_->on_get_users(std::move(difference->users_), "on_get_pts_update");
       td_->chat_manager_->on_get_chats(std::move(difference->chats_), "on_get_pts_update");
+      td_->forum_topic_manager_->on_get_forum_topic_infos(DialogId(), std::move(difference->topics_),
+                                                          "on_get_pts_update");
 
       for (auto &message : difference->new_messages_) {
         difference->other_updates_.push_back(

@@ -14,6 +14,7 @@
 #include "td/telegram/DialogFilterInviteLink.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipantManager.h"
+#include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -517,6 +518,7 @@ class GetDialogsQuery final : public Td::ResultHandler {
 
     td_->user_manager_->on_get_users(std::move(result->users_), "GetDialogsQuery");
     td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetDialogsQuery");
+    td_->forum_topic_manager_->on_get_forum_topic_infos(DialogId(), std::move(result->topics_), "GetDialogsQuery");
     td_->messages_manager_->on_get_dialogs(FolderId(), std::move(result->dialogs_), -1, std::move(result->messages_),
                                            std::move(promise_));
   }
