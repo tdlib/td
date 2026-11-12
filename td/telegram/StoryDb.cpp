@@ -16,6 +16,7 @@
 #include "td/actor/actor.h"
 #include "td/actor/SchedulerLocalStorage.h"
 
+#include "td/utils/Action.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/ScopeGuard.h"
@@ -426,14 +427,14 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
     void add_story(StoryFullId story_full_id, int32 expires_at, NotificationId notification_id, BufferSlice data,
                    Promise<Unit> promise) {
       add_write_query([this, story_full_id, expires_at, notification_id, data = std::move(data),
-                       promise = std::move(promise)](Unit) mutable {
+                       promise = std::move(promise)]() mutable {
         sync_db_->add_story(story_full_id, expires_at, notification_id, std::move(data));
         on_write_result(std::move(promise));
       });
     }
 
     void delete_story(StoryFullId story_full_id, Promise<Unit> promise) {
-      add_write_query([this, story_full_id, promise = std::move(promise)](Unit) mutable {
+      add_write_query([this, story_full_id, promise = std::move(promise)]() mutable {
         sync_db_->delete_story(story_full_id);
         on_write_result(std::move(promise));
       });
@@ -463,14 +464,14 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
     void add_active_stories(DialogId dialog_id, StoryListId story_list_id, int64 dialog_order, BufferSlice data,
                             Promise<Unit> promise) {
       add_write_query([this, dialog_id, story_list_id, dialog_order, data = std::move(data),
-                       promise = std::move(promise)](Unit) mutable {
+                       promise = std::move(promise)]() mutable {
         sync_db_->add_active_stories(dialog_id, story_list_id, dialog_order, std::move(data));
         on_write_result(std::move(promise));
       });
     }
 
     void delete_active_stories(DialogId dialog_id, Promise<Unit> promise) {
-      add_write_query([this, dialog_id, promise = std::move(promise)](Unit) mutable {
+      add_write_query([this, dialog_id, promise = std::move(promise)]() mutable {
         sync_db_->delete_active_stories(dialog_id);
         on_write_result(std::move(promise));
       });
@@ -488,7 +489,7 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
     }
 
     void add_active_story_list_state(StoryListId story_list_id, BufferSlice data, Promise<Unit> promise) {
-      add_write_query([this, story_list_id, data = std::move(data), promise = std::move(promise)](Unit) mutable {
+      add_write_query([this, story_list_id, data = std::move(data), promise = std::move(promise)]() mutable {
         sync_db_->add_active_story_list_state(story_list_id, std::move(data));
         on_write_result(std::move(promise));
       });
@@ -519,14 +520,13 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
     static constexpr size_t MAX_PENDING_QUERY_COUNT{50};
     static constexpr double MAX_PENDING_QUERY_DELAY{0.01};
 
-    //NB: order is important, destructor of pending_writes_ will change finished_writes_
     vector<Promise<Unit>> finished_writes_;
-    vector<Promise<Unit>> pending_writes_;  // TODO use Action
+    vector<SimpleAction> pending_writes_;
     double wakeup_at_ = 0;
 
     template <class F>
     void add_write_query(F &&f) {
-      pending_writes_.push_back(PromiseCreator::lambda(std::forward<F>(f)));
+      pending_writes_.emplace_back(std::forward<F>(f));
       if (pending_writes_.size() > MAX_PENDING_QUERY_COUNT) {
         do_flush();
         wakeup_at_ = 0;
@@ -545,7 +545,7 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
         return;
       }
       sync_db_->begin_write_transaction().ensure();
-      set_promises(pending_writes_);
+      run_actions(pending_writes_);
       sync_db_->commit_transaction().ensure();
       set_promises(finished_writes_);
       cancel_timeout();
@@ -556,6 +556,10 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
 
     void start_up() final {
       sync_db_ = &sync_db_safe_->get();
+    }
+
+    void tear_down() final {
+      do_flush();
     }
   };
   ActorOwn<Impl> impl_;
