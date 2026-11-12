@@ -55,6 +55,7 @@ void StarGift::store(StorerT &storer) const {
   bool has_offer_min_star_count = offer_min_star_count_ != 0;
   bool has_craft_chance_permille = craft_chance_permille_ != 0;
   bool has_offer_min_gram_amount = offer_min_gram_amount_ != 0;
+  bool has_resale_fee_bps = resale_fee_bps_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_limited);
   STORE_FLAG(has_default_sell_star_count);
@@ -99,6 +100,8 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(has_craft_chance_permille);
   STORE_FLAG(has_offer_min_gram_amount);
   STORE_FLAG(is_onchain_sale_);
+  STORE_FLAG(is_fixed_onchain_sale_);
+  STORE_FLAG(has_resale_fee_bps);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -207,6 +210,9 @@ void StarGift::store(StorerT &storer) const {
   if (has_offer_min_gram_amount) {
     td::store(offer_min_gram_amount_, storer);
   }
+  if (has_resale_fee_bps) {
+    td::store(resale_fee_bps_, storer);
+  }
 }
 
 template <class ParserT>
@@ -243,6 +249,7 @@ void StarGift::parse(ParserT &parser) {
   bool has_offer_min_star_count = false;
   bool has_craft_chance_permille = false;
   bool has_offer_min_gram_amount = false;
+  bool has_resale_fee_bps = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_limited);
   PARSE_FLAG(has_default_sell_star_count);
@@ -288,6 +295,8 @@ void StarGift::parse(ParserT &parser) {
     PARSE_FLAG(has_craft_chance_permille);
     PARSE_FLAG(has_offer_min_gram_amount);
     PARSE_FLAG(is_onchain_sale_);
+    PARSE_FLAG(is_fixed_onchain_sale_);
+    PARSE_FLAG(has_resale_fee_bps);
     END_PARSE_FLAGS();
   }
   td::parse(id_, parser);
@@ -403,6 +412,9 @@ void StarGift::parse(ParserT &parser) {
   }
   if (has_offer_min_gram_amount) {
     td::parse(offer_min_gram_amount_, parser);
+  }
+  if (has_resale_fee_bps) {
+    td::parse(resale_fee_bps_, parser);
   }
 }
 

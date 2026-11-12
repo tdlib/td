@@ -1535,9 +1535,13 @@ giftPurchaseLimits total_count:int32 remaining_count:int32 = GiftPurchaseLimits;
 //@description Describes parameters of a unique gift available for resale
 //@star_count Resale price of the gift in Telegram Stars
 //@gram_cent_count Resale price of the gift in 1/100 of TON Gram
+//@gram_amount Exact resale price of the gift, in the smallest units of TON Grams; must be passed to getGiftOnchainPurchaseTransaction for gifts sold on-chain
 //@gram_only True, if the gift can be bought only using Grams
-//@is_onchain True, if the gift is sold on-chain; such gifts can be bought only using getGiftOnchainPurchaseTransaction
-giftResaleParameters star_count:int53 gram_cent_count:int53 gram_only:Bool is_onchain:Bool = GiftResaleParameters;
+//@is_onchain True, if the gift is sold on-chain on Fragment; such gifts can be bought only using getGiftOnchainPurchaseTransaction
+//@is_fixed_onchain True, if the gift is sold on-chain using a fixed price sale contract; such gifts can be bought only using getGiftOnchainPurchaseTransaction
+//@fee_basis_points The fee for the sale of the gift, in basis points; 1 basis point is 0.01%; 0 if unknown. If is_fixed_onchain is true,
+//-then the fee is paid by the buyer in addition to the price; otherwise, the fee is deducted from the price received by the seller
+giftResaleParameters star_count:int53 gram_cent_count:int53 gram_amount:int64 gram_only:Bool is_onchain:Bool is_fixed_onchain:Bool fee_basis_points:int32 = GiftResaleParameters;
 
 //@description Describes collection of gifts
 //@id Unique identifier of the collection

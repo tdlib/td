@@ -49,6 +49,7 @@ class StarGift {
   bool is_unique_ = false;
   bool resale_ton_only_ = false;
   bool is_onchain_sale_ = false;
+  bool is_fixed_onchain_sale_ = false;
   bool is_theme_available_ = false;
   bool is_burned_ = false;
   bool is_crafted_ = false;
@@ -75,6 +76,7 @@ class StarGift {
   int32 gifts_per_round_ = 0;
   int32 auction_start_date_ = 0;
   int32 craft_chance_permille_ = 0;
+  int32 resale_fee_bps_ = 0;
   string value_currency_;
   int64 value_amount_ = 0;
   int64 value_usd_amount_ = 0;
