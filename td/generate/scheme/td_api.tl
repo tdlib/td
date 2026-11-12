@@ -16971,15 +16971,18 @@ acceptGiftOnchainPurchaseOffer message_id:int53 = GiftOnchainPurchaseOfferTransa
 declineGiftOnchainPurchaseOffer message_id:int53 = Ok;
 
 //@description Returns a transaction that must be sent from the TON wallet of the current user to buy an upgraded gift sold on-chain; can be used only if getOption("can_use_ton_wallet").
-//-The gift will be received by the TON wallet of the current user and shown on the user's profile page after the transaction is executed in the TON blockchain
+//-The type of the returned transaction depends on the type of the sale. The gift will be received by the TON wallet of the current user after the transaction is executed
+//-in the TON blockchain. Then, the gift will be shown on the user's profile page if it is still in the wallet
 //@gift_name Name of the upgraded gift
-//@gram_amount The price of the gift shown to the user, in the smallest units of TON Grams; the request fails with the error "STARGIFT_ONCHAIN_PRICE_CHANGED" if the price has changed
+//@gram_amount The price of the gift, in the smallest units of TON Grams; must be equal to giftResaleParameters.gram_amount. The request fails with the error
+//-"STARGIFT_ONCHAIN_PRICE_CHANGED" if the price has changed. The amount that will be paid can be bigger than the price because of the sale fee and blockchain fees
 getGiftOnchainPurchaseTransaction gift_name:string gram_amount:int64 = GiftOnchainSaleTransaction;
 
-//@description Returns a transaction that must be sent from the TON wallet of the current user to put an upgraded gift from the wallet up for sale on-chain;
-//-can be used only if getOption("can_use_ton_wallet"). The gift is put up for sale only after the transaction is executed in the TON blockchain.
-//-The price of the gift will be received by the TON wallet of the current user when the gift is sold. To change the price, the current sale must be canceled first
-//-using getGiftOnchainDelistingTransaction
+//@description Returns a transaction that must be sent from the TON wallet of the current user to put an upgraded gift from the wallet up for sale on-chain,
+//-or to change the price of a gift that is sold using a fixed price sale contract; can be used only if getOption("can_use_ton_wallet"). The type of the sale is chosen by the server.
+//-The gift is put up for sale only after the transaction is executed in the TON blockchain and the sale smart contract confirms that it has received the gift.
+//-The price of the gift will be received by the TON wallet of the current user when the gift is sold. To change the price of a gift that is sold on Fragment,
+//-the current sale must be canceled first using getGiftOnchainDelistingTransaction
 //@gift_name Name of the upgraded gift
 //@gram_amount The price of the gift, in the smallest units of TON Grams. The price in 1/100 of Gram must be in the range
 //-getOption("gift_resale_gram_cent_count_min")-getOption("gift_resale_gram_cent_count_max")
@@ -16987,7 +16990,7 @@ getGiftOnchainListingTransaction gift_name:string gram_amount:int64 = GiftOnchai
 
 //@description Returns a transaction that must be sent from the TON wallet of the current user to cancel on-chain sale of an upgraded gift;
 //-can be used only if getOption("can_use_ton_wallet"). The sale is canceled only after the transaction is executed in the TON blockchain.
-//-The gift remains in the TON wallet of the current user
+//-Then, the gift will be in the TON wallet of the current user
 //@gift_name Name of the upgraded gift
 getGiftOnchainDelistingTransaction gift_name:string = GiftOnchainSaleTransaction;
 
