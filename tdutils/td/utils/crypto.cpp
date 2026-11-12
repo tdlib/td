@@ -10,7 +10,6 @@
 #include "td/utils/BigNum.h"
 #include "td/utils/bits.h"
 #include "td/utils/common.h"
-#include "td/utils/Destructor.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/config.h"
@@ -425,10 +424,10 @@ class Evp {
   static void init_thread_local_evp_cipher(const EVP_CIPHER *&evp_cipher, const char *algorithm) {
     evp_cipher = EVP_CIPHER_fetch(nullptr, algorithm, nullptr);
     LOG_IF(FATAL, evp_cipher == nullptr);
-    detail::add_thread_local_destructor(create_destructor([&evp_cipher]() mutable {
+    detail::add_thread_local_destructor([&evp_cipher]() mutable {
       EVP_CIPHER_free(const_cast<EVP_CIPHER *>(evp_cipher));
       evp_cipher = nullptr;
-    }));
+    });
   }
 #endif
 };
@@ -728,10 +727,10 @@ static void make_digest(Slice data, MutableSlice output, const EVP_MD_CTX *evp_m
   if (unlikely(ctx == nullptr)) {
     ctx = EVP_MD_CTX_new();
     LOG_IF(FATAL, ctx == nullptr);
-    detail::add_thread_local_destructor(create_destructor([] {
+    detail::add_thread_local_destructor([] {
       EVP_MD_CTX_free(ctx);
       ctx = nullptr;
-    }));
+    });
   }
   int res = EVP_MD_CTX_copy_ex(ctx, evp_md_ctx);
   LOG_IF(FATAL, res != 1);
@@ -749,10 +748,10 @@ static void init_thread_local_evp_md_ctx(const EVP_MD_CTX *&evp_md_ctx, const ch
   int res = EVP_DigestInit_ex(const_cast<EVP_MD_CTX *>(evp_md_ctx), evp_md, nullptr);
   LOG_IF(FATAL, res != 1);
   EVP_MD_free(evp_md);
-  detail::add_thread_local_destructor(create_destructor([&evp_md_ctx]() mutable {
+  detail::add_thread_local_destructor([&evp_md_ctx]() mutable {
     EVP_MD_CTX_free(const_cast<EVP_MD_CTX *>(evp_md_ctx));
     evp_md_ctx = nullptr;
-  }));
+  });
 }
 
 static void init_thread_local_evp_mac_ctx(EVP_MAC_CTX *&evp_mac_ctx, const char *digest) {
@@ -765,10 +764,10 @@ static void init_thread_local_evp_mac_ctx(EVP_MAC_CTX *&evp_mac_ctx, const char 
   params[1] = OSSL_PARAM_construct_end();
   EVP_MAC_CTX_set_params(evp_mac_ctx, params);
   EVP_MAC_free(hmac);
-  detail::add_thread_local_destructor(create_destructor([&evp_mac_ctx]() mutable {
+  detail::add_thread_local_destructor([&evp_mac_ctx]() mutable {
     EVP_MAC_CTX_free(const_cast<EVP_MAC_CTX *>(evp_mac_ctx));
     evp_mac_ctx = nullptr;
-  }));
+  });
 }
 #endif
 

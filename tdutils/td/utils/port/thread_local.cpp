@@ -11,11 +11,11 @@ namespace td {
 namespace detail {
 
 static TD_THREAD_LOCAL int32 thread_id_;
-static TD_THREAD_LOCAL std::vector<unique_ptr<Destructor>> *thread_local_destructors;
+static TD_THREAD_LOCAL std::vector<SimpleAction> *thread_local_destructors;
 
-void add_thread_local_destructor(unique_ptr<Destructor> destructor) {
+void add_thread_local_destructor(SimpleAction destructor) {
   if (thread_local_destructors == nullptr) {
-    thread_local_destructors = new std::vector<unique_ptr<Destructor>>();
+    thread_local_destructors = new std::vector<SimpleAction>();
   }
   thread_local_destructors->push_back(std::move(destructor));
 }
@@ -26,7 +26,10 @@ void clear_thread_locals() {
   // ensure that no destructors were added during destructors invocation
   auto to_delete = detail::thread_local_destructors;
   detail::thread_local_destructors = nullptr;
-  delete to_delete;
+  if (to_delete != nullptr) {
+    run_actions(*to_delete);
+    delete to_delete;
+  }
   CHECK(detail::thread_local_destructors == nullptr);
 }
 

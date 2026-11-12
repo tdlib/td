@@ -6,8 +6,8 @@
 //
 #pragma once
 
+#include "td/utils/Action.h"
 #include "td/utils/common.h"
-#include "td/utils/Destructor.h"
 
 #include <memory>
 #include <utility>
@@ -37,17 +37,17 @@ void set_thread_id(int32 id);
 int32 get_thread_id();
 
 namespace detail {
-void add_thread_local_destructor(unique_ptr<Destructor> destructor);
+void add_thread_local_destructor(SimpleAction destructor);
 
 template <class T, class P, class... ArgsT>
 void do_init_thread_local(P &raw_ptr, ArgsT &&...args) {
   auto ptr = std::make_unique<T>(std::forward<ArgsT>(args)...);
   raw_ptr = ptr.get();
 
-  detail::add_thread_local_destructor(create_destructor([ptr = std::move(ptr), &raw_ptr]() mutable {
+  detail::add_thread_local_destructor([ptr = std::move(ptr), &raw_ptr]() mutable {
     ptr.reset();
     raw_ptr = nullptr;
-  }));
+  });
 }
 }  // namespace detail
 
