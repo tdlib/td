@@ -96,7 +96,7 @@ class ConcurrentScheduler final : private Scheduler::Callback {
   enum class State { Start, Run };
   State state_ = State::Start;
   std::mutex at_finish_mutex_;
-  vector<Action<void()>> at_finish_;  // can be used during destruction by Scheduler destructors
+  vector<SimpleAction> at_finish_;  // can be used during destruction by Scheduler destructors
   vector<unique_ptr<Scheduler>> schedulers_;
   std::atomic<bool> is_finished_{false};
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
@@ -111,7 +111,7 @@ class ConcurrentScheduler final : private Scheduler::Callback {
 
   void on_finish() final;
 
-  void register_at_finish(Action<void()> f) final;
+  void register_at_finish(SimpleAction f) final;
 };
 
 }  // namespace td

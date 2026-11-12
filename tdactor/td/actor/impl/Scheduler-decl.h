@@ -67,7 +67,7 @@ class Scheduler {
     Callback &operator=(const Callback &) = delete;
     virtual ~Callback() = default;
     virtual void on_finish() = 0;
-    virtual void register_at_finish(Action<void()>) = 0;
+    virtual void register_at_finish(SimpleAction) = 0;
   };
   Scheduler() = default;
   Scheduler(const Scheduler &) = delete;

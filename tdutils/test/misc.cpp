@@ -1610,4 +1610,17 @@ TEST(Misc, Action) {
   ASSERT_EQ(7, moved_action(td::make_unique<int>(2)));
   ASSERT_EQ(7, result);
   ASSERT_TRUE(!moved_action);
+
+  td::vector<td::SimpleAction> actions;
+  actions.emplace_back([&result] { result *= 2; });
+  actions.emplace_back([&result, &actions] {
+    result += 1;
+    actions.emplace_back([&result] { result = 0; });
+  });
+  td::run_actions(actions);
+  ASSERT_EQ(15, result);
+  ASSERT_EQ(1u, actions.size());
+  td::run_actions(actions);
+  ASSERT_EQ(0, result);
+  ASSERT_TRUE(actions.empty());
 }

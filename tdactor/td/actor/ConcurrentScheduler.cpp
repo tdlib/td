@@ -182,10 +182,7 @@ void ConcurrentScheduler::finish() {
 #endif
 
   schedulers_.clear();
-  for (auto &f : at_finish_) {
-    f();
-  }
-  at_finish_.clear();
+  run_actions(at_finish_);
 
   state_ = State::Start;
 }
@@ -197,7 +194,7 @@ void ConcurrentScheduler::on_finish() {
   }
 }
 
-void ConcurrentScheduler::register_at_finish(Action<void()> f) {
+void ConcurrentScheduler::register_at_finish(SimpleAction f) {
   std::lock_guard<std::mutex> lock(at_finish_mutex_);
   at_finish_.push_back(std::move(f));
 }

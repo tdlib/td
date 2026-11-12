@@ -72,4 +72,14 @@ class Action<R(Args...)> {
   }
 };
 
+using SimpleAction = Action<void()>;
+
+inline void run_actions(vector<SimpleAction> &actions) {
+  auto moved_actions = std::move(actions);
+  actions.clear();
+  for (auto &action : moved_actions) {
+    action();
+  }
+}
+
 }  // namespace td
