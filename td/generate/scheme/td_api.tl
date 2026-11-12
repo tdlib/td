@@ -2596,9 +2596,10 @@ tonWalletTransactionTypeKeyChange = TonWalletTransactionType;
 //@peer_domain Identifier of the domain assigned to the peer address; may be empty if none
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@fee_amount The fee amount paid for the transaction, in the smallest units of TON Grams
+//@is_suspected_spam True, if the transaction is suspected to be spam
 //@state State of the transaction
 //@type Type of the transaction
-tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domain:string date:int32 fee_amount:int64 state:TonWalletTransactionState type:TonWalletTransactionType = TonWalletTransaction;
+tonWalletTransaction id:string peer_address:string peer_user_id:int53 peer_domain:string date:int32 fee_amount:int64 is_suspected_spam:Bool state:TonWalletTransactionState type:TonWalletTransactionType = TonWalletTransaction;
 
 //@description Represents a list of TON Gram transactions
 //@gram_amount The total owned amount, in the smallest units of TON Grams

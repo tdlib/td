@@ -2469,7 +2469,8 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
   }();
   return td_api::make_object<td_api::tonWalletTransaction>(
       transaction->id_, peer_address, td->user_manager_->get_user_id_object(peer_user_id, "tonWalletTransaction"),
-      peer_domain, transaction->date_, transaction->fee_, std::move(state), std::move(type));
+      peer_domain, transaction->date_, transaction->fee_, transaction->suspected_spam_, std::move(state),
+      std::move(type));
 }
 
 td_api::object_ptr<td_api::TonConnectManifest> TonWalletManager::get_ton_connect_manifest_object(
