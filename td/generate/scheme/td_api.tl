@@ -1753,6 +1753,14 @@ tonWalletMessage destination_address:string gram_amount:int64 send_mode:int32 bo
 //-The final fine will be known after the cancellation is executed in the TON blockchain
 giftOnchainPurchaseOfferTransaction offer_address:string expiration_date:int32 message:tonWalletMessage gasless_message:tonWalletMessage rent_budget_amount:int64 execution_allowance_amount:int64 forward_amount:int64 fine_amount:int64 = GiftOnchainPurchaseOfferTransaction;
 
+//@description Contains information about a transaction that must be sent from the TON wallet of the current user to buy an upgraded gift sold on-chain.
+//-Use sendTonWalletTransfer with nft_address and gram_amount as the receiver address and the amount to send the transaction
+//@nft_address Address in the TON blockchain to which the transaction must be sent
+//@payload Body of the transaction message; may be empty
+//@gram_amount The amount that must be sent with the transaction, in the smallest units of TON Grams
+//@is_gasless_transfer_available True, if the transaction can be sent as a gasless transfer
+giftOnchainSaleTransaction nft_address:string payload:bytes gram_amount:int64 is_gasless_transfer_available:Bool = GiftOnchainSaleTransaction;
+
 //@description Contains result of gift upgrading
 //@gift The upgraded gift
 //@received_gift_id Unique identifier of the received gift for the current user
@@ -16947,6 +16955,12 @@ acceptGiftOnchainPurchaseOffer message_id:int53 = GiftOnchainPurchaseOfferTransa
 //@description Declines an on-chain gift purchase offer received by the current user. The offer is declined and the buyer is refunded only after the offer is canceled in the TON blockchain
 //@message_id Identifier of the message messageUpgradedGiftOnchainPurchaseOffer with the offer in the chat 777000
 declineGiftOnchainPurchaseOffer message_id:int53 = Ok;
+
+//@description Returns a transaction that must be sent from the TON wallet of the current user to buy an upgraded gift sold on-chain; can be used only if getOption("can_use_ton_wallet").
+//-The gift will be received by the TON wallet of the current user and shown on the user's profile page after the transaction is executed in the TON blockchain
+//@gift_name Name of the upgraded gift
+//@gram_amount The price of the gift shown to the user, in the smallest units of TON Grams; the request fails with the error "STARGIFT_ONCHAIN_PRICE_CHANGED" if the price has changed
+getGiftOnchainPurchaseTransaction gift_name:string gram_amount:int64 = GiftOnchainSaleTransaction;
 
 //@description Returns gifts received by the given user or chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only

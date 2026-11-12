@@ -3567,6 +3567,11 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, message_id);
       send_request(td_api::make_object<td_api::declineGiftOnchainPurchaseOffer>(message_id));
+    } else if (op == "ggopt") {
+      string gift_name;
+      int64 gram_amount;
+      get_args(args, gift_name, gram_amount);
+      send_request(td_api::make_object<td_api::getGiftOnchainPurchaseTransaction>(gift_name, gram_amount));
     } else if (op == "grgs" || op == "grgsp") {
       string owner_id;
       int32 limit;

@@ -1792,6 +1792,35 @@ class DeclineStarGiftOnchainOfferQuery final : public Td::ResultHandler {
   }
 };
 
+class BuyStarGiftOnchainQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> promise_;
+
+ public:
+  explicit BuyStarGiftOnchainQuery(Promise<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &slug, int64 expected_amount) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_buyStarGiftOnchain(0, false, slug, expected_amount, nullptr, nullptr)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_buyStarGiftOnchain>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for BuyStarGiftOnchainQuery: " << to_string(ptr);
+    promise_.set_result(StarGiftManager::get_gift_onchain_sale_transaction_object(std::move(ptr)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetSavedStarGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
   DialogId dialog_id_;
@@ -3435,6 +3464,33 @@ StarGiftManager::get_gift_onchain_purchase_offer_transaction_object(
       std::move(transaction->offer_address_), transaction->expires_at_,
       get_ton_wallet_message_object(std::move(transaction->message_)), std::move(gasless_message),
       transaction->rent_budget_, transaction->execution_allowance_, transaction->forward_amount_, transaction->fine_);
+}
+
+void StarGiftManager::buy_gift_onchain(const string &gift_name, int64 gram_amount,
+                                       Promise<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> &&promise) {
+  if (gram_amount <= 0) {
+    return promise.set_error(400, "Invalid amount specified");
+  }
+  td_->create_handler<BuyStarGiftOnchainQuery>(std::move(promise))->send(gift_name, gram_amount);
+}
+
+Result<td_api::object_ptr<td_api::giftOnchainSaleTransaction>>
+StarGiftManager::get_gift_onchain_sale_transaction_object(
+    telegram_api::object_ptr<telegram_api::payments_StarGiftOnchainSalePayload> &&payload_ptr) {
+  CHECK(payload_ptr != nullptr);
+  switch (payload_ptr->get_id()) {
+    case telegram_api::payments_starGiftOnchainSalePayload::ID: {
+      auto payload = telegram_api::move_object_as<telegram_api::payments_starGiftOnchainSalePayload>(payload_ptr);
+      return td_api::make_object<td_api::giftOnchainSaleTransaction>(std::move(payload->nft_address_),
+                                                                     payload->payload_.as_slice().str(),
+                                                                     payload->amount_, payload->gasless_available_);
+    }
+    case telegram_api::payments_starGiftOnchainFixedSalePayload::ID:
+      return Status::Error(500, "Receive unsupported fixed sale payload");
+    default:
+      UNREACHABLE();
+      return Status::Error(500, "Receive unsupported sale payload");
+  }
 }
 
 void StarGiftManager::get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,
