@@ -1536,7 +1536,8 @@ giftPurchaseLimits total_count:int32 remaining_count:int32 = GiftPurchaseLimits;
 //@star_count Resale price of the gift in Telegram Stars
 //@gram_cent_count Resale price of the gift in 1/100 of TON Gram
 //@gram_only True, if the gift can be bought only using Grams
-giftResaleParameters star_count:int53 gram_cent_count:int53 gram_only:Bool = GiftResaleParameters;
+//@is_onchain True, if the gift is sold on-chain; such gifts can be bought only using getGiftOnchainPurchaseTransaction
+giftResaleParameters star_count:int53 gram_cent_count:int53 gram_only:Bool is_onchain:Bool = GiftResaleParameters;
 
 //@description Describes collection of gifts
 //@id Unique identifier of the collection

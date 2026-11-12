@@ -98,6 +98,7 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(is_crafted_);
   STORE_FLAG(has_craft_chance_permille);
   STORE_FLAG(has_offer_min_gram_amount);
+  STORE_FLAG(is_onchain_sale_);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -286,6 +287,7 @@ void StarGift::parse(ParserT &parser) {
     PARSE_FLAG(is_crafted_);
     PARSE_FLAG(has_craft_chance_permille);
     PARSE_FLAG(has_offer_min_gram_amount);
+    PARSE_FLAG(is_onchain_sale_);
     END_PARSE_FLAGS();
   }
   td::parse(id_, parser);

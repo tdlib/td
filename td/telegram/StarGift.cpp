@@ -74,6 +74,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> star
         resale_star_count_ = StarGiftResalePrice(std::move(star_gift->resell_amount_[0])).get_star_count();
         resale_ton_count_ = StarGiftResalePrice(std::move(star_gift->resell_amount_[1])).get_ton_count();
         resale_ton_only_ = star_gift->resale_ton_only_;
+        is_onchain_sale_ = star_gift->onchain_sale_;
       }
     }
     offer_min_star_count_ = StarManager::get_star_count(star_gift->offer_min_stars_);
@@ -249,7 +250,7 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
   td_api::object_ptr<td_api::giftResaleParameters> resale_parameters;
   if (resale_star_count_ > 0 && resale_ton_count_ > 0) {
     resale_parameters = td_api::make_object<td_api::giftResaleParameters>(
-        resale_star_count_, resale_ton_count_ / 10000000, resale_ton_only_);
+        resale_star_count_, resale_ton_count_ / 10000000, resale_ton_only_, is_onchain_sale_);
   }
   return td_api::make_object<td_api::upgradedGift>(
       id_, regular_gift_id_,
@@ -302,13 +303,14 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.locked_until_date_ == rhs.locked_until_date_ && lhs.background_ == rhs.background_ &&
          lhs.has_colors_ == rhs.has_colors_ && lhs.is_for_birthday_ == rhs.is_for_birthday_ &&
          lhs.is_auction_ == rhs.is_auction_ && lhs.is_unique_ == rhs.is_unique_ &&
-         lhs.resale_ton_only_ == rhs.resale_ton_only_ && lhs.is_theme_available_ == rhs.is_theme_available_ &&
-         lhs.is_burned_ == rhs.is_burned_ && lhs.is_crafted_ == rhs.is_crafted_ && lhs.model_ == rhs.model_ &&
-         lhs.pattern_ == rhs.pattern_ && lhs.backdrop_ == rhs.backdrop_ &&
-         lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ && lhs.slug_ == rhs.slug_ &&
-         lhs.auction_slug_ == rhs.auction_slug_ && lhs.host_dialog_id_ == rhs.host_dialog_id_ &&
-         lhs.owner_dialog_id_ == rhs.owner_dialog_id_ && lhs.owner_address_ == rhs.owner_address_ &&
-         lhs.owner_name_ == rhs.owner_name_ && lhs.gift_address_ == rhs.gift_address_ && lhs.num_ == rhs.num_ &&
+         lhs.resale_ton_only_ == rhs.resale_ton_only_ && lhs.is_onchain_sale_ == rhs.is_onchain_sale_ &&
+         lhs.is_theme_available_ == rhs.is_theme_available_ && lhs.is_burned_ == rhs.is_burned_ &&
+         lhs.is_crafted_ == rhs.is_crafted_ && lhs.model_ == rhs.model_ && lhs.pattern_ == rhs.pattern_ &&
+         lhs.backdrop_ == rhs.backdrop_ && lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ &&
+         lhs.slug_ == rhs.slug_ && lhs.auction_slug_ == rhs.auction_slug_ &&
+         lhs.host_dialog_id_ == rhs.host_dialog_id_ && lhs.owner_dialog_id_ == rhs.owner_dialog_id_ &&
+         lhs.owner_address_ == rhs.owner_address_ && lhs.owner_name_ == rhs.owner_name_ &&
+         lhs.gift_address_ == rhs.gift_address_ && lhs.num_ == rhs.num_ &&
          lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_ &&
          lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.resale_ton_count_ == rhs.resale_ton_count_ &&
