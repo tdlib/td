@@ -28,6 +28,7 @@
 
 #include "td/actor/PromiseFuture.h"
 
+#include "td/utils/Action.h"
 #include "td/utils/algorithm.h"
 #include "td/utils/as.h"
 #include "td/utils/format.h"
@@ -58,17 +59,17 @@ class SemaphoreActor final : public Actor {
   explicit SemaphoreActor(size_t capacity) : capacity_(capacity) {
   }
 
-  void execute(Promise<Promise<Unit>> promise) {
+  void execute(Action<void(Promise<Unit>)> action) {
     if (capacity_ == 0) {
-      pending_.push(std::move(promise));
+      pending_.push(std::move(action));
     } else {
-      start(std::move(promise));
+      start(std::move(action));
     }
   }
 
  private:
   size_t capacity_;
-  VectorQueue<Promise<Promise<Unit>>> pending_;
+  VectorQueue<Action<void(Promise<Unit>)>> pending_;
 
   void finish(Result<Unit>) {
     capacity_++;
@@ -77,10 +78,10 @@ class SemaphoreActor final : public Actor {
     }
   }
 
-  void start(Promise<Promise<Unit>> promise) {
+  void start(Action<void(Promise<Unit>)> action) {
     CHECK(capacity_ > 0);
     capacity_--;
-    promise.set_value(promise_send_closure(actor_id(this), &SemaphoreActor::finish));
+    action(promise_send_closure(actor_id(this), &SemaphoreActor::finish));
   }
 };
 
@@ -89,8 +90,8 @@ struct Semaphore {
     semaphore_ = create_actor<SemaphoreActor>("Semaphore", capacity).release();
   }
 
-  void execute(Promise<Promise<Unit>> promise) {
-    send_closure(semaphore_, &SemaphoreActor::execute, std::move(promise));
+  void execute(Action<void(Promise<Unit>)> action) {
+    send_closure(semaphore_, &SemaphoreActor::execute, std::move(action));
   }
 
  private:
@@ -163,15 +164,13 @@ class GenAuthKeyActor final : public Actor {
   void start_up() final {
     // Bug in Android clang and MSVC
     // std::tuple<Result<int>> b(std::forward_as_tuple(Result<int>()));
-    get_handshake_semaphore().execute(promise_send_closure(actor_id(this), &GenAuthKeyActor::do_start_up));
+    get_handshake_semaphore().execute([actor_id = actor_id(this)](Promise<Unit> &&finish_promise) {
+      send_closure(actor_id, &GenAuthKeyActor::do_start_up, std::move(finish_promise));
+    });
   }
 
-  void do_start_up(Result<Promise<Unit>> r_finish_promise) {
-    if (r_finish_promise.is_error()) {
-      LOG(ERROR) << "Unexpected error: " << r_finish_promise.error();
-    } else {
-      finish_promise_ = r_finish_promise.move_as_ok();
-    }
+  void do_start_up(Promise<Unit> &&finish_promise) {
+    finish_promise_ = std::move(finish_promise);
     callback_->request_raw_connection(
         nullptr, PromiseCreator::cancellable_lambda(
                      cancellation_token_source_.get_cancellation_token(),
