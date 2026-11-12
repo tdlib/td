@@ -8441,6 +8441,12 @@ void Requests::on_request(uint64 id, td_api::getGramWithdrawalUrl &request) {
   td_->star_manager_->get_ton_withdrawal_url(request.password_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::withdrawGrams &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->star_manager_->withdraw_ton_revenue(std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getMessageStatistics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

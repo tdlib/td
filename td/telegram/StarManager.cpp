@@ -1262,6 +1262,36 @@ class GetStarsRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
   }
 };
 
+class WithdrawStarsRevenueToWalletQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit WithdrawStarsRevenueToWalletQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &temp_password) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_withdrawStarsRevenueToWallet(
+        0, true, telegram_api::make_object<telegram_api::inputPeerSelf>(), 0, BufferSlice(temp_password))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_withdrawStarsRevenueToWallet>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    if (!result) {
+      return on_error(Status::Error(500, "Internal Server Error: failed to withdraw Grams"));
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStarsRevenueAdsAccountUrlQuery final : public Td::ResultHandler {
   Promise<string> promise_;
   DialogId dialog_id_;
@@ -1713,6 +1743,14 @@ void StarManager::get_ton_revenue_statistics(bool is_dark,
 
 void StarManager::get_ton_withdrawal_url(const string &password, Promise<string> &&promise) {
   get_withdrawal_url(td_->dialog_manager_->get_my_dialog_id(), true, 0, password, std::move(promise));
+}
+
+void StarManager::withdraw_ton_revenue(Promise<Unit> &&promise) {
+  auto temp_password_state = PasswordManager::get_temp_password_state_sync();
+  if (!temp_password_state.has_temp_password) {
+    return promise.set_error(400, "Temporary password required to withdraw Grams");
+  }
+  td_->create_handler<WithdrawStarsRevenueToWalletQuery>(std::move(promise))->send(temp_password_state.temp_password);
 }
 
 void StarManager::get_star_ad_account_url(const td_api::object_ptr<td_api::MessageSender> &owner_id,

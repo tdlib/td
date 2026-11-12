@@ -9233,6 +9233,8 @@ class CliClient final : public Actor {
       string password;
       get_args(args, password);
       send_request(td_api::make_object<td_api::getGramWithdrawalUrl>(password));
+    } else if (op == "wg") {
+      send_request(td_api::make_object<td_api::withdrawGrams>());
     } else {
       op_not_found_count++;
     }

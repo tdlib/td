@@ -1832,6 +1832,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::getGramWithdrawalUrl &request);
 
+  void on_request(uint64 id, const td_api::withdrawGrams &request);
+
   void on_request(uint64 id, const td_api::getMessageStatistics &request);
 
   void on_request(uint64 id, const td_api::getStoryStatistics &request);

@@ -85,6 +85,8 @@ class StarManager final : public Actor {
 
   void get_ton_withdrawal_url(const string &password, Promise<string> &&promise);
 
+  void withdraw_ton_revenue(Promise<Unit> &&promise);
+
   void get_paid_message_revenue(UserId user_id, Promise<td_api::object_ptr<td_api::starCount>> &&promise);
 
   void reload_star_transaction(DialogId dialog_id, const string &transaction_id, bool is_refund,

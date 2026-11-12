@@ -17524,6 +17524,11 @@ getGramRevenueStatistics is_dark:Bool = GramRevenueStatistics;
 //@password The 2-step verification password of the current user
 getGramWithdrawalUrl password:string = HttpUrl;
 
+//@description Withdraws all available TON Grams of the current user directly to the TON wallet of the current user, which is created automatically if the user has no wallet yet.
+//-The user must have a valid temporary password; see createTemporaryPassword. If the wallet is being created, then the request fails with the error "WALLET_CREATING" and must be repeated later.
+//-The withdrawal is completed only after the transaction is confirmed in the TON blockchain
+withdrawGrams = Ok;
+
 
 //@description Returns detailed statistics about a chat. Currently, this method can be used only for supergroups and channels. Can be used only if supergroupFullInfo.can_get_statistics == true
 //@chat_id Chat identifier
