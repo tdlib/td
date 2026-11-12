@@ -1758,13 +1758,22 @@ tonWalletMessage destination_address:string gram_amount:int64 send_mode:int32 bo
 //-The final fine will be known after the cancellation is executed in the TON blockchain
 giftOnchainPurchaseOfferTransaction offer_address:string expiration_date:int32 message:tonWalletMessage gasless_message:tonWalletMessage rent_budget_amount:int64 execution_allowance_amount:int64 forward_amount:int64 fine_amount:int64 = GiftOnchainPurchaseOfferTransaction;
 
-//@description Contains information about a transaction that must be sent from the TON wallet of the current user to buy or sell an upgraded gift on-chain, or to cancel its sale.
-//-Use sendTonWalletTransaction to send the transaction
+//@class GiftOnchainSaleTransaction @description Describes a transaction that must be sent from the TON wallet of the current user to buy or sell an upgraded gift on-chain, or to cancel its sale
+
+//@description The transaction for a gift sold on-chain on Fragment. The transaction consists of one message with gram_amount attached and with payload as the message body,
+//-which must be sent to nft_address. Use sendTonWalletTransaction to send the transaction
 //@nft_address Address in the TON blockchain to which the transaction must be sent
 //@payload Body of the transaction message; may be empty
 //@gram_amount The amount that must be sent with the transaction, in the smallest units of TON Grams
 //@is_gasless_transfer_available True, if the transaction can be sent as a gasless transfer
-giftOnchainSaleTransaction nft_address:string payload:bytes gram_amount:int64 is_gasless_transfer_available:Bool = GiftOnchainSaleTransaction;
+giftOnchainSaleTransactionFragment nft_address:string payload:bytes gram_amount:int64 is_gasless_transfer_available:Bool = GiftOnchainSaleTransaction;
+
+//@description The transaction for a gift sold on-chain using a fixed price sale contract. All messages must be signed and sent in one transfer in the specified order.
+//-Use sendTonWalletTransaction with regular_transaction_data and gasless_transaction_data created from messages and gasless_messages respectively to send the transaction
+//@sale_address Address of the sale smart contract in the TON blockchain
+//@messages The messages that must be sent for a regular transfer
+//@gasless_messages The messages that must be sent for a gasless transfer instead of messages; empty if gasless transfer isn't available
+giftOnchainSaleTransactionFixedPrice sale_address:string messages:vector<tonWalletMessage> gasless_messages:vector<tonWalletMessage> = GiftOnchainSaleTransaction;
 
 //@description Contains result of gift upgrading
 //@gift The upgraded gift
@@ -17406,7 +17415,7 @@ sendTonWalletTransfer user_id:int53 address:string amount:int64 comment:string i
 
 //@description Sends a transaction signed by the application from the TON wallet of the current user without adding a message about it to any chat;
 //-can be used only if getOption("can_use_ton_wallet"). Use the method to send transactions described by upgradedGiftDepositInfo, giftOnchainPurchaseOfferTransaction,
-//-and giftOnchainSaleTransaction objects
+//-and GiftOnchainSaleTransaction objects
 //@regular_transaction_data Serialized signed data for a regular transaction
 //@gasless_transaction_data Serialized signed data for a gasless transaction; pass an empty string to force a regular transaction
 sendTonWalletTransaction regular_transaction_data:bytes gasless_transaction_data:bytes = TonWalletTransferResult;

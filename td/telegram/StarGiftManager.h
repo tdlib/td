@@ -131,16 +131,16 @@ class StarGiftManager final : public Actor {
       telegram_api::object_ptr<telegram_api::payments_starGiftOnchainOfferTx> &&transaction);
 
   void buy_gift_onchain(const string &gift_name, int64 gram_amount,
-                        Promise<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> &&promise);
+                        Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> &&promise);
 
-  static Result<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> get_gift_onchain_sale_transaction_object(
+  static td_api::object_ptr<td_api::GiftOnchainSaleTransaction> get_gift_onchain_sale_transaction_object(
       telegram_api::object_ptr<telegram_api::payments_StarGiftOnchainSalePayload> &&payload_ptr);
 
   void sell_gift_onchain(const string &gift_name, int64 gram_amount,
-                         Promise<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> &&promise);
+                         Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> &&promise);
 
   void cancel_gift_onchain_sale(const string &gift_name,
-                                Promise<td_api::object_ptr<td_api::giftOnchainSaleTransaction>> &&promise);
+                                Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> &&promise);
 
   void get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,
                             StarGiftCollectionId collection_id, bool exclude_unsaved, bool exclude_saved,
