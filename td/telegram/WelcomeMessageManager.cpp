@@ -653,6 +653,10 @@ void WelcomeMessageManager::on_load_welcome_messages_from_database(DialogId dial
     }
     if (dependencies.resolve_force(td_, "on_load_welcome_messages_from_database")) {
       loaded_welcome_messages_.insert(dialog_id);
+      for (auto &message : messages.messages_) {
+        register_welcome_message(dialog_id, message.get(), "on_load_welcome_messages_from_database");
+      }
+      change_welcome_message_files(dialog_id, {}, get_dialog_welcome_message_file_ids(messages.messages_));
       welcome_messages_[dialog_id] = std::move(messages);
       send_update_chat_welcome_messages(dialog_id);
       return set_promises(promises);
