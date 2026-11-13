@@ -35999,13 +35999,21 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
   }
   auto replied_message_full_id = input_reply_to->get_reply_message_full_id(d->dialog_id);
   auto replied_message_id = replied_message_full_id.get_message_id();
-  if (replied_message_id == MessageId() || !replied_message_id.is_yet_unsent()) {
+  if (replied_message_id == MessageId()) {
     return;
   }
-  CHECK(replied_message_full_id.get_dialog_id() == d->dialog_id);
-  LOG_CHECK(m->replied_message_info.get_reply_message_full_id(d->dialog_id, true) == replied_message_full_id)
-      << replied_message_full_id << ' ' << m->replied_message_info << ' ' << *input_reply_to;
-  auto message_id = get_message_id_by_random_id(d, m->reply_to_random_id, "restore_message_reply_to_message_id");
+  MessageId message_id;
+  if (replied_message_id.is_yet_unsent()) {
+    CHECK(replied_message_full_id.get_dialog_id() == d->dialog_id);
+    LOG_CHECK(m->replied_message_info.get_reply_message_full_id(d->dialog_id, true) == replied_message_full_id)
+        << replied_message_full_id << ' ' << m->replied_message_info << ' ' << *input_reply_to;
+    message_id = get_message_id_by_random_id(d, m->reply_to_random_id, "restore_message_reply_to_message_id");
+  } else if (replied_message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat &&
+             !is_ephemeral_message(m)) {
+    LOG(ERROR) << "Drop reply to " << replied_message_full_id << " from binlog";
+  } else {
+    return;
+  }
   if ((message_id.is_valid() || message_id.is_valid_scheduled()) && !message_id.is_local() &&
       (is_message_forward(m) || !message_id.is_yet_unsent())) {
     update_message_reply_to_message_id(d, m, message_id, false, "restore_message_reply_to_message_id");
