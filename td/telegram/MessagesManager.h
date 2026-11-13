@@ -270,6 +270,8 @@ class MessagesManager final : public Actor {
                                       telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message,
                                       int32 try_count = 0);
 
+  void on_update_dialog_ai_compose_style(DialogId dialog_id, unique_ptr<AiComposeStyle> &&ai_compose_style);
+
   void on_update_dialog_is_pinned(FolderId folder_id, DialogId dialog_id, bool is_pinned);
 
   void on_update_pinned_dialogs(FolderId folder_id);

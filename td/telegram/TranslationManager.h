@@ -23,6 +23,7 @@
 
 namespace td {
 
+class AiComposeStyle;
 class Td;
 
 class TranslationManager final : public Actor {
@@ -108,6 +109,9 @@ class TranslationManager final : public Actor {
   void search_tone(const string &name, Promise<td_api::object_ptr<td_api::textCompositionStyle>> &&promise);
 
   void get_ai_compose_tone_name(int64 tone_id, int64 tone_access_hash, Promise<string> &&promise);
+
+  Result<unique_ptr<AiComposeStyle>> get_ai_compose_style(
+      td_api::object_ptr<td_api::textCompositionParameters> &&text_composition_parameters) const;
 
   void get_tone_example(const string &name, int32 num,
                         Promise<td_api::object_ptr<td_api::textCompositionStyleExample>> &&promise);

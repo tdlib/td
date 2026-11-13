@@ -6033,6 +6033,13 @@ void Requests::on_request(uint64 id, td_api::setChatDraftMessage &request) {
                                                                        std::move(request.draft_message_)));
 }
 
+void Requests::on_request(uint64 id, td_api::setChatTextCompositionParameters &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->message_query_manager_->set_dialog_text_composition_parameters(
+      DialogId(request.chat_id_), std::move(request.text_composition_parameters_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::toggleChatHasProtectedContent &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

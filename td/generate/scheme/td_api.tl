@@ -189,8 +189,8 @@ textCompositionStyleExample source_text:formattedText result_text:formattedText 
 textCompositionStyle name:string custom_emoji_id:int64 title:string is_custom:Bool is_creator:Bool install_count:int32 prompt:string creator_user_id:int53 english_example:textCompositionStyleExample = TextCompositionStyle;
 
 //@description Describes parameters of text composition with AI
-//@style_name Name of the style of the resulting text; may be empty if none
-//@translate_to_language_code Language code to which the text will be translated; may be empty if none
+//@style_name Name of the style of the resulting text; may be empty if none. Handle updateTextCompositionStyles to get the list of supported styles
+//@translate_to_language_code Language code to which the text will be translated; may be empty if none. See translateText.to_language_code for the list of supported values
 //@add_emojis True, if emoji will be added to the text
 //@fix_text True, if the text will be fixed
 textCompositionParameters style_name:string translate_to_language_code:string add_emojis:Bool fix_text:Bool = TextCompositionParameters;
@@ -14917,6 +14917,11 @@ setChatTheme chat_id:int53 theme:InputChatTheme = Ok;
 //@topic_id Topic in which the draft will be changed; pass null to change the draft for the chat itself
 //@draft_message New draft message; pass null to remove the draft
 setChatDraftMessage chat_id:int53 topic_id:MessageTopic draft_message:draftMessage = Ok;
+
+//@description Changes default parameters for text composition with AI in a chat; not supported in secret chats
+//@chat_id Chat identifier
+//@text_composition_parameters New default parameters; pass null to reset them
+setChatTextCompositionParameters chat_id:int53 text_composition_parameters:textCompositionParameters = Ok;
 
 //@description Changes the notification settings of a chat. Notification settings of a chat with the current user (Saved Messages) can't be changed
 //@chat_id Chat identifier

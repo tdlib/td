@@ -331,6 +331,10 @@ class MessageQueryManager final : public Actor {
                                           SavedMessagesTopicId saved_messages_topic_id, uint64 log_event_id,
                                           Promise<Unit> &&promise);
 
+  void set_dialog_text_composition_parameters(
+      DialogId dialog_id, td_api::object_ptr<td_api::textCompositionParameters> &&text_composition_parameters,
+      Promise<Unit> &&promise);
+
   void on_update_emoji_game_info(telegram_api::object_ptr<telegram_api::messages_EmojiGameInfo> &&game_info);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;

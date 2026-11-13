@@ -7814,6 +7814,19 @@ class CliClient final : public Actor {
         theme = td_api::make_object<td_api::inputChatThemeEmoji>(name);
       }
       send_request(td_api::make_object<td_api::setChatTheme>(chat_id, std::move(theme)));
+    } else if (op == "sctcp") {
+      ChatId chat_id;
+      string style_name;
+      string to_language_code;
+      bool add_emojis;
+      bool fix_text;
+      get_args(args, chat_id, style_name, to_language_code, add_emojis, fix_text);
+      td_api::object_ptr<td_api::textCompositionParameters> parameters;
+      if (!style_name.empty() || !to_language_code.empty() || add_emojis || fix_text) {
+        parameters =
+            td_api::make_object<td_api::textCompositionParameters>(style_name, to_language_code, add_emojis, fix_text);
+      }
+      send_request(td_api::make_object<td_api::setChatTextCompositionParameters>(chat_id, std::move(parameters)));
     } else if (op == "sccd") {
       ChatId chat_id;
       string client_data;

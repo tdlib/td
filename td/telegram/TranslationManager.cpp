@@ -7,6 +7,7 @@
 #include "td/telegram/TranslationManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AiComposeStyle.h"
 #include "td/telegram/AiComposeTone.hpp"
 #include "td/telegram/AiComposeToneExample.h"
 #include "td/telegram/AuthManager.h"
@@ -19,6 +20,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -948,6 +950,29 @@ void TranslationManager::on_get_ai_compose_tone_name(int64 tone_id,
   for (auto &promise : promises) {
     promise.set_value(string(tone_name));
   }
+}
+
+Result<unique_ptr<AiComposeStyle>> TranslationManager::get_ai_compose_style(
+    td_api::object_ptr<td_api::textCompositionParameters> &&text_composition_parameters) const {
+  if (text_composition_parameters == nullptr) {
+    return nullptr;
+  }
+  auto &style_name = text_composition_parameters->style_name_;
+  auto &translate_to_language_code = text_composition_parameters->translate_to_language_code_;
+  if (!clean_input_string(style_name) || !clean_input_string(translate_to_language_code)) {
+    return Status::Error(400, "Strings must be encoded in UTF-8");
+  }
+  TRY_RESULT(input_tone, ai_compose_tones_.get_input_ai_compose_tone(style_name));
+  auto ai_compose_style = make_unique<AiComposeStyle>(telegram_api::make_object<telegram_api::inputAiComposeStyle>(
+      0, text_composition_parameters->add_emojis_, text_composition_parameters->fix_text_, std::move(input_tone),
+      translate_to_language_code));
+  if (ai_compose_style->is_empty()) {
+    return nullptr;
+  }
+  if (ai_compose_style->need_tone_name()) {
+    ai_compose_style->set_tone_name(style_name);
+  }
+  return std::move(ai_compose_style);
 }
 
 void TranslationManager::get_tone_example(const string &name, int32 num,

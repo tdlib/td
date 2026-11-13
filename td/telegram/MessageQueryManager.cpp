@@ -7,6 +7,7 @@
 #include "td/telegram/MessageQueryManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AiComposeStyle.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChannelParticipantFilter.h"
 #include "td/telegram/ChatManager.h"
@@ -2301,6 +2302,48 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->forum_topic_manager_->on_get_forum_topic_error(dialog_id_, forum_topic_id_, status, "UnpinAllMessagesQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SetChatStyleQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  unique_ptr<AiComposeStyle> ai_compose_style_;
+
+ public:
+  explicit SetChatStyleQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, unique_ptr<AiComposeStyle> &&ai_compose_style) {
+    dialog_id_ = dialog_id;
+    ai_compose_style_ = std::move(ai_compose_style);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+    telegram_api::object_ptr<telegram_api::inputAiComposeStyle> input_style;
+    if (ai_compose_style_ != nullptr) {
+      input_style = ai_compose_style_->get_input_ai_compose_style();
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::aicompose_setChatStyle(0, std::move(input_peer), std::move(input_style))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::aicompose_setChatStyle>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG(INFO) << "Receive result for SetChatStyleQuery: " << result;
+    td_->messages_manager_->on_update_dialog_ai_compose_style(dialog_id_, std::move(ai_compose_style_));
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SetChatStyleQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -5239,6 +5282,16 @@ void MessageQueryManager::unpin_all_dialog_messages_on_server(DialogId dialog_id
   };
   run_affected_history_query_until_complete(dialog_id, std::move(query), true,
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
+}
+
+void MessageQueryManager::set_dialog_text_composition_parameters(
+    DialogId dialog_id, td_api::object_ptr<td_api::textCompositionParameters> &&text_composition_parameters,
+    Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "set_dialog_text_composition_parameters"));
+  TRY_RESULT_PROMISE(promise, ai_compose_style,
+                     td_->translation_manager_->get_ai_compose_style(std::move(text_composition_parameters)));
+  td_->create_handler<SetChatStyleQuery>(std::move(promise))->send(dialog_id, std::move(ai_compose_style));
 }
 
 void MessageQueryManager::on_update_emoji_game_info(

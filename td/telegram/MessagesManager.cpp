@@ -28797,6 +28797,18 @@ void MessagesManager::on_get_ai_compose_style_tone_name(DialogId dialog_id, uint
   do_set_dialog_ai_compose_style(get_dialog(dialog_id), std::move(ai_compose_style));
 }
 
+void MessagesManager::on_update_dialog_ai_compose_style(DialogId dialog_id,
+                                                        unique_ptr<AiComposeStyle> &&ai_compose_style) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto d = get_dialog_force(dialog_id, "on_update_dialog_ai_compose_style");
+  if (d == nullptr) {
+    return;
+  }
+  set_dialog_ai_compose_style(d, std::move(ai_compose_style));
+}
+
 void MessagesManager::do_set_dialog_ai_compose_style(Dialog *d, unique_ptr<AiComposeStyle> &&ai_compose_style) {
   CHECK(d != nullptr);
   if (d->ai_compose_style == ai_compose_style) {

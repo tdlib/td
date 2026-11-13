@@ -1140,6 +1140,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::setChatDraftMessage &request);
 
+  void on_request(uint64 id, td_api::setChatTextCompositionParameters &request);
+
   void on_request(uint64 id, const td_api::toggleChatHasProtectedContent &request);
 
   void on_request(uint64 id, const td_api::processChatHasProtectedContentDisableRequest &request);
