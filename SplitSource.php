@@ -287,6 +287,7 @@ function split_file($file, $chunks, $undo) {
             'ActiveStoryState' => 'ActiveStoryState',
             'AffiliateType' => 'AffiliateType',
             'AgeVerificationParameters' => 'AgeVerificationParameters',
+            'AiComposeStyle' => 'AiComposeStyle',
             'AiComposeTone[^A-Z]' => 'AiComposeTone',
             'AiComposeToneExample' => 'AiComposeToneExample',
             'alarm_manager[_(-](?![.]get[(][)])|AlarmManager' => 'AlarmManager',
