@@ -148,7 +148,12 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
 };
 
 class GetAllDraftsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
  public:
+  explicit GetAllDraftsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
   void send() {
     send_query(G()->net_query_creator().create(telegram_api::messages_getAllDrafts()));
   }
@@ -161,19 +166,14 @@ class GetAllDraftsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetAllDraftsQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), PromiseCreator::lambda([](Result<Unit> result) {
-                                            if (result.is_ok()) {
-                                              send_closure(G()->draft_message_manager(),
-                                                           &DraftMessageManager::on_load_all_draft_messages);
-                                            }
-                                          }));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for GetAllDraftsQuery: " << status;
     }
-    status.ignore();
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -352,11 +352,24 @@ void DraftMessageManager::reload_draft_message(DialogId dialog_id, const Message
 }
 
 void DraftMessageManager::load_all_draft_messages() {
-  td_->create_handler<GetAllDraftsQuery>()->send();
+  if (is_loading_all_draft_messages_) {
+    return;
+  }
+  is_loading_all_draft_messages_ = true;
+
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<Unit> result) {
+    send_closure(actor_id, &DraftMessageManager::on_load_all_draft_messages, std::move(result));
+  });
+  td_->create_handler<GetAllDraftsQuery>(std::move(promise))->send();
 }
 
-void DraftMessageManager::on_load_all_draft_messages() {
+void DraftMessageManager::on_load_all_draft_messages(Result<Unit> &&result) {
   if (G()->close_flag()) {
+    return;
+  }
+  CHECK(is_loading_all_draft_messages_);
+  is_loading_all_draft_messages_ = false;
+  if (result.is_error()) {
     return;
   }
   G()->td_db()->get_binlog_pmc()->set(get_all_draft_messages_version_key(), to_string(ALL_DRAFT_MESSAGES_VERSION));

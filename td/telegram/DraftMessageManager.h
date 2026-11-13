@@ -40,8 +40,6 @@ class DraftMessageManager final : public Actor {
 
   void load_all_draft_messages();
 
-  void on_load_all_draft_messages();
-
   void after_get_difference();
 
   void clear_all_draft_messages(Promise<Unit> &&promise);
@@ -61,12 +59,15 @@ class DraftMessageManager final : public Actor {
 
   static string get_all_draft_messages_version_key();
 
+  void on_load_all_draft_messages(Result<Unit> &&result);
+
   FileSourceId *get_file_source_id(DialogId dialog_id, const MessageTopic &message_topic);
 
   Td *td_;
   ActorShared<> parent_;
 
   bool need_check_all_draft_messages_version_ = true;
+  bool is_loading_all_draft_messages_ = false;
 
   FlatHashMap<DialogId, FileSourceId, DialogIdHash> dialog_draft_message_file_source_ids_;
   FlatHashMap<MessageTopic, FileSourceId, MessageTopicHash> topic_draft_message_file_source_ids_;
