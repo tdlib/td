@@ -51,4 +51,7 @@ inline bool operator!=(const AiComposeStyle &lhs, const AiComposeStyle &rhs) {
   return !(lhs == rhs);
 }
 
+td_api::object_ptr<td_api::textCompositionParameters> get_text_composition_parameters_object(
+    const unique_ptr<AiComposeStyle> &ai_compose_style);
+
 }  // namespace td

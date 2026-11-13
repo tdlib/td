@@ -7,6 +7,7 @@
 #include "td/telegram/MessagesManager.h"
 
 #include "td/telegram/AccountManager.h"
+#include "td/telegram/AiComposeStyle.hpp"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/BlockListId.h"
@@ -3067,6 +3068,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_background = background_info.is_valid();
   bool has_business_bot_manage_bar = business_bot_manage_bar != nullptr;
   bool has_ephemeral_message_ids = !ephemeral_message_ids.empty();
+  bool has_ai_compose_style = ai_compose_style != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -3165,6 +3167,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(need_repair_unread_poll_vote_count);
     STORE_FLAG(has_ephemeral_message_ids);  // 25
     STORE_FLAG(has_welcome_messages);
+    STORE_FLAG(has_ai_compose_style);
     END_STORE_FLAGS();
   }
 
@@ -3297,6 +3300,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     }
     store(stored_data, storer);
   }
+  if (has_ai_compose_style) {
+    store(ai_compose_style, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -3350,6 +3356,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_background = false;
   bool has_business_bot_manage_bar = false;
   bool has_ephemeral_message_ids = false;
+  bool has_ai_compose_style = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -3448,6 +3455,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(need_repair_unread_poll_vote_count);
     PARSE_FLAG(has_ephemeral_message_ids);
     PARSE_FLAG(has_welcome_messages);
+    PARSE_FLAG(has_ai_compose_style);
     END_PARSE_FLAGS();
   }
 
@@ -3627,6 +3635,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
         ephemeral_message_ids.emplace(it.first, EphemeralMessageInfo{it.second, max_ephemeral_message_num++});
       }
     }
+  }
+  if (has_ai_compose_style) {
+    parse(ai_compose_style, parser);
   }
 
   (void)legacy_know_can_report_spam;
@@ -17604,7 +17615,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       td_->dialog_manager_->get_dialog_emoji_status_object(d->dialog_id), get_chat_background_object(d),
       get_dialog_chat_theme_object(d), get_chat_action_bar_object(d), get_business_bot_manage_bar_object(d),
       get_video_chat_object(d), get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(),
-      std::move(draft_message), d->client_data);
+      std::move(draft_message), get_text_composition_parameters_object(d->ai_compose_style), d->client_data);
 }
 
 td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id, const char *source) {
@@ -27521,6 +27532,21 @@ void MessagesManager::send_update_chat_draft_message(Dialog *d) {
   }
 }
 
+void MessagesManager::send_update_chat_text_composition_parameters(const Dialog *d) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  CHECK(d != nullptr);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id
+                                        << " in send_update_chat_text_composition_parameters";
+  on_dialog_updated(d->dialog_id, "send_update_chat_text_composition_parameters");
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatTextCompositionParameters>(
+                   get_chat_id_object(d->dialog_id, "updateChatTextCompositionParameters"),
+                   get_text_composition_parameters_object(d->ai_compose_style)));
+}
+
 void MessagesManager::send_update_last_message_if_needed(const Dialog *d, const Message *m, const char *source) const {
   if (m->message_id == d->last_message_id) {
     send_update_chat_last_message_impl(d, source);
@@ -28717,6 +28743,25 @@ bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMes
     return true;
   }
   return false;
+}
+
+void MessagesManager::set_dialog_ai_compose_style(Dialog *d, AiComposeStyle &&ai_compose_style) {
+  CHECK(d != nullptr);
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (ai_compose_style.is_empty()) {
+    if (d->ai_compose_style == nullptr) {
+      return;
+    }
+    d->ai_compose_style = nullptr;
+  } else {
+    if (d->ai_compose_style != nullptr && *d->ai_compose_style == ai_compose_style) {
+      return;
+    }
+    d->ai_compose_style = make_unique<AiComposeStyle>(std::move(ai_compose_style));
+  }
+  send_update_chat_text_composition_parameters(d);
 }
 
 void MessagesManager::clear_dialog_draft_by_sent_message(Dialog *d, const Message *m, bool need_update_dialog_pos) {

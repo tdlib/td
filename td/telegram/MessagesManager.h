@@ -114,6 +114,7 @@
 
 namespace td {
 
+class AiComposeStyle;
 struct BinlogEvent;
 class BusinessBotManageBar;
 class ChatTheme;
@@ -1355,6 +1356,7 @@ class MessagesManager final : public Actor {
     uint32 available_reactions_generation = 0;
     MessageTtl message_ttl;
     unique_ptr<DraftMessage> draft_message;
+    unique_ptr<AiComposeStyle> ai_compose_style;
     unique_ptr<DialogActionBar> action_bar;
     unique_ptr<BusinessBotManageBar> business_bot_manage_bar;
     LogEventIdWithGeneration save_draft_message_log_event_id;
@@ -2515,6 +2517,8 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_draft_message(Dialog *d);
 
+  void send_update_chat_text_composition_parameters(const Dialog *d);
+
   void send_update_last_message_if_needed(const Dialog *d, const Message *m, const char *source) const;
 
   void send_update_chat_last_message(Dialog *d, const char *source);
@@ -3063,6 +3067,8 @@ class MessagesManager final : public Actor {
 
   bool update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
                                    bool need_update_dialog_pos, bool need_delete_files, bool from_database);
+
+  void set_dialog_ai_compose_style(Dialog *d, AiComposeStyle &&ai_compose_style);
 
   void clear_dialog_draft_by_sent_message(Dialog *d, const Message *m, bool need_update_dialog_pos);
 

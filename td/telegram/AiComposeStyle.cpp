@@ -85,4 +85,12 @@ bool operator==(const AiComposeStyle &lhs, const AiComposeStyle &rhs) {
          lhs.emojify_ == rhs.emojify_ && lhs.proofread_ == rhs.proofread_;
 }
 
+td_api::object_ptr<td_api::textCompositionParameters> get_text_composition_parameters_object(
+    const unique_ptr<AiComposeStyle> &ai_compose_style) {
+  if (ai_compose_style == nullptr) {
+    return nullptr;
+  }
+  return ai_compose_style->get_text_composition_parameters_object();
+}
+
 }  // namespace td
