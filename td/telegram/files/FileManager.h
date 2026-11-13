@@ -854,6 +854,9 @@ class FileManager final : public Actor {
   };
   FlatHashMap<FileId, FileDownloadRequests, FileIdHash> file_download_requests_;
 
+  FlatHashMap<int64, uint64> pending_internal_download_generations_;
+  uint64 current_internal_download_generation_ = 0;
+
   struct FileUploadInfo {
     int8 upload_priority_{0};
     uint64 upload_order_{0};
@@ -921,7 +924,7 @@ class FileManager final : public Actor {
   void on_user_file_download_finished(FileId file_id);
 
   void download_impl(FileId file_id, int64 internal_download_id, std::shared_ptr<DownloadCallback> callback,
-                     int32 new_priority, int64 offset, int64 limit, Status check_status,
+                     int32 new_priority, int64 offset, int64 limit, Status check_status, uint64 download_generation,
                      Promise<td_api::object_ptr<td_api::file>> promise);
 
   std::shared_ptr<DownloadCallback> extract_download_callback(FileId file_id, int64 internal_download_id);
