@@ -3068,7 +3068,7 @@ class MessagesManager final : public Actor {
   bool update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
                                    bool need_update_dialog_pos, bool need_delete_files, bool from_database);
 
-  void set_dialog_ai_compose_style(Dialog *d, AiComposeStyle &&ai_compose_style);
+  void set_dialog_ai_compose_style(Dialog *d, unique_ptr<AiComposeStyle> &&ai_compose_style);
 
   void clear_dialog_draft_by_sent_message(Dialog *d, const Message *m, bool need_update_dialog_pos);
 

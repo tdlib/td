@@ -25,6 +25,7 @@
 
 namespace td {
 
+class AiComposeStyle;
 class Dependencies;
 class MessageContent;
 class SuggestedPost;
@@ -126,5 +127,8 @@ unique_ptr<DraftMessage> get_draft_message(Td *td,
 
 vector<InputDialogId> get_draft_message_reply_input_dialog_ids(
     const telegram_api::object_ptr<telegram_api::DraftMessage> &draft_message);
+
+unique_ptr<AiComposeStyle> get_draft_message_ai_compose_style(
+    telegram_api::object_ptr<telegram_api::DraftMessage> &draft_message);
 
 }  // namespace td

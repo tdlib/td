@@ -13101,6 +13101,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       }
     }
 
+    set_dialog_ai_compose_style(d, get_draft_message_ai_compose_style(dialog->draft_));
     need_update_dialog_pos |=
         update_dialog_draft_message(d, get_draft_message(td_, std::move(dialog->draft_)), true, false, true, false);
     if (is_new) {
@@ -28672,7 +28673,9 @@ void MessagesManager::on_update_dialog_draft_message(
   auto d = get_dialog_force(dialog_id, "on_update_dialog_draft_message");
   if (d == nullptr) {
     LOG(INFO) << "Ignore update chat draft in unknown " << dialog_id;
-    if (draft_message != nullptr && draft_message->get_id() != telegram_api::draftMessageEmpty::ID) {
+    if (draft_message != nullptr &&
+        (draft_message->get_id() != telegram_api::draftMessageEmpty::ID ||
+         static_cast<const telegram_api::draftMessageEmpty *>(draft_message.get())->ai_style_ != nullptr)) {
       if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
         LOG(ERROR) << "Have no read access to " << dialog_id << " to repair chat draft message";
       } else {
@@ -28698,6 +28701,7 @@ void MessagesManager::on_update_dialog_draft_message(
     }
   }
 
+  auto ai_compose_style = get_draft_message_ai_compose_style(draft_message);
   auto new_draft_message = get_draft_message(td_, std::move(draft_message));
   if (top_thread_message_id.is_valid()) {
     auto message_topic = MessageTopic::autodetect(td_, dialog_id, top_thread_message_id);
@@ -28720,6 +28724,7 @@ void MessagesManager::on_update_dialog_draft_message(
     return;
   }
 
+  set_dialog_ai_compose_style(d, std::move(ai_compose_style));
   update_dialog_draft_message(d, std::move(new_draft_message), true, true, true, false);
 }
 
@@ -28745,22 +28750,15 @@ bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMes
   return false;
 }
 
-void MessagesManager::set_dialog_ai_compose_style(Dialog *d, AiComposeStyle &&ai_compose_style) {
+void MessagesManager::set_dialog_ai_compose_style(Dialog *d, unique_ptr<AiComposeStyle> &&ai_compose_style) {
   CHECK(d != nullptr);
   if (td_->auth_manager_->is_bot()) {
     return;
   }
-  if (ai_compose_style.is_empty()) {
-    if (d->ai_compose_style == nullptr) {
-      return;
-    }
-    d->ai_compose_style = nullptr;
-  } else {
-    if (d->ai_compose_style != nullptr && *d->ai_compose_style == ai_compose_style) {
-      return;
-    }
-    d->ai_compose_style = make_unique<AiComposeStyle>(std::move(ai_compose_style));
+  if (d->ai_compose_style == ai_compose_style) {
+    return;
   }
+  d->ai_compose_style = std::move(ai_compose_style);
   send_update_chat_text_composition_parameters(d);
 }
 
@@ -35659,6 +35657,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
         set_dialog_is_marked_as_unread(d, is_marked_as_unread);
       }
 
+      set_dialog_ai_compose_style(d, get_draft_message_ai_compose_style(dialog->draft_));
       update_dialog_draft_message(d, get_draft_message(td_, std::move(dialog->draft_)), true, false, true, false);
 
       on_get_channel_dialog(dialog_id, MessageId(ServerMessageId(dialog->top_message_)),

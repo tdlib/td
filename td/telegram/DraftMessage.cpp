@@ -6,6 +6,7 @@
 //
 #include "td/telegram/DraftMessage.h"
 
+#include "td/telegram/AiComposeStyle.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageContent.h"
@@ -523,6 +524,32 @@ vector<InputDialogId> get_draft_message_reply_input_dialog_ids(
       UNREACHABLE();
   }
   return {};
+}
+
+unique_ptr<AiComposeStyle> get_draft_message_ai_compose_style(
+    telegram_api::object_ptr<telegram_api::DraftMessage> &draft_message) {
+  if (draft_message == nullptr) {
+    return nullptr;
+  }
+  telegram_api::object_ptr<telegram_api::inputAiComposeStyle> ai_style;
+  switch (draft_message->get_id()) {
+    case telegram_api::draftMessageEmpty::ID:
+      ai_style = std::move(static_cast<telegram_api::draftMessageEmpty *>(draft_message.get())->ai_style_);
+      break;
+    case telegram_api::draftMessage::ID:
+      ai_style = std::move(static_cast<telegram_api::draftMessage *>(draft_message.get())->ai_style_);
+      break;
+    default:
+      UNREACHABLE();
+  }
+  if (ai_style == nullptr) {
+    return nullptr;
+  }
+  auto ai_compose_style = make_unique<AiComposeStyle>(std::move(ai_style));
+  if (ai_compose_style->is_empty()) {
+    return nullptr;
+  }
+  return ai_compose_style;
 }
 
 }  // namespace td
