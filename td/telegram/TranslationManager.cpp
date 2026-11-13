@@ -916,6 +916,9 @@ void TranslationManager::get_ai_compose_tone_name(int64 tone_id, int64 tone_acce
   }
   auto it = ai_compose_tone_names_.find(tone_id);
   if (it != ai_compose_tone_names_.end()) {
+    if (it->second.empty()) {
+      return promise.set_error(400, "Style not found");
+    }
     return promise.set_value(string(it->second));
   }
 
@@ -943,6 +946,9 @@ void TranslationManager::on_get_ai_compose_tone_name(int64 tone_id,
     r_style = Status::Error(500, "Receive invalid style");
   }
   if (r_style.is_error()) {
+    if (r_style.error().code() == 400) {
+      ai_compose_tone_names_[tone_id] = string();
+    }
     return fail_promises(promises, r_style.move_as_error());
   }
   const auto &tone_name = r_style.ok()->name_;
