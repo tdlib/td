@@ -31,6 +31,7 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/DownloadManager.h"
+#include "td/telegram/DraftMessageManager.h"
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/EphemeralMessageId.h"
 #include "td/telegram/FolderId.h"
@@ -2392,6 +2393,7 @@ void UpdatesManager::after_get_difference() {
   }
 
   send_closure(td_->download_manager_actor_, &DownloadManager::after_get_difference);
+  td_->draft_message_manager_->after_get_difference();
   td_->inline_queries_manager_->after_get_difference();
   td_->messages_manager_->after_get_difference();
   send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_difference);
