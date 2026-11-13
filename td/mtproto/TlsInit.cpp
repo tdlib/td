@@ -54,9 +54,9 @@ class TlsHello {
       RandomValue,
       Padding
     };
-    Type type;
-    int length;
-    int seed;
+    Type type = Type::String;
+    int length = 0;
+    int seed = 0;
     string data;
     vector<vector<Op>> parts;
     vector<Op> value;

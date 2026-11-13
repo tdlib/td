@@ -6346,11 +6346,11 @@ void StoryManager::start_live_story(DialogId dialog_id, td_api::object_ptr<td_ap
 
 class StoryManager::EditStoryLogEvent {
  public:
-  const PendingStory *pending_story_in_;
+  const PendingStory *pending_story_in_ = nullptr;
   unique_ptr<PendingStory> pending_story_out_;
-  bool edit_media_areas_;
+  bool edit_media_areas_ = false;
   vector<MediaArea> areas_;
-  bool edit_caption_;
+  bool edit_caption_ = false;
   FormattedText caption_;
 
   EditStoryLogEvent() : pending_story_in_(nullptr), edit_caption_(false) {
