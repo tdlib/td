@@ -24272,7 +24272,10 @@ bool MessagesManager::can_register_message_reply(const Message *m) const {
 
 void MessagesManager::register_message_reply(DialogId dialog_id, const Message *m) {
   m->replied_message_info.register_content(td_);
+  register_message_reply_media_timestamps(dialog_id, m);
+}
 
+void MessagesManager::register_message_reply_media_timestamps(DialogId dialog_id, const Message *m) {
   if (!can_register_message_reply(m)) {
     return;
   }
@@ -24317,15 +24320,18 @@ void MessagesManager::reregister_message_reply(DialogId dialog_id, const Message
     return;
   }
   if (was_registered) {
-    unregister_message_reply(dialog_id, m);
+    unregister_message_reply_media_timestamps(dialog_id, m);
   } else {
-    register_message_reply(dialog_id, m);
+    register_message_reply_media_timestamps(dialog_id, m);
   }
 }
 
 void MessagesManager::unregister_message_reply(DialogId dialog_id, const Message *m) {
   m->replied_message_info.unregister_content(td_);
+  unregister_message_reply_media_timestamps(dialog_id, m);
+}
 
+void MessagesManager::unregister_message_reply_media_timestamps(DialogId dialog_id, const Message *m) {
   if (!can_register_message_reply(m)) {
     return;
   }

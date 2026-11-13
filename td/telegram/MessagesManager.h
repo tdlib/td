@@ -2408,9 +2408,13 @@ class MessagesManager final : public Actor {
 
   void register_message_reply(DialogId dialog_id, const Message *m);
 
+  void register_message_reply_media_timestamps(DialogId dialog_id, const Message *m);
+
   void reregister_message_reply(DialogId dialog_id, const Message *m);
 
   void unregister_message_reply(DialogId dialog_id, const Message *m);
+
+  void unregister_message_reply_media_timestamps(DialogId dialog_id, const Message *m);
 
   void send_update_new_message(const Dialog *d, const Message *m);
 
