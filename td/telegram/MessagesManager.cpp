@@ -28755,6 +28755,50 @@ void MessagesManager::set_dialog_ai_compose_style(Dialog *d, unique_ptr<AiCompos
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  pending_dialog_ai_compose_style_generations_.erase(d->dialog_id);
+  if (ai_compose_style != nullptr && ai_compose_style->need_tone_name()) {
+    if (d->ai_compose_style != nullptr) {
+      ai_compose_style->copy_tone_name_if_same(*d->ai_compose_style);
+    }
+    if (ai_compose_style->need_tone_name()) {
+      auto generation = ++current_ai_compose_style_generation_;
+      pending_dialog_ai_compose_style_generations_[d->dialog_id] = generation;
+      auto tone_id = ai_compose_style->get_tone_id();
+      auto tone_access_hash = ai_compose_style->get_tone_access_hash();
+      auto promise =
+          PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id, generation,
+                                  ai_compose_style = std::move(ai_compose_style)](Result<string> r_tone_name) mutable {
+            send_closure(actor_id, &MessagesManager::on_get_ai_compose_style_tone_name, dialog_id, generation,
+                         std::move(ai_compose_style), std::move(r_tone_name));
+          });
+      td_->translation_manager_->get_ai_compose_tone_name(tone_id, tone_access_hash, std::move(promise));
+      return;
+    }
+  }
+  do_set_dialog_ai_compose_style(d, std::move(ai_compose_style));
+}
+
+void MessagesManager::on_get_ai_compose_style_tone_name(DialogId dialog_id, uint64 generation,
+                                                        unique_ptr<AiComposeStyle> &&ai_compose_style,
+                                                        Result<string> r_tone_name) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto it = pending_dialog_ai_compose_style_generations_.find(dialog_id);
+  if (it == pending_dialog_ai_compose_style_generations_.end() || it->second != generation) {
+    return;
+  }
+  pending_dialog_ai_compose_style_generations_.erase(it);
+  if (r_tone_name.is_ok()) {
+    ai_compose_style->set_tone_name(r_tone_name.move_as_ok());
+  } else {
+    LOG(INFO) << "Failed to get name of AI compose tone in " << dialog_id << ": " << r_tone_name.error();
+  }
+  do_set_dialog_ai_compose_style(get_dialog(dialog_id), std::move(ai_compose_style));
+}
+
+void MessagesManager::do_set_dialog_ai_compose_style(Dialog *d, unique_ptr<AiComposeStyle> &&ai_compose_style) {
+  CHECK(d != nullptr);
   if (d->ai_compose_style == ai_compose_style) {
     return;
   }

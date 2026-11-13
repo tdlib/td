@@ -17,6 +17,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
@@ -106,6 +107,8 @@ class TranslationManager final : public Actor {
 
   void search_tone(const string &name, Promise<td_api::object_ptr<td_api::textCompositionStyle>> &&promise);
 
+  void get_ai_compose_tone_name(int64 tone_id, int64 tone_access_hash, Promise<string> &&promise);
+
   void get_tone_example(const string &name, int32 num,
                         Promise<td_api::object_ptr<td_api::textCompositionStyleExample>> &&promise);
 
@@ -144,10 +147,15 @@ class TranslationManager final : public Actor {
 
   void send_update_text_composition_styles() const;
 
+  void on_get_ai_compose_tone_name(int64 tone_id, Result<td_api::object_ptr<td_api::textCompositionStyle>> r_style);
+
   Td *td_;
   ActorShared<> parent_;
 
   AiComposeTones ai_compose_tones_;
+
+  FlatHashMap<int64, string> ai_compose_tone_names_;
+  FlatHashMap<int64, vector<Promise<string>>> get_ai_compose_tone_name_queries_;
 };
 
 }  // namespace td

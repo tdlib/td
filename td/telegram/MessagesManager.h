@@ -3070,6 +3070,11 @@ class MessagesManager final : public Actor {
 
   void set_dialog_ai_compose_style(Dialog *d, unique_ptr<AiComposeStyle> &&ai_compose_style);
 
+  void on_get_ai_compose_style_tone_name(DialogId dialog_id, uint64 generation,
+                                         unique_ptr<AiComposeStyle> &&ai_compose_style, Result<string> r_tone_name);
+
+  void do_set_dialog_ai_compose_style(Dialog *d, unique_ptr<AiComposeStyle> &&ai_compose_style);
+
   void clear_dialog_draft_by_sent_message(Dialog *d, const Message *m, bool need_update_dialog_pos);
 
   void save_dialog_draft_message_on_server(DialogId dialog_id);
@@ -3430,6 +3435,9 @@ class MessagesManager final : public Actor {
   FlatHashMap<NotificationGroupId, DialogId, NotificationGroupIdHash> notification_group_id_to_dialog_id_;
 
   uint64 current_message_edit_generation_ = 0;
+
+  FlatHashMap<DialogId, uint64, DialogIdHash> pending_dialog_ai_compose_style_generations_;
+  uint64 current_ai_compose_style_generation_ = 0;
 
   std::unordered_set<DialogListId, DialogListIdHash> postponed_unread_message_count_updates_;
   std::unordered_set<DialogListId, DialogListIdHash> postponed_unread_chat_count_updates_;

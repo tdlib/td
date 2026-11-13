@@ -72,6 +72,12 @@ telegram_api::object_ptr<telegram_api::inputAiComposeStyle> AiComposeStyle::get_
                                                                       to_language_code_);
 }
 
+void AiComposeStyle::copy_tone_name_if_same(const AiComposeStyle &other) {
+  if (tone_type_ == ToneType::Id && other.tone_type_ == ToneType::Id && tone_id_ == other.tone_id_) {
+    tone_name_ = other.tone_name_;
+  }
+}
+
 td_api::object_ptr<td_api::textCompositionParameters> AiComposeStyle::get_text_composition_parameters_object() const {
   if (is_empty()) {
     return nullptr;

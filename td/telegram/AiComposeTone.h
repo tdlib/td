@@ -48,6 +48,14 @@ class AiComposeTone {
     return name == slug_;
   }
 
+  bool has_id(int64 id) const {
+    return type_ == Type::Custom && id_ == id;
+  }
+
+  const string &get_name() const {
+    return slug_;
+  }
+
   telegram_api::object_ptr<telegram_api::InputAiComposeTone> get_input_ai_compose_tone() const;
 
   void add_dependencies(Dependencies &dependencies) const;
@@ -84,6 +92,8 @@ class AiComposeTones {
 
   Result<telegram_api::object_ptr<telegram_api::InputAiComposeTone>> get_input_ai_compose_tone(
       const string &name) const;
+
+  string get_tone_name(int64 tone_id) const;
 
   void add_dependencies(Dependencies &dependencies) const;
 

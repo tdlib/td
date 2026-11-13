@@ -34,6 +34,24 @@ class AiComposeStyle {
     return tone_type_ == ToneType::None && to_language_code_.empty() && !emojify_ && !proofread_;
   }
 
+  bool need_tone_name() const {
+    return tone_type_ == ToneType::Id && tone_name_.empty();
+  }
+
+  int64 get_tone_id() const {
+    return tone_id_;
+  }
+
+  int64 get_tone_access_hash() const {
+    return tone_access_hash_;
+  }
+
+  void set_tone_name(string tone_name) {
+    tone_name_ = std::move(tone_name);
+  }
+
+  void copy_tone_name_if_same(const AiComposeStyle &other);
+
   telegram_api::object_ptr<telegram_api::inputAiComposeStyle> get_input_ai_compose_style() const;
 
   td_api::object_ptr<td_api::textCompositionParameters> get_text_composition_parameters_object() const;

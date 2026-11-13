@@ -117,6 +117,15 @@ Result<telegram_api::object_ptr<telegram_api::InputAiComposeTone>> AiComposeTone
   return Status::Error(400, "Style not found");
 }
 
+string AiComposeTones::get_tone_name(int64 tone_id) const {
+  for (const auto &tone : tones_) {
+    if (tone.has_id(tone_id)) {
+      return tone.get_name();
+    }
+  }
+  return string();
+}
+
 void AiComposeTones::add_dependencies(Dependencies &dependencies) const {
   for (const auto &tone : tones_) {
     tone.add_dependencies(dependencies);

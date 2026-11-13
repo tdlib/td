@@ -904,6 +904,52 @@ void TranslationManager::search_tone(const string &name,
   td_->create_handler<GetToneQuery>(std::move(promise))->send(std::move(input_tone));
 }
 
+void TranslationManager::get_ai_compose_tone_name(int64 tone_id, int64 tone_access_hash, Promise<string> &&promise) {
+  if (tone_id == 0) {
+    return promise.set_error(400, "Invalid tone identifier");
+  }
+  auto tone_name = ai_compose_tones_.get_tone_name(tone_id);
+  if (!tone_name.empty()) {
+    return promise.set_value(std::move(tone_name));
+  }
+  auto it = ai_compose_tone_names_.find(tone_id);
+  if (it != ai_compose_tone_names_.end()) {
+    return promise.set_value(string(it->second));
+  }
+
+  auto &promises = get_ai_compose_tone_name_queries_[tone_id];
+  promises.push_back(std::move(promise));
+  if (promises.size() != 1u) {
+    return;
+  }
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), tone_id](Result<td_api::object_ptr<td_api::textCompositionStyle>> r_style) {
+        send_closure(actor_id, &TranslationManager::on_get_ai_compose_tone_name, tone_id, std::move(r_style));
+      });
+  td_->create_handler<GetToneQuery>(std::move(query_promise))
+      ->send(telegram_api::make_object<telegram_api::inputAiComposeToneID>(tone_id, tone_access_hash));
+}
+
+void TranslationManager::on_get_ai_compose_tone_name(int64 tone_id,
+                                                     Result<td_api::object_ptr<td_api::textCompositionStyle>> r_style) {
+  G()->ignore_result_if_closing(r_style);
+  auto it = get_ai_compose_tone_name_queries_.find(tone_id);
+  CHECK(it != get_ai_compose_tone_name_queries_.end());
+  auto promises = std::move(it->second);
+  get_ai_compose_tone_name_queries_.erase(it);
+  if (r_style.is_ok() && (r_style.ok() == nullptr || r_style.ok()->name_.empty())) {
+    r_style = Status::Error(500, "Receive invalid style");
+  }
+  if (r_style.is_error()) {
+    return fail_promises(promises, r_style.move_as_error());
+  }
+  const auto &tone_name = r_style.ok()->name_;
+  ai_compose_tone_names_[tone_id] = tone_name;
+  for (auto &promise : promises) {
+    promise.set_value(string(tone_name));
+  }
+}
+
 void TranslationManager::get_tone_example(const string &name, int32 num,
                                           Promise<td_api::object_ptr<td_api::textCompositionStyleExample>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_tone, ai_compose_tones_.get_input_ai_compose_tone(name));
