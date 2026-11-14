@@ -16580,6 +16580,13 @@ getManagedBotAccessSettings bot_user_id:int53 = BotAccessSettings;
 //@description Sets access settings of a managed bot; for bots only @bot_user_id Identifier of the managed bot @settings New access settings
 setManagedBotAccessSettings bot_user_id:int53 settings:botAccessSettings = Ok;
 
+//@description Invites users to private chats with a bot owned by the current user. Can be called only if userTypeBot.can_be_edited == true.
+//-Each invited user will receive a message messageBotInvite and the bot will be able to send messages to the user. The request succeeds if at least one user was invited.
+//-May return an error with a message "BOT_INVITE_ALREADY_STARTED" if the user already has an active chat with the bot
+//@bot_user_id Identifier of the bot
+//@user_ids Identifiers of the users to invite; 1-10 different users
+inviteUsersToBot bot_user_id:int53 user_ids:vector<int53> = Ok;
+
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot
 //@language_code A two-letter ISO 639-1 language code. If empty, the name will be shown to all users for whose languages there is no dedicated name

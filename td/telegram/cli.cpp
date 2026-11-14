@@ -8737,6 +8737,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setBotInfoDescription>(bot_user_id, language_code, description));
       send_request(
           td_api::make_object<td_api::setBotInfoShortDescription>(bot_user_id, language_code, short_description));
+    } else if (op == "iutb") {
+      UserId bot_user_id;
+      string user_ids;
+      get_args(args, bot_user_id, user_ids);
+      send_request(td_api::make_object<td_api::inviteUsersToBot>(bot_user_id, as_user_ids(user_ids)));
     } else if (op == "sbn") {
       UserId bot_user_id;
       string language_code;

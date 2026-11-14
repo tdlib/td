@@ -7198,6 +7198,13 @@ void Requests::on_request(uint64 id, td_api::setManagedBotAccessSettings &reques
                                                   std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::inviteUsersToBot &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->bot_info_manager_->invite_users_to_bot(UserId(request.bot_user_id_), UserId::get_user_ids(request.user_ids_),
+                                              std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setBotName &request) {
   CLEAN_INPUT_STRING(request.name_);
   CREATE_OK_REQUEST_PROMISE();

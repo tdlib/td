@@ -162,6 +162,35 @@ class EditAccessSettingsQuery final : public Td::ResultHandler {
   }
 };
 
+class InviteUsersToBotQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit InviteUsersToBotQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
+            vector<telegram_api::object_ptr<telegram_api::InputUser>> &&input_users) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_inviteUsersToBot(std::move(input_user), std::move(input_users))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_inviteUsersToBot>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG(INFO) << "Receive result for InviteUsersToBotQuery: " << result;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetAdminedBotsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::users>> promise_;
   UserId bot_user_id_;
@@ -887,6 +916,15 @@ void BotInfoManager::can_bot_send_messages(UserId bot_user_id, Promise<Unit> &&p
 
 void BotInfoManager::allow_bot_to_send_messages(UserId bot_user_id, Promise<Unit> &&promise) {
   td_->create_handler<AllowBotSendMessageQuery>(std::move(promise))->send(bot_user_id);
+}
+
+void BotInfoManager::invite_users_to_bot(UserId bot_user_id, const vector<UserId> &user_ids, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_bot_input_user(td_, bot_user_id));
+  if (user_ids.empty()) {
+    return promise.set_error(400, "User list must be non-empty");
+  }
+  TRY_RESULT_PROMISE(promise, input_users, td_->user_manager_->get_input_users(user_ids));
+  td_->create_handler<InviteUsersToBotQuery>(std::move(promise))->send(std::move(input_user), std::move(input_users));
 }
 
 FileSourceId BotInfoManager::get_bot_media_preview_file_source_id(UserId bot_user_id) {
