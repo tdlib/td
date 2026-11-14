@@ -3652,8 +3652,8 @@ class CliClient final : public Actor {
       string offset;
       bool for_stars;
       bool for_grams;
-      bool for_onchain;
-      get_args(args, gift_id, limit, offset, for_stars, for_grams, for_onchain);
+      bool for_fragment;
+      get_args(args, gift_id, limit, offset, for_stars, for_grams, for_fragment);
       td_api::object_ptr<td_api::GiftForResaleOrder> order;
       if (op == "sgfrd") {
         order = td_api::make_object<td_api::giftForResaleOrderPriceChangeDate>();
@@ -3663,7 +3663,7 @@ class CliClient final : public Actor {
         order = td_api::make_object<td_api::giftForResaleOrderPrice>();
       }
       send_request(td_api::make_object<td_api::searchGiftsForResale>(
-          gift_id, std::move(order), op == "spfrc", for_stars, for_grams, for_onchain,
+          gift_id, std::move(order), op == "spfrc", for_stars, for_grams, for_fragment,
           get_upgraded_gift_attribute_ids(), offset, as_limit(limit)));
     } else if (op == "ggic") {
       string owner_id;

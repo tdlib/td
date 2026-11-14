@@ -9312,7 +9312,7 @@ void Requests::on_request(uint64 id, td_api::searchGiftsForResale &request) {
   CREATE_REQUEST_PROMISE();
   td_->star_gift_manager_->get_resale_star_gifts(
       request.gift_id_, request.order_, request.for_crafting_, request.for_stars_, request.for_grams_,
-      request.for_onchain_, request.attributes_, request.offset_, request.limit_, std::move(promise));
+      request.for_fragment_, request.attributes_, request.offset_, request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getGiftCollections &request) {
