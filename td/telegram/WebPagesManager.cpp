@@ -1121,7 +1121,7 @@ void WebPagesManager::register_poll_web_pages(PollId poll_id, vector<WebPageId> 
     if (it == poll_web_pages_.end()) {
       return;
     }
-    LOG(INFO) << "Unregister " << web_page_ids << " from " << poll_id;
+    LOG(INFO) << "Unregister " << it->second << " from " << poll_id;
     for (auto web_page_id : it->second) {
       CHECK(web_page_id.is_valid());
       auto &poll_ids = web_page_polls_[web_page_id];
