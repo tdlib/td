@@ -130,7 +130,7 @@ class StarGiftManager final : public Actor {
   get_gift_onchain_purchase_offer_transaction_object(
       telegram_api::object_ptr<telegram_api::payments_starGiftOnchainOfferTx> &&transaction);
 
-  void buy_gift_onchain(const string &gift_name, int64 gram_amount,
+  void buy_gift_onchain(const string &gift_name, DialogId owner_dialog_id, int64 gram_amount,
                         Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> &&promise);
 
   static td_api::object_ptr<td_api::GiftOnchainSaleTransaction> get_gift_onchain_sale_transaction_object(

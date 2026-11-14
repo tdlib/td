@@ -1800,9 +1800,9 @@ class BuyStarGiftOnchainQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(const string &slug, int64 expected_amount) {
+  void send(const string &slug, int64 expected_amount, telegram_api::object_ptr<telegram_api::InputPeer> &&input_peer) {
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_buyStarGiftOnchain(0, false, slug, expected_amount, nullptr, nullptr)));
+        telegram_api::payments_buyStarGiftOnchain(0, false, slug, expected_amount, std::move(input_peer), nullptr)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3523,12 +3523,19 @@ StarGiftManager::get_gift_onchain_purchase_offer_transaction_object(
       transaction->rent_budget_, transaction->execution_allowance_, transaction->forward_amount_, transaction->fine_);
 }
 
-void StarGiftManager::buy_gift_onchain(const string &gift_name, int64 gram_amount,
+void StarGiftManager::buy_gift_onchain(const string &gift_name, DialogId owner_dialog_id, int64 gram_amount,
                                        Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> &&promise) {
   if (gram_amount <= 0) {
     return promise.set_error(400, "Invalid amount specified");
   }
-  td_->create_handler<BuyStarGiftOnchainQuery>(std::move(promise))->send(gift_name, gram_amount);
+  telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
+  if (owner_dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
+    input_peer = td_->dialog_manager_->get_input_peer(owner_dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return promise.set_error(400, "Have no access to the new gift owner");
+    }
+  }
+  td_->create_handler<BuyStarGiftOnchainQuery>(std::move(promise))->send(gift_name, gram_amount, std::move(input_peer));
 }
 
 td_api::object_ptr<td_api::GiftOnchainSaleTransaction> StarGiftManager::get_gift_onchain_sale_transaction_object(

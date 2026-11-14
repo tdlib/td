@@ -16992,12 +16992,14 @@ acceptGiftOnchainPurchaseOffer message_id:int53 = GiftOnchainPurchaseOfferTransa
 declineGiftOnchainPurchaseOffer message_id:int53 = Ok;
 
 //@description Returns a transaction that must be sent from the TON wallet of the current user to buy an upgraded gift for which upgradedGift.uses_onchain_resale is true;
-//-can be used only if getOption("can_use_ton_wallet"). The type of the returned transaction depends on the type of the sale. The gift will be received by the TON wallet
-//-of the current user after the transaction is executed in the TON blockchain. Then, the gift will be shown on the user's profile page if it is still in the wallet
+//-can be used only if getOption("can_use_ton_wallet"). The type of the returned transaction depends on the type of the sale. The gift will be received by the new owner
+//-after the transaction is executed in the TON blockchain. If the gift is bought for the current user, then it will be received by the TON wallet of the current user,
+//-and will be shown on the user's profile page if it is still in the wallet
 //@gift_name Name of the upgraded gift
+//@owner_id Identifier of the user or the channel chat that will receive the gift
 //@gram_amount The price of the gift, in the smallest units of TON Grams; must be equal to giftResaleParameters.gram_amount. The request fails with the error
 //-"STARGIFT_ONCHAIN_PRICE_CHANGED" if the price has changed. The amount that will be paid can be bigger than the price because of the sale fee and blockchain fees
-getGiftOnchainPurchaseTransaction gift_name:string gram_amount:int64 = GiftOnchainSaleTransaction;
+getGiftOnchainPurchaseTransaction gift_name:string owner_id:MessageSender gram_amount:int64 = GiftOnchainSaleTransaction;
 
 //@description Returns a transaction that must be sent from the TON wallet of the current user to put an upgraded gift for which upgradedGift.uses_onchain_resale is true
 //-up for sale, or to change the price of a gift for which giftResaleParameters.is_fixed_onchain is true; can be used only if getOption("can_use_ton_wallet").
