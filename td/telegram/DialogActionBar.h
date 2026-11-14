@@ -10,12 +10,14 @@
 #include "td/telegram/FolderId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class DialogActionBar {
@@ -26,6 +28,8 @@ class DialogActionBar {
   int32 phone_country_ = 0;
   int32 last_name_change_date_ = 0;
   int32 last_photo_change_date_ = 0;
+  UserId bot_inviter_user_id_;
+  UserId bot_owner_user_id_;
 
   bool can_report_spam_ = false;
   bool can_add_contact_ = false;
@@ -63,7 +67,7 @@ class DialogActionBar {
     return can_unarchive_;
   }
 
-  td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(DialogType dialog_type,
+  td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(Td *td, DialogType dialog_type,
                                                                        bool hide_unarchive) const;
 
   void fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, bool has_outgoing_messages, FolderId folder_id);
@@ -76,6 +80,8 @@ class DialogActionBar {
 
   bool on_outgoing_message();
 
+  void add_dependencies(Dependencies &dependencies) const;
+
   template <class StorerT>
   void store(StorerT &storer) const {
     bool has_distance = distance_ >= 0;
@@ -84,6 +90,8 @@ class DialogActionBar {
     bool has_phone_country = phone_country_ > 0;
     bool has_last_name_change_date = last_name_change_date_ > 0;
     bool has_last_photo_change_date = last_photo_change_date_ > 0;
+    bool has_bot_inviter_user_id = bot_inviter_user_id_.is_valid();
+    bool has_bot_owner_user_id = bot_owner_user_id_.is_valid();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(can_report_spam_);
     STORE_FLAG(can_add_contact_);
@@ -99,6 +107,8 @@ class DialogActionBar {
     STORE_FLAG(has_phone_country);
     STORE_FLAG(has_last_name_change_date);
     STORE_FLAG(has_last_photo_change_date);
+    STORE_FLAG(has_bot_inviter_user_id);
+    STORE_FLAG(has_bot_owner_user_id);
     END_STORE_FLAGS();
     if (has_distance) {
       td::store(distance_, storer);
@@ -119,6 +129,12 @@ class DialogActionBar {
     if (has_last_photo_change_date) {
       td::store(last_photo_change_date_, storer);
     }
+    if (has_bot_inviter_user_id) {
+      td::store(bot_inviter_user_id_, storer);
+    }
+    if (has_bot_owner_user_id) {
+      td::store(bot_owner_user_id_, storer);
+    }
   }
 
   template <class ParserT>
@@ -129,6 +145,8 @@ class DialogActionBar {
     bool has_phone_country;
     bool has_last_name_change_date;
     bool has_last_photo_change_date;
+    bool has_bot_inviter_user_id;
+    bool has_bot_owner_user_id;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(can_report_spam_);
     PARSE_FLAG(can_add_contact_);
@@ -144,6 +162,8 @@ class DialogActionBar {
     PARSE_FLAG(has_phone_country);
     PARSE_FLAG(has_last_name_change_date);
     PARSE_FLAG(has_last_photo_change_date);
+    PARSE_FLAG(has_bot_inviter_user_id);
+    PARSE_FLAG(has_bot_owner_user_id);
     END_PARSE_FLAGS();
     if (has_distance) {
       td::parse(distance_, parser);
@@ -163,6 +183,12 @@ class DialogActionBar {
     }
     if (has_last_photo_change_date) {
       td::parse(last_photo_change_date_, parser);
+    }
+    if (has_bot_inviter_user_id) {
+      td::parse(bot_inviter_user_id_, parser);
+    }
+    if (has_bot_owner_user_id) {
+      td::parse(bot_owner_user_id_, parser);
     }
   }
 };

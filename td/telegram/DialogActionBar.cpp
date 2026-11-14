@@ -7,6 +7,7 @@
 #include "td/telegram/DialogActionBar.h"
 
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
 
@@ -63,6 +64,8 @@ unique_ptr<DialogActionBar> DialogActionBar::create(
   }
   action_bar->last_name_change_date_ = max(0, peer_settings->name_change_date_);
   action_bar->last_photo_change_date_ = max(0, peer_settings->photo_change_date_);
+  action_bar->bot_inviter_user_id_ = UserId(peer_settings->bot_inviter_id_);
+  action_bar->bot_owner_user_id_ = UserId(peer_settings->bot_owner_id_);
   if (action_bar->is_empty()) {
     return nullptr;
   }
@@ -273,6 +276,24 @@ void DialogActionBar::fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, bo
       can_unarchive_ = false;
     }
   }
+  if (bot_inviter_user_id_.is_valid() || bot_owner_user_id_.is_valid()) {
+    if (!can_report_spam_) {
+      bot_inviter_user_id_ = UserId();
+      bot_owner_user_id_ = UserId();
+    } else if (dialog_type != DialogType::User || !td->user_manager_->is_user_bot(dialog_id.get_user_id()) ||
+               !td->user_manager_->have_min_user(bot_inviter_user_id_) || can_add_contact_ || can_block_user_ ||
+               can_share_phone_number_ || can_report_location_ || can_invite_members_) {
+      LOG(ERROR) << "Receive bot inviter " << bot_inviter_user_id_ << " and owner " << bot_owner_user_id_ << " in "
+                 << dialog_id << " with action bar " << can_report_spam_ << '/' << can_add_contact_ << '/'
+                 << can_block_user_ << '/' << can_share_phone_number_ << '/' << can_report_location_ << '/'
+                 << can_invite_members_;
+      bot_inviter_user_id_ = UserId();
+      bot_owner_user_id_ = UserId();
+    } else if (bot_owner_user_id_.is_valid() && !td->user_manager_->have_min_user(bot_owner_user_id_)) {
+      LOG(ERROR) << "Receive unknown bot owner " << bot_owner_user_id_ << " in " << dialog_id;
+      bot_owner_user_id_ = UserId();
+    }
+  }
   if (!can_block_user_) {
     distance_ = -1;
   }
@@ -281,7 +302,7 @@ void DialogActionBar::fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, bo
   }
 }
 
-td_api::object_ptr<td_api::ChatActionBar> DialogActionBar::get_chat_action_bar_object(DialogType dialog_type,
+td_api::object_ptr<td_api::ChatActionBar> DialogActionBar::get_chat_action_bar_object(Td *td, DialogType dialog_type,
                                                                                       bool hide_unarchive) const {
   if (!join_request_dialog_title_.empty()) {
     CHECK(dialog_type == DialogType::User);
@@ -329,6 +350,11 @@ td_api::object_ptr<td_api::ChatActionBar> DialogActionBar::get_chat_action_bar_o
     return td_api::make_object<td_api::chatActionBarAddContact>();
   }
   if (can_report_spam_) {
+    if (bot_inviter_user_id_.is_valid()) {
+      return td_api::make_object<td_api::chatActionBarBotInvite>(
+          can_unarchive_, td->user_manager_->get_user_id_object(bot_inviter_user_id_, "chatActionBarBotInvite"),
+          td->user_manager_->get_user_id_object(bot_owner_user_id_, "chatActionBarBotInvite 2"));
+    }
     return td_api::make_object<td_api::chatActionBarReportSpam>(can_unarchive_);
   }
   return nullptr;
@@ -343,6 +369,8 @@ bool DialogActionBar::on_dialog_unarchived() {
   can_report_spam_ = false;
   clear_can_block_user();
   // keep can_add_contact_
+  bot_inviter_user_id_ = UserId();
+  bot_owner_user_id_ = UserId();
   return true;
 }
 
@@ -383,6 +411,11 @@ bool DialogActionBar::on_outgoing_message() {
   return true;
 }
 
+void DialogActionBar::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add(bot_inviter_user_id_);
+  dependencies.add(bot_owner_user_id_);
+}
+
 bool operator==(const DialogActionBar &lhs, const DialogActionBar &rhs) {
   return lhs.can_report_spam_ == rhs.can_report_spam_ && lhs.can_add_contact_ == rhs.can_add_contact_ &&
          lhs.can_block_user_ == rhs.can_block_user_ && lhs.can_share_phone_number_ == rhs.can_share_phone_number_ &&
@@ -392,7 +425,8 @@ bool operator==(const DialogActionBar &lhs, const DialogActionBar &rhs) {
          lhs.is_join_request_broadcast_ == rhs.is_join_request_broadcast_ &&
          lhs.join_request_date_ == rhs.join_request_date_ && lhs.registration_month_ == rhs.registration_month_ &&
          lhs.phone_country_ == rhs.phone_country_ && lhs.last_name_change_date_ == rhs.last_name_change_date_ &&
-         lhs.last_photo_change_date_ == rhs.last_photo_change_date_;
+         lhs.last_photo_change_date_ == rhs.last_photo_change_date_ &&
+         lhs.bot_inviter_user_id_ == rhs.bot_inviter_user_id_ && lhs.bot_owner_user_id_ == rhs.bot_owner_user_id_;
 }
 
 }  // namespace td

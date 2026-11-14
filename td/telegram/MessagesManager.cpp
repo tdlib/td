@@ -17506,13 +17506,13 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
     if (user_d == nullptr || user_d->action_bar == nullptr) {
       return nullptr;
     }
-    return user_d->action_bar->get_chat_action_bar_object(DialogType::User, d->folder_id != FolderId::archive());
+    return user_d->action_bar->get_chat_action_bar_object(td_, DialogType::User, d->folder_id != FolderId::archive());
   }
 
   if (d->action_bar == nullptr) {
     return nullptr;
   }
-  return d->action_bar->get_chat_action_bar_object(dialog_type, false);
+  return d->action_bar->get_chat_action_bar_object(td_, dialog_type, false);
 }
 
 td_api::object_ptr<td_api::businessBotManageBar> MessagesManager::get_business_bot_manage_bar_object(
@@ -34647,6 +34647,9 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     add_message_dependencies(dependencies, message.get());
   });
   add_draft_message_dependencies(dependencies, d->draft_message);
+  if (d->action_bar != nullptr) {
+    d->action_bar->add_dependencies(dependencies);
+  }
   if (d->business_bot_manage_bar != nullptr) {
     d->business_bot_manage_bar->add_dependencies(dependencies);
   }

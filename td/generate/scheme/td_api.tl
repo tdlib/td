@@ -4326,6 +4326,13 @@ chatActionBarSharePhoneNumber = ChatActionBar;
 //@request_date Point in time (Unix timestamp) when the join request was sent
 chatActionBarJoinRequest title:string is_channel:Bool request_date:int32 = ChatActionBar;
 
+//@description The chat is a private chat with a bot to which the current user was invited by another user. The chat can be reported as spam using the method reportChat
+//-with an empty option_id and message_ids; the user who sent the invitation will be reported. The bot can be blocked using the method setMessageSenderBlockList
+//@can_unarchive If true, the chat was automatically archived and can be moved back to the main chat list using addChatToList simultaneously with setting chat notification settings to default using setChatNotificationSettings
+//@inviter_user_id Identifier of the user who invited the current user to the bot
+//@owner_user_id Identifier of the current owner of the bot; 0 if unknown
+chatActionBarBotInvite can_unarchive:Bool inviter_user_id:int53 owner_user_id:int53 = ChatActionBar;
+
 
 //@class ButtonStyle @description Describes style of a button
 
