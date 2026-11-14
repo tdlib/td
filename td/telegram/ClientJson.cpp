@@ -16,12 +16,17 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/utf8.h"
 
 #include <utility>
 
 namespace td {
 
 static td_api::object_ptr<td_api::Function> get_return_error_function(Slice error_message) {
+  if (!check_utf8(error_message)) {
+    // the message contains a part of the request, which isn't encoded in UTF-8
+    error_message = Slice("Strings must be encoded in UTF-8");
+  }
   auto error = td_api::make_object<td_api::error>(400, error_message.str());
   return td_api::make_object<td_api::testReturnError>(std::move(error));
 }
