@@ -144,6 +144,7 @@ class LinkManager final : public Actor {
   class InternalLinkAuthenticationCode;
   class InternalLinkBackground;
   class InternalLinkBotAddToChannel;
+  class InternalLinkBotInvite;
   class InternalLinkBotStart;
   class InternalLinkBotStartInGroup;
   class InternalLinkBusinessChat;

@@ -766,6 +766,18 @@ class LinkManager::InternalLinkBotAddToChannel final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkBotInvite final : public InternalLink {
+  string bot_username_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeBotInvite>(bot_username_);
+  }
+
+ public:
+  explicit InternalLinkBotInvite(string bot_username) : bot_username_(std::move(bot_username)) {
+  }
+};
+
 class LinkManager::InternalLinkBotStart final : public InternalLink {
   string bot_username_;
   string start_parameter_;
@@ -2820,6 +2832,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       return td::make_unique<InternalLinkRequestManagedBot>(std::move(manager_bot_username),
                                                             std::move(new_bot_username), get_arg("name"));
     }
+  } else if (path.size() == 1 && path[0] == "botinvite") {
+    // botinvite?username=<bot_username>
+    auto bot_username = get_arg("username");
+    if (is_valid_username(bot_username)) {
+      return td::make_unique<InternalLinkBotInvite>(std::move(bot_username));
+    }
   }
   if (!path.empty() && !path[0].empty()) {
     return td::make_unique<InternalLinkUnknownDeepLink>(PSTRING() << "tg://" << query);
@@ -3086,6 +3104,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
   } else if (path.size() == 2u && path[0] == "newbot" && is_valid_username(path[1])) {
     // /newbot/<manager_bot_username>?name=<new_bot_name>
     return td::make_unique<InternalLinkRequestManagedBot>(string(path[1]), string(), get_arg("name"));
+  } else if (path.size() == 2u && path[0] == "botinvite" && is_valid_username(path[1])) {
+    // /botinvite/<bot_username>
+    return td::make_unique<InternalLinkBotInvite>(string(path[1]));
   } else if (is_valid_username(path[0]) && path[0] != "i") {
     if (path.size() >= 2 && to_integer<int64>(path[1]) > 0) {
       // /<username>/12345?single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
@@ -3499,6 +3520,17 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return PSTRING() << "tg://resolve?domain=" << link->bot_username_ << "&startchannel" << admin;
       } else {
         return PSTRING() << get_t_me_url() << link->bot_username_ << "?startchannel" << admin;
+      }
+    }
+    case td_api::internalLinkTypeBotInvite::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeBotInvite *>(type_ptr);
+      if (!is_valid_username(link->bot_username_)) {
+        return Status::Error(400, "Invalid bot username specified");
+      }
+      if (is_internal) {
+        return PSTRING() << "tg://botinvite?username=" << link->bot_username_;
+      } else {
+        return PSTRING() << get_t_me_url() << "botinvite/" << link->bot_username_;
       }
     }
     case td_api::internalLinkTypeBotStart::ID: {

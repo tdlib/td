@@ -10383,6 +10383,12 @@ internalLinkTypeBackground background_name:string = InternalLinkType;
 //@administrator_rights Expected administrator rights for the bot
 internalLinkTypeBotAddToChannel bot_username:string administrator_rights:chatAdministratorRights = InternalLinkType;
 
+//@description The link is a link to a dialog for inviting users to private chats with a bot. Call searchPublicChat with the given bot username.
+//-If the chat is found, the chat is a chat with a bot and the bot has can_be_edited == true, then ask the current user to select up to 10 users to invite
+//-and call inviteUsersToBot. Otherwise, show an error message
+//@bot_username Username of the bot
+internalLinkTypeBotInvite bot_username:string = InternalLinkType;
+
 //@description The link is a link to a chat with a Telegram bot. Call searchPublicChat with the given bot username, check that the user is a bot, show START button in the chat with the bot,
 //-and then call sendBotStartMessage with the given start parameter after the button is pressed
 //@bot_username Username of the bot

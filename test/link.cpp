@@ -319,6 +319,10 @@ static auto bot_add_to_channel(const td::string &bot_username,
                                                                               std::move(administrator_rights));
 }
 
+static auto bot_invite(const td::string &bot_username) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeBotInvite>(bot_username);
+}
+
 static auto bot_start(const td::string &bot_username, const td::string &start_parameter) {
   return td::td_api::make_object<td::td_api::internalLinkTypeBotStart>(bot_username, start_parameter, false);
 }
@@ -2120,6 +2124,17 @@ TEST(Link, parse_internal_link_part4) {
                       unknown_deep_link("tg://newbot?manager=0manager&username=testbot"));
   parse_internal_link("tg:newbot?manager=managerot&username=0testbot",
                       unknown_deep_link("tg://newbot?manager=managerot&username=0testbot"));
+
+  parse_internal_link("t.me/botinvite", public_chat("botinvite"));
+  parse_internal_link("t.me/botinvite/0testbot", public_chat("botinvite"));
+  parse_internal_link("t.me/botinvite/testbot", bot_invite("testbot"));
+  parse_internal_link("t.me/botinvite/testbot?asd", bot_invite("testbot"));
+  parse_internal_link("https://t.me/botinvite/testbot", bot_invite("testbot"));
+
+  parse_internal_link("tg:botinvite?username=testbot", bot_invite("testbot"));
+  parse_internal_link("tg://botinvite?username=testbot&asd", bot_invite("testbot"));
+  parse_internal_link("tg:botinvite?username=0testbot", unknown_deep_link("tg://botinvite?username=0testbot"));
+  parse_internal_link("tg:botinvite", unknown_deep_link("tg://botinvite"));
 
   parse_internal_link("tg://settings", settings());
   parse_internal_link("tg://setting", unknown_deep_link("tg://setting"));
