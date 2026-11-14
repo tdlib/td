@@ -6187,6 +6187,10 @@ messageGameScore game_message_id:int53 game_id:int64 score:int32 = MessageConten
 //@manager_bot_user_id Identifier of the bot which will manage the new bot
 messageManagedBotCreated bot_user_id:int53 manager_bot_user_id:int53 = MessageContent;
 
+//@description A user was invited to the private chat with a bot by the owner of the bot
+//@inviter_user_id Identifier of the user who sent the invitation
+messageBotInvite inviter_user_id:int53 = MessageContent;
+
 //@description A payment has been sent to a bot or a business account
 //@invoice_chat_id Identifier of the chat, containing the corresponding invoice message
 //@invoice_message_id Identifier of the message with the corresponding invoice; may be 0 or an identifier of a deleted message

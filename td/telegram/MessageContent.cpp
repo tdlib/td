@@ -554,7 +554,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 66;
+  static constexpr int32 CURRENT_VERSION = 67;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1969,6 +1969,19 @@ class MessageWidget final : public MessageContent {
   }
 };
 
+class MessageBotInvite final : public MessageContent {
+ public:
+  UserId inviter_user_id;
+
+  MessageBotInvite() = default;
+  explicit MessageBotInvite(UserId inviter_user_id) : inviter_user_id(inviter_user_id) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::BotInvite;
+  }
+};
+
 // returns empty string if the payload is invalid
 static string get_widget_html(Slice payload) {
   auto html = gzdecode(payload).as_slice().str();
@@ -3300,6 +3313,13 @@ static void store(const MessageContent *content, StorerT &storer) {
       if (has_public_data_hash) {
         store(m->public_data_hash, storer);
       }
+      break;
+    }
+    case MessageContentType::BotInvite: {
+      const auto *m = static_cast<const MessageBotInvite *>(content);
+      BEGIN_STORE_FLAGS();
+      END_STORE_FLAGS();
+      store(m->inviter_user_id, storer);
       break;
     }
     default:
@@ -4926,6 +4946,18 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::BotInvite: {
+      auto m = make_unique<MessageBotInvite>();
+      BEGIN_PARSE_FLAGS();
+      END_PARSE_FLAGS();
+      parse(m->inviter_user_id, parser);
+      if (!m->inviter_user_id.is_valid()) {
+        is_bad = true;
+        break;
+      }
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -6028,6 +6060,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
     case MessageContentType::StarGiftOnchainOffer:
+    case MessageContentType::BotInvite:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -6207,8 +6240,9 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::GramTransfer:
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
-    case MessageContentType::StarGiftOnchainOffer:
     case MessageContentType::Widget:
+    case MessageContentType::StarGiftOnchainOffer:
+    case MessageContentType::BotInvite:
       break;
     default:
       UNREACHABLE();
@@ -6457,6 +6491,7 @@ static InputMedia get_message_content_input_media_impl(
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
     case MessageContentType::StarGiftOnchainOffer:
+    case MessageContentType::BotInvite:
       break;
     default:
       UNREACHABLE();
@@ -6742,6 +6777,7 @@ void delete_message_content_thumbnail(Td *td, MessageContent *content, int32 med
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
     case MessageContentType::StarGiftOnchainOffer:
+    case MessageContentType::BotInvite:
       break;
     default:
       UNREACHABLE();
@@ -7028,6 +7064,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
     case MessageContentType::StarGiftOnchainOffer:
+    case MessageContentType::BotInvite:
       UNREACHABLE();
   }
   return Status::OK();
@@ -7237,6 +7274,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
     case MessageContentType::StarGiftOnchainOffer:
+    case MessageContentType::BotInvite:
       return 0;
     default:
       UNREACHABLE();
@@ -7736,6 +7774,9 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::UnpaidMessagesAllowedByLink:
       break;
     case MessageContentType::Widget:
+      break;
+    case MessageContentType::BotInvite:
+      // private chats only
       break;
     default:
       UNREACHABLE();
@@ -8357,8 +8398,9 @@ static void merge_message_contents(Td *td, const MessageContent *old_content, Me
     case MessageContentType::GramTransfer:
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
-    case MessageContentType::StarGiftOnchainOffer:
     case MessageContentType::Widget:
+    case MessageContentType::StarGiftOnchainOffer:
+    case MessageContentType::BotInvite:
       break;
     default:
       UNREACHABLE();
@@ -8543,8 +8585,9 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::GramTransfer:
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
-    case MessageContentType::StarGiftOnchainOffer:
     case MessageContentType::Widget:
+    case MessageContentType::StarGiftOnchainOffer:
+    case MessageContentType::BotInvite:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -9314,19 +9357,6 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       }
       break;
     }
-    case MessageContentType::StarGiftOnchainOffer: {
-      const auto *lhs = static_cast<const MessageStarGiftOnchainOffer *>(old_content);
-      const auto *rhs = static_cast<const MessageStarGiftOnchainOffer *>(new_content);
-      if (lhs->star_gift != rhs->star_gift || lhs->offer_address != rhs->offer_address || lhs->amount != rhs->amount ||
-          lhs->buyer_refund != rhs->buyer_refund || lhs->fine != rhs->fine || lhs->fee_bps != rhs->fee_bps ||
-          lhs->expires_at != rhs->expires_at || lhs->is_buyer != rhs->is_buyer || lhs->is_settled != rhs->is_settled ||
-          lhs->is_accepted != rhs->is_accepted || lhs->is_declined != rhs->is_declined ||
-          lhs->is_cancelling != rhs->is_cancelling || lhs->is_cancelled != rhs->is_cancelled ||
-          lhs->is_expired != rhs->is_expired) {
-        need_update = true;
-      }
-      break;
-    }
     case MessageContentType::NewCreatorPending: {
       const auto *lhs = static_cast<const MessageNewCreatorPending *>(old_content);
       const auto *rhs = static_cast<const MessageNewCreatorPending *>(new_content);
@@ -9442,6 +9472,27 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
         need_update = true;
       } else if (lhs->public_data_hash != rhs->public_data_hash) {
         is_content_changed = true;
+      }
+      break;
+    }
+    case MessageContentType::StarGiftOnchainOffer: {
+      const auto *lhs = static_cast<const MessageStarGiftOnchainOffer *>(old_content);
+      const auto *rhs = static_cast<const MessageStarGiftOnchainOffer *>(new_content);
+      if (lhs->star_gift != rhs->star_gift || lhs->offer_address != rhs->offer_address || lhs->amount != rhs->amount ||
+          lhs->buyer_refund != rhs->buyer_refund || lhs->fine != rhs->fine || lhs->fee_bps != rhs->fee_bps ||
+          lhs->expires_at != rhs->expires_at || lhs->is_buyer != rhs->is_buyer || lhs->is_settled != rhs->is_settled ||
+          lhs->is_accepted != rhs->is_accepted || lhs->is_declined != rhs->is_declined ||
+          lhs->is_cancelling != rhs->is_cancelling || lhs->is_cancelled != rhs->is_cancelled ||
+          lhs->is_expired != rhs->is_expired) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::BotInvite: {
+      const auto *lhs = static_cast<const MessageBotInvite *>(old_content);
+      const auto *rhs = static_cast<const MessageBotInvite *>(new_content);
+      if (lhs->inviter_user_id != rhs->inviter_user_id) {
+        need_update = true;
       }
       break;
     }
@@ -11129,6 +11180,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
     case MessageContentType::StarGiftOnchainOffer:
+    case MessageContentType::BotInvite:
       return nullptr;
     default:
       UNREACHABLE();
@@ -12060,8 +12112,15 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           buyer_refund, fine, max(action->fee_bps_, 0), max(action->expires_at_, 0), action->buyer_, action->settled_,
           action->accepted_, action->declined_, action->cancelling_, action->cancelled_, action->expired_);
     }
-    case telegram_api::messageActionBotInvite::ID:
-      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionBotInvite::ID: {
+      auto action = telegram_api::move_object_as<telegram_api::messageActionBotInvite>(action_ptr);
+      auto inviter_user_id = UserId(action->inviter_id_);
+      if (!inviter_user_id.is_valid()) {
+        LOG(ERROR) << "Receive " << inviter_user_id;
+        break;
+      }
+      return td::make_unique<MessageBotInvite>(inviter_user_id);
+    }
     default:
       UNREACHABLE();
   }
@@ -12809,33 +12868,6 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
           m->star_gift.get_upgraded_gift_object(td), m->price.get_gift_resale_price_object(), m->offer_message_id.get(),
           m->was_expired);
     }
-    case MessageContentType::StarGiftOnchainOffer: {
-      const auto *m = static_cast<const MessageStarGiftOnchainOffer *>(content);
-      auto state = [&]() -> td_api::object_ptr<td_api::GiftOnchainPurchaseOfferState> {
-        if (m->is_accepted) {
-          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateAccepted>();
-        }
-        if (m->is_declined) {
-          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateDeclined>(m->buyer_refund);
-        }
-        if (m->is_cancelled) {
-          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateCanceled>(m->buyer_refund, m->fine);
-        }
-        if (m->is_expired) {
-          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateExpired>(m->buyer_refund);
-        }
-        if (m->is_settled) {
-          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateSettled>();
-        }
-        if (m->is_cancelling) {
-          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateCanceling>();
-        }
-        return td_api::make_object<td_api::giftOnchainPurchaseOfferStatePending>();
-      }();
-      return td_api::make_object<td_api::messageUpgradedGiftOnchainPurchaseOffer>(
-          m->star_gift.get_upgraded_gift_object(td), m->is_buyer, std::move(state), m->offer_address, m->amount,
-          m->fee_bps, m->expires_at);
-    }
     case MessageContentType::NewCreatorPending: {
       const auto *m = static_cast<const MessageNewCreatorPending *>(content);
       return td_api::make_object<td_api::messageChatOwnerLeft>(
@@ -12936,6 +12968,38 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       return td_api::make_object<td_api::messageWidget>(m->width, m->height, m->html, m->public_data, m->chat_data,
                                                         m->widget_id, get_text_object(m->caption), invert_media,
                                                         m->is_copy, m->can_query, m->background_query);
+    }
+    case MessageContentType::StarGiftOnchainOffer: {
+      const auto *m = static_cast<const MessageStarGiftOnchainOffer *>(content);
+      auto state = [&]() -> td_api::object_ptr<td_api::GiftOnchainPurchaseOfferState> {
+        if (m->is_accepted) {
+          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateAccepted>();
+        }
+        if (m->is_declined) {
+          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateDeclined>(m->buyer_refund);
+        }
+        if (m->is_cancelled) {
+          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateCanceled>(m->buyer_refund, m->fine);
+        }
+        if (m->is_expired) {
+          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateExpired>(m->buyer_refund);
+        }
+        if (m->is_settled) {
+          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateSettled>();
+        }
+        if (m->is_cancelling) {
+          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateCanceling>();
+        }
+        return td_api::make_object<td_api::giftOnchainPurchaseOfferStatePending>();
+      }();
+      return td_api::make_object<td_api::messageUpgradedGiftOnchainPurchaseOffer>(
+          m->star_gift.get_upgraded_gift_object(td), m->is_buyer, std::move(state), m->offer_address, m->amount,
+          m->fee_bps, m->expires_at);
+    }
+    case MessageContentType::BotInvite: {
+      const auto *m = static_cast<const MessageBotInvite *>(content);
+      return td_api::make_object<td_api::messageBotInvite>(
+          td->user_manager_->get_user_id_object(m->inviter_user_id, "messageBotInvite"));
     }
     default:
       UNREACHABLE();
@@ -13891,6 +13955,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
     case MessageContentType::StarGiftOnchainOffer:
+    case MessageContentType::BotInvite:
       return string();
     default:
       UNREACHABLE();
@@ -14488,11 +14553,6 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       content->star_gift.add_dependencies(dependencies);
       break;
     }
-    case MessageContentType::StarGiftOnchainOffer: {
-      const auto *content = static_cast<const MessageStarGiftOnchainOffer *>(message_content);
-      content->star_gift.add_dependencies(dependencies);
-      break;
-    }
     case MessageContentType::NewCreatorPending: {
       const auto *content = static_cast<const MessageNewCreatorPending *>(message_content);
       dependencies.add(content->new_creator_user_id);
@@ -14541,6 +14601,16 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::Widget:
       break;
+    case MessageContentType::StarGiftOnchainOffer: {
+      const auto *content = static_cast<const MessageStarGiftOnchainOffer *>(message_content);
+      content->star_gift.add_dependencies(dependencies);
+      break;
+    }
+    case MessageContentType::BotInvite: {
+      const auto *content = static_cast<const MessageBotInvite *>(message_content);
+      dependencies.add(content->inviter_user_id);
+      break;
+    }
     default:
       UNREACHABLE();
       break;

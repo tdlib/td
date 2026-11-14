@@ -547,6 +547,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::WalletTonConnectRequest:
     case MessageContentType::UnpaidMessagesAllowedByLink:
     case MessageContentType::StarGiftOnchainOffer:
+    case MessageContentType::BotInvite:
       return false;
     default:
       UNREACHABLE();
