@@ -2091,16 +2091,17 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
         }
         return string();
       });
-    } else if (host == "twitter.com" || ends_with(host, ".twitter.com")) {
+    } else if (host == "twitter.com" || ends_with(host, ".twitter.com") || host == "x.com" ||
+               ends_with(host, ".x.com")) {
       replace_entities(description.text, description.entities, [](const MessageEntity &entity, Slice text) {
         if (entity.type == MessageEntity::Type::Mention) {
-          return PSTRING() << "https://twitter.com/" << text.substr(1);
+          return PSTRING() << "https://x.com/" << text.substr(1);
         }
         if (entity.type == MessageEntity::Type::Hashtag) {
-          return PSTRING() << "https://twitter.com/hashtag/" << url_encode(text.substr(1));
+          return PSTRING() << "https://x.com/hashtag/" << url_encode(text.substr(1));
         }
         if (entity.type == MessageEntity::Type::Cashtag) {
-          return PSTRING() << "https://twitter.com/search?q=" << url_encode(text) << "&src=cashtag_click";
+          return PSTRING() << "https://x.com/search?q=" << url_encode(text) << "&src=cashtag_click";
         }
         return string();
       });
@@ -2157,7 +2158,7 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
         web_page->author_.empty()) {
       return true;
     }
-    if (web_page->site_name_ == "Twitter" || web_page->site_name_ == "Facebook" ||
+    if (web_page->site_name_ == "Twitter" || web_page->site_name_ == "X" || web_page->site_name_ == "Facebook" ||
         web_page->site_name_ == "Instagram") {
       return true;
     }
