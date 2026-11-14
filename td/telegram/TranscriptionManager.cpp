@@ -10,11 +10,14 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/Document.h"
+#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/PhotoFormat.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/VideoNotesManager.h"
@@ -64,6 +67,34 @@ class GetTranscriptionLangsQuery final : public Td::ResultHandler {
     if (dialog_id_ != DialogId()) {
       td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetTranscriptionLangsQuery");
     }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetTranscriptionModelsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::speechRecognitionModels>> promise_;
+
+ public:
+  explicit GetTranscriptionModelsQuery(Promise<td_api::object_ptr<td_api::speechRecognitionModels>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int32 version) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getTranscriptionModels(version)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getTranscriptionModels>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto models = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetTranscriptionModelsQuery: " << to_string(models);
+    promise_.set_value(td_->transcription_manager_->get_speech_recognition_models_object(std::move(models)));
+  }
+
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -619,6 +650,55 @@ void TranscriptionManager::get_speech_recognition_languages(
                                                                           "get_speech_recognition_languages"));
   }
   td_->create_handler<GetTranscriptionLangsQuery>(std::move(promise))->send(dialog_id);
+}
+
+void TranscriptionManager::get_speech_recognition_models(
+    int32 version, Promise<td_api::object_ptr<td_api::speechRecognitionModels>> &&promise) {
+  if (version <= 0) {
+    return promise.set_error(400, "Invalid version specified");
+  }
+  td_->create_handler<GetTranscriptionModelsQuery>(std::move(promise))->send(version);
+}
+
+td_api::object_ptr<td_api::speechRecognitionModels> TranscriptionManager::get_speech_recognition_models_object(
+    vector<telegram_api::object_ptr<telegram_api::transcriptionModel>> &&models) const {
+  vector<td_api::object_ptr<td_api::speechRecognitionModel>> result;
+  td_api::object_ptr<td_api::document> language_detection_model;
+  td_api::object_ptr<td_api::document> voice_activity_detection_model;
+  for (auto &model : models) {
+    td::remove_if(model->languages_, [](const string &language_code) { return language_code.empty(); });
+    td_api::object_ptr<td_api::document> *special_model = nullptr;
+    if (td::contains(model->languages_, "tinylid")) {
+      special_model = &language_detection_model;
+    } else if (td::contains(model->languages_, "silero-vad")) {
+      special_model = &voice_activity_detection_model;
+    }
+    if (special_model != nullptr) {
+      if (model->languages_.size() != 1u || *special_model != nullptr) {
+        LOG(ERROR) << "Receive unexpected speech recognition model for " << model->languages_;
+        continue;
+      }
+    }
+    if (model->document_->get_id() != telegram_api::document::ID) {
+      LOG(ERROR) << "Receive speech recognition model without document";
+      continue;
+    }
+    auto parsed_document = td_->documents_manager_->on_get_document(
+        telegram_api::move_object_as<telegram_api::document>(model->document_), DialogId(), false, false);
+    if (parsed_document.type != Document::Type::General) {
+      LOG(ERROR) << "Receive invalid speech recognition model " << parsed_document;
+      continue;
+    }
+    auto document = td_->documents_manager_->get_document_object(parsed_document.file_id, PhotoFormat::Jpeg);
+    if (special_model != nullptr) {
+      *special_model = std::move(document);
+    } else {
+      result.push_back(td_api::make_object<td_api::speechRecognitionModel>(
+          std::move(document), std::move(model->languages_), model->version_));
+    }
+  }
+  return td_api::make_object<td_api::speechRecognitionModels>(std::move(result), std::move(language_detection_model),
+                                                              std::move(voice_activity_detection_model));
 }
 
 void TranscriptionManager::subscribe_to_transcribed_audio_updates(int64 transcription_id,

@@ -61,6 +61,12 @@ class TranscriptionManager final : public Actor {
   void get_speech_recognition_languages(DialogId dialog_id,
                                         Promise<td_api::object_ptr<td_api::speechRecognitionLanguages>> &&promise);
 
+  void get_speech_recognition_models(int32 version,
+                                     Promise<td_api::object_ptr<td_api::speechRecognitionModels>> &&promise);
+
+  td_api::object_ptr<td_api::speechRecognitionModels> get_speech_recognition_models_object(
+      vector<telegram_api::object_ptr<telegram_api::transcriptionModel>> &&models) const;
+
   void on_update_transcribed_audio(telegram_api::object_ptr<telegram_api::updateTranscribedAudio> &&update);
 
   void on_update_transcribed_audio_file(telegram_api::object_ptr<telegram_api::updateTranscribedAudioFile> &&update);

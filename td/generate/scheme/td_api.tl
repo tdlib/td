@@ -8241,6 +8241,18 @@ speechRecognitionResultError error:error = SpeechRecognitionResult;
 //@description Contains a list of probable languages of speech @language_codes IETF language tags of the languages in descending order of their probability; for example, "en-US"
 speechRecognitionLanguages language_codes:vector<string> = SpeechRecognitionLanguages;
 
+//@description Describes a model for on-device speech recognition
+//@document The file with the model
+//@language_codes IETF language tags of the languages supported by the model
+//@version The minimum version of the speech recognition library that supports the model
+speechRecognitionModel document:document language_codes:vector<string> version:int32 = SpeechRecognitionModel;
+
+//@description Contains models for on-device speech recognition
+//@models The list of models for speech recognition
+//@language_detection_model The file with the model for speech language detection; may be null if none
+//@voice_activity_detection_model The file with the model for voice activity detection; may be null if none
+speechRecognitionModels models:vector<speechRecognitionModel> language_detection_model:document voice_activity_detection_model:document = SpeechRecognitionModels;
+
 
 //@description Describes a connection of the bot with a business account
 //@id Unique identifier of the connection
@@ -13511,6 +13523,12 @@ recognizeSpeechInFile audio_file:InputFile recognition_id:int64 = Text;
 
 //@description Returns 1-3 most probable languages of speech in voice notes @chat_id Identifier of the chat; pass 0 if none
 getSpeechRecognitionLanguages chat_id:int53 = SpeechRecognitionLanguages;
+
+//@description Returns the newest models for on-device speech recognition supported by the given version of the speech recognition library,
+//-including models for speech language and voice activity detection. If the request fails or no models are returned, then built-in models or recognizeSpeech
+//-must be used instead. The method is supposed to be called after application update, before the first on-device speech recognition, and from application settings
+//@version Version of the speech recognition library built into the application; must be positive
+getSpeechRecognitionModels version:int32 = SpeechRecognitionModels;
 
 
 //@description Returns the list of message sender identifiers, which can be used to send messages in a chat @chat_id Chat identifier

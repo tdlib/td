@@ -370,6 +370,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getSpeechRecognitionLanguages &request);
 
+  void on_request(uint64 id, const td_api::getSpeechRecognitionModels &request);
+
   void on_request(uint64 id, const td_api::getFile &request);
 
   void on_request(uint64 id, td_api::getRemoteFile &request);
