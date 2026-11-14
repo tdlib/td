@@ -5114,6 +5114,9 @@ linkPreviewTypeAudio audio:audio = LinkPreviewType;
 //@background_type Type of the background; may be null if unknown
 linkPreviewTypeBackground document:document background_type:BackgroundType = LinkPreviewType;
 
+//@description The link is a link to invite users to private chats with a bot
+linkPreviewTypeBotInvite = LinkPreviewType;
+
 //@description The link is a link to boost a channel chat @photo Photo of the chat; may be null
 linkPreviewTypeChannelBoost photo:chatPhoto = LinkPreviewType;
 
@@ -5199,7 +5202,7 @@ linkPreviewTypePhoto photo:photo = LinkPreviewType;
 //@description The link is a link to a Telegram Premium gift code
 linkPreviewTypePremiumGiftCode = LinkPreviewType;
 
-//@description The link is a link to a dialog for creating a managed bot
+//@description The link is a link to create a managed bot
 linkPreviewTypeRequestManagedBot = LinkPreviewType;
 
 //@description The link is a link to a shareable chat folder
@@ -10383,7 +10386,7 @@ internalLinkTypeBackground background_name:string = InternalLinkType;
 //@administrator_rights Expected administrator rights for the bot
 internalLinkTypeBotAddToChannel bot_username:string administrator_rights:chatAdministratorRights = InternalLinkType;
 
-//@description The link is a link to a dialog for inviting users to private chats with a bot. Call searchPublicChat with the given bot username.
+//@description The link is a link to invite users to private chats with a bot. Call searchPublicChat with the given bot username.
 //-If the chat is found, the chat is a chat with a bot and the bot has can_be_edited == true, then ask the current user to select up to 10 users to invite
 //-and call inviteUsersToBot. Otherwise, show an error message
 //@bot_username Username of the bot
@@ -10576,7 +10579,7 @@ internalLinkTypePublicChat chat_username:string draft_text:string open_profile:B
 //-"This code can be used to allow someone to log in to your Telegram account. To confirm Telegram login, please go to Settings > Devices > Scan QR and scan the code" needs to be shown
 internalLinkTypeQrCodeAuthentication = InternalLinkType;
 
-//@description The link is a link to a dialog for creating of a managed bot. Call searchPublicChat with the given manager bot username.
+//@description The link is a link to create a managed bot. Call searchPublicChat with the given manager bot username.
 //-If the chat is found, the chat is a chat with a bot and the bot has can_manage_bots == true, then show bot creation confirmation dialog
 //-with the given suggested_bot_username and suggested_bot_name. If user agrees, call createBot with via_link == true to create the bot
 //@manager_bot_username Username of the bot which will manage the new bot

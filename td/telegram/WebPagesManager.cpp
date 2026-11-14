@@ -1725,6 +1725,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       return td_api::make_object<td_api::linkPreviewTypeWebApp>(
           get_photo_object(td_->file_manager_.get(), web_page->photo_));
     }
+    if (type == "botinvite") {
+      return td_api::make_object<td_api::linkPreviewTypeBotInvite>();
+    }
     if (type == "call") {
       LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
       LOG_IF(ERROR, !web_page->document_.is_empty()) << "Receive wrong document for " << web_page->url_;
