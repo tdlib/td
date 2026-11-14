@@ -5104,7 +5104,7 @@ static Result<InputMessageContent> create_input_message_content(
     mime_type = MimeType::from_extension(path_view.extension());
     if (!check_utf8(file_name)) {
       auto extension = path_view.extension();
-      if (extension.empty()) {
+      if (!extension.empty() && check_utf8(extension)) {
         file_name = PSTRING() << "file." << extension;
       } else {
         file_name = "file";
