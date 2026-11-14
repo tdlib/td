@@ -3078,50 +3078,6 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       break;
     }
-    case MessageContentType::StarGiftOnchainOffer: {
-      const auto *m = static_cast<const MessageStarGiftOnchainOffer *>(content);
-      bool has_offer_address = !m->offer_address.empty();
-      bool has_amount = m->amount != 0;
-      bool has_buyer_refund = m->buyer_refund != -1;
-      bool has_fine = m->fine != -1;
-      bool has_fee_bps = m->fee_bps != 0;
-      bool has_expires_at = m->expires_at != 0;
-      BEGIN_STORE_FLAGS();
-      STORE_FLAG(m->is_buyer);
-      STORE_FLAG(m->is_settled);
-      STORE_FLAG(m->is_accepted);
-      STORE_FLAG(m->is_declined);
-      STORE_FLAG(m->is_cancelling);
-      STORE_FLAG(m->is_cancelled);
-      STORE_FLAG(m->is_expired);
-      STORE_FLAG(has_offer_address);
-      STORE_FLAG(has_amount);
-      STORE_FLAG(has_buyer_refund);
-      STORE_FLAG(has_fine);
-      STORE_FLAG(has_fee_bps);
-      STORE_FLAG(has_expires_at);
-      END_STORE_FLAGS();
-      store(m->star_gift, storer);
-      if (has_offer_address) {
-        store(m->offer_address, storer);
-      }
-      if (has_amount) {
-        store(m->amount, storer);
-      }
-      if (has_buyer_refund) {
-        store(m->buyer_refund, storer);
-      }
-      if (has_fine) {
-        store(m->fine, storer);
-      }
-      if (has_fee_bps) {
-        store(m->fee_bps, storer);
-      }
-      if (has_expires_at) {
-        store(m->expires_at, storer);
-      }
-      break;
-    }
     case MessageContentType::NewCreatorPending: {
       const auto *m = static_cast<const MessageNewCreatorPending *>(content);
       bool has_new_creator_user_id = m->new_creator_user_id.is_valid();
@@ -3312,6 +3268,50 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       if (has_public_data_hash) {
         store(m->public_data_hash, storer);
+      }
+      break;
+    }
+    case MessageContentType::StarGiftOnchainOffer: {
+      const auto *m = static_cast<const MessageStarGiftOnchainOffer *>(content);
+      bool has_offer_address = !m->offer_address.empty();
+      bool has_amount = m->amount != 0;
+      bool has_buyer_refund = m->buyer_refund != -1;
+      bool has_fine = m->fine != -1;
+      bool has_fee_bps = m->fee_bps != 0;
+      bool has_expires_at = m->expires_at != 0;
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(m->is_buyer);
+      STORE_FLAG(m->is_settled);
+      STORE_FLAG(m->is_accepted);
+      STORE_FLAG(m->is_declined);
+      STORE_FLAG(m->is_cancelling);
+      STORE_FLAG(m->is_cancelled);
+      STORE_FLAG(m->is_expired);
+      STORE_FLAG(has_offer_address);
+      STORE_FLAG(has_amount);
+      STORE_FLAG(has_buyer_refund);
+      STORE_FLAG(has_fine);
+      STORE_FLAG(has_fee_bps);
+      STORE_FLAG(has_expires_at);
+      END_STORE_FLAGS();
+      store(m->star_gift, storer);
+      if (has_offer_address) {
+        store(m->offer_address, storer);
+      }
+      if (has_amount) {
+        store(m->amount, storer);
+      }
+      if (has_buyer_refund) {
+        store(m->buyer_refund, storer);
+      }
+      if (has_fine) {
+        store(m->fine, storer);
+      }
+      if (has_fee_bps) {
+        store(m->fee_bps, storer);
+      }
+      if (has_expires_at) {
+        store(m->expires_at, storer);
       }
       break;
     }
@@ -4680,55 +4680,6 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
-    case MessageContentType::StarGiftOnchainOffer: {
-      auto m = make_unique<MessageStarGiftOnchainOffer>();
-      bool has_offer_address;
-      bool has_amount;
-      bool has_buyer_refund;
-      bool has_fine;
-      bool has_fee_bps;
-      bool has_expires_at;
-      BEGIN_PARSE_FLAGS();
-      PARSE_FLAG(m->is_buyer);
-      PARSE_FLAG(m->is_settled);
-      PARSE_FLAG(m->is_accepted);
-      PARSE_FLAG(m->is_declined);
-      PARSE_FLAG(m->is_cancelling);
-      PARSE_FLAG(m->is_cancelled);
-      PARSE_FLAG(m->is_expired);
-      PARSE_FLAG(has_offer_address);
-      PARSE_FLAG(has_amount);
-      PARSE_FLAG(has_buyer_refund);
-      PARSE_FLAG(has_fine);
-      PARSE_FLAG(has_fee_bps);
-      PARSE_FLAG(has_expires_at);
-      END_PARSE_FLAGS();
-      parse(m->star_gift, parser);
-      if (has_offer_address) {
-        parse(m->offer_address, parser);
-      }
-      if (has_amount) {
-        parse(m->amount, parser);
-      }
-      if (has_buyer_refund) {
-        parse(m->buyer_refund, parser);
-      }
-      if (has_fine) {
-        parse(m->fine, parser);
-      }
-      if (has_fee_bps) {
-        parse(m->fee_bps, parser);
-      }
-      if (has_expires_at) {
-        parse(m->expires_at, parser);
-      }
-      if (!m->star_gift.is_valid() || !m->star_gift.is_unique()) {
-        is_bad = true;
-        break;
-      }
-      content = std::move(m);
-      break;
-    }
     case MessageContentType::NewCreatorPending: {
       auto m = make_unique<MessageNewCreatorPending>();
       bool has_new_creator_user_id;
@@ -4942,6 +4893,55 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       }
       if (has_public_data_hash) {
         parse(m->public_data_hash, parser);
+      }
+      content = std::move(m);
+      break;
+    }
+    case MessageContentType::StarGiftOnchainOffer: {
+      auto m = make_unique<MessageStarGiftOnchainOffer>();
+      bool has_offer_address;
+      bool has_amount;
+      bool has_buyer_refund;
+      bool has_fine;
+      bool has_fee_bps;
+      bool has_expires_at;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(m->is_buyer);
+      PARSE_FLAG(m->is_settled);
+      PARSE_FLAG(m->is_accepted);
+      PARSE_FLAG(m->is_declined);
+      PARSE_FLAG(m->is_cancelling);
+      PARSE_FLAG(m->is_cancelled);
+      PARSE_FLAG(m->is_expired);
+      PARSE_FLAG(has_offer_address);
+      PARSE_FLAG(has_amount);
+      PARSE_FLAG(has_buyer_refund);
+      PARSE_FLAG(has_fine);
+      PARSE_FLAG(has_fee_bps);
+      PARSE_FLAG(has_expires_at);
+      END_PARSE_FLAGS();
+      parse(m->star_gift, parser);
+      if (has_offer_address) {
+        parse(m->offer_address, parser);
+      }
+      if (has_amount) {
+        parse(m->amount, parser);
+      }
+      if (has_buyer_refund) {
+        parse(m->buyer_refund, parser);
+      }
+      if (has_fine) {
+        parse(m->fine, parser);
+      }
+      if (has_fee_bps) {
+        parse(m->fee_bps, parser);
+      }
+      if (has_expires_at) {
+        parse(m->expires_at, parser);
+      }
+      if (!m->star_gift.is_valid() || !m->star_gift.is_unique()) {
+        is_bad = true;
+        break;
       }
       content = std::move(m);
       break;
@@ -6153,7 +6153,6 @@ SecretInputMedia get_message_content_secret_input_media(
       return td->voice_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
                                                               layer);
     }
-    case MessageContentType::Call:
     case MessageContentType::Dice:
     case MessageContentType::Game:
     case MessageContentType::Invoice:
@@ -6177,6 +6176,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::GameScore:
     case MessageContentType::ScreenshotTaken:
     case MessageContentType::ChatSetTtl:
+    case MessageContentType::Call:
     case MessageContentType::PaymentSuccessful:
     case MessageContentType::ContactRegistered:
     case MessageContentType::ExpiredPhoto:
@@ -7733,9 +7733,6 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::StarGiftPurchaseOfferDeclined:
       // private chats only
       break;
-    case MessageContentType::StarGiftOnchainOffer:
-      // private chats only
-      break;
     case MessageContentType::NewCreatorPending: {
       const auto *content = static_cast<const MessageNewCreatorPending *>(message_content);
       if (content->new_creator_user_id.is_valid()) {
@@ -7774,6 +7771,9 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::UnpaidMessagesAllowedByLink:
       break;
     case MessageContentType::Widget:
+      break;
+    case MessageContentType::StarGiftOnchainOffer:
+      // private chats only
       break;
     case MessageContentType::BotInvite:
       // private chats only
@@ -8332,6 +8332,7 @@ static void merge_message_contents(Td *td, const MessageContent *old_content, Me
     case MessageContentType::GameScore:
     case MessageContentType::ScreenshotTaken:
     case MessageContentType::ChatSetTtl:
+    case MessageContentType::Unsupported:
     case MessageContentType::Call:
     case MessageContentType::PaymentSuccessful:
     case MessageContentType::ContactRegistered:
@@ -8351,7 +8352,6 @@ static void merge_message_contents(Td *td, const MessageContent *old_content, Me
     case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
-    case MessageContentType::Unsupported:
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
@@ -8864,6 +8864,14 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       }
       break;
     }
+    case MessageContentType::Unsupported: {
+      const auto *lhs = static_cast<const MessageUnsupported *>(old_content);
+      const auto *rhs = static_cast<const MessageUnsupported *>(new_content);
+      if (lhs->version != rhs->version) {
+        is_content_changed = true;
+      }
+      break;
+    }
     case MessageContentType::Call: {
       const auto *lhs = static_cast<const MessageCall *>(old_content);
       const auto *rhs = static_cast<const MessageCall *>(new_content);
@@ -9026,14 +9034,6 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *rhs = static_cast<const MessageTopicEdit *>(new_content);
       if (lhs->edited_data != rhs->edited_data) {
         need_update = true;
-      }
-      break;
-    }
-    case MessageContentType::Unsupported: {
-      const auto *lhs = static_cast<const MessageUnsupported *>(old_content);
-      const auto *rhs = static_cast<const MessageUnsupported *>(new_content);
-      if (lhs->version != rhs->version) {
-        is_content_changed = true;
       }
       break;
     }
@@ -12196,11 +12196,6 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
           std::move(photo), td->videos_manager_->get_video_object(m->video_file_id), get_text_object(m->caption),
           invert_media, m->has_spoiler, is_content_secret);
     }
-    case MessageContentType::RichText: {
-      const auto *m = static_cast<const MessageRichText *>(content);
-      return td_api::make_object<td_api::messageRichMessage>(
-          m->rich_message.get_rich_message_object(td, skip_bot_commands));
-    }
     case MessageContentType::Sticker: {
       const auto *m = static_cast<const MessageSticker *>(content);
       auto sticker = td->stickers_manager_->get_sticker_object(m->file_id);
@@ -12913,6 +12908,11 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       return td_api::make_object<td_api::messagePollOptionDeleted>(
           m->poll_message_id.get(), check_utf8(m->data) ? m->data : base64_encode(m->data),
           get_formatted_text_object(nullptr, m->text, true, -1));
+    }
+    case MessageContentType::RichText: {
+      const auto *m = static_cast<const MessageRichText *>(content);
+      return td_api::make_object<td_api::messageRichMessage>(
+          m->rich_message.get_rich_message_object(td, skip_bot_commands));
     }
     case MessageContentType::ChangeCommunity: {
       const auto *m = static_cast<const MessageChangeCommunity *>(content);
