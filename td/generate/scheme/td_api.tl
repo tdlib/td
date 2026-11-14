@@ -17088,8 +17088,10 @@ setGiftResalePrice received_gift_id:string price:GiftResalePrice = Ok;
 //@order Order in which the results will be sorted
 //@for_crafting Pass true to get only gifts suitable for crafting
 //@for_stars Pass true to get gifts that can be bought using Telegram Stars.
-//-If none of for_stars, for_grams, and for_fragment is true, then gifts that can be bought using Telegram Stars or TON Grams are returned, except gifts sold on-chain
-//@for_grams Pass true to get gifts that can be bought using TON Grams, including gifts sold on-chain using a fixed price sale contract
+//-If none of for_stars, for_grams, and for_fragment is true, then gifts that can be bought using Telegram Stars or TON Grams are returned, except gifts sold on-chain.
+//-The filter must be shown only if getOption("show_gift_resale_star_filter") is true and must be selected by default if getOption("select_gift_resale_star_filter_by_default") is true
+//@for_grams Pass true to get gifts that can be bought using TON Grams, including gifts sold on-chain using a fixed price sale contract.
+//-The filter must be shown only if getOption("show_gift_resale_gram_filter") is true and must be selected by default if getOption("select_gift_resale_gram_filter_by_default") is true
 //@for_fragment Pass true to get gifts sold on-chain on Fragment; can be true only if getOption("can_buy_onchain_gifts") is true. Must be false if for_crafting is true
 //@attributes Attributes used to filter received gifts. If multiple attributes of the same type are specified, then all of them are allowed.
 //-If none attributes of specific type are specified, then all values for this attribute type are allowed

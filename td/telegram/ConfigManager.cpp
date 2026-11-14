@@ -1354,6 +1354,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 wallet_gasless_daily_transfers = 0;
   vector<string> bot_allowed_suffixes;
   vector<string> wallet_card_background_gifts;
+  bool show_gift_resale_star_filter = true;
+  bool select_gift_resale_star_filter_by_default = true;
+  bool show_gift_resale_gram_filter = true;
+  bool select_gift_resale_gram_filter_by_default = true;
 
   // {"stories_all_hidden", "archive_all_stories"}
   static const FlatHashMap<Slice, Slice, SliceHash> bool_keys = {
@@ -1936,6 +1940,22 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 get_json_value_long(std::move(key_value->value_), key) / 10000000);
         continue;
       }
+      if (key == "stargifts_stars_resale" || key == "stargifts_ton_resale") {
+        auto filter = get_json_value_string(std::move(key_value->value_), key);
+        bool is_shown = filter != "hidden";
+        bool is_selected = filter != "hidden" && filter != "visible";
+        if (is_selected && filter != "default") {
+          LOG(ERROR) << "Receive unsupported " << key << " = " << filter;
+        }
+        if (key == "stargifts_stars_resale") {
+          show_gift_resale_star_filter = is_shown;
+          select_gift_resale_star_filter_by_default = is_selected;
+        } else {
+          show_gift_resale_gram_filter = is_shown;
+          select_gift_resale_gram_filter_by_default = is_selected;
+        }
+        continue;
+      }
       if (key == "ton_usd_rate") {
         G()->set_option_integer("million_gram_to_usd_rate",
                                 static_cast<int64>(get_json_value_double(std::move(key_value->value_), key) * 1000000));
@@ -2168,6 +2188,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   options.set_option_integer("ton_wallet_gasless_transfer_daily_count_max", wallet_gasless_daily_transfers);
 
   options.set_option_boolean("can_accept_calls", can_accept_calls);
+
+  options.set_option_boolean("show_gift_resale_star_filter", show_gift_resale_star_filter);
+  options.set_option_boolean("select_gift_resale_star_filter_by_default", select_gift_resale_star_filter_by_default);
+  options.set_option_boolean("show_gift_resale_gram_filter", show_gift_resale_gram_filter);
+  options.set_option_boolean("select_gift_resale_gram_filter_by_default", select_gift_resale_gram_filter_by_default);
 
   if (!is_premium_available) {
     premium_bot_username.clear();  // just in case
