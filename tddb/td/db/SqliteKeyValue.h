@@ -96,7 +96,7 @@ class SqliteKeyValue {
     } else {
       if (till.empty()) {
         stmt = &get_by_prefix_rare_stmt_;
-        stmt->bind_blob(1, till).ensure();
+        stmt->bind_blob(1, from).ensure();
       } else {
         stmt = &get_by_prefix_stmt_;
         stmt->bind_blob(1, from).ensure();
