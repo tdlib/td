@@ -74,9 +74,15 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> star
         resale_star_count_ = StarGiftResalePrice(std::move(star_gift->resell_amount_[0])).get_star_count();
         resale_ton_count_ = StarGiftResalePrice(std::move(star_gift->resell_amount_[1])).get_ton_count();
         resale_ton_only_ = star_gift->resale_ton_only_;
-        is_onchain_sale_ = star_gift->onchain_sale_;
-        is_fixed_onchain_sale_ = star_gift->fixed_sale_;
         resale_fee_bps_ = max(0, star_gift->fee_bps_);
+      }
+    }
+    is_onchain_sale_ = star_gift->onchain_sale_;
+    if (star_gift->fixed_sale_) {
+      if (is_onchain_sale_) {
+        is_fixed_onchain_sale_ = true;
+      } else {
+        LOG(ERROR) << "Receive fixed sale for non-on-chain gift " << slug_;
       }
     }
     offer_min_star_count_ = StarManager::get_star_count(star_gift->offer_min_stars_);
@@ -252,8 +258,8 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
   td_api::object_ptr<td_api::giftResaleParameters> resale_parameters;
   if (resale_star_count_ > 0 && resale_ton_count_ > 0) {
     resale_parameters = td_api::make_object<td_api::giftResaleParameters>(
-        resale_star_count_, resale_ton_count_ / 10000000, resale_ton_count_, resale_ton_only_, is_onchain_sale_,
-        is_fixed_onchain_sale_, resale_fee_bps_);
+        resale_star_count_, resale_ton_count_ / 10000000, resale_ton_count_, resale_ton_only_, is_fixed_onchain_sale_,
+        resale_fee_bps_);
   }
   return td_api::make_object<td_api::upgradedGift>(
       id_, regular_gift_id_,
@@ -265,9 +271,9 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
       owner_address_, owner_name_, gift_address_, can_be_ton_wallet_card_background(slug_),
       model_.get_upgraded_gift_model_object(td), pattern_.get_upgraded_gift_symbol_object(td),
       backdrop_.get_upgraded_gift_backdrop_object(), original_details_.get_upgraded_gift_original_details_object(td),
-      peer_color_ == nullptr ? nullptr : peer_color_->get_upgraded_gift_colors_object(), std::move(resale_parameters),
-      offer_min_star_count_ > 0, offer_min_gram_amount_, craft_chance_permille_, value_currency_, value_amount_,
-      value_usd_amount_);
+      peer_color_ == nullptr ? nullptr : peer_color_->get_upgraded_gift_colors_object(), is_onchain_sale_,
+      std::move(resale_parameters), offer_min_star_count_ > 0, offer_min_gram_amount_, craft_chance_permille_,
+      value_currency_, value_amount_, value_usd_amount_);
 }
 
 td_api::object_ptr<td_api::giftForResale> StarGift::get_gift_for_resale_object(Td *td) const {
