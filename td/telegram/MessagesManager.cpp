@@ -19542,7 +19542,8 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id,
       return promise.set_value(-1);
     }
   } else if (!message_topic.is_empty()) {
-    if (filter == MessageSearchFilter::UnreadMention && message_topic.is_monoforum()) {
+    if ((filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadPollVote) &&
+        message_topic.is_monoforum()) {
       return promise.set_value(0);
     }
     if (filter == MessageSearchFilter::FailedToSend) {
@@ -19554,6 +19555,10 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id,
     }
     if (message_topic.is_thread()) {
       return promise.set_error(400, "The specified topic type is unsupported");
+    }
+    if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
+        filter == MessageSearchFilter::UnreadPollVote) {
+      return get_topic_unread_message_count(dialog_id, message_topic, filter, std::move(promise));
     }
   } else {
     auto dialog_type = dialog_id.get_type();
@@ -19574,6 +19579,44 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id,
   }
 
   get_dialog_message_count_from_server(dialog_id, message_topic, filter, std::move(promise));
+}
+
+void MessagesManager::get_topic_unread_message_count(DialogId dialog_id, const MessageTopic &message_topic,
+                                                     MessageSearchFilter filter, Promise<int32> &&promise) {
+  if (message_topic.is_forum()) {
+    auto query_promise = PromiseCreator::lambda(
+        [filter, promise = std::move(promise)](Result<td_api::object_ptr<td_api::forumTopic>> r_forum_topic) mutable {
+          TRY_RESULT_PROMISE(promise, forum_topic, std::move(r_forum_topic));
+          if (forum_topic == nullptr) {
+            return promise.set_error(400, "Topic not found");
+          }
+          switch (filter) {
+            case MessageSearchFilter::UnreadMention:
+              return promise.set_value(std::move(forum_topic->unread_mention_count_));
+            case MessageSearchFilter::UnreadReaction:
+              return promise.set_value(std::move(forum_topic->unread_reaction_count_));
+            case MessageSearchFilter::UnreadPollVote:
+              return promise.set_value(std::move(forum_topic->unread_poll_vote_count_));
+            default:
+              UNREACHABLE();
+          }
+        });
+    return td_->forum_topic_manager_->get_forum_topic(dialog_id, message_topic.get_forum_topic_id(),
+                                                      std::move(query_promise));
+  }
+
+  CHECK(message_topic.is_monoforum());
+  CHECK(filter == MessageSearchFilter::UnreadReaction);
+  auto query_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<td_api::object_ptr<td_api::directMessagesChatTopic>> r_topic) mutable {
+        TRY_RESULT_PROMISE(promise, topic, std::move(r_topic));
+        if (topic == nullptr) {
+          return promise.set_error(400, "Topic not found");
+        }
+        promise.set_value(narrow_cast<int32>(topic->unread_reaction_count_));
+      });
+  td_->saved_messages_manager_->get_monoforum_topic(dialog_id, message_topic.get_monoforum_saved_messages_topic_id(),
+                                                    std::move(query_promise));
 }
 
 void MessagesManager::get_dialog_message_count_from_server(DialogId dialog_id, MessageTopic message_topic,
