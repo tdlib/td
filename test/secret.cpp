@@ -226,6 +226,18 @@ class messages_readEncryptedHistory final {
   }
 };
 
+class messages_discardEncryption final {
+ public:
+  int32 flags_{};
+  int32 chat_id_{};
+
+  messages_discardEncryption() = default;
+  static const int32 ID = -208425312;
+  explicit messages_discardEncryption(TlBufferParser &p)
+      : flags_(TlFetchInt::parse(p)), chat_id_(TlFetchInt::parse(p)) {
+  }
+};
+
 template <class F>
 static void downcast_call(TlBufferParser &p, F &&f) {
   auto id = p.fetch_int();
@@ -244,6 +256,8 @@ static void downcast_call(TlBufferParser &p, F &&f) {
       return f(*make_tl_object<messages_setEncryptedTyping>(p));
     case messages_readEncryptedHistory::ID:
       return f(*make_tl_object<messages_readEncryptedHistory>(p));
+    case messages_discardEncryption::ID:
+      return f(*make_tl_object<messages_discardEncryption>(p));
     default:
       LOG(ERROR) << "Unknown constructor " << id;
       UNREACHABLE();
@@ -403,6 +417,7 @@ static_assert(messages_sendEncryptedService::ID == telegram_api::messages_sendEn
 static_assert(messages_sendEncrypted::ID == telegram_api::messages_sendEncrypted::ID, "");
 static_assert(messages_setEncryptedTyping::ID == telegram_api::messages_setEncryptedTyping::ID, "");
 static_assert(messages_readEncryptedHistory::ID == telegram_api::messages_readEncryptedHistory::ID, "");
+static_assert(messages_discardEncryption::ID == telegram_api::messages_discardEncryption::ID, "");
 static_assert(messages_dhConfig::ID == telegram_api::messages_dhConfig::ID, "");
 static_assert(encryptedChatWaiting::ID == telegram_api::encryptedChatWaiting::ID, "");
 static_assert(encryptedChat::ID == telegram_api::encryptedChat::ID, "");
@@ -671,6 +686,9 @@ class Master final : public Actor {
     ActorOwn<SecretChatActor> actor_;
 
     void add_inbound_message(int32 chat_id, BufferSlice data, uint64 crc) {
+      if (is_closing_) {
+        return;
+      }
       CHECK(crc64(data.as_slice()) == crc);
       auto event = make_unique<log_event::InboundSecretMessage>();
       event->chat_id = chat_id;
@@ -690,6 +708,9 @@ class Master final : public Actor {
     }
 
     void send_message(tl_object_ptr<secret_api::DecryptedMessage> message) {
+      if (is_closing_) {
+        return;
+      }
       BufferSlice serialized_message(serialize(*message));
       auto resend_promise = PromiseCreator::lambda(
           [actor_id = actor_id(this), serialized_message = std::move(serialized_message)](Result<> result) mutable {
@@ -746,8 +767,33 @@ class Master final : public Actor {
       }
       binlog_->force_sync(std::move(promise), "sync_binlog");
     }
+    void close_chat(bool is_already_discarded) {
+      if (is_closed_) {
+        return;
+      }
+      is_closing_ = true;
+      is_already_discarded_ = is_already_discarded;
+      send_close_chat();
+    }
+    void send_close_chat() {
+      if (is_already_discarded_) {
+        auto chat = telegram_api::make_object<telegram_api::encryptedChatDiscarded>();
+        chat->id_ = 123;
+        add_event(Event::delayed_closure(&SecretChatActor::update_chat, std::move(chat)));
+      } else {
+        add_event(Event::delayed_closure(&SecretChatActor::cancel_chat, false, false, Promise<>()));
+      }
+    }
     void on_closed() {
       LOG(INFO) << "CLOSED";
+      if (!*close_flag_) {
+        // the actor has stopped itself, because the chat was closed
+        CHECK(is_closing_);
+        is_closed_ = true;
+        cancel_timeout();
+        send_closure(parent_, &Master::on_chat_closed);
+        return;
+      }
       ready_ = false;
       *close_flag_ = false;
 
@@ -791,12 +837,21 @@ class Master final : public Actor {
                                unique_ptr<log_event::OutboundSecretMessage>(
                                    static_cast<log_event::OutboundSecretMessage *>(message.release())));
             break;
+          case log_event::SecretChatEvent::Type::CloseSecretChat:
+            send_closure_later(
+                actor_, &SecretChatActor::replay_close_chat,
+                unique_ptr<log_event::CloseSecretChat>(static_cast<log_event::CloseSecretChat *>(message.release())));
+            break;
           default:
             UNREACHABLE();
         }
       };
       start_test();
       on_binlog_replay_finish();
+      if (is_closing_) {
+        // the request to close the chat could be lost
+        send_close_chat();
+      }
     }
     void on_binlog_replay_finish() {
       ready_ = true;
@@ -811,6 +866,14 @@ class Master final : public Actor {
       set_timeout_in(Random::fast(50, 99) * 0.3 / 50);
       events_cnt_ = 0;
     }
+    void restart() {
+      if (!actor_.get().is_alive()) {
+        // the actor has already stopped itself
+        return;
+      }
+      *close_flag_ = true;
+      actor_.reset();
+    }
 
    private:
     string name_;
@@ -824,6 +887,9 @@ class Master final : public Actor {
 
     std::vector<Event> pending_events_;
     bool ready_ = false;
+    bool is_closing_ = false;
+    bool is_already_discarded_ = false;
+    bool is_closed_ = false;
 
     bool is_active() {
       return !actor_.empty() && ready_;
@@ -848,8 +914,7 @@ class Master final : public Actor {
       } else {
         bad_cnt_ = 0;
       }
-      *close_flag_ = true;
-      actor_.reset();
+      restart();
     }
   };
 
@@ -1044,6 +1109,9 @@ class Master final : public Actor {
     send_message(id, std::move(text));
   }
   int64 send_message(int32 id, string text) {
+    if (is_closing_) {
+      return 0;
+    }
     auto random_id = Random::secure_int64();
     LOG(INFO) << "Send message: " << tag("id", id) << tag("text", text) << tag("random_id", random_id);
     sent_messages_[random_id] = Message{id, text};
@@ -1059,6 +1127,19 @@ class Master final : public Actor {
   void process_net_query(my_api::messages_readEncryptedHistory &&read_history, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     send_bool_true(std::move(net_query), std::move(callback));
+  }
+  bool is_restarted_while_closing_ = false;
+  void process_net_query(my_api::messages_discardEncryption &&discard_encryption, NetQueryPtr net_query,
+                         ActorShared<NetQueryCallback> callback) {
+    if (!is_restarted_while_closing_) {
+      // restart the actor before it receives the answer to check that the chat is closed after the restart
+      is_restarted_while_closing_ = true;
+      net_query->set_error_canceled();
+      send_closure(from(), &SecretChatProxy::restart);
+      return;
+    }
+    send_bool_true(std::move(net_query), std::move(callback));
+    send_closure(to(), &SecretChatProxy::close_chat, true);
   }
   static void send_bool_true(NetQueryPtr net_query, ActorShared<NetQueryCallback> callback) {
     BufferSlice answer(4);
@@ -1117,8 +1198,11 @@ class Master final : public Actor {
       return;
     }
     if (cnt == 0) {
-      Scheduler::instance()->finish();
-      *status_ = Status::OK();
+      if (!is_closing_) {
+        is_closing_ = true;
+        cancel_timeout();
+        send_closure(from(), &SecretChatProxy::close_chat, false);
+      }
       return;
     }
     if (cnt >= last_ping_) {
@@ -1161,6 +1245,16 @@ class Master final : public Actor {
     string text;
   };
   std::map<int64, Message> sent_messages_;
+
+  bool is_closing_ = false;
+  int32 closed_chat_count_ = 0;
+  void on_chat_closed() {
+    closed_chat_count_++;
+    if (closed_chat_count_ == 2) {
+      Scheduler::instance()->finish();
+      *status_ = Status::OK();
+    }
+  }
 
   void hangup_shared() final {
     LOG(INFO) << "Receive hang up: " << get_link_token();
