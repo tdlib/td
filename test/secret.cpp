@@ -94,7 +94,7 @@ class inputUser final : public InputUser {
   int64 user_id_{};
   int64 access_hash_{};
 
-  static const int32 ID = static_cast<int32>(0xf21158c6);
+  static const int32 ID = -233744186;
   inputUser() = default;
 
   explicit inputUser(TlBufferParser &p)
@@ -277,7 +277,7 @@ class encryptedChat final {
       , key_fingerprint_(key_fingerprint) {
   }
 
-  static const int32 ID = 0x61f0d4c7;
+  static const int32 ID = 1643173063;
   int32 get_id() const {
     return ID;
   }
@@ -326,6 +326,18 @@ class messages_sentEncryptedMessage final {
     TlStoreBinary::store(date_, s);
   }
 };
+
+// the classes above must be kept in sync with the scheme
+static_assert(messages_getDhConfig::ID == telegram_api::messages_getDhConfig::ID, "");
+static_assert(inputUser::ID == telegram_api::inputUser::ID, "");
+static_assert(messages_requestEncryption::ID == telegram_api::messages_requestEncryption::ID, "");
+static_assert(inputEncryptedChat::ID == telegram_api::inputEncryptedChat::ID, "");
+static_assert(messages_acceptEncryption::ID == telegram_api::messages_acceptEncryption::ID, "");
+static_assert(messages_sendEncryptedService::ID == telegram_api::messages_sendEncryptedService::ID, "");
+static_assert(messages_sendEncrypted::ID == telegram_api::messages_sendEncrypted::ID, "");
+static_assert(messages_dhConfig::ID == telegram_api::messages_dhConfig::ID, "");
+static_assert(encryptedChat::ID == telegram_api::encryptedChat::ID, "");
+static_assert(messages_sentEncryptedMessage::ID == telegram_api::messages_sentEncryptedMessage::ID, "");
 
 }  // namespace my_api
 
