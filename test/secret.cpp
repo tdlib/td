@@ -929,7 +929,7 @@ class Master final : public Actor {
   }
   void send_ping(int32 id, int cnt) {
     if (cnt % 200 == 0) {
-      LOG(ERROR) << "Send ping " << tag("id", id) << tag("cnt", cnt);
+      LOG(WARNING) << "Send ping " << tag("id", id) << tag("cnt", cnt);
     } else {
       LOG(INFO) << "Send ping " << tag("id", id) << tag("cnt", cnt);
     }
