@@ -84,6 +84,8 @@ class messages_getDhConfig {
 
 class InputUser {
  public:
+  virtual ~InputUser() = default;
+
   static tl_object_ptr<InputUser> fetch(TlBufferParser &p);
 };
 
