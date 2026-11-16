@@ -304,6 +304,43 @@ class encryptedChat final {
 };
 const int32 encryptedChat::ID;
 
+class encryptedChatWaiting final {
+ public:
+  int32 id_{};
+  int64 access_hash_{};
+  int32 date_{};
+  int64 admin_id_{};
+  int64 participant_id_{};
+
+  encryptedChatWaiting() = default;
+
+  encryptedChatWaiting(int32 id, int64 access_hash, int32 date, int64 admin_id, int64 participant_id)
+      : id_(id), access_hash_(access_hash), date_(date), admin_id_(admin_id), participant_id_(participant_id) {
+  }
+
+  static const int32 ID = 1722964307;
+  int32 get_id() const {
+    return ID;
+  }
+
+  void store(TlStorerCalcLength &s) const {
+    TlStoreBinary::store(id_, s);
+    TlStoreBinary::store(access_hash_, s);
+    TlStoreBinary::store(date_, s);
+    TlStoreBinary::store(admin_id_, s);
+    TlStoreBinary::store(participant_id_, s);
+  }
+
+  void store(TlStorerUnsafe &s) const {
+    TlStoreBinary::store(id_, s);
+    TlStoreBinary::store(access_hash_, s);
+    TlStoreBinary::store(date_, s);
+    TlStoreBinary::store(admin_id_, s);
+    TlStoreBinary::store(participant_id_, s);
+  }
+};
+const int32 encryptedChatWaiting::ID;
+
 class messages_sentEncryptedMessage final {
  public:
   int32 date_{};
@@ -336,6 +373,7 @@ static_assert(messages_acceptEncryption::ID == telegram_api::messages_acceptEncr
 static_assert(messages_sendEncryptedService::ID == telegram_api::messages_sendEncryptedService::ID, "");
 static_assert(messages_sendEncrypted::ID == telegram_api::messages_sendEncrypted::ID, "");
 static_assert(messages_dhConfig::ID == telegram_api::messages_dhConfig::ID, "");
+static_assert(encryptedChatWaiting::ID == telegram_api::encryptedChatWaiting::ID, "");
 static_assert(encryptedChat::ID == telegram_api::encryptedChat::ID, "");
 static_assert(messages_sentEncryptedMessage::ID == telegram_api::messages_sentEncryptedMessage::ID, "");
 
@@ -853,12 +891,17 @@ class Master final : public Actor {
   void process_net_query(my_api::messages_requestEncryption &&request_encryption, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     CHECK(get_link_token() == 1);
-    send_closure(alice_.get_actor_unsafe()->actor_, &SecretChatActor::update_chat,
-                 make_tl_object<telegram_api::encryptedChatWaiting>(123, 321, 0, 1, 2));
     send_closure(bob_.get_actor_unsafe()->actor_, &SecretChatActor::update_chat,
                  make_tl_object<telegram_api::encryptedChatRequested>(0, false, 123, 321, 0, 1, 2,
                                                                       request_encryption.g_a_.clone()));
-    net_query->clear();
+
+    my_api::encryptedChatWaiting encrypted_chat(123, 321, 0, 1, 2);
+    auto storer = TLObjectStorer<my_api::encryptedChatWaiting>(encrypted_chat);
+    BufferSlice answer(storer.size());
+    auto real_size = storer.store(answer.as_mutable_slice().ubegin());
+    CHECK(real_size == answer.size());
+    net_query->set_ok(std::move(answer));
+    send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
   }
   void process_net_query(my_api::messages_acceptEncryption &&request_encryption, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
