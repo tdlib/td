@@ -663,6 +663,8 @@ void SecretChatActor::cancel_chat(bool delete_history, bool is_already_discarded
 
   auto event = make_unique<log_event::CloseSecretChat>();
   event->chat_id = auth_state_.id;
+  event->delete_history = delete_history;
+  event->is_already_discarded = is_already_discarded;
   auto log_event_id = binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event));
 
   auto on_sync = PromiseCreator::lambda([actor_id = actor_id(this), delete_history, is_already_discarded, log_event_id,
