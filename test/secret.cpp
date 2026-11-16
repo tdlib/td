@@ -825,10 +825,10 @@ class Master final : public Actor {
     LOG(INFO) << "SecretChatId = " << id;
   }
 
-  static bool can_fail(NetQueryPtr &query) {
-    static int cnt = 20;
-    if (cnt > 0) {
-      cnt--;
+  int32 reliable_query_cnt_ = 20;
+  bool can_fail(NetQueryPtr &query) {
+    if (reliable_query_cnt_ > 0) {
+      reliable_query_cnt_--;
       return false;
     }
     if (query->tl_constructor() == telegram_api::messages_sendEncrypted::ID ||
