@@ -38,7 +38,7 @@ class Deleter {
 };
 
 TEST(SharedPtr, simple) {
-  CHECK(!Deleter::was_delete());
+  Deleter::was_delete() = false;
   Ptr<std::string, Deleter> ptr = Ptr<std::string, Deleter>::create("hello");
   auto ptr2 = ptr;
   CHECK(*ptr == "hello");
