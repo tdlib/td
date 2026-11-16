@@ -1651,6 +1651,7 @@ void SecretChatActor::on_outbound_send_message_error(uint64 state_id, Status err
         if (result.is_ok()) {
           resend_promise.set_value(std::move(query));
         } else {
+          query->set_error_canceled();
           send_closure(actor_id, &SecretChatActor::on_promise_error, result.move_as_error(), "resend_query");
         }
       });
