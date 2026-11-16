@@ -31,6 +31,7 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/ConcurrentScheduler.h"
+#include "td/actor/SleepActor.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/as.h"
@@ -1083,9 +1084,27 @@ class Master final : public Actor {
 
     // We can't loose updates yet :(
     auto crc = crc64(data.as_slice());
-    LOG(INFO) << "Send SecretChatProxy::add_inbound_message" << tag("crc", crc);
-    send_closure(to(), &SecretChatProxy::add_inbound_message, narrow_cast<int32>(3 - get_link_token()), std::move(data),
-                 crc);
+    auto chat_id = narrow_cast<int32>(3 - get_link_token());
+    if (Random::fast(0, 9) == 0) {
+      // deliver the update twice
+      add_inbound_message_later(chat_id, data.copy(), crc, Random::fast(0, 100) * 0.001);
+    }
+    if (Random::fast(0, 19) == 0) {
+      // deliver the update after the next updates
+      add_inbound_message_later(chat_id, std::move(data), crc, Random::fast(1, 20) * 0.001);
+    } else {
+      LOG(INFO) << "Send SecretChatProxy::add_inbound_message" << tag("crc", crc);
+      send_closure(to(), &SecretChatProxy::add_inbound_message, chat_id, std::move(data), crc);
+    }
+  }
+  void add_inbound_message_later(int32 chat_id, BufferSlice data, uint64 crc, double delay) {
+    LOG(INFO) << "Send SecretChatProxy::add_inbound_message" << tag("crc", crc) << tag("delay", delay);
+    create_actor<SleepActor>("DelayedInboundMessage", delay,
+                             [proxy_id = to().get(), chat_id, data = std::move(data), crc]() mutable {
+                               send_closure(proxy_id, &SecretChatProxy::add_inbound_message, chat_id, std::move(data),
+                                            crc);
+                             })
+        .release();
   }
 
   int32 last_ping_ = std::numeric_limits<int32>::max();
