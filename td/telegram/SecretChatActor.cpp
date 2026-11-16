@@ -1210,8 +1210,10 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<log_event::Inbou
   update_seq_no_state(*message);
 
   // drop old key
+  // the party that sent CommitKey must keep the old key until the other party confirms that it has received CommitKey,
+  // because all messages created by the other party before that are encrypted with the old key
   if (!pfs_state_.other_auth_key.empty() && message->auth_key_id == pfs_state_.auth_key.id() &&
-      pfs_state_.can_forget_other_key) {
+      pfs_state_.can_forget_other_key && message->his_in_seq_no >= pfs_state_.last_out_seq_no) {
     LOG(INFO) << "Drop old auth key " << tag("auth_key_id", format::as_hex(pfs_state_.other_auth_key.id()));
     pfs_state_.other_auth_key = mtproto::AuthKey();
     on_pfs_state_changed();
@@ -2159,7 +2161,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionComm
   pfs_state_.state = PfsState::Empty;
   pfs_state_.last_message_id = pfs_state_.message_id;
   pfs_state_.last_timestamp = Time::now();
-  pfs_state_.last_out_seq_no = seq_no_state_.my_out_seq_no;
+  pfs_state_.last_out_seq_no = 0;  // the other party has already switched to the new key, so there is nothing to wait
 
   on_pfs_state_changed();
   return Status::OK();
