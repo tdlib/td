@@ -1045,6 +1045,19 @@ class Master final : public Actor {
     set_timeout_in(1);
   }
   void timeout_expired() final {
+    for (auto &it : unreceived_messages_) {
+      if (++it.second > 10) {
+        *status_ = Status::Error(PSLICE() << "Sent message " << it.first << " wasn't received");
+        Scheduler::instance()->finish();
+        return;
+      }
+    }
+    if (close_chat_id_ != 0 && unreceived_messages_.empty()) {
+      // all sent messages were received, so the chat can be closed
+      is_closing_ = true;
+      send_closure(get_by_id(close_chat_id_), &SecretChatProxy::close_chat, false);
+      return;
+    }
     last_random_ids_[0] = send_message(1, "oppa");
     last_random_ids_[1] = send_message(2, "appo");
     do_random_action(1);
@@ -1075,9 +1088,11 @@ class Master final : public Actor {
       case 5:
         // the last sent message, which isn't a ping
         send_closure(proxy, &SecretChatProxy::delete_messages, vector<int64>{last_random_ids_[id - 1]});
+        on_sent_message_deleted(last_random_ids_[id - 1]);
         break;
       case 6:
         send_closure(proxy, &SecretChatProxy::delete_all_messages);
+        on_sent_messages_deleted(id);
         // the last ping is deleted if it isn't sent yet
         resend_ping(id);
         break;
@@ -1094,8 +1109,29 @@ class Master final : public Actor {
   }
   void on_flush_history(Promise<> promise) {
     promise.set_value(Unit());
+    auto id = narrow_cast<int32>(get_link_token());
+    on_sent_messages_deleted(id);
     // the last ping is deleted if it isn't sent yet
-    resend_ping(narrow_cast<int32>(get_link_token()));
+    resend_ping(id);
+  }
+  void on_sent_message_deleted(int64 random_id) {
+    // the message can be deleted before it is received by the other party
+    auto it = sent_messages_.find(random_id);
+    if (it != sent_messages_.end()) {
+      it->second.is_deleted = true;
+      unreceived_messages_.erase(random_id);
+    }
+  }
+  void on_sent_messages_deleted(int32 id) {
+    // all messages recently sent by the party can be deleted before they are received by the other party
+    flush_generations_[id - 1]++;
+    for (auto it = unreceived_messages_.begin(); it != unreceived_messages_.end();) {
+      if (sent_messages_[it->first].id == id && it->second < 2) {
+        it = unreceived_messages_.erase(it);
+      } else {
+        ++it;
+      }
+    }
   }
   void send_ping(int32 id, int cnt) {
     last_sent_ping_id_ = id;
@@ -1114,7 +1150,10 @@ class Master final : public Actor {
     }
     auto random_id = Random::secure_int64();
     LOG(INFO) << "Send message: " << tag("id", id) << tag("text", text) << tag("random_id", random_id);
-    sent_messages_[random_id] = Message{id, text};
+    auto &message = sent_messages_[random_id];
+    message.id = id;
+    message.text = text;
+    message.flush_generation = flush_generations_[id - 1];
     send_closure(get_by_id(id), &SecretChatProxy::send_message,
                  secret_api::make_object<secret_api::decryptedMessage>(0, false, random_id, 0, text, Auto(), Auto(),
                                                                        Auto(), Auto(), 0));
@@ -1189,19 +1228,25 @@ class Master final : public Actor {
   }
 
   int32 last_ping_ = std::numeric_limits<int32>::max();
-  void on_inbound_message(string message, Promise<> promise) {
+  void on_inbound_message(int64 random_id, string message, Promise<> promise) {
     promise.set_value(Unit());
     LOG(INFO) << "Receive inbound message: " << message << " " << get_link_token();
+    auto it = sent_messages_.find(random_id);
+    CHECK(it != sent_messages_.end());
+    CHECK(it->second.id == narrow_cast<int32>(3 - get_link_token()));
+    CHECK(it->second.text == message);
+    it->second.is_received = true;
+    unreceived_messages_.erase(random_id);
+
     int32 cnt;
     int x = std::sscanf(message.c_str(), "PING: %d", &cnt);
     if (x != 1) {
       return;
     }
     if (cnt == 0) {
-      if (!is_closing_) {
-        is_closing_ = true;
-        cancel_timeout();
-        send_closure(from(), &SecretChatProxy::close_chat, false);
+      if (close_chat_id_ == 0) {
+        // the chat will be closed after all sent messages are received
+        close_chat_id_ = narrow_cast<int32>(get_link_token());
       }
       return;
     }
@@ -1220,6 +1265,9 @@ class Master final : public Actor {
       return;
     }
     CHECK(it != sent_messages_.end());
+    // the message is deleted and sent again as a new message
+    it->second.is_deleted = true;
+    unreceived_messages_.erase(random_id);
     auto message = it->second;
     // sent_messages_.erase(it);
     send_message(message.id, message.text);
@@ -1234,6 +1282,11 @@ class Master final : public Actor {
     }
     CHECK(it != sent_messages_.end());
     // sent_messages_.erase(it);
+    const auto &message = it->second;
+    if (!message.is_received && !message.is_deleted && message.flush_generation == flush_generations_[message.id - 1]) {
+      // the message must be received by the other party
+      unreceived_messages_.emplace(random_id, 0);
+    }
   }
 
  private:
@@ -1241,12 +1294,19 @@ class Master final : public Actor {
   ActorOwn<SecretChatProxy> alice_;
   ActorOwn<SecretChatProxy> bob_;
   struct Message {
-    int32 id;
+    int32 id = 0;
     string text;
+    int32 flush_generation = 0;
+    bool is_received = false;
+    bool is_deleted = false;
   };
   std::map<int64, Message> sent_messages_;
+  // random_id -> number of seconds passed since the message was reported as sent
+  std::map<int64, int32> unreceived_messages_;
+  int32 flush_generations_[2] = {0, 0};
 
   bool is_closing_ = false;
+  int32 close_chat_id_ = 0;
   int32 closed_chat_count_ = 0;
   void on_chat_closed() {
     closed_chat_count_++;
@@ -1268,7 +1328,7 @@ void FakeSecretChatContext::send_net_query(NetQueryPtr query, ActorShared<NetQue
 void FakeSecretChatContext::on_inbound_message(UserId user_id, MessageId message_id, int32 date,
                                                unique_ptr<EncryptedFile> file,
                                                tl_object_ptr<secret_api::decryptedMessage> message, Promise<> promise) {
-  send_closure(master_, &Master::on_inbound_message, message->message_, std::move(promise));
+  send_closure(master_, &Master::on_inbound_message, message->random_id_, message->message_, std::move(promise));
 }
 void FakeSecretChatContext::on_send_message_error(int64 random_id, Status error, Promise<> promise) {
   send_closure(master_, &Master::on_send_message_error, random_id, std::move(error), std::move(promise));
