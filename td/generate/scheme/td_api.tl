@@ -1826,7 +1826,8 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@date Point in time (Unix timestamp) when the gift was sent
 //@gift The gift
 //@collection_ids Identifiers of collections to which the gift is added; only for the receiver of the gift
-//@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift; 0 if the gift can't be sold by the current user
+//@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift within getOption("gift_sell_period") seconds from its sending;
+//-0 if the gift can't be sold by the receiver
 //@prepaid_upgrade_star_count Number of Telegram Stars that were paid by the sender for the ability to upgrade the gift
 //@is_upgrade_separate True, if the upgrade was bought after the gift was sent. In this case, prepaid upgrade cost must not be added to the gift cost
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift; only for the receiver of the gift
@@ -6182,7 +6183,8 @@ messageTonConnectRequest session_id:int64 state:TonConnectRequestState dapp_name
 //@received_gift_id Unique identifier of the received gift for the current user; only for the receiver of the gift
 //@text Message added to the gift
 //@unique_gift_number Unique number of the gift among gifts upgraded from the same gift after upgrade; 0 if yet unassigned
-//@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift; 0 if the gift can't be sold by the receiver
+//@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift within getOption("gift_sell_period") seconds from its sending;
+//-0 if the gift can't be sold by the receiver
 //@prepaid_upgrade_star_count Number of Telegram Stars that were paid by the sender for the ability to upgrade the gift
 //@is_upgrade_separate True, if the upgrade was bought after the gift was sent. In this case, prepaid upgrade cost must not be added to the gift cost
 //@is_from_auction True, if the message is a notification about a gift won on an auction
@@ -16706,12 +16708,14 @@ placeGiftAuctionBid gift_id:int64 star_count:int53 user_id:int53 text:formattedT
 //@star_count The number of Telegram Stars to put in the bid
 increaseGiftAuctionBid gift_id:int64 star_count:int53 = Ok;
 
-//@description Sells a gift for Telegram Stars; requires owner privileges for gifts owned by a chat
+//@description Sells a gift for Telegram Stars. Use receivedGift.sell_star_count or messageGift.sell_star_count to check whether the gift is soldable.
+//-A gift can be sold if it is soldable and not more than getOption("gift_sell_period") seconds passed since gift sending
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@received_gift_id Identifier of the gift
 sellGift business_connection_id:string received_gift_id:string = Ok;
 
-//@description Deletes a gift without receiving Telegram Stars for it. Use receivedGift.can_be_deleted or messageGift.can_be_deleted to check whether the gift can be deleted
+//@description Deletes a gift without receiving Telegram Stars for it. Use receivedGift.can_be_deleted or messageGift.can_be_deleted to check whether the gift can be deleted.
+//-The gift may be deleted even it can still be sold using sellGift
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@received_gift_id Identifier of the gift
 deleteGift business_connection_id:string received_gift_id:string = Ok;

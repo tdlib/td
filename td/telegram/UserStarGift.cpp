@@ -68,10 +68,11 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedS
       star_gift_id_ = StarGiftId(dialog_id, gift->saved_id_);
     }
   }
-  if (star_gift_id_.is_valid() && gift_.can_be_deleted() && !was_refunded_ && convert_star_count_ == 0) {
-    can_delete_ = is_me || (is_user && td->auth_manager_->is_bot()) ||
+  bool is_owned = is_me || (is_user && td->auth_manager_->is_bot()) ||
                   (dialog_id.get_type() == DialogType::Channel &&
                    td->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_creator());
+  if (is_owned && star_gift_id_.is_valid() && gift_.can_be_deleted() && !was_refunded_) {
+    can_delete_ = true;
   }
   if (sender_dialog_id_ != DialogId() && !sender_dialog_id_.is_valid()) {
     LOG(ERROR) << "Receive " << sender_dialog_id_ << " as sender of " << gift_;

@@ -12409,14 +12409,12 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       } else if (m->is_prepaid_upgrade && is_outgoing) {
         sender_dialog_id = DialogId();
       }
-      bool can_be_deleted = false;
-      if (star_gift_id.is_valid() && m->star_gift.can_be_deleted() && !m->was_converted && !m->was_upgraded &&
-          !m->was_refunded && m->convert_star_count == 0) {
-        auto owner_dialog_id = star_gift_id.get_dialog_id(td);
-        can_be_deleted = td->auth_manager_->is_bot() || owner_dialog_id == td->dialog_manager_->get_my_dialog_id() ||
-                         (owner_dialog_id.get_type() == DialogType::Channel &&
-                          td->chat_manager_->get_channel_status(owner_dialog_id.get_channel_id()).is_creator());
-      }
+      auto owner_dialog_id = star_gift_id.get_dialog_id(td);
+      bool is_owned = td->auth_manager_->is_bot() || owner_dialog_id == td->dialog_manager_->get_my_dialog_id() ||
+                      (owner_dialog_id.get_type() == DialogType::Channel &&
+                       td->chat_manager_->get_channel_status(owner_dialog_id.get_channel_id()).is_creator());
+      bool can_be_deleted = is_owned && star_gift_id.is_valid() && m->star_gift.can_be_deleted() && !m->was_converted &&
+                            !m->was_upgraded && !m->was_refunded;
       return td_api::make_object<td_api::messageGift>(
           m->star_gift.get_gift_object(td),
           sender_dialog_id == DialogId() ? nullptr
