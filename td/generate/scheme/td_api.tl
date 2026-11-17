@@ -17515,7 +17515,8 @@ replaceTonWallet password:string anchor_public_key:bytes proof:tonWalletOwnershi
 //@description Returns exchange rates of currencies to USD
 getCurrencyExchangeRates = CurrencyExchangeRates;
 
-//@description Returns NFTs stored on the TON wallet of the user; can be used only if getOption("can_use_ton_wallet")
+//@description Returns NFTs stored on the TON wallet of the user; can be used only if getOption("can_use_ton_wallet"). The result also includes NFTs of the user,
+//-which are put up for sale using a fixed price sale contract
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of NFTs to be returned; must be positive and can't be greater than 20
 getTonWalletNfts offset:string limit:int32 = TonNfts;
