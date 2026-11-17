@@ -1701,14 +1701,14 @@ class MessageStarGiftOnchainOffer final : public MessageContent {
   bool is_settled = false;
   bool is_accepted = false;
   bool is_declined = false;
-  bool is_cancelling = false;
-  bool is_cancelled = false;
+  bool is_canceling = false;
+  bool is_canceled = false;
   bool is_expired = false;
 
   MessageStarGiftOnchainOffer() = default;
   MessageStarGiftOnchainOffer(StarGift &&star_gift, string &&offer_address, int64 amount, int64 buyer_refund,
                               int64 fine, int32 fee_bps, int32 expires_at, bool is_buyer, bool is_settled,
-                              bool is_accepted, bool is_declined, bool is_cancelling, bool is_cancelled,
+                              bool is_accepted, bool is_declined, bool is_canceling, bool is_canceled,
                               bool is_expired)
       : star_gift(std::move(star_gift))
       , offer_address(std::move(offer_address))
@@ -1721,8 +1721,8 @@ class MessageStarGiftOnchainOffer final : public MessageContent {
       , is_settled(is_settled)
       , is_accepted(is_accepted)
       , is_declined(is_declined)
-      , is_cancelling(is_cancelling)
-      , is_cancelled(is_cancelled)
+      , is_canceling(is_canceling)
+      , is_canceled(is_canceled)
       , is_expired(is_expired) {
   }
 
@@ -3284,8 +3284,8 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(m->is_settled);
       STORE_FLAG(m->is_accepted);
       STORE_FLAG(m->is_declined);
-      STORE_FLAG(m->is_cancelling);
-      STORE_FLAG(m->is_cancelled);
+      STORE_FLAG(m->is_canceling);
+      STORE_FLAG(m->is_canceled);
       STORE_FLAG(m->is_expired);
       STORE_FLAG(has_offer_address);
       STORE_FLAG(has_amount);
@@ -4910,8 +4910,8 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(m->is_settled);
       PARSE_FLAG(m->is_accepted);
       PARSE_FLAG(m->is_declined);
-      PARSE_FLAG(m->is_cancelling);
-      PARSE_FLAG(m->is_cancelled);
+      PARSE_FLAG(m->is_canceling);
+      PARSE_FLAG(m->is_canceled);
       PARSE_FLAG(m->is_expired);
       PARSE_FLAG(has_offer_address);
       PARSE_FLAG(has_amount);
@@ -9482,7 +9482,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
           lhs->buyer_refund != rhs->buyer_refund || lhs->fine != rhs->fine || lhs->fee_bps != rhs->fee_bps ||
           lhs->expires_at != rhs->expires_at || lhs->is_buyer != rhs->is_buyer || lhs->is_settled != rhs->is_settled ||
           lhs->is_accepted != rhs->is_accepted || lhs->is_declined != rhs->is_declined ||
-          lhs->is_cancelling != rhs->is_cancelling || lhs->is_cancelled != rhs->is_cancelled ||
+          lhs->is_canceling != rhs->is_canceling || lhs->is_canceled != rhs->is_canceled ||
           lhs->is_expired != rhs->is_expired) {
         need_update = true;
       }
@@ -12978,7 +12978,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
         if (m->is_declined) {
           return td_api::make_object<td_api::giftOnchainPurchaseOfferStateDeclined>(m->buyer_refund);
         }
-        if (m->is_cancelled) {
+        if (m->is_canceled) {
           return td_api::make_object<td_api::giftOnchainPurchaseOfferStateCanceled>(m->buyer_refund, m->fine);
         }
         if (m->is_expired) {
@@ -12987,7 +12987,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
         if (m->is_settled) {
           return td_api::make_object<td_api::giftOnchainPurchaseOfferStateSettled>();
         }
-        if (m->is_cancelling) {
+        if (m->is_canceling) {
           return td_api::make_object<td_api::giftOnchainPurchaseOfferStateCanceling>();
         }
         return td_api::make_object<td_api::giftOnchainPurchaseOfferStatePending>();

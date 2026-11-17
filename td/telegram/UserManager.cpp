@@ -6000,7 +6000,7 @@ void UserManager::set_name(const string &first_name, const string &last_name, Pr
   const User *u = get_user(get_my_id());
   int32 flags = 0;
   // TODO we can already send request for changing first_name and last_name and wanting to set initial values
-  // TODO need to be rewritten using invoke after and cancelling previous request
+  // TODO need to be rewritten using invoke after and canceling previous request
   if (u == nullptr || u->first_name != new_first_name) {
     flags |= ACCOUNT_UPDATE_FIRST_NAME;
   }
@@ -6022,7 +6022,7 @@ void UserManager::set_bio(const string &bio, Promise<Unit> &&promise) {
   const UserFull *user_full = get_user_full(get_my_id());
   int32 flags = 0;
   // TODO we can already send request for changing bio and wanting to set initial values
-  // TODO need to be rewritten using invoke after and cancelling previous request
+  // TODO need to be rewritten using invoke after and canceling previous request
   if (user_full == nullptr || user_full->about != new_bio) {
     flags |= ACCOUNT_UPDATE_ABOUT;
   }

@@ -1855,7 +1855,6 @@ void NotificationManager::remove_added_notifications_from_pending_updates(
       auto update_ptr = static_cast<td_api::updateNotification *>(update.get());
       if (is_removed(update_ptr->notification_)) {
         CHECK(update_ptr->notification_->id_ != 0);
-        // An edit doesn't make a notification new. Keep its later removal unless an addition was cancelled too.
         VLOG(notifications) << "Remove " << NotificationId(update_ptr->notification_->id_) << " in " << group_id;
         update = nullptr;
       }
