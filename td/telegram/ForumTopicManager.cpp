@@ -371,8 +371,9 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &query, int32 offset_date, MessageId offset_message_id,
-            ForumTopicId offset_forum_topic_id, int32 limit) {
+  void send(DialogId dialog_id, const string &query, CustomEmojiId icon_custom_emoji_id, bool exclude_open,
+            bool exclude_closed, int32 offset_date, MessageId offset_message_id, ForumTopicId offset_forum_topic_id,
+            int32 limit) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
@@ -380,10 +381,17 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
+    int32 flags = 0;
+    if (icon_custom_emoji_id.is_valid()) {
+      flags |= telegram_api::messages_getForumTopics::ICON_EMOJI_ID_MASK;
+    }
+    if (exclude_open || exclude_closed) {
+      flags |= telegram_api::messages_getForumTopics::CLOSED_MASK;
+    }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getForumTopics(0, std::move(input_peer), query, 0, false, offset_date,
-                                              offset_message_id.get_server_message_id().get(),
-                                              offset_forum_topic_id.get(), limit),
+        telegram_api::messages_getForumTopics(
+            flags, std::move(input_peer), query, icon_custom_emoji_id.get(), exclude_open, offset_date,
+            offset_message_id.get_server_message_id().get(), offset_forum_topic_id.get(), limit),
         {{dialog_id}}));
   }
 
@@ -915,7 +923,8 @@ void ForumTopicManager::get_forum_topic_link(DialogId dialog_id, ForumTopicId fo
   promise.set_value(td_api::make_object<td_api::messageLink>(sb.as_cslice().str(), is_public));
 }
 
-void ForumTopicManager::get_forum_topics(DialogId dialog_id, string query, int32 offset_date,
+void ForumTopicManager::get_forum_topics(DialogId dialog_id, string query, CustomEmojiId icon_custom_emoji_id,
+                                         bool exclude_open, bool exclude_closed, int32 offset_date,
                                          MessageId offset_message_id, ForumTopicId offset_forum_topic_id, int32 limit,
                                          Promise<td_api::object_ptr<td_api::forumTopics>> promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
@@ -932,8 +941,16 @@ void ForumTopicManager::get_forum_topics(DialogId dialog_id, string query, int32
   if (limit <= 0) {
     return promise.set_error(400, "Invalid limit specified");
   }
+  if ((icon_custom_emoji_id.is_valid() || exclude_open || exclude_closed) &&
+      dialog_id.get_type() != DialogType::Channel) {
+    return promise.set_error(400, "Topic filters can't be used in chats with bots");
+  }
+  if (exclude_open && exclude_closed) {
+    return promise.set_value(td_api::make_object<td_api::forumTopics>(0, Auto(), 0, 0, 0));
+  }
   td_->create_handler<GetForumTopicsQuery>(std::move(promise))
-      ->send(dialog_id, query, offset_date, offset_message_id, offset_forum_topic_id, limit);
+      ->send(dialog_id, query, icon_custom_emoji_id, exclude_open, exclude_closed, offset_date, offset_message_id,
+             offset_forum_topic_id, limit);
 }
 
 void ForumTopicManager::on_get_forum_topics(DialogId dialog_id, bool order_by_creation_date, MessagesInfo &&info,

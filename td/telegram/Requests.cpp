@@ -5052,10 +5052,10 @@ void Requests::on_request(uint64 id, td_api::getForumTopics &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST_PROMISE();
-  td_->forum_topic_manager_->get_forum_topics(DialogId(request.chat_id_), std::move(request.query_),
-                                              request.offset_date_, MessageId(request.offset_message_id_),
-                                              ForumTopicId(request.offset_forum_topic_id_), request.limit_,
-                                              std::move(promise));
+  td_->forum_topic_manager_->get_forum_topics(
+      DialogId(request.chat_id_), std::move(request.query_), CustomEmojiId(request.icon_custom_emoji_id_),
+      request.exclude_open_, request.exclude_closed_, request.offset_date_, MessageId(request.offset_message_id_),
+      ForumTopicId(request.offset_forum_topic_id_), request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::toggleForumTopicIsClosed &request) {

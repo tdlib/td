@@ -7150,12 +7150,17 @@ class CliClient final : public Actor {
     } else if (op == "gfts") {
       ChatId chat_id;
       string query;
+      CustomEmojiId icon_custom_emoji_id;
+      bool exclude_open;
+      bool exclude_closed;
       int32 offset_date;
       MessageId offset_message_id;
       ForumTopicId offset_forum_topic_id;
       string limit;
-      get_args(args, chat_id, query, offset_date, offset_message_id, offset_forum_topic_id, limit);
-      send_request(td_api::make_object<td_api::getForumTopics>(chat_id, query, offset_date, offset_message_id,
+      get_args(args, chat_id, query, icon_custom_emoji_id, exclude_open, exclude_closed, offset_date, offset_message_id,
+               offset_forum_topic_id, limit);
+      send_request(td_api::make_object<td_api::getForumTopics>(chat_id, query, icon_custom_emoji_id, exclude_open,
+                                                               exclude_closed, offset_date, offset_message_id,
                                                                offset_forum_topic_id, as_limit(limit)));
     } else if (op == "tftic") {
       ChatId chat_id;

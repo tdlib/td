@@ -14095,11 +14095,14 @@ getForumTopicLink chat_id:int53 forum_topic_id:int32 = MessageLink;
 //@description Returns found forum topics in a forum supergroup chat or a chat with a bot with topics. This is a temporary method for getting information about topic list from the server
 //@chat_id Identifier of the chat
 //@query Query to search for in the forum topic's name
+//@icon_custom_emoji_id If non-zero, then only topics with the icon with the given custom emoji identifier will be returned; applicable to forum supergroups only
+//@exclude_open Pass true to exclude open topics; applicable to forum supergroups only
+//@exclude_closed Pass true to exclude closed topics; applicable to forum supergroups only
 //@offset_date The date starting from which the results need to be fetched. Use 0 or any date in the future to get results from the last topic
 //@offset_message_id The message identifier of the last message in the last found topic, or 0 for the first request
 //@offset_forum_topic_id The forum topic identifier of the last found topic, or 0 for the first request
 //@limit The maximum number of forum topics to be returned; up to 100. For optimal performance, the number of returned forum topics is chosen by TDLib and can be smaller than the specified limit
-getForumTopics chat_id:int53 query:string offset_date:int32 offset_message_id:int53 offset_forum_topic_id:int32 limit:int32 = ForumTopics;
+getForumTopics chat_id:int53 query:string icon_custom_emoji_id:int64 exclude_open:Bool exclude_closed:Bool offset_date:int32 offset_message_id:int53 offset_forum_topic_id:int32 limit:int32 = ForumTopics;
 
 //@description Changes the notification settings of a forum topic in a forum supergroup chat or a chat with a bot with topics
 //@chat_id Chat identifier
