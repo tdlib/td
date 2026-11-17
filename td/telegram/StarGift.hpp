@@ -102,6 +102,7 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(is_onchain_sale_);
   STORE_FLAG(is_fixed_onchain_sale_);
   STORE_FLAG(has_resale_fee_bps);
+  STORE_FLAG(is_my_sale_);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -297,6 +298,7 @@ void StarGift::parse(ParserT &parser) {
     PARSE_FLAG(is_onchain_sale_);
     PARSE_FLAG(is_fixed_onchain_sale_);
     PARSE_FLAG(has_resale_fee_bps);
+    PARSE_FLAG(is_my_sale_);
     END_PARSE_FLAGS();
   }
   td::parse(id_, parser);

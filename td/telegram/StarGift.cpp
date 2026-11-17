@@ -85,6 +85,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> star
         LOG(ERROR) << "Receive fixed sale for non-on-chain gift " << slug_;
       }
     }
+    is_my_sale_ = star_gift->my_sale_;
     offer_min_star_count_ = StarManager::get_star_count(star_gift->offer_min_stars_);
     offer_min_gram_amount_ = max(star_gift->offer_min_amount_, static_cast<int64>(0));
     is_burned_ = star_gift->burned_;
@@ -259,7 +260,7 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
   if (resale_star_count_ > 0 && resale_ton_count_ > 0) {
     resale_parameters = td_api::make_object<td_api::giftResaleParameters>(
         resale_star_count_, resale_ton_count_ / 10000000, resale_ton_count_, resale_ton_only_, is_fixed_onchain_sale_,
-        resale_fee_bps_);
+        is_my_sale_, resale_fee_bps_);
   }
   return td_api::make_object<td_api::upgradedGift>(
       id_, regular_gift_id_,
@@ -311,7 +312,7 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.per_user_remains_ == rhs.per_user_remains_ && lhs.per_user_total_ == rhs.per_user_total_ &&
          lhs.locked_until_date_ == rhs.locked_until_date_ && lhs.background_ == rhs.background_ &&
          lhs.has_colors_ == rhs.has_colors_ && lhs.is_for_birthday_ == rhs.is_for_birthday_ &&
-         lhs.is_auction_ == rhs.is_auction_ && lhs.is_unique_ == rhs.is_unique_ &&
+         lhs.is_auction_ == rhs.is_auction_ && lhs.is_unique_ == rhs.is_unique_ && lhs.is_my_sale_ == rhs.is_my_sale_ &&
          lhs.resale_ton_only_ == rhs.resale_ton_only_ && lhs.is_onchain_sale_ == rhs.is_onchain_sale_ &&
          lhs.is_fixed_onchain_sale_ == rhs.is_fixed_onchain_sale_ && lhs.resale_fee_bps_ == rhs.resale_fee_bps_ &&
          lhs.is_theme_available_ == rhs.is_theme_available_ && lhs.is_burned_ == rhs.is_burned_ &&
