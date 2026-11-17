@@ -192,7 +192,7 @@ textCompositionStyle name:string custom_emoji_id:int64 title:string is_custom:Bo
 //@style_name Name of the style of the resulting text; may be empty if none. Handle updateTextCompositionStyles to get the list of supported styles
 //@translate_to_language_code Language code to which the text will be translated; may be empty if none. See translateText.to_language_code for the list of supported values
 //@add_emojis True, if emoji will be added to the text
-//@fix_text True, if the text will be fixed
+//@fix_text True, if the text will be fixed in the same way as by fixTextWithAi
 textCompositionParameters style_name:string translate_to_language_code:string add_emojis:Bool fix_text:Bool = TextCompositionParameters;
 
 
@@ -1544,7 +1544,7 @@ giftPurchaseLimits total_count:int32 remaining_count:int32 = GiftPurchaseLimits;
 //@gram_cent_count Resale price of the gift in 1/100 of TON Gram
 //@gram_amount Exact resale price of the gift, in the smallest units of TON Grams; must be passed to getGiftOnchainPurchaseTransaction if upgradedGift.uses_onchain_resale is true
 //@gram_only True, if the gift can be bought only using Grams
-//@is_fixed_onchain True, if the gift is sold on-chain using a fixed price sale contract; the price of such gifts can be changed using getGiftOnchainListingTransaction without canceling the sale
+//@is_fixed_onchain True, if the gift is sold on-chain using a fixed price sale contract
 //@can_be_managed True, if the sale of the gift is managed by the current user. If upgradedGift.uses_onchain_resale is true, then the sale can be canceled
 //-using getGiftOnchainDelistingTransaction, and the price can be changed using getGiftOnchainListingTransaction if is_fixed_onchain is true.
 //-Otherwise, the price can be changed and the sale can be canceled using setGiftResalePrice
@@ -1697,9 +1697,9 @@ gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_s
 //@used_theme_chat_id Identifier of the chat for which the gift is used to set a theme; 0 if none or the gift isn't owned by the current user
 //@host_id Identifier of the user or the chat to which the upgraded gift was assigned from blockchain; may be null if none or unknown
 //@owner_id Identifier of the user or the chat that owns the upgraded gift; may be null if none or unknown
-//@owner_address Address of the gift NFT owner in TON blockchain; may be empty if none. Append the address to getOption("ton_blockchain_explorer_url") to get a link with information about the address
+//@owner_address Address of the gift NFT owner in the TON blockchain; may be empty if none. Append the address to getOption("ton_blockchain_explorer_url") to get a link with information about the address
 //@owner_name Name of the owner for the case when owner identifier and address aren't known
-//@gift_address Address of the gift NFT in TON blockchain; may be empty if none. Append the address to getOption("ton_blockchain_explorer_url") to get a link with information about the address
+//@gift_address Address of the gift NFT in the TON blockchain; may be empty if none. Append the address to getOption("ton_blockchain_explorer_url") to get a link with information about the address
 //@can_be_ton_wallet_card_background True, if the gift NFT can be used as background_nft_address in setTonWalletCardStickers
 //@model Model of the upgraded gift
 //@symbol Symbol of the upgraded gift
@@ -1736,7 +1736,7 @@ upgradedGiftValueInfo currency:string value:int53 is_value_average:Bool initial_
 
 //@description Contains information needed to deposit an upgraded gift from the TON wallet of the current user to a Telegram account.
 //-The gift must be transferred by an internal message from the wallet to nft_address with gram_amount attached and with payload as the message body. Use sendTonWalletTransaction to send the message
-//@nft_address Address in TON blockchain to which the message must be sent
+//@nft_address Address in the TON blockchain to which the message must be sent
 //@payload Body of the NFT transfer message
 //@gram_amount The amount that must be attached to the message to cover fees, in the smallest units of TON Grams; excess amount will be returned to the wallet
 upgradedGiftDepositInfo nft_address:string payload:bytes gram_amount:int64 = UpgradedGiftDepositInfo;
@@ -1769,7 +1769,8 @@ tonWalletMessage destination_address:string gram_amount:int64 send_mode:int32 bo
 //-The final fine will be known after the cancellation is executed in the TON blockchain
 giftOnchainPurchaseOfferTransaction offer_address:string expiration_date:int32 message:tonWalletMessage gasless_message:tonWalletMessage rent_budget_amount:int64 execution_allowance_amount:int64 forward_amount:int64 fine_amount:int64 = GiftOnchainPurchaseOfferTransaction;
 
-//@class GiftOnchainSaleTransaction @description Describes a transaction that must be sent from the TON wallet of the current user to buy or sell an upgraded gift on-chain, or to cancel its sale
+//@class GiftOnchainSaleTransaction @description Describes a transaction that must be sent from the TON wallet of the current user to buy an upgraded gift on-chain,
+//-put it up for sale, change its price, or cancel its sale
 
 //@description The transaction for a gift sold on-chain on Fragment. The transaction consists of one message with gram_amount attached and with payload as the message body,
 //-which must be sent to nft_address. Use sendTonWalletTransaction to send the transaction
@@ -14098,9 +14099,9 @@ getForumTopicLink chat_id:int53 forum_topic_id:int32 = MessageLink;
 //@description Returns found forum topics in a forum supergroup chat or a chat with a bot with topics. This is a temporary method for getting information about topic list from the server
 //@chat_id Identifier of the chat
 //@query Query to search for in the forum topic's name
-//@icon_custom_emoji_id If non-zero, then only topics with the icon with the given custom emoji identifier will be returned; applicable to forum supergroups only
-//@exclude_open Pass true to exclude open topics; applicable to forum supergroups only
-//@exclude_closed Pass true to exclude closed topics; applicable to forum supergroups only
+//@icon_custom_emoji_id If non-zero, then only topics with the icon with the given custom emoji identifier will be returned; must be 0 in chats with bots
+//@exclude_open Pass true to exclude open topics; must be false in chats with bots
+//@exclude_closed Pass true to exclude closed topics; must be false in chats with bots
 //@offset_date The date starting from which the results need to be fetched. Use 0 or any date in the future to get results from the last topic
 //@offset_message_id The message identifier of the last message in the last found topic, or 0 for the first request
 //@offset_forum_topic_id The forum topic identifier of the last found topic, or 0 for the first request
