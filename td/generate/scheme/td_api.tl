@@ -709,8 +709,8 @@ game id:int64 short_name:string title:string text:formattedText description:stri
 
 //@description Describes state of the stake dice
 //@state_hash Hash of the state to use for sending the next dice; may be empty if the stake dice can't be sent by the current user
-//@stake_gram_amount The amount of TON Grams staked in the previous roll; in the smallest units of the currency
-//@suggested_stake_gram_amounts The amounts of Grams that are suggested to be staked; in the smallest units of the currency
+//@stake_gram_amount The amount of TON Grams staked in the previous roll, in the smallest units of the currency
+//@suggested_stake_gram_amounts The amounts of Grams that are suggested to be staked, in the smallest units of the currency
 //@current_streak The number of rolled sixes towards the streak; 0-2
 //@prize_per_mille The number of Grams received by the user for each 1000 Grams staked if the dice outcome is 1-6 correspondingly; may be empty if the stake dice can't be sent by the current user
 //@streak_prize_per_mille The number of Grams received by the user for each 1000 Grams staked if the dice outcome is 6 three times in a row with the same stake
@@ -1713,22 +1713,22 @@ gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_s
 //@min_onchain_purchase_offer_gram_amount The minimum price for an on-chain offer to purchase the gift, in the smallest units of TON Grams; 0 if on-chain purchase offers can't be sent for the gift
 //@craft_probability_per_mille Probability that the gift adds to the chance of successful crafting of a new gift; 0 if the gift can't be used for crafting
 //@value_currency ISO 4217 currency code of the currency in which value of the gift is represented; may be empty if unavailable
-//@value_amount Estimated value of the gift; in the smallest units of the currency; 0 if unavailable
+//@value_amount Estimated value of the gift, in the smallest units of the currency; 0 if unavailable
 //@value_usd_amount Estimated value of the gift in USD; in USD cents; 0 if unavailable
 upgradedGift id:int64 regular_gift_id:int64 publisher_chat_id:int53 title:string name:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 is_burned:Bool is_crafted:Bool is_premium:Bool is_theme_available:Bool used_theme_chat_id:int53 host_id:MessageSender owner_id:MessageSender owner_address:string owner_name:string gift_address:string can_be_ton_wallet_card_background:Bool model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails colors:upgradedGiftColors uses_onchain_resale:Bool resale_parameters:giftResaleParameters can_send_purchase_offer:Bool min_onchain_purchase_offer_gram_amount:int64 craft_probability_per_mille:int32 value_currency:string value_amount:int53 value_usd_amount:int53 = UpgradedGift;
 
 //@description Contains information about value of an upgraded gift
 //@currency ISO 4217 currency code of the currency in which the prices are represented
-//@value Estimated value of the gift; in the smallest units of the currency
+//@value Estimated value of the gift, in the smallest units of the currency
 //@is_value_average True, if the value is calculated as average value of similar sold gifts. Otherwise, it is based on the sale price of the gift
 //@initial_sale_date Point in time (Unix timestamp) when the corresponding regular gift was originally purchased
 //@initial_sale_star_count The Telegram Star amount that was paid for the gift
-//@initial_sale_price Initial price of the gift; in the smallest units of the currency
+//@initial_sale_price Initial price of the gift, in the smallest units of the currency
 //@last_sale_date Point in time (Unix timestamp) when the upgraded gift was purchased last time; 0 if never
-//@last_sale_price Last purchase price of the gift; in the smallest units of the currency; 0 if the gift has never been resold
+//@last_sale_price Last purchase price of the gift, in the smallest units of the currency; 0 if the gift has never been resold
 //@is_last_sale_on_fragment True, if the last sale was completed on Fragment
-//@min_price The current minimum price of gifts upgraded from the same gift; in the smallest units of the currency; 0 if there are no such gifts
-//@average_sale_price The average sale price in the last month of gifts upgraded from the same gift; in the smallest units of the currency; 0 if there were no such sales
+//@min_price The current minimum price of gifts upgraded from the same gift, in the smallest units of the currency; 0 if there are no such gifts
+//@average_sale_price The average sale price in the last month of gifts upgraded from the same gift, in the smallest units of the currency; 0 if there were no such sales
 //@telegram_listed_gift_count Number of gifts upgraded from the same gift being resold on Telegram
 //@fragment_listed_gift_count Number of gifts upgraded from the same gift being resold on Fragment
 //@fragment_url The HTTPS link to the Fragment for the gift; may be empty if there are no such gifts being sold on Fragment
@@ -2293,7 +2293,7 @@ tonTransactionTypeUpgradedGiftPurchase user_id:int53 gift:upgradedGift = TonTran
 //@user_id Identifier of the user who bought the gift
 //@gift The gift
 //@commission_per_mille The number of Grams received by the Telegram for each 1000 Grams received by the seller of the gift
-//@commission_gram_amount The Gram amount that was received by the Telegram; in the smallest units of the currency
+//@commission_gram_amount The Gram amount that was received by the Telegram, in the smallest units of the currency
 //@via_offer True, if the gift was sold through a purchase offer
 tonTransactionTypeUpgradedGiftSale user_id:int53 gift:upgradedGift commission_per_mille:int32 commission_gram_amount:int53 via_offer:Bool = TonTransactionType;
 
@@ -2542,8 +2542,8 @@ tonWalletTransactionTypeTelegramGiftPurchase nft:tonNft amount:int64 = TonWallet
 
 //@description A Telegram gift was put up for sale on the TON blockchain or its price was changed
 //@nft The NFT put up for sale; may be null if unknown
-//@old_price The previous price of the gift, in the smallest units of the cryptocurrency; 0 if the gift wasn't on sale before
-//@price The new price of the gift, in the smallest units of the cryptocurrency
+//@old_price The previous price of the gift, in the smallest units of TON Grams; 0 if the gift wasn't on sale before
+//@price The new price of the gift, in the smallest units of TON Grams
 //@amount The cost of the action including refunds, in the smallest units of TON Grams; negative for outgoing transactions
 tonWalletTransactionTypeTelegramGiftListing nft:tonNft old_price:int64 price:int64 amount:int64 = TonWalletTransactionType;
 
@@ -2554,7 +2554,7 @@ tonWalletTransactionTypeTelegramGiftDelisting nft:tonNft amount:int64 = TonWalle
 
 //@description An offer to buy a Telegram gift was created on the TON blockchain and the funds were placed in escrow
 //@nft The NFT for which the offer was created; may be null if unknown
-//@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
+//@offer_address Address of the smart contract of the offer in the TON blockchain; the same for all transactions related to the offer
 //@counterparty_address Address of the seller in the TON blockchain; may be empty if unknown
 //@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of TON Grams
 //@amount The total amount placed in escrow, including the price, the service fee, and the rent and execution fees, in the smallest units of TON Grams
@@ -2565,7 +2565,7 @@ tonWalletTransactionTypeTelegramGiftOfferCreation nft:tonNft offer_address:strin
 //@description An offer to buy a Telegram gift was accepted on the TON blockchain. The buyer received the NFT and the seller received the price
 //@nft The NFT for which the offer was created; may be null if unknown
 //@is_buyer True, if the current user is the buyer of the NFT; otherwise, the current user is the seller of the NFT
-//@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
+//@offer_address Address of the smart contract of the offer in the TON blockchain; the same for all transactions related to the offer
 //@counterparty_address Address of the other party in the TON blockchain: the seller for the buyer and the buyer for the seller
 //@price The price of the NFT without the service fee and blockchain fees, in the smallest units of TON Grams
 //@service_fee_amount The service fee for the offer, in the smallest units of TON Grams
@@ -2573,7 +2573,7 @@ tonWalletTransactionTypeTelegramGiftOfferAcceptance nft:tonNft is_buyer:Bool off
 
 //@description An offer to buy a Telegram gift was canceled by the buyer on the TON blockchain
 //@nft The NFT for which the offer was created; may be null if unknown
-//@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
+//@offer_address Address of the smart contract of the offer in the TON blockchain; the same for all transactions related to the offer
 //@counterparty_address Address of the seller in the TON blockchain; may be empty if unknown
 //@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of TON Grams; 0 if unknown
 //@refund_amount The amount returned to the buyer, in the smallest units of TON Grams
@@ -2582,7 +2582,7 @@ tonWalletTransactionTypeTelegramGiftOfferCancellation nft:tonNft offer_address:s
 
 //@description An offer to buy a Telegram gift was declined by the owner of the NFT or canceled by Telegram on the TON blockchain
 //@nft The NFT for which the offer was created; may be null if unknown
-//@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
+//@offer_address Address of the smart contract of the offer in the TON blockchain; the same for all transactions related to the offer
 //@counterparty_address Address of the seller in the TON blockchain; may be empty if unknown
 //@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of TON Grams; 0 if unknown
 //@refund_amount The amount returned to the buyer, in the smallest units of TON Grams
@@ -2590,7 +2590,7 @@ tonWalletTransactionTypeTelegramGiftOfferDecline nft:tonNft offer_address:string
 
 //@description An offer to buy a Telegram gift has expired on the TON blockchain
 //@nft The NFT for which the offer was created; may be null if unknown
-//@offer_address Address of the offer in the TON blockchain; the same for all transactions related to the offer
+//@offer_address Address of the smart contract of the offer in the TON blockchain; the same for all transactions related to the offer
 //@counterparty_address Address of the seller in the TON blockchain; may be empty if unknown
 //@price The offered price for the NFT without the service fee and blockchain fees, in the smallest units of TON Grams; 0 if unknown
 //@refund_amount The amount returned to the buyer, in the smallest units of TON Grams
@@ -2722,7 +2722,7 @@ tonConnectChallenge challenge:bytes event_id:int64 = TonConnectChallenge;
 tonConnectSessionEventId event_id:int64 = TonConnectSessionEventId;
 
 
-//@description Represents result of a transfer of TON Grams from the current user's TON wallet
+//@description Represents result of sending a transaction from the current user's TON wallet
 //@is_gasless True, if the transfer is gasless
 //@msg_hash Unique identifier of the sent message; use getTonWalletTransactionByMsgHash to poll information about the transaction
 //@transaction The completed transaction; may be null if the transaction is still pending
@@ -5996,8 +5996,8 @@ messagePoll poll:poll description:formattedText media:PollMedia can_add_option:B
 //@initial_state The animated stickers with the initial dice animation; may be null if unknown. The update updateMessageContent will be sent when the sticker became known
 //@final_state The animated stickers with the final dice animation; may be null if unknown. The update updateMessageContent will be sent when the sticker became known
 //@value The dice value. If the value is 0, then the dice don't have final state yet
-//@stake_gram_amount The TON Gram amount that was staked; in the smallest units of the currency
-//@prize_gram_amount The TON Gram amount that was gained from the roll; in the smallest units of the currency; -1 if the dice don't have final state yet
+//@stake_gram_amount The TON Gram amount that was staked, in the smallest units of the currency
+//@prize_gram_amount The TON Gram amount that was gained from the roll, in the smallest units of the currency; -1 if the dice don't have final state yet
 messageStakeDice initial_state:DiceStickers final_state:DiceStickers value:int32 stake_gram_amount:int53 prize_gram_amount:int53 = MessageContent;
 
 //@description A message with a forwarded story
@@ -6412,7 +6412,7 @@ messageUpgradedGiftPurchaseOfferRejected gift:upgradedGift price:GiftResalePrice
 //@gift The gift
 //@is_buyer True, if the offer was sent by the current user; otherwise, the offer was received by the current user as the owner of the gift
 //@state State of the offer
-//@offer_address Address of the TON smart contract of the offer; can be used to match TON wallet transactions related to the offer
+//@offer_address Address of the smart contract of the offer in the TON blockchain; can be used to match TON wallet transactions related to the offer
 //@gram_amount The price offered for the gift, in the smallest units of TON Grams; the owner of the gift receives the full price if the offer is accepted
 //@fee_basis_points The fee paid by the buyer in addition to the price, in basis points; 1 basis point is 0.01%
 //@expiration_date Point in time (Unix timestamp) when the offer will expire or has expired
@@ -6464,7 +6464,7 @@ messageSuggestedPostDeclined suggested_post_message_id:int53 comment:string = Me
 //@description A suggested post was published for getOption("suggested_post_lifetime_min") seconds and payment for the post was received
 //@suggested_post_message_id Identifier of the message with the suggested post; may be 0 or an identifier of a deleted message
 //@star_amount The amount of received Telegram Stars
-//@gram_amount The received amount; in the smallest units of TON Grams
+//@gram_amount The received amount, in the smallest units of TON Grams
 messageSuggestedPostPaid suggested_post_message_id:int53 star_amount:starAmount gram_amount:int53 = MessageContent;
 
 //@description A suggested post was refunded
@@ -7021,7 +7021,7 @@ inputMessagePoll question:formattedText options:vector<inputPollOption> descript
 
 //@description A stake dice message
 //@state_hash Hash of the stake dice state. The state hash can be used only if it was received recently enough. Otherwise, a new state must be requested using getStakeDiceState
-//@stake_gram_amount The TON Gram amount that will be staked; in the smallest units of the currency. Must be in the range
+//@stake_gram_amount The TON Gram amount that will be staked, in the smallest units of the currency. Must be in the range
 //-getOption("stake_dice_stake_amount_min")-getOption("stake_dice_stake_amount_max")
 //@clear_draft Pass true to delete message draft in the chat
 inputMessageStakeDice state_hash:string stake_gram_amount:int53 clear_draft:Bool = InputMessageContent;
@@ -10643,7 +10643,7 @@ internalLinkTypeTonConnect version:int32 dapp_client_id:string connect_request:t
 
 //@description The link is a link for sending Grams from the user's TON wallet
 //@receiver Chosen receiver of the transfer; may be null if none
-//@gram_amount The pre-filled amount to send; in the smallest units of TON Grams
+//@gram_amount The pre-filled amount to send, in the smallest units of TON Grams
 internalLinkTypeTonWalletTransfer receiver:TonWalletTransferReceiver gram_amount:int64 = InternalLinkType;
 
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link @link Link to be passed to getDeepLinkInfo
@@ -11395,7 +11395,7 @@ chatRevenueTransactionTypeFragmentRefund refund_date:int32 = ChatRevenueTransact
 chatRevenueTransaction cryptocurrency:string cryptocurrency_amount:int64 type:ChatRevenueTransactionType = ChatRevenueTransaction;
 
 //@description Contains a list of chat revenue transactions
-//@gram_amount The owned amount; in the smallest units of TON Grams
+//@gram_amount The owned amount, in the smallest units of TON Grams
 //@transactions List of transactions
 //@next_offset The offset for the next request. If empty, then there are no more results
 chatRevenueTransactions gram_amount:int53 transactions:vector<chatRevenueTransaction> next_offset:string = ChatRevenueTransactions;
@@ -11416,9 +11416,9 @@ starRevenueStatus total_amount:starAmount current_amount:starAmount available_am
 starRevenueStatistics revenue_by_day_graph:StatisticalGraph status:starRevenueStatus usd_rate:double = StarRevenueStatistics;
 
 //@description Contains information about TON Grams earned by the current user
-//@total_amount Total amount earned; in the smallest units of TON Grams
-//@balance_amount The amount that isn't withdrawn yet; in the smallest units of TON Grams
-//@available_amount The amount that is available for withdrawal; in the smallest units of TON Grams
+//@total_amount Total amount earned, in the smallest units of TON Grams
+//@balance_amount The amount that isn't withdrawn yet, in the smallest units of TON Grams
+//@available_amount The amount that is available for withdrawal, in the smallest units of TON Grams
 //@withdrawal_enabled True, if Grams can be withdrawn
 gramRevenueStatus total_amount:int64 balance_amount:int64 available_amount:int64 withdrawal_enabled:Bool = GramRevenueStatus;
 
@@ -12184,7 +12184,7 @@ updateActiveLiveLocationMessages messages:vector<message> = Update;
 //@description The number of Telegram Stars owned by the current user has changed @star_amount The new amount of owned Telegram Stars
 updateOwnedStarCount star_amount:starAmount = Update;
 
-//@description The number of TON Grams owned by the current user has changed @gram_amount The new owned amount; in the smallest units of TON Grams
+//@description The number of TON Grams owned by the current user has changed @gram_amount The new owned amount, in the smallest units of TON Grams
 updateOwnedGramCount gram_amount:int53 = Update;
 
 //@description The state of the TON wallet of the current user has changed @state The new state of the wallet
@@ -17030,12 +17030,14 @@ processGiftPurchaseOffer message_id:int53 accept:Bool = Ok;
 //@duration Duration of the offer, in seconds; must be one of 21600, 43200, 86400, 129600, 172800, or 259200
 sendGiftOnchainPurchaseOffer gift_name:string gram_amount:int64 duration:int32 = GiftOnchainPurchaseOfferTransaction;
 
-//@description Cancels an on-chain gift purchase offer sent by the current user. A fine may be charged if the offer is canceled before it expires.
+//@description Cancels an on-chain gift purchase offer sent by the current user; can be used only if getOption("can_use_ton_wallet").
+//-A fine may be charged if the offer is canceled before it expires.
 //-Returns the transaction that must be sent from the TON wallet of the current user to cancel the offer. The offer is canceled only after the transaction is executed in the TON blockchain
 //@message_id Identifier of the message messageUpgradedGiftOnchainPurchaseOffer with the offer in the chat 777000
 cancelGiftOnchainPurchaseOffer message_id:int53 = GiftOnchainPurchaseOfferTransaction;
 
-//@description Accepts an on-chain gift purchase offer received by the current user. The gift must not be listed for sale. Other offers for the gift will be canceled after the gift is sold.
+//@description Accepts an on-chain gift purchase offer received by the current user; can be used only if getOption("can_use_ton_wallet"). The gift must not be listed for sale.
+//-Other offers for the gift will be canceled after the gift is sold.
 //-Returns the transaction that must be sent from the TON wallet of the current user to accept the offer. The offer is accepted only after the transaction is executed in the TON blockchain
 //-and the gift is transferred to the buyer
 //@message_id Identifier of the message messageUpgradedGiftOnchainPurchaseOffer with the offer in the chat 777000
