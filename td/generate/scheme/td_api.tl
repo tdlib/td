@@ -2536,9 +2536,9 @@ tonWalletTransactionTypeNftTransfer nft:tonNft is_outgoing:Bool comment:string i
 //@is_saved True, if the gift was displayed on the current user's profile page before or after the transfer
 tonWalletTransactionTypeTelegramGiftTransfer nft:tonNft is_outgoing:Bool is_saved:Bool = TonWalletTransactionType;
 
-//@description A Telegram gift was bought on the TON blockchain
-//@nft The bought NFT; may be null if unknown
-//@amount The amount paid for the gift, in the smallest units of TON Grams; negative for outgoing transactions
+//@description A Telegram gift was bought or sold on the TON blockchain
+//@nft The bought or sold NFT; may be null if unknown
+//@amount The amount paid or received for the gift, in the smallest units of TON Grams; negative for outgoing transactions
 tonWalletTransactionTypeTelegramGiftPurchase nft:tonNft amount:int64 = TonWalletTransactionType;
 
 //@description A Telegram gift was put up for sale on the TON blockchain or its price was changed
@@ -16607,8 +16607,7 @@ getManagedBotAccessSettings bot_user_id:int53 = BotAccessSettings;
 setManagedBotAccessSettings bot_user_id:int53 settings:botAccessSettings = Ok;
 
 //@description Invites users to private chats with a bot owned by the current user. Can be called only if userTypeBot.can_be_edited == true.
-//-Each invited user will receive a message messageBotInvite and the bot will be able to send messages to the user. The request succeeds if at least one user was invited.
-//-May return an error with a message "BOT_INVITE_ALREADY_STARTED" if the user already has an active chat with the bot
+//-Each invited user will receive a message messageBotInvite and the bot will be able to send messages to the user. The request succeeds if at least one user was invited
 //@bot_user_id Identifier of the bot
 //@user_ids Identifiers of the users to invite; 1-10 different users
 inviteUsersToBot bot_user_id:int53 user_ids:vector<int53> = Ok;
@@ -17049,7 +17048,8 @@ acceptGiftOnchainPurchaseOffer message_id:int53 = GiftOnchainPurchaseOfferTransa
 declineGiftOnchainPurchaseOffer message_id:int53 = Ok;
 
 //@description Returns a transaction that must be sent from the TON wallet of the current user to buy an upgraded gift for which upgradedGift.uses_onchain_resale is true;
-//-can be used only if getOption("can_use_ton_wallet"). The type of the returned transaction depends on the type of the sale. The gift will be received by the new owner
+//-can be used only if getOption("can_use_ton_wallet"). Gifts for which giftResaleParameters.is_fixed_onchain is true can be bought only if getOption("can_buy_onchain_fixed_price_gifts") is true,
+//-and other gifts can be bought only if getOption("can_buy_onchain_gifts") is true. The type of the returned transaction depends on the type of the sale. The gift will be received by the new owner
 //-after the transaction is executed in the TON blockchain. If the gift is bought for the current user, then it will be received by the TON wallet of the current user,
 //-and will be shown on the user's profile page if it is still in the wallet
 //@gift_name Name of the upgraded gift
@@ -17147,7 +17147,7 @@ setGiftResalePrice received_gift_id:string price:GiftResalePrice = Ok;
 //@for_stars Pass true to get gifts that can be bought using Telegram Stars.
 //-If none of for_stars, for_grams, and for_fragment is true, then gifts that can be bought using Telegram Stars or TON Grams are returned, except gifts sold on-chain.
 //-The filter must be shown only if getOption("show_gift_resale_star_filter") is true and must be selected by default if getOption("select_gift_resale_star_filter_by_default") is true
-//@for_grams Pass true to get gifts that can be bought using TON Grams, including gifts sold on-chain using a fixed price sale contract.
+//@for_grams Pass true to get gifts that can be bought using TON Grams, including gifts sold on-chain using a fixed price sale contract if getOption("can_buy_onchain_fixed_price_gifts") is true.
 //-The filter must be shown only if getOption("show_gift_resale_gram_filter") is true and must be selected by default if getOption("select_gift_resale_gram_filter_by_default") is true
 //@for_fragment Pass true to get gifts sold on-chain on Fragment; can be true only if getOption("can_buy_onchain_gifts") is true. Must be false if for_crafting is true
 //@attributes Attributes used to filter received gifts. If multiple attributes of the same type are specified, then all of them are allowed.
