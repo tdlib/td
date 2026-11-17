@@ -2117,13 +2117,13 @@ starTransactionTypeBotInvoiceSale user_id:int53 product_info:productInfo invoice
 
 //@description The transaction is a purchase of a subscription from a bot or a business account by the current user; relevant for regular users only
 //@user_id Identifier of the bot or the business account user who created the subscription link
-//@subscription_period The number of seconds between consecutive Telegram Star debitings
+//@subscription_period The number of seconds between consecutive Telegram Star debits
 //@product_info Information about the bought subscription; may be null if no information about the subscription is available
 starTransactionTypeBotSubscriptionPurchase user_id:int53 subscription_period:int32 product_info:productInfo = StarTransactionType;
 
 //@description The transaction is a sale of a subscription by the bot; relevant for bots only
 //@user_id Identifier of the user who bought the subscription
-//@subscription_period The number of seconds between consecutive Telegram Star debitings
+//@subscription_period The number of seconds between consecutive Telegram Star debits
 //@product_info Information about the bought subscription; may be null if no information about the subscription is available
 //@invoice_payload Invoice payload
 //@affiliate Information about the affiliate which received commission from the transaction; may be null if none
@@ -2131,12 +2131,12 @@ starTransactionTypeBotSubscriptionSale user_id:int53 subscription_period:int32 p
 
 //@description The transaction is a purchase of a subscription to a channel chat by the current user; relevant for regular users only
 //@chat_id Identifier of the channel chat that created the subscription
-//@subscription_period The number of seconds between consecutive Telegram Star debitings
+//@subscription_period The number of seconds between consecutive Telegram Star debits
 starTransactionTypeChannelSubscriptionPurchase chat_id:int53 subscription_period:int32 = StarTransactionType;
 
 //@description The transaction is a sale of a subscription by the channel chat; relevant for channel chats only
 //@user_id Identifier of the user who bought the subscription
-//@subscription_period The number of seconds between consecutive Telegram Star debitings
+//@subscription_period The number of seconds between consecutive Telegram Star debits
 starTransactionTypeChannelSubscriptionSale user_id:int53 subscription_period:int32 = StarTransactionType;
 
 //@description The transaction is a bid on a gift auction; relevant for regular users only @owner_id Identifier of the user who will receive the gift @gift The gift
@@ -2951,7 +2951,7 @@ communityChat chat_id:int53 can_view_history:Bool is_hidden:Bool = CommunityChat
 //@administrator_count Number of privileged users in the community; 0 if the current user isn't an administrator of the community
 //@banned_count Number of users banned from the community; 0 if the current user isn't an administrator of the community
 //@add_chat_request_count Number of pending requests for addition of chats to the community; 0 if the current user isn't an administrator of the community
-//@notification_settings Notification settings for the community. Default notification settings are chosen based on the type of a chat in the community
+//@notification_settings Notification settings for the community. Default notification settings are chosen based on the type of chat in the community
 communityFullInfo photo:chatPhoto chats:vector<communityChat> administrator_count:int32 banned_count:int32 add_chat_request_count:int32 notification_settings:chatNotificationSettings = CommunityFullInfo;
 
 //@description Represents a list of communities @community_ids List of community identifiers
@@ -6586,7 +6586,7 @@ textEntityTypeCode = TextEntityType;
 //@description Text that must be formatted as if inside a pre HTML tag
 textEntityTypePre = TextEntityType;
 
-//@description Text that must be formatted as if inside pre, and code HTML tags @language Programming language of the code; as defined by the sender
+//@description Text that must be formatted as if inside pre and code HTML tags @language Programming language of the code; as defined by the sender
 textEntityTypePreCode language:string = TextEntityType;
 
 //@description Text that must be formatted as if inside a blockquote HTML tag; not supported in secret chats
@@ -8654,7 +8654,7 @@ callbackQueryAnswer text:string show_alert:Bool url:string = CallbackQueryAnswer
 widgetQueryWallet address:string gram_amount:int64 public_key:bytes state_init:bytes = WidgetQueryWallet;
 
 
-//@class WidgetQueryType @description Describes type of a widget query
+//@class WidgetQueryType @description Describes type of widget query
 
 //@description The query contains data for the bot @with_wallet True, if the TON wallet card of the user who sends the query is sent to the bot along with the query
 widgetQueryTypeData with_wallet:Bool = WidgetQueryType;
@@ -16938,14 +16938,14 @@ placeGiftAuctionBid gift_id:int64 star_count:int53 user_id:int53 text:formattedT
 //@star_count The number of Telegram Stars to put in the bid
 increaseGiftAuctionBid gift_id:int64 star_count:int53 = Ok;
 
-//@description Sells a gift for Telegram Stars. Use receivedGift.sell_star_count or messageGift.sell_star_count to check whether the gift is soldable.
-//-A gift can be sold if it is soldable and not more than getOption("gift_sell_period") seconds passed since gift sending
+//@description Sells a gift for Telegram Stars. Use receivedGift.sell_star_count or messageGift.sell_star_count to check whether the gift is sellable.
+//-A gift can be sold if it is sellable and not more than getOption("gift_sell_period") seconds passed since gift sending
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@received_gift_id Identifier of the gift
 sellGift business_connection_id:string received_gift_id:string = Ok;
 
 //@description Deletes a gift without receiving Telegram Stars for it. Use receivedGift.can_be_deleted or messageGift.can_be_deleted to check whether the gift can be deleted.
-//-The gift may be deleted even it can still be sold using sellGift
+//-The gift may be deleted even if it can still be sold using sellGift
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@received_gift_id Identifier of the gift
 deleteGift business_connection_id:string received_gift_id:string = Ok;
