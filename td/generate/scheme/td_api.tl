@@ -189,11 +189,11 @@ textCompositionStyleExample source_text:formattedText result_text:formattedText 
 textCompositionStyle name:string custom_emoji_id:int64 title:string is_custom:Bool is_creator:Bool install_count:int32 prompt:string creator_user_id:int53 english_example:textCompositionStyleExample = TextCompositionStyle;
 
 //@description Describes parameters of text composition with AI
-//@style_name Name of the style of the resulting text; may be empty if none. Handle updateTextCompositionStyles to get the list of supported styles
 //@translate_to_language_code Language code to which the text will be translated; may be empty if none. See translateText.to_language_code for the list of supported values
+//@style_name Name of the style of the resulting text; may be empty if none. Handle updateTextCompositionStyles to get the list of supported styles
 //@add_emojis True, if emoji will be added to the text
 //@fix_text True, if the text will be fixed in the same way as by fixTextWithAi
-textCompositionParameters style_name:string translate_to_language_code:string add_emojis:Bool fix_text:Bool = TextCompositionParameters;
+textCompositionParameters translate_to_language_code:string style_name:string add_emojis:Bool fix_text:Bool = TextCompositionParameters;
 
 
 //@description Contains Telegram terms of service

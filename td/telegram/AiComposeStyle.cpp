@@ -82,7 +82,7 @@ td_api::object_ptr<td_api::textCompositionParameters> AiComposeStyle::get_text_c
   if (is_empty()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::textCompositionParameters>(tone_name_, to_language_code_, emojify_, proofread_);
+  return td_api::make_object<td_api::textCompositionParameters>(to_language_code_, tone_name_, emojify_, proofread_);
 }
 
 bool operator==(const AiComposeStyle &lhs, const AiComposeStyle &rhs) {
