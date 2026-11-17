@@ -14104,6 +14104,9 @@ getForumTopicLink chat_id:int53 forum_topic_id:int32 = MessageLink;
 //@limit The maximum number of forum topics to be returned; up to 100. For optimal performance, the number of returned forum topics is chosen by TDLib and can be smaller than the specified limit
 getForumTopics chat_id:int53 query:string icon_custom_emoji_id:int64 exclude_open:Bool exclude_closed:Bool offset_date:int32 offset_message_id:int53 offset_forum_topic_id:int32 limit:int32 = ForumTopics;
 
+//@description Returns the list of custom emoji, which are most often used as icons of recent topics in a forum supergroup chat; the list can be empty @chat_id Identifier of the chat
+getForumTopicPopularIcons chat_id:int53 = Stickers;
+
 //@description Changes the notification settings of a forum topic in a forum supergroup chat or a chat with a bot with topics
 //@chat_id Chat identifier
 //@forum_topic_id Forum topic identifier

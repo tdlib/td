@@ -81,6 +81,8 @@ class ForumTopicManager final : public Actor {
                         ForumTopicId offset_forum_topic_id, int32 limit,
                         Promise<td_api::object_ptr<td_api::forumTopics>> promise);
 
+  void get_forum_topic_popular_icons(DialogId dialog_id, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
+
   void toggle_forum_topic_is_closed(DialogId dialog_id, ForumTopicId forum_topic_id, bool is_closed,
                                     Promise<Unit> &&promise);
 

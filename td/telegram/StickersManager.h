@@ -167,6 +167,9 @@ class StickersManager final : public Actor {
   void get_custom_emoji_stickers(vector<CustomEmojiId> custom_emoji_ids, bool use_database,
                                  Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
+  void get_custom_emoji_stickers_unlimited(vector<CustomEmojiId> custom_emoji_ids,
+                                           Promise<td_api::object_ptr<td_api::stickers>> &&promise);
+
   void get_default_custom_emoji_stickers(StickerListType sticker_list_type, bool force_reload,
                                          Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
@@ -645,9 +648,6 @@ class StickersManager final : public Actor {
 
   void on_load_custom_emojis(string emoji, int64 hash, vector<CustomEmojiId> custom_emoji_ids,
                              Result<td_api::object_ptr<td_api::stickers>> &&result);
-
-  void get_custom_emoji_stickers_unlimited(vector<CustomEmojiId> custom_emoji_ids,
-                                           Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
   void on_get_custom_emoji_stickers_unlimited(vector<CustomEmojiId> custom_emoji_ids,
                                               Promise<td_api::object_ptr<td_api::stickers>> &&promise);

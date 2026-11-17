@@ -5058,6 +5058,12 @@ void Requests::on_request(uint64 id, td_api::getForumTopics &request) {
       ForumTopicId(request.offset_forum_topic_id_), request.limit_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getForumTopicPopularIcons &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->forum_topic_manager_->get_forum_topic_popular_icons(DialogId(request.chat_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::toggleForumTopicIsClosed &request) {
   CREATE_OK_REQUEST_PROMISE();
   td_->forum_topic_manager_->toggle_forum_topic_is_closed(

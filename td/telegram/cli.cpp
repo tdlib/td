@@ -7162,6 +7162,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getForumTopics>(chat_id, query, icon_custom_emoji_id, exclude_open,
                                                                exclude_closed, offset_date, offset_message_id,
                                                                offset_forum_topic_id, as_limit(limit)));
+    } else if (op == "gftpi") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::getForumTopicPopularIcons>(chat_id));
     } else if (op == "tftic") {
       ChatId chat_id;
       ForumTopicId forum_topic_id;
