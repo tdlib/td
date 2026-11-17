@@ -4593,37 +4593,34 @@ void MessagesManager::on_update_channel_too_long(tl_object_ptr<telegram_api::upd
   }
 
   DialogId dialog_id = DialogId(channel_id);
-  auto d = get_dialog_force(dialog_id, "on_update_channel_too_long 4");
+  auto d = get_dialog_force(dialog_id, "on_update_channel_too_long 1");
   auto pts = d != nullptr ? d->pts : load_channel_pts(dialog_id);
   if (pts != 0 && update->pts_ != 0 && update->pts_ <= pts) {
     LOG(INFO) << "Skip outdated updateChannelTooLong in " << dialog_id;
     return;
   }
 
-  MessageId last_message_id;
-  if (update->last_msg_id_ != 0) {
-    last_message_id = MessageId(ServerMessageId(update->last_msg_id_));
-    auto last_message_date = update->last_msg_date_;
-    if (!last_message_id.is_valid() || last_message_date <= 0) {
-      LOG(ERROR) << "Receive " << last_message_id << " sent at " << last_message_date << " in updateChannelTooLong for "
-                 << dialog_id;
-      last_message_id = MessageId();
-    } else if (d != nullptr && last_message_id > d->last_new_message_id && !td_->auth_manager_->is_bot()) {
-      // the message will be received in getChannelDifference, but the chat can be moved in the chat list immediately
-      auto order = DialogDate::get_dialog_order(last_message_id, last_message_date);
-      if (order > d->pending_order) {
-        d->pending_order = order;
-        update_dialog_pos(d, "on_update_channel_too_long 5");
+  if (pts != 0 || force_apply) {
+    MessageId last_message_id;
+    if (update->last_msg_id_ != 0) {
+      last_message_id = MessageId(ServerMessageId(update->last_msg_id_));
+      auto last_message_date = update->last_msg_date_;
+      if (!last_message_id.is_valid() || last_message_date <= 0) {
+        LOG(ERROR) << "Receive " << last_message_id << " sent at " << last_message_date
+                   << " in updateChannelTooLong for " << dialog_id;
+        last_message_id = MessageId();
+      } else if (d != nullptr && last_message_id > d->last_new_message_id && !td_->auth_manager_->is_bot()) {
+        // the message will be received in getChannelDifference, but the chat can be moved in the chat list immediately
+        auto order = DialogDate::get_dialog_order(last_message_id, last_message_date);
+        if (order > d->pending_order) {
+          d->pending_order = order;
+          update_dialog_pos(d, "on_update_channel_too_long 2");
+        }
       }
     }
-  }
-
-  if (pts != 0) {
-    get_channel_difference(dialog_id, pts, update->pts_, last_message_id, true, "on_update_channel_too_long 1");
-  } else if (force_apply) {
-    get_channel_difference(dialog_id, -1, update->pts_, last_message_id, true, "on_update_channel_too_long 2");
+    get_channel_difference(dialog_id, pts, update->pts_, last_message_id, true, "on_update_channel_too_long 3");
   } else {
-    td_->updates_manager_->schedule_get_difference("on_update_channel_too_long 3");
+    td_->updates_manager_->schedule_get_difference("on_update_channel_too_long 4");
   }
 }
 
