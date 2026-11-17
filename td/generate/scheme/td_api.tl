@@ -4951,9 +4951,9 @@ pageBlockList items:vector<pageBlockListItem> = PageBlock;
 pageBlockBlockQuote blocks:vector<PageBlock> credit:RichText = PageBlock;
 
 //@description An expandable block quote
-//@text Text of the quote
+//@blocks Quote blocks
 //@credit Quote credit; may be null if none
-pageBlockExpandableBlockQuote text:RichText credit:RichText = PageBlock;
+pageBlockExpandableBlockQuote blocks:vector<PageBlock> credit:RichText = PageBlock;
 
 //@description A pull quote
 //@text Quote text
@@ -6827,8 +6827,8 @@ inputPageBlockList items:vector<inputPageBlockListItem> = InputPageBlock;
 //@description A block quote @blocks Quote blocks @credit Quote credit; pass null if none
 inputPageBlockBlockQuote blocks:vector<InputPageBlock> credit:RichText = InputPageBlock;
 
-//@description An expandable block quote @text Quote text @credit Quote credit; pass null if none
-inputPageBlockExpandableBlockQuote text:RichText credit:RichText = InputPageBlock;
+//@description An expandable block quote @blocks Quote blocks @credit Quote credit; pass null if none
+inputPageBlockExpandableBlockQuote blocks:vector<InputPageBlock> credit:RichText = InputPageBlock;
 
 //@description A pull quote @text Quote text @credit Quote credit; pass null if none
 inputPageBlockPullQuote text:RichText credit:RichText = InputPageBlock;

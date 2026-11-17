@@ -2072,7 +2072,9 @@ class WebPageBlockExpandableBlockQuote final : public WebPageBlock {
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
-    return td_api::make_object<td_api::pageBlockExpandableBlockQuote>(text.get_rich_text_object(context),
+    vector<td_api::object_ptr<td_api::PageBlock>> blocks;
+    blocks.push_back(td_api::make_object<td_api::pageBlockParagraph>(text.get_rich_text_object(context)));
+    return td_api::make_object<td_api::pageBlockExpandableBlockQuote>(std::move(blocks),
                                                                       credit.get_rich_text_object(context, true));
   }
 
@@ -3511,11 +3513,12 @@ class WebPageBlockDetails final : public WebPageBlock {
 class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
   vector<unique_ptr<WebPageBlock>> page_blocks;
   RichText caption;
+  bool is_collapsed = false;
 
  public:
   WebPageBlockBlockQuoteBlocks() = default;
-  WebPageBlockBlockQuoteBlocks(vector<unique_ptr<WebPageBlock>> &&page_blocks, RichText &&caption)
-      : page_blocks(std::move(page_blocks)), caption(std::move(caption)) {
+  WebPageBlockBlockQuoteBlocks(vector<unique_ptr<WebPageBlock>> &&page_blocks, RichText &&caption, bool is_collapsed)
+      : page_blocks(std::move(page_blocks)), caption(std::move(caption)), is_collapsed(is_collapsed) {
   }
 
   Type get_type() const final {
@@ -3583,27 +3586,32 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
 
   unique_ptr<WebPageBlock> clone(CloneContext &context) const final {
     return td::make_unique<WebPageBlockBlockQuoteBlocks>(clone_web_page_blocks(page_blocks, context),
-                                                         caption.clone(context));
+                                                         caption.clone(context), is_collapsed);
   }
 
   telegram_api::object_ptr<telegram_api::PageBlock> get_input_page_block(InputContext &context) const final {
     return telegram_api::make_object<telegram_api::pageBlockBlockquoteBlocks>(
-        0, false, get_input_page_blocks(page_blocks, context), caption.get_input_rich_text(context));
+        0, is_collapsed, get_input_page_blocks(page_blocks, context), caption.get_input_rich_text(context));
   }
 
   td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const final {
-    return td_api::make_object<td_api::pageBlockBlockQuote>(get_page_blocks_object(page_blocks, context),
-                                                            caption.get_rich_text_object(context, true));
+    auto blocks = get_page_blocks_object(page_blocks, context);
+    auto credit = caption.get_rich_text_object(context, true);
+    if (is_collapsed) {
+      return td_api::make_object<td_api::pageBlockExpandableBlockQuote>(std::move(blocks), std::move(credit));
+    }
+    return td_api::make_object<td_api::pageBlockBlockQuote>(std::move(blocks), std::move(credit));
   }
 
   friend bool operator==(const WebPageBlockBlockQuoteBlocks &lhs, const WebPageBlockBlockQuoteBlocks &rhs) {
-    return lhs.page_blocks == rhs.page_blocks && lhs.caption == rhs.caption;
+    return lhs.page_blocks == rhs.page_blocks && lhs.caption == rhs.caption && lhs.is_collapsed == rhs.is_collapsed;
   }
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using ::td::store;
     BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_collapsed);
     END_STORE_FLAGS();
     store(caption, storer);
     store(page_blocks, storer);
@@ -3613,6 +3621,7 @@ class WebPageBlockBlockQuoteBlocks final : public WebPageBlock {
   void parse(ParserT &parser) {
     using ::td::parse;
     BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_collapsed);
     END_PARSE_FLAGS();
     parse(caption, parser);
     parse(page_blocks, parser);
@@ -4388,7 +4397,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       return td::make_unique<WebPageBlockBlockQuoteBlocks>(
           get_web_page_blocks(td, std::move(page_block->blocks_), animations, audios, documents, photos, videos,
                               voice_notes),
-          RichText(std::move(page_block->caption_), documents));
+          RichText(std::move(page_block->caption_), documents), page_block->collapsed_);
     }
     case telegram_api::pageBlockButtonRow::ID: {
       auto page_block = telegram_api::move_object_as<telegram_api::pageBlockButtonRow>(page_block_ptr);
@@ -4697,14 +4706,14 @@ Result<vector<unique_ptr<WebPageBlock>>> get_web_page_blocks(
         auto block = td_api::move_object_as<td_api::inputPageBlockBlockQuote>(input_page_block);
         TRY_RESULT(blocks, get_web_page_blocks(td, dialog_id, std::move(block->blocks_)));
         TRY_RESULT(credit, RichText::get_rich_text(td, std::move(block->credit_)));
-        result.push_back(td::make_unique<WebPageBlockBlockQuoteBlocks>(std::move(blocks), std::move(credit)));
+        result.push_back(td::make_unique<WebPageBlockBlockQuoteBlocks>(std::move(blocks), std::move(credit), false));
         break;
       }
       case td_api::inputPageBlockExpandableBlockQuote::ID: {
         auto block = td_api::move_object_as<td_api::inputPageBlockExpandableBlockQuote>(input_page_block);
-        TRY_RESULT(text, RichText::get_rich_text(td, std::move(block->text_)));
+        TRY_RESULT(blocks, get_web_page_blocks(td, dialog_id, std::move(block->blocks_)));
         TRY_RESULT(credit, RichText::get_rich_text(td, std::move(block->credit_)));
-        result.push_back(td::make_unique<WebPageBlockExpandableBlockQuote>(std::move(text), std::move(credit)));
+        result.push_back(td::make_unique<WebPageBlockBlockQuoteBlocks>(std::move(blocks), std::move(credit), true));
         break;
       }
       case td_api::inputPageBlockPullQuote::ID: {
