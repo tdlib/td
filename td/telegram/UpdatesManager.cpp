@@ -2650,8 +2650,20 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
               if ((*message_ptr)->get_id() != telegram_api::messageService::ID) {
                 // don't replace service messages, because they can be about bot's kicking
                 LOG(INFO) << "Replace update about new message with updateChannelTooLong in " << dialog_id;
+                int32 flags = telegram_api::updateChannelTooLong::PTS_MASK;
+                int32 last_message_id = 0;
+                int32 last_message_date = 0;
+                if (id == telegram_api::updateNewChannelMessage::ID) {
+                  auto message_id = MessageId::get_message_id(*message_ptr, false);
+                  auto message_date = MessagesManager::get_message_date(*message_ptr);
+                  if (message_id.is_server() && message_date > 0) {
+                    flags |= telegram_api::updateChannelTooLong::LAST_MSG_ID_MASK;
+                    last_message_id = message_id.get_server_message_id().get();
+                    last_message_date = message_date;
+                  }
+                }
                 update = telegram_api::make_object<telegram_api::updateChannelTooLong>(
-                    telegram_api::updateChannelTooLong::PTS_MASK, channel_id.get(), pts, 0, 0);
+                    flags, channel_id.get(), pts, last_message_id, last_message_date);
                 continue;
               }
             }

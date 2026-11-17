@@ -4595,16 +4595,35 @@ void MessagesManager::on_update_channel_too_long(tl_object_ptr<telegram_api::upd
   DialogId dialog_id = DialogId(channel_id);
   auto d = get_dialog_force(dialog_id, "on_update_channel_too_long 4");
   auto pts = d != nullptr ? d->pts : load_channel_pts(dialog_id);
+  if (pts != 0 && update->pts_ != 0 && update->pts_ <= pts) {
+    LOG(INFO) << "Skip outdated updateChannelTooLong in " << dialog_id;
+    return;
+  }
+
+  MessageId last_message_id;
+  if (update->last_msg_id_ != 0) {
+    last_message_id = MessageId(ServerMessageId(update->last_msg_id_));
+    auto last_message_date = update->last_msg_date_;
+    if (!last_message_id.is_valid() || last_message_date <= 0) {
+      LOG(ERROR) << "Receive " << last_message_id << " sent at " << last_message_date << " in updateChannelTooLong for "
+                 << dialog_id;
+      last_message_id = MessageId();
+    } else if (d != nullptr && last_message_id > d->last_new_message_id && !td_->auth_manager_->is_bot()) {
+      // the message will be received in getChannelDifference, but the chat can be moved in the chat list immediately
+      auto order = DialogDate::get_dialog_order(last_message_id, last_message_date);
+      if (order > d->pending_order) {
+        d->pending_order = order;
+        update_dialog_pos(d, "on_update_channel_too_long 5");
+      }
+    }
+  }
+
   if (pts != 0) {
-    if (update->pts_ == 0 || update->pts_ > pts) {
-      get_channel_difference(dialog_id, pts, update->pts_, MessageId(), true, "on_update_channel_too_long 1");
-    }
+    get_channel_difference(dialog_id, pts, update->pts_, last_message_id, true, "on_update_channel_too_long 1");
+  } else if (force_apply) {
+    get_channel_difference(dialog_id, -1, update->pts_, last_message_id, true, "on_update_channel_too_long 2");
   } else {
-    if (force_apply) {
-      get_channel_difference(dialog_id, -1, update->pts_, MessageId(), true, "on_update_channel_too_long 2");
-    } else {
-      td_->updates_manager_->schedule_get_difference("on_update_channel_too_long 3");
-    }
+    td_->updates_manager_->schedule_get_difference("on_update_channel_too_long 3");
   }
 }
 
@@ -35882,6 +35901,14 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
       schedule_get_channel_difference(dialog_id, 0, MessageId(), 1.0, "after_get_channel_difference 2");
     }
     expected_channel_max_message_id_.erase(expected_channel_max_message_id_it);
+  }
+
+  if (d != nullptr && (d->last_message_id.is_valid() || d->is_empty) && d->pending_order != DEFAULT_ORDER &&
+      !channel_get_difference_retry_timeout_.has_timeout(dialog_id.get())) {
+    // the order was set from updateChannelTooLong, but the message wasn't received; it could have been deleted
+    LOG(INFO) << "Drop pending order in " << dialog_id;
+    d->pending_order = DEFAULT_ORDER;
+    update_dialog_pos(d, "after_get_channel_difference 3");
   }
 }
 
