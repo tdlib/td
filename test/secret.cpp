@@ -1042,11 +1042,11 @@ class Master final : public Actor {
     send_closure(alice_, &SecretChatProxy::start_test);
     send_closure(bob_, &SecretChatProxy::start_test);
     send_ping(1, 5000);
-    set_timeout_in(1);
+    set_timeout_in(0.1);
   }
   void timeout_expired() final {
     for (auto &it : unreceived_messages_) {
-      if (++it.second > 10) {
+      if (++it.second > 1) {
         *status_ = Status::Error(PSLICE() << "Sent message " << it.first << " wasn't received");
         Scheduler::instance()->finish();
         return;
@@ -1058,11 +1058,13 @@ class Master final : public Actor {
       send_closure(get_by_id(close_chat_id_), &SecretChatProxy::close_chat, false);
       return;
     }
-    last_random_ids_[0] = send_message(1, "oppa");
-    last_random_ids_[1] = send_message(2, "appo");
+    for (int i = 0; i < 4; i++) {
+      last_random_ids_[0] = send_message(1, "oppa");
+      last_random_ids_[1] = send_message(2, "appo");
+    }
     do_random_action(1);
     do_random_action(2);
-    set_timeout_in(1);
+    set_timeout_in(0.1);
   }
   int64 last_random_ids_[2] = {0, 0};
   int32 read_history_date_ = 0;
@@ -1301,7 +1303,7 @@ class Master final : public Actor {
     bool is_deleted = false;
   };
   std::map<int64, Message> sent_messages_;
-  // random_id -> number of seconds passed since the message was reported as sent
+  // random_id -> number of timeouts passed since the message was reported as sent
   std::map<int64, int32> unreceived_messages_;
   int32 flush_generations_[2] = {0, 0};
 
