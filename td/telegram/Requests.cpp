@@ -2235,6 +2235,8 @@ void Requests::on_request(uint64 id, const td_api::getCurrentState &request) {
 
     td_->saved_messages_manager_->get_current_state(updates);
 
+    td_->forum_topic_manager_->get_current_state(updates);
+
     td_->story_manager_->get_current_state(updates);
 
     td_->suggested_action_manager_->get_current_state(updates);
@@ -5040,6 +5042,12 @@ void Requests::on_request(uint64 id, const td_api::getForumTopicLink &request) {
   CREATE_REQUEST_PROMISE();
   td_->forum_topic_manager_->get_forum_topic_link(DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_),
                                                   std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::loadForumTopics &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->forum_topic_manager_->load_forum_topics(DialogId(request.chat_id_), request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getForumTopics &request) {
