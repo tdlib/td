@@ -16,7 +16,6 @@
 #include "td/utils/port/config.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/PollFlags.h"
-#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
 

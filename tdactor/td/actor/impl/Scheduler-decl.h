@@ -24,7 +24,6 @@
 #include "td/utils/port/Poll.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/thread_local.h"
-#include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
 #include "td/utils/type_traits.h"
