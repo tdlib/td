@@ -2536,10 +2536,15 @@ tonWalletTransactionTypeNftTransfer nft:tonNft is_outgoing:Bool comment:string i
 //@is_saved True, if the gift was displayed on the current user's profile page before or after the transfer
 tonWalletTransactionTypeTelegramGiftTransfer nft:tonNft is_outgoing:Bool is_saved:Bool = TonWalletTransactionType;
 
-//@description A Telegram gift was bought or sold on the TON blockchain
-//@nft The bought or sold NFT; may be null if unknown
-//@amount The amount paid or received for the gift, in the smallest units of TON Grams; negative for outgoing transactions
+//@description A Telegram gift was bought on the TON blockchain
+//@nft The bought NFT; may be null if unknown
+//@amount The amount paid for the gift, in the smallest units of TON Grams; always negative
 tonWalletTransactionTypeTelegramGiftPurchase nft:tonNft amount:int64 = TonWalletTransactionType;
+
+//@description A Telegram gift was sold on the TON blockchain
+//@nft The sold NFT; may be null if unknown
+//@amount The amount received for the gift, in the smallest units of TON Grams
+tonWalletTransactionTypeTelegramGiftSale nft:tonNft amount:int64 = TonWalletTransactionType;
 
 //@description A Telegram gift was put up for sale on the TON blockchain or its price was changed
 //@nft The NFT put up for sale; may be null if unknown
