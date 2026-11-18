@@ -1612,6 +1612,12 @@ upgradedGiftOriginOffer price:GiftResalePrice = UpgradedGiftOrigin;
 //@description The gift was crafted from other gifts
 upgradedGiftOriginCraft = UpgradedGiftOrigin;
 
+//@description The gift was bought on the TON blockchain using a fixed-price sale contract @gram_amount Price paid for the gift, in the smallest units of TON Grams
+upgradedGiftOriginOnchainResale gram_amount:int64 = UpgradedGiftOrigin;
+
+//@description The gift was bought through an on-chain purchase offer @gram_amount Price paid for the gift, in the smallest units of TON Grams
+upgradedGiftOriginOnchainOffer gram_amount:int64 = UpgradedGiftOrigin;
+
 
 //@class UpgradedGiftAttributeRarity @description Describes rarity of an upgraded gift attribute
 

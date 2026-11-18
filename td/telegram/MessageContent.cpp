@@ -1394,6 +1394,7 @@ class MessageStarGiftUnique final : public MessageContent {
   DialogId owner_dialog_id;
   int64 saved_id = 0;
   StarGiftResalePrice resale_price;
+  int64 onchain_gram_amount = 0;
   int64 transfer_star_count = 0;
   int64 drop_original_details_star_count = 0;
   int32 can_transfer_at = 0;
@@ -1415,16 +1416,18 @@ class MessageStarGiftUnique final : public MessageContent {
   MessageStarGiftUnique() = default;
   MessageStarGiftUnique(MessageId gift_message_id, StarGift &&star_gift, DialogId sender_dialog_id,
                         DialogId owner_dialog_id, int64 saved_id, StarGiftResalePrice resale_price,
-                        int64 transfer_star_count, int64 drop_original_details_star_count, int32 can_transfer_at,
-                        int32 can_resell_at, int32 can_export_at, int32 can_craft_at, bool name_hidden, bool is_saved,
-                        bool is_upgrade, bool is_prepaid_upgrade, bool is_assigned, bool from_offer, bool from_craft,
-                        bool can_transfer, bool was_transferred, bool was_refunded, FormattedText &&text)
+                        int64 onchain_gram_amount, int64 transfer_star_count, int64 drop_original_details_star_count,
+                        int32 can_transfer_at, int32 can_resell_at, int32 can_export_at, int32 can_craft_at,
+                        bool name_hidden, bool is_saved, bool is_upgrade, bool is_prepaid_upgrade, bool is_assigned,
+                        bool from_offer, bool from_craft, bool can_transfer, bool was_transferred, bool was_refunded,
+                        FormattedText &&text)
       : gift_message_id(gift_message_id)
       , star_gift(std::move(star_gift))
       , sender_dialog_id(sender_dialog_id)
       , owner_dialog_id(owner_dialog_id)
       , saved_id(saved_id)
       , resale_price(resale_price)
+      , onchain_gram_amount(onchain_gram_amount)
       , transfer_star_count(transfer_star_count)
       , drop_original_details_star_count(drop_original_details_star_count)
       , can_transfer_at(can_transfer_at)
@@ -2830,6 +2833,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_drop_original_details_star_count = m->drop_original_details_star_count != 0;
       bool has_can_craft_at = m->can_craft_at != 0;
       bool has_text = !m->text.is_empty();
+      bool has_onchain_gram_amount = m->onchain_gram_amount != 0;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_transfer_star_count);
       STORE_FLAG(has_can_export_at);
@@ -2854,6 +2858,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(has_can_craft_at);  // 20
       STORE_FLAG(m->name_hidden);
       STORE_FLAG(has_text);
+      STORE_FLAG(has_onchain_gram_amount);
       END_STORE_FLAGS();
       store(m->star_gift, storer);
       if (has_transfer_star_count) {
@@ -2891,6 +2896,9 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       if (has_text) {
         store(m->text, storer);
+      }
+      if (has_onchain_gram_amount) {
+        store(m->onchain_gram_amount, storer);
       }
       break;
     }
@@ -4401,6 +4409,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       bool has_drop_original_details_star_count;
       bool has_can_craft_at;
       bool has_text;
+      bool has_onchain_gram_amount;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_transfer_star_count);
       PARSE_FLAG(has_can_export_at);
@@ -4425,6 +4434,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(has_can_craft_at);
       PARSE_FLAG(m->name_hidden);
       PARSE_FLAG(has_text);
+      PARSE_FLAG(has_onchain_gram_amount);
       END_PARSE_FLAGS();
       parse(m->star_gift, parser);
       if (has_transfer_star_count) {
@@ -4467,6 +4477,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       }
       if (has_text) {
         parse(m->text, parser);
+      }
+      if (has_onchain_gram_amount) {
+        parse(m->onchain_gram_amount, parser);
       }
       if (!m->star_gift.is_valid() || m->star_gift.is_unique() == m->was_refunded) {
         is_bad = true;
@@ -9228,6 +9241,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       if (lhs->gift_message_id != rhs->gift_message_id || lhs->star_gift != rhs->star_gift ||
           lhs->sender_dialog_id != rhs->sender_dialog_id || lhs->owner_dialog_id != rhs->owner_dialog_id ||
           lhs->saved_id != rhs->saved_id || lhs->resale_price != rhs->resale_price ||
+          lhs->onchain_gram_amount != rhs->onchain_gram_amount ||
           lhs->transfer_star_count != rhs->transfer_star_count ||
           lhs->drop_original_details_star_count != rhs->drop_original_details_star_count ||
           lhs->can_transfer_at != rhs->can_transfer_at || lhs->can_resell_at != rhs->can_resell_at ||
@@ -11849,11 +11863,22 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         gift_owner_dialog_id = DialogId(action->peer_);
         saved_id = action->saved_id_;
       }
+      StarGiftResalePrice resale_price;
+      int64 onchain_gram_amount = 0;
+      if (action->assigned_ && action->resale_amount_ != nullptr &&
+          action->resale_amount_->get_id() == telegram_api::starsTonAmount::ID) {
+        // on-chain purchase; the exact price can't be represented as StarGiftResalePrice
+        onchain_gram_amount =
+            TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(action->resale_amount_), false)
+                .get_ton_amount();
+      } else {
+        resale_price = StarGiftResalePrice(std::move(action->resale_amount_));
+      }
       FormattedText text = get_formatted_text(td->user_manager_.get(), std::move(action->message_), true, false,
                                               "messageActionStarGiftUnique");
       return td::make_unique<MessageStarGiftUnique>(
           reply_to_message_id, std::move(star_gift), gift_sender_dialog_id, gift_owner_dialog_id, saved_id,
-          StarGiftResalePrice(std::move(action->resale_amount_)), StarManager::get_star_count(action->transfer_stars_),
+          std::move(resale_price), onchain_gram_amount, StarManager::get_star_count(action->transfer_stars_),
           StarManager::get_star_count(action->drop_original_details_stars_), max(0, action->can_transfer_at_),
           max(0, action->can_resell_at_), max(0, action->can_export_at_), max(0, action->can_craft_at_),
           action->name_hidden_, action->saved_, action->upgrade_, action->prepaid_upgrade_, action->assigned_,
@@ -12699,11 +12724,21 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
         if (m->from_craft) {
           return td_api::make_object<td_api::upgradedGiftOriginCraft>();
         }
+        if (m->is_assigned) {
+          auto gram_amount = m->onchain_gram_amount;
+          if (gram_amount == 0 && m->resale_price.is_ton()) {
+            gram_amount = m->resale_price.get_ton_count();
+          }
+          if (gram_amount == 0) {
+            return td_api::make_object<td_api::upgradedGiftOriginBlockchain>();
+          }
+          if (m->from_offer) {
+            return td_api::make_object<td_api::upgradedGiftOriginOnchainOffer>(gram_amount);
+          }
+          return td_api::make_object<td_api::upgradedGiftOriginOnchainResale>(gram_amount);
+        }
         if (m->from_offer) {
           return td_api::make_object<td_api::upgradedGiftOriginOffer>(m->resale_price.get_gift_resale_price_object());
-        }
-        if (m->is_assigned) {
-          return td_api::make_object<td_api::upgradedGiftOriginBlockchain>();
         }
         if (m->is_prepaid_upgrade) {
           return td_api::make_object<td_api::upgradedGiftOriginPrepaidUpgrade>();
