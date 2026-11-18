@@ -13230,7 +13230,8 @@ addCommunityChat community_id:int53 chat_id:int53 is_hidden:Bool = Ok;
 //@chat_id Identifier of the chat to remove
 removeCommunityChat community_id:int53 chat_id:int53 = Ok;
 
-//@description Returns pending requests to add chats to a community. Administrators of the community with can_edit_chat_list right receive all requests; other users receive only requests sent by them
+//@description Returns pending requests to add chats to a community. Administrators of the community with can_edit_chat_list administrator right receive all requests;
+//-other users receive only requests sent by them
 //@community_id Identifier of the community
 //@offset Offset of the first entry to return as received from the previous request; use an empty string to get the first chunk of results
 //@limit The maximum number of requests to return

@@ -551,10 +551,10 @@ void TranscriptionManager::recognize_speech_in_file(td_api::object_ptr<td_api::I
 
 void TranscriptionManager::on_upload_audio_file(FileUploadId file_upload_id,
                                                 telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-  LOG(INFO) << "Audio " << file_upload_id << " has been uploaded";
   if (G()->close_flag()) {
     return finish_audio_file_transcription(file_upload_id, G()->close_status());
   }
+  LOG(INFO) << "Audio " << file_upload_id << " has been uploaded";
   if (input_file == nullptr) {
     return finish_audio_file_transcription(file_upload_id, Status::Error(500, "Failed to reupload the file"));
   }
