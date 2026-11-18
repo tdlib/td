@@ -1700,6 +1700,7 @@ class MessageStarGiftOnchainOffer final : public MessageContent {
   int64 fine = -1;
   int32 fee_bps = 0;
   int32 expires_at = 0;
+  MessageId offer_message_id;
   bool is_buyer = false;
   bool is_settled = false;
   bool is_accepted = false;
@@ -1710,8 +1711,8 @@ class MessageStarGiftOnchainOffer final : public MessageContent {
 
   MessageStarGiftOnchainOffer() = default;
   MessageStarGiftOnchainOffer(StarGift &&star_gift, string &&offer_address, int64 amount, int64 buyer_refund,
-                              int64 fine, int32 fee_bps, int32 expires_at, bool is_buyer, bool is_settled,
-                              bool is_accepted, bool is_declined, bool is_canceling, bool is_canceled,
+                              int64 fine, int32 fee_bps, int32 expires_at, MessageId offer_message_id, bool is_buyer,
+                              bool is_settled, bool is_accepted, bool is_declined, bool is_canceling, bool is_canceled,
                               bool is_expired)
       : star_gift(std::move(star_gift))
       , offer_address(std::move(offer_address))
@@ -1720,6 +1721,7 @@ class MessageStarGiftOnchainOffer final : public MessageContent {
       , fine(fine)
       , fee_bps(fee_bps)
       , expires_at(expires_at)
+      , offer_message_id(offer_message_id)
       , is_buyer(is_buyer)
       , is_settled(is_settled)
       , is_accepted(is_accepted)
@@ -3287,6 +3289,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_fine = m->fine != -1;
       bool has_fee_bps = m->fee_bps != 0;
       bool has_expires_at = m->expires_at != 0;
+      bool has_offer_message_id = m->offer_message_id.is_valid();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->is_buyer);
       STORE_FLAG(m->is_settled);
@@ -3301,6 +3304,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(has_fine);
       STORE_FLAG(has_fee_bps);
       STORE_FLAG(has_expires_at);
+      STORE_FLAG(has_offer_message_id);
       END_STORE_FLAGS();
       store(m->star_gift, storer);
       if (has_offer_address) {
@@ -3320,6 +3324,9 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       if (has_expires_at) {
         store(m->expires_at, storer);
+      }
+      if (has_offer_message_id) {
+        store(m->offer_message_id, storer);
       }
       break;
     }
@@ -4918,6 +4925,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       bool has_fine;
       bool has_fee_bps;
       bool has_expires_at;
+      bool has_offer_message_id;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(m->is_buyer);
       PARSE_FLAG(m->is_settled);
@@ -4932,6 +4940,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(has_fine);
       PARSE_FLAG(has_fee_bps);
       PARSE_FLAG(has_expires_at);
+      PARSE_FLAG(has_offer_message_id);
       END_PARSE_FLAGS();
       parse(m->star_gift, parser);
       if (has_offer_address) {
@@ -4951,6 +4960,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       }
       if (has_expires_at) {
         parse(m->expires_at, parser);
+      }
+      if (has_offer_message_id) {
+        parse(m->offer_message_id, parser);
       }
       if (!m->star_gift.is_valid() || !m->star_gift.is_unique()) {
         is_bad = true;
@@ -7475,6 +7487,14 @@ MessageFullId get_message_content_replied_message_full_id(DialogId dialog_id, co
 
       return {dialog_id, m->poll_message_id};
     }
+    case MessageContentType::StarGiftOnchainOffer: {
+      auto *m = static_cast<const MessageStarGiftOnchainOffer *>(content);
+      if (!m->offer_message_id.is_valid()) {
+        return MessageFullId();
+      }
+
+      return {dialog_id, m->offer_message_id};
+    }
     // update getRepliedMessage documentation
     default:
       return MessageFullId();
@@ -9497,7 +9517,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
           lhs->expires_at != rhs->expires_at || lhs->is_buyer != rhs->is_buyer || lhs->is_settled != rhs->is_settled ||
           lhs->is_accepted != rhs->is_accepted || lhs->is_declined != rhs->is_declined ||
           lhs->is_canceling != rhs->is_canceling || lhs->is_canceled != rhs->is_canceled ||
-          lhs->is_expired != rhs->is_expired) {
+          lhs->is_expired != rhs->is_expired || lhs->offer_message_id != rhs->offer_message_id) {
         need_update = true;
       }
       break;
@@ -11324,6 +11344,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionNoForwardsToggle::ID:
     case telegram_api::messageActionPollAppendAnswer::ID:
     case telegram_api::messageActionPollDeleteAnswer::ID:
+    case telegram_api::messageActionStarGiftOnchainOffer::ID:
       // ok
       break;
     default:
@@ -12132,10 +12153,16 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto fine = (action->flags_ & telegram_api::messageActionStarGiftOnchainOffer::FINE_MASK) != 0
                       ? max(action->fine_, static_cast<int64>(0))
                       : static_cast<int64>(-1);
+      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
+      if (!reply_to_message_id.is_valid() && reply_to_message_id != MessageId()) {
+        LOG(ERROR) << "Receive on-chain gift purchase offer with " << reply_to_message_id << " in " << owner_dialog_id;
+        reply_to_message_id = MessageId();
+      }
       return td::make_unique<MessageStarGiftOnchainOffer>(
           std::move(star_gift), std::move(action->offer_address_), max(action->amount_, static_cast<int64>(0)),
-          buyer_refund, fine, max(action->fee_bps_, 0), max(action->expires_at_, 0), action->buyer_, action->settled_,
-          action->accepted_, action->declined_, action->cancelling_, action->cancelled_, action->expired_);
+          buyer_refund, fine, max(action->fee_bps_, 0), max(action->expires_at_, 0), reply_to_message_id,
+          action->buyer_, action->settled_, action->accepted_, action->declined_, action->cancelling_,
+          action->cancelled_, action->expired_);
     }
     case telegram_api::messageActionBotInvite::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionBotInvite>(action_ptr);
@@ -13029,7 +13056,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       }();
       return td_api::make_object<td_api::messageUpgradedGiftOnchainPurchaseOffer>(
           m->star_gift.get_upgraded_gift_object(td), m->is_buyer, std::move(state), m->offer_address, m->amount,
-          m->fee_bps, m->expires_at);
+          m->fee_bps, m->expires_at, m->offer_message_id.get());
     }
     case MessageContentType::BotInvite: {
       const auto *m = static_cast<const MessageBotInvite *>(content);

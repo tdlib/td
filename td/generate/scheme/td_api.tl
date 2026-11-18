@@ -6485,7 +6485,8 @@ messageUpgradedGiftPurchaseOfferRejected gift:upgradedGift price:GiftResalePrice
 //@gram_amount The price offered for the gift, in the smallest units of TON Grams; the owner of the gift receives the full price if the offer is accepted
 //@fee_basis_points The fee paid by the buyer in addition to the price, in basis points; 1 basis point is 0.01%
 //@expiration_date Point in time (Unix timestamp) when the offer will expire or has expired
-messageUpgradedGiftOnchainPurchaseOffer gift:upgradedGift is_buyer:Bool state:GiftOnchainPurchaseOfferState offer_address:string gram_amount:int64 fee_basis_points:int32 expiration_date:int32 = MessageContent;
+//@offer_message_id Identifier of the message with the offer if this message was received after the offer has ended; otherwise, 0. May be an identifier of a deleted message
+messageUpgradedGiftOnchainPurchaseOffer gift:upgradedGift is_buyer:Bool state:GiftOnchainPurchaseOfferState offer_address:string gram_amount:int64 fee_basis_points:int32 expiration_date:int32 offer_message_id:int53 = MessageContent;
 
 //@description Paid messages were refunded @message_count The number of refunded messages @star_count The number of refunded Telegram Stars
 messagePaidMessagesRefunded message_count:int32 star_count:int53 = MessageContent;
@@ -12885,7 +12886,7 @@ getMessageLocally chat_id:int53 message_id:int53 = Message;
 //-the giveaway message for messageGiveawayCompleted, the checklist message for messageChecklistTasksDone and messageChecklistTasksAdded, the message with suggested post information
 //-for messageSuggestedPostApprovalFailed, messageSuggestedPostApproved, messageSuggestedPostDeclined, messageSuggestedPostPaid, and messageSuggestedPostRefunded,
 //-the message with the regular gift that was upgraded for messageUpgradedGift with origin of the type upgradedGiftOriginUpgrade,
-//-the message with the gift purchase offer for messageUpgradedGiftPurchaseOfferRejected,
+//-the message with the gift purchase offer for messageUpgradedGiftPurchaseOfferRejected and messageUpgradedGiftOnchainPurchaseOffer,
 //-the message with the request to disable content protection for messageChatHasProtectedContentToggled,
 //-the message with the poll for messagePollOptionAdded and messagePollOptionDeleted,
 //-and the topic creation message for topic messages without a non-bundled replied-to message. Returns a 404 error if the message doesn't exist
