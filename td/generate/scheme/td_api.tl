@@ -17260,7 +17260,10 @@ declineGiftOnchainPurchaseOffer message_id:int53 = Ok;
 //@owner_id Identifier of the user or the channel chat that will receive the gift
 //@gram_amount The price of the gift, in the smallest units of TON Grams; must be equal to giftResaleParameters.gram_amount. The request fails with the error
 //-"STARGIFT_ONCHAIN_PRICE_CHANGED" if the price has changed. The amount that will be paid can be greater than the price because of the sale fee and blockchain fees
-getGiftOnchainPurchaseTransaction gift_name:string owner_id:MessageSender gram_amount:int64 = GiftOnchainSaleTransaction;
+//@text Text to show along with the gift; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, and DateTime entities are allowed.
+//-Must be empty if the receiver enabled paid messages and the price of the gift is less than the price of a paid message to the user
+//@is_private Pass true to show the gift text and sender only to the gift receiver; otherwise, everyone will be able to see them
+getGiftOnchainPurchaseTransaction gift_name:string owner_id:MessageSender gram_amount:int64 text:formattedText is_private:Bool = GiftOnchainSaleTransaction;
 
 //@description Returns a transaction that must be sent from the TON wallet of the current user to put an upgraded gift for which upgradedGift.uses_onchain_resale is true
 //-up for sale, or to change the price of a gift for which giftResaleParameters.is_fixed_onchain and giftResaleParameters.can_be_managed are true; can be used only if getOption("can_use_ton_wallet").

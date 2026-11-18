@@ -1800,9 +1800,10 @@ class BuyStarGiftOnchainQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(const string &slug, int64 expected_amount, telegram_api::object_ptr<telegram_api::InputPeer> &&input_peer) {
-    send_query(G()->net_query_creator().create(
-        telegram_api::payments_buyStarGiftOnchain(0, false, slug, expected_amount, std::move(input_peer), nullptr)));
+  void send(const string &slug, int64 expected_amount, telegram_api::object_ptr<telegram_api::InputPeer> &&input_peer,
+            telegram_api::object_ptr<telegram_api::textWithEntities> &&message, bool show_name) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_buyStarGiftOnchain(
+        0, show_name, slug, expected_amount, std::move(input_peer), std::move(message))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3524,6 +3525,7 @@ StarGiftManager::get_gift_onchain_purchase_offer_transaction_object(
 }
 
 void StarGiftManager::buy_gift_onchain(const string &gift_name, DialogId owner_dialog_id, int64 gram_amount,
+                                       td_api::object_ptr<td_api::formattedText> text, bool is_private,
                                        Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> &&promise) {
   if (gram_amount <= 0) {
     return promise.set_error(400, "Invalid amount specified");
@@ -3535,7 +3537,16 @@ void StarGiftManager::buy_gift_onchain(const string &gift_name, DialogId owner_d
       return promise.set_error(400, "Have no access to the new gift owner");
     }
   }
-  td_->create_handler<BuyStarGiftOnchainQuery>(std::move(promise))->send(gift_name, gram_amount, std::move(input_peer));
+  TRY_RESULT_PROMISE(
+      promise, message,
+      get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(text), false, true, true, false));
+  remove_unallowed_quote_entities(message);
+  telegram_api::object_ptr<telegram_api::textWithEntities> input_message;
+  if (!message.is_empty()) {
+    input_message = get_input_text_with_entities(td_->user_manager_.get(), message, "buy_gift_onchain");
+  }
+  td_->create_handler<BuyStarGiftOnchainQuery>(std::move(promise))
+      ->send(gift_name, gram_amount, std::move(input_peer), std::move(input_message), !is_private);
 }
 
 td_api::object_ptr<td_api::GiftOnchainSaleTransaction> StarGiftManager::get_gift_onchain_sale_transaction_object(
