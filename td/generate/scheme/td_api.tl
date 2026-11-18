@@ -1564,9 +1564,7 @@ giftPurchaseLimits total_count:int32 remaining_count:int32 = GiftPurchaseLimits;
 //@can_be_managed True, if the sale of the gift is managed by the current user. If upgradedGift.uses_onchain_resale is true, then the sale can be canceled
 //-using getGiftOnchainDelistingTransaction, and the price can be changed using getGiftOnchainListingTransaction if is_fixed_onchain is true.
 //-Otherwise, the price can be changed and the sale can be canceled using setGiftResalePrice
-//@fee_basis_points The fee for the sale of the gift, in basis points; 1 basis point is 0.01%; 0 if unknown. If is_fixed_onchain is true,
-//-then the fee is paid by the buyer in addition to the price; otherwise, the fee is deducted from the price received by the seller
-giftResaleParameters star_count:int53 gram_cent_count:int53 gram_amount:int64 gram_only:Bool is_fixed_onchain:Bool can_be_managed:Bool fee_basis_points:int32 = GiftResaleParameters;
+giftResaleParameters star_count:int53 gram_cent_count:int53 gram_amount:int64 gram_only:Bool is_fixed_onchain:Bool can_be_managed:Bool = GiftResaleParameters;
 
 //@description Describes collection of gifts
 //@id Unique identifier of the collection
@@ -1733,13 +1731,14 @@ gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_s
 //@uses_onchain_resale True, if the gift must be bought, put up for sale, and delisted using getGiftOnchainPurchaseTransaction, getGiftOnchainListingTransaction,
 //-and getGiftOnchainDelistingTransaction; otherwise, sendResoldGift and setGiftResalePrice must be used
 //@resale_parameters Resale parameters of the gift; may be null if resale isn't possible
+//@fee_basis_points The fee for the sale of the gift, in basis points; 1 basis point is 0.01%; 0 if unknown. The fee is deducted from the price received by the seller
 //@can_send_purchase_offer True, if an offer to purchase the gift can be sent using sendGiftPurchaseOffer
 //@min_onchain_purchase_offer_gram_amount The minimum price for an on-chain offer to purchase the gift, in the smallest units of TON Grams; 0 if on-chain purchase offers can't be sent for the gift
 //@craft_probability_per_mille Probability that the gift adds to the chance of successful crafting of a new gift; 0 if the gift can't be used for crafting
 //@value_currency ISO 4217 currency code of the currency in which the value of the gift is represented; may be empty if unavailable
 //@value_amount Estimated value of the gift, in the smallest units of the currency; 0 if unavailable
 //@value_usd_amount Estimated value of the gift in USD; in USD cents; 0 if unavailable
-upgradedGift id:int64 regular_gift_id:int64 publisher_chat_id:int53 title:string name:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 is_burned:Bool is_crafted:Bool is_premium:Bool is_theme_available:Bool used_theme_chat_id:int53 host_id:MessageSender owner_id:MessageSender owner_address:string owner_name:string gift_address:string can_be_ton_wallet_card_background:Bool model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails colors:upgradedGiftColors uses_onchain_resale:Bool resale_parameters:giftResaleParameters can_send_purchase_offer:Bool min_onchain_purchase_offer_gram_amount:int64 craft_probability_per_mille:int32 value_currency:string value_amount:int53 value_usd_amount:int53 = UpgradedGift;
+upgradedGift id:int64 regular_gift_id:int64 publisher_chat_id:int53 title:string name:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 is_burned:Bool is_crafted:Bool is_premium:Bool is_theme_available:Bool used_theme_chat_id:int53 host_id:MessageSender owner_id:MessageSender owner_address:string owner_name:string gift_address:string can_be_ton_wallet_card_background:Bool model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails colors:upgradedGiftColors uses_onchain_resale:Bool resale_parameters:giftResaleParameters fee_basis_points:int32 can_send_purchase_offer:Bool min_onchain_purchase_offer_gram_amount:int64 craft_probability_per_mille:int32 value_currency:string value_amount:int53 value_usd_amount:int53 = UpgradedGift;
 
 //@description Contains information about the value of an upgraded gift
 //@currency ISO 4217 currency code of the currency in which the prices are represented
@@ -17259,7 +17258,7 @@ declineGiftOnchainPurchaseOffer message_id:int53 = Ok;
 //@gift_name Name of the upgraded gift
 //@owner_id Identifier of the user or the channel chat that will receive the gift; must be the current user if giftResaleParameters.is_fixed_onchain is false
 //@gram_amount The price of the gift, in the smallest units of TON Grams; must be equal to giftResaleParameters.gram_amount. The request fails with the error
-//-"STARGIFT_ONCHAIN_PRICE_CHANGED" if the price has changed. The amount that will be paid can be greater than the price because of the sale fee and blockchain fees
+//-"STARGIFT_ONCHAIN_PRICE_CHANGED" if the price has changed. The amount that will be paid can be greater than the price because of blockchain fees
 //@text Text to show along with the gift; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, and DateTime entities are allowed.
 //-Must be empty if the receiver enabled paid messages and the price of the gift is less than the price of a paid message to the user
 //@is_private Pass true to show the gift text and sender only to the gift receiver; otherwise, everyone will be able to see them
@@ -17268,10 +17267,11 @@ getGiftOnchainPurchaseTransaction gift_name:string owner_id:MessageSender gram_a
 //@description Returns a transaction that must be sent from the TON wallet of the current user to put an upgraded gift for which upgradedGift.uses_onchain_resale is true
 //-up for sale, or to change the price of a gift for which giftResaleParameters.is_fixed_onchain and giftResaleParameters.can_be_managed are true; can be used only if getOption("can_use_ton_wallet").
 //-The type of the sale is chosen by the server. The gift is put up for sale only after the transaction is executed on the TON blockchain and the sale smart contract
-//-confirms that it has received the gift. The price of the gift will be received by the TON wallet of the current user when the gift is sold.
-//-If giftResaleParameters.is_fixed_onchain is false, then the current sale must be canceled first using getGiftOnchainDelistingTransaction to change the price of the gift
+//-confirms that it has received the gift. The price of the gift minus the fee specified in upgradedGift.fee_basis_points will be received by the TON wallet
+//-of the current user when the gift is sold. If giftResaleParameters.is_fixed_onchain is false, then the current sale must be canceled first
+//-using getGiftOnchainDelistingTransaction to change the price of the gift
 //@gift_name Name of the upgraded gift
-//@gram_amount The price of the gift, in the smallest units of TON Grams. The price in 1/100 of a Gram must be in the range
+//@gram_amount The price of the gift that the buyer will pay, in the smallest units of TON Grams. The price in 1/100 of a Gram must be in the range
 //-getOption("gift_resale_gram_cent_count_min")-getOption("gift_resale_gram_cent_count_max")
 getGiftOnchainListingTransaction gift_name:string gram_amount:int64 = GiftOnchainSaleTransaction;
 
