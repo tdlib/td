@@ -17257,7 +17257,7 @@ declineGiftOnchainPurchaseOffer message_id:int53 = Ok;
 //-after the transaction is executed on the TON blockchain. If the gift is bought for the current user, then it will be received by the TON wallet of the current user,
 //-and will be shown on the user's profile page if it is still in the wallet
 //@gift_name Name of the upgraded gift
-//@owner_id Identifier of the user or the channel chat that will receive the gift
+//@owner_id Identifier of the user or the channel chat that will receive the gift; must be the current user if giftResaleParameters.is_fixed_onchain is false
 //@gram_amount The price of the gift, in the smallest units of TON Grams; must be equal to giftResaleParameters.gram_amount. The request fails with the error
 //-"STARGIFT_ONCHAIN_PRICE_CHANGED" if the price has changed. The amount that will be paid can be greater than the price because of the sale fee and blockchain fees
 //@text Text to show along with the gift; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, and DateTime entities are allowed.
@@ -17359,7 +17359,8 @@ setGiftResalePrice received_gift_id:string price:GiftResalePrice = Ok;
 //-The filter must be shown only if getOption("show_gift_resale_star_filter") is true and must be selected by default if getOption("select_gift_resale_star_filter_by_default") is true
 //@for_grams Pass true to get gifts that can be bought using TON Grams, including gifts sold on-chain using a fixed-price sale contract if getOption("can_buy_onchain_fixed_price_gifts") is true.
 //-The filter must be shown only if getOption("show_gift_resale_gram_filter") is true and must be selected by default if getOption("select_gift_resale_gram_filter_by_default") is true
-//@for_fragment Pass true to get gifts sold on-chain on Fragment; can be true only if getOption("can_buy_onchain_gifts") is true. Must be false if for_crafting is true
+//@for_fragment Pass true to get gifts sold on-chain on Fragment; can be true only if getOption("can_buy_onchain_gifts") is true.
+//-Must be false if for_crafting is true or if the gift will be bought for another user or a channel chat
 //@attributes Attributes used to filter gifts. If multiple attributes of the same type are specified, then all of them are allowed.
 //-If no attributes of a specific type are specified, then all values for this attribute type are allowed
 //@offset Offset of the first entry to return as received from the previous request with the same order and attributes; use an empty string to get the first chunk of results
