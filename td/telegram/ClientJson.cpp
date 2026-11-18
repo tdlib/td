@@ -23,10 +23,6 @@
 namespace td {
 
 static td_api::object_ptr<td_api::Function> get_return_error_function(Slice error_message) {
-  if (!check_utf8(error_message)) {
-    // the message contains a part of the request, which isn't encoded in UTF-8
-    error_message = Slice("Strings must be encoded in UTF-8");
-  }
   auto error = td_api::make_object<td_api::error>(400, error_message.str());
   return td_api::make_object<td_api::testReturnError>(std::move(error));
 }
@@ -59,6 +55,12 @@ static std::pair<td_api::object_ptr<td_api::Function>, string> to_request(Slice 
 }
 
 static string from_response(const td_api::Object &object, const string &extra, int client_id) {
+  if (object.get_id() == td_api::error::ID) {
+    const auto &error = static_cast<const td_api::error &>(object);
+    if (!check_utf8(error.message_)) {
+      return from_response(td_api::error(error.code_, "Strings must be encoded in UTF-8"), extra, client_id);
+    }
+  }
   auto buf = StackAllocator::alloc(1 << 18);
   JsonBuilder jb(StringBuilder(buf.as_slice(), true), -1);
   jb.enter_value() << ToJson(object);
