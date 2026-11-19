@@ -306,7 +306,7 @@ passwordState has_password:Bool password_hint:string has_recovery_email_address:
 recoveryEmailAddress recovery_email_address:string = RecoveryEmailAddress;
 
 
-//@description Contains information about the availability of a temporary password, which can be used for payments and withdrawal of upgraded gifts
+//@description Contains information about the availability of a temporary password, which can be used for payments and minting of upgraded gifts
 //@has_password True, if a temporary password is available
 //@valid_for Time left before the temporary password expires, in seconds
 temporaryPasswordState has_password:Bool valid_for:int32 = TemporaryPasswordState;
@@ -1598,7 +1598,7 @@ upgradedGiftOriginTransfer = UpgradedGiftOrigin;
 //@description The gift was bought from another user @price Price paid for the gift
 upgradedGiftOriginResale price:GiftResalePrice = UpgradedGiftOrigin;
 
-//@description The gift was assigned from the blockchain and isn't owned by the current user. The gift can't be transferred, resold, or withdrawn to the blockchain
+//@description The gift was assigned from the blockchain and isn't owned by the current user. The gift can't be transferred or resold
 upgradedGiftOriginBlockchain = UpgradedGiftOrigin;
 
 //@description The sender or receiver of the message has paid for the upgrade of the gift, which has been completed
@@ -1702,7 +1702,7 @@ upgradedGiftColors id:int64 model_custom_emoji_id:int64 symbol_custom_emoji_id:i
 //@last_send_date Point in time (Unix timestamp) when the gift was sent for the last time; for sold-out gifts only
 gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 upgrade_variant_count:int32 has_colors:Bool is_for_birthday:Bool is_premium:Bool auction_info:giftAuction next_send_date:int32 user_limits:giftPurchaseLimits overall_limits:giftPurchaseLimits background:giftBackground first_send_date:int32 last_send_date:int32 = Gift;
 
-//@description Describes an upgraded gift that can be transferred to another owner or transferred to the TON blockchain as an NFT
+//@description Describes an upgraded gift that can be transferred to another owner or minted as an NFT on the TON blockchain
 //@id Unique identifier of the gift
 //@regular_gift_id Unique identifier of the regular gift from which the gift was upgraded; may be 0 for a short period of time for old gifts from the database
 //@publisher_chat_id Identifier of the chat that published the gift; 0 if none
@@ -1819,7 +1819,7 @@ giftOnchainSaleTransactionFixedPrice sale_address:string messages:vector<tonWall
 //@drop_original_details_star_count Number of Telegram Stars that must be paid to drop the original details of the upgraded gift; 0 if not available
 //@next_transfer_date Point in time (Unix timestamp) when the gift can be transferred to another owner; can be in the past; 0 if the gift can be transferred immediately or transfer isn't possible
 //@next_resale_date Point in time (Unix timestamp) when the gift can be resold to another user; can be in the past; 0 if the gift can't be resold; only for the receiver of the gift
-//@export_date Point in time (Unix timestamp) when the gift can be transferred to the TON blockchain as an NFT; can be in the past
+//@export_date Point in time (Unix timestamp) when the gift can be minted as an NFT; can be in the past
 upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 = UpgradeGiftResult;
 
 
@@ -1949,8 +1949,7 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@next_transfer_date Point in time (Unix timestamp) when the gift can be transferred to another owner; can be in the past;
 //-0 if the gift can be transferred immediately or transfer isn't possible; only for the receiver of the gift
 //@next_resale_date Point in time (Unix timestamp) when the gift can be resold to another user; can be in the past; 0 if the gift can't be resold; only for the receiver of the gift
-//@export_date Point in time (Unix timestamp) when the upgraded gift can be transferred to the TON blockchain as an NFT; can be in the past; 0 if NFT export isn't possible;
-//-only for the receiver of the gift
+//@export_date Point in time (Unix timestamp) when the upgraded gift can be minted as an NFT; can be in the past; 0 if the gift can't be minted; only for the receiver of the gift
 //@prepaid_upgrade_hash If non-empty, then the user can pay for an upgrade of the gift using buyGiftUpgrade
 //@craft_date Point in time (Unix timestamp) when the gift can be used to craft another gift; can be in the past; only for the receiver of the gift
 receivedGift received_gift_id:string sender_id:MessageSender text:formattedText unique_gift_number:int32 is_private:Bool is_saved:Bool is_pinned:Bool can_be_upgraded:Bool can_be_transferred:Bool can_be_deleted:Bool was_refunded:Bool date:int32 gift:SentGift collection_ids:vector<int32> sell_star_count:int53 prepaid_upgrade_star_count:int53 is_upgrade_separate:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 prepaid_upgrade_hash:string craft_date:int32 = ReceivedGift;
@@ -6452,7 +6451,7 @@ messageGift gift:gift sender_id:MessageSender receiver_id:MessageSender received
 //@next_transfer_date Point in time (Unix timestamp) when the gift can be transferred to another owner; can be in the past;
 //-0 if the gift can be transferred immediately or transfer isn't possible; only for the receiver of the gift
 //@next_resale_date Point in time (Unix timestamp) when the gift can be resold to another user; can be in the past; 0 if the gift can't be resold; only for the receiver of the gift
-//@export_date Point in time (Unix timestamp) when the gift can be transferred to the TON blockchain as an NFT; can be in the past; 0 if NFT export isn't possible; only for the receiver of the gift
+//@export_date Point in time (Unix timestamp) when the gift can be minted as an NFT; can be in the past; 0 if the gift can't be minted; only for the receiver of the gift
 //@craft_date Point in time (Unix timestamp) when the gift can be used to craft another gift; can be in the past; only for the receiver of the gift
 messageUpgradedGift gift:upgradedGift sender_id:MessageSender receiver_id:MessageSender origin:UpgradedGiftOrigin received_gift_id:string text:formattedText is_private:Bool is_saved:Bool can_be_transferred:Bool was_transferred:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 craft_date:int32 = MessageContent;
 
@@ -12834,7 +12833,7 @@ resetPassword = ResetPasswordResult;
 //@description Cancels the reset of the 2-step verification password. The method can be called if passwordState.pending_reset_date > 0
 cancelPasswordReset = Ok;
 
-//@description Creates a new temporary password for processing payments and withdrawal of upgraded gifts
+//@description Creates a new temporary password for processing payments and minting of upgraded gifts
 //@password The 2-step verification password of the current user
 //@valid_for Time during which the temporary password will be valid, in seconds; must be between 60 and 86400
 createTemporaryPassword password:string valid_for:int32 = TemporaryPasswordState;

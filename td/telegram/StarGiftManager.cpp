@@ -2267,7 +2267,7 @@ class WithdrawStarGiftQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.move_as_ok();
     if (!result) {
-      return on_error(Status::Error(500, "Internal Server Error: failed to withdraw the gift"));
+      return on_error(Status::Error(500, "Internal Server Error: failed to mint the gift"));
     }
     promise_.set_value(Unit());
   }
@@ -3634,7 +3634,7 @@ void StarGiftManager::get_star_gift_withdrawal_url(StarGiftId star_gift_id, Prom
   }
   auto temp_password_state = PasswordManager::get_temp_password_state_sync();
   if (!temp_password_state.has_temp_password) {
-    return promise.set_error(400, "Temporary password required to withdraw the gift");
+    return promise.set_error(400, "Temporary password required to mint the gift");
   }
   td_->create_handler<GetStarGiftWithdrawalUrlQuery>(std::move(promise))
       ->send(star_gift_id, temp_password_state.temp_password);
@@ -3673,7 +3673,7 @@ void StarGiftManager::withdraw_star_gift(StarGiftId star_gift_id, bool keep_on_p
   }
   auto temp_password_state = PasswordManager::get_temp_password_state_sync();
   if (!temp_password_state.has_temp_password) {
-    return promise.set_error(400, "Temporary password required to withdraw the gift");
+    return promise.set_error(400, "Temporary password required to mint the gift");
   }
   td_->create_handler<WithdrawStarGiftQuery>(std::move(promise))
       ->send(star_gift_id, keep_on_profile, temp_password_state.temp_password);
