@@ -1819,8 +1819,8 @@ giftOnchainSaleTransactionFixedPrice sale_address:string messages:vector<tonWall
 //@drop_original_details_star_count Number of Telegram Stars that must be paid to drop the original details of the upgraded gift; 0 if not available
 //@next_transfer_date Point in time (Unix timestamp) when the gift can be transferred to another owner; can be in the past; 0 if the gift can be transferred immediately or transfer isn't possible
 //@next_resale_date Point in time (Unix timestamp) when the gift can be resold to another user; can be in the past; 0 if the gift can't be resold; only for the receiver of the gift
-//@export_date Point in time (Unix timestamp) when the gift can be minted as an NFT; can be in the past
-upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 = UpgradeGiftResult;
+//@mint_date Point in time (Unix timestamp) when the gift can be minted as an NFT; can be in the past
+upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 mint_date:int32 = UpgradeGiftResult;
 
 
 //@class CraftGiftResult @description Contains result of gift crafting
@@ -1949,10 +1949,10 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@next_transfer_date Point in time (Unix timestamp) when the gift can be transferred to another owner; can be in the past;
 //-0 if the gift can be transferred immediately or transfer isn't possible; only for the receiver of the gift
 //@next_resale_date Point in time (Unix timestamp) when the gift can be resold to another user; can be in the past; 0 if the gift can't be resold; only for the receiver of the gift
-//@export_date Point in time (Unix timestamp) when the upgraded gift can be minted as an NFT; can be in the past; 0 if the gift can't be minted; only for the receiver of the gift
+//@mint_date Point in time (Unix timestamp) when the upgraded gift can be minted as an NFT; can be in the past; 0 if the gift can't be minted; only for the receiver of the gift
 //@prepaid_upgrade_hash If non-empty, then the user can pay for an upgrade of the gift using buyGiftUpgrade
 //@craft_date Point in time (Unix timestamp) when the gift can be used to craft another gift; can be in the past; only for the receiver of the gift
-receivedGift received_gift_id:string sender_id:MessageSender text:formattedText unique_gift_number:int32 is_private:Bool is_saved:Bool is_pinned:Bool can_be_upgraded:Bool can_be_transferred:Bool can_be_deleted:Bool was_refunded:Bool date:int32 gift:SentGift collection_ids:vector<int32> sell_star_count:int53 prepaid_upgrade_star_count:int53 is_upgrade_separate:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 prepaid_upgrade_hash:string craft_date:int32 = ReceivedGift;
+receivedGift received_gift_id:string sender_id:MessageSender text:formattedText unique_gift_number:int32 is_private:Bool is_saved:Bool is_pinned:Bool can_be_upgraded:Bool can_be_transferred:Bool can_be_deleted:Bool was_refunded:Bool date:int32 gift:SentGift collection_ids:vector<int32> sell_star_count:int53 prepaid_upgrade_star_count:int53 is_upgrade_separate:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 mint_date:int32 prepaid_upgrade_hash:string craft_date:int32 = ReceivedGift;
 
 //@description Represents a list of gifts received by a user or a chat
 //@total_count The total number of received gifts
@@ -6451,9 +6451,9 @@ messageGift gift:gift sender_id:MessageSender receiver_id:MessageSender received
 //@next_transfer_date Point in time (Unix timestamp) when the gift can be transferred to another owner; can be in the past;
 //-0 if the gift can be transferred immediately or transfer isn't possible; only for the receiver of the gift
 //@next_resale_date Point in time (Unix timestamp) when the gift can be resold to another user; can be in the past; 0 if the gift can't be resold; only for the receiver of the gift
-//@export_date Point in time (Unix timestamp) when the gift can be minted as an NFT; can be in the past; 0 if the gift can't be minted; only for the receiver of the gift
+//@mint_date Point in time (Unix timestamp) when the gift can be minted as an NFT; can be in the past; 0 if the gift can't be minted; only for the receiver of the gift
 //@craft_date Point in time (Unix timestamp) when the gift can be used to craft another gift; can be in the past; only for the receiver of the gift
-messageUpgradedGift gift:upgradedGift sender_id:MessageSender receiver_id:MessageSender origin:UpgradedGiftOrigin received_gift_id:string text:formattedText is_private:Bool is_saved:Bool can_be_transferred:Bool was_transferred:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 craft_date:int32 = MessageContent;
+messageUpgradedGift gift:upgradedGift sender_id:MessageSender receiver_id:MessageSender origin:UpgradedGiftOrigin received_gift_id:string text:formattedText is_private:Bool is_saved:Bool can_be_transferred:Bool was_transferred:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 mint_date:int32 craft_date:int32 = MessageContent;
 
 //@description A gift whose purchase, upgrade, or transfer was refunded
 //@gift The gift
