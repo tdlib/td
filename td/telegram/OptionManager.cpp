@@ -291,6 +291,7 @@ void OptionManager::update_premium_options() {
 
     set_option_boolean("can_set_new_chat_privacy_settings", true);
     set_option_boolean("can_use_text_entities_in_story_caption", true);
+    set_option_boolean("can_recognize_speech", !get_option_boolean("is_speech_recognition_disabled"));
   } else {
     set_option_integer("saved_animations_limit", get_option_integer("saved_gifs_limit_default", 200));
     set_option_integer("favorite_stickers_limit", get_option_integer("stickers_faved_limit_default", 5));
@@ -319,6 +320,8 @@ void OptionManager::update_premium_options() {
     set_option_boolean("can_set_new_chat_privacy_settings", !get_option_boolean("need_premium_for_new_chat_privacy"));
     set_option_boolean("can_use_text_entities_in_story_caption",
                        !get_option_boolean("need_premium_for_story_caption_entities"));
+    set_option_boolean("can_recognize_speech", !get_option_boolean("is_speech_recognition_disabled") &&
+                                                   !get_option_boolean("need_premium_for_speech_recognition"));
   }
 }
 
@@ -507,11 +510,13 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "has_protected_content_disable_request_duration",
                                                               "hidden_members_group_size_min",
                                                               "ignored_restriction_reasons",
+                                                              "is_speech_recognition_disabled",
                                                               "language_pack_version",
                                                               "message_length_limit_default",
                                                               "message_length_limit_premium",
                                                               "my_phone_number",
                                                               "need_premium_for_new_chat_privacy",
+                                                              "need_premium_for_speech_recognition",
                                                               "need_premium_for_story_caption_entities",
                                                               "need_synchronize_archive_all_stories",
                                                               "notification_cloud_delay_ms",
@@ -680,6 +685,9 @@ void OptionManager::on_option_updated(Slice name) {
       if (name == "is_premium") {
         update_premium_options();
       }
+      if (name == "is_speech_recognition_disabled") {
+        update_premium_options();
+      }
       break;
     case 'l':
       if (name == "language_pack_id") {
@@ -706,6 +714,9 @@ void OptionManager::on_option_updated(Slice name) {
       break;
     case 'n':
       if (name == "need_premium_for_new_chat_privacy") {
+        update_premium_options();
+      }
+      if (name == "need_premium_for_speech_recognition") {
         update_premium_options();
       }
       if (name == "need_premium_for_story_caption_entities") {

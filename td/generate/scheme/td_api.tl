@@ -13682,8 +13682,8 @@ recognizeSpeech chat_id:int53 message_id:int53 = Ok;
 //@is_good Pass true if the speech recognition is good
 rateSpeechRecognition chat_id:int53 message_id:int53 is_good:Bool = Ok;
 
-//@description Recognizes speech in an audio file and returns the recognized text. The file must be in OGG format with the Opus codec and must have a size of up to 1 MB.
-//-The same rules as for recognizeSpeech apply to the Telegram Premium requirement and speech recognition trial; must not be used in secret chats
+//@description Recognizes speech in an audio file and returns the recognized text; can be used only if getOption("can_recognize_speech"); must not be used in secret chats.
+//-The file must be in OGG format with the Opus codec and must have a size of up to 1 MB
 //@audio_file The audio file
 //@recognition_id Unique identifier of the speech recognition, which will be used in updateSpeechRecognitionInFile to send partially recognized text; pass 0 if partial results aren't needed
 recognizeSpeechInFile audio_file:InputFile recognition_id:int64 = Text;

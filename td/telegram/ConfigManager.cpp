@@ -1337,6 +1337,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 transcribe_audio_trial_weekly_number = 0;
   int32 transcribe_audio_trial_duration_max = 0;
   int32 transcribe_audio_trial_cooldown_until = 0;
+  bool need_premium_for_speech_recognition = false;
+  bool is_speech_recognition_disabled = false;
   vector<string> business_features;
   bool need_premium_for_new_chat_privacy = true;
   vector<string> starref_start_param_prefixes;
@@ -1842,6 +1844,17 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 get_json_value_string(std::move(key_value->value_), key) == "premium");
         continue;
       }
+      if (key == "speech_to_text") {
+        auto mode = get_json_value_string(std::move(key_value->value_), key);
+        if (mode == "premium") {
+          need_premium_for_speech_recognition = true;
+        } else if (mode == "disabled") {
+          is_speech_recognition_disabled = true;
+        } else if (mode != "enabled") {
+          LOG(ERROR) << "Receive unsupported speech_to_text = " << mode;
+        }
+        continue;
+      }
       if (key == "transcribe_audio_trial_weekly_number") {
         transcribe_audio_trial_weekly_number = get_json_value_int(std::move(key_value->value_), key);
         continue;
@@ -2223,6 +2236,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
 
   options.set_option_boolean("need_premium_for_new_chat_privacy", need_premium_for_new_chat_privacy);
+  options.set_option_boolean("need_premium_for_speech_recognition", need_premium_for_speech_recognition);
+  options.set_option_boolean("is_speech_recognition_disabled", is_speech_recognition_disabled);
 
   options.set_option_empty("default_ton_blockchain_config");
   options.set_option_empty("default_ton_blockchain_name");
