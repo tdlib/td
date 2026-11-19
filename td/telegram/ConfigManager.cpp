@@ -1370,7 +1370,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"premium_gift_attach_menu_icon", "gift_premium_from_attachment_menu"},
       {"premium_gift_text_field_icon", "gift_premium_from_input_field"},
       {"settings_display_passkeys", "can_use_login_passkey"},
-      {"stargifts_craft_minted_first_source", "can_craft_from_withdrawn_first_gift"},
+      {"stargifts_craft_minted_first_source", "can_craft_with_minted_first_gift"},
       {"stargifts_fixed_sale_enabled", "can_buy_onchain_fixed_price_gifts"},
       {"stargifts_fragment_resale_enabled", "can_buy_onchain_gifts"},
       {"stars_gifts_enabled", "can_gift_stars"},
