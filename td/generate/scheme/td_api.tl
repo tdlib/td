@@ -306,7 +306,7 @@ passwordState has_password:Bool password_hint:string has_recovery_email_address:
 recoveryEmailAddress recovery_email_address:string = RecoveryEmailAddress;
 
 
-//@description Contains information about the availability of a temporary password, which can be used for payments and minting of upgraded gifts
+//@description Contains information about the availability of a temporary password
 //@has_password True, if a temporary password is available
 //@valid_for Time left before the temporary password expires, in seconds
 temporaryPasswordState has_password:Bool valid_for:int32 = TemporaryPasswordState;
@@ -12833,7 +12833,7 @@ resetPassword = ResetPasswordResult;
 //@description Cancels the reset of the 2-step verification password. The method can be called if passwordState.pending_reset_date > 0
 cancelPasswordReset = Ok;
 
-//@description Creates a new temporary password for processing payments and minting of upgraded gifts
+//@description Creates a new temporary password
 //@password The 2-step verification password of the current user
 //@valid_for Time during which the temporary password will be valid, in seconds; must be between 60 and 86400
 createTemporaryPassword password:string valid_for:int32 = TemporaryPasswordState;
