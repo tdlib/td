@@ -1598,7 +1598,7 @@ upgradedGiftOriginTransfer = UpgradedGiftOrigin;
 //@description The gift was bought from another user @price Price paid for the gift
 upgradedGiftOriginResale price:GiftResalePrice = UpgradedGiftOrigin;
 
-//@description The gift was assigned from the blockchain and isn't owned by the current user. The gift can't be transferred or resold
+//@description The minted gift was linked to a user or a chat and isn't owned by the current user. The gift can't be transferred or resold
 upgradedGiftOriginBlockchain = UpgradedGiftOrigin;
 
 //@description The sender or receiver of the message has paid for the upgrade of the gift, which has been completed
@@ -1716,12 +1716,13 @@ gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_s
 //@is_premium True, if the original gift could have been bought only by Telegram Premium subscribers
 //@is_theme_available True, if the gift can be used to set a theme in a chat
 //@used_theme_chat_id Identifier of the chat for which the gift is used to set a theme; 0 if none or the gift isn't owned by the current user
-//@host_id Identifier of the user or the chat to which the upgraded gift was assigned from the blockchain; may be null if none or unknown
+//@host_id Identifier of the user or the chat to which the minted gift is linked; may be null if none or unknown
 //@owner_id Identifier of the user or the chat that owns the upgraded gift; may be null if none or unknown
 //@owner_address Address of the gift NFT owner on the TON blockchain; may be empty if none.
 //-Append the address to getOption("ton_blockchain_explorer_url") to get a link with information about the address
 //@owner_name Name of the owner for the case when the owner identifier and address aren't known
-//@gift_address Address of the gift NFT on the TON blockchain; may be empty if none. Append the address to getOption("ton_blockchain_explorer_url") to get a link with information about the address
+//@gift_address Address of the gift NFT on the TON blockchain; empty if the gift isn't minted.
+//-Append the address to getOption("ton_blockchain_explorer_url") to get a link with information about the address
 //@can_be_ton_wallet_card_background True, if the gift NFT can be used as background_nft_address in setTonWalletCardStickers
 //@model Model of the upgraded gift
 //@symbol Symbol of the upgraded gift
@@ -2555,7 +2556,8 @@ tonWalletTransactionTypeTransfer amount:int64 is_gasless:Bool comment:string is_
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
 tonWalletTransactionTypeNftTransfer nft:tonNft is_outgoing:Bool comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
 
-//@description A Telegram gift was minted as a TON NFT or was transferred from Telegram to the wallet or back; peer details aren't available for the transaction
+//@description A Telegram gift was minted as a TON NFT directly to the wallet, or a minted gift was linked to or unlinked from a Telegram account;
+//-peer details aren't available for the transaction
 //@nft The minted or transferred NFT
 //@is_outgoing True, if the transfer is from the wallet to Telegram
 //@is_saved True, if the gift was displayed on the current user's profile page before or after the transfer
