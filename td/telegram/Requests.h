@@ -2048,9 +2048,9 @@ class Requests {
 
   void on_request(uint64 id, td_api::getUpgradedGiftValueInfo &request);
 
-  void on_request(uint64 id, const td_api::getUpgradedGiftWithdrawalUrl &request);
+  void on_request(uint64 id, const td_api::getGiftMintingUrl &request);
 
-  void on_request(uint64 id, const td_api::withdrawUpgradedGift &request);
+  void on_request(uint64 id, const td_api::mintGift &request);
 
   void on_request(uint64 id, td_api::getUpgradedGiftDepositInfo &request);
 

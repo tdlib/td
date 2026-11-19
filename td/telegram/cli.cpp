@@ -3625,15 +3625,15 @@ class CliClient final : public Actor {
       GiftResalePrice price;
       get_args(args, received_gift_id, price);
       send_request(td_api::make_object<td_api::setGiftResalePrice>(received_gift_id, price));
-    } else if (op == "gugwu") {
+    } else if (op == "ggmu") {
       string received_gift_id;
       get_args(args, received_gift_id);
-      send_request(td_api::make_object<td_api::getUpgradedGiftWithdrawalUrl>(received_gift_id));
-    } else if (op == "wug") {
+      send_request(td_api::make_object<td_api::getGiftMintingUrl>(received_gift_id));
+    } else if (op == "mg") {
       string received_gift_id;
       bool keep_on_profile;
       get_args(args, received_gift_id, keep_on_profile);
-      send_request(td_api::make_object<td_api::withdrawUpgradedGift>(received_gift_id, keep_on_profile));
+      send_request(td_api::make_object<td_api::mintGift>(received_gift_id, keep_on_profile));
     } else if (op == "gugdi") {
       string owner_id;
       string name;

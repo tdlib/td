@@ -17318,17 +17318,17 @@ getUpgradedGift name:string = UpgradedGift;
 //@description Returns information about the value of an upgraded gift by its name @name Unique name of the upgraded gift
 getUpgradedGiftValueInfo name:string = UpgradedGiftValueInfo;
 
-//@description Returns a URL for upgraded gift withdrawal to the TON blockchain as an NFT; requires owner privileges for gifts owned by a chat.
+//@description Returns a URL for minting an upgraded gift as an NFT on the TON blockchain; requires owner privileges for gifts owned by a chat.
 //-The user must have a valid temporary password; see createTemporaryPassword
 //@received_gift_id Identifier of the gift
-getUpgradedGiftWithdrawalUrl received_gift_id:string = HttpUrl;
+getGiftMintingUrl received_gift_id:string = HttpUrl;
 
-//@description Withdraws an upgraded gift to the TON blockchain as an NFT directly to the TON wallet of the current user, which is created automatically if the user has no wallet yet;
-//-requires owner privileges for gifts owned by a chat. The user must have a valid temporary password; see createTemporaryPassword.
-//-The gift will be received by the wallet in a few seconds after the request succeeds
+//@description Mints an upgraded gift as an NFT on the TON blockchain and sends the NFT directly to the TON wallet of the current user, which is created automatically
+//-if the user has no wallet yet; requires owner privileges for gifts owned by a chat. The user must have a valid temporary password; see createTemporaryPassword.
+//-Minting is irreversible. The NFT will be received by the wallet in a few seconds after the request succeeds
 //@received_gift_id Identifier of the gift
-//@keep_on_profile Pass true to keep the gift displayed on the user's or the chat's profile page after withdrawal
-withdrawUpgradedGift received_gift_id:string keep_on_profile:Bool = Ok;
+//@keep_on_profile Pass true to keep the gift displayed on the user's or the chat's profile page after minting
+mintGift received_gift_id:string keep_on_profile:Bool = Ok;
 
 //@description Returns information needed to deposit an upgraded gift from the TON wallet of the current user to a Telegram account. Use sendTonWalletTransaction to complete the transfer of the gift.
 //-The gift will be received by the new owner with a message about the gift after the transfer is confirmed on the blockchain

@@ -9282,13 +9282,13 @@ void Requests::on_request(uint64 id, td_api::getUpgradedGiftValueInfo &request) 
   td_->star_gift_manager_->get_upgraded_gift_value_info(request.name_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getUpgradedGiftWithdrawalUrl &request) {
+void Requests::on_request(uint64 id, const td_api::getGiftMintingUrl &request) {
   CHECK_IS_USER();
   CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->star_gift_manager_->get_star_gift_withdrawal_url(StarGiftId(request.received_gift_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::withdrawUpgradedGift &request) {
+void Requests::on_request(uint64 id, const td_api::mintGift &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->star_gift_manager_->withdraw_star_gift(StarGiftId(request.received_gift_id_), request.keep_on_profile_,
