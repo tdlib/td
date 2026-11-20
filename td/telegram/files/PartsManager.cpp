@@ -218,6 +218,20 @@ int64 PartsManager::get_streaming_offset() const {
   return streaming_offset_;
 }
 
+// returns the end of the shortest range starting at begin_part_id that contains max_count not ready parts,
+// but no further than end_part_id
+int32 PartsManager::get_not_ready_parts_end(int32 begin_part_id, int32 end_part_id, int32 max_count) const {
+  end_part_id = min(end_part_id, part_count_);
+  auto part_id = begin_part_id;
+  while (part_id < end_part_id && max_count > 0) {
+    if (part_status_[part_id] != PartStatus::Ready) {
+      max_count--;
+    }
+    part_id++;
+  }
+  return part_id;
+}
+
 string PartsManager::get_bitmask() {
   int32 prefix_count = -1;
   if (need_check_) {
