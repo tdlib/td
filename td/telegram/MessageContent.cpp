@@ -13853,16 +13853,16 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Text: {
-      const auto *text = static_cast<const MessageText *>(content);
-      if (!text->web_page_id.is_valid()) {
-        return text->text.text;
+      const auto *m = static_cast<const MessageText *>(content);
+      if (!m->web_page_id.is_valid()) {
+        return m->text.text;
       }
-      return PSTRING() << text->text.text << ' ' << td->web_pages_manager_->get_web_page_search_text(text->web_page_id);
+      return PSTRING() << m->text.text << ' ' << td->web_pages_manager_->get_web_page_search_text(m->web_page_id);
     }
     case MessageContentType::RichText: {
-      const auto *text = static_cast<const MessageRichText *>(content);
+      const auto *m = static_cast<const MessageRichText *>(content);
       string result;
-      text->rich_message.for_each_text([&result](Slice text) {
+      m->rich_message.for_each_text([&result](Slice text) {
         if (!result.empty()) {
           result += ' ';
         }
@@ -13871,46 +13871,44 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
       return result;
     }
     case MessageContentType::Animation: {
-      const auto *animation = static_cast<const MessageAnimation *>(content);
-      return PSTRING() << td->animations_manager_->get_animation_search_text(animation->file_id) << ' '
-                       << animation->caption.text;
+      const auto *m = static_cast<const MessageAnimation *>(content);
+      return PSTRING() << td->animations_manager_->get_animation_search_text(m->file_id) << ' ' << m->caption.text;
     }
     case MessageContentType::Audio: {
-      const auto *audio = static_cast<const MessageAudio *>(content);
-      return PSTRING() << td->audios_manager_->get_audio_search_text(audio->file_id) << ' ' << audio->caption.text;
+      const auto *m = static_cast<const MessageAudio *>(content);
+      return PSTRING() << td->audios_manager_->get_audio_search_text(m->file_id) << ' ' << m->caption.text;
     }
     case MessageContentType::Document: {
-      const auto *document = static_cast<const MessageDocument *>(content);
-      return PSTRING() << td->documents_manager_->get_document_search_text(document->file_id) << ' '
-                       << document->caption.text;
+      const auto *m = static_cast<const MessageDocument *>(content);
+      return PSTRING() << td->documents_manager_->get_document_search_text(m->file_id) << ' ' << m->caption.text;
     }
     case MessageContentType::Invoice: {
-      const auto *invoice = static_cast<const MessageInvoice *>(content);
-      return invoice->input_invoice.get_caption()->text;
+      const auto *m = static_cast<const MessageInvoice *>(content);
+      return m->input_invoice.get_caption()->text;
     }
     case MessageContentType::PaidMedia: {
-      const auto *paid_media = static_cast<const MessagePaidMedia *>(content);
-      return paid_media->caption.text;
+      const auto *m = static_cast<const MessagePaidMedia *>(content);
+      return m->caption.text;
     }
     case MessageContentType::Photo: {
-      const auto *photo = static_cast<const MessagePhoto *>(content);
-      return photo->caption.text;
+      const auto *m = static_cast<const MessagePhoto *>(content);
+      return m->caption.text;
     }
     case MessageContentType::Video: {
-      const auto *video = static_cast<const MessageVideo *>(content);
-      return PSTRING() << td->videos_manager_->get_video_search_text(video->file_id) << ' ' << video->caption.text;
+      const auto *m = static_cast<const MessageVideo *>(content);
+      return PSTRING() << td->videos_manager_->get_video_search_text(m->file_id) << ' ' << m->caption.text;
     }
     case MessageContentType::Poll: {
-      const auto *poll = static_cast<const MessagePoll *>(content);
-      return PSTRING() << td->poll_manager_->get_poll_search_text(poll->poll_id) << ' ' << poll->caption.text;
+      const auto *m = static_cast<const MessagePoll *>(content);
+      return PSTRING() << td->poll_manager_->get_poll_search_text(m->poll_id) << ' ' << m->caption.text;
     }
     case MessageContentType::TopicCreate: {
-      const auto *topic_create = static_cast<const MessageTopicCreate *>(content);
-      return topic_create->title;
+      const auto *m = static_cast<const MessageTopicCreate *>(content);
+      return m->title;
     }
     case MessageContentType::TopicEdit: {
-      const auto *topic_edit = static_cast<const MessageTopicEdit *>(content);
-      return topic_edit->edited_data.get_title();
+      const auto *m = static_cast<const MessageTopicEdit *>(content);
+      return m->edited_data.get_title();
     }
     case MessageContentType::GiftPremium: {
       const auto *m = static_cast<const MessageGiftPremium *>(content);
@@ -13929,8 +13927,8 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
       return m->text.text;
     }
     case MessageContentType::ToDoList: {
-      const auto *to_do_list = static_cast<const MessageToDoList *>(content);
-      return to_do_list->list.get_search_text();
+      const auto *m = static_cast<const MessageToDoList *>(content);
+      return m->list.get_search_text();
     }
     case MessageContentType::Widget:
       return static_cast<const MessageWidget *>(content)->caption.text;
