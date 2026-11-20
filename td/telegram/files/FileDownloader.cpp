@@ -464,7 +464,9 @@ void FileDownloader::update_downloaded_part(int64 offset, int64 limit, int64 max
     auto new_end_part_id = limit <= 0 ? parts_manager_.get_part_count()
                                       : narrow_cast<int32>((offset + limit - 1) / parts_manager_.get_part_size()) + 1;
     auto max_parts = narrow_cast<int32>(max_resource_limit / parts_manager_.get_part_size());
-    auto end_part_id = begin_part_id + td::min(max_parts, new_end_part_id - begin_part_id);
+    // only parts that aren't ready yet need resources, so ready parts must not shorten the protected range;
+    // otherwise parts that completed out of order push the newest pending parts out of it on every offset change
+    auto end_part_id = parts_manager_.get_not_ready_parts_end(begin_part_id, new_end_part_id, max_parts);
     VLOG(file_loader) << "Protect parts " << begin_part_id << " ... " << end_part_id - 1;
     for (auto &it : part_map_) {
       if (!it.second.second.empty() && !(begin_part_id <= it.second.first.id && it.second.first.id < end_part_id)) {
