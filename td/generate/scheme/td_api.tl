@@ -889,6 +889,77 @@ botMenuButton text:string url:string = BotMenuButton;
 botAccessSettings is_restricted:Bool added_user_ids:vector<int53> = BotAccessSettings;
 
 
+//@class BotCallbackQueryMode @description Describes how callback queries are received by a bot
+
+//@description Callback queries are always received in updateNewCallbackQuery; the message with the button can be inaccessible to the bot
+botCallbackQueryModeDefault = BotCallbackQueryMode;
+
+//@description Callback queries are received in updateNewInlineCallbackQuery instead of updateNewCallbackQuery if the message with the button is inaccessible to the bot.
+//-Rarely, the message can still be inaccessible to the bot in updateNewCallbackQuery
+botCallbackQueryModeAuto = BotCallbackQueryMode;
+
+//@description Callback queries are always received in updateNewInlineCallbackQuery instead of updateNewCallbackQuery
+botCallbackQueryModeInline = BotCallbackQueryMode;
+
+
+//@class BotSetting @description Describes a setting of a bot
+
+//@description A setting for managing whether the bot supports inline queries @is_inline True, if the bot supports inline queries
+botSettingIsInline is_inline:Bool = BotSetting;
+
+//@description A setting for managing the placeholder for inline queries to the bot
+//@placeholder Placeholder for inline queries (displayed in the application input field); pass an empty string to use the default placeholder
+botSettingInlineQueryPlaceholder placeholder:string = BotSetting;
+
+//@description A setting for managing whether the location of the user is expected to be sent with every inline query to the bot
+//@need_location True, if the location of the user is expected to be sent with every inline query to the bot
+botSettingNeedLocation need_location:Bool = BotSetting;
+
+//@description A setting for managing the share of chosen inline query results that are received by the bot in updateNewChosenInlineResult
+//@per_mille The number of chosen inline query results that are received by the bot for each 1000 chosen results; 0-1000
+botSettingInlineFeedback per_mille:int32 = BotSetting;
+
+//@description A setting for managing whether the bot can be invited to basic group and supergroup chats
+//@can_join_groups True, if the bot can be invited to basic group and supergroup chats
+botSettingCanJoinGroups can_join_groups:Bool = BotSetting;
+
+//@description A setting for managing whether the bot can read all messages in basic group or supergroup chats and not just those addressed to the bot
+//@can_read_all_group_messages True, if the bot can read all messages in basic group or supergroup chats and not just those addressed to the bot
+botSettingCanReadAllGroupMessages can_read_all_group_messages:Bool = BotSetting;
+
+//@description A setting for managing whether the bot supports connection to user accounts for chat automation
+//@can_connect_to_business True, if the bot supports connection to user accounts for chat automation
+botSettingCanConnectToBusiness can_connect_to_business:Bool = BotSetting;
+
+//@description A setting for managing whether the bot can manage other bots @can_manage_bots True, if the bot can manage other bots
+botSettingCanManageBots can_manage_bots:Bool = BotSetting;
+
+//@description A setting for managing whether the bot can be queried by username from any non-secret chat
+//@supports_guest_queries True, if the bot can be queried by username from any non-secret chat
+botSettingSupportsGuestQueries supports_guest_queries:Bool = BotSetting;
+
+//@description A setting for managing whether the bot can be set as a guard bot in supergroup chats
+//@is_guard True, if the bot can be set as a guard bot in supergroup chats
+botSettingIsGuard is_guard:Bool = BotSetting;
+
+//@description A setting for managing whether the bot has topics @has_topics True, if the bot has topics
+botSettingHasTopics has_topics:Bool = BotSetting;
+
+//@description A setting for managing whether users can create and delete topics in the chat with the bot
+//@allows_users_to_create_topics True, if users can create and delete topics in the chat with the bot
+botSettingAllowsUsersToCreateTopics allows_users_to_create_topics:Bool = BotSetting;
+
+//@description A setting for managing whether topics of the bot are shown in a sidebar @has_topic_sidebar True, if the bot has topics, which are shown in a sidebar
+botSettingHasTopicSidebar has_topic_sidebar:Bool = BotSetting;
+
+//@description A setting for managing whether the bot can communicate with other bots in groups, private chats, and through business accounts
+//@can_communicate_with_bots True, if the bot can communicate with other bots in groups, private chats, and through business accounts
+botSettingCanCommunicateWithBots can_communicate_with_bots:Bool = BotSetting;
+
+//@description A setting for managing how callback queries are received by the bot @mode The new mode
+botSettingCallbackQueryMode mode:BotCallbackQueryMode = BotSetting;
+
+
 //@description Describes parameters of verification that is provided by a bot
 //@icon_custom_emoji_id Identifier of the custom emoji that is used as the verification sign
 //@organization_name Name of the organization that provides verification
@@ -16811,6 +16882,11 @@ setManagedBotAccessSettings bot_user_id:int53 settings:botAccessSettings = Ok;
 //@bot_user_id Identifier of the bot
 //@user_ids Identifiers of the users to invite; 1-10 different users
 inviteUsersToBot bot_user_id:int53 user_ids:vector<int53> = Ok;
+
+//@description Changes settings of a bot. Can be called only if userTypeBot.can_be_edited == true
+//@bot_user_id Identifier of the target bot
+//@settings The new settings of the bot; settings that aren't specified remain unchanged
+setBotSettings bot_user_id:int53 settings:vector<BotSetting> = Ok;
 
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot

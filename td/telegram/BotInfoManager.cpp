@@ -191,6 +191,34 @@ class InviteUsersToBotQuery final : public Td::ResultHandler {
   }
 };
 
+class SetBotSettingsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetBotSettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id, telegram_api::object_ptr<telegram_api::bots_setBotSettings> &&request) {
+    send_query(G()->net_query_creator().create(*request, {{bot_user_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_setBotSettings>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto user = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SetBotSettingsQuery: " << to_string(user);
+    td_->user_manager_->on_get_user(std::move(user), "SetBotSettingsQuery");
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetAdminedBotsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::users>> promise_;
   UserId bot_user_id_;
@@ -925,6 +953,140 @@ void BotInfoManager::invite_users_to_bot(UserId bot_user_id, const vector<UserId
   }
   TRY_RESULT_PROMISE(promise, input_users, td_->user_manager_->get_input_users(user_ids));
   td_->create_handler<InviteUsersToBotQuery>(std::move(promise))->send(std::move(input_user), std::move(input_users));
+}
+
+void BotInfoManager::set_bot_settings(UserId bot_user_id, vector<td_api::object_ptr<td_api::BotSetting>> &&settings,
+                                      Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_bot_input_user(td_, bot_user_id));
+  if (input_user == nullptr) {
+    bot_user_id = td_->user_manager_->get_my_id();
+  }
+
+  int32 flags = 0;
+  bool is_inline = false;
+  string inline_query_placeholder;
+  bool need_location = false;
+  int32 inline_feedback_per_mille = 0;
+  bool can_join_groups = false;
+  bool can_read_all_group_messages = false;
+  bool can_connect_to_business = false;
+  bool can_manage_bots = false;
+  bool supports_guest_queries = false;
+  bool is_guard = false;
+  bool has_topics = false;
+  bool allows_users_to_create_topics = false;
+  bool has_topic_sidebar = false;
+  bool can_communicate_with_bots = false;
+  string callback_query_mode;
+  for (auto &setting : settings) {
+    if (setting == nullptr) {
+      return promise.set_error(400, "Bot setting must be non-empty");
+    }
+    switch (setting->get_id()) {
+      case td_api::botSettingIsInline::ID:
+        flags |= telegram_api::bots_setBotSettings::INLINE_MODE_MASK;
+        is_inline = static_cast<const td_api::botSettingIsInline *>(setting.get())->is_inline_;
+        break;
+      case td_api::botSettingInlineQueryPlaceholder::ID:
+        flags |= telegram_api::bots_setBotSettings::INLINE_PLACEHOLDER_MASK;
+        inline_query_placeholder =
+            std::move(static_cast<td_api::botSettingInlineQueryPlaceholder *>(setting.get())->placeholder_);
+        if (!clean_input_string(inline_query_placeholder)) {
+          return promise.set_error(400, "Strings must be encoded in UTF-8");
+        }
+        break;
+      case td_api::botSettingNeedLocation::ID:
+        flags |= telegram_api::bots_setBotSettings::INLINE_GEO_MASK;
+        need_location = static_cast<const td_api::botSettingNeedLocation *>(setting.get())->need_location_;
+        break;
+      case td_api::botSettingInlineFeedback::ID:
+        flags |= telegram_api::bots_setBotSettings::INLINE_FEEDBACK_MASK;
+        inline_feedback_per_mille = static_cast<const td_api::botSettingInlineFeedback *>(setting.get())->per_mille_;
+        if (inline_feedback_per_mille < 0 || inline_feedback_per_mille > 1000) {
+          return promise.set_error(400, "Invalid inline feedback specified");
+        }
+        break;
+      case td_api::botSettingCanJoinGroups::ID:
+        flags |= telegram_api::bots_setBotSettings::NOCHATS_MASK;
+        can_join_groups = static_cast<const td_api::botSettingCanJoinGroups *>(setting.get())->can_join_groups_;
+        break;
+      case td_api::botSettingCanReadAllGroupMessages::ID:
+        flags |= telegram_api::bots_setBotSettings::CHAT_HISTORY_MASK;
+        can_read_all_group_messages =
+            static_cast<const td_api::botSettingCanReadAllGroupMessages *>(setting.get())->can_read_all_group_messages_;
+        break;
+      case td_api::botSettingCanConnectToBusiness::ID:
+        flags |= telegram_api::bots_setBotSettings::BUSINESS_MASK;
+        can_connect_to_business =
+            static_cast<const td_api::botSettingCanConnectToBusiness *>(setting.get())->can_connect_to_business_;
+        break;
+      case td_api::botSettingCanManageBots::ID:
+        flags |= telegram_api::bots_setBotSettings::CAN_MANAGE_BOTS_MASK;
+        can_manage_bots = static_cast<const td_api::botSettingCanManageBots *>(setting.get())->can_manage_bots_;
+        break;
+      case td_api::botSettingSupportsGuestQueries::ID:
+        flags |= telegram_api::bots_setBotSettings::GUESTCHAT_MASK;
+        supports_guest_queries =
+            static_cast<const td_api::botSettingSupportsGuestQueries *>(setting.get())->supports_guest_queries_;
+        break;
+      case td_api::botSettingIsGuard::ID:
+        flags |= telegram_api::bots_setBotSettings::GUARD_MASK;
+        is_guard = static_cast<const td_api::botSettingIsGuard *>(setting.get())->is_guard_;
+        break;
+      case td_api::botSettingHasTopics::ID:
+        flags |= telegram_api::bots_setBotSettings::FORUM_VIEW_MASK;
+        has_topics = static_cast<const td_api::botSettingHasTopics *>(setting.get())->has_topics_;
+        break;
+      case td_api::botSettingAllowsUsersToCreateTopics::ID:
+        flags |= telegram_api::bots_setBotSettings::FORUM_CAN_MANAGE_TOPICS_MASK;
+        allows_users_to_create_topics = static_cast<const td_api::botSettingAllowsUsersToCreateTopics *>(setting.get())
+                                            ->allows_users_to_create_topics_;
+        break;
+      case td_api::botSettingHasTopicSidebar::ID:
+        flags |= telegram_api::bots_setBotSettings::FORUM_SIDEBAR_MASK;
+        has_topic_sidebar = static_cast<const td_api::botSettingHasTopicSidebar *>(setting.get())->has_topic_sidebar_;
+        break;
+      case td_api::botSettingCanCommunicateWithBots::ID:
+        flags |= telegram_api::bots_setBotSettings::BOT_TO_BOT_COMMUNICATION_MODE_MASK;
+        can_communicate_with_bots =
+            static_cast<const td_api::botSettingCanCommunicateWithBots *>(setting.get())->can_communicate_with_bots_;
+        break;
+      case td_api::botSettingCallbackQueryMode::ID: {
+        const auto &mode = static_cast<const td_api::botSettingCallbackQueryMode *>(setting.get())->mode_;
+        if (mode == nullptr) {
+          return promise.set_error(400, "Callback query mode must be non-empty");
+        }
+        flags |= telegram_api::bots_setBotSettings::CALLBACK_MODE_MASK;
+        switch (mode->get_id()) {
+          case td_api::botCallbackQueryModeDefault::ID:
+            callback_query_mode = string();
+            break;
+          case td_api::botCallbackQueryModeAuto::ID:
+            callback_query_mode = "auto";
+            break;
+          case td_api::botCallbackQueryModeInline::ID:
+            callback_query_mode = "inline";
+            break;
+          default:
+            UNREACHABLE();
+        }
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+  if (flags == 0) {
+    return promise.set_value(Unit());
+  }
+
+  td_->create_handler<SetBotSettingsQuery>(std::move(promise))
+      ->send(bot_user_id,
+             telegram_api::make_object<telegram_api::bots_setBotSettings>(
+                 flags, std::move(input_user), is_inline, inline_query_placeholder, need_location,
+                 inline_feedback_per_mille, !can_join_groups, can_read_all_group_messages, can_connect_to_business,
+                 can_manage_bots, supports_guest_queries, is_guard, has_topics, allows_users_to_create_topics,
+                 has_topic_sidebar, can_communicate_with_bots, callback_query_mode));
 }
 
 FileSourceId BotInfoManager::get_bot_media_preview_file_source_id(UserId bot_user_id) {

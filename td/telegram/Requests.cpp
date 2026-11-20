@@ -7211,6 +7211,12 @@ void Requests::on_request(uint64 id, const td_api::inviteUsersToBot &request) {
                                               std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::setBotSettings &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  td_->bot_info_manager_->set_bot_settings(UserId(request.bot_user_id_), std::move(request.settings_),
+                                           std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setBotName &request) {
   CLEAN_INPUT_STRING(request.name_);
   CREATE_OK_REQUEST_PROMISE();

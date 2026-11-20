@@ -202,6 +202,7 @@ bool TD_TL_writer_h::need_arg_mask(const tl::tl_combinator *t, const tl::arg &a)
            ((type_name == "messages.editExportedChatInvite" || type_name == "chatlists.editExportedInvite") &&
             a.name == "title") ||
            (type_name == "account.passwordInputSettings" && a.name == "email") ||
+           (type_name == "bots.setBotSettings" && (a.name == "inline_placeholder" || a.name == "callback_mode")) ||
            (type_name == "user" && (a.name == "phone" || a.name == "bot_inline_placeholder")) ||
            type_name == "account.updateProfile" || type_name == "bots.setBotInfo" ||
            type_name == "stickers.changeSticker" || type_name == "messages.editMessageWidgetData" ||

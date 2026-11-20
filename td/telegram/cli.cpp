@@ -2366,6 +2366,67 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::notificationSettingsScopePrivateChats>();
   }
 
+  static td_api::object_ptr<td_api::BotSetting> as_bot_setting(Slice setting) {
+    auto name_value = split(setting, '=');
+    auto name = name_value.first;
+    auto value = name_value.second.str();
+    if (name == "i") {
+      return td_api::make_object<td_api::botSettingIsInline>(as_bool(value));
+    }
+    if (name == "p") {
+      return td_api::make_object<td_api::botSettingInlineQueryPlaceholder>(value);
+    }
+    if (name == "l") {
+      return td_api::make_object<td_api::botSettingNeedLocation>(as_bool(value));
+    }
+    if (name == "f") {
+      return td_api::make_object<td_api::botSettingInlineFeedback>(to_integer<int32>(value));
+    }
+    if (name == "g") {
+      return td_api::make_object<td_api::botSettingCanJoinGroups>(as_bool(value));
+    }
+    if (name == "r") {
+      return td_api::make_object<td_api::botSettingCanReadAllGroupMessages>(as_bool(value));
+    }
+    if (name == "b") {
+      return td_api::make_object<td_api::botSettingCanConnectToBusiness>(as_bool(value));
+    }
+    if (name == "m") {
+      return td_api::make_object<td_api::botSettingCanManageBots>(as_bool(value));
+    }
+    if (name == "q") {
+      return td_api::make_object<td_api::botSettingSupportsGuestQueries>(as_bool(value));
+    }
+    if (name == "d") {
+      return td_api::make_object<td_api::botSettingIsGuard>(as_bool(value));
+    }
+    if (name == "t") {
+      return td_api::make_object<td_api::botSettingHasTopics>(as_bool(value));
+    }
+    if (name == "u") {
+      return td_api::make_object<td_api::botSettingAllowsUsersToCreateTopics>(as_bool(value));
+    }
+    if (name == "s") {
+      return td_api::make_object<td_api::botSettingHasTopicSidebar>(as_bool(value));
+    }
+    if (name == "c") {
+      return td_api::make_object<td_api::botSettingCanCommunicateWithBots>(as_bool(value));
+    }
+    if (name == "cq") {
+      if (value == "a") {
+        return td_api::make_object<td_api::botSettingCallbackQueryMode>(
+            td_api::make_object<td_api::botCallbackQueryModeAuto>());
+      }
+      if (value == "i") {
+        return td_api::make_object<td_api::botSettingCallbackQueryMode>(
+            td_api::make_object<td_api::botCallbackQueryModeInline>());
+      }
+      return td_api::make_object<td_api::botSettingCallbackQueryMode>(
+          td_api::make_object<td_api::botCallbackQueryModeDefault>());
+    }
+    return nullptr;
+  }
+
   static td_api::object_ptr<td_api::UserPrivacySetting> as_user_privacy_setting(MutableSlice setting) {
     setting = trim(setting);
     to_lower_inplace(setting);
@@ -8752,6 +8813,13 @@ class CliClient final : public Actor {
       string user_ids;
       get_args(args, bot_user_id, user_ids);
       send_request(td_api::make_object<td_api::inviteUsersToBot>(bot_user_id, as_user_ids(user_ids)));
+    } else if (op == "sbs") {
+      UserId bot_user_id;
+      string settings;
+      get_args(args, bot_user_id, settings);
+      send_request(td_api::make_object<td_api::setBotSettings>(
+          bot_user_id,
+          transform(autosplit_str(settings), [](const string &setting) { return as_bot_setting(setting); })));
     } else if (op == "sbn") {
       UserId bot_user_id;
       string language_code;
