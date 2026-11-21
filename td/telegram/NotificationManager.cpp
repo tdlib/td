@@ -3387,12 +3387,12 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
 
   if (begins_with(loc_key, "REACT_") || loc_key == "READ_REACTION") {
     // TODO REACT_* notifications
-    return Status::Error(406, "Reaction notifications are unsupported");
+    return Status::Error(200, "Immediate success");
   }
 
   if (begins_with(loc_key, "STORY_")) {
     // TODO STORY_NOTEXT, STORY_HIDDEN_AUTHOR, STORY_LIVE notifications
-    return Status::Error(406, "Story notifications are unsupported");
+    return Status::Error(200, "Immediate success");
   }
 
   auto original_loc_key = loc_key;
