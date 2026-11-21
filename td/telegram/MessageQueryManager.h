@@ -191,6 +191,13 @@ class MessageQueryManager final : public Actor {
                                vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
                                Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
+  void get_dialog_message_count(DialogId dialog_id, const td_api::object_ptr<td_api::MessageTopic> &topic_id,
+                                MessageSearchFilter filter, bool return_local, Promise<int32> &&promise);
+
+  void get_dialog_message_counts(DialogId dialog_id, const td_api::object_ptr<td_api::MessageTopic> &topic_id,
+                                 vector<MessageSearchFilter> filters, bool return_local,
+                                 Promise<vector<int32>> &&promise);
+
   void get_dialog_message_position_from_server(DialogId dialog_id, MessageTopic message_topic,
                                                MessageSearchFilter filter, MessageId message_id,
                                                Promise<int32> &&promise);
@@ -437,6 +444,15 @@ class MessageQueryManager final : public Actor {
 
   void on_reload_message_fact_checks(DialogId dialog_id, const vector<MessageId> &message_ids,
                                      Result<vector<telegram_api::object_ptr<telegram_api::factCheck>>> r_fact_checks);
+
+  int32 get_dialog_message_count_local(DialogId dialog_id, const MessageTopic &message_topic,
+                                       MessageSearchFilter filter) const;
+
+  void get_topic_unread_message_counts(DialogId dialog_id, const MessageTopic &message_topic,
+                                       vector<MessageSearchFilter> filters, Promise<vector<int32>> &&promise);
+
+  void get_dialog_message_counts_from_server(DialogId dialog_id, MessageTopic message_topic,
+                                             vector<MessageSearchFilter> filters, Promise<vector<int32>> &&promise);
 
   void on_get_message_viewers(DialogId dialog_id, MessageViewers message_viewers, bool is_recursive,
                               Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);

@@ -4004,9 +4004,9 @@ void Requests::on_request(uint64 id, const td_api::getChatMessageCount &request)
   CHECK_IS_USER();
   CREATE_COUNT_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
-  td_->messages_manager_->get_dialog_message_count(dialog_id, request.topic_id_,
-                                                   get_message_search_filter(request.filter_), request.return_local_,
-                                                   std::move(promise));
+  td_->message_query_manager_->get_dialog_message_count(dialog_id, request.topic_id_,
+                                                        get_message_search_filter(request.filter_),
+                                                        request.return_local_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getChatMessageCounts &request) {
@@ -4017,9 +4017,9 @@ void Requests::on_request(uint64 id, const td_api::getChatMessageCounts &request
     promise.set_value(td_api::make_object<td_api::chatMessageCounts>(std::move(counts)));
   });
   DialogId dialog_id(request.chat_id_);
-  td_->messages_manager_->get_dialog_message_counts(dialog_id, request.topic_id_,
-                                                    transform(request.filters_, get_message_search_filter),
-                                                    request.return_local_, std::move(query_promise));
+  td_->message_query_manager_->get_dialog_message_counts(dialog_id, request.topic_id_,
+                                                         transform(request.filters_, get_message_search_filter),
+                                                         request.return_local_, std::move(query_promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getChatMessagePosition &request) {

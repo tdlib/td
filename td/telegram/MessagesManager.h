@@ -215,8 +215,7 @@ class MessagesManager final : public Actor {
 
   void on_failed_dialog_messages_search(DialogId dialog_id, int64 random_id);
 
-  int32 on_get_dialog_message_count(DialogId dialog_id, const MessageTopic &message_topic, MessageSearchFilter filter,
-                                    int32 total_count);
+  void on_get_dialog_message_count(DialogId dialog_id, MessageSearchFilter filter, int32 total_count);
 
   void on_get_scheduled_server_messages(DialogId dialog_id, uint32 generation,
                                         vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_not_modified);
@@ -833,12 +832,7 @@ class MessagesManager final : public Actor {
       telegram_api::object_ptr<telegram_api::messages_searchResultsPositions> positions,
       Promise<td_api::object_ptr<td_api::messagePositions>> &&promise);
 
-  void get_dialog_message_count(DialogId dialog_id, const td_api::object_ptr<td_api::MessageTopic> &topic_id,
-                                MessageSearchFilter filter, bool return_local, Promise<int32> &&promise);
-
-  void get_dialog_message_counts(DialogId dialog_id, const td_api::object_ptr<td_api::MessageTopic> &topic_id,
-                                 vector<MessageSearchFilter> filters, bool return_local,
-                                 Promise<vector<int32>> &&promise);
+  int32 get_dialog_message_count_local(DialogId dialog_id, MessageSearchFilter filter) const;
 
   void get_dialog_message_position(MessageFullId message_full_id, MessageSearchFilter filter,
                                    const td_api::object_ptr<td_api::MessageTopic> &topic_id, Promise<int32> &&promise);
@@ -1778,15 +1772,6 @@ class MessagesManager final : public Actor {
 
   static std::pair<DialogId, unique_ptr<Message>> create_message(Td *td, MessageInfo &&message_info,
                                                                  bool is_guest_message, const char *source);
-
-  static int32 get_dialog_message_count_local(const Dialog *d, const MessageTopic &message_topic,
-                                              MessageSearchFilter filter);
-
-  void get_topic_unread_message_counts(DialogId dialog_id, const MessageTopic &message_topic,
-                                       vector<MessageSearchFilter> filters, Promise<vector<int32>> &&promise);
-
-  void get_dialog_message_counts_from_server(DialogId dialog_id, MessageTopic message_topic,
-                                             vector<MessageSearchFilter> filters, Promise<vector<int32>> &&promise);
 
   MessageFullId on_get_message(MessageInfo &&message_info, const bool from_update, const char *source);
 
