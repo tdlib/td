@@ -966,7 +966,7 @@ void BotInfoManager::set_bot_settings(UserId bot_user_id, vector<td_api::object_
   bool is_inline = false;
   string inline_query_placeholder;
   bool need_location = false;
-  int32 inline_feedback_per_mille = 0;
+  int32 inline_feedback = 0;
   bool can_join_groups = false;
   bool can_read_all_group_messages = false;
   bool can_connect_to_business = false;
@@ -1001,9 +1001,10 @@ void BotInfoManager::set_bot_settings(UserId bot_user_id, vector<td_api::object_
         break;
       case td_api::botSettingInlineFeedback::ID:
         flags |= telegram_api::bots_setBotSettings::INLINE_FEEDBACK_MASK;
-        inline_feedback_per_mille = static_cast<const td_api::botSettingInlineFeedback *>(setting.get())->per_mille_;
-        if (inline_feedback_per_mille < 0 || inline_feedback_per_mille > 1000) {
-          return promise.set_error(400, "Invalid inline feedback specified");
+        inline_feedback = static_cast<const td_api::botSettingInlineFeedback *>(setting.get())->share_denominator_;
+        if (inline_feedback != 0 && inline_feedback != 1 && inline_feedback != 10 && inline_feedback != 100 &&
+            inline_feedback != 1000) {
+          return promise.set_error(400, "Invalid share denominator specified");
         }
         break;
       case td_api::botSettingCanJoinGroups::ID:
@@ -1083,10 +1084,10 @@ void BotInfoManager::set_bot_settings(UserId bot_user_id, vector<td_api::object_
   td_->create_handler<SetBotSettingsQuery>(std::move(promise))
       ->send(bot_user_id,
              telegram_api::make_object<telegram_api::bots_setBotSettings>(
-                 flags, std::move(input_user), is_inline, inline_query_placeholder, need_location,
-                 inline_feedback_per_mille, !can_join_groups, can_read_all_group_messages, can_connect_to_business,
-                 can_manage_bots, supports_guest_queries, is_guard, has_topics, allows_users_to_create_topics,
-                 has_topic_sidebar, can_communicate_with_bots, callback_query_mode));
+                 flags, std::move(input_user), is_inline, inline_query_placeholder, need_location, inline_feedback,
+                 !can_join_groups, can_read_all_group_messages, can_connect_to_business, can_manage_bots,
+                 supports_guest_queries, is_guard, has_topics, allows_users_to_create_topics, has_topic_sidebar,
+                 can_communicate_with_bots, callback_query_mode));
 }
 
 FileSourceId BotInfoManager::get_bot_media_preview_file_source_id(UserId bot_user_id) {

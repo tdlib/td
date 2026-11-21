@@ -916,8 +916,9 @@ botSettingInlineQueryPlaceholder placeholder:string = BotSetting;
 botSettingNeedLocation need_location:Bool = BotSetting;
 
 //@description A setting for managing the share of chosen inline query results that are received by the bot in updateNewChosenInlineResult
-//@per_mille The number of chosen inline query results that are received by the bot for each 1000 chosen results; 0-1000
-botSettingInlineFeedback per_mille:int32 = BotSetting;
+//@share_denominator Denominator of the share of chosen inline query results that are received by the bot; the bot receives 1 out of share_denominator chosen results.
+//-Must be one of 1, 10, 100, or 1000; pass 0 to stop receiving chosen inline query results
+botSettingInlineFeedback share_denominator:int32 = BotSetting;
 
 //@description A setting for managing whether the bot can be invited to basic group and supergroup chats
 //@can_join_groups True, if the bot can be invited to basic group and supergroup chats
