@@ -35407,6 +35407,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
             << " and limit = " << request_limit << " from " << source << ": " << to_string(difference_ptr);
 
   bool have_new_messages = false;
+  vector<telegram_api::object_ptr<telegram_api::ForumTopic>> forum_topics;
   switch (difference_ptr->get_id()) {
     case telegram_api::updates_channelDifferenceEmpty::ID:
       if (d == nullptr) {
@@ -35421,8 +35422,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
       have_new_messages = !difference->new_messages_.empty();
       td_->user_manager_->on_get_users(std::move(difference->users_), "updates.channelDifference");
       td_->chat_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifference");
-      td_->forum_topic_manager_->on_get_forum_topic_infos(dialog_id, std::move(difference->topics_),
-                                                          "updates.channelDifference");
+      forum_topics = std::move(difference->topics_);
       for (const auto &message : difference->new_messages_) {
         if (is_invalid_poll_message(message.get())) {
           LOG(ERROR) << "Receive invalid poll message in updates.channelDifference: " << oneline(to_string(message));
@@ -35438,8 +35438,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
       have_new_messages = difference->dialog_->get_id() == telegram_api::dialog::ID && !difference->messages_.empty();
       td_->user_manager_->on_get_users(std::move(difference->users_), "updates.channelDifferenceTooLong");
       td_->chat_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifferenceTooLong");
-      td_->forum_topic_manager_->on_get_forum_topic_infos(dialog_id, std::move(difference->topics_),
-                                                          "updates.channelDifferenceTooLong");
+      forum_topics = std::move(difference->topics_);
       break;
     }
     default:
@@ -35452,6 +35451,8 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
   if (d == nullptr) {
     d = add_dialog_for_new_message(dialog_id, have_new_messages, &need_update_dialog_pos, "on_get_channel_difference");
   }
+  // forum topics must be processed after the chat is created, because ForumTopicInfo force-creates the chat
+  td_->forum_topic_manager_->on_get_forum_topic_infos(dialog_id, std::move(forum_topics), "on_get_channel_difference");
 
   int32 cur_pts = d->pts <= 0 ? 1 : d->pts;
   LOG_IF(ERROR, cur_pts != request_pts) << "Channel PTS has changed from " << request_pts << " to " << d->pts << " in "
