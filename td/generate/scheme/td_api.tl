@@ -13540,7 +13540,7 @@ getChatMessageCalendar chat_id:int53 topic_id:MessageTopic filter:SearchMessages
 //@return_local Pass true to get the number of messages without sending network requests, or -1 if the number of messages is unknown locally
 getChatMessageCount chat_id:int53 topic_id:MessageTopic filter:SearchMessagesFilter return_local:Bool = Count;
 
-//@description Returns approximate numbers of messages of the specified types in the chat or its topic. Unknown numbers are requested from the server at once
+//@description Returns approximate numbers of messages of the specified types in the chat or its topic
 //@chat_id Identifier of the chat in which to count messages
 //@topic_id Pass topic identifier to get numbers of messages only in specific topic; pass null to get numbers of messages in all topics; message threads aren't supported
 //@filters Filters for message content; searchMessagesFilterEmpty is unsupported in this function
