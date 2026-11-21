@@ -579,11 +579,12 @@ class Master;
 class FakeSecretChatContext final : public SecretChatActor::Context {
  public:
   FakeSecretChatContext(std::shared_ptr<BinlogInterface> binlog, std::shared_ptr<KeyValueSyncInterface> key_value,
-                        std::shared_ptr<bool> close_flag, ActorShared<Master> master)
+                        std::shared_ptr<bool> close_flag, ActorShared<Master> master, bool disable_auto_accept)
       : binlog_(std::move(binlog))
       , key_value_(std::move(key_value))
       , close_flag_(std::move(close_flag))
-      , master_(std::move(master)) {
+      , master_(std::move(master))
+      , disable_auto_accept_(disable_auto_accept) {
     secret_chat_db_ = std::make_shared<SecretChatDb>(key_value_, 1);
     net_query_creator_.stop_check();  // :(
   }
@@ -621,7 +622,7 @@ class FakeSecretChatContext final : public SecretChatActor::Context {
   }
 
   bool get_config_option_boolean(const string &name) const final {
-    return false;
+    return name == "disable_secret_chat_auto_accept" && disable_auto_accept_;
   }
 
   // We don't want to expose the whole NetQueryDispatcher, MessagesManager and UserManager.
@@ -630,8 +631,7 @@ class FakeSecretChatContext final : public SecretChatActor::Context {
 
   void on_update_secret_chat(int64 access_hash, UserId user_id, SecretChatState state, bool is_outbound,
                              bool needs_acceptance, int32 ttl, int32 date, string key_hash, int32 layer,
-                             FolderId initial_folder_id) final {
-  }
+                             FolderId initial_folder_id) final;
 
   void on_inbound_message(UserId user_id, MessageId message_id, int32 date, unique_ptr<EncryptedFile> file,
                           tl_object_ptr<secret_api::decryptedMessage> message, Promise<>) final;
@@ -659,18 +659,24 @@ class FakeSecretChatContext final : public SecretChatActor::Context {
   std::shared_ptr<KeyValueSyncInterface> key_value_;
   std::shared_ptr<bool> close_flag_;
   ActorShared<Master> master_;
+  bool disable_auto_accept_;
 
   std::shared_ptr<SecretChatDb> secret_chat_db_;
 };
 NetQueryCreator FakeSecretChatContext::net_query_creator_{nullptr};
 
+// Used to specify what happens to the chat request received by bob
+enum class ChatRequest : int32 { AutoAccepted, Accepted, AcceptFailed, Declined, Cancelled };
+
 class Master final : public Actor {
  public:
-  explicit Master(Status *status) : status_(status) {
+  Master(Status *status, ChatRequest chat_request, int ping_count)
+      : status_(status), chat_request_(chat_request), ping_count_(ping_count) {
   }
   class SecretChatProxy final : public Actor {
    public:
-    SecretChatProxy(string name, ActorShared<Master> parent) : name_(std::move(name)) {
+    SecretChatProxy(string name, ActorShared<Master> parent, bool disable_auto_accept)
+        : name_(std::move(name)), disable_auto_accept_(disable_auto_accept) {
       binlog_ = std::make_shared<FakeBinlog>();
       key_value_ = std::make_shared<FakeKeyValue>();
       key_value_->external_init_begin(LogEvent::HandlerType::BinlogPmcMagic);
@@ -678,9 +684,11 @@ class Master final : public Actor {
       close_flag_ = std::make_shared<bool>(false);
       parent_ = parent.get();
       parent_token_ = parent.token();
-      actor_ = create_actor<SecretChatActor>(
-          PSLICE() << "SecretChat " << name_, 123,
-          td::make_unique<FakeSecretChatContext>(binlog_, key_value_, close_flag_, std::move(parent)), true);
+      actor_ =
+          create_actor<SecretChatActor>(PSLICE() << "SecretChat " << name_, 123,
+                                        td::make_unique<FakeSecretChatContext>(binlog_, key_value_, close_flag_,
+                                                                               std::move(parent), disable_auto_accept_),
+                                        true);
       on_binlog_replay_finish();
     }
 
@@ -768,6 +776,25 @@ class Master final : public Actor {
       }
       binlog_->force_sync(std::move(promise), "sync_binlog");
     }
+    void accept_chat(string expected_error) {
+      if (!expected_error.empty()) {
+        is_closing_ = true;  // a failed accept closes the chat
+      }
+      add_event(Event::delayed_closure(
+          &SecretChatActor::accept_chat, PromiseCreator::lambda([expected_error](Result<Unit> result) {
+            if (expected_error.empty()) {
+              LOG_IF(FATAL, result.is_error()) << "Failed to accept the chat: " << result.error();
+            } else {
+              LOG_IF(FATAL, result.is_ok() || result.error().message() != expected_error)
+                  << "Expected the chat accept to fail with " << expected_error;
+            }
+          })));
+    }
+    void restart_after_sync() {
+      binlog_->force_sync(PromiseCreator::lambda(
+                              [actor_id = actor_id(this)](Unit) { send_closure(actor_id, &SecretChatProxy::restart); }),
+                          "restart_after_sync");
+    }
     void close_chat(bool is_already_discarded) {
       if (is_closed_) {
         return;
@@ -817,7 +844,7 @@ class Master final : public Actor {
       actor_ = create_actor<SecretChatActor>(
           PSLICE() << "SecretChat " << name_, 123,
           td::make_unique<FakeSecretChatContext>(binlog_, key_value_, close_flag_,
-                                                 ActorShared<Master>(parent_, parent_token_)),
+                                                 ActorShared<Master>(parent_, parent_token_), disable_auto_accept_),
           true);
 
       for (auto &event : events) {
@@ -878,6 +905,7 @@ class Master final : public Actor {
 
    private:
     string name_;
+    bool disable_auto_accept_;
 
     ActorId<Master> parent_;
     uint64 parent_token_;
@@ -934,12 +962,46 @@ class Master final : public Actor {
   }
   void start_up() final {
     auto old_context = set_context(std::make_shared<Global>());
-    alice_ = create_actor<SecretChatProxy>("SecretChatProxy alice", "alice", actor_shared(this, 1));
-    bob_ = create_actor<SecretChatProxy>("SecretChatProxy bob", "bob", actor_shared(this, 2));
+    alice_ = create_actor<SecretChatProxy>("SecretChatProxy alice", "alice", actor_shared(this, 1), false);
+    bob_ = create_actor<SecretChatProxy>("SecretChatProxy bob", "bob", actor_shared(this, 2),
+                                         chat_request_ != ChatRequest::AutoAccepted);
     send_closure(alice_.get_actor_unsafe()->actor_, &SecretChatActor::create_chat, UserId(static_cast<int64>(2)), 0,
                  123, PromiseCreator::lambda([actor_id = actor_id(this)](Result<SecretChatId> res) {
                    send_closure(actor_id, &Master::on_get_secret_chat_id, std::move(res), false);
                  }));
+  }
+
+  bool is_restarted_while_pending_ = false;
+  bool is_chat_request_handled_ = false;
+  void on_chat_needs_acceptance() {
+    CHECK(get_link_token() == 2);
+    CHECK(chat_request_ != ChatRequest::AutoAccepted);
+    if (!is_restarted_while_pending_) {
+      // validate that the request is kept until it is accepted or declined, even after restart
+      is_restarted_while_pending_ = true;
+      send_closure(bob_, &SecretChatProxy::restart_after_sync);
+      return;
+    }
+    if (is_chat_request_handled_) {
+      return;
+    }
+    is_chat_request_handled_ = true;
+    switch (chat_request_) {
+      case ChatRequest::Accepted:
+        send_closure(bob_, &SecretChatProxy::accept_chat, string());
+        break;
+      case ChatRequest::AcceptFailed:
+        send_closure(bob_, &SecretChatProxy::accept_chat, "ENCRYPTION_ALREADY_DECLINED");
+        break;
+      case ChatRequest::Declined:
+        send_closure(bob_, &SecretChatProxy::close_chat, false);
+        break;
+      case ChatRequest::Cancelled:
+        send_closure(alice_, &SecretChatProxy::close_chat, false);
+        break;
+      default:
+        UNREACHABLE();
+    }
   }
 
   void on_get_secret_chat_id(Result<SecretChatId> res, bool dummy) {
@@ -1029,6 +1091,16 @@ class Master final : public Actor {
   void process_net_query(my_api::messages_acceptEncryption &&request_encryption, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     CHECK(get_link_token() == 2);
+    // the chat must be accepted only automatically or after acceptSecretChat
+    CHECK(chat_request_ == ChatRequest::AutoAccepted ||
+          (chat_request_ == ChatRequest::Accepted && is_chat_request_handled_) ||
+          (chat_request_ == ChatRequest::AcceptFailed && is_chat_request_handled_));
+    if (chat_request_ == ChatRequest::AcceptFailed) {
+      // the reason must be passed to acceptSecretChat, then the chat is closed as if it was declined
+      net_query->set_error(Status::Error(400, "ENCRYPTION_ALREADY_DECLINED"));
+      send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
+      return;
+    }
     send_closure(alice_.get_actor_unsafe()->actor_, &SecretChatActor::update_chat,
                  make_tl_object<telegram_api::encryptedChat>(123, 321, 0, 1, 2, request_encryption.g_b_.clone(),
                                                              request_encryption.key_fingerprint_));
@@ -1042,7 +1114,7 @@ class Master final : public Actor {
     send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
     send_closure(alice_, &SecretChatProxy::start_test);
     send_closure(bob_, &SecretChatProxy::start_test);
-    send_ping(1, 5000);
+    send_ping(1, ping_count_);
     set_timeout_in(1);
   }
   void timeout_expired() final {
@@ -1292,6 +1364,8 @@ class Master final : public Actor {
 
  private:
   Status *status_;
+  ChatRequest chat_request_;
+  int ping_count_;
   ActorOwn<SecretChatProxy> alice_;
   ActorOwn<SecretChatProxy> bob_;
   struct Message {
@@ -1349,12 +1423,19 @@ void FakeSecretChatContext::on_flush_history(bool, MessageId, Promise<> promise)
 void FakeSecretChatContext::on_read_message(int64, Promise<> promise) {
   promise.set_value(Unit());
 }
+void FakeSecretChatContext::on_update_secret_chat(int64 access_hash, UserId user_id, SecretChatState state,
+                                                  bool is_outbound, bool needs_acceptance, int32 ttl, int32 date,
+                                                  string key_hash, int32 layer, FolderId initial_folder_id) {
+  if (needs_acceptance) {
+    send_closure(master_, &Master::on_chat_needs_acceptance);
+  }
+}
 
-TEST(Secret, go) {
+static void run_secret_chat_test(ChatRequest chat_request, int ping_count) {
   ConcurrentScheduler sched(0, 0);
 
   Status result;
-  sched.create_actor_unsafe<Master>(0, "HandshakeTestActor", &result).release();
+  sched.create_actor_unsafe<Master>(0, "HandshakeTestActor", &result, chat_request, ping_count).release();
   sched.start();
   while (sched.run_main(10)) {
     // empty;
@@ -1365,6 +1446,26 @@ TEST(Secret, go) {
     LOG(ERROR) << result;
   }
   ASSERT_TRUE(result.is_ok());
+}
+
+TEST(Secret, go) {
+  run_secret_chat_test(ChatRequest::AutoAccepted, 5000);
+}
+
+TEST(Secret, manual_accept) {
+  run_secret_chat_test(ChatRequest::Accepted, 20);
+}
+
+TEST(Secret, accept_failed) {
+  run_secret_chat_test(ChatRequest::AcceptFailed, 0);
+}
+
+TEST(Secret, manual_decline) {
+  run_secret_chat_test(ChatRequest::Declined, 0);
+}
+
+TEST(Secret, cancel_pending) {
+  run_secret_chat_test(ChatRequest::Cancelled, 0);
 }
 
 }  // namespace td
