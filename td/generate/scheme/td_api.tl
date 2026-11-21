@@ -13542,7 +13542,7 @@ getChatMessageCount chat_id:int53 topic_id:MessageTopic filter:SearchMessagesFil
 
 //@description Returns approximate numbers of messages of the specified types in the chat or its topic
 //@chat_id Identifier of the chat in which to count messages
-//@topic_id Pass topic identifier to get numbers of messages only in specific topic; pass null to get numbers of messages in all topics; message threads aren't supported
+//@topic_id Pass a topic identifier to get the numbers of messages only in a specific topic; pass null to get the numbers of messages in all topics; message threads aren't supported
 //@filters Filters for message content; searchMessagesFilterEmpty is unsupported in this function
 //@return_local Pass true to get the numbers of messages without sending network requests; -1 is returned for the numbers of messages, which are unknown locally
 getChatMessageCounts chat_id:int53 topic_id:MessageTopic filters:vector<SearchMessagesFilter> return_local:Bool = ChatMessageCounts;
