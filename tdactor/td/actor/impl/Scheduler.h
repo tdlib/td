@@ -107,7 +107,7 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
   VLOG(actor) << "Create actor " << *actor_info << " (actor_count = " << actor_count_ << ')';
 
   ActorId<ActorT> actor_id = weak_info->actor_id(actor_ptr);
-  if (sched_id != sched_id_) {
+  if (sched_id != sched_id_ && !close_flag_) {
     send_later(actor_id, Event::start());
     do_migrate_actor(actor_info, sched_id);
   } else {
