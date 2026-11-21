@@ -17352,8 +17352,8 @@ declineGiftOnChainPurchaseOffer message_id:int53 = Ok;
 //@is_private Pass true to show the gift text and sender only to the gift receiver; otherwise, everyone will be able to see them
 getGiftOnChainPurchaseTransaction gift_name:string owner_id:MessageSender gram_amount:int64 text:formattedText is_private:Bool = GiftOnChainSaleTransaction;
 
-//@description Returns a transaction that must be sent from the TON wallet of the current user to put an upgraded gift for which upgradedGift.uses_on_chain_resale is true
-//-up for sale, or to change the price of a gift for which giftResaleParameters.is_fixed_on_chain and giftResaleParameters.can_be_managed are true; can be used only if getOption("can_use_ton_wallet").
+//@description Returns a transaction that must be sent from the TON wallet of the current user to put an upgraded gift for which upgradedGift.uses_on_chain_resale is true up for sale,
+//-or to change the price of a gift for which giftResaleParameters.is_fixed_on_chain and giftResaleParameters.can_be_managed are true; can be used only if getOption("can_use_ton_wallet").
 //-The type of the sale is chosen by the server. The gift is put up for sale only after the transaction is executed on the TON blockchain and the sale smart contract
 //-confirms that it has received the gift. The price of the gift minus the fee specified in upgradedGift.fee_basis_points will be received by the TON wallet
 //-of the current user when the gift is sold. If giftResaleParameters.is_fixed_on_chain is false, then the current sale must be canceled first
@@ -17447,7 +17447,7 @@ setGiftResalePrice received_gift_id:string price:GiftResalePrice = Ok;
 //-The filter must be shown only if getOption("show_gift_resale_star_filter") is true and must be selected by default if getOption("select_gift_resale_star_filter_by_default") is true
 //@for_grams Pass true to get gifts that can be bought using TON Grams, including gifts sold on-chain using a fixed-price sale contract if getOption("can_buy_on_chain_fixed_price_gifts") is true.
 //-The filter must be shown only if getOption("show_gift_resale_gram_filter") is true and must be selected by default if getOption("select_gift_resale_gram_filter_by_default") is true
-//@for_fragment Pass true to get gifts sold on-chain on Fragment; can be true only if getOption("can_buy_on_chain_gifts") is true.
+//@for_fragment Pass true to get gifts sold on-chain on Fragment; may be true only if getOption("can_buy_on_chain_gifts") is true.
 //-Must be false if for_crafting is true or if the gift will be bought for another user or a channel chat
 //@attributes Attributes used to filter gifts. If multiple attributes of the same type are specified, then all of them are allowed.
 //-If no attributes of a specific type are specified, then all values for this attribute type are allowed
