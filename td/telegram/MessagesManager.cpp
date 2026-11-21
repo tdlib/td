@@ -15818,8 +15818,7 @@ bool MessagesManager::can_report_message_reactions(DialogId dialog_id, const Mes
 
 bool MessagesManager::can_recognize_message_speech(DialogId dialog_id, const Message *m) const {
   if (td_->auth_manager_->is_bot() || m == nullptr || !m->message_id.is_server() || m->ephemeral_message != nullptr ||
-      dialog_id.get_type() == DialogType::SecretChat ||
-      !td_->option_manager_->get_option_boolean("can_recognize_speech")) {
+      dialog_id.get_type() == DialogType::SecretChat) {
     return false;
   }
   auto content_type = m->content->get_type();
