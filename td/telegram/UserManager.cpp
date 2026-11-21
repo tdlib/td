@@ -2657,6 +2657,7 @@ void UserManager::SecretChat::store(StorerT &storer) const {
   STORE_FLAG(is_outbound);
   STORE_FLAG(has_layer);
   STORE_FLAG(has_initial_folder_id);
+  STORE_FLAG(needs_acceptance);
   END_STORE_FLAGS();
 
   store(access_hash, storer);
@@ -2682,6 +2683,7 @@ void UserManager::SecretChat::parse(ParserT &parser) {
   PARSE_FLAG(is_outbound);
   PARSE_FLAG(has_layer);
   PARSE_FLAG(has_initial_folder_id);
+  PARSE_FLAG(needs_acceptance);
   END_PARSE_FLAGS();
 
   if (parser.version() >= static_cast<int32>(Version::AddAccessHashToSecretChat)) {
@@ -4795,8 +4797,8 @@ void UserManager::register_user_saved_music(UserId user_id, FileId saved_music_f
 }
 
 void UserManager::on_update_secret_chat(SecretChatId secret_chat_id, int64 access_hash, UserId user_id,
-                                        SecretChatState state, bool is_outbound, int32 ttl, int32 date, string key_hash,
-                                        int32 layer, FolderId initial_folder_id) {
+                                        SecretChatState state, bool is_outbound, bool needs_acceptance, int32 ttl,
+                                        int32 date, string key_hash, int32 layer, FolderId initial_folder_id) {
   LOG(INFO) << "Update " << secret_chat_id << " with " << user_id << " and access_hash " << access_hash;
   auto *secret_chat = add_secret_chat(secret_chat_id);
   if (access_hash != secret_chat->access_hash) {
@@ -4820,6 +4822,10 @@ void UserManager::on_update_secret_chat(SecretChatId secret_chat_id, int64 acces
   }
   if (is_outbound != secret_chat->is_outbound) {
     secret_chat->is_outbound = is_outbound;
+    secret_chat->is_changed = true;
+  }
+  if (state != SecretChatState::Unknown && needs_acceptance != secret_chat->needs_acceptance) {
+    secret_chat->needs_acceptance = needs_acceptance;
     secret_chat->is_changed = true;
   }
 
@@ -10506,10 +10512,11 @@ td_api::object_ptr<td_api::updateContactCloseBirthdays> UserManager::get_update_
       }));
 }
 
-td_api::object_ptr<td_api::SecretChatState> UserManager::get_secret_chat_state_object(SecretChatState state) {
+td_api::object_ptr<td_api::SecretChatState> UserManager::get_secret_chat_state_object(SecretChatState state,
+                                                                                      bool needs_acceptance) {
   switch (state) {
     case SecretChatState::Waiting:
-      return td_api::make_object<td_api::secretChatStatePending>();
+      return td_api::make_object<td_api::secretChatStatePending>(needs_acceptance);
     case SecretChatState::Active:
       return td_api::make_object<td_api::secretChatStateReady>();
     case SecretChatState::Closed:
@@ -10532,7 +10539,7 @@ td_api::object_ptr<td_api::updateSecretChat> UserManager::get_update_secret_chat
 td_api::object_ptr<td_api::updateSecretChat> UserManager::get_update_unknown_secret_chat_object(
     SecretChatId secret_chat_id) {
   return td_api::make_object<td_api::updateSecretChat>(td_api::make_object<td_api::secretChat>(
-      secret_chat_id.get(), 0, get_secret_chat_state_object(SecretChatState::Unknown), false, string(), 0));
+      secret_chat_id.get(), 0, get_secret_chat_state_object(SecretChatState::Unknown, false), false, string(), 0));
 }
 
 int32 UserManager::get_secret_chat_id_object(SecretChatId secret_chat_id, const char *source) const {
@@ -10560,10 +10567,10 @@ td_api::object_ptr<td_api::secretChat> UserManager::get_secret_chat_object(Secre
 
 td_api::object_ptr<td_api::secretChat> UserManager::get_secret_chat_object_const(SecretChatId secret_chat_id,
                                                                                  const SecretChat *secret_chat) const {
-  return td_api::make_object<td_api::secretChat>(secret_chat_id.get(),
-                                                 get_user_id_object(secret_chat->user_id, "secretChat"),
-                                                 get_secret_chat_state_object(secret_chat->state),
-                                                 secret_chat->is_outbound, secret_chat->key_hash, secret_chat->layer);
+  return td_api::make_object<td_api::secretChat>(
+      secret_chat_id.get(), get_user_id_object(secret_chat->user_id, "secretChat"),
+      get_secret_chat_state_object(secret_chat->state, secret_chat->needs_acceptance), secret_chat->is_outbound,
+      secret_chat->key_hash, secret_chat->layer);
 }
 
 void UserManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

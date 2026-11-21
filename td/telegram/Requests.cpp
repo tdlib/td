@@ -7599,6 +7599,13 @@ void Requests::on_request(uint64 id, const td_api::getSupergroupMembers &request
       request.limit_, -1, std::move(query_promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::acceptSecretChat &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(td_->secret_chats_manager_, &SecretChatsManager::accept_chat, SecretChatId(request.secret_chat_id_),
+               std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::closeSecretChat &request) {
   CREATE_OK_REQUEST_PROMISE();
   send_closure(td_->secret_chats_manager_, &SecretChatsManager::cancel_chat, SecretChatId(request.secret_chat_id_),

@@ -3310,8 +3310,10 @@ supergroupFullInfo photo:chatPhoto community_id:int53 description:string member_
 
 //@class SecretChatState @description Describes the current secret chat state
 
-//@description The secret chat is not yet created; waiting for the other user to get online
-secretChatStatePending = SecretChatState;
+//@description The secret chat is not yet created; waiting for the other user to get online, or for the current user to accept the chat
+//@needs_acceptance True, if the secret chat is an incoming request that must be explicitly accepted. Only happens if option
+//-"disable_secret_chat_auto_accept" is enabled
+secretChatStatePending needs_acceptance:Bool = SecretChatState;
 
 //@description The secret chat is ready to use
 secretChatStateReady = SecretChatState;
@@ -16611,7 +16613,13 @@ reportSupergroupAntiSpamFalsePositive supergroup_id:int53 message_id:int53 = Ok;
 getSupergroupMembers supergroup_id:int53 filter:SupergroupMembersFilter offset:int32 limit:int32 = ChatMembers;
 
 
-//@description Closes a secret chat, effectively transferring its state to secretChatStateClosed @secret_chat_id Secret chat identifier
+//@description Accepts an incoming secret chat request on the current device. Can only be used when the chat needs_acceptance is true.
+//-Once the chat is accepted no other device can use it. Use closeSecretChat to decline the request for all devices
+//@secret_chat_id Secret chat identifier
+acceptSecretChat secret_chat_id:int32 = Ok;
+
+//@description Closes a secret chat, effectively transferring its state to secretChatStateClosed. Closes the chat for all devices.
+//@secret_chat_id Secret chat identifier
 closeSecretChat secret_chat_id:int32 = Ok;
 
 

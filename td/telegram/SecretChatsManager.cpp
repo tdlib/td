@@ -105,6 +105,12 @@ void SecretChatsManager::create_chat(UserId user_id, int64 user_access_hash, Pro
   send_closure(actor, &SecretChatActor::create_chat, user_id, user_access_hash, random_id, std::move(promise));
 }
 
+void SecretChatsManager::accept_chat(SecretChatId secret_chat_id, Promise<> promise) {
+  auto actor = get_chat_actor(secret_chat_id.get());
+  auto safe_promise = SafePromise<>(std::move(promise), Status::Error(400, "Can't find secret chat"));
+  send_closure(actor, &SecretChatActor::accept_chat, std::move(safe_promise));
+}
+
 void SecretChatsManager::cancel_chat(SecretChatId secret_chat_id, bool delete_history, Promise<> promise) {
   auto actor = get_chat_actor(secret_chat_id.get());
   auto safe_promise = SafePromise<>(std::move(promise), Unit());
@@ -370,7 +376,7 @@ unique_ptr<SecretChatActor::Context> SecretChatsManager::make_secret_chat_contex
                                bool needs_acceptance, int32 ttl, int32 date, string key_hash, int32 layer,
                                FolderId initial_folder_id) final {
       send_closure(G()->user_manager(), &UserManager::on_update_secret_chat, secret_chat_id_, access_hash, user_id,
-                   state, is_outbound, ttl, date, key_hash, layer, initial_folder_id);
+                   state, is_outbound, needs_acceptance, ttl, date, key_hash, layer, initial_folder_id);
     }
 
     void on_inbound_message(UserId user_id, MessageId message_id, int32 date, unique_ptr<EncryptedFile> file,

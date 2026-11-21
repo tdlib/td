@@ -5651,6 +5651,8 @@ class CliClient final : public Actor {
       UserId user_id;
       get_args(args, user_id);
       send_request(td_api::make_object<td_api::createNewSecretChat>(user_id));
+    } else if (op == "acceptSC") {
+      send_request(td_api::make_object<td_api::acceptSecretChat>(as_secret_chat_id(args)));
     } else if (op == "closeSC" || op == "cancelSC") {
       send_request(td_api::make_object<td_api::closeSecretChat>(as_secret_chat_id(args)));
     } else {

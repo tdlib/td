@@ -204,8 +204,8 @@ class UserManager final : public Actor {
   void on_update_bot_can_manage_emoji_status(UserId bot_user_id, bool can_manage_emoji_status);
 
   void on_update_secret_chat(SecretChatId secret_chat_id, int64 access_hash, UserId user_id, SecretChatState state,
-                             bool is_outbound, int32 ttl, int32 date, string key_hash, int32 layer,
-                             FolderId initial_folder_id);
+                             bool is_outbound, bool needs_acceptance, int32 ttl, int32 date, string key_hash,
+                             int32 layer, FolderId initial_folder_id);
 
   void on_update_online_status_privacy();
 
@@ -835,6 +835,7 @@ class UserManager final : public Actor {
     FolderId initial_folder_id;
 
     bool is_outbound = false;
+    bool needs_acceptance = false;
 
     bool is_ttl_changed = true;
     bool is_state_changed = true;
@@ -1243,7 +1244,8 @@ class UserManager final : public Actor {
 
   td_api::object_ptr<td_api::updateContactCloseBirthdays> get_update_contact_close_birthdays() const;
 
-  static td_api::object_ptr<td_api::SecretChatState> get_secret_chat_state_object(SecretChatState state);
+  static td_api::object_ptr<td_api::SecretChatState> get_secret_chat_state_object(SecretChatState state,
+                                                                                  bool needs_acceptance);
 
   td_api::object_ptr<td_api::updateSecretChat> get_update_secret_chat_object(SecretChatId secret_chat_id,
                                                                              const SecretChat *secret_chat);
