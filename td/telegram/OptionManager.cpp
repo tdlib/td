@@ -259,6 +259,8 @@ OptionManager::OptionManager(Td *td)
   set_option_empty("toncoin_top_up_url");
   set_option_empty("venue_search_bot_username");
   set_option_empty("can_craft_from_withdrawn_first_gift");
+  set_option_empty("can_buy_onchain_fixed_price_gifts");
+  set_option_empty("can_buy_onchain_gifts");
 }
 
 OptionManager::~OptionManager() = default;

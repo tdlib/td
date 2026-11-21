@@ -1310,32 +1310,32 @@ giftPurchaseOfferStateAccepted = GiftPurchaseOfferState;
 giftPurchaseOfferStateRejected = GiftPurchaseOfferState;
 
 
-//@class GiftOnchainPurchaseOfferState @description Describes state of an on-chain gift purchase offer
+//@class GiftOnChainPurchaseOfferState @description Describes state of an on-chain gift purchase offer
 
 //@description The offer is waiting for a response from the owner of the gift
-giftOnchainPurchaseOfferStatePending = GiftOnchainPurchaseOfferState;
+giftOnChainPurchaseOfferStatePending = GiftOnChainPurchaseOfferState;
 
 //@description The offer was accepted and executed on the TON blockchain; the gift is being transferred to the buyer
-giftOnchainPurchaseOfferStateSettled = GiftOnchainPurchaseOfferState;
+giftOnChainPurchaseOfferStateSettled = GiftOnChainPurchaseOfferState;
 
 //@description The offer was accepted and the gift was transferred to the TON wallet of the buyer
-giftOnchainPurchaseOfferStateAccepted = GiftOnchainPurchaseOfferState;
+giftOnChainPurchaseOfferStateAccepted = GiftOnChainPurchaseOfferState;
 
 //@description The offer is being canceled and the buyer is being refunded
-giftOnchainPurchaseOfferStateCanceling = GiftOnchainPurchaseOfferState;
+giftOnChainPurchaseOfferStateCanceling = GiftOnChainPurchaseOfferState;
 
 //@description The offer was declined
 //@refund_amount The amount returned to the buyer, in the smallest units of TON Grams; -1 if unknown
-giftOnchainPurchaseOfferStateDeclined refund_amount:int64 = GiftOnchainPurchaseOfferState;
+giftOnChainPurchaseOfferStateDeclined refund_amount:int64 = GiftOnChainPurchaseOfferState;
 
 //@description The offer was canceled
 //@refund_amount The amount returned to the buyer, in the smallest units of TON Grams; -1 if unknown
 //@fine_amount The fine for the cancellation of the offer, in the smallest units of TON Grams; -1 if unknown
-giftOnchainPurchaseOfferStateCanceled refund_amount:int64 fine_amount:int64 = GiftOnchainPurchaseOfferState;
+giftOnChainPurchaseOfferStateCanceled refund_amount:int64 fine_amount:int64 = GiftOnChainPurchaseOfferState;
 
 //@description The offer has expired and the buyer was refunded
 //@refund_amount The amount returned to the buyer, in the smallest units of TON Grams; -1 if unknown
-giftOnchainPurchaseOfferStateExpired refund_amount:int64 = GiftOnchainPurchaseOfferState;
+giftOnChainPurchaseOfferStateExpired refund_amount:int64 = GiftOnChainPurchaseOfferState;
 
 
 //@class SuggestedPostPrice @description Describes price of a suggested post
@@ -1629,13 +1629,13 @@ giftPurchaseLimits total_count:int32 remaining_count:int32 = GiftPurchaseLimits;
 //@description Describes parameters of a unique gift available for resale
 //@star_count Resale price of the gift in Telegram Stars
 //@gram_cent_count Resale price of the gift in 1/100 of a TON Gram
-//@gram_amount Exact resale price of the gift, in the smallest units of TON Grams; must be passed to getGiftOnchainPurchaseTransaction if upgradedGift.uses_onchain_resale is true
+//@gram_amount Exact resale price of the gift, in the smallest units of TON Grams; must be passed to getGiftOnChainPurchaseTransaction if upgradedGift.uses_on_chain_resale is true
 //@gram_only True, if the gift can be bought only using Grams
-//@is_fixed_onchain True, if the gift is sold on-chain using a fixed-price sale contract
-//@can_be_managed True, if the sale of the gift is managed by the current user. If upgradedGift.uses_onchain_resale is true, then the sale can be canceled
-//-using getGiftOnchainDelistingTransaction, and the price can be changed using getGiftOnchainListingTransaction if is_fixed_onchain is true.
+//@is_fixed_on_chain True, if the gift is sold on-chain using a fixed-price sale contract
+//@can_be_managed True, if the sale of the gift is managed by the current user. If upgradedGift.uses_on_chain_resale is true, then the sale can be canceled
+//-using getGiftOnChainDelistingTransaction, and the price can be changed using getGiftOnChainListingTransaction if is_fixed_on_chain is true.
 //-Otherwise, the price can be changed and the sale can be canceled using setGiftResalePrice
-giftResaleParameters star_count:int53 gram_cent_count:int53 gram_amount:int64 gram_only:Bool is_fixed_onchain:Bool can_be_managed:Bool = GiftResaleParameters;
+giftResaleParameters star_count:int53 gram_cent_count:int53 gram_amount:int64 gram_only:Bool is_fixed_on_chain:Bool can_be_managed:Bool = GiftResaleParameters;
 
 //@description Describes collection of gifts
 //@id Unique identifier of the collection
@@ -1682,10 +1682,10 @@ upgradedGiftOriginOffer price:GiftResalePrice = UpgradedGiftOrigin;
 upgradedGiftOriginCraft = UpgradedGiftOrigin;
 
 //@description The gift was bought on the TON blockchain using a fixed-price sale contract @gram_amount Price paid for the gift, in the smallest units of TON Grams
-upgradedGiftOriginOnchainResale gram_amount:int64 = UpgradedGiftOrigin;
+upgradedGiftOriginOnChainResale gram_amount:int64 = UpgradedGiftOrigin;
 
 //@description The gift was bought through an on-chain purchase offer @gram_amount Price paid for the gift, in the smallest units of TON Grams
-upgradedGiftOriginOnchainOffer gram_amount:int64 = UpgradedGiftOrigin;
+upgradedGiftOriginOnChainOffer gram_amount:int64 = UpgradedGiftOrigin;
 
 
 //@class UpgradedGiftAttributeRarity @description Describes rarity of an upgraded gift attribute
@@ -1800,17 +1800,17 @@ gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_s
 //@backdrop Backdrop of the upgraded gift
 //@original_details Information about the originally sent gift; may be null if unknown
 //@colors Colors that can be set for user's name, background of empty chat photo, replies to messages, and link previews; may be null if none or unknown
-//@uses_onchain_resale True, if the gift must be bought, put up for sale, and delisted using getGiftOnchainPurchaseTransaction, getGiftOnchainListingTransaction,
-//-and getGiftOnchainDelistingTransaction; otherwise, sendResoldGift and setGiftResalePrice must be used
+//@uses_on_chain_resale True, if the gift must be bought, put up for sale, and delisted using getGiftOnChainPurchaseTransaction, getGiftOnChainListingTransaction,
+//-and getGiftOnChainDelistingTransaction; otherwise, sendResoldGift and setGiftResalePrice must be used
 //@resale_parameters Resale parameters of the gift; may be null if resale isn't possible
 //@fee_basis_points The fee for the sale of the gift, in basis points; 1 basis point is 0.01%; 0 if unknown. The fee is deducted from the price received by the seller
 //@can_send_purchase_offer True, if an offer to purchase the gift can be sent using sendGiftPurchaseOffer
-//@min_onchain_purchase_offer_gram_amount The minimum price for an on-chain offer to purchase the gift, in the smallest units of TON Grams; 0 if on-chain purchase offers can't be sent for the gift
+//@min_on_chain_purchase_offer_gram_amount The minimum price for an on-chain offer to purchase the gift, in the smallest units of TON Grams; 0 if on-chain purchase offers can't be sent for the gift
 //@craft_probability_per_mille Probability that the gift adds to the chance of successful crafting of a new gift; 0 if the gift can't be used for crafting
 //@value_currency ISO 4217 currency code of the currency in which the value of the gift is represented; may be empty if unavailable
 //@value_amount Estimated value of the gift, in the smallest units of the currency; 0 if unavailable
 //@value_usd_amount Estimated value of the gift in USD; in USD cents; 0 if unavailable
-upgradedGift id:int64 regular_gift_id:int64 publisher_chat_id:int53 title:string name:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 is_burned:Bool is_crafted:Bool is_premium:Bool is_theme_available:Bool used_theme_chat_id:int53 host_id:MessageSender owner_id:MessageSender owner_address:string owner_name:string gift_address:string can_be_ton_wallet_card_background:Bool model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails colors:upgradedGiftColors uses_onchain_resale:Bool resale_parameters:giftResaleParameters fee_basis_points:int32 can_send_purchase_offer:Bool min_onchain_purchase_offer_gram_amount:int64 craft_probability_per_mille:int32 value_currency:string value_amount:int53 value_usd_amount:int53 = UpgradedGift;
+upgradedGift id:int64 regular_gift_id:int64 publisher_chat_id:int53 title:string name:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 is_burned:Bool is_crafted:Bool is_premium:Bool is_theme_available:Bool used_theme_chat_id:int53 host_id:MessageSender owner_id:MessageSender owner_address:string owner_name:string gift_address:string can_be_ton_wallet_card_background:Bool model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails colors:upgradedGiftColors uses_on_chain_resale:Bool resale_parameters:giftResaleParameters fee_basis_points:int32 can_send_purchase_offer:Bool min_on_chain_purchase_offer_gram_amount:int64 craft_probability_per_mille:int32 value_currency:string value_amount:int53 value_usd_amount:int53 = UpgradedGift;
 
 //@description Contains information about the value of an upgraded gift
 //@currency ISO 4217 currency code of the currency in which the prices are represented
@@ -1852,7 +1852,7 @@ tonWalletMessage destination_address:string gram_amount:int64 send_mode:int32 bo
 //@description Contains information about a transaction that must be sent from the TON wallet of the current user to send, accept, or cancel an on-chain gift purchase offer.
 //-Use sendTonWalletTransaction with regular_transaction_data and gasless_transaction_data created from message and gasless_message respectively
 //-to send the transaction. Successful sending of the transaction doesn't mean that the operation was completed;
-//-the result of the operation must be checked in the corresponding messageUpgradedGiftOnchainPurchaseOffer message in the chat 777000
+//-the result of the operation must be checked in the corresponding messageUpgradedGiftOnChainPurchaseOffer message in the chat 777000
 //@offer_address Address of the smart contract of the offer on the TON blockchain
 //@expiration_date Point in time (Unix timestamp) when the offer will expire
 //@message The message that must be sent for a regular transfer
@@ -1862,9 +1862,9 @@ tonWalletMessage destination_address:string gram_amount:int64 send_mode:int32 bo
 //@forward_amount The amount forwarded with the gift transfer on acceptance of the offer, in the smallest units of TON Grams; 0 if none
 //@fine_amount The expected fine for cancellation of the offer, in the smallest units of TON Grams; 0 if none.
 //-The final fine will be known after the cancellation is executed on the TON blockchain
-giftOnchainPurchaseOfferTransaction offer_address:string expiration_date:int32 message:tonWalletMessage gasless_message:tonWalletMessage rent_budget_amount:int64 execution_allowance_amount:int64 forward_amount:int64 fine_amount:int64 = GiftOnchainPurchaseOfferTransaction;
+giftOnChainPurchaseOfferTransaction offer_address:string expiration_date:int32 message:tonWalletMessage gasless_message:tonWalletMessage rent_budget_amount:int64 execution_allowance_amount:int64 forward_amount:int64 fine_amount:int64 = GiftOnChainPurchaseOfferTransaction;
 
-//@class GiftOnchainSaleTransaction @description Describes a transaction that must be sent from the TON wallet of the current user to buy an upgraded gift on-chain,
+//@class GiftOnChainSaleTransaction @description Describes a transaction that must be sent from the TON wallet of the current user to buy an upgraded gift on-chain,
 //-put it up for sale, change its price, or cancel its sale
 
 //@description The transaction for a gift sold on-chain on Fragment. The transaction consists of one message, which must be sent to nft_address
@@ -1873,14 +1873,14 @@ giftOnchainPurchaseOfferTransaction offer_address:string expiration_date:int32 m
 //@payload Body of the transaction message; may be empty
 //@gram_amount The amount that must be sent with the transaction, in the smallest units of TON Grams
 //@is_gasless_transfer_available True, if the transaction can be sent as a gasless transfer
-giftOnchainSaleTransactionFragment nft_address:string payload:bytes gram_amount:int64 is_gasless_transfer_available:Bool = GiftOnchainSaleTransaction;
+giftOnChainSaleTransactionFragment nft_address:string payload:bytes gram_amount:int64 is_gasless_transfer_available:Bool = GiftOnChainSaleTransaction;
 
 //@description The transaction for a gift sold on-chain using a fixed-price sale contract. All messages must be signed and sent in one transfer in the specified order.
 //-Use sendTonWalletTransaction with regular_transaction_data and gasless_transaction_data created from messages and gasless_messages respectively to send the transaction
 //@sale_address Address of the sale smart contract on the TON blockchain
 //@messages The messages that must be sent for a regular transfer
 //@gasless_messages The messages that must be sent for a gasless transfer instead of messages; empty if gasless transfer isn't available
-giftOnchainSaleTransactionFixedPrice sale_address:string messages:vector<tonWalletMessage> gasless_messages:vector<tonWalletMessage> = GiftOnchainSaleTransaction;
+giftOnChainSaleTransactionFixedPrice sale_address:string messages:vector<tonWalletMessage> gasless_messages:vector<tonWalletMessage> = GiftOnChainSaleTransaction;
 
 //@description Contains result of gift upgrading
 //@gift The upgraded gift
@@ -6562,7 +6562,7 @@ messageUpgradedGiftPurchaseOfferRejected gift:upgradedGift price:GiftResalePrice
 //@fee_basis_points The fee paid by the buyer in addition to the price, in basis points; 1 basis point is 0.01%
 //@expiration_date Point in time (Unix timestamp) when the offer will expire or has expired
 //@offer_message_id Identifier of the message with the offer if this message was received after the offer has ended; otherwise, 0. May be an identifier of a deleted message
-messageUpgradedGiftOnchainPurchaseOffer gift:upgradedGift is_buyer:Bool state:GiftOnchainPurchaseOfferState offer_address:string gram_amount:int64 fee_basis_points:int32 expiration_date:int32 offer_message_id:int53 = MessageContent;
+messageUpgradedGiftOnChainPurchaseOffer gift:upgradedGift is_buyer:Bool state:GiftOnChainPurchaseOfferState offer_address:string gram_amount:int64 fee_basis_points:int32 expiration_date:int32 offer_message_id:int53 = MessageContent;
 
 //@description Paid messages were refunded @message_count The number of refunded messages @star_count The number of refunded Telegram Stars
 messagePaidMessagesRefunded message_count:int32 star_count:int53 = MessageContent;
@@ -12962,7 +12962,7 @@ getMessageLocally chat_id:int53 message_id:int53 = Message;
 //-the giveaway message for messageGiveawayCompleted, the checklist message for messageChecklistTasksDone and messageChecklistTasksAdded, the message with suggested post information
 //-for messageSuggestedPostApprovalFailed, messageSuggestedPostApproved, messageSuggestedPostDeclined, messageSuggestedPostPaid, and messageSuggestedPostRefunded,
 //-the message with the regular gift that was upgraded for messageUpgradedGift with origin of the type upgradedGiftOriginUpgrade,
-//-the message with the gift purchase offer for messageUpgradedGiftPurchaseOfferRejected and messageUpgradedGiftOnchainPurchaseOffer,
+//-the message with the gift purchase offer for messageUpgradedGiftPurchaseOfferRejected and messageUpgradedGiftOnChainPurchaseOffer,
 //-the message with the request to disable content protection for messageChatHasProtectedContentToggled,
 //-the message with the poll for messagePollOptionAdded and messagePollOptionDeleted,
 //-and the topic creation message for topic messages without a non-bundled replied-to message. Returns a 404 error if the message doesn't exist
@@ -17292,7 +17292,7 @@ transferGift business_connection_id:string received_gift_id:string new_owner_id:
 dropGiftOriginalDetails received_gift_id:string star_count:int53 = Ok;
 
 //@description Sends an upgraded gift that is available for resale to another user or channel chat; gifts already owned by the current user
-//-must be transferred using transferGift and can't be passed to the method. Gifts for which upgradedGift.uses_onchain_resale is true must be bought using getGiftOnchainPurchaseTransaction
+//-must be transferred using transferGift and can't be passed to the method. Gifts for which upgradedGift.uses_on_chain_resale is true must be bought using getGiftOnChainPurchaseTransaction
 //@gift_name Name of the upgraded gift to send
 //@owner_id Identifier of the user or the channel chat that will receive the gift
 //@price The price that the user agreed to pay for the gift
@@ -17318,57 +17318,57 @@ processGiftPurchaseOffer message_id:int53 accept:Bool = Ok;
 //@description Sends an on-chain offer to purchase an upgraded gift for TON Grams; can be used only if getOption("can_use_ton_wallet").
 //-Returns the transaction that must be sent from the TON wallet of the current user to create the offer. The offer is created only after the transaction is executed on the TON blockchain
 //@gift_name Name of the upgraded gift
-//@gram_amount The price offered for the gift, in the smallest units of TON Grams; must be at least upgradedGift.min_onchain_purchase_offer_gram_amount
+//@gram_amount The price offered for the gift, in the smallest units of TON Grams; must be at least upgradedGift.min_on_chain_purchase_offer_gram_amount
 //@duration Duration of the offer, in seconds; must be one of 21600, 43200, 86400, 129600, 172800, or 259200
-sendGiftOnchainPurchaseOffer gift_name:string gram_amount:int64 duration:int32 = GiftOnchainPurchaseOfferTransaction;
+sendGiftOnChainPurchaseOffer gift_name:string gram_amount:int64 duration:int32 = GiftOnChainPurchaseOfferTransaction;
 
 //@description Cancels an on-chain gift purchase offer sent by the current user; can be used only if getOption("can_use_ton_wallet").
 //-A fine may be charged if the offer is canceled before it expires.
 //-Returns the transaction that must be sent from the TON wallet of the current user to cancel the offer. The offer is canceled only after the transaction is executed on the TON blockchain
-//@message_id Identifier of the message messageUpgradedGiftOnchainPurchaseOffer with the offer in the chat 777000
-cancelGiftOnchainPurchaseOffer message_id:int53 = GiftOnchainPurchaseOfferTransaction;
+//@message_id Identifier of the message messageUpgradedGiftOnChainPurchaseOffer with the offer in the chat 777000
+cancelGiftOnChainPurchaseOffer message_id:int53 = GiftOnChainPurchaseOfferTransaction;
 
 //@description Accepts an on-chain gift purchase offer received by the current user; can be used only if getOption("can_use_ton_wallet"). The gift must not be listed for sale.
 //-Other offers for the gift will be canceled after the gift is sold.
 //-Returns the transaction that must be sent from the TON wallet of the current user to accept the offer. The offer is accepted only after the transaction is executed on the TON blockchain
 //-and the gift is transferred to the buyer
-//@message_id Identifier of the message messageUpgradedGiftOnchainPurchaseOffer with the offer in the chat 777000
-acceptGiftOnchainPurchaseOffer message_id:int53 = GiftOnchainPurchaseOfferTransaction;
+//@message_id Identifier of the message messageUpgradedGiftOnChainPurchaseOffer with the offer in the chat 777000
+acceptGiftOnChainPurchaseOffer message_id:int53 = GiftOnChainPurchaseOfferTransaction;
 
 //@description Declines an on-chain gift purchase offer received by the current user. The offer is declined and the buyer is refunded only after the offer is canceled on the TON blockchain
-//@message_id Identifier of the message messageUpgradedGiftOnchainPurchaseOffer with the offer in the chat 777000
-declineGiftOnchainPurchaseOffer message_id:int53 = Ok;
+//@message_id Identifier of the message messageUpgradedGiftOnChainPurchaseOffer with the offer in the chat 777000
+declineGiftOnChainPurchaseOffer message_id:int53 = Ok;
 
-//@description Returns a transaction that must be sent from the TON wallet of the current user to buy an upgraded gift for which upgradedGift.uses_onchain_resale is true;
-//-can be used only if getOption("can_use_ton_wallet"). Gifts for which giftResaleParameters.is_fixed_onchain is true can be bought only if getOption("can_buy_onchain_fixed_price_gifts") is true,
-//-and other gifts can be bought only if getOption("can_buy_onchain_gifts") is true. The type of the returned transaction depends on the type of the sale. The gift will be received by the new owner
+//@description Returns a transaction that must be sent from the TON wallet of the current user to buy an upgraded gift for which upgradedGift.uses_on_chain_resale is true;
+//-can be used only if getOption("can_use_ton_wallet"). Gifts for which giftResaleParameters.is_fixed_on_chain is true can be bought only if getOption("can_buy_on_chain_fixed_price_gifts") is true,
+//-and other gifts can be bought only if getOption("can_buy_on_chain_gifts") is true. The type of the returned transaction depends on the type of the sale. The gift will be received by the new owner
 //-after the transaction is executed on the TON blockchain. If the gift is bought for the current user, then it will be received by the TON wallet of the current user,
 //-and will be shown on the user's profile page if it is still in the wallet
 //@gift_name Name of the upgraded gift
-//@owner_id Identifier of the user or the channel chat that will receive the gift; must be the current user if giftResaleParameters.is_fixed_onchain is false
+//@owner_id Identifier of the user or the channel chat that will receive the gift; must be the current user if giftResaleParameters.is_fixed_on_chain is false
 //@gram_amount The price of the gift, in the smallest units of TON Grams; must be equal to giftResaleParameters.gram_amount. The request fails with the error
 //-"STARGIFT_ONCHAIN_PRICE_CHANGED" if the price has changed. The amount that will be paid can be greater than the price because of blockchain fees
 //@text Text to show along with the gift; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, and DateTime entities are allowed.
 //-Must be empty if the receiver enabled paid messages and the price of the gift is less than the price of a paid message to the user
 //@is_private Pass true to show the gift text and sender only to the gift receiver; otherwise, everyone will be able to see them
-getGiftOnchainPurchaseTransaction gift_name:string owner_id:MessageSender gram_amount:int64 text:formattedText is_private:Bool = GiftOnchainSaleTransaction;
+getGiftOnChainPurchaseTransaction gift_name:string owner_id:MessageSender gram_amount:int64 text:formattedText is_private:Bool = GiftOnChainSaleTransaction;
 
-//@description Returns a transaction that must be sent from the TON wallet of the current user to put an upgraded gift for which upgradedGift.uses_onchain_resale is true
-//-up for sale, or to change the price of a gift for which giftResaleParameters.is_fixed_onchain and giftResaleParameters.can_be_managed are true; can be used only if getOption("can_use_ton_wallet").
+//@description Returns a transaction that must be sent from the TON wallet of the current user to put an upgraded gift for which upgradedGift.uses_on_chain_resale is true
+//-up for sale, or to change the price of a gift for which giftResaleParameters.is_fixed_on_chain and giftResaleParameters.can_be_managed are true; can be used only if getOption("can_use_ton_wallet").
 //-The type of the sale is chosen by the server. The gift is put up for sale only after the transaction is executed on the TON blockchain and the sale smart contract
 //-confirms that it has received the gift. The price of the gift minus the fee specified in upgradedGift.fee_basis_points will be received by the TON wallet
-//-of the current user when the gift is sold. If giftResaleParameters.is_fixed_onchain is false, then the current sale must be canceled first
-//-using getGiftOnchainDelistingTransaction to change the price of the gift
+//-of the current user when the gift is sold. If giftResaleParameters.is_fixed_on_chain is false, then the current sale must be canceled first
+//-using getGiftOnChainDelistingTransaction to change the price of the gift
 //@gift_name Name of the upgraded gift
 //@gram_amount The price of the gift that the buyer will pay, in the smallest units of TON Grams. The price in 1/100 of a Gram must be in the range
 //-getOption("gift_resale_gram_cent_count_min")-getOption("gift_resale_gram_cent_count_max")
-getGiftOnchainListingTransaction gift_name:string gram_amount:int64 = GiftOnchainSaleTransaction;
+getGiftOnChainListingTransaction gift_name:string gram_amount:int64 = GiftOnChainSaleTransaction;
 
 //@description Returns a transaction that must be sent from the TON wallet of the current user to cancel the on-chain sale of an upgraded gift for which giftResaleParameters.can_be_managed is true;
 //-can be used only if getOption("can_use_ton_wallet"). The sale is canceled only after the transaction is executed on the TON blockchain.
 //-Then, the gift will be in the TON wallet of the current user
 //@gift_name Name of the upgraded gift
-getGiftOnchainDelistingTransaction gift_name:string = GiftOnchainSaleTransaction;
+getGiftOnChainDelistingTransaction gift_name:string = GiftOnChainSaleTransaction;
 
 //@description Returns gifts received by the given user or chat
 //@business_connection_id Unique identifier of the business connection on behalf of which to send the request; for bots only
@@ -17432,23 +17432,23 @@ displayUpgradedGift owner_id:MessageSender name:string = Ok;
 //@description Returns the promotional animation for upgraded gifts
 getUpgradedGiftsPromotionalAnimation = Animation;
 
-//@description Changes the resale price of a unique gift owned by the current user; can be used only for gifts for which upgradedGift.uses_onchain_resale is false
+//@description Changes the resale price of a unique gift owned by the current user; can be used only for gifts for which upgradedGift.uses_on_chain_resale is false
 //@received_gift_id Identifier of the unique gift
 //@price The new price for the unique gift; pass null to disallow gift resale. The current user will receive
 //-getOption("gift_resale_star_earnings_per_mille") Telegram Stars for each 1000 Telegram Stars paid for the gift if the gift price is in Telegram Stars or
 //-getOption("gift_resale_gram_earnings_per_mille") TON Grams for each 1000 Grams paid for the gift if the gift price is in Grams
 setGiftResalePrice received_gift_id:string price:GiftResalePrice = Ok;
 
-//@description Returns upgraded gifts that can be bought from other owners using sendResoldGift or getGiftOnchainPurchaseTransaction
+//@description Returns upgraded gifts that can be bought from other owners using sendResoldGift or getGiftOnChainPurchaseTransaction
 //@gift_id Identifier of the regular gift that was upgraded to a unique gift
 //@order Order in which the results will be sorted
 //@for_crafting Pass true to get only gifts suitable for crafting
 //@for_stars Pass true to get gifts that can be bought using Telegram Stars.
 //-If none of for_stars, for_grams, and for_fragment is true, then gifts that can be bought using Telegram Stars or TON Grams are returned, except gifts sold on-chain.
 //-The filter must be shown only if getOption("show_gift_resale_star_filter") is true and must be selected by default if getOption("select_gift_resale_star_filter_by_default") is true
-//@for_grams Pass true to get gifts that can be bought using TON Grams, including gifts sold on-chain using a fixed-price sale contract if getOption("can_buy_onchain_fixed_price_gifts") is true.
+//@for_grams Pass true to get gifts that can be bought using TON Grams, including gifts sold on-chain using a fixed-price sale contract if getOption("can_buy_on_chain_fixed_price_gifts") is true.
 //-The filter must be shown only if getOption("show_gift_resale_gram_filter") is true and must be selected by default if getOption("select_gift_resale_gram_filter_by_default") is true
-//@for_fragment Pass true to get gifts sold on-chain on Fragment; can be true only if getOption("can_buy_onchain_gifts") is true.
+//@for_fragment Pass true to get gifts sold on-chain on Fragment; can be true only if getOption("can_buy_on_chain_gifts") is true.
 //-Must be false if for_crafting is true or if the gift will be bought for another user or a channel chat
 //@attributes Attributes used to filter gifts. If multiple attributes of the same type are specified, then all of them are allowed.
 //-If no attributes of a specific type are specified, then all values for this attribute type are allowed
@@ -17809,8 +17809,8 @@ disableTonWalletBackupWithProof proof:tonWalletOwnershipProof = Ok;
 sendTonWalletTransfer user_id:int53 address:string amount:int64 comment:string is_comment_encrypted:Bool sending_id:int32 regular_transfer_data:bytes gasless_transfer_data:bytes = TonWalletTransferResult;
 
 //@description Sends a transaction signed by the application from the TON wallet of the current user without adding a message about it to any chat;
-//-can be used only if getOption("can_use_ton_wallet"). Use the method to send transactions described by upgradedGiftDepositInfo, giftOnchainPurchaseOfferTransaction,
-//-and GiftOnchainSaleTransaction objects
+//-can be used only if getOption("can_use_ton_wallet"). Use the method to send transactions described by upgradedGiftDepositInfo, giftOnChainPurchaseOfferTransaction,
+//-and GiftOnChainSaleTransaction objects
 //@regular_transaction_data Serialized signed data for a regular transaction
 //@gasless_transaction_data Serialized signed data for a gasless transaction; pass an empty string to force a regular transaction
 sendTonWalletTransaction regular_transaction_data:bytes gasless_transaction_data:bytes = TonWalletTransferResult;

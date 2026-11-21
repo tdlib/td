@@ -9213,7 +9213,7 @@ void Requests::on_request(uint64 id, const td_api::processGiftPurchaseOffer &req
   td_->star_gift_manager_->process_gift_offer(MessageId(request.message_id_), !request.accept_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::sendGiftOnchainPurchaseOffer &request) {
+void Requests::on_request(uint64 id, td_api::sendGiftOnChainPurchaseOffer &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.gift_name_);
   CREATE_REQUEST_PROMISE();
@@ -9221,25 +9221,25 @@ void Requests::on_request(uint64 id, td_api::sendGiftOnchainPurchaseOffer &reque
                                                    std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::cancelGiftOnchainPurchaseOffer &request) {
+void Requests::on_request(uint64 id, const td_api::cancelGiftOnChainPurchaseOffer &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->star_gift_manager_->cancel_gift_onchain_offer(MessageId(request.message_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::acceptGiftOnchainPurchaseOffer &request) {
+void Requests::on_request(uint64 id, const td_api::acceptGiftOnChainPurchaseOffer &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->star_gift_manager_->accept_gift_onchain_offer(MessageId(request.message_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::declineGiftOnchainPurchaseOffer &request) {
+void Requests::on_request(uint64 id, const td_api::declineGiftOnChainPurchaseOffer &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->star_gift_manager_->decline_gift_onchain_offer(MessageId(request.message_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::getGiftOnchainPurchaseTransaction &request) {
+void Requests::on_request(uint64 id, td_api::getGiftOnChainPurchaseTransaction &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.gift_name_);
   CREATE_REQUEST_PROMISE();
@@ -9248,14 +9248,14 @@ void Requests::on_request(uint64 id, td_api::getGiftOnchainPurchaseTransaction &
                                             std::move(request.text_), request.is_private_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::getGiftOnchainListingTransaction &request) {
+void Requests::on_request(uint64 id, td_api::getGiftOnChainListingTransaction &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.gift_name_);
   CREATE_REQUEST_PROMISE();
   td_->star_gift_manager_->sell_gift_onchain(request.gift_name_, request.gram_amount_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::getGiftOnchainDelistingTransaction &request) {
+void Requests::on_request(uint64 id, td_api::getGiftOnChainDelistingTransaction &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.gift_name_);
   CREATE_REQUEST_PROMISE();

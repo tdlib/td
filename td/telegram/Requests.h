@@ -2028,19 +2028,19 @@ class Requests {
 
   void on_request(uint64 id, const td_api::processGiftPurchaseOffer &request);
 
-  void on_request(uint64 id, td_api::sendGiftOnchainPurchaseOffer &request);
+  void on_request(uint64 id, td_api::sendGiftOnChainPurchaseOffer &request);
 
-  void on_request(uint64 id, const td_api::cancelGiftOnchainPurchaseOffer &request);
+  void on_request(uint64 id, const td_api::cancelGiftOnChainPurchaseOffer &request);
 
-  void on_request(uint64 id, const td_api::acceptGiftOnchainPurchaseOffer &request);
+  void on_request(uint64 id, const td_api::acceptGiftOnChainPurchaseOffer &request);
 
-  void on_request(uint64 id, const td_api::declineGiftOnchainPurchaseOffer &request);
+  void on_request(uint64 id, const td_api::declineGiftOnChainPurchaseOffer &request);
 
-  void on_request(uint64 id, td_api::getGiftOnchainPurchaseTransaction &request);
+  void on_request(uint64 id, td_api::getGiftOnChainPurchaseTransaction &request);
 
-  void on_request(uint64 id, td_api::getGiftOnchainListingTransaction &request);
+  void on_request(uint64 id, td_api::getGiftOnChainListingTransaction &request);
 
-  void on_request(uint64 id, td_api::getGiftOnchainDelistingTransaction &request);
+  void on_request(uint64 id, td_api::getGiftOnChainDelistingTransaction &request);
 
   void on_request(uint64 id, td_api::getReceivedGifts &request);
 

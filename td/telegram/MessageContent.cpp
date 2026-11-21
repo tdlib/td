@@ -12760,9 +12760,9 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
             return td_api::make_object<td_api::upgradedGiftOriginBlockchain>();
           }
           if (m->from_offer) {
-            return td_api::make_object<td_api::upgradedGiftOriginOnchainOffer>(gram_amount);
+            return td_api::make_object<td_api::upgradedGiftOriginOnChainOffer>(gram_amount);
           }
-          return td_api::make_object<td_api::upgradedGiftOriginOnchainResale>(gram_amount);
+          return td_api::make_object<td_api::upgradedGiftOriginOnChainResale>(gram_amount);
         }
         if (m->from_offer) {
           return td_api::make_object<td_api::upgradedGiftOriginOffer>(m->resale_price.get_gift_resale_price_object());
@@ -13033,28 +13033,28 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::StarGiftOnchainOffer: {
       const auto *m = static_cast<const MessageStarGiftOnchainOffer *>(content);
-      auto state = [&]() -> td_api::object_ptr<td_api::GiftOnchainPurchaseOfferState> {
+      auto state = [&]() -> td_api::object_ptr<td_api::GiftOnChainPurchaseOfferState> {
         if (m->is_accepted) {
-          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateAccepted>();
+          return td_api::make_object<td_api::giftOnChainPurchaseOfferStateAccepted>();
         }
         if (m->is_declined) {
-          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateDeclined>(m->buyer_refund);
+          return td_api::make_object<td_api::giftOnChainPurchaseOfferStateDeclined>(m->buyer_refund);
         }
         if (m->is_canceled) {
-          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateCanceled>(m->buyer_refund, m->fine);
+          return td_api::make_object<td_api::giftOnChainPurchaseOfferStateCanceled>(m->buyer_refund, m->fine);
         }
         if (m->is_expired) {
-          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateExpired>(m->buyer_refund);
+          return td_api::make_object<td_api::giftOnChainPurchaseOfferStateExpired>(m->buyer_refund);
         }
         if (m->is_settled) {
-          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateSettled>();
+          return td_api::make_object<td_api::giftOnChainPurchaseOfferStateSettled>();
         }
         if (m->is_canceling) {
-          return td_api::make_object<td_api::giftOnchainPurchaseOfferStateCanceling>();
+          return td_api::make_object<td_api::giftOnChainPurchaseOfferStateCanceling>();
         }
-        return td_api::make_object<td_api::giftOnchainPurchaseOfferStatePending>();
+        return td_api::make_object<td_api::giftOnChainPurchaseOfferStatePending>();
       }();
-      return td_api::make_object<td_api::messageUpgradedGiftOnchainPurchaseOffer>(
+      return td_api::make_object<td_api::messageUpgradedGiftOnChainPurchaseOffer>(
           m->star_gift.get_upgraded_gift_object(td), m->is_buyer, std::move(state), m->offer_address, m->amount,
           m->fee_bps, m->expires_at, m->offer_message_id.get());
     }

@@ -1675,11 +1675,11 @@ class ResolveStarGiftOfferQuery final : public Td::ResultHandler {
 };
 
 class SendStarGiftOnchainOfferQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> promise_;
+  Promise<td_api::object_ptr<td_api::giftOnChainPurchaseOfferTransaction>> promise_;
 
  public:
   explicit SendStarGiftOnchainOfferQuery(
-      Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> &&promise)
+      Promise<td_api::object_ptr<td_api::giftOnChainPurchaseOfferTransaction>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -1705,11 +1705,11 @@ class SendStarGiftOnchainOfferQuery final : public Td::ResultHandler {
 };
 
 class CancelStarGiftOnchainOfferQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> promise_;
+  Promise<td_api::object_ptr<td_api::giftOnChainPurchaseOfferTransaction>> promise_;
 
  public:
   explicit CancelStarGiftOnchainOfferQuery(
-      Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> &&promise)
+      Promise<td_api::object_ptr<td_api::giftOnChainPurchaseOfferTransaction>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -1735,11 +1735,11 @@ class CancelStarGiftOnchainOfferQuery final : public Td::ResultHandler {
 };
 
 class AcceptStarGiftOnchainOfferQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> promise_;
+  Promise<td_api::object_ptr<td_api::giftOnChainPurchaseOfferTransaction>> promise_;
 
  public:
   explicit AcceptStarGiftOnchainOfferQuery(
-      Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> &&promise)
+      Promise<td_api::object_ptr<td_api::giftOnChainPurchaseOfferTransaction>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -1793,10 +1793,10 @@ class DeclineStarGiftOnchainOfferQuery final : public Td::ResultHandler {
 };
 
 class BuyStarGiftOnchainQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> promise_;
+  Promise<td_api::object_ptr<td_api::GiftOnChainSaleTransaction>> promise_;
 
  public:
-  explicit BuyStarGiftOnchainQuery(Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> &&promise)
+  explicit BuyStarGiftOnchainQuery(Promise<td_api::object_ptr<td_api::GiftOnChainSaleTransaction>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -1823,10 +1823,10 @@ class BuyStarGiftOnchainQuery final : public Td::ResultHandler {
 };
 
 class UpdateStarGiftOnchainPriceQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> promise_;
+  Promise<td_api::object_ptr<td_api::GiftOnChainSaleTransaction>> promise_;
 
  public:
-  explicit UpdateStarGiftOnchainPriceQuery(Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> &&promise)
+  explicit UpdateStarGiftOnchainPriceQuery(Promise<td_api::object_ptr<td_api::GiftOnChainSaleTransaction>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -1851,10 +1851,10 @@ class UpdateStarGiftOnchainPriceQuery final : public Td::ResultHandler {
 };
 
 class CancelStarGiftOnchainSaleQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> promise_;
+  Promise<td_api::object_ptr<td_api::GiftOnChainSaleTransaction>> promise_;
 
  public:
-  explicit CancelStarGiftOnchainSaleQuery(Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> &&promise)
+  explicit CancelStarGiftOnchainSaleQuery(Promise<td_api::object_ptr<td_api::GiftOnChainSaleTransaction>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -3467,7 +3467,7 @@ void StarGiftManager::process_gift_offer(MessageId message_id, bool decline, Pro
 
 void StarGiftManager::send_gift_onchain_offer(
     const string &gift_name, int64 gram_amount, int32 duration,
-    Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> &&promise) {
+    Promise<td_api::object_ptr<td_api::giftOnChainPurchaseOfferTransaction>> &&promise) {
   if (gram_amount <= 0) {
     return promise.set_error(400, "Invalid amount specified");
   }
@@ -3475,7 +3475,7 @@ void StarGiftManager::send_gift_onchain_offer(
 }
 
 void StarGiftManager::cancel_gift_onchain_offer(
-    MessageId message_id, Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> &&promise) {
+    MessageId message_id, Promise<td_api::object_ptr<td_api::giftOnChainPurchaseOfferTransaction>> &&promise) {
   if (!message_id.is_server()) {
     return promise.set_error(400, "Invalid offer message identifier specified");
   }
@@ -3483,7 +3483,7 @@ void StarGiftManager::cancel_gift_onchain_offer(
 }
 
 void StarGiftManager::accept_gift_onchain_offer(
-    MessageId message_id, Promise<td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>> &&promise) {
+    MessageId message_id, Promise<td_api::object_ptr<td_api::giftOnChainPurchaseOfferTransaction>> &&promise) {
   if (!message_id.is_server()) {
     return promise.set_error(400, "Invalid offer message identifier specified");
   }
@@ -3510,7 +3510,7 @@ td_api::object_ptr<td_api::tonWalletMessage> StarGiftManager::get_ton_wallet_mes
                                                        std::move(initial_state));
 }
 
-td_api::object_ptr<td_api::giftOnchainPurchaseOfferTransaction>
+td_api::object_ptr<td_api::giftOnChainPurchaseOfferTransaction>
 StarGiftManager::get_gift_onchain_purchase_offer_transaction_object(
     telegram_api::object_ptr<telegram_api::payments_starGiftOnchainOfferTx> &&transaction) {
   CHECK(transaction != nullptr);
@@ -3518,7 +3518,7 @@ StarGiftManager::get_gift_onchain_purchase_offer_transaction_object(
   if (transaction->gasless_message_ != nullptr) {
     gasless_message = get_ton_wallet_message_object(std::move(transaction->gasless_message_));
   }
-  return td_api::make_object<td_api::giftOnchainPurchaseOfferTransaction>(
+  return td_api::make_object<td_api::giftOnChainPurchaseOfferTransaction>(
       std::move(transaction->offer_address_), transaction->expires_at_,
       get_ton_wallet_message_object(std::move(transaction->message_)), std::move(gasless_message),
       transaction->rent_budget_, transaction->execution_allowance_, transaction->forward_amount_, transaction->fine_);
@@ -3526,7 +3526,7 @@ StarGiftManager::get_gift_onchain_purchase_offer_transaction_object(
 
 void StarGiftManager::buy_gift_onchain(const string &gift_name, DialogId owner_dialog_id, int64 gram_amount,
                                        td_api::object_ptr<td_api::formattedText> text, bool is_private,
-                                       Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> &&promise) {
+                                       Promise<td_api::object_ptr<td_api::GiftOnChainSaleTransaction>> &&promise) {
   if (gram_amount <= 0) {
     return promise.set_error(400, "Invalid amount specified");
   }
@@ -3549,19 +3549,19 @@ void StarGiftManager::buy_gift_onchain(const string &gift_name, DialogId owner_d
       ->send(gift_name, gram_amount, std::move(input_peer), std::move(input_message), !is_private);
 }
 
-td_api::object_ptr<td_api::GiftOnchainSaleTransaction> StarGiftManager::get_gift_onchain_sale_transaction_object(
+td_api::object_ptr<td_api::GiftOnChainSaleTransaction> StarGiftManager::get_gift_onchain_sale_transaction_object(
     telegram_api::object_ptr<telegram_api::payments_StarGiftOnchainSalePayload> &&payload_ptr) {
   CHECK(payload_ptr != nullptr);
   switch (payload_ptr->get_id()) {
     case telegram_api::payments_starGiftOnchainSalePayload::ID: {
       auto payload = telegram_api::move_object_as<telegram_api::payments_starGiftOnchainSalePayload>(payload_ptr);
-      return td_api::make_object<td_api::giftOnchainSaleTransactionFragment>(
+      return td_api::make_object<td_api::giftOnChainSaleTransactionFragment>(
           std::move(payload->nft_address_), payload->payload_.as_slice().str(), payload->amount_,
           payload->gasless_available_);
     }
     case telegram_api::payments_starGiftOnchainFixedSalePayload::ID: {
       auto payload = telegram_api::move_object_as<telegram_api::payments_starGiftOnchainFixedSalePayload>(payload_ptr);
-      return td_api::make_object<td_api::giftOnchainSaleTransactionFixedPrice>(
+      return td_api::make_object<td_api::giftOnChainSaleTransactionFixedPrice>(
           std::move(payload->sale_address_), transform(std::move(payload->messages_), get_ton_wallet_message_object),
           transform(std::move(payload->gasless_messages_), get_ton_wallet_message_object));
     }
@@ -3572,7 +3572,7 @@ td_api::object_ptr<td_api::GiftOnchainSaleTransaction> StarGiftManager::get_gift
 }
 
 void StarGiftManager::sell_gift_onchain(const string &gift_name, int64 gram_amount,
-                                        Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> &&promise) {
+                                        Promise<td_api::object_ptr<td_api::GiftOnChainSaleTransaction>> &&promise) {
   if (gram_amount <= 0) {
     return promise.set_error(400, "Invalid amount specified");
   }
@@ -3580,7 +3580,7 @@ void StarGiftManager::sell_gift_onchain(const string &gift_name, int64 gram_amou
 }
 
 void StarGiftManager::cancel_gift_onchain_sale(
-    const string &gift_name, Promise<td_api::object_ptr<td_api::GiftOnchainSaleTransaction>> &&promise) {
+    const string &gift_name, Promise<td_api::object_ptr<td_api::GiftOnChainSaleTransaction>> &&promise) {
   td_->create_handler<CancelStarGiftOnchainSaleQuery>(std::move(promise))->send(gift_name);
 }
 
