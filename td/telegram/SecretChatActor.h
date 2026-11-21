@@ -76,7 +76,7 @@ class SecretChatActor final : public NetQueryCallback {
     virtual void send_net_query(NetQueryPtr query, ActorShared<NetQueryCallback> callback, bool ordered) = 0;
 
     virtual void on_update_secret_chat(int64 access_hash, UserId user_id, SecretChatState state, bool is_outbound,
-                                       int32 ttl, int32 date, string key_hash, int32 layer,
+                                       bool needs_acceptance, int32 ttl, int32 date, string key_hash, int32 layer,
                                        FolderId initial_folder_id) = 0;
 
     // Promise must be set only after the update is processed.
@@ -110,6 +110,8 @@ class SecretChatActor final : public NetQueryCallback {
 
   void cancel_chat(bool delete_history, bool is_already_discarded, Promise<> promise);
 
+  void accept_chat(Promise<> promise);
+
   // Inbound messages
   // Logevent is created by SecretChatsManager, because it must contain QTS
   void add_inbound_message(unique_ptr<log_event::InboundSecretMessage> message);
@@ -136,7 +138,16 @@ class SecretChatActor final : public NetQueryCallback {
   void binlog_replay_finish();
 
  private:
-  enum class State : int32 { Empty, SendRequest, SendAccept, WaitRequestResponse, WaitAcceptResponse, Ready, Closed };
+  enum class State : int32 {
+    Empty,
+    SendRequest,
+    SendAccept,
+    WaitRequestResponse,
+    WaitAcceptResponse,
+    Ready,
+    Closed,
+    WaitUserAccept
+  };
   static constexpr int32 MAX_RESEND_COUNT = 1000;
 
   // We have git state that should be synchronized with the database.
@@ -358,6 +369,11 @@ class SecretChatActor final : public NetQueryCallback {
   void request_new_key();
 
   struct AuthState {
+    static bool need_store_handshake(State state) {
+      return state == State::SendRequest || state == State::WaitRequestResponse || state == State::SendAccept ||
+             state == State::WaitUserAccept;
+    }
+
     State state = State::Empty;
     int x = -1;
     string key_hash;
@@ -409,7 +425,7 @@ class SecretChatActor final : public NetQueryCallback {
         storer.store_string(key_hash);
       }
       dh_config.store(storer);
-      if (state == State::SendRequest || state == State::WaitRequestResponse) {
+      if (need_store_handshake(state)) {
         handshake.store(storer);
       }
       if (has_initial_folder_id) {
@@ -445,7 +461,7 @@ class SecretChatActor final : public NetQueryCallback {
         key_hash = parser.template fetch_string<std::string>();
       }
       dh_config.parse(parser);
-      if (state == State::SendRequest || state == State::WaitRequestResponse) {
+      if (need_store_handshake(state)) {
         handshake.parse(parser);
       }
       if (has_initial_folder_id) {
@@ -460,6 +476,7 @@ class SecretChatActor final : public NetQueryCallback {
   bool binlog_replay_finish_flag_ = false;
   bool close_flag_ = false;
   Promise<Unit> discard_encryption_promise_;
+  Promise<Unit> accept_chat_promise_;
 
   LogEvent::Id create_log_event_id_ = 0;
 
@@ -691,6 +708,7 @@ class SecretChatActor final : public NetQueryCallback {
   void on_promise_error(Status error, string desc);
 
   void get_dh_config();
+  void start_handshake(State state);
   Status on_dh_config(NetQueryPtr query) TD_WARN_UNUSED_RESULT;
   void on_dh_config(telegram_api::messages_dhConfigNotModified &dh_not_modified);
   void on_dh_config(telegram_api::messages_dhConfig &dh);

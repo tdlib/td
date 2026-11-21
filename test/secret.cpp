@@ -628,8 +628,9 @@ class FakeSecretChatContext final : public SecretChatActor::Context {
   // So it is more clear which parts of MessagesManager is really used. And it is much easier to create tests.
   void send_net_query(NetQueryPtr query, ActorShared<NetQueryCallback> callback, bool ordered) final;
 
-  void on_update_secret_chat(int64 access_hash, UserId user_id, SecretChatState state, bool is_outbound, int32 ttl,
-                             int32 date, string key_hash, int32 layer, FolderId initial_folder_id) final {
+  void on_update_secret_chat(int64 access_hash, UserId user_id, SecretChatState state, bool is_outbound,
+                             bool needs_acceptance, int32 ttl, int32 date, string key_hash, int32 layer,
+                             FolderId initial_folder_id) final {
   }
 
   void on_inbound_message(UserId user_id, MessageId message_id, int32 date, unique_ptr<EncryptedFile> file,

@@ -366,8 +366,9 @@ unique_ptr<SecretChatActor::Context> SecretChatsManager::make_secret_chat_contex
       return G()->close_flag();
     }
 
-    void on_update_secret_chat(int64 access_hash, UserId user_id, SecretChatState state, bool is_outbound, int32 ttl,
-                               int32 date, string key_hash, int32 layer, FolderId initial_folder_id) final {
+    void on_update_secret_chat(int64 access_hash, UserId user_id, SecretChatState state, bool is_outbound,
+                               bool needs_acceptance, int32 ttl, int32 date, string key_hash, int32 layer,
+                               FolderId initial_folder_id) final {
       send_closure(G()->user_manager(), &UserManager::on_update_secret_chat, secret_chat_id_, access_hash, user_id,
                    state, is_outbound, ttl, date, key_hash, layer, initial_folder_id);
     }

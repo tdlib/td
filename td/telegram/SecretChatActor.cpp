@@ -102,6 +102,28 @@ void SecretChatActor::create_chat(UserId user_id, int64 user_access_hash, int32 
   loop();
 }
 
+void SecretChatActor::accept_chat(Promise<> promise) {
+  if (close_flag_) {
+    return promise.set_error(400, "Chat is closed");
+  }
+  if (auth_state_.state != State::WaitUserAccept || auth_state_.x != 1) {
+    return promise.set_error(400, "Secret chat can't be accepted");
+  }
+  LOG(INFO) << "Accept secret chat " << auth_state_.id;
+  accept_chat_promise_ = std::move(promise);
+  start_handshake(State::SendAccept);
+  context_->secret_chat_db()->set_value(auth_state_);
+  send_update_secret_chat();
+  loop();
+}
+
+// actually starts the key exchange
+void SecretChatActor::start_handshake(State state) {
+  CHECK(state == State::SendRequest || state == State::SendAccept);
+  auth_state_.state = state;
+  get_dh_config();
+}
+
 void SecretChatActor::on_result_resendable(NetQueryPtr net_query, Promise<NetQueryPtr> promise) {
   LOG(INFO) << "In on_result_resendable: " << net_query << " " << close_flag_;
   if (context_->close_flag()) {
@@ -524,6 +546,8 @@ Status SecretChatActor::run_auth() {
       auth_state_.state = State::WaitAcceptResponse;
       return Status::OK();
     }
+    case State::WaitUserAccept:
+      return Status::OK();
     default:
       break;
   }
@@ -637,6 +661,8 @@ void SecretChatActor::on_fatal_error(Status status, bool is_expected) {
   if (!is_expected) {
     LOG(ERROR) << "Fatal error: " << status;
   }
+  // pass status as error, usually contains the reason for closing the chat
+  accept_chat_promise_.set_error(std::move(status));
   cancel_chat(false, false, Promise<>());
 }
 
@@ -646,6 +672,7 @@ void SecretChatActor::cancel_chat(bool delete_history, bool is_already_discarded
     return;
   }
   close_flag_ = true;
+  accept_chat_promise_.set_error(400, "Secret chat is closed");
 
   std::vector<log_event::LogEvent::Id> to_delete;
   outbound_message_states_.for_each(
@@ -739,7 +766,7 @@ void SecretChatActor::do_create_chat_impl(unique_ptr<log_event::CreateSecretChat
     auth_state_.user_id = event->user_id;
     auth_state_.user_access_hash = event->user_access_hash;
     auth_state_.random_id = event->random_id;
-    auth_state_.state = State::SendRequest;
+    start_handshake(State::SendRequest);
     auth_state_.x = 0;
     auth_state_.date = context_->unix_time();
     send_update_secret_chat();
@@ -1756,13 +1783,18 @@ Status SecretChatActor::on_update_chat(telegram_api::encryptedChatRequested &upd
     LOG(INFO) << "Unexpected encryptedChatRequested ignored: " << to_string(update);
     return Status::OK();
   }
-  auth_state_.state = State::SendAccept;
+  auth_state_.state = State::WaitUserAccept;
   auth_state_.x = 1;
   auth_state_.user_id = UserId(update.admin_id_);
   auth_state_.date = context_->unix_time();
   TRY_STATUS(save_common_info(update));
   auth_state_.handshake.set_g_a(update.g_a_.as_slice());
   auth_state_.initial_folder_id = FolderId(update.folder_id_);
+  if (!context_->get_config_option_boolean("disable_secret_chat_auto_accept")) {
+    start_handshake(State::SendAccept);
+  }
+  context_->secret_chat_db()->set_value(auth_state_);
+  context_->binlog()->force_sync(Promise<>(), "on_update_chat");
 
   send_update_secret_chat();
   return Status::OK();
@@ -1796,6 +1828,7 @@ Status SecretChatActor::on_update_chat(telegram_api::encryptedChat &update) {
     return Status::Error("Key fingerprint mismatch");
   }
   auth_state_.state = State::Ready;
+  accept_chat_promise_.set_value(Unit());
   if (create_log_event_id_ != 0) {
     binlog_erase(context_->binlog(), create_log_event_id_);
     create_log_event_id_ = 0;
@@ -1871,7 +1904,10 @@ void SecretChatActor::start_up() {
   pfs_state_.last_timestamp = Time::now();
 
   send_update_secret_chat();
-  get_dh_config();
+  // resume handshake if pending
+  if (auth_state_.state == State::SendRequest || auth_state_.state == State::SendAccept) {
+    get_dh_config();
+  }
 
   // auto end = Time::now();
   // CHECK(end - start < 0.2);
@@ -1880,7 +1916,7 @@ void SecretChatActor::start_up() {
 }
 
 void SecretChatActor::get_dh_config() {
-  if (auth_state_.state != State::Empty) {
+  if (auth_state_.handshake.has_config()) {
     return;
   }
 
@@ -1943,9 +1979,9 @@ void SecretChatActor::send_update_secret_chat() {
   } else {
     state = SecretChatState::Waiting;
   }
-  context_->on_update_secret_chat(auth_state_.access_hash, get_user_id(), state, auth_state_.x == 0, config_state_.ttl,
-                                  auth_state_.date, auth_state_.key_hash, current_layer(),
-                                  auth_state_.initial_folder_id);
+  context_->on_update_secret_chat(auth_state_.access_hash, get_user_id(), state, auth_state_.x == 0,
+                                  auth_state_.state == State::WaitUserAccept, config_state_.ttl, auth_state_.date,
+                                  auth_state_.key_hash, current_layer(), auth_state_.initial_folder_id);
 }
 
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionSetMessageTTL &set_ttl) {
