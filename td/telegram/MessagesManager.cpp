@@ -7,6 +7,7 @@
 #include "td/telegram/MessagesManager.h"
 
 #include "td/telegram/AccountManager.h"
+#include "td/telegram/AiComposeStyle.h"
 #include "td/telegram/AiComposeStyle.hpp"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundInfo.hpp"

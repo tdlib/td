@@ -2383,11 +2383,8 @@ td_api::object_ptr<td_api::tonWalletTransaction> TonWalletManager::get_ton_walle
           break;
         case telegram_api::walletOnchainGiftActionChangePrice::ID: {
           auto action = telegram_api::move_object_as<telegram_api::walletOnchainGiftActionChangePrice>(peer->action_);
-          auto old_price = (action->flags_ & telegram_api::walletOnchainGiftActionChangePrice::OLD_PRICE_MASK) != 0
-                               ? action->old_price_
-                               : 0;
           onchain_gift_type = td_api::make_object<td_api::tonWalletTransactionTypeTelegramGiftListing>(
-              std::move(nft), old_price, action->new_price_, amount);
+              std::move(nft), action->old_price_, action->new_price_, amount);
           break;
         }
         case telegram_api::walletOnchainGiftActionDelist::ID:

@@ -2627,8 +2627,8 @@ tonWalletTransactionTypeTransfer amount:int64 is_gasless:Bool comment:string is_
 //@is_comment_encrypted True, if the comment is encrypted and must be decrypted using the user's private key
 tonWalletTransactionTypeNftTransfer nft:tonNft is_outgoing:Bool comment:string is_comment_encrypted:Bool = TonWalletTransactionType;
 
-//@description A Telegram gift was minted as a TON NFT directly to the wallet, or a minted gift was linked to or unlinked from a Telegram account;
-//-peer details aren't available for the transaction
+//@description A Telegram gift was minted as a TON NFT directly to the wallet, or a minted gift was linked to or unlinked from a Telegram account.
+//-Information about the other user isn't available
 //@nft The minted or transferred NFT
 //@is_outgoing True, if the transfer is from the wallet to Telegram
 //@is_saved True, if the gift was displayed on the current user's profile page before or after the transfer
@@ -4391,8 +4391,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@reply_markup_message_id Identifier of the message from which the reply markup needs to be used; 0 if there is no reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null if none
 //@text_composition_parameters Default parameters for text composition with AI in the chat; may be null if none
-//@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.)
-//-Persistent if the message database is used
+//@client_data Application-specific data associated with the chat, for example, the chat scroll position or local chat notification settings. Persistent if the message database is used
 chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int32 background_custom_emoji_id:int64 upgraded_gift_colors:upgradedGiftColors profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> chat_lists:vector<ChatList> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool view_as_topics:Bool has_scheduled_messages:Bool has_welcome_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 unread_poll_vote_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 emoji_status:emojiStatus background:chatBackground theme:ChatTheme action_bar:ChatActionBar business_bot_manage_bar:businessBotManageBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage text_composition_parameters:textCompositionParameters client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total number of chats found @chat_ids List of chat identifiers
@@ -14341,7 +14340,7 @@ getForumTopicLink chat_id:int53 forum_topic_id:int32 = MessageLink;
 //@limit The maximum number of forum topics to be returned; up to 100. For optimal performance, the number of returned forum topics is chosen by TDLib and can be smaller than the specified limit
 getForumTopics chat_id:int53 query:string icon_custom_emoji_id:int64 exclude_open:Bool exclude_closed:Bool offset_date:int32 offset_message_id:int53 offset_forum_topic_id:int32 limit:int32 = ForumTopics;
 
-//@description Returns the list of custom emoji that are most often used as icons of recent topics in a forum supergroup chat; the list can be empty @chat_id Identifier of the chat
+//@description Returns the list of custom emoji that are most often used as icons of recent topics in a forum supergroup chat @chat_id Identifier of the chat
 getForumTopicPopularIcons chat_id:int53 = Stickers;
 
 //@description Changes the notification settings of a forum topic in a forum supergroup chat or a chat with a bot with topics
@@ -15249,7 +15248,7 @@ toggleChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Ok;
 //@default_disable_notification New value of default_disable_notification
 toggleChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Ok;
 
-//@description Changes reactions available in a chat. Available for basic groups, supergroups, and channels. Requires can_change_info member right
+//@description Changes reactions available in a chat. Available in basic groups, supergroups, and channels. Requires can_change_info member right
 //@chat_id Identifier of the chat
 //@available_reactions Reactions available in the chat. All explicitly specified emoji reactions must be active.
 //-In channel chats, up to the chat's boost level custom emoji reactions can be explicitly specified
@@ -15258,7 +15257,7 @@ setChatAvailableReactions chat_id:int53 available_reactions:ChatAvailableReactio
 //@description Changes application-specific data associated with a chat @chat_id Chat identifier @client_data New value of client_data
 setChatClientData chat_id:int53 client_data:string = Ok;
 
-//@description Changes information about a chat. Available for basic groups, supergroups, and channels. Requires can_change_info member right
+//@description Changes information about a chat. Available in basic groups, supergroups, and channels. Requires can_change_info member right
 //@chat_id Identifier of the chat
 //@param_description New chat description; 0-255 characters
 setChatDescription chat_id:int53 description:string = Ok;
@@ -15280,12 +15279,12 @@ setChatDiscussionGroup chat_id:int53 discussion_chat_id:int53 = Ok;
 //-Requires supergroupFullInfo.can_enable_paid_messages for positive amounts
 setChatDirectMessagesGroup chat_id:int53 is_enabled:Bool paid_message_star_count:int53 = Ok;
 
-//@description Changes the location of a chat. Available only for some location-based supergroups; use supergroupFullInfo.can_set_location to check whether the method can be used
+//@description Changes the location of a chat. Use supergroupFullInfo.can_set_location to check whether the method can be used
 //@chat_id Chat identifier
 //@location New location for the chat; must be valid and not null
 setChatLocation chat_id:int53 location:chatLocation = Ok;
 
-//@description Changes the slow mode delay of a chat. Available only for supergroups; requires can_restrict_members administrator right
+//@description Changes the slow mode delay of a chat. Available only in supergroups; requires can_restrict_members administrator right
 //@chat_id Chat identifier
 //@slow_mode_delay New slow mode delay for the chat, in seconds; must be one of 0, 5, 10, 30, 60, 300, 900, or 3600
 setChatSlowModeDelay chat_id:int53 slow_mode_delay:int32 = Ok;
@@ -15361,7 +15360,7 @@ canTransferOwnership = CanTransferOwnershipResult;
 transferChatOwnership chat_id:int53 user_id:int53 password:string = Ok;
 
 //@description Returns the user who will become the owner of the chat after 7 days if the current user does not return to the supergroup or channel during that period or immediately for basic groups;
-//-requires owner privileges in the chat. Available only for basic groups, supergroups, and channel chats
+//-requires owner privileges in the chat. Available only in basic groups, supergroups, and channel chats
 //@chat_id Chat identifier
 getChatOwnerAfterLeaving chat_id:int53 = User;
 
@@ -15865,12 +15864,12 @@ getMessageImportConfirmationText chat_id:int53 = Text;
 importMessages chat_id:int53 message_file:InputFile attached_files:vector<InputFile> = Ok;
 
 
-//@description Replaces the current primary invite link for a chat with a new primary invite link. Available for basic groups, supergroups, and channels.
+//@description Replaces the current primary invite link for a chat with a new primary invite link. Available in basic groups, supergroups, and channels.
 //-Requires administrator privileges and can_invite_users right
 //@chat_id Chat identifier
 replacePrimaryChatInviteLink chat_id:int53 = ChatInviteLink;
 
-//@description Creates a new invite link for a chat. Available for basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat
+//@description Creates a new invite link for a chat. Available in basic groups, supergroups, and channels. Requires administrator privileges and can_invite_users right in the chat
 //@chat_id Chat identifier
 //@name Invite link name; 0-32 characters
 //@expiration_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
@@ -16889,7 +16888,7 @@ getManagedBotAccessSettings bot_user_id:int53 = BotAccessSettings;
 setManagedBotAccessSettings bot_user_id:int53 settings:botAccessSettings = Ok;
 
 //@description Invites users to private chats with a bot owned by the current user. Can be called only if userTypeBot.can_be_edited == true.
-//-Each invited user will receive a message messageBotInvite and the bot will be able to send messages to the user. The request succeeds if at least one user was invited
+//-Each invited user will receive a message of the type messageBotInvite, and the bot will be able to send messages to that user. The request succeeds if at least one user was invited
 //@bot_user_id Identifier of the bot
 //@user_ids Identifiers of the users to invite; 1-10 different users
 inviteUsersToBot bot_user_id:int53 user_ids:vector<int53> = Ok;

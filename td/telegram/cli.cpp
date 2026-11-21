@@ -4482,9 +4482,7 @@ class CliClient final : public Actor {
       string filters;
       get_args(args, chat_id, return_local, filters);
       send_request(td_api::make_object<td_api::getChatMessageCounts>(
-          chat_id, get_message_topic_id(),
-          transform(autosplit_str(filters), [](const string &filter) { return as_search_messages_filter(filter); }),
-          return_local));
+          chat_id, get_message_topic_id(), transform(autosplit_str(filters), as_search_messages_filter), return_local));
     } else if (op == "gcmp") {
       ChatId chat_id;
       MessageId message_id;
@@ -8826,9 +8824,8 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       string settings;
       get_args(args, bot_user_id, settings);
-      send_request(td_api::make_object<td_api::setBotSettings>(
-          bot_user_id,
-          transform(autosplit_str(settings), [](const string &setting) { return as_bot_setting(setting); })));
+      send_request(
+          td_api::make_object<td_api::setBotSettings>(bot_user_id, transform(autosplit_str(settings), as_bot_setting)));
     } else if (op == "sbn") {
       UserId bot_user_id;
       string language_code;

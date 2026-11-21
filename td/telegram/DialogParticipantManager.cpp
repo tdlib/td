@@ -2800,7 +2800,7 @@ void DialogParticipantManager::set_channel_participant_status(
   }
   if (participant_dialog_id.get_type() != DialogType::User) {
     if (new_status.is_administrator() || new_status.is_member() || new_status.is_restricted()) {
-      return promise.set_error(400, "Other chats can be only banned or unbanned");
+      return promise.set_error(400, "Other chats can only be banned or unbanned");
     }
     // always pretend that old_status is different
     return restrict_channel_participant(
@@ -2997,7 +2997,7 @@ void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id
       break;
     case DialogType::Channel:
       if (new_status.is_administrator() || new_status.is_member() || new_status.is_restricted()) {
-        return promise.set_error(400, "Other chats can be only banned or unbanned");
+        return promise.set_error(400, "Other chats can only be banned or unbanned");
       }
       break;
     default:

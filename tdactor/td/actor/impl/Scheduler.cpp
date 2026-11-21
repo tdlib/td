@@ -12,6 +12,7 @@
 #include "td/actor/impl/Event.h"
 #include "td/actor/impl/EventFull.h"
 
+#include "td/utils/Action.h"
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
 #include "td/utils/ExitGuard.h"

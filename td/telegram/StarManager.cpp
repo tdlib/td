@@ -31,6 +31,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TempPasswordState.h"
 #include "td/telegram/TonAmount.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
