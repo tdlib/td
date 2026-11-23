@@ -736,37 +736,44 @@ class Master final : public Actor {
       add_event(
           Event::delayed_closure(&SecretChatActor::send_message, std::move(message), nullptr, std::move(sync_promise)));
     }
+
     void send_set_ttl_message(int32 ttl) {
       add_event(
           Event::delayed_closure(&SecretChatActor::send_set_ttl_message, ttl, Random::secure_int64(), Promise<>()));
     }
+
     void send_read_history(int32 date) {
       add_event(Event::delayed_closure(&SecretChatActor::send_read_history, date, Promise<>()));
     }
+
     void send_open_message(int64 random_id) {
       add_event(Event::delayed_closure(&SecretChatActor::send_open_message, random_id, Promise<>()));
     }
+
     void notify_screenshot_taken() {
       add_event(Event::delayed_closure(&SecretChatActor::notify_screenshot_taken, Promise<>()));
     }
+
     void send_message_action() {
       add_event(Event::delayed_closure(&SecretChatActor::send_message_action,
                                        secret_api::make_object<secret_api::sendMessageTypingAction>()));
     }
+
     void delete_messages(vector<int64> random_ids) {
       add_event(Event::delayed_closure(&SecretChatActor::delete_messages, std::move(random_ids), Promise<>()));
     }
+
     void delete_all_messages() {
       add_event(Event::delayed_closure(&SecretChatActor::delete_all_messages, Promise<>()));
     }
 
-    int32 binlog_generation_ = 0;
     void sync_binlog(int32 binlog_generation, Promise<> promise) {
       if (binlog_generation != binlog_generation_) {
         return promise.set_error("Binlog generation mismatch");
       }
       binlog_->force_sync(std::move(promise), "sync_binlog");
     }
+
     void close_chat(bool is_already_discarded) {
       if (is_closed_) {
         return;
@@ -775,6 +782,7 @@ class Master final : public Actor {
       is_already_discarded_ = is_already_discarded;
       send_close_chat();
     }
+
     void send_close_chat() {
       if (is_already_discarded_) {
         auto chat = telegram_api::make_object<telegram_api::encryptedChatDiscarded>();
@@ -784,6 +792,7 @@ class Master final : public Actor {
         add_event(Event::delayed_closure(&SecretChatActor::cancel_chat, false, false, Promise<>()));
       }
     }
+
     void on_closed() {
       LOG(INFO) << "CLOSED";
       if (!*close_flag_) {
@@ -853,6 +862,7 @@ class Master final : public Actor {
         send_close_chat();
       }
     }
+
     void on_binlog_replay_finish() {
       ready_ = true;
       LOG(INFO) << "Finish replay binlog";
@@ -862,10 +872,12 @@ class Master final : public Actor {
       }
       pending_events_.clear();
     }
+
     void start_test() {
       set_timeout_in(Random::fast(50, 99) * 0.3 / 50);
       events_cnt_ = 0;
     }
+
     void restart() {
       if (!actor_.get().is_alive()) {
         // the actor has already stopped itself
@@ -876,6 +888,8 @@ class Master final : public Actor {
     }
 
    private:
+    int32 binlog_generation_ = 0;
+
     string name_;
 
     ActorId<Master> parent_;
@@ -925,12 +939,15 @@ class Master final : public Actor {
       return bob_;
     }
   }
+
   auto &from() {
     return get_by_id(get_link_token());
   }
+
   auto &to() {
     return get_by_id(3 - get_link_token());
   }
+
   void start_up() final {
     auto old_context = set_context(std::make_shared<Global>());
     alice_ = create_actor<SecretChatProxy>("SecretChatProxy alice", "alice", actor_shared(this, 1));
@@ -947,7 +964,6 @@ class Master final : public Actor {
     LOG(INFO) << "SecretChatId = " << id;
   }
 
-  int32 reliable_query_cnt_ = 20;
   bool can_fail(NetQueryPtr &query) {
     if (reliable_query_cnt_ > 0) {
       reliable_query_cnt_--;
@@ -992,10 +1008,12 @@ class Master final : public Actor {
       this->process_net_query(std::move(object), std::move(query), std::move(callback));
     });
   }
+
   template <class T>
   void process_net_query(T &&object, NetQueryPtr query, ActorShared<NetQueryCallback> callback) {
     LOG(FATAL) << "Unsupported query: " << to_string(object);
   }
+
   void process_net_query(my_api::messages_getDhConfig &&get_dh_config, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     //LOG(INFO) << "Receive query " << to_string(get_dh_config);
@@ -1010,6 +1028,7 @@ class Master final : public Actor {
     net_query->set_ok(std::move(answer));
     send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
   }
+
   void process_net_query(my_api::messages_requestEncryption &&request_encryption, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     CHECK(get_link_token() == 1);
@@ -1025,6 +1044,7 @@ class Master final : public Actor {
     net_query->set_ok(std::move(answer));
     send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
   }
+
   void process_net_query(my_api::messages_acceptEncryption &&request_encryption, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     CHECK(get_link_token() == 2);
@@ -1042,11 +1062,12 @@ class Master final : public Actor {
     send_closure(alice_, &SecretChatProxy::start_test);
     send_closure(bob_, &SecretChatProxy::start_test);
     send_ping(1, 5000);
-    set_timeout_in(0.1);
+    set_timeout_in(TICK_TIME);
   }
+
   void timeout_expired() final {
     for (auto &it : unreceived_messages_) {
-      if (++it.second > 1) {
+      if (++it.second > MAX_UNRECEIVED_TICKS) {
         *status_ = Status::Error(PSLICE() << "Sent message " << it.first << " wasn't received");
         Scheduler::instance()->finish();
         return;
@@ -1058,16 +1079,20 @@ class Master final : public Actor {
       send_closure(get_by_id(close_chat_id_), &SecretChatProxy::close_chat, false);
       return;
     }
-    for (int i = 0; i < 4; i++) {
-      last_random_ids_[0] = send_message(1, "oppa");
-      last_random_ids_[1] = send_message(2, "appo");
+    for (int i = 0; i < MESSAGES_PER_TICK; i++) {
+      auto random_id_1 = send_message(1, "oppa");
+      auto random_id_2 = send_message(2, "appo");
+      if (Random::fast(0, i) == 0) {
+        // choose a random message among the messages sent during the tick
+        last_random_ids_[0] = random_id_1;
+        last_random_ids_[1] = random_id_2;
+      }
     }
     do_random_action(1);
     do_random_action(2);
-    set_timeout_in(0.1);
+    set_timeout_in(TICK_TIME);
   }
-  int64 last_random_ids_[2] = {0, 0};
-  int32 read_history_date_ = 0;
+
   void do_random_action(int32 id) {
     auto &proxy = get_by_id(id);
     switch (Random::fast(0, 6)) {
@@ -1078,7 +1103,7 @@ class Master final : public Actor {
         send_closure(proxy, &SecretChatProxy::send_read_history, ++read_history_date_);
         break;
       case 2:
-        // the last message received from the other party
+        // a message recently sent by the other party
         send_closure(proxy, &SecretChatProxy::send_open_message, last_random_ids_[2 - id]);
         break;
       case 3:
@@ -1088,7 +1113,7 @@ class Master final : public Actor {
         send_closure(proxy, &SecretChatProxy::send_message_action);
         break;
       case 5:
-        // the last sent message, which isn't a ping
+        // a recently sent message, which isn't a ping
         send_closure(proxy, &SecretChatProxy::delete_messages, vector<int64>{last_random_ids_[id - 1]});
         on_sent_message_deleted(last_random_ids_[id - 1]);
         break;
@@ -1102,13 +1127,13 @@ class Master final : public Actor {
         UNREACHABLE();
     }
   }
-  int32 last_sent_ping_id_ = 0;
-  int last_sent_ping_cnt_ = 0;
+
   void resend_ping(int32 id) {
     if (last_sent_ping_id_ == id) {
       send_ping(id, last_sent_ping_cnt_);
     }
   }
+
   void on_flush_history(Promise<> promise) {
     promise.set_value(Unit());
     auto id = narrow_cast<int32>(get_link_token());
@@ -1116,6 +1141,7 @@ class Master final : public Actor {
     // the last ping is deleted if it isn't sent yet
     resend_ping(id);
   }
+
   void on_sent_message_deleted(int64 random_id) {
     // the message can be deleted before it is received by the other party
     auto it = sent_messages_.find(random_id);
@@ -1124,17 +1150,19 @@ class Master final : public Actor {
       unreceived_messages_.erase(random_id);
     }
   }
+
   void on_sent_messages_deleted(int32 id) {
     // all messages recently sent by the party can be deleted before they are received by the other party
     flush_generations_[id - 1]++;
     for (auto it = unreceived_messages_.begin(); it != unreceived_messages_.end();) {
-      if (sent_messages_[it->first].id == id && it->second < 2) {
+      if (sent_messages_[it->first].id == id && it->second < MAX_DELETABLE_TICKS) {
         it = unreceived_messages_.erase(it);
       } else {
         ++it;
       }
     }
   }
+
   void send_ping(int32 id, int cnt) {
     last_sent_ping_id_ = id;
     last_sent_ping_cnt_ = cnt;
@@ -1146,6 +1174,7 @@ class Master final : public Actor {
     string text = PSTRING() << "PING: " << cnt;
     send_message(id, std::move(text));
   }
+
   int64 send_message(int32 id, string text) {
     if (is_closing_) {
       return 0;
@@ -1161,15 +1190,17 @@ class Master final : public Actor {
                                                                        Auto(), Auto(), 0));
     return random_id;
   }
+
   void process_net_query(my_api::messages_setEncryptedTyping &&set_typing, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     send_bool_true(std::move(net_query), std::move(callback));
   }
+
   void process_net_query(my_api::messages_readEncryptedHistory &&read_history, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     send_bool_true(std::move(net_query), std::move(callback));
   }
-  bool is_restarted_while_closing_ = false;
+
   void process_net_query(my_api::messages_discardEncryption &&discard_encryption, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     if (!is_restarted_while_closing_) {
@@ -1182,20 +1213,24 @@ class Master final : public Actor {
     send_bool_true(std::move(net_query), std::move(callback));
     send_closure(to(), &SecretChatProxy::close_chat, true);
   }
+
   static void send_bool_true(NetQueryPtr net_query, ActorShared<NetQueryCallback> callback) {
     BufferSlice answer(4);
     as<int32>(answer.as_mutable_slice().begin()) = -1720552011;  // boolTrue
     net_query->set_ok(std::move(answer));
     send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
   }
+
   void process_net_query(my_api::messages_sendEncryptedService &&message, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     process_net_query_send_encrypted(std::move(message.data_), std::move(net_query), std::move(callback));
   }
+
   void process_net_query(my_api::messages_sendEncrypted &&message, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {
     process_net_query_send_encrypted(std::move(message.data_), std::move(net_query), std::move(callback));
   }
+
   void process_net_query_send_encrypted(BufferSlice data, NetQueryPtr net_query,
                                         ActorShared<NetQueryCallback> callback) {
     BufferSlice answer(8);
@@ -1219,6 +1254,7 @@ class Master final : public Actor {
       send_closure(to(), &SecretChatProxy::add_inbound_message, chat_id, std::move(data), crc);
     }
   }
+
   void add_inbound_message_later(int32 chat_id, BufferSlice data, uint64 crc, double delay) {
     LOG(INFO) << "Send SecretChatProxy::add_inbound_message" << tag("crc", crc) << tag("delay", delay);
     create_actor<SleepActor>("DelayedInboundMessage", delay,
@@ -1229,7 +1265,6 @@ class Master final : public Actor {
         .release();
   }
 
-  int32 last_ping_ = std::numeric_limits<int32>::max();
   void on_inbound_message(int64 random_id, string message, Promise<> promise) {
     promise.set_value(Unit());
     LOG(INFO) << "Receive inbound message: " << message << " " << get_link_token();
@@ -1258,6 +1293,7 @@ class Master final : public Actor {
     last_ping_ = cnt;
     send_ping(narrow_cast<int32>(get_link_token()), cnt - 1);
   }
+
   void on_send_message_error(int64 random_id, Status error, Promise<> promise) {
     promise.set_value(Unit());
     LOG(INFO) << "Receive send message error: " << tag("random_id", random_id) << error;
@@ -1274,6 +1310,7 @@ class Master final : public Actor {
     // sent_messages_.erase(it);
     send_message(message.id, message.text);
   }
+
   void on_send_message_ok(int64 random_id, Promise<> promise) {
     promise.set_value(Unit());
     LOG(INFO) << "Receive send message ok: " << tag("random_id", random_id);
@@ -1292,6 +1329,16 @@ class Master final : public Actor {
   }
 
  private:
+  // messages are sent and random actions are done once in TICK_TIME seconds
+  static constexpr double TICK_TIME = 0.1;
+  static constexpr int MESSAGES_PER_TICK = 4;
+  // a message must be received in MAX_UNRECEIVED_TICKS ticks after it was reported as sent;
+  // the limit must be big enough to tolerate delays of the test process, for example, by CPU throttling
+  static constexpr int32 MAX_UNRECEIVED_TICKS = 100;
+  // messages, which were reported as sent less than MAX_DELETABLE_TICKS ticks ago, can be deleted by
+  // the sender before they are received
+  static constexpr int32 MAX_DELETABLE_TICKS = 2;
+
   Status *status_;
   ActorOwn<SecretChatProxy> alice_;
   ActorOwn<SecretChatProxy> bob_;
@@ -1303,13 +1350,22 @@ class Master final : public Actor {
     bool is_deleted = false;
   };
   std::map<int64, Message> sent_messages_;
-  // random_id -> number of timeouts passed since the message was reported as sent
+  // random_id -> number of ticks passed since the message was reported as sent
   std::map<int64, int32> unreceived_messages_;
-  int32 flush_generations_[2] = {0, 0};
 
+  int32 flush_generations_[2] = {0, 0};
   bool is_closing_ = false;
   int32 close_chat_id_ = 0;
   int32 closed_chat_count_ = 0;
+  int32 last_ping_ = std::numeric_limits<int32>::max();
+  int32 reliable_query_cnt_ = 20;
+  // random_id of a message sent by the party during the last tick, which isn't a ping
+  int64 last_random_ids_[2] = {0, 0};
+  int32 read_history_date_ = 0;
+  int32 last_sent_ping_id_ = 0;
+  int last_sent_ping_cnt_ = 0;
+  bool is_restarted_while_closing_ = false;
+
   void on_chat_closed() {
     closed_chat_count_++;
     if (closed_chat_count_ == 2) {
