@@ -3231,6 +3231,9 @@ UserId UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&u
     if (u->access_hash != access_hash && (!is_min_access_hash || u->is_min_access_hash || u->access_hash == -1)) {
       LOG(DEBUG) << "Access hash has changed for " << user_id << " from " << u->access_hash << "/"
                  << u->is_min_access_hash << " to " << access_hash << "/" << is_min_access_hash;
+      if (!is_min_access_hash && (u->access_hash == -1 || u->is_min_access_hash)) {
+        u->is_changed = true;  // have_access may have changed
+      }
       u->access_hash = access_hash;
       u->is_min_access_hash = is_min_access_hash;
       u->need_save_to_database = true;
@@ -10352,7 +10355,8 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
   auto emoji_status = EmojiStatus::get_emoji_status_object(u->last_sent_emoji_status);
   auto verification_status =
       get_verification_status_object(td_, u->is_verified, u->is_scam, u->is_fake, u->bot_verification_icon);
-  auto have_access = have_input_peer_user(u, user_id, AccessRights::Know);
+  auto have_access =
+      user_id == get_my_id() || (u->access_hash != -1 && !u->is_min_access_hash) || user_messages_.count(user_id) != 0;
   auto restricts_new_chats = u->contact_require_premium && !u->is_mutual_contact;
   return td_api::make_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,
