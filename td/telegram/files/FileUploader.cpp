@@ -288,22 +288,12 @@ Result<NetQueryPtr> FileUploader::start_part(Part part, int32 part_count) {
   return std::move(net_query);
 }
 
-Result<size_t> FileUploader::process_part(Part part, NetQueryPtr net_query) {
-  Result<bool> result = [&] {
-    if (big_flag_) {
-      return fetch_result<telegram_api::upload_saveBigFilePart>(std::move(net_query));
-    } else {
-      return fetch_result<telegram_api::upload_saveFilePart>(std::move(net_query));
-    }
-  }();
-  if (result.is_error()) {
-    return result.move_as_error();
+Result<bool> FileUploader::process_part(NetQueryPtr net_query) {
+  if (big_flag_) {
+    return fetch_result<telegram_api::upload_saveBigFilePart>(std::move(net_query));
+  } else {
+    return fetch_result<telegram_api::upload_saveFilePart>(std::move(net_query));
   }
-  if (!result.ok()) {
-    // TODO: it is possible
-    return Status::Error(500, "Internal Server Error during file upload");
-  }
-  return part.size;
 }
 
 void FileUploader::on_progress() {
@@ -476,10 +466,18 @@ void FileUploader::on_part_query(Part part, NetQueryPtr query) {
 }
 
 Status FileUploader::try_on_part_query(Part part, NetQueryPtr query) {
-  TRY_RESULT(size, process_part(part, std::move(query)));
-  VLOG(file_loader) << "Ok part " << tag("id", part.id) << tag("size", part.size);
+  TRY_RESULT(is_saved, process_part(std::move(query)));
   resource_state_.stop_use(static_cast<int64>(part.size));
-  TRY_STATUS(parts_manager_.on_part_ok(part.id, part.size, size));
+  if (!is_saved) {
+    if (++part_retry_counts_[part.id + 1] > MAX_PART_RETRY_COUNT) {
+      return Status::Error(500, "Internal Server Error during file upload");
+    }
+    VLOG(file_loader) << "Retry part " << tag("id", part.id) << tag("size", part.size);
+    parts_manager_.on_part_failed(part.id);
+    return Status::OK();
+  }
+  VLOG(file_loader) << "Ok part " << tag("id", part.id) << tag("size", part.size);
+  TRY_STATUS(parts_manager_.on_part_ok(part.id, part.size, part.size));
   on_progress();
   return Status::OK();
 }

@@ -18,6 +18,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/Status.h"
 #include "td/utils/UInt.h"
@@ -47,6 +48,8 @@ class FileUploader final : public FileLoaderActor {
   void update_local_file_location(const LocalFileLocation &local);
 
  private:
+  static constexpr int32 MAX_PART_RETRY_COUNT = 3;
+
   LocalFileLocation local_;
   RemoteFileLocation remote_;
   int64 expected_size_;
@@ -75,6 +78,7 @@ class FileUploader final : public FileLoaderActor {
   ResourceState resource_state_;
   PartsManager parts_manager_;
   std::map<uint64, std::pair<Part, ActorShared<>>> part_map_;
+  FlatHashMap<int32, int32> part_retry_counts_;  // part.id + 1 -> number of retries
 
   void set_resource_manager(ActorShared<ResourceManager> resource_manager) final;
 
@@ -86,7 +90,7 @@ class FileUploader final : public FileLoaderActor {
 
   Result<NetQueryPtr> start_part(Part part, int32 part_count) TD_WARN_UNUSED_RESULT;
 
-  Result<size_t> process_part(Part part, NetQueryPtr net_query) TD_WARN_UNUSED_RESULT;
+  Result<bool> process_part(NetQueryPtr net_query) TD_WARN_UNUSED_RESULT;
 
   void on_progress();
 
