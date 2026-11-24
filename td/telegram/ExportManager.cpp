@@ -40,6 +40,7 @@
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/utf8.h"
 #include "td/utils/VectorQueue.h"
 
 #include <limits>
@@ -465,6 +466,7 @@ Result<ExportSettings> ExportManager::get_export_settings(
       UNREACHABLE();
   }
 
+  bool is_html = false;
   bool is_json = false;
   for (auto &format : formats) {
     if (format == nullptr) {
@@ -473,7 +475,13 @@ Result<ExportSettings> ExportManager::get_export_settings(
     bool is_repeated = false;
     switch (format->get_id()) {
       case td_api::exportFormatHtml::ID:
-        return Status::Error(400, "HTML export isn't supported yet");
+        if (!settings.only_single_dialog()) {
+          return Status::Error(400, "HTML export of the account isn't supported yet");
+        }
+        is_repeated = is_html;
+        is_html = true;
+        settings.html_stylesheet = std::move(static_cast<td_api::exportFormatHtml *>(format.get())->stylesheet_);
+        break;
       case td_api::exportFormatJson::ID:
         is_repeated = is_json;
         is_json = true;
@@ -485,10 +493,14 @@ Result<ExportSettings> ExportManager::get_export_settings(
       return Status::Error(400, "Each export format can be specified only once");
     }
   }
-  if (!is_json) {
+  if (!is_html && !is_json) {
     return Status::Error(400, "Export formats must be non-empty");
   }
-  settings.format = ExportFormat::Json;
+  settings.format =
+      is_html && is_json ? ExportFormat::HtmlAndJson : (is_html ? ExportFormat::Html : ExportFormat::Json);
+  if (!check_utf8(settings.html_stylesheet)) {
+    return Status::Error(400, "Style sheet must be encoded in UTF-8");
+  }
 
   if (media_settings != nullptr) {
     auto add_media_type = [&settings](bool is_added, int32 type) {
@@ -1121,6 +1133,27 @@ void ExportManager::on_get_messages_slice(vector<telegram_api::object_ptr<telegr
     }
     const auto *content = message.content_.get();
     add_text_custom_emoji(get_export_message_text(content));
+    // only the HTML pages show the custom emoji of polls and checklists
+    switch (export_->settings.format == ExportFormat::Json ? 0 : content->get_id()) {
+      case td_api::messagePoll::ID: {
+        const auto *poll = static_cast<const td_api::messagePoll *>(content)->poll_.get();
+        add_text_custom_emoji(poll->question_.get());
+        for (const auto &option : poll->options_) {
+          add_text_custom_emoji(option->text_.get());
+        }
+        break;
+      }
+      case td_api::messageChecklist::ID: {
+        const auto *checklist = static_cast<const td_api::messageChecklist *>(content)->list_.get();
+        add_text_custom_emoji(checklist->title_.get());
+        for (const auto &task : checklist->tasks_) {
+          add_text_custom_emoji(task->text_.get());
+        }
+        break;
+      }
+      default:
+        break;
+    }
     if (message.interaction_info_ != nullptr && message.interaction_info_->reactions_ != nullptr) {
       for (const auto &reaction : message.interaction_info_->reactions_->reactions_) {
         if (reaction->type_->get_id() == td_api::reactionTypeCustomEmoji::ID) {
@@ -1203,12 +1236,21 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
     work.message_id = MessageId(message.id_);
     file_works.push_back(std::move(work));
   };
-  auto add_photo = [&](const vector<td_api::object_ptr<td_api::photoSize>> *sizes, bool is_photo_available) {
-    string path = PSTRING() << "photos/photo_" << ++export_->photo_count << date_part << ".jpg";
+  auto add_photo = [&](const vector<td_api::object_ptr<td_api::photoSize>> *sizes, bool is_photo_available,
+                       int32 thumbnail_box_size) {
+    string path = PSTRING() << "photos/photo_" << ++export_->photo_count << date_part;
     const auto *size = sizes == nullptr ? nullptr : get_export_photo_size(*sizes);
     const auto *file = size == nullptr ? nullptr : size->photo_.get();
-    add_work(export_message.file, file, string(), std::move(path), ExportSettings::Photo, get_export_file_size(file),
-             is_photo_available);
+    auto file_size = get_export_file_size(file);
+    add_work(export_message.file, file, string(), path + ".jpg", ExportSettings::Photo, file_size, is_photo_available);
+    if (settings.format != ExportFormat::Json && file != nullptr) {
+      // HTML pages show a smaller size instead of scaling the photo
+      const auto *thumbnail_size = get_export_photo_thumbnail_size(*sizes, thumbnail_box_size);
+      if (thumbnail_size != nullptr) {
+        add_work(export_message.thumbnail, thumbnail_size->photo_.get(), string(), path + "_thumb.jpg",
+                 ExportSettings::Photo, file_size, is_photo_available);
+      }
+    }
   };
   auto add_document = [&](int32 media_type, const td_api::file *file, Slice file_name, Slice mime_type,
                           const td_api::thumbnail *thumbnail) {
@@ -1225,16 +1267,17 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
   const auto *content = message.content_.get();
   switch (content->get_id()) {
     case td_api::messagePhoto::ID:
-      add_photo(&static_cast<const td_api::messagePhoto *>(content)->photo_->sizes_, is_available);
+      add_photo(&static_cast<const td_api::messagePhoto *>(content)->photo_->sizes_, is_available,
+                EXPORT_HTML_PHOTO_SIZE);
       break;
     case td_api::messageChatChangePhoto::ID: {
       const auto *photo = static_cast<const td_api::messageChatChangePhoto *>(content)->photo_.get();
-      add_photo(photo == nullptr ? nullptr : &photo->sizes_, true);
+      add_photo(photo == nullptr ? nullptr : &photo->sizes_, true, 2 * EXPORT_HTML_SERVICE_PHOTO_SIZE);
       break;
     }
     case td_api::messageSuggestProfilePhoto::ID: {
       const auto *photo = static_cast<const td_api::messageSuggestProfilePhoto *>(content)->photo_.get();
-      add_photo(photo == nullptr ? nullptr : &photo->sizes_, true);
+      add_photo(photo == nullptr ? nullptr : &photo->sizes_, true, 2 * EXPORT_HTML_SERVICE_PHOTO_SIZE);
       break;
     }
     case td_api::messageAnimation::ID: {

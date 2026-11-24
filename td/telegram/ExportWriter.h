@@ -46,11 +46,26 @@ struct ExportDialogInfo {
   bool is_left_channel = false;
 };
 
+// identifiers of messages of the basic group, from which the supergroup was migrated, are shifted by the value
+constexpr int32 EXPORT_MIGRATED_MESSAGE_ID_SHIFT = -1000000000;
+
+constexpr int64 EXPORT_NANOS_IN_GRAM = 1000000000;
+
+struct ExportDateTime {
+  int64 year;
+  int64 month;
+  int64 day;
+  // seconds since the start of the day
+  int64 seconds;
+};
+
 // returns the UTC offset of the date: utc_time_offset, moved by the change of the system time zone's offset between
 // now and the date, so that each date gets its own daylight saving time
 int32 get_export_utc_time_offset(int64 date, int32 utc_time_offset);
 
 int64 get_export_local_time(int64 date, int32 utc_time_offset);
+
+ExportDateTime get_export_date_time(int64 local_time);
 
 // returns the date in the "YYYY-MM-DDTHH:MM:SS" format
 string get_export_date_time_string(int64 local_time);
@@ -62,8 +77,31 @@ int64 get_export_file_size(const td_api::file *file);
 
 const td_api::photoSize *get_export_photo_size(const vector<td_api::object_ptr<td_api::photoSize>> &sizes);
 
+// the maximum size of photos in HTML pages, in physical pixels
+constexpr int32 EXPORT_HTML_PHOTO_SIZE = 520;
+
+// the size of photos of service messages in HTML pages, in logical pixels
+constexpr int32 EXPORT_HTML_SERVICE_PHOTO_SIZE = 60;
+
+// returns the smallest size, which covers a box of the given size, or nullptr if it is the largest size
+const td_api::photoSize *get_export_photo_thumbnail_size(const vector<td_api::object_ptr<td_api::photoSize>> &sizes,
+                                                         int32 box_size);
+
 // returns the text or the caption of the message
 const td_api::formattedText *get_export_message_text(const td_api::MessageContent *content);
+
+enum class ExportContentKind : int32 { Unsupported, Ordinary, Service };
+
+ExportContentKind get_export_content_kind(const td_api::MessageContent *content);
+
+int64 get_export_dialog_bare_id(DialogId dialog_id);
+
+DialogId get_export_message_sender_dialog_id(const td_api::MessageSender *sender);
+
+// returns 0 for messages, which aren't sent yet
+int32 get_export_server_message_id(int64 message_id);
+
+void get_export_giveaway_prize(const td_api::GiveawayPrize *prize, int32 &month_count, int64 &star_count);
 
 struct ExportTextPart {
   Slice text;
@@ -74,6 +112,10 @@ struct ExportTextPart {
 // a part per entity in their order, and the plain text between them; entities nested in another one are skipped
 vector<ExportTextPart> get_export_text_parts(Slice text,
                                              const vector<td_api::object_ptr<td_api::textEntity>> *entities);
+
+string format_export_money_amount(int64 amount, Slice currency);
+
+string format_export_phone_number(const string &phone_number);
 
 struct ExportFile {
   enum class SkipReason : int32 { None, Unavailable, FileType, FileSize };
@@ -94,6 +136,10 @@ struct ExportMessage {
 
 // the files of custom emoji, which are used in texts of messages and in reactions
 using ExportCustomEmojiFiles = FlatHashMap<CustomEmojiId, ExportFile, CustomEmojiIdHash>;
+
+// emoji outside texts of messages aren't resolved, so their identifier is returned instead of the path;
+// "(unavailable)" if the file couldn't be loaded, and an empty string if it is skipped by the settings
+string get_export_custom_emoji_path(const ExportCustomEmojiFiles *custom_emoji_files, int64 custom_emoji_id);
 
 class ExportOutputFile {
  public:

@@ -55,6 +55,8 @@ struct ExportSettings {
   // the takeout session is received
   string path;
   ExportFormat format = ExportFormat::Html;
+  // the style sheet of HTML pages, which is applied after the default one
+  string html_stylesheet;
 
   int32 types = 0;
   // the chat types, which are exported with messages of all members; other chats are exported with own messages only

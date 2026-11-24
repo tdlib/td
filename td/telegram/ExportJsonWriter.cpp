@@ -6,7 +6,6 @@
 //
 #include "td/telegram/ExportJsonWriter.h"
 
-#include "td/telegram/CountryInfoManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/LinkManager.h"
@@ -23,17 +22,10 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/StringBuilder.h"
-#include "td/utils/utf8.h"
 
-#include <cmath>
-#include <cstdio>
 #include <utility>
 
 namespace td {
-
-static constexpr int32 MIGRATED_MESSAGE_ID_SHIFT = -1000000000;
-
-static constexpr int64 NANOS_IN_GRAM = 1000000000;
 
 // the nesting level of the items of the "messages" array of the root object
 static constexpr int32 MESSAGE_JSON_OFFSET = 2;
@@ -43,29 +35,6 @@ static const char FILE_NOT_INCLUDED[] = "(File not included. Change data exporti
 static const char FILE_UNAVAILABLE[] = "(File unavailable, please try again later)";
 
 static const char FILE_TOO_BIG[] = "(File exceeds maximum size. Change data exporting settings to download.)";
-
-// emoji outside texts of messages aren't resolved, so their identifier is written instead of the path
-static string get_custom_emoji_path(const ExportCustomEmojiFiles *custom_emoji_files, int64 custom_emoji_id) {
-  if (custom_emoji_files == nullptr) {
-    return to_string(custom_emoji_id);
-  }
-  auto it = custom_emoji_files->find(CustomEmojiId(custom_emoji_id));
-  if (it == custom_emoji_files->end()) {
-    return "(unavailable)";
-  }
-  switch (it->second.skip_reason) {
-    case ExportFile::SkipReason::None:
-      return it->second.relative_path;
-    case ExportFile::SkipReason::Unavailable:
-      return "(unavailable)";
-    case ExportFile::SkipReason::FileType:
-    case ExportFile::SkipReason::FileSize:
-      return string();
-    default:
-      UNREACHABLE();
-      return string();
-  }
-}
 
 static Slice get_file_path(const ExportFile &file) {
   switch (file.skip_reason) {
@@ -81,203 +50,6 @@ static Slice get_file_path(const ExportFile &file) {
       UNREACHABLE();
       return Slice();
   }
-}
-
-struct ExportCurrencyRule {
-  const char *international = "";
-  char thousands = ',';
-  char decimal = '.';
-  bool left = true;
-  bool space = false;
-  int32 exponent = 2;
-  bool strip_dot_zero = false;
-};
-
-struct ExportCurrencyRuleEntry {
-  const char *currency;
-  ExportCurrencyRule rule;
-};
-
-static ExportCurrencyRule get_currency_rule(Slice currency) {
-  static const ExportCurrencyRuleEntry rules[] = {
-      {"AED", {"", ',', '.', true, true}},
-      {"AFN", {}},
-      {"ALL", {"", '.', ',', false}},
-      {"AMD", {"", ',', '.', false, true}},
-      {"ARS", {"", '.', ',', true, true}},
-      {"AUD", {"AU$"}},
-      {"AZN", {"", ' ', ',', false, true}},
-      {"BAM", {"", '.', ',', false, true}},
-      {"BDT", {"", ',', '.', true, true}},
-      {"BGN", {"", ' ', ',', false, true}},
-      {"BHD", {"", ',', '.', true, true, 3}},
-      {"BND", {"", '.', ','}},
-      {"BOB", {"", '.', ',', true, true}},
-      {"BRL", {"R$", '.', ',', true, true}},
-      {"BYN", {"", ' ', ',', false, true}},
-      {"CAD", {"CA$"}},
-      {"CHF", {"", '\'', '.', false, true}},
-      {"CLP", {"", '.', ',', true, true, 0}},
-      {"CNY", {"\x43\x4E\xC2\xA5"}},
-      {"COP", {"", '.', ',', true, true}},
-      {"CRC", {"", '.', ','}},
-      {"CZK", {"", ' ', ',', false, true}},
-      {"DKK", {"", '\0', ',', false, true}},
-      {"DOP", {}},
-      {"DZD", {"", ',', '.', true, true}},
-      {"EGP", {"", ',', '.', true, true}},
-      {"ETB", {}},
-      {"EUR", {"\xE2\x82\xAC", ' ', ',', false, true}},
-      {"GBP", {"\xC2\xA3"}},
-      {"GEL", {"", ' ', ',', false, true}},
-      {"GHS", {}},
-      {"GTQ", {}},
-      {"HKD", {"HK$"}},
-      {"HNL", {"", ',', '.', true, true}},
-      {"HRK", {"", '.', ',', false, true}},
-      {"HUF", {"", ' ', ',', false, true}},
-      {"IDR", {"", '.', ','}},
-      {"ILS", {"\xE2\x82\xAA", ',', '.', true, true}},
-      {"INR", {"\xE2\x82\xB9"}},
-      {"IQD", {"", ',', '.', true, true, 3}},
-      {"IRR", {"", ',', '/', false, true}},
-      {"ISK", {"", '.', ',', false, true, 0}},
-      {"JMD", {}},
-      {"JOD", {"", ',', '.', true, false, 3}},
-      {"JPY", {"\xC2\xA5", ',', '.', true, false, 0}},
-      {"KES", {}},
-      {"KGS", {"", ' ', '-', false, true}},
-      {"KRW", {"\xE2\x82\xA9", ',', '.', true, false, 0}},
-      {"KZT", {"", ' ', '-'}},
-      {"LBP", {"", ',', '.', true, true}},
-      {"LKR", {"", ',', '.', true, true}},
-      {"MAD", {"", ',', '.', true, true}},
-      {"MDL", {"", ',', '.', false, true}},
-      {"MMK", {}},
-      {"MNT", {"", ' ', ','}},
-      {"MOP", {}},
-      {"MUR", {}},
-      {"MVR", {"", ',', '.', false, true}},
-      {"MXN", {"MX$"}},
-      {"MYR", {}},
-      {"MZN", {}},
-      {"NGN", {}},
-      {"NIO", {"", ',', '.', true, true}},
-      {"NOK", {"", ' ', ',', true, true}},
-      {"NPR", {}},
-      {"NZD", {"NZ$"}},
-      {"PAB", {"", ',', '.', true, true}},
-      {"PEN", {"", ',', '.', true, true}},
-      {"PHP", {}},
-      {"PKR", {}},
-      {"PLN", {"", ' ', ',', false, true}},
-      {"PYG", {"", '.', ',', true, true, 0}},
-      {"QAR", {"", ',', '.', true, true}},
-      {"RON", {"", '.', ',', false, true}},
-      {"RSD", {"", '.', ',', false, true}},
-      {"RUB", {"", ' ', ',', false, true}},
-      {"SAR", {"", ',', '.', true, true}},
-      {"SEK", {"", '.', ',', false, true}},
-      {"SGD", {}},
-      {"SYP", {"", ',', '.', true, true}},
-      {"THB", {"\xE0\xB8\xBF"}},
-      {"TJS", {"", ' ', ';', false, true}},
-      {"TRY", {"", '.', ',', false, true}},
-      {"TTD", {}},
-      {"TWD", {"NT$"}},
-      {"TZS", {}},
-      {"UAH", {"", ' ', ',', false}},
-      {"UGX", {"", ',', '.', true, false, 0}},
-      {"USD", {"$"}},
-      {"UYU", {"", '.', ',', true, true}},
-      {"UZS", {"", ' ', ',', false, true}},
-      {"VEF", {"", '.', ',', true, true}},
-      {"VND", {"\xE2\x82\xAB", '.', ',', false, true, 0}},
-      {"YER", {"", ',', '.', true, true}},
-      {"ZAR", {"", ',', '.', true, true}},
-  };
-  for (const auto &entry : rules) {
-    if (currency == Slice(entry.currency)) {
-      return entry.rule;
-    }
-  }
-  return ExportCurrencyRule();
-}
-
-static string group_thousands(const string &digits, char thousands) {
-  if (thousands == '\0') {
-    return digits;
-  }
-  string result;
-  result.reserve(digits.size() + digits.size() / 3);
-  for (size_t i = 0; i < digits.size(); i++) {
-    if (i != 0 && (digits.size() - i) % 3 == 0) {
-      result += thousands;
-    }
-    result += digits[i];
-  }
-  return result;
-}
-
-static string format_with_separators(double amount, int32 precision, char decimal, char thousands) {
-  CHECK(decimal != '\0');
-  char buffer[400];
-  auto length = std::snprintf(buffer, sizeof(buffer), "%.*f", precision, amount);
-  CHECK(length > 0 && static_cast<size_t>(length) < sizeof(buffer));
-  string formatted(buffer, static_cast<size_t>(length));
-  auto point_pos = formatted.find('.');
-  auto result = group_thousands(formatted.substr(0, point_pos), thousands);
-  if (point_pos != string::npos) {
-    result += decimal;
-    result += formatted.substr(point_pos + 1);
-  }
-  return result;
-}
-
-static string format_money_amount(int64 amount, Slice currency) {
-  const auto absolute = amount < 0 ? ~static_cast<uint64>(amount) + 1 : static_cast<uint64>(amount);
-  if (currency == "XTR") {
-    return "\xE2\xAD\x90" + group_thousands(to_string(absolute), ',');
-  }
-
-  const auto rule = get_currency_rule(currency);
-  const auto value = static_cast<double>(absolute) / std::pow(10.0, rule.exponent);
-  const string name = rule.international[0] != '\0' ? string(rule.international) : currency.str();
-  string result = amount < 0 ? "\xE2\x88\x92" : "";
-  if (rule.left) {
-    result += name;
-    if (rule.space) {
-      result += ' ';
-    }
-  }
-  const auto precision = !rule.strip_dot_zero || std::floor(value) != value ? rule.exponent : 0;
-  result += format_with_separators(value, precision, rule.decimal, rule.thousands);
-  if (!rule.left) {
-    if (rule.space) {
-      result += ' ';
-    }
-    result += name;
-  }
-  return result;
-}
-
-static string format_phone_number(const string &phone_number) {
-  if (phone_number.empty() || phone_number[0] == '0') {
-    return phone_number;
-  }
-  auto info = CountryInfoManager::get_phone_number_info_sync("en", phone_number);
-  if (info == nullptr) {
-    return phone_number;
-  }
-  if (info->country_ == nullptr) {
-    return info->country_calling_code_ + info->formatted_phone_number_;
-  }
-  // the unfilled positions of the pattern are padded with '-'
-  auto formatted = std::move(info->formatted_phone_number_);
-  while (!formatted.empty() && (formatted.back() == '-' || formatted.back() == ' ')) {
-    formatted.pop_back();
-  }
-  return PSTRING() << '+' << info->country_calling_code_ << ' ' << formatted;
 }
 
 static Slice get_dialog_type_string(ExportDialogInfo::Type type) {
@@ -311,19 +83,6 @@ static Slice get_dialog_type_string(ExportDialogInfo::Type type) {
   }
 }
 
-static int64 get_dialog_bare_id(DialogId dialog_id) {
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-      return dialog_id.get_user_id().get();
-    case DialogType::Chat:
-      return dialog_id.get_chat_id().get();
-    case DialogType::Channel:
-      return dialog_id.get_channel_id().get();
-    default:
-      return 0;
-  }
-}
-
 // the bare identifier with the peer type in the bits 48-55
 static int64 get_peer_id_value(DialogId dialog_id) {
   switch (dialog_id.get_type()) {
@@ -349,26 +108,6 @@ static string get_peer_id_string(DialogId dialog_id) {
     default:
       return "user0";
   }
-}
-
-static DialogId get_message_sender_dialog_id(const td_api::MessageSender *sender) {
-  if (sender == nullptr) {
-    return DialogId();
-  }
-  switch (sender->get_id()) {
-    case td_api::messageSenderUser::ID:
-      return DialogId(UserId(static_cast<const td_api::messageSenderUser *>(sender)->user_id_));
-    case td_api::messageSenderChat::ID:
-      return DialogId(static_cast<const td_api::messageSenderChat *>(sender)->chat_id_);
-    default:
-      UNREACHABLE();
-      return DialogId();
-  }
-}
-
-static int32 get_server_message_id(int64 message_id) {
-  MessageId result(message_id);
-  return result.is_server() ? result.get_server_message_id().get() : 0;
 }
 
 static Slice get_call_discard_reason_string(const td_api::CallDiscardReason *reason) {
@@ -508,26 +247,8 @@ static void store_suggested_post_price(JsonObjectScope &object, const td_api::Su
       return store_price(object, static_cast<const td_api::suggestedPostPriceStar *>(price)->star_count_, 0, false);
     case td_api::suggestedPostPriceGram::ID: {
       auto cent_count = static_cast<const td_api::suggestedPostPriceGram *>(price)->gram_cent_count_;
-      return store_price(object, cent_count / 100, cent_count % 100 * (NANOS_IN_GRAM / 100), true);
+      return store_price(object, cent_count / 100, cent_count % 100 * (EXPORT_NANOS_IN_GRAM / 100), true);
     }
-    default:
-      UNREACHABLE();
-  }
-}
-
-static void get_giveaway_prize(const td_api::GiveawayPrize *prize, int32 &month_count, int64 &star_count) {
-  month_count = 0;
-  star_count = 0;
-  if (prize == nullptr) {
-    return;
-  }
-  switch (prize->get_id()) {
-    case td_api::giveawayPrizePremium::ID:
-      month_count = static_cast<const td_api::giveawayPrizePremium *>(prize)->month_count_;
-      break;
-    case td_api::giveawayPrizeStars::ID:
-      star_count = static_cast<const td_api::giveawayPrizeStars *>(prize)->star_count_;
-      break;
     default:
       UNREACHABLE();
   }
@@ -590,7 +311,7 @@ class ExportJsonTextPart final : public Jsonable {
         break;
       case td_api::textEntityTypeCustomEmoji::ID:
         object("document_id",
-               JsonRawString(get_custom_emoji_path(
+               JsonRawString(get_export_custom_emoji_path(
                    custom_emoji_files_,
                    static_cast<const td_api::textEntityTypeCustomEmoji *>(part_.type)->custom_emoji_id_)));
         break;
@@ -760,126 +481,6 @@ class ExportJsonInlineButton final : public Jsonable {
   const td_api::inlineKeyboardButton *button_;
 };
 
-enum class ExportContentKind : int32 { Unsupported, Ordinary, Service };
-
-static ExportContentKind get_export_content_kind(const td_api::MessageContent *content) {
-  if (content == nullptr) {
-    return ExportContentKind::Unsupported;
-  }
-  switch (content->get_id()) {
-    case td_api::messageText::ID:
-    case td_api::messageAnimation::ID:
-    case td_api::messageAudio::ID:
-    case td_api::messageDocument::ID:
-    case td_api::messagePaidMedia::ID:
-    case td_api::messagePhoto::ID:
-    case td_api::messageSticker::ID:
-    case td_api::messageVideo::ID:
-    case td_api::messageVideoNote::ID:
-    case td_api::messageVoiceNote::ID:
-    case td_api::messageExpiredPhoto::ID:
-    case td_api::messageExpiredVideo::ID:
-    case td_api::messageExpiredVideoNote::ID:
-    case td_api::messageExpiredVoiceNote::ID:
-    case td_api::messageLiveLocation::ID:
-    case td_api::messageLocation::ID:
-    case td_api::messageVenue::ID:
-    case td_api::messageContact::ID:
-    case td_api::messageAnimatedEmoji::ID:
-    case td_api::messageDice::ID:
-    case td_api::messageGame::ID:
-    case td_api::messagePoll::ID:
-    case td_api::messageStakeDice::ID:
-    case td_api::messageStory::ID:
-    case td_api::messageChecklist::ID:
-    case td_api::messageInvoice::ID:
-    case td_api::messageGiveaway::ID:
-    case td_api::messageGiveawayWinners::ID:
-    case td_api::messageWidget::ID:
-      return ExportContentKind::Ordinary;
-    case td_api::messageCall::ID:
-    case td_api::messageGroupCall::ID:
-    case td_api::messageVideoChatScheduled::ID:
-    case td_api::messageVideoChatStarted::ID:
-    case td_api::messageVideoChatEnded::ID:
-    case td_api::messageInviteVideoChatParticipants::ID:
-    case td_api::messagePollOptionAdded::ID:
-    case td_api::messagePollOptionDeleted::ID:
-    case td_api::messageBasicGroupChatCreate::ID:
-    case td_api::messageSupergroupChatCreate::ID:
-    case td_api::messageChatChangeTitle::ID:
-    case td_api::messageChatChangePhoto::ID:
-    case td_api::messageChatDeletePhoto::ID:
-    case td_api::messageChatOwnerLeft::ID:
-    case td_api::messageChatOwnerChanged::ID:
-    case td_api::messageChatHasProtectedContentToggled::ID:
-    case td_api::messageChatHasProtectedContentDisableRequested::ID:
-    case td_api::messageChatAddMembers::ID:
-    case td_api::messageChatJoinByLink::ID:
-    case td_api::messageChatJoinByRequest::ID:
-    case td_api::messageChatJoinFromCommunity::ID:
-    case td_api::messageChatAddedToCommunity::ID:
-    case td_api::messageChatRemovedFromCommunity::ID:
-    case td_api::messageChatDeleteMember::ID:
-    case td_api::messageChatUpgradeTo::ID:
-    case td_api::messageChatUpgradeFrom::ID:
-    case td_api::messagePinMessage::ID:
-    case td_api::messageScreenshotTaken::ID:
-    case td_api::messageChatSetBackground::ID:
-    case td_api::messageChatSetTheme::ID:
-    case td_api::messageChatSetMessageAutoDeleteTime::ID:
-    case td_api::messageChatBoost::ID:
-    case td_api::messageForumTopicCreated::ID:
-    case td_api::messageForumTopicEdited::ID:
-    case td_api::messageForumTopicIsClosedToggled::ID:
-    case td_api::messageForumTopicIsHiddenToggled::ID:
-    case td_api::messageSuggestProfilePhoto::ID:
-    case td_api::messageSuggestBirthdate::ID:
-    case td_api::messageCustomServiceAction::ID:
-    case td_api::messageGameScore::ID:
-    case td_api::messageManagedBotCreated::ID:
-    case td_api::messagePaymentSuccessful::ID:
-    case td_api::messagePaymentRefunded::ID:
-    case td_api::messageGiftedPremium::ID:
-    case td_api::messagePremiumGiftCode::ID:
-    case td_api::messageGiveawayCreated::ID:
-    case td_api::messageGiveawayCompleted::ID:
-    case td_api::messageGiftedStars::ID:
-    case td_api::messageGiftedGrams::ID:
-    case td_api::messageGiveawayPrizeStars::ID:
-    case td_api::messageTonWalletTransfer::ID:
-    case td_api::messageTonConnectRequest::ID:
-    case td_api::messageGift::ID:
-    case td_api::messageUpgradedGift::ID:
-    case td_api::messageRefundedUpgradedGift::ID:
-    case td_api::messageUpgradedGiftPurchaseOffer::ID:
-    case td_api::messageUpgradedGiftPurchaseOfferRejected::ID:
-    case td_api::messageUpgradedGiftOnChainPurchaseOffer::ID:
-    case td_api::messagePaidMessagesRefunded::ID:
-    case td_api::messagePaidMessagePriceChanged::ID:
-    case td_api::messageDirectMessagePriceChanged::ID:
-    case td_api::messageChecklistTasksDone::ID:
-    case td_api::messageChecklistTasksAdded::ID:
-    case td_api::messageSuggestedPostApprovalFailed::ID:
-    case td_api::messageSuggestedPostApproved::ID:
-    case td_api::messageSuggestedPostDeclined::ID:
-    case td_api::messageSuggestedPostPaid::ID:
-    case td_api::messageSuggestedPostRefunded::ID:
-    case td_api::messageContactRegistered::ID:
-    case td_api::messageUsersShared::ID:
-    case td_api::messageChatShared::ID:
-    case td_api::messageBotWriteAccessAllowed::ID:
-    case td_api::messageWebAppDataSent::ID:
-    case td_api::messagePassportDataSent::ID:
-    case td_api::messageProximityAlertTriggered::ID:
-    case td_api::messageUnpaidMessagesAllowedByLink::ID:
-    case td_api::messageBotInvite::ID:
-      return ExportContentKind::Service;
-    default:
-      return ExportContentKind::Unsupported;
-  }
-}
-
 class ExportJsonMessage final : public Jsonable {
  public:
   ExportJsonMessage(Td *td, const ExportMessage &export_message, bool is_migrated,
@@ -922,7 +523,7 @@ class ExportJsonMessage final : public Jsonable {
   }
 
   int32 get_same_chat_message_id(int32 server_message_id) const {
-    return is_migrated_ ? server_message_id + MIGRATED_MESSAGE_ID_SHIFT : server_message_id;
+    return is_migrated_ ? server_message_id + EXPORT_MIGRATED_MESSAGE_ID_SHIFT : server_message_id;
   }
 
   bool is_media_available() const {
@@ -976,7 +577,7 @@ UserId ExportJsonMessage::get_game_bot_user_id() const {
     return UserId(
         static_cast<const td_api::messageOriginUser *>(message_.forward_info_->origin_.get())->sender_user_id_);
   }
-  auto sender_dialog_id = get_message_sender_dialog_id(message_.sender_id_.get());
+  auto sender_dialog_id = get_export_message_sender_dialog_id(message_.sender_id_.get());
   return sender_dialog_id.get_type() == DialogType::User ? sender_dialog_id.get_user_id() : UserId();
 }
 
@@ -989,7 +590,7 @@ void ExportJsonMessage::store_peer(JsonObjectScope &object, Slice name_key, Slic
 }
 
 void ExportJsonMessage::store_actor(JsonObjectScope &object) const {
-  store_peer(object, "actor", "actor_id", get_message_sender_dialog_id(message_.sender_id_.get()));
+  store_peer(object, "actor", "actor_id", get_export_message_sender_dialog_id(message_.sender_id_.get()));
 }
 
 void ExportJsonMessage::store_user_names(JsonObjectScope &object, Slice key, const vector<int64> &user_ids) const {
@@ -1001,7 +602,7 @@ void ExportJsonMessage::store_user_names(JsonObjectScope &object, Slice key, con
 }
 
 void ExportJsonMessage::store_same_chat_message_id(JsonObjectScope &object, Slice key, int64 message_id) const {
-  auto server_message_id = get_server_message_id(message_id);
+  auto server_message_id = get_export_server_message_id(message_id);
   if (server_message_id != 0) {
     object(key, JsonInt(get_same_chat_message_id(server_message_id)));
   }
@@ -1012,7 +613,7 @@ void ExportJsonMessage::store_message_reference(JsonObjectScope &object, Slice k
   if (chat_id == 0 || chat_id == message_.chat_id_) {
     return store_same_chat_message_id(object, key, message_id);
   }
-  auto server_message_id = get_server_message_id(message_id);
+  auto server_message_id = get_export_server_message_id(message_id);
   if (server_message_id != 0) {
     object(key, JsonInt(server_message_id));
     object("reply_to_peer_id", JsonRawString(get_peer_id_string(DialogId(chat_id))));
@@ -1020,7 +621,7 @@ void ExportJsonMessage::store_message_reference(JsonObjectScope &object, Slice k
 }
 
 void ExportJsonMessage::store_message_header(JsonObjectScope &object) const {
-  store_peer(object, "from", "from_id", get_message_sender_dialog_id(message_.sender_id_.get()));
+  store_peer(object, "from", "from_id", get_export_message_sender_dialog_id(message_.sender_id_.get()));
   store_string(object, "author", message_.author_signature_);
 
   const auto *forward_info = message_.forward_info_.get();
@@ -1265,7 +866,7 @@ void ExportJsonMessage::store_media_content(JsonObjectScope &object, const td_ap
       object("contact_information", json_object([contact](auto &o) {
                o("first_name", JsonRawString(contact->first_name_));
                o("last_name", JsonRawString(contact->last_name_));
-               o("phone_number", JsonRawString(format_phone_number(contact->phone_number_)));
+               o("phone_number", JsonRawString(format_export_phone_number(contact->phone_number_)));
              }));
       if (!contact->vcard_.empty()) {
         object("contact_vcard", JsonRawString(get_file_path(file_)));
@@ -1318,7 +919,7 @@ void ExportJsonMessage::store_media_content(JsonObjectScope &object, const td_ap
     case td_api::messageInvoice::ID: {
       const auto *m = static_cast<const td_api::messageInvoice *>(content);
       const auto *product_info = m->product_info_.get();
-      auto receipt_message_id = get_server_message_id(m->receipt_message_id_);
+      auto receipt_message_id = get_export_server_message_id(m->receipt_message_id_);
       auto invoice = json_object([m, product_info, receipt_message_id](auto &o) {
         o("title", JsonRawString(product_info->title_));
         o("description",
@@ -1338,15 +939,15 @@ void ExportJsonMessage::store_media_content(JsonObjectScope &object, const td_ap
       const auto *parameters = m->parameters_.get();
       int32 month_count;
       int64 star_count;
-      get_giveaway_prize(m->prize_.get(), month_count, star_count);
+      get_export_giveaway_prize(m->prize_.get(), month_count, star_count);
       object("giveaway_information", json_object([&](auto &o) {
                o("quantity", JsonInt(m->winner_count_));
                o("months", JsonInt(month_count));
                o("until_date", JsonRawString(format_date(parameters->winners_selection_date_)));
                o("channels", json_array([parameters](auto &array) {
-                   array(JsonLong(get_dialog_bare_id(DialogId(parameters->boosted_chat_id_))));
+                   array(JsonLong(get_export_dialog_bare_id(DialogId(parameters->boosted_chat_id_))));
                    for (auto chat_id : parameters->additional_chat_ids_) {
-                     array(JsonLong(get_dialog_bare_id(DialogId(chat_id))));
+                     array(JsonLong(get_export_dialog_bare_id(DialogId(chat_id))));
                    }
                  }));
                o("countries", json_array(parameters->country_codes_,
@@ -1361,13 +962,13 @@ void ExportJsonMessage::store_media_content(JsonObjectScope &object, const td_ap
       const auto *m = static_cast<const td_api::messageGiveawayWinners *>(content);
       int32 month_count;
       int64 star_count;
-      get_giveaway_prize(m->prize_.get(), month_count, star_count);
+      get_export_giveaway_prize(m->prize_.get(), month_count, star_count);
       object("giveaway_results", json_object([&](auto &o) {
-               o("channel", JsonLong(get_dialog_bare_id(DialogId(m->boosted_chat_id_))));
+               o("channel", JsonLong(get_export_dialog_bare_id(DialogId(m->boosted_chat_id_))));
                o("winners", json_array(m->winner_user_ids_, [](int64 user_id) { return JsonLong(user_id); }));
                o("additional_prize", JsonRawString(m->prize_description_));
                o("until_date", JsonRawString(format_date(m->actual_winners_selection_date_)));
-               o("launch_message_id", JsonInt(get_server_message_id(m->giveaway_message_id_)));
+               o("launch_message_id", JsonInt(get_export_server_message_id(m->giveaway_message_id_)));
                o("additional_peers_count", JsonInt(m->additional_chat_count_));
                o("winners_count", JsonInt(m->winner_count_));
                o("unclaimed_count", JsonInt(m->unclaimed_prize_count_));
@@ -1547,8 +1148,8 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
     case td_api::messageProximityAlertTriggered::ID: {
       const auto *m = static_cast<const td_api::messageProximityAlertTriggered *>(content);
       object("action", "proximity_reached");
-      store_peer(object, "from", "from_id", get_message_sender_dialog_id(m->traveler_id_.get()));
-      store_peer(object, "to", "to_id", get_message_sender_dialog_id(m->watcher_id_.get()));
+      store_peer(object, "from", "from_id", get_export_message_sender_dialog_id(m->traveler_id_.get()));
+      store_peer(object, "to", "to_id", get_export_message_sender_dialog_id(m->watcher_id_.get()));
       object("distance", JsonInt(m->distance_));
       break;
     }
@@ -1620,7 +1221,7 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
       const auto *m = static_cast<const td_api::messageGiftedPremium *>(content);
       store_actor(object);
       object("action", "send_premium_gift");
-      store_string(object, "cost", format_money_amount(m->amount_, m->currency_));
+      store_string(object, "cost", format_export_money_amount(m->amount_, m->currency_));
       if (m->day_count_ != 0) {
         object("days", JsonInt(m->day_count_));
       }
@@ -1685,7 +1286,8 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
       object("action", "gift_code_prize");
       store_string(object, "gift_code", m->code_);
       if (m->creator_id_ != nullptr) {
-        object("boost_peer_id", JsonRawString(get_peer_id_string(get_message_sender_dialog_id(m->creator_id_.get()))));
+        object("boost_peer_id",
+               JsonRawString(get_peer_id_string(get_export_message_sender_dialog_id(m->creator_id_.get()))));
       }
       object("days", JsonInt(m->day_count_));
       object("unclaimed", JsonBool(m->is_unclaimed_));
@@ -1718,7 +1320,7 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
       break;
     case td_api::messagePaymentRefunded::ID: {
       const auto *m = static_cast<const td_api::messagePaymentRefunded *>(content);
-      auto owner_dialog_id = get_message_sender_dialog_id(m->owner_id_.get());
+      auto owner_dialog_id = get_export_message_sender_dialog_id(m->owner_id_.get());
       object("action", "refunded_payment");
       object("amount", JsonLong(m->total_amount_));
       store_string(object, "currency", m->currency_);
@@ -1731,7 +1333,7 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
       const auto *m = static_cast<const td_api::messageGiftedStars *>(content);
       store_actor(object);
       object("action", "send_stars_gift");
-      store_string(object, "cost", format_money_amount(m->amount_, m->currency_));
+      store_string(object, "cost", format_export_money_amount(m->amount_, m->currency_));
       if (m->star_count_ != 0) {
         object("amount_whole", JsonLong(m->star_count_));
         object("amount_nano", JsonInt(0));
@@ -1743,8 +1345,8 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
       store_actor(object);
       object("action", "send_ton_gift");
       if (gram_amount != 0) {
-        object("amount_whole", JsonLong(gram_amount / NANOS_IN_GRAM));
-        object("amount_nano", JsonLong(gram_amount % NANOS_IN_GRAM));
+        object("amount_whole", JsonLong(gram_amount / EXPORT_NANOS_IN_GRAM));
+        object("amount_nano", JsonLong(gram_amount % EXPORT_NANOS_IN_GRAM));
       }
       break;
     }
@@ -1757,7 +1359,7 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
       object("boost_peer_name", ExportJsonName(get_dialog_name(boosted_dialog_id)));
       object("stars", JsonLong(m->star_count_));
       object("is_unclaimed", JsonBool(m->is_unclaimed_));
-      object("giveaway_msg_id", JsonInt(get_server_message_id(m->giveaway_message_id_)));
+      object("giveaway_msg_id", JsonInt(get_export_server_message_id(m->giveaway_message_id_)));
       store_string(object, "transaction_id", m->transaction_id_);
       break;
     }
@@ -1875,7 +1477,8 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
       store_actor(object);
       object("action", "suggested_post_success");
       if (m->gram_amount_ != 0 || m->star_amount_ == nullptr) {
-        store_price(object, m->gram_amount_ / NANOS_IN_GRAM, m->gram_amount_ % NANOS_IN_GRAM, m->gram_amount_ != 0);
+        store_price(object, m->gram_amount_ / EXPORT_NANOS_IN_GRAM, m->gram_amount_ % EXPORT_NANOS_IN_GRAM,
+                    m->gram_amount_ != 0);
       } else {
         store_price(object, m->star_amount_->star_count_, m->star_amount_->nanostar_count_, false);
       }
@@ -1938,8 +1541,8 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
       const auto *m = static_cast<const td_api::messageTonWalletTransfer *>(content);
       store_actor(object);
       object("action", "gram_transfer");
-      object("amount_whole", JsonLong(m->amount_ / NANOS_IN_GRAM));
-      object("amount_nano", JsonLong(m->amount_ % NANOS_IN_GRAM));
+      object("amount_whole", JsonLong(m->amount_ / EXPORT_NANOS_IN_GRAM));
+      object("amount_nano", JsonLong(m->amount_ % EXPORT_NANOS_IN_GRAM));
       store_string(object, "peer_address", m->peer_address_);
       store_string(object, "transaction_id", m->transaction_id_);
       object("comment_encrypted", JsonBool(m->is_comment_encrypted_));
@@ -2027,14 +1630,14 @@ void ExportJsonMessage::store_reactions(JsonObjectScope &object) const {
                if (type_id == td_api::reactionTypeEmoji::ID) {
                  o("emoji", JsonRawString(static_cast<const td_api::reactionTypeEmoji *>(type)->emoji_));
                } else if (type_id == td_api::reactionTypeCustomEmoji::ID) {
-                 o("document_id", JsonRawString(get_custom_emoji_path(
+                 o("document_id", JsonRawString(get_export_custom_emoji_path(
                                       &custom_emoji_files_,
                                       static_cast<const td_api::reactionTypeCustomEmoji *>(type)->custom_emoji_id_)));
                }
                if (!reaction->recent_sender_ids_.empty()) {
                  o("recent", json_array([this, &reaction](auto &recent) {
                      for (const auto &sender_id : reaction->recent_sender_ids_) {
-                       auto dialog_id = get_message_sender_dialog_id(sender_id.get());
+                       auto dialog_id = get_export_message_sender_dialog_id(sender_id.get());
                        recent(json_object([this, dialog_id](auto &r) {
                          r("from", ExportJsonName(get_dialog_name(dialog_id)));
                          r("from_id", JsonRawString(get_peer_id_string(dialog_id)));
@@ -2049,8 +1652,8 @@ void ExportJsonMessage::store_reactions(JsonObjectScope &object) const {
 
 void ExportJsonMessage::store(JsonValueScope *scope) const {
   auto object = scope->enter_object();
-  auto server_message_id = get_server_message_id(message_.id_);
-  object("id", JsonInt(is_migrated_ ? server_message_id + MIGRATED_MESSAGE_ID_SHIFT : server_message_id));
+  auto server_message_id = get_export_server_message_id(message_.id_);
+  object("id", JsonInt(is_migrated_ ? server_message_id + EXPORT_MIGRATED_MESSAGE_ID_SHIFT : server_message_id));
 
   const auto *content = message_.content_.get();
   auto kind = is_history_cleared_ ? ExportContentKind::Service : get_export_content_kind(content);
@@ -2126,7 +1729,7 @@ Status ExportJsonWriter::write_dialog_start(const ExportDialogInfo &dialog) {
   }
   sb << ',';
   jb.print_offset();
-  sb << "\"id\" : " << get_dialog_bare_id(dialog.dialog_id) << ',';
+  sb << "\"id\" : " << get_export_dialog_bare_id(dialog.dialog_id) << ',';
   jb.print_offset();
   sb << "\"messages\" : [";
   if (sb.is_error()) {

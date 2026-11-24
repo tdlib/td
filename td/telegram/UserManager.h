@@ -321,6 +321,10 @@ class UserManager final : public Actor {
 
   string get_user_title(UserId user_id) const;
 
+  Slice get_user_first_name(UserId user_id) const;
+
+  Slice get_user_last_name(UserId user_id) const;
+
   string get_secret_chat_title(SecretChatId secret_chat_id) const;
 
   RestrictedRights get_user_default_permissions(UserId user_id) const;

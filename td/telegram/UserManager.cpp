@@ -5680,6 +5680,22 @@ CustomEmojiId UserManager::get_secret_chat_profile_background_custom_emoji_id(Se
   return get_user_profile_background_custom_emoji_id(c->user_id);
 }
 
+Slice UserManager::get_user_first_name(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
+    return Slice();
+  }
+  return u->first_name;
+}
+
+Slice UserManager::get_user_last_name(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
+    return Slice();
+  }
+  return u->last_name;
+}
+
 string UserManager::get_user_title(UserId user_id) const {
   auto u = get_user(user_id);
   if (u == nullptr) {

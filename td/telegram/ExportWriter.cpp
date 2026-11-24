@@ -6,7 +6,11 @@
 //
 #include "td/telegram/ExportWriter.h"
 
+#include "td/telegram/CountryInfoManager.h"
+#include "td/telegram/ExportHtmlWriter.h"
 #include "td/telegram/ExportJsonWriter.h"
+#include "td/telegram/MessageId.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/port/Clocks.h"
@@ -63,16 +67,7 @@ int64 get_export_local_time(int64 date, int32 utc_time_offset) {
   return date + get_export_utc_time_offset(date, utc_time_offset);
 }
 
-namespace {
-struct ExportDateTime {
-  int64 year;
-  int64 month;
-  int64 day;
-  int64 seconds;
-};
-}  // namespace
-
-static ExportDateTime get_export_date_time(int64 local_time) {
+ExportDateTime get_export_date_time(int64 local_time) {
   auto days = floor_div(local_time, 86400);
   auto seconds = local_time - days * 86400;
 
@@ -164,6 +159,26 @@ const td_api::photoSize *get_export_photo_size(const vector<td_api::object_ptr<t
   return result;
 }
 
+const td_api::photoSize *get_export_photo_thumbnail_size(const vector<td_api::object_ptr<td_api::photoSize>> &sizes,
+                                                         int32 box_size) {
+  const auto *largest = get_export_photo_size(sizes);
+  if (largest == nullptr) {
+    return nullptr;
+  }
+  auto needed_size = td::min(td::max(largest->width_, largest->height_), box_size);
+  const td_api::photoSize *result = nullptr;
+  for (const auto &size : sizes) {
+    if (size == nullptr || td::max(size->width_, size->height_) < needed_size) {
+      continue;
+    }
+    if (result == nullptr ||
+        static_cast<int64>(size->width_) * size->height_ < static_cast<int64>(result->width_) * result->height_) {
+      result = size.get();
+    }
+  }
+  return result == largest ? nullptr : result;
+}
+
 const td_api::formattedText *get_export_message_text(const td_api::MessageContent *content) {
   switch (content->get_id()) {
     case td_api::messageText::ID:
@@ -192,6 +207,175 @@ const td_api::formattedText *get_export_message_text(const td_api::MessageConten
       return static_cast<const td_api::messageWidget *>(content)->caption_.get();
     default:
       return nullptr;
+  }
+}
+
+ExportContentKind get_export_content_kind(const td_api::MessageContent *content) {
+  if (content == nullptr) {
+    return ExportContentKind::Unsupported;
+  }
+  switch (content->get_id()) {
+    case td_api::messageText::ID:
+    case td_api::messageAnimation::ID:
+    case td_api::messageAudio::ID:
+    case td_api::messageDocument::ID:
+    case td_api::messagePaidMedia::ID:
+    case td_api::messagePhoto::ID:
+    case td_api::messageSticker::ID:
+    case td_api::messageVideo::ID:
+    case td_api::messageVideoNote::ID:
+    case td_api::messageVoiceNote::ID:
+    case td_api::messageExpiredPhoto::ID:
+    case td_api::messageExpiredVideo::ID:
+    case td_api::messageExpiredVideoNote::ID:
+    case td_api::messageExpiredVoiceNote::ID:
+    case td_api::messageLiveLocation::ID:
+    case td_api::messageLocation::ID:
+    case td_api::messageVenue::ID:
+    case td_api::messageContact::ID:
+    case td_api::messageAnimatedEmoji::ID:
+    case td_api::messageDice::ID:
+    case td_api::messageGame::ID:
+    case td_api::messagePoll::ID:
+    case td_api::messageStakeDice::ID:
+    case td_api::messageStory::ID:
+    case td_api::messageChecklist::ID:
+    case td_api::messageInvoice::ID:
+    case td_api::messageGiveaway::ID:
+    case td_api::messageGiveawayWinners::ID:
+    case td_api::messageWidget::ID:
+      return ExportContentKind::Ordinary;
+    case td_api::messageCall::ID:
+    case td_api::messageGroupCall::ID:
+    case td_api::messageVideoChatScheduled::ID:
+    case td_api::messageVideoChatStarted::ID:
+    case td_api::messageVideoChatEnded::ID:
+    case td_api::messageInviteVideoChatParticipants::ID:
+    case td_api::messagePollOptionAdded::ID:
+    case td_api::messagePollOptionDeleted::ID:
+    case td_api::messageBasicGroupChatCreate::ID:
+    case td_api::messageSupergroupChatCreate::ID:
+    case td_api::messageChatChangeTitle::ID:
+    case td_api::messageChatChangePhoto::ID:
+    case td_api::messageChatDeletePhoto::ID:
+    case td_api::messageChatOwnerLeft::ID:
+    case td_api::messageChatOwnerChanged::ID:
+    case td_api::messageChatHasProtectedContentToggled::ID:
+    case td_api::messageChatHasProtectedContentDisableRequested::ID:
+    case td_api::messageChatAddMembers::ID:
+    case td_api::messageChatJoinByLink::ID:
+    case td_api::messageChatJoinByRequest::ID:
+    case td_api::messageChatJoinFromCommunity::ID:
+    case td_api::messageChatAddedToCommunity::ID:
+    case td_api::messageChatRemovedFromCommunity::ID:
+    case td_api::messageChatDeleteMember::ID:
+    case td_api::messageChatUpgradeTo::ID:
+    case td_api::messageChatUpgradeFrom::ID:
+    case td_api::messagePinMessage::ID:
+    case td_api::messageScreenshotTaken::ID:
+    case td_api::messageChatSetBackground::ID:
+    case td_api::messageChatSetTheme::ID:
+    case td_api::messageChatSetMessageAutoDeleteTime::ID:
+    case td_api::messageChatBoost::ID:
+    case td_api::messageForumTopicCreated::ID:
+    case td_api::messageForumTopicEdited::ID:
+    case td_api::messageForumTopicIsClosedToggled::ID:
+    case td_api::messageForumTopicIsHiddenToggled::ID:
+    case td_api::messageSuggestProfilePhoto::ID:
+    case td_api::messageSuggestBirthdate::ID:
+    case td_api::messageCustomServiceAction::ID:
+    case td_api::messageGameScore::ID:
+    case td_api::messageManagedBotCreated::ID:
+    case td_api::messagePaymentSuccessful::ID:
+    case td_api::messagePaymentRefunded::ID:
+    case td_api::messageGiftedPremium::ID:
+    case td_api::messagePremiumGiftCode::ID:
+    case td_api::messageGiveawayCreated::ID:
+    case td_api::messageGiveawayCompleted::ID:
+    case td_api::messageGiftedStars::ID:
+    case td_api::messageGiftedGrams::ID:
+    case td_api::messageGiveawayPrizeStars::ID:
+    case td_api::messageTonWalletTransfer::ID:
+    case td_api::messageTonConnectRequest::ID:
+    case td_api::messageGift::ID:
+    case td_api::messageUpgradedGift::ID:
+    case td_api::messageRefundedUpgradedGift::ID:
+    case td_api::messageUpgradedGiftPurchaseOffer::ID:
+    case td_api::messageUpgradedGiftPurchaseOfferRejected::ID:
+    case td_api::messageUpgradedGiftOnChainPurchaseOffer::ID:
+    case td_api::messagePaidMessagesRefunded::ID:
+    case td_api::messagePaidMessagePriceChanged::ID:
+    case td_api::messageDirectMessagePriceChanged::ID:
+    case td_api::messageChecklistTasksDone::ID:
+    case td_api::messageChecklistTasksAdded::ID:
+    case td_api::messageSuggestedPostApprovalFailed::ID:
+    case td_api::messageSuggestedPostApproved::ID:
+    case td_api::messageSuggestedPostDeclined::ID:
+    case td_api::messageSuggestedPostPaid::ID:
+    case td_api::messageSuggestedPostRefunded::ID:
+    case td_api::messageContactRegistered::ID:
+    case td_api::messageUsersShared::ID:
+    case td_api::messageChatShared::ID:
+    case td_api::messageBotWriteAccessAllowed::ID:
+    case td_api::messageWebAppDataSent::ID:
+    case td_api::messagePassportDataSent::ID:
+    case td_api::messageProximityAlertTriggered::ID:
+    case td_api::messageUnpaidMessagesAllowedByLink::ID:
+    case td_api::messageBotInvite::ID:
+      return ExportContentKind::Service;
+    default:
+      return ExportContentKind::Unsupported;
+  }
+}
+
+int64 get_export_dialog_bare_id(DialogId dialog_id) {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return dialog_id.get_user_id().get();
+    case DialogType::Chat:
+      return dialog_id.get_chat_id().get();
+    case DialogType::Channel:
+      return dialog_id.get_channel_id().get();
+    default:
+      return 0;
+  }
+}
+
+DialogId get_export_message_sender_dialog_id(const td_api::MessageSender *sender) {
+  if (sender == nullptr) {
+    return DialogId();
+  }
+  switch (sender->get_id()) {
+    case td_api::messageSenderUser::ID:
+      return DialogId(UserId(static_cast<const td_api::messageSenderUser *>(sender)->user_id_));
+    case td_api::messageSenderChat::ID:
+      return DialogId(static_cast<const td_api::messageSenderChat *>(sender)->chat_id_);
+    default:
+      UNREACHABLE();
+      return DialogId();
+  }
+}
+
+int32 get_export_server_message_id(int64 message_id) {
+  MessageId result(message_id);
+  return result.is_server() ? result.get_server_message_id().get() : 0;
+}
+
+void get_export_giveaway_prize(const td_api::GiveawayPrize *prize, int32 &month_count, int64 &star_count) {
+  month_count = 0;
+  star_count = 0;
+  if (prize == nullptr) {
+    return;
+  }
+  switch (prize->get_id()) {
+    case td_api::giveawayPrizePremium::ID:
+      month_count = static_cast<const td_api::giveawayPrizePremium *>(prize)->month_count_;
+      break;
+    case td_api::giveawayPrizeStars::ID:
+      star_count = static_cast<const td_api::giveawayPrizeStars *>(prize)->star_count_;
+      break;
+    default:
+      UNREACHABLE();
   }
 }
 
@@ -226,6 +410,220 @@ vector<ExportTextPart> get_export_text_parts(Slice text,
   return result;
 }
 
+string get_export_custom_emoji_path(const ExportCustomEmojiFiles *custom_emoji_files, int64 custom_emoji_id) {
+  if (custom_emoji_files == nullptr) {
+    return to_string(custom_emoji_id);
+  }
+  auto it = custom_emoji_files->find(CustomEmojiId(custom_emoji_id));
+  if (it == custom_emoji_files->end()) {
+    return "(unavailable)";
+  }
+  switch (it->second.skip_reason) {
+    case ExportFile::SkipReason::None:
+      return it->second.relative_path;
+    case ExportFile::SkipReason::Unavailable:
+      return "(unavailable)";
+    case ExportFile::SkipReason::FileType:
+    case ExportFile::SkipReason::FileSize:
+      return string();
+    default:
+      UNREACHABLE();
+      return string();
+  }
+}
+
+struct ExportCurrencyRule {
+  const char *international = "";
+  char thousands = ',';
+  char decimal = '.';
+  bool left = true;
+  bool space = false;
+  int32 exponent = 2;
+  bool strip_dot_zero = false;
+};
+
+struct ExportCurrencyRuleEntry {
+  const char *currency;
+  ExportCurrencyRule rule;
+};
+
+static ExportCurrencyRule get_currency_rule(Slice currency) {
+  static const ExportCurrencyRuleEntry rules[] = {
+      {"AED", {"", ',', '.', true, true}},
+      {"AFN", {}},
+      {"ALL", {"", '.', ',', false}},
+      {"AMD", {"", ',', '.', false, true}},
+      {"ARS", {"", '.', ',', true, true}},
+      {"AUD", {"AU$"}},
+      {"AZN", {"", ' ', ',', false, true}},
+      {"BAM", {"", '.', ',', false, true}},
+      {"BDT", {"", ',', '.', true, true}},
+      {"BGN", {"", ' ', ',', false, true}},
+      {"BHD", {"", ',', '.', true, true, 3}},
+      {"BND", {"", '.', ','}},
+      {"BOB", {"", '.', ',', true, true}},
+      {"BRL", {"R$", '.', ',', true, true}},
+      {"BYN", {"", ' ', ',', false, true}},
+      {"CAD", {"CA$"}},
+      {"CHF", {"", '\'', '.', false, true}},
+      {"CLP", {"", '.', ',', true, true, 0}},
+      {"CNY", {"\x43\x4E\xC2\xA5"}},
+      {"COP", {"", '.', ',', true, true}},
+      {"CRC", {"", '.', ','}},
+      {"CZK", {"", ' ', ',', false, true}},
+      {"DKK", {"", '\0', ',', false, true}},
+      {"DOP", {}},
+      {"DZD", {"", ',', '.', true, true}},
+      {"EGP", {"", ',', '.', true, true}},
+      {"ETB", {}},
+      {"EUR", {"\xE2\x82\xAC", ' ', ',', false, true}},
+      {"GBP", {"\xC2\xA3"}},
+      {"GEL", {"", ' ', ',', false, true}},
+      {"GHS", {}},
+      {"GTQ", {}},
+      {"HKD", {"HK$"}},
+      {"HNL", {"", ',', '.', true, true}},
+      {"HRK", {"", '.', ',', false, true}},
+      {"HUF", {"", ' ', ',', false, true}},
+      {"IDR", {"", '.', ','}},
+      {"ILS", {"\xE2\x82\xAA", ',', '.', true, true}},
+      {"INR", {"\xE2\x82\xB9"}},
+      {"IQD", {"", ',', '.', true, true, 3}},
+      {"IRR", {"", ',', '/', false, true}},
+      {"ISK", {"", '.', ',', false, true, 0}},
+      {"JMD", {}},
+      {"JOD", {"", ',', '.', true, false, 3}},
+      {"JPY", {"\xC2\xA5", ',', '.', true, false, 0}},
+      {"KES", {}},
+      {"KGS", {"", ' ', '-', false, true}},
+      {"KRW", {"\xE2\x82\xA9", ',', '.', true, false, 0}},
+      {"KZT", {"", ' ', '-'}},
+      {"LBP", {"", ',', '.', true, true}},
+      {"LKR", {"", ',', '.', true, true}},
+      {"MAD", {"", ',', '.', true, true}},
+      {"MDL", {"", ',', '.', false, true}},
+      {"MMK", {}},
+      {"MNT", {"", ' ', ','}},
+      {"MOP", {}},
+      {"MUR", {}},
+      {"MVR", {"", ',', '.', false, true}},
+      {"MXN", {"MX$"}},
+      {"MYR", {}},
+      {"MZN", {}},
+      {"NGN", {}},
+      {"NIO", {"", ',', '.', true, true}},
+      {"NOK", {"", ' ', ',', true, true}},
+      {"NPR", {}},
+      {"NZD", {"NZ$"}},
+      {"PAB", {"", ',', '.', true, true}},
+      {"PEN", {"", ',', '.', true, true}},
+      {"PHP", {}},
+      {"PKR", {}},
+      {"PLN", {"", ' ', ',', false, true}},
+      {"PYG", {"", '.', ',', true, true, 0}},
+      {"QAR", {"", ',', '.', true, true}},
+      {"RON", {"", '.', ',', false, true}},
+      {"RSD", {"", '.', ',', false, true}},
+      {"RUB", {"", ' ', ',', false, true}},
+      {"SAR", {"", ',', '.', true, true}},
+      {"SEK", {"", '.', ',', false, true}},
+      {"SGD", {}},
+      {"SYP", {"", ',', '.', true, true}},
+      {"THB", {"\xE0\xB8\xBF"}},
+      {"TJS", {"", ' ', ';', false, true}},
+      {"TRY", {"", '.', ',', false, true}},
+      {"TTD", {}},
+      {"TWD", {"NT$"}},
+      {"TZS", {}},
+      {"UAH", {"", ' ', ',', false}},
+      {"UGX", {"", ',', '.', true, false, 0}},
+      {"USD", {"$"}},
+      {"UYU", {"", '.', ',', true, true}},
+      {"UZS", {"", ' ', ',', false, true}},
+      {"VEF", {"", '.', ',', true, true}},
+      {"VND", {"\xE2\x82\xAB", '.', ',', false, true, 0}},
+      {"YER", {"", ',', '.', true, true}},
+      {"ZAR", {"", ',', '.', true, true}},
+  };
+  for (const auto &entry : rules) {
+    if (currency == Slice(entry.currency)) {
+      return entry.rule;
+    }
+  }
+  return ExportCurrencyRule();
+}
+
+static string group_thousands(const string &digits, char thousands) {
+  if (thousands == '\0') {
+    return digits;
+  }
+  string result;
+  result.reserve(digits.size() + digits.size() / 3);
+  for (size_t i = 0; i < digits.size(); i++) {
+    if (i != 0 && (digits.size() - i) % 3 == 0) {
+      result += thousands;
+    }
+    result += digits[i];
+  }
+  return result;
+}
+
+string format_export_money_amount(int64 amount, Slice currency) {
+  const auto absolute = amount < 0 ? ~static_cast<uint64>(amount) + 1 : static_cast<uint64>(amount);
+  if (currency == "XTR") {
+    return "\xE2\xAD\x90" + group_thousands(to_string(absolute), ',');
+  }
+
+  const auto rule = get_currency_rule(currency);
+  uint64 divisor = 1;
+  for (int32 i = 0; i < rule.exponent; i++) {
+    divisor *= 10;
+  }
+  const auto integer_part = absolute / divisor;
+  const auto fractional_part = absolute % divisor;
+  const string name = rule.international[0] != '\0' ? string(rule.international) : currency.str();
+  string result = amount < 0 ? "\xE2\x88\x92" : "";
+  if (rule.left) {
+    result += name;
+    if (rule.space) {
+      result += ' ';
+    }
+  }
+  result += group_thousands(to_string(integer_part), rule.thousands);
+  if (rule.exponent > 0 && (!rule.strip_dot_zero || fractional_part != 0)) {
+    auto fraction = to_string(fractional_part);
+    result += rule.decimal;
+    result.append(static_cast<size_t>(rule.exponent) - fraction.size(), '0');
+    result += fraction;
+  }
+  if (!rule.left) {
+    if (rule.space) {
+      result += ' ';
+    }
+    result += name;
+  }
+  return result;
+}
+
+string format_export_phone_number(const string &phone_number) {
+  if (phone_number.empty() || phone_number[0] == '0') {
+    return phone_number;
+  }
+  auto info = CountryInfoManager::get_phone_number_info_sync("en", phone_number);
+  if (info == nullptr) {
+    return phone_number;
+  }
+  if (info->country_ == nullptr) {
+    return info->country_calling_code_ + info->formatted_phone_number_;
+  }
+  // the unfilled positions of the pattern are padded with '-'
+  auto formatted = std::move(info->formatted_phone_number_);
+  while (!formatted.empty() && (formatted.back() == '-' || formatted.back() == ' ')) {
+    formatted.pop_back();
+  }
+  return PSTRING() << '+' << info->country_calling_code_ << ' ' << formatted;
+}
+
 ExportOutputFile::ExportOutputFile(string path, ExportStats *stats) : path_(std::move(path)), stats_(stats) {
 }
 
@@ -248,13 +646,55 @@ Status ExportOutputFile::write(Slice data) {
   return Status::OK();
 }
 
+namespace {
+
+class ExportCombinedWriter final : public ExportWriter {
+ public:
+  ExportCombinedWriter(unique_ptr<ExportWriter> first, unique_ptr<ExportWriter> second)
+      : first_(std::move(first)), second_(std::move(second)) {
+  }
+
+  Status start(const ExportSettings &settings, ExportStats *stats) final {
+    TRY_STATUS(first_->start(settings, stats));
+    return second_->start(settings, stats);
+  }
+
+  Status write_dialog_start(const ExportDialogInfo &dialog) final {
+    TRY_STATUS(first_->write_dialog_start(dialog));
+    return second_->write_dialog_start(dialog);
+  }
+
+  Status write_dialog_messages(const vector<ExportMessage> &messages, bool is_migrated,
+                               const ExportCustomEmojiFiles &custom_emoji_files) final {
+    TRY_STATUS(first_->write_dialog_messages(messages, is_migrated, custom_emoji_files));
+    return second_->write_dialog_messages(messages, is_migrated, custom_emoji_files);
+  }
+
+  Status write_dialog_end() final {
+    TRY_STATUS(first_->write_dialog_end());
+    return second_->write_dialog_end();
+  }
+
+  Status finish() final {
+    TRY_STATUS(first_->finish());
+    return second_->finish();
+  }
+
+ private:
+  unique_ptr<ExportWriter> first_;
+  unique_ptr<ExportWriter> second_;
+};
+
+}  // namespace
+
 unique_ptr<ExportWriter> create_export_writer(Td *td, ExportFormat format) {
   switch (format) {
     case ExportFormat::Json:
       return make_unique<ExportJsonWriter>(td);
     case ExportFormat::Html:
+      return make_unique<ExportHtmlWriter>(td);
     case ExportFormat::HtmlAndJson:
-      return nullptr;
+      return make_unique<ExportCombinedWriter>(make_unique<ExportHtmlWriter>(td), make_unique<ExportJsonWriter>(td));
     default:
       UNREACHABLE();
       return nullptr;
