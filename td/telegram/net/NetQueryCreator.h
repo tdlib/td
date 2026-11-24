@@ -14,6 +14,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/ObjectPool.h"
+#include "td/utils/Span.h"
 
 #include <memory>
 
@@ -42,11 +43,20 @@ class NetQueryCreator {
                                  const telegram_api::Function &function, DcId dc_id, vector<ChainId> chain_ids = {},
                                  NetQuery::Type type = NetQuery::Type::Common);
 
+  // the prefixes are applied in order, so the first one is the outermost
+  NetQueryPtr create_with_prefixes(const vector<telegram_api::object_ptr<telegram_api::Function>> &prefixes,
+                                   const telegram_api::Function &function, DcId dc_id, vector<ChainId> chain_ids = {},
+                                   NetQuery::Type type = NetQuery::Type::Common);
+
   NetQueryPtr create(uint64 id, const telegram_api::object_ptr<telegram_api::Function> &prefix,
                      const telegram_api::Function &function, vector<ChainId> &&chain_ids, DcId dc_id,
                      NetQuery::Type type, NetQuery::AuthFlag auth_flag);
 
  private:
+  NetQueryPtr create_impl(uint64 id, Span<telegram_api::object_ptr<telegram_api::Function>> prefixes,
+                          const telegram_api::Function &function, vector<ChainId> &&chain_ids, DcId dc_id,
+                          NetQuery::Type type, NetQuery::AuthFlag auth_flag);
+
   std::shared_ptr<NetQueryStats> net_query_stats_;
   ObjectPool<NetQuery> object_pool_;
   int32 current_scheduler_id_ = 0;

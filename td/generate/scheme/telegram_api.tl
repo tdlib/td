@@ -32,6 +32,8 @@ invokeWithBusinessConnectionPrefix#dd289f8e connection_id:string = Error;
 invokeWithGooglePlayIntegrityPrefix#1df92984 nonce:string token:string = Error;
 invokeWithApnsSecretPrefix#0dae54f8 nonce:string secret:string = Error;
 invokeWithReCaptchaPrefix#adbb0f94 token:string = Error;
+invokeWithTakeoutPrefix#aca9fd2e takeout_id:long = Error;
+invokeWithMessagesRangePrefix#365275f2 range:MessageRange = Error;
 
 ---types---
 

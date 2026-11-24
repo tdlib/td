@@ -43,6 +43,12 @@ void NetQueryDelayer::delay(NetQueryPtr query) {
           G()->net_query_dispatcher().dispatch(std::move(query));
           return;
         }
+        if (prefix == "TAKEOUT_INIT_DELAY_") {
+          // the delay ends early if the export is confirmed from another device, so the caller decides when to retry
+          query->set_error(Status::Error(400, error_message));
+          G()->net_query_dispatcher().dispatch(std::move(query));
+          return;
+        }
 
         timeout = clamp(to_integer<int>(error_message.substr(prefix.size())), 1, 14 * 24 * 60 * 60);
         if (prefix == "FLOOD_PREMIUM_WAIT_") {
