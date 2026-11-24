@@ -9,7 +9,7 @@ option(TD_ANDROID_JSON_JAVA "Use \"ON\" to build Java wrapper for JSON API.")
 
 if (TD_ANDROID_JSON)
   if (CMAKE_CROSSCOMPILING)
-    string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -flto=thin -Oz")
+    string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -flto -Oz")
     list(APPEND CMAKE_FIND_ROOT_PATH "${OPENSSL_ROOT_DIR}")
   endif()
   add_subdirectory(${TD_DIR} td)
@@ -25,7 +25,7 @@ if (CMAKE_CROSSCOMPILING)
 
   include(TdSetUpCompiler)
   td_set_up_compiler()
-  string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -flto=thin -Oz")
+  string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -flto -Oz")
 
   list(APPEND CMAKE_FIND_ROOT_PATH "${OPENSSL_ROOT_DIR}")
   add_subdirectory(${TD_DIR} td)
