@@ -26,6 +26,24 @@ class ExportJsonWriter final : public ExportWriter {
 
   Status write_personal_info(const ExportPersonalInfo &info) final;
 
+  Status write_userpics_start(int32 count) final;
+
+  Status write_userpics_slice(const vector<ExportUserpic> &userpics) final;
+
+  Status write_userpics_end() final;
+
+  Status write_stories_start(int32 count) final;
+
+  Status write_stories_slice(const vector<ExportStory> &stories, int32 skipped_count) final;
+
+  Status write_stories_end() final;
+
+  Status write_profile_audios_start(int32 count) final;
+
+  Status write_profile_audios_slice(const vector<ExportMessage> &audios) final;
+
+  Status write_profile_audios_end() final;
+
   Status write_contacts(const ExportContactList &contacts) final;
 
   Status write_sessions(const ExportSessionList &sessions) final;
@@ -56,10 +74,20 @@ class ExportJsonWriter final : public ExportWriter {
   DialogsMode dialogs_mode_ = DialogsMode::None;
   bool has_dialogs_ = false;
   bool has_messages_ = false;
+  bool has_list_items_ = false;
+  ExportCustomEmojiFiles no_custom_emoji_files_;
 
   // writes an item of the root object after the about text
   template <class T>
   Status write_root_item(Slice key, const T &value);
+
+  // writes an array item of the root object, whose items are written in slices
+  Status write_root_list_start(Slice key);
+
+  template <class T, class F>
+  Status write_root_list_items(const vector<T> &items, const F &get_item);
+
+  Status write_root_list_end();
 
   Status write_dialog_list_start(bool is_left_channel);
 

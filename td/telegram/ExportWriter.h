@@ -91,6 +91,14 @@ constexpr int32 EXPORT_HTML_PHOTO_SIZE = 520;
 // the size of photos of service messages in HTML pages, in logical pixels
 constexpr int32 EXPORT_HTML_SERVICE_PHOTO_SIZE = 60;
 
+// the sizes of userpics in lists and of the user's own userpic in HTML pages, in logical pixels
+constexpr int32 EXPORT_HTML_ENTRY_USERPIC_SIZE = 48;
+constexpr int32 EXPORT_HTML_PERSONAL_USERPIC_SIZE = 90;
+
+// the size of previews of stories in HTML pages, in logical pixels
+constexpr int32 EXPORT_HTML_STORY_WIDTH = 45;
+constexpr int32 EXPORT_HTML_STORY_HEIGHT = 80;
+
 // returns the smallest size, which covers a box of the given size, or nullptr if it is the largest size
 const td_api::photoSize *get_export_photo_thumbnail_size(const vector<td_api::object_ptr<td_api::photoSize>> &sizes,
                                                          int32 box_size);
@@ -144,6 +152,27 @@ struct ExportMessage {
 
 // the files of custom emoji, which are used in texts of messages and in reactions
 using ExportCustomEmojiFiles = FlatHashMap<CustomEmojiId, ExportFile, CustomEmojiIdHash>;
+
+struct ExportUserpic {
+  int32 date = 0;
+  int64 size = 0;
+  ExportFile file;
+  // a smaller size of the photo, which HTML pages show instead of scaling the photo
+  ExportFile thumbnail;
+  // the size shown with the personal information; loaded only for the current profile photo
+  ExportFile personal_thumbnail;
+};
+
+struct ExportStory {
+  int32 date = 0;
+  int32 expire_date = 0;
+  bool is_pinned = false;
+  td_api::object_ptr<td_api::formattedText> caption;
+  int64 size = 0;
+  ExportFile file;
+  // the preview of the story, which is loaded only for HTML pages
+  ExportFile thumbnail;
+};
 
 // emoji outside texts of messages aren't resolved, so their identifier is returned instead of the path;
 // "(unavailable)" if the file couldn't be loaded, and an empty string if it is skipped by the settings
@@ -235,8 +264,28 @@ class ExportWriter {
 
   virtual Status start(const ExportSettings &settings, ExportStats *stats) TD_WARN_UNUSED_RESULT = 0;
 
-  // the chats are written between write_dialogs_start and write_dialogs_end; left channels are written last
   virtual Status write_personal_info(const ExportPersonalInfo &info) TD_WARN_UNUSED_RESULT = 0;
+
+  // the profile photos are received from the current one
+  virtual Status write_userpics_start(int32 count) TD_WARN_UNUSED_RESULT = 0;
+
+  virtual Status write_userpics_slice(const vector<ExportUserpic> &userpics) TD_WARN_UNUSED_RESULT = 0;
+
+  virtual Status write_userpics_end() TD_WARN_UNUSED_RESULT = 0;
+
+  virtual Status write_stories_start(int32 count) TD_WARN_UNUSED_RESULT = 0;
+
+  // skipped_count is the number of received stories, which can't be exported
+  virtual Status write_stories_slice(const vector<ExportStory> &stories, int32 skipped_count) TD_WARN_UNUSED_RESULT = 0;
+
+  virtual Status write_stories_end() TD_WARN_UNUSED_RESULT = 0;
+
+  virtual Status write_profile_audios_start(int32 count) TD_WARN_UNUSED_RESULT = 0;
+
+  // the audios are messages without a chat, a sender and a date, numbered from 1
+  virtual Status write_profile_audios_slice(const vector<ExportMessage> &audios) TD_WARN_UNUSED_RESULT = 0;
+
+  virtual Status write_profile_audios_end() TD_WARN_UNUSED_RESULT = 0;
 
   virtual Status write_contacts(const ExportContactList &contacts) TD_WARN_UNUSED_RESULT = 0;
 
@@ -245,6 +294,7 @@ class ExportWriter {
   // the file of other data is skipped if it couldn't be loaded
   virtual Status write_other_data(const ExportFile &file) TD_WARN_UNUSED_RESULT = 0;
 
+  // the chats are written between write_dialogs_start and write_dialogs_end; left channels are written last
   virtual Status write_dialogs_start(int32 dialog_count) TD_WARN_UNUSED_RESULT = 0;
 
   virtual Status write_dialog_start(const ExportDialogInfo &dialog) TD_WARN_UNUSED_RESULT = 0;

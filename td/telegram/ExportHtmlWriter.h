@@ -34,6 +34,24 @@ class ExportHtmlWriter final : public ExportWriter {
 
   Status write_personal_info(const ExportPersonalInfo &info) final;
 
+  Status write_userpics_start(int32 count) final;
+
+  Status write_userpics_slice(const vector<ExportUserpic> &userpics) final;
+
+  Status write_userpics_end() final;
+
+  Status write_stories_start(int32 count) final;
+
+  Status write_stories_slice(const vector<ExportStory> &stories, int32 skipped_count) final;
+
+  Status write_stories_end() final;
+
+  Status write_profile_audios_start(int32 count) final;
+
+  Status write_profile_audios_slice(const vector<ExportMessage> &audios) final;
+
+  Status write_profile_audios_end() final;
+
   Status write_contacts(const ExportContactList &contacts) final;
 
   Status write_sessions(const ExportSessionList &sessions) final;
@@ -75,6 +93,16 @@ class ExportHtmlWriter final : public ExportWriter {
   // the sections, which aren't written yet
   vector<Section> sections_;
 
+  int32 self_color_index_ = 0;
+  // the personal information, which waits for the current profile photo
+  unique_ptr<ExportPersonalInfo> delayed_personal_info_;
+  int32 userpic_count_ = 0;
+  unique_ptr<ExportHtmlPage> userpics_page_;
+  int32 story_count_ = 0;
+  unique_ptr<ExportHtmlPage> stories_page_;
+  int32 profile_audio_count_ = 0;
+  unique_ptr<ExportHtmlPage> profile_audios_page_;
+
   unique_ptr<ExportHtmlPage> dialogs_page_;
   DialogsMode dialogs_mode_ = DialogsMode::None;
 
@@ -96,8 +124,11 @@ class ExportHtmlWriter final : public ExportWriter {
   Status write_file(Slice relative_path, Slice data) TD_WARN_UNUSED_RESULT;
 
   // returns a page with a list of entries, linking back to the summary; the block is the beginning of the page
-  unique_ptr<ExportHtmlPage> create_list_page(Slice relative_path, Slice header, ExportAbout about,
-                                              string &block) const;
+  unique_ptr<ExportHtmlPage> create_list_page(Slice relative_path, Slice header, Slice about, string &block) const;
+
+  Status write_prepared_personal_info(const ExportPersonalInfo &info, const ExportUserpic *userpic);
+
+  Status write_delayed_personal_info(const ExportUserpic *userpic);
 
   Status write_page_opening(int32 index);
 

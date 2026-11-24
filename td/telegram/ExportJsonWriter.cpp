@@ -1780,6 +1780,142 @@ Status ExportJsonWriter::write_personal_info(const ExportPersonalInfo &info) {
                          }));
 }
 
+static const char PHOTO_NOT_INCLUDED[] = "(Photo not included. Change data exporting settings to download.)";
+
+static const char PHOTO_UNAVAILABLE[] = "(Photo unavailable, please try again later)";
+
+static const char PHOTO_TOO_BIG[] = "(Photo exceeds maximum size. Change data exporting settings to download.)";
+
+static Slice get_photo_path(const ExportFile &file) {
+  switch (file.skip_reason) {
+    case ExportFile::SkipReason::None:
+      return file.relative_path;
+    case ExportFile::SkipReason::Unavailable:
+      return Slice(PHOTO_UNAVAILABLE);
+    case ExportFile::SkipReason::FileType:
+      return Slice(PHOTO_NOT_INCLUDED);
+    case ExportFile::SkipReason::FileSize:
+      return Slice(PHOTO_TOO_BIG);
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
+Status ExportJsonWriter::write_root_list_start(Slice key) {
+  CHECK(output_ != nullptr);
+  CHECK(!settings_.only_single_dialog());
+  has_list_items_ = false;
+
+  auto buf = StackAllocator::alloc(1 << 8);
+  JsonBuilder jb(StringBuilder(buf.as_slice(), true), 1);
+  auto &sb = jb.string_builder();
+  sb << ',';
+  jb.print_offset();
+  sb << JsonString(key) << " : [";
+  if (sb.is_error()) {
+    return Status::Error(PSLICE() << "Failed to serialize " << key);
+  }
+  return output_->write(sb.as_cslice());
+}
+
+template <class T, class F>
+Status ExportJsonWriter::write_root_list_items(const vector<T> &items, const F &get_item) {
+  CHECK(output_ != nullptr);
+
+  auto buf = StackAllocator::alloc(1 << 16);
+  JsonBuilder jb(StringBuilder(buf.as_slice(), true), 2);
+  auto &sb = jb.string_builder();
+  for (const auto &item : items) {
+    if (has_list_items_) {
+      sb << ',';
+    }
+    has_list_items_ = true;
+    jb.print_offset();
+    jb.enter_value() << get_item(item);
+  }
+  if (sb.is_error()) {
+    return Status::Error("Failed to serialize a list");
+  }
+  auto data = sb.as_cslice();
+  if (data.empty()) {
+    return Status::OK();
+  }
+  return output_->write(data);
+}
+
+Status ExportJsonWriter::write_root_list_end() {
+  CHECK(output_ != nullptr);
+
+  auto buf = StackAllocator::alloc(1 << 6);
+  JsonBuilder jb(StringBuilder(buf.as_slice(), true), 1);
+  auto &sb = jb.string_builder();
+  jb.print_offset();
+  sb << ']';
+  return output_->write(sb.as_cslice());
+}
+
+Status ExportJsonWriter::write_userpics_start(int32 count) {
+  return write_root_list_start("profile_pictures");
+}
+
+Status ExportJsonWriter::write_userpics_slice(const vector<ExportUserpic> &userpics) {
+  auto utc_time_offset = settings_.utc_time_offset;
+  return write_root_list_items(userpics, [utc_time_offset](const ExportUserpic &userpic) {
+    return json_object([&userpic, utc_time_offset](auto &o) {
+      if (userpic.date != 0) {
+        o("date", JsonRawString(format_account_date(userpic.date, utc_time_offset)));
+        o("date_unixtime", JsonRawString(to_string(userpic.date)));
+      }
+      o("photo", JsonRawString(get_photo_path(userpic.file)));
+    });
+  });
+}
+
+Status ExportJsonWriter::write_userpics_end() {
+  return write_root_list_end();
+}
+
+Status ExportJsonWriter::write_stories_start(int32 count) {
+  return write_root_list_start("stories");
+}
+
+Status ExportJsonWriter::write_stories_slice(const vector<ExportStory> &stories, int32 skipped_count) {
+  auto utc_time_offset = settings_.utc_time_offset;
+  return write_root_list_items(stories, [utc_time_offset](const ExportStory &story) {
+    return json_object([&story, utc_time_offset](auto &o) {
+      if (story.date != 0) {
+        o("date", JsonRawString(format_account_date(story.date, utc_time_offset)));
+        o("date_unixtime", JsonRawString(to_string(story.date)));
+      }
+      if (story.expire_date != 0) {
+        o("expires", JsonRawString(format_account_date(story.expire_date, utc_time_offset)));
+        o("expires_unixtime", JsonRawString(to_string(story.expire_date)));
+      }
+      o("pinned", JsonBool(story.is_pinned));
+      o("media", JsonRawString(get_photo_path(story.file)));
+    });
+  });
+}
+
+Status ExportJsonWriter::write_stories_end() {
+  return write_root_list_end();
+}
+
+Status ExportJsonWriter::write_profile_audios_start(int32 count) {
+  return write_root_list_start("profile_music");
+}
+
+Status ExportJsonWriter::write_profile_audios_slice(const vector<ExportMessage> &audios) {
+  return write_root_list_items(audios, [this](const ExportMessage &audio) {
+    return ExportJsonMessage(td_, audio, false, no_custom_emoji_files_, settings_.utc_time_offset, 2);
+  });
+}
+
+Status ExportJsonWriter::write_profile_audios_end() {
+  return write_root_list_end();
+}
+
 Status ExportJsonWriter::write_contacts(const ExportContactList &contacts) {
   auto utc_time_offset = settings_.utc_time_offset;
   TRY_STATUS(write_root_item("contacts", get_json_list(ExportAbout::Contacts, [&](auto &array) {

@@ -37,8 +37,6 @@ static constexpr int32 REACTION_USERPIC_SIZE = 20;
 static constexpr int32 JOIN_WITHIN_SECONDS = 900;
 static constexpr int32 STICKER_MAX_SIZE = 384;
 static constexpr int32 THUMBNAIL_MIN_SIZE = 80;
-static constexpr int32 PERSONAL_USERPIC_SIZE = 90;
-static constexpr int32 ENTRY_USERPIC_SIZE = 48;
 static constexpr int32 SAVED_MESSAGES_COLOR_INDEX = 3;
 static constexpr size_t MAX_LINK_TARGET_SIZE = 4096;
 
@@ -756,7 +754,14 @@ class ExportHtmlPage {
   void push_list_entry(string &result, Slice link, const UserpicData &userpic, Slice name, Slice subname,
                        std::initializer_list<Slice> details, Slice info);
 
+  // the text is in HTML already
+  void push_story_entry(string &result, Slice link, Slice image_link, Slice name, Slice text,
+                        const vector<string> &details, Slice info);
+
+  void push_audio_entry(string &result, Slice link, Slice name, Slice details, Slice duration);
+
  private:
+  void push_linked_name(string &result, Slice link, Slice name);
   ExportOutputFile file_;
   HtmlContext context_;
   string base_;
@@ -862,6 +867,85 @@ void ExportHtmlPage::push_list_entry(string &result, Slice link, const UserpicDa
   }
   context_.pop_tag(result);
   context_.pop_tag(result);
+}
+
+void ExportHtmlPage::push_story_entry(string &result, Slice link, Slice image_link, Slice name, Slice text,
+                                      const vector<string> &details, Slice info) {
+  context_.push_div(result, "entry clearfix");
+  if (link.empty()) {
+    context_.push_div(result, "pull_left userpic_wrap");
+  } else {
+    context_.push_tag(result, "a",
+                      {{"class", "pull_left userpic_wrap"}, {"href", PSLICE() << base_ << link << "#allow_back"}});
+  }
+  if (!image_link.empty()) {
+    context_.push_tag(result, "img",
+                      {{"class", "story"},
+                       {"style", get_size_style(EXPORT_HTML_STORY_WIDTH, EXPORT_HTML_STORY_HEIGHT)},
+                       {"src", PSLICE() << base_ << image_link},
+                       {"empty", ""}});
+  }
+  context_.pop_tag(result);
+  context_.push_div(result, "body");
+  if (!info.empty()) {
+    context_.push_div(result, "pull_right info details");
+    append_html_escaped(result, info);
+    context_.pop_tag(result);
+  }
+  push_linked_name(result, link, name);
+  if (!text.empty()) {
+    context_.push_div(result, "text");
+    result.append(text.data(), text.size());
+    context_.pop_tag(result);
+  }
+  for (const auto &detail : details) {
+    context_.push_div(result, "details_entry details");
+    append_html_escaped(result, detail);
+    context_.pop_tag(result);
+  }
+  context_.pop_tag(result);
+  context_.pop_tag(result);
+}
+
+void ExportHtmlPage::push_audio_entry(string &result, Slice link, Slice name, Slice details, Slice duration) {
+  context_.push_div(result, "entry clearfix");
+  if (link.empty()) {
+    context_.push_div(result, "pull_left userpic_wrap");
+  } else {
+    context_.push_tag(result, "a",
+                      {{"class", "pull_left userpic_wrap"}, {"href", PSLICE() << base_ << link << "#allow_back"}});
+  }
+  context_.push_div(result, "userpic audio_icon");
+  context_.pop_tag(result);
+  context_.pop_tag(result);
+  context_.push_div(result, "body");
+  if (!duration.empty()) {
+    context_.push_div(result, "pull_right info details");
+    append_html_escaped(result, duration);
+    context_.pop_tag(result);
+  }
+  push_linked_name(result, link, name);
+  context_.push_div(result, "details_entry details");
+  append_html_escaped(result, details);
+  context_.pop_tag(result);
+  context_.pop_tag(result);
+  context_.pop_tag(result);
+}
+
+void ExportHtmlPage::push_linked_name(string &result, Slice link, Slice name) {
+  if (name.empty()) {
+    return;
+  }
+  if (!link.empty()) {
+    context_.push_tag(result, "a",
+                      {{"class", "block_link expanded"}, {"href", PSLICE() << base_ << link << "#allow_back"}});
+  }
+  context_.push_div(result, "name bold");
+  append_html_escaped(result, name);
+  context_.pop_tag(result);
+  if (!link.empty()) {
+    context_.pop_tag(result);
+  }
 }
 
 static void push_service_message(HtmlContext &context, string &result, Slice base, int32 message_id, Slice text,
@@ -2896,19 +2980,53 @@ static int32 get_application_color_index(int64 api_id) {
   }
 }
 
-Status ExportHtmlWriter::write_personal_info(const ExportPersonalInfo &info) {
+static constexpr int32 USERPICS_SECTION_PRIORITY = 4;
+static constexpr int32 STORIES_SECTION_PRIORITY = 5;
+static constexpr int32 PROFILE_AUDIOS_SECTION_PRIORITY = 6;
+
+static const char USERPICS_PAGE_PATH[] = "lists/profile_pictures.html";
+static const char STORIES_PAGE_PATH[] = "lists/stories.html";
+static const char PROFILE_AUDIOS_PAGE_PATH[] = "lists/profile_music.html";
+
+static Slice get_list_file_status(const ExportFile &file, Slice name, int64 size, string &status) {
+  switch (file.skip_reason) {
+    case ExportFile::SkipReason::None:
+      status = format_file_size(size);
+      return status;
+    case ExportFile::SkipReason::Unavailable:
+      status = PSTRING() << '(' << name << " unavailable, please try again later)";
+      return status;
+    case ExportFile::SkipReason::FileSize:
+      status = PSTRING() << '(' << name << " exceeds maximum size. Change data exporting settings to download.)";
+      return status;
+    case ExportFile::SkipReason::FileType:
+      status = PSTRING() << '(' << name << " not included. Change data exporting settings to download.)";
+      return status;
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
+Status ExportHtmlWriter::write_prepared_personal_info(const ExportPersonalInfo &info, const ExportUserpic *userpic) {
   CHECK(summary_ != nullptr);
-  UserpicData userpic;
-  userpic.color_index = info.color >= 0 ? info.color : get_peer_color_index(static_cast<uint64>(info.user_id));
-  userpic.pixel_size = PERSONAL_USERPIC_SIZE;
-  userpic.first_name = info.first_name;
-  userpic.last_name = info.last_name;
+  UserpicData userpic_data;
+  userpic_data.color_index = self_color_index_;
+  userpic_data.pixel_size = EXPORT_HTML_PERSONAL_USERPIC_SIZE;
+  if (userpic != nullptr && !userpic->file.relative_path.empty()) {
+    userpic_data.large_link = USERPICS_PAGE_PATH;
+    userpic_data.image_link = userpic->personal_thumbnail.relative_path.empty()
+                                  ? userpic->file.relative_path
+                                  : userpic->personal_thumbnail.relative_path;
+  }
+  userpic_data.first_name = info.first_name;
+  userpic_data.last_name = info.last_name;
 
   string block;
   auto &context = summary_->context();
   context.push_div(block, "personal_info clearfix");
   context.push_div(block, "pull_right userpic_wrap");
-  push_userpic(context, block, summary_->base(), userpic);
+  push_userpic(context, block, summary_->base(), userpic_data);
   context.pop_tag(block);
   struct Row {
     Slice label;
@@ -2945,12 +3063,198 @@ Status ExportHtmlWriter::write_personal_info(const ExportPersonalInfo &info) {
   return summary_->write(block);
 }
 
-unique_ptr<ExportHtmlPage> ExportHtmlWriter::create_list_page(Slice relative_path, Slice header, ExportAbout about,
+Status ExportHtmlWriter::write_personal_info(const ExportPersonalInfo &info) {
+  self_color_index_ = info.color >= 0 ? info.color : get_peer_color_index(static_cast<uint64>(info.user_id));
+  if ((settings_.types & ExportSettings::Userpics) != 0) {
+    // the information is written with the current profile photo, which is received later
+    delayed_personal_info_ = td::make_unique<ExportPersonalInfo>(info);
+    return Status::OK();
+  }
+  return write_prepared_personal_info(info, nullptr);
+}
+
+Status ExportHtmlWriter::write_delayed_personal_info(const ExportUserpic *userpic) {
+  if (delayed_personal_info_ == nullptr) {
+    return Status::OK();
+  }
+  auto info = std::move(delayed_personal_info_);
+  TRY_STATUS(write_prepared_personal_info(*info, userpic));
+  if (userpic_count_ > 0) {
+    add_section(USERPICS_SECTION_PRIORITY, "Profile pictures", "photos", userpic_count_, USERPICS_PAGE_PATH);
+  }
+  return Status::OK();
+}
+
+Status ExportHtmlWriter::write_userpics_start(int32 count) {
+  CHECK(summary_ != nullptr);
+  CHECK(userpics_page_ == nullptr);
+  userpic_count_ = count;
+  if (count <= 0) {
+    return Status::OK();
+  }
+  string block;
+  userpics_page_ = create_list_page(USERPICS_PAGE_PATH, "Profile pictures", Slice(), block);
+  TRY_STATUS(userpics_page_->write(block));
+  if (delayed_personal_info_ == nullptr) {
+    add_section(USERPICS_SECTION_PRIORITY, "Profile pictures", "photos", userpic_count_, USERPICS_PAGE_PATH);
+  }
+  return Status::OK();
+}
+
+Status ExportHtmlWriter::write_userpics_slice(const vector<ExportUserpic> &userpics) {
+  if (userpics.empty()) {
+    return Status::OK();
+  }
+  TRY_STATUS(write_delayed_personal_info(&userpics[0]));
+  if (userpics_page_ == nullptr) {
+    return Status::OK();
+  }
+
+  string block;
+  string status;
+  for (const auto &userpic : userpics) {
+    const auto &path = userpic.file.relative_path;
+    UserpicData userpic_data;
+    userpic_data.color_index = self_color_index_;
+    userpic_data.pixel_size = EXPORT_HTML_ENTRY_USERPIC_SIZE;
+    if (!path.empty()) {
+      userpic_data.image_link = userpic.thumbnail.relative_path.empty() ? path : userpic.thumbnail.relative_path;
+    }
+    userpic_data.first_name = path;
+    string date;
+    if (userpic.date > 0) {
+      date = format_date_time(userpic.date, settings_.utc_time_offset, false);
+    }
+    userpics_page_->push_list_entry(block, path, userpic_data, path.empty() ? Slice("Photo unavailable") : Slice(path),
+                                    Slice(), {get_list_file_status(userpic.file, "Photo", userpic.size, status)}, date);
+  }
+  return userpics_page_->write(block);
+}
+
+Status ExportHtmlWriter::write_userpics_end() {
+  TRY_STATUS(write_delayed_personal_info(nullptr));
+  if (userpics_page_ == nullptr) {
+    return Status::OK();
+  }
+  auto page = std::move(userpics_page_);
+  return page->close();
+}
+
+Status ExportHtmlWriter::write_stories_start(int32 count) {
+  CHECK(summary_ != nullptr);
+  CHECK(stories_page_ == nullptr);
+  story_count_ = count;
+  if (count <= 0) {
+    return Status::OK();
+  }
+  string block;
+  stories_page_ = create_list_page(STORIES_PAGE_PATH, "Stories archive", Slice(), block);
+  return stories_page_->write(block);
+}
+
+Status ExportHtmlWriter::write_stories_slice(const vector<ExportStory> &stories, int32 skipped_count) {
+  story_count_ -= skipped_count;
+  if (stories_page_ == nullptr || stories.empty()) {
+    return Status::OK();
+  }
+
+  string block;
+  string status;
+  vector<string> details;
+  for (const auto &story : stories) {
+    const auto &path = story.file.relative_path;
+    details.clear();
+    if (story.is_pinned) {
+      details.push_back("Saved to Profile");
+    }
+    if (story.expire_date > 0) {
+      details.push_back(PSTRING() << "Expiring: "
+                                  << format_date_time(story.expire_date, settings_.utc_time_offset, false));
+    }
+    details.push_back(get_list_file_status(story.file, "Story", story.size, status).str());
+    string date;
+    if (story.date > 0) {
+      date = format_date_time(story.date, settings_.utc_time_offset, false);
+    }
+    Slice image_link = story.thumbnail.relative_path.empty() ? Slice(path) : Slice(story.thumbnail.relative_path);
+    stories_page_->push_story_entry(block, path, image_link, path.empty() ? Slice("Story unavailable") : Slice(path),
+                                    format_text(story.caption.get(), nullptr, stories_page_->base()), details, date);
+  }
+  return stories_page_->write(block);
+}
+
+Status ExportHtmlWriter::write_stories_end() {
+  // unlike the other lists, the count of stories is known only after all of them are received
+  if (story_count_ > 0) {
+    add_section(STORIES_SECTION_PRIORITY, "Stories archive", "stories", story_count_, STORIES_PAGE_PATH);
+  }
+  if (stories_page_ == nullptr) {
+    return Status::OK();
+  }
+  auto page = std::move(stories_page_);
+  return page->close();
+}
+
+Status ExportHtmlWriter::write_profile_audios_start(int32 count) {
+  CHECK(summary_ != nullptr);
+  CHECK(profile_audios_page_ == nullptr);
+  profile_audio_count_ = count;
+  if (count <= 0) {
+    return Status::OK();
+  }
+  string block;
+  profile_audios_page_ = create_list_page(PROFILE_AUDIOS_PAGE_PATH, "Profile Music", Slice(), block);
+  return profile_audios_page_->write(block);
+}
+
+Status ExportHtmlWriter::write_profile_audios_slice(const vector<ExportMessage> &audios) {
+  if (profile_audios_page_ == nullptr || audios.empty()) {
+    return Status::OK();
+  }
+
+  string block;
+  string status;
+  for (const auto &export_message : audios) {
+    const auto *content = export_message.message->content_.get();
+    CHECK(content->get_id() == td_api::messageAudio::ID);
+    const auto *audio = static_cast<const td_api::messageAudio *>(content)->audio_.get();
+    const auto &file = export_message.file;
+    Slice title = !audio->title_.empty()       ? Slice(audio->title_)
+                  : !audio->file_name_.empty() ? Slice(audio->file_name_)
+                                               : Slice("Unknown Track");
+    Slice performer = !audio->performer_.empty() ? Slice(audio->performer_) : Slice("Unknown Artist");
+    auto name = PSTRING() << performer << " - " << title;
+    string duration;
+    if (audio->duration_ > 0) {
+      duration = format_duration(audio->duration_);
+    }
+    profile_audios_page_->push_audio_entry(
+        block, file.relative_path, name,
+        get_list_file_status(file, "File", get_export_file_size(audio->audio_.get()), status), duration);
+  }
+  return profile_audios_page_->write(block);
+}
+
+Status ExportHtmlWriter::write_profile_audios_end() {
+  if (profile_audio_count_ > 0) {
+    add_section(PROFILE_AUDIOS_SECTION_PRIORITY, "Profile Music", "music", profile_audio_count_,
+                PROFILE_AUDIOS_PAGE_PATH);
+  }
+  if (profile_audios_page_ == nullptr) {
+    return Status::OK();
+  }
+  auto page = std::move(profile_audios_page_);
+  return page->close();
+}
+
+unique_ptr<ExportHtmlPage> ExportHtmlWriter::create_list_page(Slice relative_path, Slice header, Slice about,
                                                               string &block) const {
   auto page = create_page(relative_path);
   page->push_header(block, header, SUMMARY_PAGE_PATH);
   page->context().push_div(block, "page_body list_page");
-  page->push_about(block, get_export_about_text(about));
+  if (!about.empty()) {
+    page->push_about(block, about);
+  }
   page->context().push_div(block, "entry_list");
   return page;
 }
@@ -2965,11 +3269,11 @@ Status ExportHtmlWriter::write_contacts(const ExportContactList &contacts) {
   if (!contacts.contacts.empty()) {
     static const char PATH[] = "lists/contacts.html";
     string block;
-    auto page = create_list_page(PATH, "Contacts", ExportAbout::Contacts, block);
+    auto page = create_list_page(PATH, "Contacts", get_export_about_text(ExportAbout::Contacts), block);
     for (const auto &contact : contacts.contacts) {
       UserpicData userpic;
       userpic.color_index = get_peer_color_index(get_string_bare_id(contact.phone_number));
-      userpic.pixel_size = ENTRY_USERPIC_SIZE;
+      userpic.pixel_size = EXPORT_HTML_ENTRY_USERPIC_SIZE;
       userpic.first_name = contact.first_name;
       userpic.last_name = contact.last_name;
       page->push_list_entry(block, Slice(), userpic,
@@ -2987,13 +3291,13 @@ Status ExportHtmlWriter::write_contacts(const ExportContactList &contacts) {
   }
   static const char PATH[] = "lists/frequent.html";
   string block;
-  auto page = create_list_page(PATH, "Frequent contacts", ExportAbout::FrequentContacts, block);
+  auto page = create_list_page(PATH, "Frequent contacts", get_export_about_text(ExportAbout::FrequentContacts), block);
   auto push_top_peers = [&](const vector<ExportTopPeer> &top_peers, Slice category) {
     for (const auto &top_peer : top_peers) {
       auto dialog_id = top_peer.dialog_id;
       UserpicData userpic;
       userpic.color_index = get_peer_color_index(static_cast<uint64>(get_export_dialog_bare_id(dialog_id)));
-      userpic.pixel_size = ENTRY_USERPIC_SIZE;
+      userpic.pixel_size = EXPORT_HTML_ENTRY_USERPIC_SIZE;
       if (dialog_id.get_type() != DialogType::User) {
         userpic.first_name = td_->dialog_manager_->get_dialog_title(dialog_id);
       } else if (dialog_id.get_user_id() == td_->user_manager_->get_my_id()) {
@@ -3024,7 +3328,7 @@ Status ExportHtmlWriter::write_sessions(const ExportSessionList &sessions) {
                          std::initializer_list<Slice> details, Slice info) {
     UserpicData userpic;
     userpic.color_index = get_application_color_index(api_id);
-    userpic.pixel_size = ENTRY_USERPIC_SIZE;
+    userpic.pixel_size = EXPORT_HTML_ENTRY_USERPIC_SIZE;
     userpic.first_name = name.str();
     page.push_list_entry(block, Slice(), userpic, name, subname, details, info);
   };
@@ -3034,7 +3338,7 @@ Status ExportHtmlWriter::write_sessions(const ExportSessionList &sessions) {
   if (!sessions.sessions.empty()) {
     static const char PATH[] = "lists/sessions.html";
     string block;
-    auto page = create_list_page(PATH, "Sessions", ExportAbout::Sessions, block);
+    auto page = create_list_page(PATH, "Sessions", get_export_about_text(ExportAbout::Sessions), block);
     for (const auto &session : sessions.sessions) {
       auto name = PSTRING() << (session.application_name.empty() ? Slice("Unknown") : Slice(session.application_name))
                             << ' ' << session.application_version;
@@ -3054,7 +3358,7 @@ Status ExportHtmlWriter::write_sessions(const ExportSessionList &sessions) {
   }
   static const char PATH[] = "lists/web_sessions.html";
   string block;
-  auto page = create_list_page(PATH, "Web sessions", ExportAbout::WebSessions, block);
+  auto page = create_list_page(PATH, "Web sessions", get_export_about_text(ExportAbout::WebSessions), block);
   for (const auto &session : sessions.web_sessions) {
     auto api_id = 0x1000 + static_cast<int64>(get_string_bare_id(session.domain));
     auto subname = PSTRING() << session.platform << ", " << session.browser;
@@ -3277,7 +3581,7 @@ Status ExportHtmlWriter::write_dialog_list_entry() {
   }
 
   UserpicData userpic;
-  userpic.pixel_size = ENTRY_USERPIC_SIZE;
+  userpic.pixel_size = EXPORT_HTML_ENTRY_USERPIC_SIZE;
   switch (dialog_.type) {
     case Type::Self:
       userpic.color_index = SAVED_MESSAGES_COLOR_INDEX;

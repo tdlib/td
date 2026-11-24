@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/ExportSettings.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -20,6 +21,7 @@
 
 namespace td {
 
+struct ExportFile;
 struct ExportMessage;
 class Td;
 
@@ -75,6 +77,8 @@ class ExportManager final : public Actor {
   enum class MessagesRequestType : int32 { Count, FirstDate, Slice };
 
   struct MessageFileWork;
+  struct FileCounters;
+  struct ListProcess;
   struct DialogProcess;
   struct DialogsList;
   struct FileProcess;
@@ -83,6 +87,9 @@ class ExportManager final : public Actor {
   static constexpr int32 MAX_DIRECTORY_ATTEMPTS = 1000;
   static constexpr int32 MESSAGES_SLICE_LIMIT = 100;
   static constexpr int32 DIALOGS_SLICE_LIMIT = 100;
+  static constexpr int32 USERPICS_SLICE_LIMIT = 100;
+  static constexpr int32 STORIES_SLICE_LIMIT = 100;
+  static constexpr int32 PROFILE_AUDIOS_SLICE_LIMIT = 100;
   static constexpr int32 TOP_PEERS_SLICE_LIMIT = 100;
   static constexpr int32 FILE_PART_SIZE = 128 << 10;
   static constexpr size_t MAX_LOADED_FILES = 100000;
@@ -167,6 +174,52 @@ class ExportManager final : public Actor {
 
   void on_other_data_loaded();
 
+  void add_list_file_work(ExportFile &target, const td_api::file *file, string suggested_path, int32 media_type,
+                          int64 controlling_size, int32 item_index, StoryId story_id);
+
+  void start_list();
+
+  bool on_list_count(int32 count);
+
+  void export_userpics();
+
+  void request_userpics_slice();
+
+  void on_get_userpics_slice(uint64 generation, Result<telegram_api::object_ptr<telegram_api::photos_Photos>> r_photos);
+
+  void export_stories();
+
+  void request_stories_slice();
+
+  void on_get_stories_slice(uint64 generation,
+                            Result<telegram_api::object_ptr<telegram_api::stories_stories>> r_stories);
+
+  void export_profile_audios();
+
+  void request_profile_audios_slice();
+
+  void on_get_profile_audios_slice(uint64 generation,
+                                   Result<telegram_api::object_ptr<telegram_api::users_SavedMusic>> r_saved_music);
+
+  void load_next_list_file();
+
+  void write_list_slice();
+
+  void set_list_state();
+
+  void refresh_userpic_file_reference();
+
+  void on_refresh_userpic_file_reference(uint64 generation, int64 file_id,
+                                         Result<telegram_api::object_ptr<telegram_api::photos_Photos>> r_photos);
+
+  void refresh_profile_audio_file_reference();
+
+  void on_refresh_profile_audio_file_reference(
+      uint64 generation, int64 file_id, Result<telegram_api::object_ptr<telegram_api::users_SavedMusic>> r_music);
+
+  void on_refresh_story_file_reference(uint64 generation, int64 file_id,
+                                       Result<telegram_api::object_ptr<telegram_api::stories_stories>> r_stories);
+
   void collect_dialogs_list();
 
   void request_dialogs_slice();
@@ -205,7 +258,11 @@ class ExportManager final : public Actor {
 
   void add_message_file_work(ExportMessage &export_message);
 
-  string get_document_path(int32 media_type, Slice file_name, Slice mime_type, Slice date_part);
+  string get_file_date_part(int32 date) const;
+
+  // the path is in the folder of the base path
+  string get_document_path(Slice base_path, FileCounters &counters, int32 media_type, Slice file_name, Slice mime_type,
+                           Slice date_part);
 
   void on_get_custom_emoji_stickers(uint64 generation, Result<td_api::object_ptr<td_api::stickers>> r_stickers);
 

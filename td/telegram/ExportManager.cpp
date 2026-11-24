@@ -7,18 +7,22 @@
 #include "td/telegram/ExportManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AudiosManager.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/Document.h"
+#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/ExportWriter.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTopic.h"
@@ -26,9 +30,12 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/Photo.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
+#include "td/telegram/StoryContent.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
@@ -251,24 +258,38 @@ static bool update_file_reference(telegram_api::InputFileLocation *location, con
   return true;
 }
 
+// replaces the file reference in the location with the one from the photo, if it is the photo of the file
+static bool update_file_reference(telegram_api::InputFileLocation *location, const telegram_api::Photo *photo) {
+  if (location->get_id() != telegram_api::inputPhotoFileLocation::ID || photo == nullptr ||
+      photo->get_id() != telegram_api::photo::ID) {
+    return false;
+  }
+  auto *photo_location = static_cast<telegram_api::inputPhotoFileLocation *>(location);
+  const auto *full_photo = static_cast<const telegram_api::photo *>(photo);
+  if (full_photo->id_ != photo_location->id_) {
+    return false;
+  }
+  photo_location->file_reference_ = full_photo->file_reference_.copy();
+  return true;
+}
+
 // replaces the file reference in the location with the one from the message, if the message has the file
 static bool update_file_reference(telegram_api::InputFileLocation *location, const telegram_api::Message *message) {
-  switch (location->get_id()) {
-    case telegram_api::inputPhotoFileLocation::ID: {
-      auto *photo_location = static_cast<telegram_api::inputPhotoFileLocation *>(location);
-      const auto *photo = get_message_photo(message);
-      if (photo == nullptr || photo->get_id() != telegram_api::photo::ID) {
-        return false;
-      }
-      const auto *full_photo = static_cast<const telegram_api::photo *>(photo);
-      if (full_photo->id_ != photo_location->id_) {
-        return false;
-      }
-      photo_location->file_reference_ = full_photo->file_reference_.copy();
-      return true;
-    }
-    case telegram_api::inputDocumentFileLocation::ID:
-      return update_file_reference(location, get_message_document(message));
+  return update_file_reference(location, get_message_photo(message)) ||
+         update_file_reference(location, get_message_document(message));
+}
+
+// replaces the file reference in the location with the one from the media of a story, if the media has the file
+static bool update_file_reference(telegram_api::InputFileLocation *location, const telegram_api::MessageMedia *media) {
+  if (media == nullptr) {
+    return false;
+  }
+  switch (media->get_id()) {
+    case telegram_api::messageMediaPhoto::ID:
+      return update_file_reference(location, static_cast<const telegram_api::messageMediaPhoto *>(media)->photo_.get());
+    case telegram_api::messageMediaDocument::ID:
+      return update_file_reference(location,
+                                   static_cast<const telegram_api::messageMediaDocument *>(media)->document_.get());
     default:
       return false;
   }
@@ -286,6 +307,9 @@ struct ExportManager::MessageFileWork {
   bool is_available = true;
   MessageId message_id;
   CustomEmojiId custom_emoji_id;
+  StoryId story_id;
+  // the index of the item of a list, to which the file belongs
+  int32 item_index = 0;
 };
 
 struct ExportManager::FileProcess {
@@ -305,7 +329,17 @@ struct ExportManager::FileProcess {
   int64 downloaded_size = 0;
   MessageId message_id;
   CustomEmojiId custom_emoji_id;
+  StoryId story_id;
   bool is_file_reference_refreshed = false;
+};
+
+// counters, which number files without a name
+struct ExportManager::FileCounters {
+  int32 photo_count = 0;
+  int32 audio_count = 0;
+  int32 video_count = 0;
+  int32 document_count = 0;
+  int32 contact_count = 0;
 };
 
 struct ExportManager::DialogProcess {
@@ -334,12 +368,7 @@ struct ExportManager::DialogProcess {
   // the custom emoji first used in the slice; their files are loaded after the files of the messages
   vector<td_api::object_ptr<td_api::sticker>> custom_emoji_stickers;
 
-  // counters, which number files without a name
-  int32 photo_count = 0;
-  int32 audio_count = 0;
-  int32 video_count = 0;
-  int32 document_count = 0;
-  int32 contact_count = 0;
+  FileCounters file_counters;
 };
 
 struct ExportManager::DialogsList {
@@ -357,6 +386,32 @@ struct ExportManager::DialogsList {
   FlatHashMap<DialogId, size_t, DialogIdHash> left_channel_indices;
   int32 left_channel_offset = 0;
   bool are_left_channels_finished = false;
+};
+
+// profile photos, stories or profile audios, which are received and written in slices
+struct ExportManager::ListProcess {
+  // the number of items reported by the server
+  int32 count = 0;
+  bool is_started = false;
+  bool is_last_slice = false;
+  // the identifier of the last received photo or story, or the number of received audios
+  int64 offset = 0;
+  // the number of received items, which are exported; it numbers their files
+  int32 received_count = 0;
+  int32 written_count = 0;
+
+  // the received slice, which is written after its files are loaded
+  vector<ExportUserpic> userpics;
+  vector<td_api::object_ptr<td_api::photo>> photos;
+  vector<ExportStory> stories;
+  vector<td_api::object_ptr<td_api::StoryContent>> story_contents;
+  vector<StoryId> story_ids;
+  int32 skipped_count = 0;
+  vector<ExportMessage> audios;
+  vector<MessageFileWork> file_works;
+  size_t file_work_index = 0;
+
+  FileCounters file_counters;
 };
 
 struct ExportManager::Export {
@@ -393,6 +448,7 @@ struct ExportManager::Export {
   vector<unique_ptr<DialogProcess>> dialogs;
   size_t dialog_index = 0;
   unique_ptr<DialogProcess> dialog;
+  unique_ptr<ListProcess> list;
 
   ExportContactList contacts;
   int32 top_peers_offset = 0;
@@ -453,9 +509,6 @@ Result<ExportSettings> ExportManager::get_export_settings(
       add_type(data->public_channels_, ExportSettings::PublicChannels);
       if (settings.types == 0) {
         return Status::Error(400, "Nothing to export");
-      }
-      if ((settings.types & (ExportSettings::Userpics | ExportSettings::Stories | ExportSettings::ProfileMusic)) != 0) {
-        return Status::Error(400, "Export of profile photos, stories and profile audios isn't supported yet");
       }
 
       // private chats are always exported whole and public chats only with own messages
@@ -723,8 +776,11 @@ void ExportManager::export_next() {
     case Step::OtherData:
       return export_other_data();
     case Step::Userpics:
+      return export_userpics();
     case Step::Stories:
+      return export_stories();
     case Step::ProfileMusic:
+      return export_profile_audios();
     case Step::Topic:
       return export_next();
     default:
@@ -736,7 +792,9 @@ void ExportManager::initialize() {
   set_processing_state(ProcessingState());
 
   const auto &settings = export_->settings;
-  auto has_files = settings.has_media() || (settings.types & (ExportSettings::Userpics | ExportSettings::Stories)) != 0;
+  auto has_files =
+      settings.has_media() ||
+      (settings.types & (ExportSettings::Userpics | ExportSettings::Stories | ExportSettings::ProfileMusic)) != 0;
   auto file_max_size = settings.media_size_limit > 0 ? settings.media_size_limit : ExportSettings::MAX_FILE_SIZE;
   auto promise =
       PromiseCreator::lambda([actor_id = actor_id(this), generation = export_->generation](
@@ -1431,6 +1489,469 @@ void ExportManager::on_other_data_loaded() {
   export_next();
 }
 
+void ExportManager::add_list_file_work(ExportFile &target, const td_api::file *file, string suggested_path,
+                                       int32 media_type, int64 controlling_size, int32 item_index, StoryId story_id) {
+  MessageFileWork work;
+  work.target = &target;
+  work.file = file;
+  work.suggested_path = std::move(suggested_path);
+  work.media_type = media_type;
+  work.controlling_size = controlling_size;
+  work.item_index = item_index;
+  work.story_id = story_id;
+  export_->list->file_works.push_back(std::move(work));
+}
+
+void ExportManager::start_list() {
+  export_->list = td::make_unique<ListProcess>();
+  set_list_state();
+}
+
+bool ExportManager::on_list_count(int32 count) {
+  auto &list = *export_->list;
+  if (list.is_started) {
+    return true;
+  }
+  list.is_started = true;
+  list.count = count;
+  Status status;
+  switch (export_->steps[export_->step_index]) {
+    case Step::Userpics:
+      status = export_->writer->write_userpics_start(count);
+      break;
+    case Step::Stories:
+      status = export_->writer->write_stories_start(count);
+      break;
+    case Step::ProfileMusic:
+      status = export_->writer->write_profile_audios_start(count);
+      break;
+    default:
+      UNREACHABLE();
+  }
+  return on_io_result(std::move(status));
+}
+
+void ExportManager::export_userpics() {
+  start_list();
+  request_userpics_slice();
+}
+
+void ExportManager::request_userpics_slice() {
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), generation = export_->generation](
+                                 Result<telegram_api::object_ptr<telegram_api::photos_Photos>> r_photos) mutable {
+        send_closure(actor_id, &ExportManager::on_get_userpics_slice, generation, std::move(r_photos));
+      });
+  send_export_query(telegram_api::photos_getUserPhotos(telegram_api::make_object<telegram_api::inputUserSelf>(), 0,
+                                                       export_->list->offset, USERPICS_SLICE_LIMIT),
+                    -1, std::move(promise));
+}
+
+void ExportManager::on_get_userpics_slice(uint64 generation,
+                                          Result<telegram_api::object_ptr<telegram_api::photos_Photos>> r_photos) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_photos.is_error()) {
+    return on_api_error(r_photos.move_as_error());
+  }
+  auto &list = *export_->list;
+  auto photos_ptr = r_photos.move_as_ok();
+  vector<telegram_api::object_ptr<telegram_api::Photo>> photos;
+  int32 count = 0;
+  switch (photos_ptr->get_id()) {
+    case telegram_api::photos_photos::ID: {
+      auto result = telegram_api::move_object_as<telegram_api::photos_photos>(photos_ptr);
+      td_->user_manager_->on_get_users(std::move(result->users_), "on_get_userpics_slice");
+      photos = std::move(result->photos_);
+      count = list.received_count + narrow_cast<int32>(photos.size());
+      // the photos are received at once
+      list.is_last_slice = true;
+      break;
+    }
+    case telegram_api::photos_photosSlice::ID: {
+      auto result = telegram_api::move_object_as<telegram_api::photos_photosSlice>(photos_ptr);
+      td_->user_manager_->on_get_users(std::move(result->users_), "on_get_userpics_slice");
+      photos = std::move(result->photos_);
+      count = result->count_;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  if (!on_list_count(count)) {
+    return;
+  }
+  if (photos.empty()) {
+    list.is_last_slice = true;
+  }
+
+  const auto &settings = export_->settings;
+  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
+  for (auto &photo_ptr : photos) {
+    list.offset = photo_ptr->get_id() == telegram_api::photo::ID
+                      ? static_cast<const telegram_api::photo *>(photo_ptr.get())->id_
+                      : static_cast<const telegram_api::photoEmpty *>(photo_ptr.get())->id_;
+    auto photo = get_photo(td_, std::move(photo_ptr), my_dialog_id);
+    ExportUserpic userpic;
+    userpic.date = photo.date;
+    list.userpics.push_back(std::move(userpic));
+    list.photos.push_back(photo.is_empty() ? nullptr : get_photo_object(td_->file_manager_.get(), photo));
+  }
+
+  // the work points to the profile photos of the slice, so it is added after the slice is complete
+  for (size_t i = 0; i < list.userpics.size(); i++) {
+    auto &userpic = list.userpics[i];
+    const auto *photo = list.photos[i].get();
+    auto is_current = list.received_count == 0;
+    string path = PSTRING() << "profile_pictures/photo_" << ++list.received_count << get_file_date_part(userpic.date);
+    const auto *size = photo == nullptr ? nullptr : get_export_photo_size(photo->sizes_);
+    const auto *file = size == nullptr ? nullptr : size->photo_.get();
+    userpic.size = get_export_file_size(file);
+    // profile photos aren't files of messages, so they are limited in size only if files of messages are exported
+    auto controlling_size = settings.media_size_limit > 0 ? userpic.size : 0;
+    auto item_index = narrow_cast<int32>(i);
+    add_list_file_work(userpic.file, file, path + ".jpg", 0, controlling_size, item_index, StoryId());
+    if (settings.format == ExportFormat::Json || file == nullptr) {
+      continue;
+    }
+    const auto *thumbnail_size = get_export_photo_thumbnail_size(photo->sizes_, 2 * EXPORT_HTML_ENTRY_USERPIC_SIZE);
+    if (thumbnail_size != nullptr) {
+      add_list_file_work(userpic.thumbnail, thumbnail_size->photo_.get(), path + "_thumb.jpg", 0, controlling_size,
+                         item_index, StoryId());
+    }
+    if (is_current && (settings.types & ExportSettings::PersonalInfo) != 0) {
+      thumbnail_size = get_export_photo_thumbnail_size(photo->sizes_, 2 * EXPORT_HTML_PERSONAL_USERPIC_SIZE);
+      if (thumbnail_size != nullptr) {
+        add_list_file_work(userpic.personal_thumbnail, thumbnail_size->photo_.get(), path + "_info.jpg", 0,
+                           controlling_size, item_index, StoryId());
+      }
+    }
+  }
+  load_next_list_file();
+}
+
+void ExportManager::export_stories() {
+  start_list();
+  request_stories_slice();
+}
+
+void ExportManager::request_stories_slice() {
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), generation = export_->generation](
+                                 Result<telegram_api::object_ptr<telegram_api::stories_stories>> r_stories) mutable {
+        send_closure(actor_id, &ExportManager::on_get_stories_slice, generation, std::move(r_stories));
+      });
+  send_export_query(
+      telegram_api::stories_getStoriesArchive(telegram_api::make_object<telegram_api::inputPeerSelf>(),
+                                              narrow_cast<int32>(export_->list->offset), STORIES_SLICE_LIMIT),
+      -1, std::move(promise));
+}
+
+void ExportManager::on_get_stories_slice(uint64 generation,
+                                         Result<telegram_api::object_ptr<telegram_api::stories_stories>> r_stories) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_stories.is_error()) {
+    return on_api_error(r_stories.move_as_error());
+  }
+  auto &list = *export_->list;
+  auto result = r_stories.move_as_ok();
+  td_->user_manager_->on_get_users(std::move(result->users_), "on_get_stories_slice");
+  td_->chat_manager_->on_get_chats(std::move(result->chats_), "on_get_stories_slice");
+  if (!on_list_count(result->count_)) {
+    return;
+  }
+  if (result->stories_.empty()) {
+    list.is_last_slice = true;
+  }
+
+  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
+  const auto *user_manager = td_->user_manager_.get();
+  for (auto &story_ptr : result->stories_) {
+    switch (story_ptr->get_id()) {
+      case telegram_api::storyItem::ID:
+        list.offset = static_cast<const telegram_api::storyItem *>(story_ptr.get())->id_;
+        break;
+      case telegram_api::storyItemDeleted::ID:
+        list.offset = static_cast<const telegram_api::storyItemDeleted *>(story_ptr.get())->id_;
+        break;
+      case telegram_api::storyItemSkipped::ID:
+        list.offset = static_cast<const telegram_api::storyItemSkipped *>(story_ptr.get())->id_;
+        break;
+      default:
+        UNREACHABLE();
+    }
+    // only stories with a photo or a video are exported
+    list.skipped_count++;
+    if (story_ptr->get_id() != telegram_api::storyItem::ID) {
+      continue;
+    }
+    auto story_item = telegram_api::move_object_as<telegram_api::storyItem>(story_ptr);
+    auto content = get_story_content(td_, std::move(story_item->media_), my_dialog_id, false);
+    if (content == nullptr) {
+      continue;
+    }
+    auto content_object = get_story_content_object(td_, content.get(), my_dialog_id);
+    if (content_object->get_id() != td_api::storyContentPhoto::ID &&
+        content_object->get_id() != td_api::storyContentVideo::ID) {
+      continue;
+    }
+    list.skipped_count--;
+    ExportStory story;
+    story.date = story_item->date_;
+    story.expire_date = story_item->expire_date_;
+    story.is_pinned = story_item->pinned_;
+    auto caption = get_message_text(user_manager, std::move(story_item->caption_), std::move(story_item->entities_),
+                                    true, false, story_item->date_, false, "on_get_stories_slice");
+    story.caption = get_formatted_text_object(user_manager, caption, true, -1);
+    list.stories.push_back(std::move(story));
+    list.story_contents.push_back(std::move(content_object));
+    list.story_ids.push_back(StoryId(story_item->id_));
+  }
+
+  auto is_html = export_->settings.format != ExportFormat::Json;
+  for (size_t i = 0; i < list.stories.size(); i++) {
+    auto &story = list.stories[i];
+    const auto *content = list.story_contents[i].get();
+    auto story_id = list.story_ids[i];
+    auto item_index = narrow_cast<int32>(i);
+    string path = PSTRING() << "stories/story_" << ++list.received_count << get_file_date_part(story.date);
+    // stories are exported regardless of the type and the size of their files
+    if (content->get_id() == td_api::storyContentPhoto::ID) {
+      const auto &sizes = static_cast<const td_api::storyContentPhoto *>(content)->photo_->sizes_;
+      const auto *size = get_export_photo_size(sizes);
+      const auto *file = size == nullptr ? nullptr : size->photo_.get();
+      story.size = get_export_file_size(file);
+      add_list_file_work(story.file, file, path + ".jpg", 0, 0, item_index, story_id);
+      const auto *thumbnail_size =
+          file == nullptr || !is_html ? nullptr : get_export_photo_thumbnail_size(sizes, 2 * EXPORT_HTML_STORY_HEIGHT);
+      if (thumbnail_size != nullptr) {
+        add_list_file_work(story.thumbnail, thumbnail_size->photo_.get(), path + "_thumb.jpg", 0, 0, item_index,
+                           story_id);
+      }
+    } else {
+      const auto *video = static_cast<const td_api::storyContentVideo *>(content)->video_.get();
+      story.size = get_export_file_size(video->video_.get());
+      // videos of stories are always MPEG-4
+      path += ".mp4";
+      add_list_file_work(story.file, video->video_.get(), path, 0, 0, item_index, story_id);
+      if (is_html && video->thumbnail_ != nullptr && video->thumbnail_->width_ > 0) {
+        add_list_file_work(story.thumbnail, video->thumbnail_->file_.get(), path + "_thumb.jpg", 0, 0, item_index,
+                           story_id);
+      }
+    }
+  }
+  load_next_list_file();
+}
+
+void ExportManager::export_profile_audios() {
+  start_list();
+  request_profile_audios_slice();
+}
+
+void ExportManager::request_profile_audios_slice() {
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), generation = export_->generation](
+          Result<telegram_api::object_ptr<telegram_api::users_SavedMusic>> r_saved_music) mutable {
+        send_closure(actor_id, &ExportManager::on_get_profile_audios_slice, generation, std::move(r_saved_music));
+      });
+  send_export_query(
+      telegram_api::users_getSavedMusic(telegram_api::make_object<telegram_api::inputUserSelf>(),
+                                        narrow_cast<int32>(export_->list->offset), PROFILE_AUDIOS_SLICE_LIMIT, 0),
+      -1, std::move(promise));
+}
+
+void ExportManager::on_get_profile_audios_slice(
+    uint64 generation, Result<telegram_api::object_ptr<telegram_api::users_SavedMusic>> r_saved_music) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_saved_music.is_error()) {
+    return on_api_error(r_saved_music.move_as_error());
+  }
+  auto saved_music_ptr = r_saved_music.move_as_ok();
+  if (saved_music_ptr->get_id() != telegram_api::users_savedMusic::ID) {
+    return on_api_error(Status::Error(500, "Receive savedMusicNotModified"));
+  }
+  auto saved_music = telegram_api::move_object_as<telegram_api::users_savedMusic>(saved_music_ptr);
+  auto &list = *export_->list;
+  if (!on_list_count(saved_music->count_)) {
+    return;
+  }
+  auto document_count = narrow_cast<int32>(saved_music->documents_.size());
+  if (document_count < PROFILE_AUDIOS_SLICE_LIMIT) {
+    list.is_last_slice = true;
+  }
+  list.offset += document_count;
+
+  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
+  for (auto &document_ptr : saved_music->documents_) {
+    if (document_ptr->get_id() != telegram_api::document::ID) {
+      continue;
+    }
+    auto document = td_->documents_manager_->on_get_document(
+        telegram_api::move_object_as<telegram_api::document>(document_ptr), my_dialog_id, false, false);
+    if (document.type != Document::Type::Audio) {
+      continue;
+    }
+    auto message = td_api::make_object<td_api::message>();
+    message->id_ = MessageId(ServerMessageId(++list.received_count)).get();
+    message->content_ = td_api::make_object<td_api::messageAudio>(
+        td_->audios_manager_->get_audio_object(document.file_id), td_api::make_object<td_api::formattedText>());
+    ExportMessage export_message;
+    export_message.message = std::move(message);
+    list.audios.push_back(std::move(export_message));
+  }
+
+  for (size_t i = 0; i < list.audios.size(); i++) {
+    auto &export_message = list.audios[i];
+    const auto *audio = static_cast<const td_api::messageAudio *>(export_message.message->content_.get())->audio_.get();
+    auto path = get_document_path("profile_music/", list.file_counters, ExportSettings::File, audio->file_name_,
+                                  audio->mime_type_, Slice());
+    auto size = get_export_file_size(audio->audio_.get());
+    auto item_index = narrow_cast<int32>(i);
+    add_list_file_work(export_message.file, audio->audio_.get(), path, ExportSettings::File, size, item_index,
+                       StoryId());
+    const auto *thumbnail = audio->album_cover_thumbnail_.get();
+    if (thumbnail != nullptr && thumbnail->width_ > 0) {
+      add_list_file_work(export_message.thumbnail, thumbnail->file_.get(), path + "_thumb.jpg", ExportSettings::File,
+                         size, item_index, StoryId());
+    }
+  }
+  load_next_list_file();
+}
+
+void ExportManager::load_next_list_file() {
+  auto &list = *export_->list;
+  while (list.file_work_index < list.file_works.size()) {
+    if (!process_message_file(list.file_works[list.file_work_index])) {
+      // the file is being downloaded or the export has failed
+      return;
+    }
+    list.file_work_index++;
+  }
+  write_list_slice();
+}
+
+void ExportManager::write_list_slice() {
+  auto &list = *export_->list;
+  auto step = export_->steps[export_->step_index];
+  Status status;
+  size_t written_count = 0;
+  switch (step) {
+    case Step::Userpics:
+      written_count = list.userpics.size();
+      if (written_count > 0) {
+        status = export_->writer->write_userpics_slice(list.userpics);
+      }
+      break;
+    case Step::Stories:
+      written_count = list.stories.size();
+      if (written_count > 0 || list.skipped_count > 0) {
+        status = export_->writer->write_stories_slice(list.stories, list.skipped_count);
+      }
+      break;
+    case Step::ProfileMusic:
+      written_count = list.audios.size();
+      if (written_count > 0) {
+        status = export_->writer->write_profile_audios_slice(list.audios);
+      }
+      break;
+    default:
+      UNREACHABLE();
+  }
+  if (!on_io_result(std::move(status))) {
+    return;
+  }
+  list.written_count += narrow_cast<int32>(written_count);
+  list.userpics.clear();
+  list.photos.clear();
+  list.stories.clear();
+  list.story_contents.clear();
+  list.story_ids.clear();
+  list.skipped_count = 0;
+  list.audios.clear();
+  list.file_works.clear();
+  list.file_work_index = 0;
+  set_list_state();
+
+  if (!list.is_last_slice) {
+    switch (step) {
+      case Step::Userpics:
+        return request_userpics_slice();
+      case Step::Stories:
+        return request_stories_slice();
+      case Step::ProfileMusic:
+        return request_profile_audios_slice();
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  export_->list = nullptr;
+  switch (step) {
+    case Step::Userpics:
+      status = export_->writer->write_userpics_end();
+      break;
+    case Step::Stories:
+      status = export_->writer->write_stories_end();
+      break;
+    case Step::ProfileMusic:
+      status = export_->writer->write_profile_audios_end();
+      break;
+    default:
+      UNREACHABLE();
+  }
+  if (!on_io_result(std::move(status))) {
+    return;
+  }
+  export_next();
+}
+
+void ExportManager::set_list_state() {
+  CHECK(export_->list != nullptr);
+  const auto &list = *export_->list;
+  ProcessingState state;
+  state.step = export_->steps[export_->step_index];
+  state.entity_index = list.written_count;
+  if (list.file_work_index < list.file_works.size()) {
+    state.entity_index += list.file_works[list.file_work_index].item_index;
+  }
+  state.entity_count = max(list.count, state.entity_index);
+  if (export_->file != nullptr) {
+    const auto &file = *export_->file;
+    state.file_id = file.id;
+    state.file_name = file.relative_path;
+    state.file_size = file.size;
+    state.file_downloaded_size = file.downloaded_size;
+  }
+  set_processing_state(std::move(state));
+}
+
+void ExportManager::on_refresh_story_file_reference(
+    uint64 generation, int64 file_id, Result<telegram_api::object_ptr<telegram_api::stories_stories>> r_stories) {
+  if (!is_current_export(generation) || export_->file == nullptr || export_->file->id != file_id) {
+    return;
+  }
+  auto &file = *export_->file;
+  if (r_stories.is_ok()) {
+    for (const auto &story_ptr : r_stories.ok()->stories_) {
+      if (story_ptr->get_id() != telegram_api::storyItem::ID) {
+        continue;
+      }
+      const auto *story = static_cast<const telegram_api::storyItem *>(story_ptr.get());
+      if (StoryId(story->id_) == file.story_id &&
+          update_file_reference(file.query->location_.get(), story->media_.get())) {
+        return load_file_part();
+      }
+    }
+  }
+  LOG(INFO) << "Failed to refresh file reference of " << file.relative_path;
+  finish_file(false);
+}
+
 void ExportManager::collect_dialogs_list() {
   set_dialogs_list_state(0);
   if (!export_->settings.only_single_dialog()) {
@@ -1839,8 +2360,9 @@ void ExportManager::on_get_custom_emoji_stickers(uint64 generation,
     MessageFileWork work;
     work.target = &it->second;
     work.file = sticker->sticker_.get();
-    work.suggested_path = get_document_path(
-        ExportSettings::Sticker, Slice(), get_sticker_format_mime_type(get_sticker_format(sticker->format_)), Slice());
+    work.suggested_path =
+        get_document_path(dialog.info.relative_path, dialog.file_counters, ExportSettings::Sticker, Slice(),
+                          get_sticker_format_mime_type(get_sticker_format(sticker->format_)), Slice());
     work.media_type = ExportSettings::Sticker;
     work.controlling_size = get_export_file_size(work.file);
     work.custom_emoji_id = custom_emoji_id;
@@ -1857,10 +2379,7 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
   // files are numbered even in skipped messages, so that the numbers don't depend on the date range
   auto is_inside_date_range = settings.is_inside_date_range(message.date_);
   auto is_available = message.self_destruct_type_ == nullptr;
-  string date_part;
-  if (message.date_ > 0) {
-    date_part = "@" + get_export_file_date_time_string(static_cast<int64>(message.date_) + settings.utc_time_offset);
-  }
+  auto date_part = get_file_date_part(message.date_);
   auto add_work = [&](ExportFile &target, const td_api::file *file, string content, string suggested_path,
                       int32 media_type, int64 controlling_size, bool is_file_available) {
     if (!is_inside_date_range) {
@@ -1879,7 +2398,8 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
   };
   auto add_photo = [&](const vector<td_api::object_ptr<td_api::photoSize>> *sizes, bool is_photo_available,
                        int32 thumbnail_box_size) {
-    string path = PSTRING() << dialog.info.relative_path << "photos/photo_" << ++dialog.photo_count << date_part;
+    string path = PSTRING() << dialog.info.relative_path << "photos/photo_" << ++dialog.file_counters.photo_count
+                            << date_part;
     const auto *size = sizes == nullptr ? nullptr : get_export_photo_size(*sizes);
     const auto *file = size == nullptr ? nullptr : size->photo_.get();
     auto file_size = get_export_file_size(file);
@@ -1895,7 +2415,8 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
   };
   auto add_document = [&](int32 media_type, const td_api::file *file, Slice file_name, Slice mime_type,
                           const td_api::thumbnail *thumbnail) {
-    auto path = get_document_path(media_type, file_name, mime_type, date_part);
+    auto path =
+        get_document_path(dialog.info.relative_path, dialog.file_counters, media_type, file_name, mime_type, date_part);
     auto size = get_export_file_size(file);
     add_work(export_message.file, file, string(), path, media_type, size, is_available);
     if (thumbnail != nullptr && thumbnail->width_ > 0) {
@@ -1965,8 +2486,8 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
     case td_api::messageContact::ID: {
       const auto &vcard = static_cast<const td_api::messageContact *>(content)->contact_->vcard_;
       if (!vcard.empty()) {
-        string path = PSTRING() << dialog.info.relative_path << "contacts/contact_" << ++dialog.contact_count
-                                << ".vcard";
+        string path = PSTRING() << dialog.info.relative_path << "contacts/contact_"
+                                << ++dialog.file_counters.contact_count << ".vcard";
         // a vCard is exported together with photos
         add_work(export_message.file, nullptr, vcard, std::move(path), ExportSettings::Photo,
                  static_cast<int64>(vcard.size()), true);
@@ -1978,7 +2499,15 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
   }
 }
 
-string ExportManager::get_document_path(int32 media_type, Slice file_name, Slice mime_type, Slice date_part) {
+string ExportManager::get_file_date_part(int32 date) const {
+  if (date <= 0) {
+    return string();
+  }
+  return "@" + get_export_file_date_time_string(get_export_local_time(date, export_->settings.utc_time_offset));
+}
+
+string ExportManager::get_document_path(Slice base_path, FileCounters &counters, int32 media_type, Slice file_name,
+                                        Slice mime_type, Slice date_part) {
   Slice folder;
   switch (media_type) {
     case ExportSettings::File:
@@ -2002,21 +2531,20 @@ string ExportManager::get_document_path(int32 media_type, Slice file_name, Slice
     default:
       UNREACHABLE();
   }
-  auto &dialog = *export_->dialog;
   auto name = get_export_file_name(file_name);
   if (name.empty()) {
     if (media_type == ExportSettings::VoiceMessage) {
-      name = PSTRING() << "audio_" << ++dialog.audio_count << date_part
+      name = PSTRING() << "audio_" << ++counters.audio_count << date_part
                        << (to_lower(mime_type) == "audio/mp3" ? ".mp3" : ".ogg");
     } else if (media_type == ExportSettings::Video) {
-      name = PSTRING() << "video_" << ++dialog.video_count << date_part << '.'
+      name = PSTRING() << "video_" << ++counters.video_count << date_part << '.'
                        << MimeType::to_extension(mime_type, "mov");
     } else {
-      name = PSTRING() << "file_" << ++dialog.document_count << date_part << '.'
+      name = PSTRING() << "file_" << ++counters.document_count << date_part << '.'
                        << MimeType::to_extension(mime_type, "unknown");
     }
   }
-  return PSTRING() << dialog.info.relative_path << folder << '/' << name;
+  return PSTRING() << base_path << folder << '/' << name;
 }
 
 void ExportManager::load_next_message_file() {
@@ -2095,6 +2623,7 @@ bool ExportManager::process_message_file(MessageFileWork &work) {
   file->size = work.file->size_;
   file->message_id = work.message_id;
   file->custom_emoji_id = work.custom_emoji_id;
+  file->story_id = work.story_id;
   LOG(INFO) << "Load file " << file->relative_path << " of size " << file->size;
   export_->file = std::move(file);
   set_file_state();
@@ -2219,6 +2748,28 @@ void ExportManager::refresh_file_reference() {
                              std::move(promise));
   }
 
+  if (file.story_id.is_valid()) {
+    auto promise =
+        PromiseCreator::lambda([actor_id = actor_id(this), generation = export_->generation, file_id = file.id](
+                                   Result<telegram_api::object_ptr<telegram_api::stories_stories>> r_stories) mutable {
+          send_closure(actor_id, &ExportManager::on_refresh_story_file_reference, generation, file_id,
+                       std::move(r_stories));
+        });
+    return send_export_query(telegram_api::stories_getStoriesByID(
+                                 telegram_api::make_object<telegram_api::inputPeerSelf>(), {file.story_id.get()}),
+                             -1, std::move(promise));
+  }
+
+  if (export_->dialog == nullptr) {
+    switch (export_->steps[export_->step_index]) {
+      case Step::Userpics:
+        return refresh_userpic_file_reference();
+      case Step::ProfileMusic:
+        return refresh_profile_audio_file_reference();
+      default:
+        break;
+    }
+  }
   if (export_->dialog == nullptr || !file.message_id.is_valid()) {
     LOG(INFO) << "File reference of " << file.relative_path << " can't be refreshed";
     return finish_file(false);
@@ -2245,6 +2796,94 @@ void ExportManager::refresh_file_reference() {
     auto real_split = split >= 0 ? split : narrow_cast<int32>(export_->splits.size()) + split;
     send_export_query(telegram_api::messages_getMessages(std::move(message_ids)), real_split, std::move(promise));
   }
+}
+
+void ExportManager::refresh_userpic_file_reference() {
+  const auto &file = *export_->file;
+  const auto *location = file.query->location_.get();
+  if (location->get_id() != telegram_api::inputPhotoFileLocation::ID) {
+    LOG(INFO) << "File reference of " << file.relative_path << " can't be refreshed";
+    return finish_file(false);
+  }
+  auto photo_id = static_cast<const telegram_api::inputPhotoFileLocation *>(location)->id_;
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), generation = export_->generation, file_id = file.id](
+                                 Result<telegram_api::object_ptr<telegram_api::photos_Photos>> r_photos) mutable {
+        send_closure(actor_id, &ExportManager::on_refresh_userpic_file_reference, generation, file_id,
+                     std::move(r_photos));
+      });
+  // the offset -1 returns the photo with the identifier max_id
+  send_export_query(
+      telegram_api::photos_getUserPhotos(telegram_api::make_object<telegram_api::inputUserSelf>(), -1, photo_id, 1), -1,
+      std::move(promise));
+}
+
+void ExportManager::on_refresh_userpic_file_reference(
+    uint64 generation, int64 file_id, Result<telegram_api::object_ptr<telegram_api::photos_Photos>> r_photos) {
+  if (!is_current_export(generation) || export_->file == nullptr || export_->file->id != file_id) {
+    return;
+  }
+  auto &file = *export_->file;
+  if (r_photos.is_ok()) {
+    auto photos = r_photos.move_as_ok();
+    const vector<telegram_api::object_ptr<telegram_api::Photo>> *photo_list = nullptr;
+    switch (photos->get_id()) {
+      case telegram_api::photos_photos::ID:
+        photo_list = &static_cast<const telegram_api::photos_photos *>(photos.get())->photos_;
+        break;
+      case telegram_api::photos_photosSlice::ID:
+        photo_list = &static_cast<const telegram_api::photos_photosSlice *>(photos.get())->photos_;
+        break;
+      default:
+        UNREACHABLE();
+    }
+    for (const auto &photo : *photo_list) {
+      if (update_file_reference(file.query->location_.get(), photo.get())) {
+        return load_file_part();
+      }
+    }
+  }
+  LOG(INFO) << "Failed to refresh file reference of " << file.relative_path;
+  finish_file(false);
+}
+
+void ExportManager::refresh_profile_audio_file_reference() {
+  const auto &file = *export_->file;
+  const auto *location = file.query->location_.get();
+  if (location->get_id() != telegram_api::inputDocumentFileLocation::ID) {
+    LOG(INFO) << "File reference of " << file.relative_path << " can't be refreshed";
+    return finish_file(false);
+  }
+  const auto *document_location = static_cast<const telegram_api::inputDocumentFileLocation *>(location);
+  vector<telegram_api::object_ptr<telegram_api::InputDocument>> documents;
+  documents.push_back(telegram_api::make_object<telegram_api::inputDocument>(
+      document_location->id_, document_location->access_hash_, document_location->file_reference_.copy()));
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), generation = export_->generation, file_id = file.id](
+                                 Result<telegram_api::object_ptr<telegram_api::users_SavedMusic>> r_music) mutable {
+        send_closure(actor_id, &ExportManager::on_refresh_profile_audio_file_reference, generation, file_id,
+                     std::move(r_music));
+      });
+  send_export_query(telegram_api::users_getSavedMusicByID(telegram_api::make_object<telegram_api::inputUserSelf>(),
+                                                          std::move(documents)),
+                    -1, std::move(promise));
+}
+
+void ExportManager::on_refresh_profile_audio_file_reference(
+    uint64 generation, int64 file_id, Result<telegram_api::object_ptr<telegram_api::users_SavedMusic>> r_music) {
+  if (!is_current_export(generation) || export_->file == nullptr || export_->file->id != file_id) {
+    return;
+  }
+  auto &file = *export_->file;
+  if (r_music.is_ok() && r_music.ok()->get_id() == telegram_api::users_savedMusic::ID) {
+    for (const auto &document : static_cast<const telegram_api::users_savedMusic *>(r_music.ok().get())->documents_) {
+      if (update_file_reference(file.query->location_.get(), document.get())) {
+        return load_file_part();
+      }
+    }
+  }
+  LOG(INFO) << "Failed to refresh file reference of " << file.relative_path;
+  finish_file(false);
 }
 
 void ExportManager::on_refresh_file_reference(
@@ -2307,6 +2946,12 @@ void ExportManager::finish_file(bool is_loaded) {
   if (export_->steps[export_->step_index] == Step::OtherData) {
     return on_other_data_loaded();
   }
+  if (export_->list != nullptr) {
+    auto &list = *export_->list;
+    CHECK(list.file_work_index < list.file_works.size());
+    list.file_work_index++;
+    return load_next_list_file();
+  }
   auto &dialog = *export_->dialog;
   CHECK(dialog.file_work_index < dialog.file_works.size());
   dialog.file_work_index++;
@@ -2366,9 +3011,11 @@ void ExportManager::finish_messages() {
 }
 
 void ExportManager::set_file_state() {
-  // the progress of loading of other files isn't shown
+  // the progress of loading of other data isn't shown
   if (export_->dialog != nullptr) {
     set_dialogs_state();
+  } else if (export_->list != nullptr) {
+    set_list_state();
   }
 }
 

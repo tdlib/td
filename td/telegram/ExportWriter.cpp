@@ -709,6 +709,51 @@ class ExportCombinedWriter final : public ExportWriter {
     return second_->write_personal_info(info);
   }
 
+  Status write_userpics_start(int32 count) final {
+    TRY_STATUS(first_->write_userpics_start(count));
+    return second_->write_userpics_start(count);
+  }
+
+  Status write_userpics_slice(const vector<ExportUserpic> &userpics) final {
+    TRY_STATUS(first_->write_userpics_slice(userpics));
+    return second_->write_userpics_slice(userpics);
+  }
+
+  Status write_userpics_end() final {
+    TRY_STATUS(first_->write_userpics_end());
+    return second_->write_userpics_end();
+  }
+
+  Status write_stories_start(int32 count) final {
+    TRY_STATUS(first_->write_stories_start(count));
+    return second_->write_stories_start(count);
+  }
+
+  Status write_stories_slice(const vector<ExportStory> &stories, int32 skipped_count) final {
+    TRY_STATUS(first_->write_stories_slice(stories, skipped_count));
+    return second_->write_stories_slice(stories, skipped_count);
+  }
+
+  Status write_stories_end() final {
+    TRY_STATUS(first_->write_stories_end());
+    return second_->write_stories_end();
+  }
+
+  Status write_profile_audios_start(int32 count) final {
+    TRY_STATUS(first_->write_profile_audios_start(count));
+    return second_->write_profile_audios_start(count);
+  }
+
+  Status write_profile_audios_slice(const vector<ExportMessage> &audios) final {
+    TRY_STATUS(first_->write_profile_audios_slice(audios));
+    return second_->write_profile_audios_slice(audios);
+  }
+
+  Status write_profile_audios_end() final {
+    TRY_STATUS(first_->write_profile_audios_end());
+    return second_->write_profile_audios_end();
+  }
+
   Status write_contacts(const ExportContactList &contacts) final {
     TRY_STATUS(first_->write_contacts(contacts));
     return second_->write_contacts(contacts);
