@@ -25,7 +25,8 @@ class ExportJsonWriter final : public ExportWriter {
 
   Status write_dialog_start(const ExportDialogInfo &dialog) final;
 
-  Status write_dialog_messages(const vector<ExportMessage> &messages, bool is_migrated) final;
+  Status write_dialog_messages(const vector<ExportMessage> &messages, bool is_migrated,
+                               const ExportCustomEmojiFiles &custom_emoji_files) final;
 
   Status write_dialog_end() final;
 

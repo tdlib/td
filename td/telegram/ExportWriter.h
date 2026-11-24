@@ -6,11 +6,13 @@
 //
 #pragma once
 
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/ExportSettings.h"
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -60,6 +62,19 @@ int64 get_export_file_size(const td_api::file *file);
 
 const td_api::photoSize *get_export_photo_size(const vector<td_api::object_ptr<td_api::photoSize>> &sizes);
 
+// returns the text or the caption of the message
+const td_api::formattedText *get_export_message_text(const td_api::MessageContent *content);
+
+struct ExportTextPart {
+  Slice text;
+  // nullptr for plain text
+  const td_api::TextEntityType *type;
+};
+
+// a part per entity in their order, and the plain text between them; entities nested in another one are skipped
+vector<ExportTextPart> get_export_text_parts(Slice text,
+                                             const vector<td_api::object_ptr<td_api::textEntity>> *entities);
+
 struct ExportFile {
   enum class SkipReason : int32 { None, Unavailable, FileType, FileSize };
 
@@ -76,6 +91,9 @@ struct ExportMessage {
   ExportFile file;
   ExportFile thumbnail;
 };
+
+// the files of custom emoji, which are used in texts of messages and in reactions
+using ExportCustomEmojiFiles = FlatHashMap<CustomEmojiId, ExportFile, CustomEmojiIdHash>;
 
 class ExportOutputFile {
  public:
@@ -104,8 +122,8 @@ class ExportWriter {
   virtual Status write_dialog_start(const ExportDialogInfo &dialog) TD_WARN_UNUSED_RESULT = 0;
 
   // messages of the basic group the supergroup was migrated from have is_migrated set and are written first
-  virtual Status write_dialog_messages(const vector<ExportMessage> &messages,
-                                       bool is_migrated) TD_WARN_UNUSED_RESULT = 0;
+  virtual Status write_dialog_messages(const vector<ExportMessage> &messages, bool is_migrated,
+                                       const ExportCustomEmojiFiles &custom_emoji_files) TD_WARN_UNUSED_RESULT = 0;
 
   virtual Status write_dialog_end() TD_WARN_UNUSED_RESULT = 0;
 

@@ -13,6 +13,7 @@
 #include "td/utils/port/config.h"
 #include "td/utils/port/path.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/utf8.h"
 
 #include <ctime>
 
@@ -159,6 +160,68 @@ const td_api::photoSize *get_export_photo_size(const vector<td_api::object_ptr<t
       result = size.get();
       max_area = area;
     }
+  }
+  return result;
+}
+
+const td_api::formattedText *get_export_message_text(const td_api::MessageContent *content) {
+  switch (content->get_id()) {
+    case td_api::messageText::ID:
+      return static_cast<const td_api::messageText *>(content)->text_.get();
+    case td_api::messageAnimation::ID:
+      return static_cast<const td_api::messageAnimation *>(content)->caption_.get();
+    case td_api::messageAudio::ID:
+      return static_cast<const td_api::messageAudio *>(content)->caption_.get();
+    case td_api::messageDocument::ID:
+      return static_cast<const td_api::messageDocument *>(content)->caption_.get();
+    case td_api::messagePaidMedia::ID:
+      return static_cast<const td_api::messagePaidMedia *>(content)->caption_.get();
+    case td_api::messagePhoto::ID:
+      return static_cast<const td_api::messagePhoto *>(content)->caption_.get();
+    case td_api::messageVideo::ID:
+      return static_cast<const td_api::messageVideo *>(content)->caption_.get();
+    case td_api::messageVoiceNote::ID:
+      return static_cast<const td_api::messageVoiceNote *>(content)->caption_.get();
+    case td_api::messageGame::ID: {
+      const auto &game = static_cast<const td_api::messageGame *>(content)->game_;
+      return game == nullptr ? nullptr : game->text_.get();
+    }
+    case td_api::messagePoll::ID:
+      return static_cast<const td_api::messagePoll *>(content)->description_.get();
+    case td_api::messageWidget::ID:
+      return static_cast<const td_api::messageWidget *>(content)->caption_.get();
+    default:
+      return nullptr;
+  }
+}
+
+vector<ExportTextPart> get_export_text_parts(Slice text,
+                                             const vector<td_api::object_ptr<td_api::textEntity>> *entities) {
+  vector<ExportTextPart> result;
+  Slice rest = text;
+  int32 position = 0;
+  if (entities != nullptr) {
+    for (const auto &entity : *entities) {
+      if (entity == nullptr || entity->type_ == nullptr || entity->offset_ < position || entity->length_ <= 0) {
+        continue;
+      }
+      // the entities are found by TDLib in the text of the message and aren't a part of the message
+      if (entity->type_->get_id() == td_api::textEntityTypeMediaTimestamp::ID) {
+        continue;
+      }
+      auto plain_text = utf8_utf16_substr(rest, 0, static_cast<size_t>(entity->offset_ - position));
+      if (!plain_text.empty()) {
+        result.push_back({plain_text, nullptr});
+      }
+      rest.remove_prefix(plain_text.size());
+      auto entity_text = utf8_utf16_substr(rest, 0, static_cast<size_t>(entity->length_));
+      rest.remove_prefix(entity_text.size());
+      result.push_back({entity_text, entity->type_.get()});
+      position = entity->offset_ + entity->length_;
+    }
+  }
+  if (!rest.empty()) {
+    result.push_back({rest, nullptr});
   }
   return result;
 }

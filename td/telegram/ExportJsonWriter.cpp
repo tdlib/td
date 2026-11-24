@@ -44,6 +44,29 @@ static const char FILE_UNAVAILABLE[] = "(File unavailable, please try again late
 
 static const char FILE_TOO_BIG[] = "(File exceeds maximum size. Change data exporting settings to download.)";
 
+// emoji outside texts of messages aren't resolved, so their identifier is written instead of the path
+static string get_custom_emoji_path(const ExportCustomEmojiFiles *custom_emoji_files, int64 custom_emoji_id) {
+  if (custom_emoji_files == nullptr) {
+    return to_string(custom_emoji_id);
+  }
+  auto it = custom_emoji_files->find(CustomEmojiId(custom_emoji_id));
+  if (it == custom_emoji_files->end()) {
+    return "(unavailable)";
+  }
+  switch (it->second.skip_reason) {
+    case ExportFile::SkipReason::None:
+      return it->second.relative_path;
+    case ExportFile::SkipReason::Unavailable:
+      return "(unavailable)";
+    case ExportFile::SkipReason::FileType:
+    case ExportFile::SkipReason::FileSize:
+      return string();
+    default:
+      UNREACHABLE();
+      return string();
+  }
+}
+
 static Slice get_file_path(const ExportFile &file) {
   switch (file.skip_reason) {
     case ExportFile::SkipReason::None:
@@ -548,47 +571,10 @@ class ExportJsonUnsigned final : public Jsonable {
   uint64 value_;
 };
 
-struct ExportTextPart {
-  Slice text;
-  // nullptr for plain text
-  const td_api::TextEntityType *type;
-};
-
-// a part per entity in their order, and the plain text between them; entities nested in another one are skipped
-static vector<ExportTextPart> get_export_text_parts(Slice text,
-                                                    const vector<td_api::object_ptr<td_api::textEntity>> *entities) {
-  vector<ExportTextPart> result;
-  Slice rest = text;
-  int32 position = 0;
-  if (entities != nullptr) {
-    for (const auto &entity : *entities) {
-      if (entity == nullptr || entity->type_ == nullptr || entity->offset_ < position || entity->length_ <= 0) {
-        continue;
-      }
-      // the entities are found by TDLib in the text of the message and aren't a part of the message
-      if (entity->type_->get_id() == td_api::textEntityTypeMediaTimestamp::ID) {
-        continue;
-      }
-      auto plain_text = utf8_utf16_substr(rest, 0, static_cast<size_t>(entity->offset_ - position));
-      if (!plain_text.empty()) {
-        result.push_back({plain_text, nullptr});
-      }
-      rest.remove_prefix(plain_text.size());
-      auto entity_text = utf8_utf16_substr(rest, 0, static_cast<size_t>(entity->length_));
-      rest.remove_prefix(entity_text.size());
-      result.push_back({entity_text, entity->type_.get()});
-      position = entity->offset_ + entity->length_;
-    }
-  }
-  if (!rest.empty()) {
-    result.push_back({rest, nullptr});
-  }
-  return result;
-}
-
 class ExportJsonTextPart final : public Jsonable {
  public:
-  explicit ExportJsonTextPart(const ExportTextPart &part) : part_(part) {
+  ExportJsonTextPart(const ExportTextPart &part, const ExportCustomEmojiFiles *custom_emoji_files)
+      : part_(part), custom_emoji_files_(custom_emoji_files) {
   }
 
   void store(JsonValueScope *scope) const {
@@ -603,8 +589,10 @@ class ExportJsonTextPart final : public Jsonable {
         object("user_id", JsonLong(static_cast<const td_api::textEntityTypeMentionName *>(part_.type)->user_id_));
         break;
       case td_api::textEntityTypeCustomEmoji::ID:
-        // the path to the exported file of the custom emoji, and files aren't exported yet
-        object("document_id", JsonRawString(Slice()));
+        object("document_id",
+               JsonRawString(get_custom_emoji_path(
+                   custom_emoji_files_,
+                   static_cast<const td_api::textEntityTypeCustomEmoji *>(part_.type)->custom_emoji_id_)));
         break;
       case td_api::textEntityTypePre::ID:
         object("language", JsonRawString(Slice()));
@@ -628,12 +616,14 @@ class ExportJsonTextPart final : public Jsonable {
 
  private:
   const ExportTextPart &part_;
+  const ExportCustomEmojiFiles *custom_emoji_files_;
 };
 
 class ExportJsonText final : public Jsonable {
  public:
-  ExportJsonText(Slice text, const vector<td_api::object_ptr<td_api::textEntity>> *entities, bool as_objects)
-      : text_(text), entities_(entities), as_objects_(as_objects) {
+  ExportJsonText(Slice text, const vector<td_api::object_ptr<td_api::textEntity>> *entities, bool as_objects,
+                 const ExportCustomEmojiFiles *custom_emoji_files = nullptr)
+      : text_(text), entities_(entities), as_objects_(as_objects), custom_emoji_files_(custom_emoji_files) {
   }
 
   ExportJsonText(const td_api::formattedText *text, bool as_objects)
@@ -658,7 +648,7 @@ class ExportJsonText final : public Jsonable {
       if (part.type == nullptr && !as_objects_) {
         array(JsonRawString(part.text));
       } else {
-        array(ExportJsonTextPart(part));
+        array(ExportJsonTextPart(part, custom_emoji_files_));
       }
     }
   }
@@ -667,6 +657,7 @@ class ExportJsonText final : public Jsonable {
   Slice text_;
   const vector<td_api::object_ptr<td_api::textEntity>> *entities_;
   bool as_objects_;
+  const ExportCustomEmojiFiles *custom_emoji_files_;
 };
 
 static auto get_checklist_tasks_json(const vector<td_api::object_ptr<td_api::checklistTask>> &tasks) {
@@ -889,44 +880,15 @@ static ExportContentKind get_export_content_kind(const td_api::MessageContent *c
   }
 }
 
-static const td_api::formattedText *get_message_content_text(const td_api::MessageContent *content) {
-  switch (content->get_id()) {
-    case td_api::messageText::ID:
-      return static_cast<const td_api::messageText *>(content)->text_.get();
-    case td_api::messageAnimation::ID:
-      return static_cast<const td_api::messageAnimation *>(content)->caption_.get();
-    case td_api::messageAudio::ID:
-      return static_cast<const td_api::messageAudio *>(content)->caption_.get();
-    case td_api::messageDocument::ID:
-      return static_cast<const td_api::messageDocument *>(content)->caption_.get();
-    case td_api::messagePaidMedia::ID:
-      return static_cast<const td_api::messagePaidMedia *>(content)->caption_.get();
-    case td_api::messagePhoto::ID:
-      return static_cast<const td_api::messagePhoto *>(content)->caption_.get();
-    case td_api::messageVideo::ID:
-      return static_cast<const td_api::messageVideo *>(content)->caption_.get();
-    case td_api::messageVoiceNote::ID:
-      return static_cast<const td_api::messageVoiceNote *>(content)->caption_.get();
-    case td_api::messageGame::ID: {
-      const auto &game = static_cast<const td_api::messageGame *>(content)->game_;
-      return game == nullptr ? nullptr : game->text_.get();
-    }
-    case td_api::messagePoll::ID:
-      return static_cast<const td_api::messagePoll *>(content)->description_.get();
-    case td_api::messageWidget::ID:
-      return static_cast<const td_api::messageWidget *>(content)->caption_.get();
-    default:
-      return nullptr;
-  }
-}
-
 class ExportJsonMessage final : public Jsonable {
  public:
-  ExportJsonMessage(Td *td, const ExportMessage &export_message, bool is_migrated, int32 utc_time_offset)
+  ExportJsonMessage(Td *td, const ExportMessage &export_message, bool is_migrated,
+                    const ExportCustomEmojiFiles &custom_emoji_files, int32 utc_time_offset)
       : td_(td)
       , message_(*export_message.message)
       , file_(export_message.file)
       , thumbnail_(export_message.thumbnail)
+      , custom_emoji_files_(custom_emoji_files)
       , is_history_cleared_(export_message.is_history_cleared)
       , is_migrated_(is_migrated)
       , utc_time_offset_(utc_time_offset) {
@@ -939,6 +901,7 @@ class ExportJsonMessage final : public Jsonable {
   const td_api::message &message_;
   const ExportFile &file_;
   const ExportFile &thumbnail_;
+  const ExportCustomEmojiFiles &custom_emoji_files_;
   bool is_history_cleared_;
   bool is_migrated_;
   int32 utc_time_offset_;
@@ -2012,14 +1975,14 @@ void ExportJsonMessage::store_text(JsonObjectScope &object, const td_api::Messag
   if (content->get_id() == td_api::messageAnimatedEmoji::ID) {
     text = static_cast<const td_api::messageAnimatedEmoji *>(content)->emoji_;
   } else {
-    const auto *formatted_text = get_message_content_text(content);
+    const auto *formatted_text = get_export_message_text(content);
     if (formatted_text != nullptr) {
       text = formatted_text->text_;
       entities = &formatted_text->entities_;
     }
   }
-  object("text", ExportJsonText(text, entities, false));
-  object("text_entities", ExportJsonText(text, entities, true));
+  object("text", ExportJsonText(text, entities, false, &custom_emoji_files_));
+  object("text_entities", ExportJsonText(text, entities, true, &custom_emoji_files_));
 }
 
 void ExportJsonMessage::store_inline_buttons(JsonObjectScope &object) const {
@@ -2064,8 +2027,9 @@ void ExportJsonMessage::store_reactions(JsonObjectScope &object) const {
                if (type_id == td_api::reactionTypeEmoji::ID) {
                  o("emoji", JsonRawString(static_cast<const td_api::reactionTypeEmoji *>(type)->emoji_));
                } else if (type_id == td_api::reactionTypeCustomEmoji::ID) {
-                 // the path to the exported file of the custom emoji, and files aren't exported yet
-                 o("document_id", JsonRawString(Slice()));
+                 o("document_id", JsonRawString(get_custom_emoji_path(
+                                      &custom_emoji_files_,
+                                      static_cast<const td_api::reactionTypeCustomEmoji *>(type)->custom_emoji_id_)));
                }
                if (!reaction->recent_sender_ids_.empty()) {
                  o("recent", json_array([this, &reaction](auto &recent) {
@@ -2171,7 +2135,8 @@ Status ExportJsonWriter::write_dialog_start(const ExportDialogInfo &dialog) {
   return output_->write(sb.as_cslice());
 }
 
-Status ExportJsonWriter::write_dialog_messages(const vector<ExportMessage> &messages, bool is_migrated) {
+Status ExportJsonWriter::write_dialog_messages(const vector<ExportMessage> &messages, bool is_migrated,
+                                               const ExportCustomEmojiFiles &custom_emoji_files) {
   CHECK(output_ != nullptr);
 
   auto buf = StackAllocator::alloc(1 << 16);
@@ -2187,7 +2152,8 @@ Status ExportJsonWriter::write_dialog_messages(const vector<ExportMessage> &mess
     }
     has_messages_ = true;
     jb.print_offset();
-    jb.enter_value() << ExportJsonMessage(td_, export_message, is_migrated, settings_.utc_time_offset);
+    jb.enter_value() << ExportJsonMessage(td_, export_message, is_migrated, custom_emoji_files,
+                                          settings_.utc_time_offset);
   }
   if (sb.is_error()) {
     return Status::Error("Failed to serialize messages");

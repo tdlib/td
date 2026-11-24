@@ -10,6 +10,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/ExportWriter.h"
 #include "td/telegram/files/FileId.h"
@@ -25,6 +26,7 @@
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/StickerFormat.h"
+#include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
@@ -229,6 +231,21 @@ static const telegram_api::Document *get_message_document(const telegram_api::Me
   return static_cast<const telegram_api::messageMediaDocument *>(media)->document_.get();
 }
 
+// replaces the file reference in the location with the one from the document, if it is the document of the file
+static bool update_file_reference(telegram_api::InputFileLocation *location, const telegram_api::Document *document) {
+  if (location->get_id() != telegram_api::inputDocumentFileLocation::ID || document == nullptr ||
+      document->get_id() != telegram_api::document::ID) {
+    return false;
+  }
+  auto *document_location = static_cast<telegram_api::inputDocumentFileLocation *>(location);
+  const auto *full_document = static_cast<const telegram_api::document *>(document);
+  if (full_document->id_ != document_location->id_) {
+    return false;
+  }
+  document_location->file_reference_ = full_document->file_reference_.copy();
+  return true;
+}
+
 // replaces the file reference in the location with the one from the message, if the message has the file
 static bool update_file_reference(telegram_api::InputFileLocation *location, const telegram_api::Message *message) {
   switch (location->get_id()) {
@@ -245,19 +262,8 @@ static bool update_file_reference(telegram_api::InputFileLocation *location, con
       photo_location->file_reference_ = full_photo->file_reference_.copy();
       return true;
     }
-    case telegram_api::inputDocumentFileLocation::ID: {
-      auto *document_location = static_cast<telegram_api::inputDocumentFileLocation *>(location);
-      const auto *document = get_message_document(message);
-      if (document == nullptr || document->get_id() != telegram_api::document::ID) {
-        return false;
-      }
-      const auto *full_document = static_cast<const telegram_api::document *>(document);
-      if (full_document->id_ != document_location->id_) {
-        return false;
-      }
-      document_location->file_reference_ = full_document->file_reference_.copy();
-      return true;
-    }
+    case telegram_api::inputDocumentFileLocation::ID:
+      return update_file_reference(location, get_message_document(message));
     default:
       return false;
   }
@@ -274,6 +280,7 @@ struct ExportManager::MessageFileWork {
   int64 controlling_size = 0;
   bool is_available = true;
   MessageId message_id;
+  CustomEmojiId custom_emoji_id;
 };
 
 struct ExportManager::FileProcess {
@@ -291,6 +298,7 @@ struct ExportManager::FileProcess {
   int64 offset = 0;
   int64 downloaded_size = 0;
   MessageId message_id;
+  CustomEmojiId custom_emoji_id;
   bool is_file_reference_refreshed = false;
 };
 
@@ -316,6 +324,8 @@ struct ExportManager::DialogProcess {
   int32 slice_message_count = 0;
   vector<MessageFileWork> file_works;
   size_t file_work_index = 0;
+  // the custom emoji first used in the slice; their files are loaded after the files of the messages
+  vector<td_api::object_ptr<td_api::sticker>> custom_emoji_stickers;
 };
 
 struct ExportManager::Export {
@@ -362,6 +372,10 @@ struct ExportManager::Export {
   // a file, which is shared by several messages, is exported once
   FlatHashMap<int32, string> loaded_files;
   VectorQueue<int32> loaded_file_keys;
+
+  // each custom emoji is resolved and loaded once; entries aren't added while files of a slice are loaded,
+  // because the work points to them
+  ExportCustomEmojiFiles custom_emoji_files;
 };
 
 ExportManager::ExportManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -1079,6 +1093,86 @@ void ExportManager::on_get_messages_slice(vector<telegram_api::object_ptr<telegr
     add_message_file_work(export_message);
   }
   dialog.file_work_index = 0;
+
+  vector<CustomEmojiId> custom_emoji_ids;
+  auto add_custom_emoji = [&](int64 id) {
+    CustomEmojiId custom_emoji_id(id);
+    if (custom_emoji_id.is_valid() &&
+        export_->custom_emoji_files.emplace(custom_emoji_id, ExportFile{string(), ExportFile::SkipReason::Unavailable})
+            .second) {
+      custom_emoji_ids.push_back(custom_emoji_id);
+    }
+  };
+  auto add_text_custom_emoji = [&](const td_api::formattedText *text) {
+    if (text == nullptr) {
+      return;
+    }
+    // only the entities that aren't nested in another one are written
+    for (const auto &part : get_export_text_parts(text->text_, &text->entities_)) {
+      if (part.type != nullptr && part.type->get_id() == td_api::textEntityTypeCustomEmoji::ID) {
+        add_custom_emoji(static_cast<const td_api::textEntityTypeCustomEmoji *>(part.type)->custom_emoji_id_);
+      }
+    }
+  };
+  for (const auto &export_message : dialog.slice) {
+    const auto &message = *export_message.message;
+    if (!export_->settings.is_inside_date_range(message.date_)) {
+      continue;
+    }
+    const auto *content = message.content_.get();
+    add_text_custom_emoji(get_export_message_text(content));
+    if (message.interaction_info_ != nullptr && message.interaction_info_->reactions_ != nullptr) {
+      for (const auto &reaction : message.interaction_info_->reactions_->reactions_) {
+        if (reaction->type_->get_id() == td_api::reactionTypeCustomEmoji::ID) {
+          add_custom_emoji(
+              static_cast<const td_api::reactionTypeCustomEmoji *>(reaction->type_.get())->custom_emoji_id_);
+        }
+      }
+    }
+  }
+  if (custom_emoji_ids.empty()) {
+    return load_next_message_file();
+  }
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), generation = export_->generation](
+                                            Result<td_api::object_ptr<td_api::stickers>> r_stickers) mutable {
+    send_closure(actor_id, &ExportManager::on_get_custom_emoji_stickers, generation, std::move(r_stickers));
+  });
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  td_->stickers_manager_->get_custom_emoji_stickers_unlimited(std::move(custom_emoji_ids), std::move(promise));
+}
+
+void ExportManager::on_get_custom_emoji_stickers(uint64 generation,
+                                                 Result<td_api::object_ptr<td_api::stickers>> r_stickers) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  auto &dialog = *export_->dialog;
+  if (r_stickers.is_error()) {
+    // the custom emoji stay unavailable
+    LOG(INFO) << "Failed to get custom emoji: " << r_stickers.error();
+  } else {
+    dialog.custom_emoji_stickers = std::move(r_stickers.ok_ref()->stickers_);
+  }
+  for (const auto &sticker : dialog.custom_emoji_stickers) {
+    if (sticker->full_type_ == nullptr || sticker->full_type_->get_id() != td_api::stickerFullTypeCustomEmoji::ID) {
+      continue;
+    }
+    CustomEmojiId custom_emoji_id(
+        static_cast<const td_api::stickerFullTypeCustomEmoji *>(sticker->full_type_.get())->custom_emoji_id_);
+    auto it = export_->custom_emoji_files.find(custom_emoji_id);
+    if (it == export_->custom_emoji_files.end()) {
+      continue;
+    }
+    MessageFileWork work;
+    work.target = &it->second;
+    work.file = sticker->sticker_.get();
+    work.suggested_path = get_document_path(
+        ExportSettings::Sticker, Slice(), get_sticker_format_mime_type(get_sticker_format(sticker->format_)), Slice());
+    work.media_type = ExportSettings::Sticker;
+    work.controlling_size = get_export_file_size(work.file);
+    work.custom_emoji_id = custom_emoji_id;
+    dialog.file_works.push_back(std::move(work));
+  }
   load_next_message_file();
 }
 
@@ -1116,53 +1210,9 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
     add_work(export_message.file, file, string(), std::move(path), ExportSettings::Photo, get_export_file_size(file),
              is_photo_available);
   };
-  enum class DocumentType : int32 { File, Video, Animation, Sticker, VoiceNote, VideoNote };
-  auto add_document = [&](DocumentType type, const td_api::file *file, Slice file_name, Slice mime_type,
+  auto add_document = [&](int32 media_type, const td_api::file *file, Slice file_name, Slice mime_type,
                           const td_api::thumbnail *thumbnail) {
-    Slice folder;
-    int32 media_type = 0;
-    switch (type) {
-      case DocumentType::File:
-        folder = Slice("files");
-        media_type = ExportSettings::File;
-        break;
-      case DocumentType::Video:
-        folder = Slice("video_files");
-        media_type = ExportSettings::Video;
-        break;
-      case DocumentType::Animation:
-        folder = Slice("animations");
-        media_type = ExportSettings::Gif;
-        break;
-      case DocumentType::Sticker:
-        folder = Slice("stickers");
-        media_type = ExportSettings::Sticker;
-        break;
-      case DocumentType::VoiceNote:
-        folder = Slice("voice_messages");
-        media_type = ExportSettings::VoiceMessage;
-        break;
-      case DocumentType::VideoNote:
-        folder = Slice("round_video_messages");
-        media_type = ExportSettings::VideoMessage;
-        break;
-      default:
-        UNREACHABLE();
-    }
-    auto name = get_export_file_name(file_name);
-    if (name.empty()) {
-      if (type == DocumentType::VoiceNote) {
-        name = PSTRING() << "audio_" << ++export_->audio_count << date_part
-                         << (to_lower(mime_type) == "audio/mp3" ? ".mp3" : ".ogg");
-      } else if (type == DocumentType::Video) {
-        name = PSTRING() << "video_" << ++export_->video_count << date_part << '.'
-                         << MimeType::to_extension(mime_type, "mov");
-      } else {
-        name = PSTRING() << "file_" << ++export_->document_count << date_part << '.'
-                         << MimeType::to_extension(mime_type, "unknown");
-      }
-    }
-    string path = PSTRING() << folder << '/' << name;
+    auto path = get_document_path(media_type, file_name, mime_type, date_part);
     auto size = get_export_file_size(file);
     add_work(export_message.file, file, string(), path, media_type, size, is_available);
     if (thumbnail != nullptr && thumbnail->width_ > 0) {
@@ -1189,43 +1239,43 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
     }
     case td_api::messageAnimation::ID: {
       const auto *animation = static_cast<const td_api::messageAnimation *>(content)->animation_.get();
-      add_document(DocumentType::Animation, animation->animation_.get(), animation->file_name_, animation->mime_type_,
+      add_document(ExportSettings::Gif, animation->animation_.get(), animation->file_name_, animation->mime_type_,
                    animation->thumbnail_.get());
       break;
     }
     case td_api::messageAudio::ID: {
       const auto *audio = static_cast<const td_api::messageAudio *>(content)->audio_.get();
-      add_document(DocumentType::File, audio->audio_.get(), audio->file_name_, audio->mime_type_,
+      add_document(ExportSettings::File, audio->audio_.get(), audio->file_name_, audio->mime_type_,
                    audio->album_cover_thumbnail_.get());
       break;
     }
     case td_api::messageDocument::ID: {
       const auto *document = static_cast<const td_api::messageDocument *>(content)->document_.get();
-      add_document(DocumentType::File, document->document_.get(), document->file_name_, document->mime_type_,
+      add_document(ExportSettings::File, document->document_.get(), document->file_name_, document->mime_type_,
                    document->thumbnail_.get());
       break;
     }
     case td_api::messageSticker::ID: {
       const auto *sticker = static_cast<const td_api::messageSticker *>(content)->sticker_.get();
-      add_document(DocumentType::Sticker, sticker->sticker_.get(), Slice(),
+      add_document(ExportSettings::Sticker, sticker->sticker_.get(), Slice(),
                    get_sticker_format_mime_type(get_sticker_format(sticker->format_)), sticker->thumbnail_.get());
       break;
     }
     case td_api::messageVideo::ID: {
       const auto *video = static_cast<const td_api::messageVideo *>(content)->video_.get();
-      add_document(DocumentType::Video, video->video_.get(), video->file_name_, video->mime_type_,
+      add_document(ExportSettings::Video, video->video_.get(), video->file_name_, video->mime_type_,
                    video->thumbnail_.get());
       break;
     }
     case td_api::messageVideoNote::ID: {
       const auto *video_note = static_cast<const td_api::messageVideoNote *>(content)->video_note_.get();
-      add_document(DocumentType::VideoNote, video_note->video_.get(), Slice(), Slice("video/mp4"),
+      add_document(ExportSettings::VideoMessage, video_note->video_.get(), Slice(), Slice("video/mp4"),
                    video_note->thumbnail_.get());
       break;
     }
     case td_api::messageVoiceNote::ID: {
       const auto *voice_note = static_cast<const td_api::messageVoiceNote *>(content)->voice_note_.get();
-      add_document(DocumentType::VoiceNote, voice_note->voice_.get(), Slice(), voice_note->mime_type_, nullptr);
+      add_document(ExportSettings::VoiceMessage, voice_note->voice_.get(), Slice(), voice_note->mime_type_, nullptr);
       break;
     }
     case td_api::messageContact::ID: {
@@ -1241,6 +1291,46 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
     default:
       break;
   }
+}
+
+string ExportManager::get_document_path(int32 media_type, Slice file_name, Slice mime_type, Slice date_part) {
+  Slice folder;
+  switch (media_type) {
+    case ExportSettings::File:
+      folder = Slice("files");
+      break;
+    case ExportSettings::Video:
+      folder = Slice("video_files");
+      break;
+    case ExportSettings::Gif:
+      folder = Slice("animations");
+      break;
+    case ExportSettings::Sticker:
+      folder = Slice("stickers");
+      break;
+    case ExportSettings::VoiceMessage:
+      folder = Slice("voice_messages");
+      break;
+    case ExportSettings::VideoMessage:
+      folder = Slice("round_video_messages");
+      break;
+    default:
+      UNREACHABLE();
+  }
+  auto name = get_export_file_name(file_name);
+  if (name.empty()) {
+    if (media_type == ExportSettings::VoiceMessage) {
+      name = PSTRING() << "audio_" << ++export_->audio_count << date_part
+                       << (to_lower(mime_type) == "audio/mp3" ? ".mp3" : ".ogg");
+    } else if (media_type == ExportSettings::Video) {
+      name = PSTRING() << "video_" << ++export_->video_count << date_part << '.'
+                       << MimeType::to_extension(mime_type, "mov");
+    } else {
+      name = PSTRING() << "file_" << ++export_->document_count << date_part << '.'
+                       << MimeType::to_extension(mime_type, "unknown");
+    }
+  }
+  return PSTRING() << folder << '/' << name;
 }
 
 void ExportManager::load_next_message_file() {
@@ -1317,6 +1407,7 @@ bool ExportManager::process_message_file(MessageFileWork &work) {
   // the expected size can be an estimate, so a file of unknown size is downloaded until an empty part
   file->size = work.file->size_;
   file->message_id = work.message_id;
+  file->custom_emoji_id = work.custom_emoji_id;
   LOG(INFO) << "Load file " << file->relative_path << " of size " << file->size;
   export_->file = std::move(file);
   set_dialogs_state();
@@ -1423,6 +1514,17 @@ void ExportManager::refresh_file_reference() {
   }
   file.is_file_reference_refreshed = true;
 
+  if (file.custom_emoji_id.is_valid()) {
+    auto promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), generation = export_->generation,
+         file_id = file.id](Result<vector<telegram_api::object_ptr<telegram_api::Document>>> r_documents) mutable {
+          send_closure(actor_id, &ExportManager::on_refresh_custom_emoji_file_reference, generation, file_id,
+                       std::move(r_documents));
+        });
+    return send_export_query(telegram_api::messages_getCustomEmojiDocuments({file.custom_emoji_id.get()}), -1,
+                             std::move(promise));
+  }
+
   const auto &dialog = *export_->dialog;
   auto split = dialog.splits[dialog.split_index];
   auto dialog_id = split >= 0 ? dialog.info.dialog_id : dialog.migrated_from_dialog_id;
@@ -1470,6 +1572,23 @@ void ExportManager::on_refresh_file_reference(
   finish_file(false);
 }
 
+void ExportManager::on_refresh_custom_emoji_file_reference(
+    uint64 generation, int64 file_id, Result<vector<telegram_api::object_ptr<telegram_api::Document>>> r_documents) {
+  if (!is_current_export(generation) || export_->file == nullptr || export_->file->id != file_id) {
+    return;
+  }
+  auto &file = *export_->file;
+  if (r_documents.is_ok()) {
+    for (const auto &document : r_documents.ok()) {
+      if (update_file_reference(file.query->location_.get(), document.get())) {
+        return load_file_part();
+      }
+    }
+  }
+  LOG(INFO) << "Failed to refresh file reference of " << file.relative_path;
+  finish_file(false);
+}
+
 void ExportManager::finish_file(bool is_loaded) {
   CHECK(export_ != nullptr);
   CHECK(export_->file != nullptr);
@@ -1503,7 +1622,7 @@ void ExportManager::save_loaded_file(int32 file_key, const string &relative_path
 void ExportManager::write_messages_slice() {
   auto &dialog = *export_->dialog;
   auto is_migrated = dialog.splits[dialog.split_index] < 0;
-  if (!on_io_result(export_->writer->write_dialog_messages(dialog.slice, is_migrated))) {
+  if (!on_io_result(export_->writer->write_dialog_messages(dialog.slice, is_migrated, export_->custom_emoji_files))) {
     return;
   }
   dialog.received_message_count += dialog.slice_message_count;
@@ -1511,6 +1630,7 @@ void ExportManager::write_messages_slice() {
   dialog.slice_message_count = 0;
   dialog.file_works.clear();
   dialog.file_work_index = 0;
+  dialog.custom_emoji_stickers.clear();
   set_dialogs_state();
   request_next_messages_slice();
 }

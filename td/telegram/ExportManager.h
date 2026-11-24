@@ -148,6 +148,10 @@ class ExportManager final : public Actor {
 
   void add_message_file_work(ExportMessage &export_message);
 
+  string get_document_path(int32 media_type, Slice file_name, Slice mime_type, Slice date_part);
+
+  void on_get_custom_emoji_stickers(uint64 generation, Result<td_api::object_ptr<td_api::stickers>> r_stickers);
+
   void load_next_message_file();
 
   bool process_message_file(MessageFileWork &work);
@@ -165,6 +169,9 @@ class ExportManager final : public Actor {
 
   void on_refresh_file_reference(uint64 generation, int64 file_id,
                                  Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages);
+
+  void on_refresh_custom_emoji_file_reference(
+      uint64 generation, int64 file_id, Result<vector<telegram_api::object_ptr<telegram_api::Document>>> r_documents);
 
   void finish_file(bool is_loaded);
 
