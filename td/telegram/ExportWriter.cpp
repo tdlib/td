@@ -62,7 +62,16 @@ int64 get_export_local_time(int64 date, int32 utc_time_offset) {
   return date + get_export_utc_time_offset(date, utc_time_offset);
 }
 
-string get_export_date_time_string(int64 local_time) {
+namespace {
+struct ExportDateTime {
+  int64 year;
+  int64 month;
+  int64 day;
+  int64 seconds;
+};
+}  // namespace
+
+static ExportDateTime get_export_date_time(int64 local_time) {
   auto days = floor_div(local_time, 86400);
   auto seconds = local_time - days * 86400;
 
@@ -78,26 +87,79 @@ string get_export_date_time_string(int64 local_time) {
   if (month <= 2) {
     year++;
   }
+  return {year, month, day, seconds};
+}
 
-  string result;
+static void append_export_year(string &result, int64 year) {
   if (0 <= year && year <= 9999) {
     result += static_cast<char>('0' + year / 1000);
     result += static_cast<char>('0' + year / 100 % 10);
     result += static_cast<char>('0' + year / 10 % 10);
     result += static_cast<char>('0' + year % 10);
   } else {
-    result = to_string(year);
+    result += to_string(year);
   }
-  auto append_two_digits = [&result](char separator, int64 value) {
-    result += separator;
-    result += static_cast<char>('0' + value / 10);
-    result += static_cast<char>('0' + value % 10);
-  };
-  append_two_digits('-', month);
-  append_two_digits('-', day);
-  append_two_digits('T', seconds / 3600);
-  append_two_digits(':', seconds / 60 % 60);
-  append_two_digits(':', seconds % 60);
+}
+
+static void append_export_two_digits(string &result, int64 value) {
+  result += static_cast<char>('0' + value / 10);
+  result += static_cast<char>('0' + value % 10);
+}
+
+string get_export_date_time_string(int64 local_time) {
+  auto date_time = get_export_date_time(local_time);
+  string result;
+  append_export_year(result, date_time.year);
+  result += '-';
+  append_export_two_digits(result, date_time.month);
+  result += '-';
+  append_export_two_digits(result, date_time.day);
+  result += 'T';
+  append_export_two_digits(result, date_time.seconds / 3600);
+  result += ':';
+  append_export_two_digits(result, date_time.seconds / 60 % 60);
+  result += ':';
+  append_export_two_digits(result, date_time.seconds % 60);
+  return result;
+}
+
+string get_export_file_date_time_string(int64 local_time) {
+  auto date_time = get_export_date_time(local_time);
+  string result;
+  append_export_two_digits(result, date_time.day);
+  result += '-';
+  append_export_two_digits(result, date_time.month);
+  result += '-';
+  append_export_year(result, date_time.year);
+  result += '_';
+  append_export_two_digits(result, date_time.seconds / 3600);
+  result += '-';
+  append_export_two_digits(result, date_time.seconds / 60 % 60);
+  result += '-';
+  append_export_two_digits(result, date_time.seconds % 60);
+  return result;
+}
+
+int64 get_export_file_size(const td_api::file *file) {
+  if (file == nullptr) {
+    return 0;
+  }
+  return file->size_ != 0 ? file->size_ : file->expected_size_;
+}
+
+const td_api::photoSize *get_export_photo_size(const vector<td_api::object_ptr<td_api::photoSize>> &sizes) {
+  const td_api::photoSize *result = nullptr;
+  int64 max_area = 0;
+  for (const auto &size : sizes) {
+    if (size == nullptr) {
+      continue;
+    }
+    auto area = static_cast<int64>(size->width_) * size->height_;
+    if (area > max_area) {
+      result = size.get();
+      max_area = area;
+    }
+  }
   return result;
 }
 

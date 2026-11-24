@@ -42,6 +42,24 @@ static const char FILE_NOT_INCLUDED[] = "(File not included. Change data exporti
 
 static const char FILE_UNAVAILABLE[] = "(File unavailable, please try again later)";
 
+static const char FILE_TOO_BIG[] = "(File exceeds maximum size. Change data exporting settings to download.)";
+
+static Slice get_file_path(const ExportFile &file) {
+  switch (file.skip_reason) {
+    case ExportFile::SkipReason::None:
+      return file.relative_path;
+    case ExportFile::SkipReason::Unavailable:
+      return Slice(FILE_UNAVAILABLE);
+    case ExportFile::SkipReason::FileType:
+      return Slice(FILE_NOT_INCLUDED);
+    case ExportFile::SkipReason::FileSize:
+      return Slice(FILE_TOO_BIG);
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
 struct ExportCurrencyRule {
   const char *international = "";
   char thousands = ',';
@@ -328,29 +346,6 @@ static DialogId get_message_sender_dialog_id(const td_api::MessageSender *sender
 static int32 get_server_message_id(int64 message_id) {
   MessageId result(message_id);
   return result.is_server() ? result.get_server_message_id().get() : 0;
-}
-
-static int64 get_file_size(const td_api::file *file) {
-  if (file == nullptr) {
-    return 0;
-  }
-  return file->size_ != 0 ? file->size_ : file->expected_size_;
-}
-
-static const td_api::photoSize *get_largest_photo_size(const vector<td_api::object_ptr<td_api::photoSize>> &sizes) {
-  const td_api::photoSize *result = nullptr;
-  int64 max_area = 0;
-  for (const auto &size : sizes) {
-    if (size == nullptr) {
-      continue;
-    }
-    auto area = static_cast<int64>(size->width_) * size->height_;
-    if (area > max_area) {
-      result = size.get();
-      max_area = area;
-    }
-  }
-  return result;
 }
 
 static Slice get_call_discard_reason_string(const td_api::CallDiscardReason *reason) {
@@ -927,11 +922,12 @@ static const td_api::formattedText *get_message_content_text(const td_api::Messa
 
 class ExportJsonMessage final : public Jsonable {
  public:
-  ExportJsonMessage(Td *td, const td_api::message &message, bool is_history_cleared, bool is_migrated,
-                    int32 utc_time_offset)
+  ExportJsonMessage(Td *td, const ExportMessage &export_message, bool is_migrated, int32 utc_time_offset)
       : td_(td)
-      , message_(message)
-      , is_history_cleared_(is_history_cleared)
+      , message_(*export_message.message)
+      , file_(export_message.file)
+      , thumbnail_(export_message.thumbnail)
+      , is_history_cleared_(export_message.is_history_cleared)
       , is_migrated_(is_migrated)
       , utc_time_offset_(utc_time_offset) {
   }
@@ -941,6 +937,8 @@ class ExportJsonMessage final : public Jsonable {
  private:
   Td *td_;
   const td_api::message &message_;
+  const ExportFile &file_;
+  const ExportFile &thumbnail_;
   bool is_history_cleared_;
   bool is_migrated_;
   int32 utc_time_offset_;
@@ -1127,8 +1125,8 @@ void ExportJsonMessage::store_self_destruct_period(JsonObjectScope &object) cons
 
 void ExportJsonMessage::store_photo(JsonObjectScope &object, const td_api::photoSize *size, bool is_available) const {
   is_available &= size != nullptr;
-  object("photo", JsonRawString(is_available ? Slice(FILE_NOT_INCLUDED) : Slice(FILE_UNAVAILABLE)));
-  object("photo_file_size", JsonLong(is_available ? get_file_size(size->photo_.get()) : 0));
+  object("photo", JsonRawString(is_available ? get_file_path(file_) : Slice(FILE_UNAVAILABLE)));
+  object("photo_file_size", JsonLong(is_available ? get_export_file_size(size->photo_.get()) : 0));
   if (size != nullptr && size->width_ != 0 && size->height_ != 0) {
     object("width", JsonInt(size->width_));
     object("height", JsonInt(size->height_));
@@ -1138,14 +1136,14 @@ void ExportJsonMessage::store_photo(JsonObjectScope &object, const td_api::photo
 void ExportJsonMessage::store_document_file(JsonObjectScope &object, const td_api::file *file, Slice file_name,
                                             const td_api::thumbnail *thumbnail) const {
   auto is_available = is_media_available();
-  object("file", JsonRawString(is_available ? Slice(FILE_NOT_INCLUDED) : Slice(FILE_UNAVAILABLE)));
+  object("file", JsonRawString(is_available ? get_file_path(file_) : Slice(FILE_UNAVAILABLE)));
   store_string(object, "file_name", file_name);
-  object("file_size", JsonLong(is_available ? get_file_size(file) : 0));
+  object("file_size", JsonLong(is_available ? get_export_file_size(file) : 0));
   if (thumbnail != nullptr && thumbnail->width_ > 0) {
     // the thumbnail of a self-destructing media is kept for the sender
     auto is_thumbnail_available = is_available || message_.is_outgoing_;
-    object("thumbnail", JsonRawString(is_thumbnail_available ? Slice(FILE_NOT_INCLUDED) : Slice(FILE_UNAVAILABLE)));
-    object("thumbnail_file_size", JsonLong(is_thumbnail_available ? get_file_size(thumbnail->file_.get()) : 0));
+    object("thumbnail", JsonRawString(is_thumbnail_available ? get_file_path(thumbnail_) : Slice(FILE_UNAVAILABLE)));
+    object("thumbnail_file_size", JsonLong(is_thumbnail_available ? get_export_file_size(thumbnail->file_.get()) : 0));
   }
 }
 
@@ -1214,7 +1212,7 @@ void ExportJsonMessage::store_media_content(JsonObjectScope &object, const td_ap
       break;
     case td_api::messagePhoto::ID: {
       const auto *m = static_cast<const td_api::messagePhoto *>(content);
-      store_photo(object, get_largest_photo_size(m->photo_->sizes_), is_media_available());
+      store_photo(object, get_export_photo_size(m->photo_->sizes_), is_media_available());
       if (m->has_spoiler_) {
         object("media_spoiler", JsonTrue());
       }
@@ -1307,7 +1305,7 @@ void ExportJsonMessage::store_media_content(JsonObjectScope &object, const td_ap
                o("phone_number", JsonRawString(format_phone_number(contact->phone_number_)));
              }));
       if (!contact->vcard_.empty()) {
-        object("contact_vcard", JsonRawString(Slice(FILE_NOT_INCLUDED)));
+        object("contact_vcard", JsonRawString(get_file_path(file_)));
         object("contact_vcard_file_size", JsonLong(static_cast<int64>(contact->vcard_.size())));
       }
       break;
@@ -1441,7 +1439,7 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
       const auto *photo = static_cast<const td_api::messageChatChangePhoto *>(content)->photo_.get();
       store_actor(object);
       object("action", "edit_group_photo");
-      store_photo(object, photo == nullptr ? nullptr : get_largest_photo_size(photo->sizes_), true);
+      store_photo(object, photo == nullptr ? nullptr : get_export_photo_size(photo->sizes_), true);
       break;
     }
     case td_api::messageChatDeletePhoto::ID:
@@ -1688,7 +1686,7 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
       const auto *photo = static_cast<const td_api::messageSuggestProfilePhoto *>(content)->photo_.get();
       store_actor(object);
       object("action", "suggest_profile_photo");
-      store_photo(object, photo == nullptr ? nullptr : get_largest_photo_size(photo->sizes_), true);
+      store_photo(object, photo == nullptr ? nullptr : get_export_photo_size(photo->sizes_), true);
       break;
     }
     case td_api::messageUsersShared::ID: {
@@ -2120,11 +2118,6 @@ void ExportJsonMessage::store(JsonValueScope *scope) const {
   store_reactions(object);
 }
 
-static bool is_inside_date_range(const ExportSettings &settings, int32 date) {
-  return (settings.single_dialog_min_date <= 0 || settings.single_dialog_min_date <= date) &&
-         (settings.single_dialog_max_date <= 0 || date < settings.single_dialog_max_date);
-}
-
 ExportJsonWriter::ExportJsonWriter(Td *td) : td_(td) {
 }
 
@@ -2186,7 +2179,7 @@ Status ExportJsonWriter::write_dialog_messages(const vector<ExportMessage> &mess
   auto &sb = jb.string_builder();
   for (const auto &export_message : messages) {
     const auto &message = export_message.message;
-    if (message == nullptr || !is_inside_date_range(settings_, message->date_)) {
+    if (message == nullptr || !settings_.is_inside_date_range(message->date_)) {
       continue;
     }
     if (has_messages_) {
@@ -2194,8 +2187,7 @@ Status ExportJsonWriter::write_dialog_messages(const vector<ExportMessage> &mess
     }
     has_messages_ = true;
     jb.print_offset();
-    jb.enter_value() << ExportJsonMessage(td_, *message, export_message.is_history_cleared, is_migrated,
-                                          settings_.utc_time_offset);
+    jb.enter_value() << ExportJsonMessage(td_, export_message, is_migrated, settings_.utc_time_offset);
   }
   if (sb.is_error()) {
     return Status::Error("Failed to serialize messages");

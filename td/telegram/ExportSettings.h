@@ -79,6 +79,11 @@ struct ExportSettings {
     return only_single_dialog() && single_topic_top_thread_message_id.is_valid();
   }
 
+  bool is_inside_date_range(int32 date) const {
+    return (single_dialog_min_date <= 0 || single_dialog_min_date <= date) &&
+           (single_dialog_max_date <= 0 || date < single_dialog_max_date);
+  }
+
   bool has_media() const {
     return media_types != 0 && media_size_limit > 0;
   }

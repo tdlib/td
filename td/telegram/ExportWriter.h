@@ -53,16 +53,35 @@ int64 get_export_local_time(int64 date, int32 utc_time_offset);
 // returns the date in the "YYYY-MM-DDTHH:MM:SS" format
 string get_export_date_time_string(int64 local_time);
 
+// returns the date in the "DD-MM-YYYY_HH-MM-SS" format, used in names of exported files
+string get_export_file_date_time_string(int64 local_time);
+
+int64 get_export_file_size(const td_api::file *file);
+
+const td_api::photoSize *get_export_photo_size(const vector<td_api::object_ptr<td_api::photoSize>> &sizes);
+
+struct ExportFile {
+  enum class SkipReason : int32 { None, Unavailable, FileType, FileSize };
+
+  // the path relative to the export directory with '/' as the separator; empty if the file is skipped
+  string relative_path;
+  SkipReason skip_reason = SkipReason::FileType;
+};
+
 struct ExportMessage {
   td_api::object_ptr<td_api::message> message;
   // td_api has no content for cleared history, so such a message has messageUnsupported content
   bool is_history_cleared = false;
+  // the photo, the document or the contact's vCard
+  ExportFile file;
+  ExportFile thumbnail;
 };
 
 class ExportOutputFile {
  public:
   ExportOutputFile(string path, ExportStats *stats);
 
+  // an empty write creates an empty file
   Status write(Slice data) TD_WARN_UNUSED_RESULT;
 
  private:

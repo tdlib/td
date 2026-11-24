@@ -18,6 +18,7 @@
 
 namespace td {
 
+struct ExportMessage;
 class Td;
 
 class ExportManager final : public Actor {
@@ -71,11 +72,15 @@ class ExportManager final : public Actor {
 
   enum class MessagesRequestType : int32 { Count, FirstDate, Slice };
 
+  struct MessageFileWork;
   struct DialogProcess;
+  struct FileProcess;
   struct Export;
 
   static constexpr int32 MAX_DIRECTORY_ATTEMPTS = 1000;
   static constexpr int32 MESSAGES_SLICE_LIMIT = 100;
+  static constexpr int32 FILE_PART_SIZE = 128 << 10;
+  static constexpr size_t MAX_LOADED_FILES = 100000;
 
   void tear_down() final;
 
@@ -140,6 +145,34 @@ class ExportManager final : public Actor {
   void request_messages_slice();
 
   void on_get_messages_slice(vector<telegram_api::object_ptr<telegram_api::Message>> &&messages);
+
+  void add_message_file_work(ExportMessage &export_message);
+
+  void load_next_message_file();
+
+  bool process_message_file(MessageFileWork &work);
+
+  string get_unique_relative_path(const string &suggested_path) const;
+
+  string get_file_path(Slice relative_path) const;
+
+  void load_file_part();
+
+  void on_get_file_part(uint64 generation, int64 file_id, int64 offset,
+                        Result<telegram_api::object_ptr<telegram_api::upload_File>> r_file);
+
+  void refresh_file_reference();
+
+  void on_refresh_file_reference(uint64 generation, int64 file_id,
+                                 Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages);
+
+  void finish_file(bool is_loaded);
+
+  void save_loaded_file(int32 file_key, const string &relative_path);
+
+  void write_messages_slice();
+
+  void request_next_messages_slice();
 
   void finish_messages();
 
