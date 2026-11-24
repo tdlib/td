@@ -573,7 +573,7 @@ void SecretChatActor::run_fill_gaps() {
 void SecretChatActor::run_pfs() {
   while (true) {
     LOG(INFO) << "Run PFS loop: " << pfs_state_;
-    if (pfs_state_.state == PfsState::Empty &&
+    if (auth_state_.state == State::Ready && pfs_state_.state == PfsState::Empty &&
         (pfs_state_.last_message_id + 100 < seq_no_state_.message_id ||
          pfs_state_.last_timestamp + 60 * 60 * 24 * 7 < Time::now()) &&
         pfs_state_.other_auth_key.empty()) {
@@ -1796,6 +1796,7 @@ Status SecretChatActor::on_update_chat(telegram_api::encryptedChat &update) {
     return Status::Error("Key fingerprint mismatch");
   }
   auth_state_.state = State::Ready;
+  pfs_state_.last_timestamp = Time::now();
   if (create_log_event_id_ != 0) {
     binlog_erase(context_->binlog(), create_log_event_id_);
     create_log_event_id_ = 0;
@@ -1866,9 +1867,10 @@ void SecretChatActor::start_up() {
   auto r_pfs_state = context_->secret_chat_db()->get_value<PfsState>();
   if (r_pfs_state.is_ok()) {
     pfs_state_ = r_pfs_state.move_as_ok();
+  } else {
+    pfs_state_.last_timestamp = Time::now();
   }
   saved_pfs_state_message_id_ = pfs_state_.message_id;
-  pfs_state_.last_timestamp = Time::now();
 
   send_update_secret_chat();
   get_dh_config();
