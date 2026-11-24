@@ -384,6 +384,7 @@ class ChatManager final : public Actor {
   bool is_monoforum_channel(ChannelId channel_id) const;
   bool is_admined_monoforum_channel(ChannelId channel_id) const;
   ChannelId get_monoforum_channel_id(ChannelId channel_id) const;
+  ChatId get_channel_migrated_from_chat_id(ChannelId channel_id) const;
   int32 get_channel_date(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_status(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_permissions(ChannelId channel_id) const;

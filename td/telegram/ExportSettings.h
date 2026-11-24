@@ -68,6 +68,9 @@ struct ExportSettings {
   int32 single_dialog_min_date = 0;
   int32 single_dialog_max_date = 0;
 
+  // the offset of the local time from UTC, in seconds; dates in the exported data are written in the local time
+  int32 utc_time_offset = 0;
+
   bool only_single_dialog() const {
     return single_dialog_id.is_valid();
   }

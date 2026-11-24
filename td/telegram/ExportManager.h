@@ -69,9 +69,13 @@ class ExportManager final : public Actor {
     int64 file_downloaded_size = 0;
   };
 
+  enum class MessagesRequestType : int32 { Count, FirstDate, Slice };
+
+  struct DialogProcess;
   struct Export;
 
   static constexpr int32 MAX_DIRECTORY_ATTEMPTS = 1000;
+  static constexpr int32 MESSAGES_SLICE_LIMIT = 100;
 
   void tear_down() final;
 
@@ -97,6 +101,50 @@ class ExportManager final : public Actor {
   void on_init_takeout_session(uint64 generation,
                                Result<telegram_api::object_ptr<telegram_api::account_takeout>> r_takeout);
 
+  bool is_current_export(uint64 generation) const;
+
+  template <class FunctionT>
+  void send_export_query(const FunctionT &function, int32 split_index,
+                         Promise<typename FunctionT::ReturnType> &&promise);
+
+  void request_split_ranges();
+
+  void on_get_split_ranges(uint64 generation,
+                           Result<vector<telegram_api::object_ptr<telegram_api::messageRange>>> r_ranges);
+
+  void start_writer();
+
+  void collect_dialogs_list();
+
+  void on_load_single_dialog_full_info(uint64 generation, Result<Unit> result);
+
+  void set_dialogs_list_state(int32 processed);
+
+  void add_single_dialog();
+
+  void export_dialogs();
+
+  void request_messages_count(size_t split_index);
+
+  void request_chat_messages(MessagesRequestType type, size_t split_index, int32 offset_id, int32 add_offset,
+                             int32 limit);
+
+  void on_get_chat_messages(uint64 generation, MessagesRequestType type, size_t split_index, int32 offset_id,
+                            int32 add_offset, int32 limit,
+                            Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages);
+
+  void check_first_message_date(size_t split_index, int32 count);
+
+  void on_messages_count_loaded(size_t split_index, int32 count);
+
+  void request_messages_slice();
+
+  void on_get_messages_slice(vector<telegram_api::object_ptr<telegram_api::Message>> &&messages);
+
+  void finish_messages();
+
+  void set_dialogs_state();
+
   void finish_export();
 
   void on_finish_takeout_session(uint64 generation, Result<bool> result);
@@ -106,6 +154,8 @@ class ExportManager final : public Actor {
   void send_finish_takeout_session(int64 takeout_id, bool success, Promise<bool> &&promise);
 
   void on_api_error(Status status);
+
+  bool on_io_result(Status status);
 
   void stop_export(td_api::object_ptr<td_api::ExportState> &&state);
 

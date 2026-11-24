@@ -7,14 +7,22 @@
 #include "td/telegram/ExportManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatId.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/ExportWriter.h"
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageId.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTopic.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -22,6 +30,8 @@
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/SliceBuilder.h"
+
+#include <limits>
 
 namespace td {
 
@@ -50,7 +60,125 @@ class ExportQuery final : public Td::ResultHandler {
   }
 };
 
+static int32 get_settings_type(ExportDialogInfo::Type type) {
+  using Type = ExportDialogInfo::Type;
+  switch (type) {
+    case Type::Self:
+    case Type::Personal:
+      return ExportSettings::PersonalChats;
+    case Type::Bot:
+      return ExportSettings::BotChats;
+    case Type::PrivateGroup:
+    case Type::PrivateSupergroup:
+      return ExportSettings::PrivateGroups;
+    case Type::PublicSupergroup:
+      return ExportSettings::PublicGroups;
+    case Type::PrivateChannel:
+      return ExportSettings::PrivateChannels;
+    case Type::PublicChannel:
+      return ExportSettings::PublicChannels;
+    default:
+      return 0;
+  }
+}
+
+static ExportDialogInfo::Type get_export_dialog_type(const Td *td, DialogId dialog_id) {
+  using Type = ExportDialogInfo::Type;
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      auto user_id = dialog_id.get_user_id();
+      if (user_id == td->user_manager_->get_my_id()) {
+        return Type::Self;
+      }
+      if (user_id == UserManager::get_replies_bot_user_id()) {
+        return Type::Replies;
+      }
+      if (user_id == UserManager::get_verification_codes_bot_user_id()) {
+        return Type::VerifyCodes;
+      }
+      return td->user_manager_->is_user_bot(user_id) ? Type::Bot : Type::Personal;
+    }
+    case DialogType::Chat:
+      return Type::PrivateGroup;
+    case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
+      const auto *chat_manager = td->chat_manager_.get();
+      if (chat_manager->is_monoforum_channel(channel_id)) {
+        if (!chat_manager->is_admined_monoforum_channel(channel_id)) {
+          return Type::Personal;
+        }
+        auto broadcast_channel_id = chat_manager->get_monoforum_channel_id(channel_id);
+        return chat_manager->get_channel_first_username(broadcast_channel_id).empty() ? Type::PrivateSupergroup
+                                                                                      : Type::PublicSupergroup;
+      }
+      auto is_public = !chat_manager->get_channel_first_username(channel_id).empty();
+      if (chat_manager->is_broadcast_channel(channel_id)) {
+        return is_public ? Type::PublicChannel : Type::PrivateChannel;
+      }
+      return is_public ? Type::PublicSupergroup : Type::PrivateSupergroup;
+    }
+    default:
+      UNREACHABLE();
+      return Type::Unknown;
+  }
+}
+
+static int32 get_message_date(const telegram_api::Message *message) {
+  switch (message->get_id()) {
+    case telegram_api::message::ID:
+      return static_cast<const telegram_api::message *>(message)->date_;
+    case telegram_api::messageService::ID:
+      return static_cast<const telegram_api::messageService *>(message)->date_;
+    default:
+      return 0;
+  }
+}
+
+static int32 get_single_message_date(const telegram_api::object_ptr<telegram_api::messages_Messages> &messages) {
+  const vector<telegram_api::object_ptr<telegram_api::Message>> *message_list = nullptr;
+  switch (messages->get_id()) {
+    case telegram_api::messages_messages::ID:
+      message_list = &static_cast<const telegram_api::messages_messages *>(messages.get())->messages_;
+      break;
+    case telegram_api::messages_messagesSlice::ID:
+      message_list = &static_cast<const telegram_api::messages_messagesSlice *>(messages.get())->messages_;
+      break;
+    case telegram_api::messages_channelMessages::ID:
+      message_list = &static_cast<const telegram_api::messages_channelMessages *>(messages.get())->messages_;
+      break;
+    default:
+      UNREACHABLE();
+  }
+  if (message_list->empty()) {
+    return 0;
+  }
+  return get_message_date((*message_list)[0].get());
+}
+
+struct ExportManager::DialogProcess {
+  ExportDialogInfo info;
+  DialogId migrated_from_dialog_id;
+  bool only_my_messages = false;
+
+  // indices of the message ranges to export; negative ones are of the basic group the chat was upgraded from
+  vector<int32> splits;
+  vector<int32> split_message_counts;
+
+  size_t split_index = 0;
+  int32 largest_id_plus_one = 1;
+  int32 pending_count = 0;
+  bool is_last_slice = false;
+
+  int32 received_message_count = 0;
+  int32 message_count = 0;
+};
+
 struct ExportManager::Export {
+  struct SplitRange {
+    int32 min_id = 0;
+    int32 max_id = 0;
+  };
+
   uint64 generation = 0;
   ExportSettings settings;
 
@@ -67,6 +195,14 @@ struct ExportManager::Export {
 
   bool has_processing_state = false;
   ProcessingState processing_state;
+
+  vector<SplitRange> splits;
+  int32 dialogs_count = 0;
+
+  ExportStats stats;
+  unique_ptr<ExportWriter> writer;
+
+  unique_ptr<DialogProcess> dialog;
 };
 
 ExportManager::ExportManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -208,26 +344,15 @@ Result<ExportSettings> ExportManager::get_export_settings(
   if (r_stat.is_error() || !r_stat.ok().is_dir_) {
     return Status::Error(400, "Export directory not found");
   }
+  settings.utc_time_offset = narrow_cast<int32>(td_->option_manager_->get_option_integer("utc_time_offset"));
   settings.directory = directory;
   return std::move(settings);
 }
 
 string ExportManager::get_local_date_string() const {
-  auto local_time = static_cast<int64>(G()->unix_time()) + td_->option_manager_->get_option_integer("utc_time_offset");
-  auto days = local_time / 86400 - (local_time % 86400 < 0 ? 1 : 0);
-
-  // converts days since 1970-01-01 to a civil date in the proleptic Gregorian calendar
-  days += 719468;
-  auto era = (days >= 0 ? days : days - 146096) / 146097;
-  auto day_of_era = days - era * 146097;
-  auto year_of_era = (day_of_era - day_of_era / 1460 + day_of_era / 36524 - day_of_era / 146096) / 365;
-  auto day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
-  auto shifted_month = (5 * day_of_year + 2) / 153;
-  auto day = day_of_year - (153 * shifted_month + 2) / 5 + 1;
-  auto month = shifted_month < 10 ? shifted_month + 3 : shifted_month - 9;
-  auto year = year_of_era + era * 400 + (month <= 2 ? 1 : 0);
-
-  return PSTRING() << year << '-' << (month < 10 ? "0" : "") << month << '-' << (day < 10 ? "0" : "") << day;
+  auto local_time = get_export_local_time(
+      G()->unix_time(), narrow_cast<int32>(td_->option_manager_->get_option_integer("utc_time_offset")));
+  return get_export_date_time_string(local_time).substr(0, 10);
 }
 
 Result<string> ExportManager::create_export_directory(const string &directory, bool only_single_dialog) const {
@@ -340,7 +465,7 @@ void ExportManager::fill_substeps_in_steps() {
   auto &substeps = export_->substeps_in_step;
   substeps.assign(static_cast<size_t>(Step::Count), 0);
   for (auto step : export_->steps) {
-    substeps[static_cast<size_t>(step)] = 1;
+    substeps[static_cast<size_t>(step)] = step == Step::Dialogs ? export_->dialogs_count : 1;
   }
   export_->substeps_total = 0;
   for (auto count : substeps) {
@@ -367,7 +492,9 @@ void ExportManager::export_next() {
     case Step::Initializing:
       return initialize();
     case Step::DialogsList:
+      return collect_dialogs_list();
     case Step::Dialogs:
+      return export_dialogs();
     case Step::PersonalInfo:
     case Step::Userpics:
     case Step::Stories:
@@ -426,12 +553,405 @@ void ExportManager::on_init_takeout_session(uint64 generation,
   }
   export_->settings.path = r_path.move_as_ok();
 
+  if (export_->settings.types & ExportSettings::AnyChatsMask) {
+    request_split_ranges();
+  } else {
+    start_writer();
+  }
+}
+
+bool ExportManager::is_current_export(uint64 generation) const {
+  return export_ != nullptr && export_->generation == generation;
+}
+
+template <class FunctionT>
+void ExportManager::send_export_query(const FunctionT &function, int32 split_index,
+                                      Promise<typename FunctionT::ReturnType> &&promise) {
+  CHECK(export_ != nullptr);
+  CHECK(export_->takeout_id != 0);
+  // Td fails the queries in flight when it closes, and no new ones can be sent then
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  vector<telegram_api::object_ptr<telegram_api::Function>> prefixes;
+  prefixes.push_back(telegram_api::make_object<telegram_api::invokeWithTakeoutPrefix>(export_->takeout_id));
+  if (split_index >= 0) {
+    CHECK(static_cast<size_t>(split_index) < export_->splits.size());
+    const auto &split = export_->splits[split_index];
+    prefixes.push_back(telegram_api::make_object<telegram_api::invokeWithMessagesRangePrefix>(
+        telegram_api::make_object<telegram_api::messageRange>(split.min_id, split.max_id)));
+  }
+  td_->create_handler<ExportQuery<FunctionT>>(std::move(promise))->send(prefixes, function);
+}
+
+void ExportManager::request_split_ranges() {
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), generation = export_->generation](
+          Result<vector<telegram_api::object_ptr<telegram_api::messageRange>>> r_ranges) mutable {
+        send_closure(actor_id, &ExportManager::on_get_split_ranges, generation, std::move(r_ranges));
+      });
+  send_export_query(telegram_api::messages_getSplitRanges(), -1, std::move(promise));
+}
+
+void ExportManager::on_get_split_ranges(uint64 generation,
+                                        Result<vector<telegram_api::object_ptr<telegram_api::messageRange>>> r_ranges) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_ranges.is_error()) {
+    return on_api_error(r_ranges.move_as_error());
+  }
+  auto &splits = export_->splits;
+  for (auto &range : r_ranges.ok()) {
+    splits.push_back(Export::SplitRange{range->min_id_, range->max_id_});
+  }
+  if (splits.empty()) {
+    splits.push_back(Export::SplitRange{1, std::numeric_limits<int32>::max()});
+  }
+
+  const auto &settings = export_->settings;
+  CHECK(settings.only_single_dialog());
+  export_->dialogs_count =
+      settings.single_dialog_id.get_type() == DialogType::Channel ? 1 : narrow_cast<int32>(splits.size());
+  start_writer();
+}
+
+void ExportManager::start_writer() {
+  CHECK(export_ != nullptr);
+  export_->writer = create_export_writer(td_, export_->settings.format);
+  CHECK(export_->writer != nullptr);
+  if (!on_io_result(export_->writer->start(export_->settings, &export_->stats))) {
+    return;
+  }
   fill_substeps_in_steps();
   export_next();
 }
 
+void ExportManager::collect_dialogs_list() {
+  set_dialogs_list_state(0);
+  CHECK(export_->settings.only_single_dialog());
+  auto dialog_id = export_->settings.single_dialog_id;
+  if (dialog_id.get_type() == DialogType::Channel &&
+      td_->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
+    // the basic group the supergroup was upgraded from is known only from the full info
+    auto promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), generation = export_->generation](Result<Unit> result) mutable {
+          send_closure(actor_id, &ExportManager::on_load_single_dialog_full_info, generation, std::move(result));
+        });
+    TRY_STATUS_PROMISE(promise, G()->close_status());
+    return td_->chat_manager_->load_channel_full(dialog_id.get_channel_id(), false, std::move(promise),
+                                                 "collect_dialogs_list");
+  }
+  add_single_dialog();
+}
+
+void ExportManager::on_load_single_dialog_full_info(uint64 generation, Result<Unit> result) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (result.is_error()) {
+    return on_api_error(result.move_as_error());
+  }
+  add_single_dialog();
+}
+
+void ExportManager::set_dialogs_list_state(int32 processed) {
+  ProcessingState state;
+  state.step = Step::DialogsList;
+  state.entity_index = max(processed, 0);
+  state.entity_count = max(processed, get_substeps_in_step(Step::Dialogs));
+  set_processing_state(std::move(state));
+}
+
+void ExportManager::add_single_dialog() {
+  const auto &settings = export_->settings;
+  auto dialog_id = settings.single_dialog_id;
+  auto dialog = make_unique<DialogProcess>();
+  dialog->info.dialog_id = dialog_id;
+  dialog->info.type = get_export_dialog_type(td_, dialog_id);
+  dialog->info.name = td_->dialog_manager_->get_dialog_title(dialog_id);
+  auto settings_type = get_settings_type(dialog->info.type);
+  dialog->only_my_messages =
+      dialog->info.type != ExportDialogInfo::Type::Personal && (settings.full_chats & settings_type) != settings_type;
+
+  // message identifiers of private chats and basic groups are shared by the account and split into ranges,
+  // while a channel has all its messages in the last range
+  auto split_count = narrow_cast<int32>(export_->splits.size());
+  if (dialog_id.get_type() == DialogType::Channel) {
+    auto migrated_from_chat_id = td_->chat_manager_->get_channel_migrated_from_chat_id(dialog_id.get_channel_id());
+    if (migrated_from_chat_id.is_valid()) {
+      dialog->migrated_from_dialog_id = DialogId(migrated_from_chat_id);
+      for (int32 i = 0; i < split_count; i++) {
+        dialog->splits.push_back(i - split_count);
+      }
+    }
+    dialog->splits.push_back(split_count - 1);
+  } else {
+    for (int32 i = 0; i < split_count; i++) {
+      dialog->splits.push_back(i);
+    }
+  }
+  dialog->split_message_counts.resize(dialog->splits.size());
+  export_->dialog = std::move(dialog);
+  export_next();
+}
+
+void ExportManager::export_dialogs() {
+  CHECK(export_->dialog != nullptr);
+  request_messages_count(0);
+}
+
+void ExportManager::request_messages_count(size_t split_index) {
+  request_chat_messages(MessagesRequestType::Count, split_index, 0, 0, 1);
+}
+
+void ExportManager::request_chat_messages(MessagesRequestType type, size_t split_index, int32 offset_id,
+                                          int32 add_offset, int32 limit) {
+  CHECK(export_ != nullptr);
+  CHECK(export_->dialog != nullptr);
+  const auto &dialog = *export_->dialog;
+  CHECK(split_index < dialog.splits.size());
+  auto split = dialog.splits[split_index];
+  auto dialog_id = split >= 0 ? dialog.info.dialog_id : dialog.migrated_from_dialog_id;
+  auto real_split = split >= 0 ? split : narrow_cast<int32>(export_->splits.size()) + split;
+  auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+  if (input_peer == nullptr) {
+    return on_api_error(Status::Error(400, "Chat not found"));
+  }
+
+  // the first slice of a range starts at the minimum date instead of the first message; the server puts messages
+  // dated offset_date before the offset, so the slice starts a second earlier
+  auto history_offset_id = offset_id;
+  int32 history_offset_date = 0;
+  if (type == MessagesRequestType::Slice && offset_id == 1 && export_->settings.single_dialog_min_date > 1) {
+    history_offset_id = 0;
+    history_offset_date = export_->settings.single_dialog_min_date - 1;
+  }
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), generation = export_->generation, type, split_index, offset_id, add_offset,
+       limit](Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages) mutable {
+        send_closure(actor_id, &ExportManager::on_get_chat_messages, generation, type, split_index, offset_id,
+                     add_offset, limit, std::move(r_messages));
+      });
+  if (dialog.only_my_messages) {
+    telegram_api::object_ptr<telegram_api::InputPeer> from;
+    if (dialog_id.get_type() == DialogType::Channel &&
+        td_->chat_manager_->is_admined_monoforum_channel(dialog_id.get_channel_id())) {
+      // own messages in an administered monoforum are sent on behalf of its channel
+      from = td_->dialog_manager_->get_input_peer(
+          DialogId(td_->chat_manager_->get_monoforum_channel_id(dialog_id.get_channel_id())), AccessRights::Read);
+    }
+    if (from == nullptr) {
+      from = telegram_api::make_object<telegram_api::inputPeerSelf>();
+    }
+    send_export_query(telegram_api::messages_search(0, std::move(input_peer), string(), std::move(from), nullptr, {}, 0,
+                                                    telegram_api::make_object<telegram_api::inputMessagesFilterEmpty>(),
+                                                    0, 0, offset_id, add_offset, limit, 0, 0, 0),
+                      real_split, std::move(promise));
+  } else {
+    send_export_query(telegram_api::messages_getHistory(std::move(input_peer), history_offset_id, history_offset_date,
+                                                        add_offset, limit, 0, 0, 0),
+                      real_split, std::move(promise));
+  }
+}
+
+void ExportManager::on_get_chat_messages(uint64 generation, MessagesRequestType type, size_t split_index,
+                                         int32 offset_id, int32 add_offset, int32 limit,
+                                         Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  CHECK(export_->dialog != nullptr);
+  auto &dialog = *export_->dialog;
+  if (r_messages.is_error()) {
+    auto split = dialog.splits[split_index];
+    auto dialog_id = split >= 0 ? dialog.info.dialog_id : dialog.migrated_from_dialog_id;
+    if (r_messages.error().message() == "CHANNEL_PRIVATE" && !dialog.only_my_messages &&
+        dialog_id.get_type() == DialogType::Channel) {
+      // the chat was left or the user was banned from it, so only own messages can be exported
+      dialog.only_my_messages = true;
+      return request_chat_messages(type, split_index, offset_id, add_offset, limit);
+    }
+    return on_api_error(r_messages.move_as_error());
+  }
+
+  auto messages = r_messages.move_as_ok();
+  if (messages->get_id() == telegram_api::messages_messagesNotModified::ID) {
+    return on_api_error(Status::Error(500, "Receive messagesNotModified"));
+  }
+  switch (type) {
+    case MessagesRequestType::Count: {
+      int32 count = 0;
+      switch (messages->get_id()) {
+        case telegram_api::messages_messages::ID:
+          count = narrow_cast<int32>(
+              static_cast<const telegram_api::messages_messages *>(messages.get())->messages_.size());
+          break;
+        case telegram_api::messages_messagesSlice::ID:
+          count = static_cast<const telegram_api::messages_messagesSlice *>(messages.get())->count_;
+          break;
+        case telegram_api::messages_channelMessages::ID:
+          count = static_cast<const telegram_api::messages_channelMessages *>(messages.get())->count_;
+          break;
+        default:
+          UNREACHABLE();
+      }
+      // the last message of the range is the only one returned
+      auto last_date = get_single_message_date(messages);
+      if (last_date <= 0 || last_date < export_->settings.single_dialog_min_date) {
+        return on_messages_count_loaded(split_index, 0);
+      }
+      return check_first_message_date(split_index, count);
+    }
+    case MessagesRequestType::FirstDate: {
+      auto date = get_single_message_date(messages);
+      auto max_date = export_->settings.single_dialog_max_date;
+      auto is_skipped = date <= 0 || date >= max_date;
+      return on_messages_count_loaded(split_index, is_skipped ? 0 : dialog.pending_count);
+    }
+    case MessagesRequestType::Slice: {
+      vector<telegram_api::object_ptr<telegram_api::Message>> message_list;
+      switch (messages->get_id()) {
+        case telegram_api::messages_messages::ID: {
+          auto result = telegram_api::move_object_as<telegram_api::messages_messages>(messages);
+          td_->user_manager_->on_get_users(std::move(result->users_), "on_get_chat_messages");
+          td_->chat_manager_->on_get_chats(std::move(result->chats_), "on_get_chat_messages");
+          message_list = std::move(result->messages_);
+          dialog.is_last_slice = true;
+          break;
+        }
+        case telegram_api::messages_messagesSlice::ID: {
+          auto result = telegram_api::move_object_as<telegram_api::messages_messagesSlice>(messages);
+          td_->user_manager_->on_get_users(std::move(result->users_), "on_get_chat_messages");
+          td_->chat_manager_->on_get_chats(std::move(result->chats_), "on_get_chat_messages");
+          message_list = std::move(result->messages_);
+          break;
+        }
+        case telegram_api::messages_channelMessages::ID: {
+          auto result = telegram_api::move_object_as<telegram_api::messages_channelMessages>(messages);
+          td_->user_manager_->on_get_users(std::move(result->users_), "on_get_chat_messages");
+          td_->chat_manager_->on_get_chats(std::move(result->chats_), "on_get_chat_messages");
+          message_list = std::move(result->messages_);
+          break;
+        }
+        default:
+          UNREACHABLE();
+      }
+      return on_get_messages_slice(std::move(message_list));
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
+void ExportManager::check_first_message_date(size_t split_index, int32 count) {
+  if (export_->settings.single_dialog_max_date <= 0) {
+    return on_messages_count_loaded(split_index, count);
+  }
+  // request the first message of the range to check whether it is before the maximum date
+  export_->dialog->pending_count = count;
+  request_chat_messages(MessagesRequestType::FirstDate, split_index, 1, -1, 1);
+}
+
+void ExportManager::on_messages_count_loaded(size_t split_index, int32 count) {
+  auto &dialog = *export_->dialog;
+  dialog.split_message_counts[split_index] = count;
+  if (split_index + 1 < dialog.splits.size()) {
+    return request_messages_count(split_index + 1);
+  }
+  if (!on_io_result(export_->writer->write_dialog_start(dialog.info))) {
+    return;
+  }
+  dialog.received_message_count = 0;
+  dialog.message_count = 0;
+  for (auto split_count : dialog.split_message_counts) {
+    dialog.message_count += split_count;
+  }
+  set_dialogs_state();
+  request_messages_slice();
+}
+
+void ExportManager::request_messages_slice() {
+  auto &dialog = *export_->dialog;
+  if (dialog.split_message_counts[dialog.split_index] == 0) {
+    return on_get_messages_slice({});
+  }
+  request_chat_messages(MessagesRequestType::Slice, dialog.split_index, dialog.largest_id_plus_one,
+                        -MESSAGES_SLICE_LIMIT, MESSAGES_SLICE_LIMIT);
+}
+
+void ExportManager::on_get_messages_slice(vector<telegram_api::object_ptr<telegram_api::Message>> &&messages) {
+  auto &dialog = *export_->dialog;
+  if (messages.empty()) {
+    dialog.is_last_slice = true;
+  } else {
+    auto max_date = export_->settings.single_dialog_max_date;
+    if (max_date > 0 && get_message_date(messages[0].get()) >= max_date) {
+      // the newest message of the slice is after the range, so the next slices are too
+      dialog.is_last_slice = true;
+    }
+
+    auto is_migrated = dialog.splits[dialog.split_index] < 0;
+    auto dialog_id = is_migrated ? dialog.migrated_from_dialog_id : dialog.info.dialog_id;
+    vector<ExportMessage> export_messages;
+    export_messages.reserve(messages.size());
+    // the messages are received from the newest to the oldest
+    for (auto it = messages.rbegin(); it != messages.rend(); ++it) {
+      auto message_id = MessageId::get_message_id(*it, false);
+      if (message_id.is_server()) {
+        dialog.largest_id_plus_one = max(dialog.largest_id_plus_one, message_id.get_server_message_id().get() + 1);
+      }
+      ExportMessage export_message;
+      export_message.is_history_cleared =
+          (*it)->get_id() == telegram_api::messageService::ID &&
+          static_cast<const telegram_api::messageService *>(it->get())->action_->get_id() ==
+              telegram_api::messageActionHistoryClear::ID;
+      export_message.message = td_->messages_manager_->get_export_message_object(dialog_id, std::move(*it));
+      if (export_message.message != nullptr) {
+        export_messages.push_back(std::move(export_message));
+      }
+    }
+    if (!on_io_result(export_->writer->write_dialog_messages(export_messages, is_migrated))) {
+      return;
+    }
+    dialog.received_message_count += narrow_cast<int32>(messages.size());
+    set_dialogs_state();
+  }
+  if (dialog.is_last_slice && ++dialog.split_index < dialog.splits.size()) {
+    dialog.is_last_slice = false;
+    dialog.largest_id_plus_one = 1;
+  }
+  if (!dialog.is_last_slice) {
+    request_messages_slice();
+  } else {
+    finish_messages();
+  }
+}
+
+void ExportManager::finish_messages() {
+  export_->dialog = nullptr;
+  if (!on_io_result(export_->writer->write_dialog_end())) {
+    return;
+  }
+  export_next();
+}
+
+void ExportManager::set_dialogs_state() {
+  CHECK(export_->dialog != nullptr);
+  const auto &dialog = *export_->dialog;
+  ProcessingState state;
+  state.step = Step::Dialogs;
+  state.entity_index = 0;
+  state.entity_count = 1;
+  state.entity_name = dialog.info.name;
+  state.item_index = dialog.received_message_count;
+  state.item_count = max(dialog.message_count, state.item_index);
+  set_processing_state(std::move(state));
+}
+
 void ExportManager::finish_export() {
   CHECK(export_ != nullptr);
+  if (!on_io_result(export_->writer->finish())) {
+    return;
+  }
   auto promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), generation = export_->generation](Result<bool> result) mutable {
         send_closure(actor_id, &ExportManager::on_finish_takeout_session, generation, std::move(result));
@@ -447,7 +967,8 @@ void ExportManager::on_finish_takeout_session(uint64 generation, Result<bool> re
     return on_api_error(result.move_as_error());
   }
   auto directory = export_->settings.path;
-  stop_export(td_api::make_object<td_api::exportStateFinished>(directory, 0, 0));
+  stop_export(td_api::make_object<td_api::exportStateFinished>(directory, export_->stats.file_count,
+                                                               export_->stats.total_size));
 }
 
 void ExportManager::send_finish_takeout_session(bool success, Promise<bool> &&promise) {
@@ -477,6 +998,17 @@ void ExportManager::on_api_error(Status status) {
   }
   stop_export(td_api::make_object<td_api::exportStateFailed>(
       td_api::make_object<td_api::error>(status.code(), status.message().str())));
+}
+
+bool ExportManager::on_io_result(Status status) {
+  CHECK(export_ != nullptr);
+  if (status.is_ok()) {
+    return true;
+  }
+  LOG(WARNING) << "Export failed: " << status;
+  stop_export(
+      td_api::make_object<td_api::exportStateFailed>(td_api::make_object<td_api::error>(400, status.message().str())));
+  return false;
 }
 
 void ExportManager::stop_export(td_api::object_ptr<td_api::ExportState> &&state) {

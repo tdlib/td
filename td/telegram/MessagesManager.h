@@ -862,6 +862,9 @@ class MessagesManager final : public Actor {
   td_api::object_ptr<td_api::message> get_dialog_event_log_message_object(
       DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id);
 
+  td_api::object_ptr<td_api::message> get_export_message_object(
+      DialogId dialog_id, telegram_api::object_ptr<telegram_api::Message> &&message);
+
   td_api::object_ptr<td_api::businessMessage> get_business_message_object(
       telegram_api::object_ptr<telegram_api::Message> &&message,
       telegram_api::object_ptr<telegram_api::Message> &&reply_to_message);
