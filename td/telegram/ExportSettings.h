@@ -34,6 +34,8 @@ struct ExportSettings {
     GroupsMask = PrivateGroups | PublicGroups,
     ChannelsMask = PrivateChannels | PublicChannels,
     GroupsChannelsMask = GroupsMask | ChannelsMask,
+    // the chats, which have messages outside the last range of message identifiers
+    NonChannelChatsMask = PersonalChats | BotChats | PrivateGroups,
     AnyChatsMask = PersonalChats | BotChats | GroupsChannelsMask,
   };
 

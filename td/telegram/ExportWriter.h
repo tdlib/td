@@ -43,8 +43,16 @@ struct ExportDialogInfo {
   DialogId dialog_id;
   Type type = Type::Unknown;
   string name;
+  // the directory of the chat relative to the export directory, ending with '/'; empty if a single chat is exported
+  string relative_path;
   bool is_left_channel = false;
+  bool only_my_messages = false;
 };
+
+enum class ExportAbout : int32 { Telegram, Chats, LeftChats };
+
+// returns the description of the exported data
+Slice get_export_about_text(ExportAbout about);
 
 // identifiers of messages of the basic group, from which the supergroup was migrated, are shifted by the value
 constexpr int32 EXPORT_MIGRATED_MESSAGE_ID_SHIFT = -1000000000;
@@ -165,13 +173,19 @@ class ExportWriter {
 
   virtual Status start(const ExportSettings &settings, ExportStats *stats) TD_WARN_UNUSED_RESULT = 0;
 
+  // the chats are written between write_dialogs_start and write_dialogs_end; left channels are written last
+  virtual Status write_dialogs_start(int32 dialog_count) TD_WARN_UNUSED_RESULT = 0;
+
   virtual Status write_dialog_start(const ExportDialogInfo &dialog) TD_WARN_UNUSED_RESULT = 0;
 
   // messages of the basic group the supergroup was migrated from have is_migrated set and are written first
   virtual Status write_dialog_messages(const vector<ExportMessage> &messages, bool is_migrated,
                                        const ExportCustomEmojiFiles &custom_emoji_files) TD_WARN_UNUSED_RESULT = 0;
 
-  virtual Status write_dialog_end() TD_WARN_UNUSED_RESULT = 0;
+  // only_my_messages is false if access to the chat was lost after other messages were exported
+  virtual Status write_dialog_end(bool only_my_messages) TD_WARN_UNUSED_RESULT = 0;
+
+  virtual Status write_dialogs_end() TD_WARN_UNUSED_RESULT = 0;
 
   virtual Status finish() TD_WARN_UNUSED_RESULT = 0;
 };

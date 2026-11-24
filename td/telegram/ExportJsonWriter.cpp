@@ -254,10 +254,11 @@ static void store_suggested_post_price(JsonObjectScope &object, const td_api::Su
   }
 }
 
+// the value is indented as a field of the message at the given nesting level
 template <class T>
-static string get_embedded_json(const T &value) {
+static string get_embedded_json(const T &value, int32 message_offset) {
   auto buf = StackAllocator::alloc(1 << 12);
-  JsonBuilder jb(StringBuilder(buf.as_slice(), true), MESSAGE_JSON_OFFSET + 1);
+  JsonBuilder jb(StringBuilder(buf.as_slice(), true), message_offset + 1);
   jb.enter_value() << value;
   return jb.string_builder().as_cslice().str();
 }
@@ -484,7 +485,7 @@ class ExportJsonInlineButton final : public Jsonable {
 class ExportJsonMessage final : public Jsonable {
  public:
   ExportJsonMessage(Td *td, const ExportMessage &export_message, bool is_migrated,
-                    const ExportCustomEmojiFiles &custom_emoji_files, int32 utc_time_offset)
+                    const ExportCustomEmojiFiles &custom_emoji_files, int32 utc_time_offset, int32 json_offset)
       : td_(td)
       , message_(*export_message.message)
       , file_(export_message.file)
@@ -492,7 +493,8 @@ class ExportJsonMessage final : public Jsonable {
       , custom_emoji_files_(custom_emoji_files)
       , is_history_cleared_(export_message.is_history_cleared)
       , is_migrated_(is_migrated)
-      , utc_time_offset_(utc_time_offset) {
+      , utc_time_offset_(utc_time_offset)
+      , json_offset_(json_offset) {
   }
 
   void store(JsonValueScope *scope) const;
@@ -506,6 +508,8 @@ class ExportJsonMessage final : public Jsonable {
   bool is_history_cleared_;
   bool is_migrated_;
   int32 utc_time_offset_;
+  // the nesting level of the message
+  int32 json_offset_;
 
   string format_date(int32 date) const {
     return get_export_date_time_string(get_export_local_time(date, utc_time_offset_));
@@ -931,7 +935,7 @@ void ExportJsonMessage::store_media_content(JsonObjectScope &object, const td_ap
         }
       });
       // the object is written as a string
-      object("invoice_information", JsonRawString(get_embedded_json(invoice)));
+      object("invoice_information", JsonRawString(get_embedded_json(invoice, json_offset_)));
       break;
     }
     case td_api::messageGiveaway::ID: {
@@ -1264,7 +1268,7 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
         }
       });
       // the array is written as a string
-      object("peers", JsonRawString(get_embedded_json(peers)));
+      object("peers", JsonRawString(get_embedded_json(peers, json_offset_)));
       break;
     }
     case td_api::messageChatShared::ID: {
@@ -1278,7 +1282,7 @@ void ExportJsonMessage::store_service_content(JsonObjectScope &object, const td_
         }
       });
       // the array is written as a string
-      object("peers", JsonRawString(get_embedded_json(peers)));
+      object("peers", JsonRawString(get_embedded_json(peers, json_offset_)));
       break;
     }
     case td_api::messagePremiumGiftCode::ID: {
@@ -1691,24 +1695,93 @@ ExportJsonWriter::ExportJsonWriter(Td *td) : td_(td) {
 Status ExportJsonWriter::start(const ExportSettings &settings, ExportStats *stats) {
   CHECK(output_ == nullptr);
   CHECK(!settings.path.empty() && settings.path.back() == TD_DIR_SLASH);
-  if (!settings.only_single_dialog()) {
-    return Status::Error("Account export isn't supported");
-  }
 
   settings_ = settings;
   output_ = td::make_unique<ExportOutputFile>(settings_.path + "result.json", stats);
+  if (settings_.only_single_dialog()) {
+    dialog_offset_ = 0;
+    return Status::OK();
+  }
+
+  // a chat is an item of the "list" array of the object of the chat list in the root object
+  dialog_offset_ = 3;
+  auto buf = StackAllocator::alloc(1 << 12);
+  JsonBuilder jb(StringBuilder(buf.as_slice(), true), 1);
+  auto &sb = jb.string_builder();
+  sb << '{';
+  jb.print_offset();
+  sb << "\"about\" : " << JsonRawString(get_export_about_text(ExportAbout::Telegram));
+  if (sb.is_error()) {
+    return Status::Error("Failed to serialize the exported data");
+  }
+  return output_->write(sb.as_cslice());
+}
+
+Status ExportJsonWriter::write_dialogs_start(int32 dialog_count) {
   return Status::OK();
+}
+
+Status ExportJsonWriter::write_dialog_list_start(bool is_left_channel) {
+  auto mode = is_left_channel ? DialogsMode::Left : DialogsMode::Chats;
+  if (dialogs_mode_ == mode) {
+    return Status::OK();
+  }
+  if (dialogs_mode_ != DialogsMode::None) {
+    TRY_STATUS(write_dialog_list_end());
+  }
+  dialogs_mode_ = mode;
+  has_dialogs_ = false;
+
+  auto buf = StackAllocator::alloc(1 << 12);
+  JsonBuilder jb(StringBuilder(buf.as_slice(), true), 1);
+  auto &sb = jb.string_builder();
+  sb << ',';
+  jb.print_offset();
+  sb << (is_left_channel ? Slice("\"left_chats\" : {") : Slice("\"chats\" : {"));
+  jb.inc_offset();
+  jb.print_offset();
+  sb << "\"about\" : "
+     << JsonRawString(get_export_about_text(is_left_channel ? ExportAbout::LeftChats : ExportAbout::Chats)) << ',';
+  jb.print_offset();
+  sb << "\"list\" : [";
+  if (sb.is_error()) {
+    return Status::Error("Failed to serialize the chat list");
+  }
+  return output_->write(sb.as_cslice());
+}
+
+Status ExportJsonWriter::write_dialog_list_end() {
+  auto buf = StackAllocator::alloc(1 << 6);
+  JsonBuilder jb(StringBuilder(buf.as_slice(), true), 2);
+  auto &sb = jb.string_builder();
+  jb.print_offset();
+  sb << ']';
+  jb.dec_offset();
+  jb.print_offset();
+  sb << '}';
+  return output_->write(sb.as_cslice());
 }
 
 Status ExportJsonWriter::write_dialog_start(const ExportDialogInfo &dialog) {
   CHECK(output_ != nullptr);
+  if (!settings_.only_single_dialog()) {
+    TRY_STATUS(write_dialog_list_start(dialog.is_left_channel));
+  }
   has_messages_ = false;
 
   using Type = ExportDialogInfo::Type;
   auto buf = StackAllocator::alloc(1 << 12);
-  JsonBuilder jb(StringBuilder(buf.as_slice(), true), MESSAGE_JSON_OFFSET - 1);
+  JsonBuilder jb(StringBuilder(buf.as_slice(), true), dialog_offset_);
   auto &sb = jb.string_builder();
+  if (!settings_.only_single_dialog()) {
+    if (has_dialogs_) {
+      sb << ',';
+    }
+    has_dialogs_ = true;
+    jb.print_offset();
+  }
   sb << '{';
+  jb.inc_offset();
   if (dialog.type != Type::Self && dialog.type != Type::Replies && dialog.type != Type::VerifyCodes) {
     jb.print_offset();
     sb << "\"name\" : ";
@@ -1742,8 +1815,9 @@ Status ExportJsonWriter::write_dialog_messages(const vector<ExportMessage> &mess
                                                const ExportCustomEmojiFiles &custom_emoji_files) {
   CHECK(output_ != nullptr);
 
+  auto message_offset = dialog_offset_ + MESSAGE_JSON_OFFSET;
   auto buf = StackAllocator::alloc(1 << 16);
-  JsonBuilder jb(StringBuilder(buf.as_slice(), true), MESSAGE_JSON_OFFSET);
+  JsonBuilder jb(StringBuilder(buf.as_slice(), true), message_offset);
   auto &sb = jb.string_builder();
   for (const auto &export_message : messages) {
     const auto &message = export_message.message;
@@ -1756,7 +1830,7 @@ Status ExportJsonWriter::write_dialog_messages(const vector<ExportMessage> &mess
     has_messages_ = true;
     jb.print_offset();
     jb.enter_value() << ExportJsonMessage(td_, export_message, is_migrated, custom_emoji_files,
-                                          settings_.utc_time_offset);
+                                          settings_.utc_time_offset, message_offset);
   }
   if (sb.is_error()) {
     return Status::Error("Failed to serialize messages");
@@ -1768,23 +1842,38 @@ Status ExportJsonWriter::write_dialog_messages(const vector<ExportMessage> &mess
   return output_->write(data);
 }
 
-Status ExportJsonWriter::write_dialog_end() {
+Status ExportJsonWriter::write_dialog_end(bool only_my_messages) {
   CHECK(output_ != nullptr);
 
   auto buf = StackAllocator::alloc(1 << 6);
-  JsonBuilder jb(StringBuilder(buf.as_slice(), true), MESSAGE_JSON_OFFSET - 1);
+  JsonBuilder jb(StringBuilder(buf.as_slice(), true), dialog_offset_ + 1);
   auto &sb = jb.string_builder();
   jb.print_offset();
   sb << ']';
   jb.dec_offset();
   jb.print_offset();
-  sb << "}\n";
+  sb << '}';
+  if (settings_.only_single_dialog()) {
+    sb << '\n';
+  }
   return output_->write(sb.as_cslice());
+}
+
+Status ExportJsonWriter::write_dialogs_end() {
+  CHECK(output_ != nullptr);
+  if (dialogs_mode_ == DialogsMode::None) {
+    return Status::OK();
+  }
+  dialogs_mode_ = DialogsMode::None;
+  return write_dialog_list_end();
 }
 
 Status ExportJsonWriter::finish() {
   CHECK(output_ != nullptr);
-  return Status::OK();
+  if (settings_.only_single_dialog()) {
+    return Status::OK();
+  }
+  return output_->write("\n}\n");
 }
 
 }  // namespace td

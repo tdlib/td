@@ -23,6 +23,28 @@
 
 namespace td {
 
+Slice get_export_about_text(ExportAbout about) {
+  switch (about) {
+    case ExportAbout::Telegram:
+      return Slice(
+          "Here is the data you requested. Remember: Telegram is ad free, it doesn't use your data for ad targeting "
+          "and doesn't sell it to others. Telegram only keeps the information it needs to function as a secure and "
+          "feature-rich cloud service.\n\nCheck out Settings > Privacy & Security on Telegram's mobile apps for the "
+          "relevant settings.");
+    case ExportAbout::Chats:
+      return Slice("This page lists all chats from this export.");
+    case ExportAbout::LeftChats:
+      return Slice(
+          "Below are the supergroups and channels from this export that you've left or where you were "
+          "banned.\n\nNote that when you leave a channel or supergroup you've created, you have the option to either "
+          "delete it, or simply leave (in case you want to rejoin later, or keep the community alive despite not "
+          "being a member).");
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
 static int64 floor_div(int64 a, int64 b) {
   return a >= 0 ? a / b : (a - b + 1) / b;
 }
@@ -659,6 +681,11 @@ class ExportCombinedWriter final : public ExportWriter {
     return second_->start(settings, stats);
   }
 
+  Status write_dialogs_start(int32 dialog_count) final {
+    TRY_STATUS(first_->write_dialogs_start(dialog_count));
+    return second_->write_dialogs_start(dialog_count);
+  }
+
   Status write_dialog_start(const ExportDialogInfo &dialog) final {
     TRY_STATUS(first_->write_dialog_start(dialog));
     return second_->write_dialog_start(dialog);
@@ -670,9 +697,14 @@ class ExportCombinedWriter final : public ExportWriter {
     return second_->write_dialog_messages(messages, is_migrated, custom_emoji_files);
   }
 
-  Status write_dialog_end() final {
-    TRY_STATUS(first_->write_dialog_end());
-    return second_->write_dialog_end();
+  Status write_dialog_end(bool only_my_messages) final {
+    TRY_STATUS(first_->write_dialog_end(only_my_messages));
+    return second_->write_dialog_end(only_my_messages);
+  }
+
+  Status write_dialogs_end() final {
+    TRY_STATUS(first_->write_dialogs_end());
+    return second_->write_dialogs_end();
   }
 
   Status finish() final {

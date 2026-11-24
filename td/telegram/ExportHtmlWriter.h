@@ -32,19 +32,43 @@ class ExportHtmlWriter final : public ExportWriter {
 
   Status start(const ExportSettings &settings, ExportStats *stats) final;
 
+  Status write_dialogs_start(int32 dialog_count) final;
+
   Status write_dialog_start(const ExportDialogInfo &dialog) final;
 
   Status write_dialog_messages(const vector<ExportMessage> &messages, bool is_migrated,
                                const ExportCustomEmojiFiles &custom_emoji_files) final;
 
-  Status write_dialog_end() final;
+  Status write_dialog_end(bool only_my_messages) final;
+
+  Status write_dialogs_end() final;
 
   Status finish() final;
 
  private:
+  enum class DialogsMode : int32 { None, Chats, Left };
+
+  struct Section {
+    int32 priority = 0;
+    string label;
+    string type;
+    int32 count = 0;
+    string path;
+  };
+
   Td *td_;
   ExportSettings settings_;
   ExportStats *stats_ = nullptr;
+
+  // the page with the sections of the exported data
+  unique_ptr<ExportHtmlPage> summary_;
+  bool summary_needs_divider_ = false;
+  bool has_sections_ = false;
+  // the sections, which aren't written yet
+  vector<Section> sections_;
+
+  unique_ptr<ExportHtmlPage> dialogs_page_;
+  DialogsMode dialogs_mode_ = DialogsMode::None;
 
   ExportDialogInfo dialog_;
   string dialog_first_name_;
@@ -66,6 +90,14 @@ class ExportHtmlWriter final : public ExportWriter {
   Status write_page_opening(int32 index);
 
   Status switch_to_next_page(int32 index);
+
+  void add_section(int32 priority, Slice label, Slice type, int32 count, Slice path);
+
+  Status write_sections();
+
+  Status write_dialog_list_start(bool is_left_channel);
+
+  Status write_dialog_list_entry();
 };
 
 }  // namespace td

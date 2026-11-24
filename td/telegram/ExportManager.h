@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/ExportSettings.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -13,6 +14,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
@@ -74,11 +76,13 @@ class ExportManager final : public Actor {
 
   struct MessageFileWork;
   struct DialogProcess;
+  struct DialogsList;
   struct FileProcess;
   struct Export;
 
   static constexpr int32 MAX_DIRECTORY_ATTEMPTS = 1000;
   static constexpr int32 MESSAGES_SLICE_LIMIT = 100;
+  static constexpr int32 DIALOGS_SLICE_LIMIT = 100;
   static constexpr int32 FILE_PART_SIZE = 128 << 10;
   static constexpr size_t MAX_LOADED_FILES = 100000;
 
@@ -117,9 +121,30 @@ class ExportManager final : public Actor {
   void on_get_split_ranges(uint64 generation,
                            Result<vector<telegram_api::object_ptr<telegram_api::messageRange>>> r_ranges);
 
+  void request_dialogs_count(size_t split_index);
+
+  void on_get_dialogs_count(uint64 generation, size_t split_index,
+                            Result<telegram_api::object_ptr<telegram_api::messages_Dialogs>> r_dialogs);
+
+  void request_left_channels(bool is_count);
+
+  void on_get_left_channels(uint64 generation, bool is_count,
+                            Result<telegram_api::object_ptr<telegram_api::messages_Chats>> r_chats);
+
+  void append_dialogs(vector<unique_ptr<DialogProcess>> &dialogs,
+                      FlatHashMap<DialogId, size_t, DialogIdHash> &dialog_indices, const vector<DialogId> &dialog_ids,
+                      bool is_left_channel, int32 split_index);
+
   void start_writer();
 
   void collect_dialogs_list();
+
+  void request_dialogs_slice();
+
+  void on_get_dialogs_slice(uint64 generation,
+                            Result<telegram_api::object_ptr<telegram_api::messages_Dialogs>> r_dialogs);
+
+  void finish_dialogs_list();
 
   void on_load_single_dialog_full_info(uint64 generation, Result<Unit> result);
 
@@ -128,6 +153,8 @@ class ExportManager final : public Actor {
   void add_single_dialog();
 
   void export_dialogs();
+
+  void export_next_dialog();
 
   void request_messages_count(size_t split_index);
 

@@ -22,6 +22,7 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/utf8.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <initializer_list>
 #include <locale>
@@ -36,6 +37,8 @@ static constexpr int32 REACTION_USERPIC_SIZE = 20;
 static constexpr int32 JOIN_WITHIN_SECONDS = 900;
 static constexpr int32 STICKER_MAX_SIZE = 384;
 static constexpr int32 THUMBNAIL_MIN_SIZE = 80;
+static constexpr int32 ENTRY_USERPIC_SIZE = 48;
+static constexpr int32 SAVED_MESSAGES_COLOR_INDEX = 3;
 static constexpr size_t MAX_LINK_TARGET_SIZE = 4096;
 
 static const char UNAVAILABLE_CUSTOM_EMOJI[] = "(unavailable)";
@@ -710,15 +713,47 @@ class ExportHtmlPage {
     return file_.write(block);
   }
 
-  void push_header(string &result, Slice header) {
+  // the back path is relative to the export directory
+  void push_header(string &result, Slice header, Slice back_path = Slice()) {
     context_.push_div(result, "page_header");
-    context_.push_div(result, "content");
+    if (back_path.empty()) {
+      context_.push_div(result, "content");
+    } else {
+      context_.push_tag(result, "a",
+                        {{"class", "content block_link"},
+                         {"href", PSLICE() << base_ << back_path},
+                         {"onclick", "return GoBack(this)"}});
+    }
     context_.push_div(result, "text bold");
     append_html_escaped(result, header);
     context_.pop_tag(result);
     context_.pop_tag(result);
     context_.pop_tag(result);
   }
+
+  void push_about(string &result, Slice text, bool with_divider = false) {
+    context_.push_div(result, with_divider ? Slice("page_about details with_divider") : Slice("page_about details"));
+    append_html_escaped(result, text);
+    context_.pop_tag(result);
+  }
+
+  // the link is relative to the export directory
+  void push_section(string &result, Slice header, Slice type, int32 count, Slice link) {
+    context_.push_tag(
+        result, "a",
+        {{"class", PSLICE() << "section block_link " << type}, {"href", PSLICE() << base_ << link << "#allow_back"}});
+    context_.push_div(result, "counter details");
+    result += to_string(count);
+    context_.pop_tag(result);
+    context_.push_div(result, "label bold");
+    append_html_escaped(result, header);
+    context_.pop_tag(result);
+    context_.pop_tag(result);
+  }
+
+  // the link is relative to the export directory; the entry isn't a link if it is empty
+  void push_list_entry(string &result, Slice link, const UserpicData &userpic, Slice name, Slice subname,
+                       std::initializer_list<Slice> details, Slice info);
 
  private:
   ExportOutputFile file_;
@@ -793,6 +828,39 @@ static void push_userpic(HtmlContext &context, string &result, Slice base, const
   if (!userpic.large_link.empty()) {
     context.pop_tag(result);
   }
+}
+
+void ExportHtmlPage::push_list_entry(string &result, Slice link, const UserpicData &userpic, Slice name, Slice subname,
+                                     std::initializer_list<Slice> details, Slice info) {
+  if (link.empty()) {
+    context_.push_div(result, "entry clearfix");
+  } else {
+    context_.push_tag(result, "a",
+                      {{"class", "entry block_link clearfix"}, {"href", PSLICE() << base_ << link << "#allow_back"}});
+  }
+  context_.push_div(result, "pull_left userpic_wrap");
+  push_userpic(context_, result, base_, userpic);
+  context_.pop_tag(result);
+  context_.push_div(result, "body");
+  auto push_text = [&](Slice class_name, Slice text) {
+    if (text.empty()) {
+      return;
+    }
+    context_.push_div(result, class_name);
+    append_html_escaped(result, text);
+    context_.pop_tag(result);
+  };
+  push_text("pull_right info details", info);
+  push_text("name bold", name);
+  push_text("subname bold", subname);
+  for (auto detail : details) {
+    // empty details are written, unlike the other parts
+    context_.push_div(result, "details_entry details");
+    append_html_escaped(result, detail);
+    context_.pop_tag(result);
+  }
+  context_.pop_tag(result);
+  context_.pop_tag(result);
 }
 
 static void push_service_message(HtmlContext &context, string &result, Slice base, int32 message_id, Slice text,
@@ -2665,6 +2733,12 @@ ExportHtmlWriter::ExportHtmlWriter(Td *td) : td_(td) {
 
 ExportHtmlWriter::~ExportHtmlWriter() = default;
 
+static constexpr int32 CHATS_SECTION_PRIORITY = 0;
+
+static const char SUMMARY_PAGE_PATH[] = "export_results.html";
+
+static const char DIALOGS_PAGE_PATH[] = "lists/chats.html";
+
 unique_ptr<ExportHtmlPage> ExportHtmlWriter::create_page(Slice relative_path) const {
   string path = settings_.path;
   for (auto c : relative_path) {
@@ -2717,9 +2791,6 @@ Status ExportHtmlWriter::write_file(Slice relative_path, Slice data) {
 
 Status ExportHtmlWriter::start(const ExportSettings &settings, ExportStats *stats) {
   CHECK(!settings.path.empty() && settings.path.back() == TD_DIR_SLASH);
-  if (!settings.only_single_dialog()) {
-    return Status::Error("Account export isn't supported");
-  }
   settings_ = settings;
   stats_ = stats;
 
@@ -2738,11 +2809,65 @@ Status ExportHtmlWriter::start(const ExportSettings &settings, ExportStats *stat
   if (!settings_.html_stylesheet.empty()) {
     TRY_STATUS(write_file(CUSTOM_STYLESHEET_PATH, settings_.html_stylesheet));
   }
-  return Status::OK();
+
+  if (settings_.only_single_dialog()) {
+    return Status::OK();
+  }
+  summary_ = create_page(SUMMARY_PAGE_PATH);
+  string block;
+  summary_->push_header(block, "Exported Data");
+  summary_->context().push_div(block, "page_body");
+  return summary_->write(block);
+}
+
+void ExportHtmlWriter::add_section(int32 priority, Slice label, Slice type, int32 count, Slice path) {
+  Section section;
+  section.priority = priority;
+  section.label = label.str();
+  section.type = type.str();
+  section.count = count;
+  section.path = path.str();
+  sections_.push_back(std::move(section));
+}
+
+Status ExportHtmlWriter::write_sections() {
+  CHECK(summary_ != nullptr);
+  if (sections_.empty()) {
+    return Status::OK();
+  }
+  string block;
+  if (!has_sections_) {
+    summary_->context().push_div(block, summary_needs_divider_ ? Slice("sections with_divider") : Slice("sections"));
+    has_sections_ = true;
+    summary_needs_divider_ = false;
+  }
+  std::stable_sort(sections_.begin(), sections_.end(),
+                   [](const Section &lhs, const Section &rhs) { return lhs.priority < rhs.priority; });
+  for (const auto &section : sections_) {
+    summary_->push_section(block, section.label, section.type, section.count, section.path);
+  }
+  sections_.clear();
+  return summary_->write(block);
+}
+
+Status ExportHtmlWriter::write_dialogs_start(int32 dialog_count) {
+  CHECK(dialogs_page_ == nullptr);
+  if (settings_.only_single_dialog() || dialog_count == 0) {
+    return Status::OK();
+  }
+  dialogs_page_ = create_page(DIALOGS_PAGE_PATH);
+  string block;
+  dialogs_page_->push_header(block, "Chats", SUMMARY_PAGE_PATH);
+  dialogs_page_->context().push_div(block, "page_body list_page");
+  TRY_STATUS(dialogs_page_->write(block));
+
+  add_section(CHATS_SECTION_PRIORITY, "Chats", "chats", dialog_count, DIALOGS_PAGE_PATH);
+  return write_sections();
 }
 
 Status ExportHtmlWriter::write_dialog_start(const ExportDialogInfo &dialog) {
   CHECK(page_ == nullptr);
+  CHECK(settings_.only_single_dialog() || dialogs_page_ != nullptr);
   dialog_ = dialog;
   if (dialog.dialog_id.get_type() == DialogType::User) {
     dialog_first_name_ = td_->user_manager_->get_user_first_name(dialog.dialog_id.get_user_id()).str();
@@ -2751,7 +2876,7 @@ Status ExportHtmlWriter::write_dialog_start(const ExportDialogInfo &dialog) {
     dialog_first_name_ = dialog.name;
     dialog_last_name_.clear();
   }
-  page_ = create_page(get_export_html_page_name(0));
+  page_ = create_page(PSLICE() << dialog_.relative_path << get_export_html_page_name(0));
   is_page_empty_ = true;
   message_count_ = 0;
   date_message_id_ = 0;
@@ -2768,7 +2893,7 @@ Status ExportHtmlWriter::write_page_opening(int32 index) {
     name = PSTRING() << dialog_first_name_ << ' ' << dialog_last_name_;
   }
   string block;
-  page_->push_header(block, name);
+  page_->push_header(block, name, settings_.only_single_dialog() ? Slice() : Slice(DIALOGS_PAGE_PATH));
   auto &context = page_->context();
   context.push_div(block, "page_body chat_page");
   context.push_div(block, "history");
@@ -2790,7 +2915,7 @@ Status ExportHtmlWriter::switch_to_next_page(int32 index) {
   context.pop_tag(block);
   TRY_STATUS(page_->write(block));
   TRY_STATUS(page_->close());
-  page_ = create_page(next_page_name);
+  page_ = create_page(PSLICE() << dialog_.relative_path << next_page_name);
   is_page_empty_ = true;
   return Status::OK();
 }
@@ -2847,22 +2972,154 @@ Status ExportHtmlWriter::write_dialog_messages(const vector<ExportMessage> &mess
   return page_->write(block);
 }
 
-Status ExportHtmlWriter::write_dialog_end() {
+Status ExportHtmlWriter::write_dialog_end(bool only_my_messages) {
   CHECK(page_ != nullptr);
-  if (message_count_ == 0) {
+  dialog_.only_my_messages = only_my_messages;
+  if (message_count_ == 0 && settings_.only_single_dialog()) {
     CHECK(is_page_empty_);
     TRY_STATUS(write_page_opening(0));
     string block;
     push_service_message(page_->context(), block, page_->base(), --date_message_id_, "No exported messages", nullptr);
     TRY_STATUS(page_->write(block));
   }
+  // a page without messages isn't created
   auto status = page_->close();
   page_ = nullptr;
+  TRY_STATUS(std::move(status));
+  if (settings_.only_single_dialog()) {
+    return Status::OK();
+  }
+  return write_dialog_list_entry();
+}
+
+Status ExportHtmlWriter::write_dialog_list_start(bool is_left_channel) {
+  auto mode = is_left_channel ? DialogsMode::Left : DialogsMode::Chats;
+  if (dialogs_mode_ == mode) {
+    return Status::OK();
+  }
+  string block;
+  if (dialogs_mode_ != DialogsMode::None) {
+    dialogs_page_->context().pop_tag(block);
+  }
+  dialogs_mode_ = mode;
+  dialogs_page_->push_about(block,
+                            get_export_about_text(is_left_channel ? ExportAbout::LeftChats : ExportAbout::Chats));
+  dialogs_page_->context().push_div(block, "entry_list");
+  return dialogs_page_->write(block);
+}
+
+Status ExportHtmlWriter::write_dialog_list_entry() {
+  CHECK(dialogs_page_ != nullptr);
+  using Type = ExportDialogInfo::Type;
+  Slice type;
+  Slice deleted_name;
+  switch (dialog_.type) {
+    case Type::Unknown:
+      type = Slice("unknown");
+      deleted_name = Slice("Deleted Account");
+      break;
+    case Type::Self:
+    case Type::Replies:
+    case Type::VerifyCodes:
+    case Type::Personal:
+      type = Slice("private");
+      deleted_name = Slice("Deleted Account");
+      break;
+    case Type::Bot:
+      type = Slice("bot");
+      deleted_name = Slice("Deleted Account");
+      break;
+    case Type::PrivateGroup:
+    case Type::PrivateSupergroup:
+    case Type::PublicSupergroup:
+      type = Slice("group");
+      deleted_name = Slice("Deleted Group");
+      break;
+    case Type::PrivateChannel:
+    case Type::PublicChannel:
+      type = Slice("channel");
+      deleted_name = Slice("Deleted Channel");
+      break;
+    default:
+      UNREACHABLE();
+  }
+
+  UserpicData userpic;
+  userpic.pixel_size = ENTRY_USERPIC_SIZE;
+  switch (dialog_.type) {
+    case Type::Self:
+      userpic.color_index = SAVED_MESSAGES_COLOR_INDEX;
+      userpic.first_name = "Saved messages";
+      break;
+    case Type::Replies:
+      userpic.color_index = SAVED_MESSAGES_COLOR_INDEX;
+      userpic.first_name = "Replies";
+      break;
+    case Type::VerifyCodes:
+      userpic.color_index = SAVED_MESSAGES_COLOR_INDEX;
+      userpic.first_name = "Verification Codes";
+      break;
+    default:
+      userpic.color_index = get_peer_color_index(static_cast<uint64>(get_export_dialog_bare_id(dialog_.dialog_id)));
+      userpic.first_name = dialog_first_name_;
+      if (dialog_.type == Type::Personal || dialog_.type == Type::Bot) {
+        userpic.last_name = dialog_last_name_;
+      }
+      break;
+  }
+  string name;
+  if (userpic.first_name.empty() && userpic.last_name.empty()) {
+    name = deleted_name.str();
+  } else {
+    name = PSTRING() << userpic.first_name << ' ' << userpic.last_name;
+  }
+
+  auto is_outgoing = dialog_.only_my_messages;
+  string count;
+  if (message_count_ == 1) {
+    count = is_outgoing ? "1 outgoing message" : "1 message";
+  } else if (message_count_ == 0) {
+    count = is_outgoing ? "No outgoing messages" : "No messages";
+  } else {
+    count = PSTRING() << message_count_ << (is_outgoing ? " outgoing messages" : " messages");
+  }
+  string link;
+  if (message_count_ > 0) {
+    link = PSTRING() << dialog_.relative_path << get_export_html_page_name(0);
+  }
+
+  TRY_STATUS(write_dialog_list_start(dialog_.is_left_channel));
+  string block;
+  dialogs_page_->push_list_entry(block, link, userpic, name, Slice(), {count}, type);
+  return dialogs_page_->write(block);
+}
+
+Status ExportHtmlWriter::write_dialogs_end() {
+  if (dialogs_page_ == nullptr) {
+    return Status::OK();
+  }
+  auto status = dialogs_page_->close();
+  dialogs_page_ = nullptr;
   return status;
 }
 
 Status ExportHtmlWriter::finish() {
-  return Status::OK();
+  if (settings_.only_single_dialog()) {
+    return Status::OK();
+  }
+  CHECK(summary_ != nullptr);
+  TRY_STATUS(write_sections());
+  string block;
+  if (has_sections_) {
+    summary_->context().pop_tag(block);
+    summary_needs_divider_ = true;
+    has_sections_ = false;
+  }
+  summary_->push_about(block, get_export_about_text(ExportAbout::Telegram), summary_needs_divider_);
+  TRY_STATUS(summary_->write(block));
+  auto status = summary_->close();
+  summary_ = nullptr;
+  return status;
 }
 
 }  // namespace td

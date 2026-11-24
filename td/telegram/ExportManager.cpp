@@ -11,6 +11,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/CustomEmojiId.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/ExportWriter.h"
 #include "td/telegram/files/FileId.h"
@@ -25,12 +26,14 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/FlatHashMap.h"
@@ -43,6 +46,7 @@
 #include "td/utils/utf8.h"
 #include "td/utils/VectorQueue.h"
 
+#include <algorithm>
 #include <limits>
 
 namespace td {
@@ -306,7 +310,6 @@ struct ExportManager::FileProcess {
 struct ExportManager::DialogProcess {
   ExportDialogInfo info;
   DialogId migrated_from_dialog_id;
-  bool only_my_messages = false;
 
   // indices of the message ranges to export; negative ones are of the basic group the chat was upgraded from
   vector<int32> splits;
@@ -319,6 +322,8 @@ struct ExportManager::DialogProcess {
 
   int32 received_message_count = 0;
   int32 message_count = 0;
+  // whether slices of the whole history were exported before access to the chat was lost
+  bool has_other_messages = false;
 
   // the received slice, which is written after its files are loaded
   vector<ExportMessage> slice;
@@ -327,6 +332,30 @@ struct ExportManager::DialogProcess {
   size_t file_work_index = 0;
   // the custom emoji first used in the slice; their files are loaded after the files of the messages
   vector<td_api::object_ptr<td_api::sticker>> custom_emoji_stickers;
+
+  // counters, which number files without a name
+  int32 photo_count = 0;
+  int32 audio_count = 0;
+  int32 video_count = 0;
+  int32 document_count = 0;
+  int32 contact_count = 0;
+};
+
+struct ExportManager::DialogsList {
+  vector<unique_ptr<DialogProcess>> chats;
+  FlatHashMap<DialogId, size_t, DialogIdHash> chat_indices;
+  int32 processed_count = 0;
+
+  // the ranges are walked from the last one
+  size_t split_index_plus_one = 0;
+  int32 offset_date = 0;
+  int32 offset_message_id = 0;
+  DialogId offset_dialog_id;
+
+  vector<unique_ptr<DialogProcess>> left_channels;
+  FlatHashMap<DialogId, size_t, DialogIdHash> left_channel_indices;
+  int32 left_channel_offset = 0;
+  bool are_left_channels_finished = false;
 };
 
 struct ExportManager::Export {
@@ -358,14 +387,11 @@ struct ExportManager::Export {
   ExportStats stats;
   unique_ptr<ExportWriter> writer;
 
+  unique_ptr<DialogsList> dialogs_list;
+  // the chats to export; left channels are the last
+  vector<unique_ptr<DialogProcess>> dialogs;
+  size_t dialog_index = 0;
   unique_ptr<DialogProcess> dialog;
-
-  // counters, which number files without a name
-  int32 photo_count = 0;
-  int32 audio_count = 0;
-  int32 video_count = 0;
-  int32 document_count = 0;
-  int32 contact_count = 0;
 
   int64 last_file_id = 0;
   unique_ptr<FileProcess> file;
@@ -422,7 +448,9 @@ Result<ExportSettings> ExportManager::get_export_settings(
       if (settings.types == 0) {
         return Status::Error(400, "Nothing to export");
       }
-      return Status::Error(400, "Account export isn't supported yet");
+      if ((settings.types & ~ExportSettings::AnyChatsMask) != 0) {
+        return Status::Error(400, "Only chats of the account can be exported yet");
+      }
 
       // private chats are always exported whole and public chats only with own messages
       settings.full_chats = ExportSettings::PersonalChats | ExportSettings::BotChats;
@@ -475,9 +503,6 @@ Result<ExportSettings> ExportManager::get_export_settings(
     bool is_repeated = false;
     switch (format->get_id()) {
       case td_api::exportFormatHtml::ID:
-        if (!settings.only_single_dialog()) {
-          return Status::Error(400, "HTML export of the account isn't supported yet");
-        }
         is_repeated = is_html;
         is_html = true;
         settings.html_stylesheet = std::move(static_cast<td_api::exportFormatHtml *>(format.get())->stylesheet_);
@@ -796,10 +821,312 @@ void ExportManager::on_get_split_ranges(uint64 generation,
   }
 
   const auto &settings = export_->settings;
-  CHECK(settings.only_single_dialog());
-  export_->dialogs_count =
-      settings.single_dialog_id.get_type() == DialogType::Channel ? 1 : narrow_cast<int32>(splits.size());
+  if (settings.only_single_dialog()) {
+    export_->dialogs_count =
+        settings.single_dialog_id.get_type() == DialogType::Channel ? 1 : narrow_cast<int32>(splits.size());
+    return start_writer();
+  }
+  export_->dialogs_list = make_unique<DialogsList>();
+  request_dialogs_count(0);
+}
+
+void ExportManager::request_dialogs_count(size_t split_index) {
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), generation = export_->generation,
+                              split_index](Result<telegram_api::object_ptr<telegram_api::messages_Dialogs>> r_dialogs) {
+        send_closure(actor_id, &ExportManager::on_get_dialogs_count, generation, split_index, std::move(r_dialogs));
+      });
+  send_export_query(telegram_api::messages_getDialogs(0, false, 0, 0, 0,
+                                                      telegram_api::make_object<telegram_api::inputPeerEmpty>(), 1, 0),
+                    narrow_cast<int32>(split_index), std::move(promise));
+}
+
+void ExportManager::on_get_dialogs_count(uint64 generation, size_t split_index,
+                                         Result<telegram_api::object_ptr<telegram_api::messages_Dialogs>> r_dialogs) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_dialogs.is_error()) {
+    return on_api_error(r_dialogs.move_as_error());
+  }
+  auto dialogs = r_dialogs.move_as_ok();
+  switch (dialogs->get_id()) {
+    case telegram_api::messages_dialogs::ID:
+      export_->dialogs_count +=
+          narrow_cast<int32>(static_cast<const telegram_api::messages_dialogs *>(dialogs.get())->dialogs_.size());
+      break;
+    case telegram_api::messages_dialogsSlice::ID:
+      export_->dialogs_count += static_cast<const telegram_api::messages_dialogsSlice *>(dialogs.get())->count_;
+      break;
+    case telegram_api::messages_dialogsNotModified::ID:
+      return on_api_error(Status::Error(500, "Receive dialogsNotModified"));
+    default:
+      UNREACHABLE();
+  }
+  if (split_index + 1 < export_->splits.size()) {
+    return request_dialogs_count(split_index + 1);
+  }
+  if (export_->settings.types & ExportSettings::GroupsChannelsMask) {
+    // the first slice of left channels is kept for the list of chats
+    return request_left_channels(true);
+  }
   start_writer();
+}
+
+void ExportManager::request_left_channels(bool is_count) {
+  CHECK(export_->dialogs_list != nullptr);
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), generation = export_->generation, is_count](
+                                            Result<telegram_api::object_ptr<telegram_api::messages_Chats>> r_chats) {
+    send_closure(actor_id, &ExportManager::on_get_left_channels, generation, is_count, std::move(r_chats));
+  });
+  send_export_query(telegram_api::channels_getLeftChannels(export_->dialogs_list->left_channel_offset), -1,
+                    std::move(promise));
+}
+
+void ExportManager::on_get_left_channels(uint64 generation, bool is_count,
+                                         Result<telegram_api::object_ptr<telegram_api::messages_Chats>> r_chats) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_chats.is_error()) {
+    return on_api_error(r_chats.move_as_error());
+  }
+  auto &list = *export_->dialogs_list;
+  auto chats = r_chats.move_as_ok();
+  vector<telegram_api::object_ptr<telegram_api::Chat>> chat_list;
+  int32 full_count = 0;
+  bool is_finished = false;
+  switch (chats->get_id()) {
+    case telegram_api::messages_chats::ID:
+      chat_list = std::move(static_cast<telegram_api::messages_chats *>(chats.get())->chats_);
+      full_count = narrow_cast<int32>(chat_list.size());
+      is_finished = true;
+      break;
+    case telegram_api::messages_chatsSlice::ID: {
+      auto *slice = static_cast<telegram_api::messages_chatsSlice *>(chats.get());
+      chat_list = std::move(slice->chats_);
+      full_count = slice->count_;
+      is_finished = chat_list.empty();
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  // the offset counts the returned chats, including the ones without a valid identifier
+  list.left_channel_offset += narrow_cast<int32>(chat_list.size());
+  vector<DialogId> dialog_ids;
+  for (const auto &chat : chat_list) {
+    auto dialog_id = ChatManager::get_dialog_id(chat);
+    if (dialog_id.is_valid()) {
+      dialog_ids.push_back(dialog_id);
+    }
+  }
+  td_->chat_manager_->on_get_chats(std::move(chat_list), "on_get_left_channels");
+  list.are_left_channels_finished = is_finished;
+  // left channels have messages only in the last range
+  append_dialogs(list.left_channels, list.left_channel_indices, dialog_ids, true,
+                 narrow_cast<int32>(export_->splits.size()) - 1);
+
+  if (is_count) {
+    export_->dialogs_count += full_count;
+    return start_writer();
+  }
+  set_dialogs_list_state(list.processed_count + narrow_cast<int32>(list.left_channels.size()) - 1);
+  if (is_finished) {
+    return finish_dialogs_list();
+  }
+  request_left_channels(false);
+}
+
+void ExportManager::append_dialogs(vector<unique_ptr<DialogProcess>> &dialogs,
+                                   FlatHashMap<DialogId, size_t, DialogIdHash> &dialog_indices,
+                                   const vector<DialogId> &dialog_ids, bool is_left_channel, int32 split_index) {
+  auto types = export_->settings.types;
+  auto split_count = narrow_cast<int32>(export_->splits.size());
+  for (auto dialog_id : dialog_ids) {
+    auto type = get_export_dialog_type(td_, dialog_id);
+    auto is_good_by_type = (types & get_settings_type(type)) != 0;
+    ChannelId migrated_to_channel_id;
+    if (dialog_id.get_type() == DialogType::Chat) {
+      migrated_to_channel_id = td_->chat_manager_->get_chat_migrated_to_channel_id(dialog_id.get_chat_id());
+    }
+    if (migrated_to_channel_id.is_valid() && (types & ExportSettings::GroupsMask) != 0) {
+      // messages of the basic group are exported before the messages of the supergroup it was upgraded to
+      auto it = dialog_indices.find(DialogId(migrated_to_channel_id));
+      if (it != dialog_indices.end()) {
+        auto &channel_dialog = *dialogs[it->second];
+        if (!channel_dialog.migrated_from_dialog_id.is_valid() || channel_dialog.migrated_from_dialog_id == dialog_id) {
+          channel_dialog.migrated_from_dialog_id = dialog_id;
+          auto migrated_split = split_index - split_count;
+          if (!td::contains(channel_dialog.splits, migrated_split)) {
+            channel_dialog.splits.push_back(migrated_split);
+          }
+          continue;
+        }
+      }
+    }
+    if (!is_good_by_type) {
+      continue;
+    }
+    auto it = dialog_indices.emplace(dialog_id, dialogs.size());
+    if (it.second) {
+      auto dialog = make_unique<DialogProcess>();
+      dialog->info.dialog_id = dialog_id;
+      dialog->info.type = type;
+      dialog->info.name = td_->dialog_manager_->get_dialog_title(dialog_id);
+      dialog->info.is_left_channel = is_left_channel;
+      dialogs.push_back(std::move(dialog));
+    }
+    // a chat can be returned twice when the chat list changes while it is loaded
+    auto &splits = dialogs[it.first->second]->splits;
+    if (!td::contains(splits, split_index)) {
+      splits.push_back(split_index);
+    }
+  }
+}
+
+void ExportManager::request_dialogs_slice() {
+  const auto &list = *export_->dialogs_list;
+  CHECK(list.split_index_plus_one > 0);
+  telegram_api::object_ptr<telegram_api::InputPeer> offset_peer;
+  if (list.offset_dialog_id.is_valid()) {
+    offset_peer = td_->dialog_manager_->get_input_peer(list.offset_dialog_id, AccessRights::Know);
+  }
+  if (offset_peer == nullptr) {
+    offset_peer = telegram_api::make_object<telegram_api::inputPeerEmpty>();
+  }
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), generation = export_->generation](
+                                 Result<telegram_api::object_ptr<telegram_api::messages_Dialogs>> r_dialogs) {
+        send_closure(actor_id, &ExportManager::on_get_dialogs_slice, generation, std::move(r_dialogs));
+      });
+  send_export_query(telegram_api::messages_getDialogs(0, false, 0, list.offset_date, list.offset_message_id,
+                                                      std::move(offset_peer), DIALOGS_SLICE_LIMIT, 0),
+                    narrow_cast<int32>(list.split_index_plus_one - 1), std::move(promise));
+}
+
+void ExportManager::on_get_dialogs_slice(uint64 generation,
+                                         Result<telegram_api::object_ptr<telegram_api::messages_Dialogs>> r_dialogs) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_dialogs.is_error()) {
+    return on_api_error(r_dialogs.move_as_error());
+  }
+  auto dialogs = r_dialogs.move_as_ok();
+  vector<telegram_api::object_ptr<telegram_api::Dialog>> dialog_list;
+  vector<telegram_api::object_ptr<telegram_api::Message>> messages;
+  bool is_finished = false;
+  switch (dialogs->get_id()) {
+    case telegram_api::messages_dialogs::ID: {
+      auto result = telegram_api::move_object_as<telegram_api::messages_dialogs>(dialogs);
+      td_->user_manager_->on_get_users(std::move(result->users_), "on_get_dialogs_slice");
+      td_->chat_manager_->on_get_chats(std::move(result->chats_), "on_get_dialogs_slice");
+      dialog_list = std::move(result->dialogs_);
+      messages = std::move(result->messages_);
+      is_finished = true;
+      break;
+    }
+    case telegram_api::messages_dialogsSlice::ID: {
+      auto result = telegram_api::move_object_as<telegram_api::messages_dialogsSlice>(dialogs);
+      td_->user_manager_->on_get_users(std::move(result->users_), "on_get_dialogs_slice");
+      td_->chat_manager_->on_get_chats(std::move(result->chats_), "on_get_dialogs_slice");
+      dialog_list = std::move(result->dialogs_);
+      messages = std::move(result->messages_);
+      is_finished = dialog_list.empty();
+      break;
+    }
+    case telegram_api::messages_dialogsNotModified::ID:
+      return on_api_error(Status::Error(500, "Receive dialogsNotModified"));
+    default:
+      UNREACHABLE();
+  }
+
+  auto &list = *export_->dialogs_list;
+  vector<DialogId> dialog_ids;
+  int32 last_top_message_id = 0;
+  int32 last_top_message_date = 0;
+  for (const auto &dialog_ptr : dialog_list) {
+    if (dialog_ptr->get_id() != telegram_api::dialog::ID) {
+      LOG(ERROR) << "Receive unexpected " << to_string(dialog_ptr);
+      continue;
+    }
+    const auto *dialog = static_cast<const telegram_api::dialog *>(dialog_ptr.get());
+    DialogId dialog_id(dialog->peer_);
+    if (!dialog_id.is_valid()) {
+      LOG(ERROR) << "Receive dialog in invalid " << dialog_id;
+      continue;
+    }
+    dialog_ids.push_back(dialog_id);
+    last_top_message_id = dialog->top_message_;
+    last_top_message_date = 0;
+    MessageId top_message_id(ServerMessageId(dialog->top_message_));
+    for (const auto &message : messages) {
+      if (MessageId::get_message_id(message, false) == top_message_id &&
+          DialogId::get_message_dialog_id(message) == dialog_id) {
+        last_top_message_date = get_message_date(message.get());
+        break;
+      }
+    }
+  }
+  list.processed_count += narrow_cast<int32>(dialog_ids.size());
+  append_dialogs(list.chats, list.chat_indices, dialog_ids, false, narrow_cast<int32>(list.split_index_plus_one - 1));
+  if (list.processed_count > 0) {
+    set_dialogs_list_state(list.processed_count - 1);
+  }
+
+  if (!is_finished && last_top_message_date > 0) {
+    list.offset_date = last_top_message_date;
+    list.offset_message_id = last_top_message_id;
+    list.offset_dialog_id = dialog_ids.back();
+    return request_dialogs_slice();
+  }
+  // a channel has all its messages in the last range, so other ranges are needed only for other chats
+  if ((export_->settings.types & ExportSettings::NonChannelChatsMask) != 0 && --list.split_index_plus_one > 0) {
+    list.offset_date = 0;
+    list.offset_message_id = 0;
+    list.offset_dialog_id = DialogId();
+    return request_dialogs_slice();
+  }
+  if ((export_->settings.types & ExportSettings::GroupsChannelsMask) == 0) {
+    return finish_dialogs_list();
+  }
+  if (list.are_left_channels_finished) {
+    set_dialogs_list_state(list.processed_count + narrow_cast<int32>(list.left_channels.size()) - 1);
+    return finish_dialogs_list();
+  }
+  request_left_channels(false);
+}
+
+void ExportManager::finish_dialogs_list() {
+  auto list = std::move(export_->dialogs_list);
+  CHECK(list != nullptr);
+  const auto &settings = export_->settings;
+  auto full_count = narrow_cast<int32>(list->chats.size() + list->left_channels.size());
+  auto digit_count = to_string(full_count - 1).size();
+  int32 index = 0;
+  auto get_relative_path = [&] {
+    auto number = to_string(++index);
+    if (number.size() < digit_count) {
+      number.insert(0, digit_count - number.size(), '0');
+    }
+    return PSTRING() << "chats/chat_" << number << '/';
+  };
+  for (auto &dialog : list->chats) {
+    auto &info = dialog->info;
+    info.relative_path = get_relative_path();
+    auto settings_type = get_settings_type(info.type);
+    info.only_my_messages =
+        info.type != ExportDialogInfo::Type::Personal && (settings.full_chats & settings_type) != settings_type;
+    std::sort(dialog->splits.begin(), dialog->splits.end());
+    export_->dialogs.push_back(std::move(dialog));
+  }
+  for (auto &dialog : list->left_channels) {
+    dialog->info.relative_path = get_relative_path();
+    dialog->info.only_my_messages = true;
+    export_->dialogs.push_back(std::move(dialog));
+  }
+  export_next();
 }
 
 void ExportManager::start_writer() {
@@ -815,7 +1142,11 @@ void ExportManager::start_writer() {
 
 void ExportManager::collect_dialogs_list() {
   set_dialogs_list_state(0);
-  CHECK(export_->settings.only_single_dialog());
+  if (!export_->settings.only_single_dialog()) {
+    CHECK(export_->dialogs_list != nullptr);
+    export_->dialogs_list->split_index_plus_one = export_->splits.size();
+    return request_dialogs_slice();
+  }
   auto dialog_id = export_->settings.single_dialog_id;
   if (dialog_id.get_type() == DialogType::Channel &&
       td_->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
@@ -857,7 +1188,7 @@ void ExportManager::add_single_dialog() {
   dialog->info.type = get_export_dialog_type(td_, dialog_id);
   dialog->info.name = td_->dialog_manager_->get_dialog_title(dialog_id);
   auto settings_type = get_settings_type(dialog->info.type);
-  dialog->only_my_messages =
+  dialog->info.only_my_messages =
       dialog->info.type != ExportDialogInfo::Type::Personal && (settings.full_chats & settings_type) != settings_type;
 
   // message identifiers of private chats and basic groups are shared by the account and split into ranges,
@@ -877,13 +1208,30 @@ void ExportManager::add_single_dialog() {
       dialog->splits.push_back(i);
     }
   }
-  dialog->split_message_counts.resize(dialog->splits.size());
-  export_->dialog = std::move(dialog);
+  export_->dialogs.push_back(std::move(dialog));
   export_next();
 }
 
 void ExportManager::export_dialogs() {
+  if (!on_io_result(export_->writer->write_dialogs_start(narrow_cast<int32>(export_->dialogs.size())))) {
+    return;
+  }
+  export_->dialog_index = 0;
+  export_next_dialog();
+}
+
+void ExportManager::export_next_dialog() {
+  CHECK(export_->dialog == nullptr);
+  if (export_->dialog_index == export_->dialogs.size()) {
+    export_->dialogs.clear();
+    if (!on_io_result(export_->writer->write_dialogs_end())) {
+      return;
+    }
+    return export_next();
+  }
+  export_->dialog = std::move(export_->dialogs[export_->dialog_index]);
   CHECK(export_->dialog != nullptr);
+  export_->dialog->split_message_counts.resize(export_->dialog->splits.size());
   request_messages_count(0);
 }
 
@@ -900,7 +1248,8 @@ void ExportManager::request_chat_messages(MessagesRequestType type, size_t split
   auto split = dialog.splits[split_index];
   auto dialog_id = split >= 0 ? dialog.info.dialog_id : dialog.migrated_from_dialog_id;
   auto real_split = split >= 0 ? split : narrow_cast<int32>(export_->splits.size()) + split;
-  auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+  // access to left channels and to basic groups, which were upgraded, is checked by the server
+  auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
   if (input_peer == nullptr) {
     return on_api_error(Status::Error(400, "Chat not found"));
   }
@@ -919,13 +1268,13 @@ void ExportManager::request_chat_messages(MessagesRequestType type, size_t split
         send_closure(actor_id, &ExportManager::on_get_chat_messages, generation, type, split_index, offset_id,
                      add_offset, limit, std::move(r_messages));
       });
-  if (dialog.only_my_messages) {
+  if (dialog.info.only_my_messages) {
     telegram_api::object_ptr<telegram_api::InputPeer> from;
     if (dialog_id.get_type() == DialogType::Channel &&
         td_->chat_manager_->is_admined_monoforum_channel(dialog_id.get_channel_id())) {
       // own messages in an administered monoforum are sent on behalf of its channel
       from = td_->dialog_manager_->get_input_peer(
-          DialogId(td_->chat_manager_->get_monoforum_channel_id(dialog_id.get_channel_id())), AccessRights::Read);
+          DialogId(td_->chat_manager_->get_monoforum_channel_id(dialog_id.get_channel_id())), AccessRights::Know);
     }
     if (from == nullptr) {
       from = telegram_api::make_object<telegram_api::inputPeerSelf>();
@@ -952,10 +1301,10 @@ void ExportManager::on_get_chat_messages(uint64 generation, MessagesRequestType 
   if (r_messages.is_error()) {
     auto split = dialog.splits[split_index];
     auto dialog_id = split >= 0 ? dialog.info.dialog_id : dialog.migrated_from_dialog_id;
-    if (r_messages.error().message() == "CHANNEL_PRIVATE" && !dialog.only_my_messages &&
+    if (r_messages.error().message() == "CHANNEL_PRIVATE" && !dialog.info.only_my_messages &&
         dialog_id.get_type() == DialogType::Channel) {
       // the chat was left or the user was banned from it, so only own messages can be exported
-      dialog.only_my_messages = true;
+      dialog.info.only_my_messages = true;
       return request_chat_messages(type, split_index, offset_id, add_offset, limit);
     }
     return on_api_error(r_messages.move_as_error());
@@ -1212,7 +1561,8 @@ void ExportManager::on_get_custom_emoji_stickers(uint64 generation,
 void ExportManager::add_message_file_work(ExportMessage &export_message) {
   const auto &settings = export_->settings;
   const auto &message = *export_message.message;
-  auto &file_works = export_->dialog->file_works;
+  auto &dialog = *export_->dialog;
+  auto &file_works = dialog.file_works;
   // files are numbered even in skipped messages, so that the numbers don't depend on the date range
   auto is_inside_date_range = settings.is_inside_date_range(message.date_);
   auto is_available = message.self_destruct_type_ == nullptr;
@@ -1238,7 +1588,7 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
   };
   auto add_photo = [&](const vector<td_api::object_ptr<td_api::photoSize>> *sizes, bool is_photo_available,
                        int32 thumbnail_box_size) {
-    string path = PSTRING() << "photos/photo_" << ++export_->photo_count << date_part;
+    string path = PSTRING() << dialog.info.relative_path << "photos/photo_" << ++dialog.photo_count << date_part;
     const auto *size = sizes == nullptr ? nullptr : get_export_photo_size(*sizes);
     const auto *file = size == nullptr ? nullptr : size->photo_.get();
     auto file_size = get_export_file_size(file);
@@ -1324,7 +1674,8 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
     case td_api::messageContact::ID: {
       const auto &vcard = static_cast<const td_api::messageContact *>(content)->contact_->vcard_;
       if (!vcard.empty()) {
-        string path = PSTRING() << "contacts/contact_" << ++export_->contact_count << ".vcard";
+        string path = PSTRING() << dialog.info.relative_path << "contacts/contact_" << ++dialog.contact_count
+                                << ".vcard";
         // a vCard is exported together with photos
         add_work(export_message.file, nullptr, vcard, std::move(path), ExportSettings::Photo,
                  static_cast<int64>(vcard.size()), true);
@@ -1360,20 +1711,21 @@ string ExportManager::get_document_path(int32 media_type, Slice file_name, Slice
     default:
       UNREACHABLE();
   }
+  auto &dialog = *export_->dialog;
   auto name = get_export_file_name(file_name);
   if (name.empty()) {
     if (media_type == ExportSettings::VoiceMessage) {
-      name = PSTRING() << "audio_" << ++export_->audio_count << date_part
+      name = PSTRING() << "audio_" << ++dialog.audio_count << date_part
                        << (to_lower(mime_type) == "audio/mp3" ? ".mp3" : ".ogg");
     } else if (media_type == ExportSettings::Video) {
-      name = PSTRING() << "video_" << ++export_->video_count << date_part << '.'
+      name = PSTRING() << "video_" << ++dialog.video_count << date_part << '.'
                        << MimeType::to_extension(mime_type, "mov");
     } else {
-      name = PSTRING() << "file_" << ++export_->document_count << date_part << '.'
+      name = PSTRING() << "file_" << ++dialog.document_count << date_part << '.'
                        << MimeType::to_extension(mime_type, "unknown");
     }
   }
-  return PSTRING() << folder << '/' << name;
+  return PSTRING() << dialog.info.relative_path << folder << '/' << name;
 }
 
 void ExportManager::load_next_message_file() {
@@ -1669,6 +2021,9 @@ void ExportManager::write_messages_slice() {
     return;
   }
   dialog.received_message_count += dialog.slice_message_count;
+  if (!dialog.info.only_my_messages && dialog.slice_message_count > 0) {
+    dialog.has_other_messages = true;
+  }
   dialog.slice.clear();
   dialog.slice_message_count = 0;
   dialog.file_works.clear();
@@ -1692,11 +2047,13 @@ void ExportManager::request_next_messages_slice() {
 }
 
 void ExportManager::finish_messages() {
+  auto only_my_messages = export_->dialog->info.only_my_messages && !export_->dialog->has_other_messages;
   export_->dialog = nullptr;
-  if (!on_io_result(export_->writer->write_dialog_end())) {
+  if (!on_io_result(export_->writer->write_dialog_end(only_my_messages))) {
     return;
   }
-  export_next();
+  export_->dialog_index++;
+  export_next_dialog();
 }
 
 void ExportManager::set_dialogs_state() {
@@ -1704,8 +2061,8 @@ void ExportManager::set_dialogs_state() {
   const auto &dialog = *export_->dialog;
   ProcessingState state;
   state.step = Step::Dialogs;
-  state.entity_index = 0;
-  state.entity_count = 1;
+  state.entity_index = narrow_cast<int32>(export_->dialog_index);
+  state.entity_count = narrow_cast<int32>(export_->dialogs.size());
   state.entity_name = dialog.info.name;
   state.item_index = dialog.received_message_count;
   state.item_count = max(dialog.message_count, state.item_index);
