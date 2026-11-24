@@ -6030,7 +6030,7 @@ messageText text:formattedText link_preview:linkPreview link_preview_options:lin
 //@description A rich message; the message can have multiple media of the same type, all of which must be shown in the corresponding profile tab @message The rich message
 messageRichMessage message:richMessage = MessageContent;
 
-//@description An animation message (GIF-style).
+//@description An animation message (GIF-style)
 //@animation The animation description
 //@caption Animation caption
 //@show_caption_above_media True, if the caption must be shown above the animation; otherwise, the caption must be shown below the animation
@@ -7059,7 +7059,7 @@ inputMessageText text:formattedText link_preview_options:linkPreviewOptions clea
 //@description A rich message @message The rich message to send @clear_draft Pass true to delete the message draft in the chat
 inputMessageRichMessage message:inputRichMessage clear_draft:Bool = InputMessageContent;
 
-//@description An animation message (GIF-style).
+//@description An animation message (GIF-style)
 //@animation The animation to be sent
 //@caption Animation caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@show_caption_above_media True, if the caption must be shown above the animation; otherwise, the caption must be shown below the animation; not supported in secret chats
@@ -9768,7 +9768,7 @@ messageFileTypeUnknown = MessageFileType;
 //@description A general message with hidden content @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentHidden is_pinned:Bool = PushMessageContent;
 
-//@description An animation message (GIF-style).
+//@description An animation message (GIF-style)
 //@animation Message content; may be null
 //@caption Animation caption
 //@is_pinned True, if the message is a pinned message with the specified content
@@ -15167,7 +15167,7 @@ setChatAccentColor chat_id:int53 accent_color_id:int32 background_custom_emoji_i
 setChatProfileAccentColor chat_id:int53 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 = Ok;
 
 //@description Changes the message auto-delete or self-destruct (for secret chats) time in a chat. Requires can_change_info administrator right in basic groups, supergroups, and channels.
-//-Message auto-delete time can't be changed in a chat with the current user (Saved Messages) and the chat 777000 (Telegram).
+//-Message auto-delete time can't be changed in a chat with the current user (Saved Messages) and the chat 777000 (Telegram)
 //@chat_id Chat identifier
 //@message_auto_delete_time New time value, in seconds; unless the chat is secret, it must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
 setChatMessageAutoDeleteTime chat_id:int53 message_auto_delete_time:int32 = Ok;

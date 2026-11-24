@@ -71,7 +71,8 @@ abstract class TlDocumentationGenerator
                 }
             }
             if ($bracket_count === 0) {
-                if (ord('A') <= ord($str[$pos + 1]) && ord($str[$pos + 1]) <= ord('Z')) {
+                if (substr(rtrim(substr($str, 0, $pos)), -1) === '.' &&
+                    ord('A') <= ord($str[$pos + 1]) && ord($str[$pos + 1]) <= ord('Z')) {
                     return substr($str, 0, -1).'.)';
                 }
             } else {
