@@ -445,6 +445,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/EmojiGroup.cpp
   td/telegram/EmojiGroupType.cpp
   td/telegram/EmojiStatus.cpp
+  td/telegram/ExportManager.cpp
   td/telegram/FactCheck.cpp
   td/telegram/FileReferenceManager.cpp
   td/telegram/files/FileBitmask.cpp
@@ -849,6 +850,8 @@ set(TDLIB_SOURCE_PART2
   td/telegram/EncryptedFile.h
   td/telegram/EphemeralMessageFullId.h
   td/telegram/EphemeralMessageId.h
+  td/telegram/ExportManager.h
+  td/telegram/ExportSettings.h
   td/telegram/FactCheck.h
   td/telegram/FileReferenceManager.h
   td/telegram/files/FileBitmask.h

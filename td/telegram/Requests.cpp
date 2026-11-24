@@ -70,6 +70,7 @@
 #include "td/telegram/EmojiGroupType.h"
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/EphemeralMessageId.h"
+#include "td/telegram/ExportManager.h"
 #include "td/telegram/files/FileGcParameters.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
@@ -2262,6 +2263,8 @@ void Requests::on_request(uint64 id, const td_api::getCurrentState &request) {
     td_->translation_manager_->get_current_state(updates);
 
     td_->web_browser_manager_->get_current_state(updates);
+
+    td_->export_manager_->get_current_state(updates);
 
     // TODO updateFileGenerationStart generation_id:int64 original_path:string destination_path:string conversion:string = Update;
     // TODO updateCall call:call = Update;
@@ -6804,6 +6807,26 @@ void Requests::on_request(uint64 id, const td_api::importMessages &request) {
   CREATE_OK_REQUEST_PROMISE();
   td_->message_import_manager_->import_messages(DialogId(request.chat_id_), request.message_file_,
                                                 request.attached_files_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, td_api::startExport &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.directory_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->export_manager_->start_export(std::move(request.source_), std::move(request.formats_),
+                                     std::move(request.media_settings_), request.directory_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::skipExportFile &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->export_manager_->skip_export_file(request.file_id_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::cancelExport &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->export_manager_->cancel_export(std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::blockMessageSenderFromReplies &request) {
