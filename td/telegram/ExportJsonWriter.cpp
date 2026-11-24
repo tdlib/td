@@ -6,6 +6,7 @@
 //
 #include "td/telegram/ExportJsonWriter.h"
 
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/LinkManager.h"
@@ -16,12 +17,14 @@
 #include "td/telegram/UserManager.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/filesystem.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/utf8.h"
 
 #include <utility>
 
@@ -1715,6 +1718,225 @@ Status ExportJsonWriter::start(const ExportSettings &settings, ExportStats *stat
     return Status::Error("Failed to serialize the exported data");
   }
   return output_->write(sb.as_cslice());
+}
+
+static string format_account_date(int32 date, int32 utc_time_offset) {
+  return get_export_date_time_string(get_export_local_time(date, utc_time_offset));
+}
+
+template <class T>
+Status ExportJsonWriter::write_root_item(Slice key, const T &value) {
+  CHECK(output_ != nullptr);
+  CHECK(!settings_.only_single_dialog());
+
+  auto buf = StackAllocator::alloc(1 << 14);
+  JsonBuilder jb(StringBuilder(buf.as_slice(), true), 1);
+  auto &sb = jb.string_builder();
+  // the root object always begins with the about text
+  sb << ',';
+  jb.print_offset();
+  sb << JsonString(key) << " : ";
+  jb.enter_value() << value;
+  if (sb.is_error()) {
+    return Status::Error(PSLICE() << "Failed to serialize " << key);
+  }
+  return output_->write(sb.as_cslice());
+}
+
+template <class F>
+class ExportJsonList final : public Jsonable {
+ public:
+  ExportJsonList(ExportAbout about, F store_list) : about_(about), store_list_(std::move(store_list)) {
+  }
+
+  void store(JsonValueScope *scope) const {
+    auto object = scope->enter_object();
+    object("about", JsonRawString(get_export_about_text(about_)));
+    object("list", json_array([this](auto &array) { store_list_(array); }));
+  }
+
+ private:
+  ExportAbout about_;
+  F store_list_;
+};
+
+template <class F>
+static ExportJsonList<F> get_json_list(ExportAbout about, F store_list) {
+  return ExportJsonList<F>(about, std::move(store_list));
+}
+
+Status ExportJsonWriter::write_personal_info(const ExportPersonalInfo &info) {
+  return write_root_item("personal_information", json_object([&info](auto &o) {
+                           o("user_id", JsonLong(info.user_id));
+                           o("first_name", JsonRawString(info.first_name));
+                           o("last_name", JsonRawString(info.last_name));
+                           o("phone_number", JsonRawString(format_export_phone_number(info.phone_number)));
+                           if (!info.username.empty()) {
+                             o("username", JsonRawString(PSLICE() << '@' << info.username));
+                           }
+                           if (!info.bio.empty()) {
+                             o("bio", JsonRawString(info.bio));
+                           }
+                         }));
+}
+
+Status ExportJsonWriter::write_contacts(const ExportContactList &contacts) {
+  auto utc_time_offset = settings_.utc_time_offset;
+  TRY_STATUS(write_root_item("contacts", get_json_list(ExportAbout::Contacts, [&](auto &array) {
+                               for (const auto &contact : contacts.contacts) {
+                                 array(json_object([&](auto &o) {
+                                   if (!contact.first_name.empty() || !contact.last_name.empty() ||
+                                       !contact.phone_number.empty()) {
+                                     o("first_name", JsonRawString(contact.first_name));
+                                     o("last_name", JsonRawString(contact.last_name));
+                                     o("phone_number", JsonRawString(format_export_phone_number(contact.phone_number)));
+                                   }
+                                   o("date", JsonRawString(format_account_date(contact.date, utc_time_offset)));
+                                   o("date_unixtime", JsonRawString(to_string(contact.date)));
+                                 }));
+                               }
+                             })));
+
+  auto store_top_peers = [this](auto &array, const vector<ExportTopPeer> &top_peers, Slice category) {
+    for (const auto &top_peer : top_peers) {
+      auto dialog_id = top_peer.dialog_id;
+      Slice type = "user";
+      string name;
+      if (dialog_id.get_type() == DialogType::User) {
+        auto user_id = dialog_id.get_user_id();
+        auto first_name = td_->user_manager_->get_user_first_name(user_id);
+        auto last_name = td_->user_manager_->get_user_last_name(user_id);
+        if (first_name.empty() || last_name.empty()) {
+          name = PSTRING() << first_name << last_name;
+        } else {
+          name = PSTRING() << first_name << ' ' << last_name;
+        }
+      } else {
+        name = td_->dialog_manager_->get_dialog_title(dialog_id);
+        bool is_public = false;
+        bool is_broadcast = false;
+        bool is_supergroup = false;
+        if (dialog_id.get_type() == DialogType::Channel) {
+          auto channel_id = dialog_id.get_channel_id();
+          is_public = !td_->chat_manager_->get_channel_first_username(channel_id).empty();
+          is_broadcast = td_->chat_manager_->is_broadcast_channel(channel_id);
+          is_supergroup = !is_broadcast;
+        }
+        if (is_public) {
+          type = is_broadcast ? Slice("public_channel") : Slice("public_supergroup");
+        } else {
+          type = is_broadcast ? Slice("private_channel")
+                              : (is_supergroup ? Slice("private_supergroup") : Slice("private_group"));
+        }
+      }
+      array(json_object([&](auto &o) {
+        o("id", JsonLong(get_export_dialog_bare_id(dialog_id)));
+        o("category", category);
+        o("type", type);
+        o("name", ExportJsonName(name));
+        o("rating", JsonRaw(PSLICE() << StringBuilder::FixedDouble(top_peer.rating, 6)));
+      }));
+    }
+  };
+  return write_root_item("frequent_contacts", get_json_list(ExportAbout::FrequentContacts, [&](auto &array) {
+                           store_top_peers(array, contacts.correspondents, "people");
+                           store_top_peers(array, contacts.inline_bots, "inline_bots");
+                           store_top_peers(array, contacts.phone_calls, "calls");
+                         }));
+}
+
+Status ExportJsonWriter::write_sessions(const ExportSessionList &sessions) {
+  auto utc_time_offset = settings_.utc_time_offset;
+  TRY_STATUS(write_root_item("sessions", get_json_list(ExportAbout::Sessions, [&](auto &array) {
+                               for (const auto &session : sessions.sessions) {
+                                 array(json_object([&](auto &o) {
+                                   o("last_active",
+                                     JsonRawString(format_account_date(session.last_active, utc_time_offset)));
+                                   o("last_active_unixtime", JsonRawString(to_string(session.last_active)));
+                                   o("last_ip", JsonRawString(session.ip));
+                                   o("last_country", JsonRawString(session.country));
+                                   o("last_region", JsonRawString(session.region));
+                                   o("application_name", ExportJsonName(session.application_name));
+                                   if (!session.application_version.empty()) {
+                                     o("application_version", JsonRawString(session.application_version));
+                                   }
+                                   o("device_model", JsonRawString(session.device_model));
+                                   o("platform", JsonRawString(session.platform));
+                                   o("system_version", JsonRawString(session.system_version));
+                                   o("created", JsonRawString(format_account_date(session.created, utc_time_offset)));
+                                   o("created_unixtime", JsonRawString(to_string(session.created)));
+                                 }));
+                               }
+                             })));
+  return write_root_item("web_sessions", get_json_list(ExportAbout::WebSessions, [&](auto &array) {
+                           for (const auto &session : sessions.web_sessions) {
+                             array(json_object([&](auto &o) {
+                               o("last_active",
+                                 JsonRawString(format_account_date(session.last_active, utc_time_offset)));
+                               o("last_active_unixtime", JsonRawString(to_string(session.last_active)));
+                               o("last_ip", JsonRawString(session.ip));
+                               o("last_region", JsonRawString(session.region));
+                               o("bot_username", ExportJsonName(session.bot_username));
+                               o("domain_name", ExportJsonName(session.domain));
+                               o("browser", JsonRawString(session.browser));
+                               o("platform", JsonRawString(session.platform));
+                               o("created", JsonRawString(format_account_date(session.created, utc_time_offset)));
+                               o("created_unixtime", JsonRawString(to_string(session.created)));
+                             }));
+                           }
+                         }));
+}
+
+// json_decode keeps strings as they are, but only valid UTF-8 can be written back
+static bool has_only_utf8_strings(const JsonValue &value) {
+  switch (value.type()) {
+    case JsonValue::Type::String:
+      return check_utf8(value.get_string());
+    case JsonValue::Type::Array:
+      for (const auto &item : value.get_array()) {
+        if (!has_only_utf8_strings(item)) {
+          return false;
+        }
+      }
+      return true;
+    case JsonValue::Type::Object: {
+      bool result = true;
+      value.get_object().foreach([&result](Slice name, const JsonValue &field_value) {
+        result = result && check_utf8(name) && has_only_utf8_strings(field_value);
+      });
+      return result;
+    }
+    default:
+      return true;
+  }
+}
+
+Status ExportJsonWriter::write_other_data(const ExportFile &file) {
+  if (file.skip_reason != ExportFile::SkipReason::None) {
+    return Status::OK();
+  }
+  string path = settings_.path;
+  for (auto c : file.relative_path) {
+    path += c == '/' ? TD_DIR_SLASH : c;
+  }
+  auto r_content = read_file_str(path);
+  if (r_content.is_error()) {
+    return Status::Error(PSLICE() << "Failed to read file \"" << path << '"');
+  }
+  auto content = r_content.move_as_ok();
+  if (content.empty()) {
+    return Status::OK();
+  }
+  auto r_value = json_decode(content);
+  if (r_value.is_error()) {
+    return Status::Error(PSLICE() << "Failed to parse file \"" << path << '"');
+  }
+  auto value = r_value.move_as_ok();
+  if ((value.type() != JsonValue::Type::Object && value.type() != JsonValue::Type::Array) ||
+      !has_only_utf8_strings(value)) {
+    return Status::Error(PSLICE() << "Failed to parse file \"" << path << '"');
+  }
+  return write_root_item("other_data", value);
 }
 
 Status ExportJsonWriter::write_dialogs_start(int32 dialog_count) {

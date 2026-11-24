@@ -49,7 +49,7 @@ struct ExportDialogInfo {
   bool only_my_messages = false;
 };
 
-enum class ExportAbout : int32 { Telegram, Chats, LeftChats };
+enum class ExportAbout : int32 { Telegram, Chats, LeftChats, Contacts, FrequentContacts, Sessions, WebSessions };
 
 // returns the description of the exported data
 Slice get_export_about_text(ExportAbout about);
@@ -149,6 +149,68 @@ using ExportCustomEmojiFiles = FlatHashMap<CustomEmojiId, ExportFile, CustomEmoj
 // "(unavailable)" if the file couldn't be loaded, and an empty string if it is skipped by the settings
 string get_export_custom_emoji_path(const ExportCustomEmojiFiles *custom_emoji_files, int64 custom_emoji_id);
 
+struct ExportPersonalInfo {
+  int64 user_id = 0;
+  string first_name;
+  string last_name;
+  string phone_number;
+  string username;
+  string bio;
+  // the color chosen by the user; -1 if none
+  int32 color = -1;
+};
+
+struct ExportContact {
+  string first_name;
+  string last_name;
+  string phone_number;
+  int32 date = 0;
+};
+
+struct ExportTopPeer {
+  DialogId dialog_id;
+  double rating = 0.0;
+};
+
+struct ExportContactList {
+  // in the order of names
+  vector<ExportContact> contacts;
+  vector<ExportTopPeer> correspondents;
+  vector<ExportTopPeer> inline_bots;
+  vector<ExportTopPeer> phone_calls;
+};
+
+struct ExportSession {
+  int32 api_id = 0;
+  string application_name;
+  string application_version;
+  string device_model;
+  string platform;
+  string system_version;
+  string ip;
+  string country;
+  string region;
+  int32 created = 0;
+  int32 last_active = 0;
+};
+
+struct ExportWebSession {
+  // empty if the bot is unknown
+  string bot_username;
+  string domain;
+  string browser;
+  string platform;
+  string ip;
+  string region;
+  int32 created = 0;
+  int32 last_active = 0;
+};
+
+struct ExportSessionList {
+  vector<ExportSession> sessions;
+  vector<ExportWebSession> web_sessions;
+};
+
 class ExportOutputFile {
  public:
   ExportOutputFile(string path, ExportStats *stats);
@@ -174,6 +236,15 @@ class ExportWriter {
   virtual Status start(const ExportSettings &settings, ExportStats *stats) TD_WARN_UNUSED_RESULT = 0;
 
   // the chats are written between write_dialogs_start and write_dialogs_end; left channels are written last
+  virtual Status write_personal_info(const ExportPersonalInfo &info) TD_WARN_UNUSED_RESULT = 0;
+
+  virtual Status write_contacts(const ExportContactList &contacts) TD_WARN_UNUSED_RESULT = 0;
+
+  virtual Status write_sessions(const ExportSessionList &sessions) TD_WARN_UNUSED_RESULT = 0;
+
+  // the file of other data is skipped if it couldn't be loaded
+  virtual Status write_other_data(const ExportFile &file) TD_WARN_UNUSED_RESULT = 0;
+
   virtual Status write_dialogs_start(int32 dialog_count) TD_WARN_UNUSED_RESULT = 0;
 
   virtual Status write_dialog_start(const ExportDialogInfo &dialog) TD_WARN_UNUSED_RESULT = 0;

@@ -293,6 +293,7 @@ struct ExportManager::FileProcess {
   }
 
   int64 id = 0;
+  ExportFile *target = nullptr;
   // the main file identifier, under which the file is remembered as loaded
   int32 key = 0;
   string relative_path;
@@ -393,6 +394,11 @@ struct ExportManager::Export {
   size_t dialog_index = 0;
   unique_ptr<DialogProcess> dialog;
 
+  ExportContactList contacts;
+  int32 top_peers_offset = 0;
+  ExportSessionList sessions;
+  ExportFile other_data;
+
   int64 last_file_id = 0;
   unique_ptr<FileProcess> file;
 
@@ -448,8 +454,8 @@ Result<ExportSettings> ExportManager::get_export_settings(
       if (settings.types == 0) {
         return Status::Error(400, "Nothing to export");
       }
-      if ((settings.types & ~ExportSettings::AnyChatsMask) != 0) {
-        return Status::Error(400, "Only chats of the account can be exported yet");
+      if ((settings.types & (ExportSettings::Userpics | ExportSettings::Stories | ExportSettings::ProfileMusic)) != 0) {
+        return Status::Error(400, "Export of profile photos, stories and profile audios isn't supported yet");
       }
 
       // private chats are always exported whole and public chats only with own messages
@@ -709,12 +715,16 @@ void ExportManager::export_next() {
     case Step::Dialogs:
       return export_dialogs();
     case Step::PersonalInfo:
+      return export_personal_info();
+    case Step::Contacts:
+      return export_contacts();
+    case Step::Sessions:
+      return export_sessions();
+    case Step::OtherData:
+      return export_other_data();
     case Step::Userpics:
     case Step::Stories:
     case Step::ProfileMusic:
-    case Step::Contacts:
-    case Step::Sessions:
-    case Step::OtherData:
     case Step::Topic:
       return export_next();
     default:
@@ -1137,6 +1147,287 @@ void ExportManager::start_writer() {
     return;
   }
   fill_substeps_in_steps();
+  export_next();
+}
+
+void ExportManager::set_step_state(Step step) {
+  ProcessingState state;
+  state.step = step;
+  set_processing_state(std::move(state));
+}
+
+void ExportManager::export_personal_info() {
+  set_step_state(Step::PersonalInfo);
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), generation = export_->generation](
+                                 Result<telegram_api::object_ptr<telegram_api::users_userFull>> r_user_full) mutable {
+        send_closure(actor_id, &ExportManager::on_get_personal_info, generation, std::move(r_user_full));
+      });
+  send_export_query(telegram_api::users_getFullUser(telegram_api::make_object<telegram_api::inputUserSelf>()), -1,
+                    std::move(promise));
+}
+
+void ExportManager::on_get_personal_info(uint64 generation,
+                                         Result<telegram_api::object_ptr<telegram_api::users_userFull>> r_user_full) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_user_full.is_error()) {
+    return on_api_error(r_user_full.move_as_error());
+  }
+  auto user_full = r_user_full.move_as_ok();
+  ExportPersonalInfo info;
+  bool is_found = false;
+  for (const auto &user_ptr : user_full->users_) {
+    if (user_ptr->get_id() != telegram_api::user::ID) {
+      continue;
+    }
+    const auto *user = static_cast<const telegram_api::user *>(user_ptr.get());
+    if (!user->self_) {
+      continue;
+    }
+    is_found = true;
+    info.user_id = user->id_;
+    info.first_name = user->first_name_;
+    info.last_name = user->last_name_;
+    info.phone_number = user->phone_;
+    info.username = user->username_;
+    if (user->color_ != nullptr && user->color_->get_id() == telegram_api::peerColor::ID) {
+      const auto *color = static_cast<const telegram_api::peerColor *>(user->color_.get());
+      if (color->flags_ & telegram_api::peerColor::COLOR_MASK) {
+        info.color = color->color_;
+      }
+    }
+    break;
+  }
+  if (!is_found) {
+    return on_api_error(Status::Error(500, "Receive no current user"));
+  }
+  if (user_full->full_user_ != nullptr) {
+    info.bio = user_full->full_user_->about_;
+  }
+  td_->user_manager_->on_get_users(std::move(user_full->users_), "on_get_personal_info");
+  td_->chat_manager_->on_get_chats(std::move(user_full->chats_), "on_get_personal_info");
+  if (!on_io_result(export_->writer->write_personal_info(info))) {
+    return;
+  }
+  export_next();
+}
+
+void ExportManager::export_contacts() {
+  set_step_state(Step::Contacts);
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), generation = export_->generation](
+          Result<vector<telegram_api::object_ptr<telegram_api::savedPhoneContact>>> r_contacts) mutable {
+        send_closure(actor_id, &ExportManager::on_get_saved_contacts, generation, std::move(r_contacts));
+      });
+  send_export_query(telegram_api::contacts_getSaved(), -1, std::move(promise));
+}
+
+void ExportManager::on_get_saved_contacts(
+    uint64 generation, Result<vector<telegram_api::object_ptr<telegram_api::savedPhoneContact>>> r_contacts) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_contacts.is_error()) {
+    return on_api_error(r_contacts.move_as_error());
+  }
+  auto contacts = r_contacts.move_as_ok();
+  auto &list = export_->contacts.contacts;
+  vector<string> names;
+  for (auto &contact : contacts) {
+    ExportContact result;
+    result.first_name = std::move(contact->first_name_);
+    result.last_name = std::move(contact->last_name_);
+    result.phone_number = std::move(contact->phone_);
+    result.date = contact->date_;
+    names.push_back(utf8_to_lower(PSLICE() << result.first_name << ' ' << result.last_name));
+    list.push_back(std::move(result));
+  }
+  vector<size_t> order(list.size());
+  for (size_t i = 0; i < order.size(); i++) {
+    order[i] = i;
+  }
+  std::stable_sort(order.begin(), order.end(), [&names](size_t lhs, size_t rhs) { return names[lhs] < names[rhs]; });
+  vector<ExportContact> sorted_list;
+  sorted_list.reserve(list.size());
+  for (auto i : order) {
+    sorted_list.push_back(std::move(list[i]));
+  }
+  list = std::move(sorted_list);
+
+  export_->top_peers_offset = 0;
+  request_top_peers();
+}
+
+void ExportManager::request_top_peers() {
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), generation = export_->generation](
+          Result<telegram_api::object_ptr<telegram_api::contacts_TopPeers>> r_top_peers) mutable {
+        send_closure(actor_id, &ExportManager::on_get_top_peers, generation, std::move(r_top_peers));
+      });
+  send_export_query(telegram_api::contacts_getTopPeers(0, true, false, true, true, false, false, false, false, false,
+                                                       false, export_->top_peers_offset, TOP_PEERS_SLICE_LIMIT, 0),
+                    -1, std::move(promise));
+}
+
+void ExportManager::on_get_top_peers(uint64 generation,
+                                     Result<telegram_api::object_ptr<telegram_api::contacts_TopPeers>> r_top_peers) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_top_peers.is_error()) {
+    return on_api_error(r_top_peers.move_as_error());
+  }
+  auto top_peers = r_top_peers.move_as_ok();
+  auto &contacts = export_->contacts;
+  bool is_loaded = true;
+  switch (top_peers->get_id()) {
+    case telegram_api::contacts_topPeersNotModified::ID:
+      return on_api_error(Status::Error(500, "Receive topPeersNotModified"));
+    case telegram_api::contacts_topPeersDisabled::ID:
+      break;
+    case telegram_api::contacts_topPeers::ID: {
+      auto result = telegram_api::move_object_as<telegram_api::contacts_topPeers>(top_peers);
+      td_->user_manager_->on_get_users(std::move(result->users_), "on_get_top_peers");
+      td_->chat_manager_->on_get_chats(std::move(result->chats_), "on_get_top_peers");
+      for (const auto &category : result->categories_) {
+        vector<ExportTopPeer> *list = nullptr;
+        switch (category->category_->get_id()) {
+          case telegram_api::topPeerCategoryCorrespondents::ID:
+            list = &contacts.correspondents;
+            break;
+          case telegram_api::topPeerCategoryBotsInline::ID:
+            list = &contacts.inline_bots;
+            break;
+          case telegram_api::topPeerCategoryPhoneCalls::ID:
+            list = &contacts.phone_calls;
+            break;
+          default:
+            return on_api_error(Status::Error(500, "Receive unexpected top peer category"));
+        }
+        for (const auto &top_peer : category->peers_) {
+          ExportTopPeer peer;
+          peer.dialog_id = DialogId(top_peer->peer_);
+          peer.rating = top_peer->rating_;
+          list->push_back(peer);
+        }
+        if (export_->top_peers_offset + static_cast<int64>(category->peers_.size()) < category->count_) {
+          is_loaded = false;
+        }
+      }
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  if (!is_loaded) {
+    export_->top_peers_offset = narrow_cast<int32>(
+        max(max(contacts.correspondents.size(), contacts.inline_bots.size()), contacts.phone_calls.size()));
+    return request_top_peers();
+  }
+
+  auto result = std::move(export_->contacts);
+  if (!on_io_result(export_->writer->write_contacts(result))) {
+    return;
+  }
+  export_next();
+}
+
+void ExportManager::export_sessions() {
+  set_step_state(Step::Sessions);
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), generation = export_->generation](
+          Result<telegram_api::object_ptr<telegram_api::account_authorizations>> r_authorizations) mutable {
+        send_closure(actor_id, &ExportManager::on_get_authorizations, generation, std::move(r_authorizations));
+      });
+  send_export_query(telegram_api::account_getAuthorizations(), -1, std::move(promise));
+}
+
+void ExportManager::on_get_authorizations(
+    uint64 generation, Result<telegram_api::object_ptr<telegram_api::account_authorizations>> r_authorizations) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_authorizations.is_error()) {
+    return on_api_error(r_authorizations.move_as_error());
+  }
+  auto authorizations = r_authorizations.move_as_ok();
+  for (auto &authorization : authorizations->authorizations_) {
+    ExportSession session;
+    session.api_id = authorization->api_id_;
+    session.application_name = std::move(authorization->app_name_);
+    session.application_version = std::move(authorization->app_version_);
+    session.device_model = std::move(authorization->device_model_);
+    session.platform = std::move(authorization->platform_);
+    session.system_version = std::move(authorization->system_version_);
+    session.ip = std::move(authorization->ip_);
+    session.country = std::move(authorization->country_);
+    session.region = std::move(authorization->region_);
+    session.created = authorization->date_created_;
+    session.last_active = authorization->date_active_;
+    export_->sessions.sessions.push_back(std::move(session));
+  }
+
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), generation = export_->generation](
+          Result<telegram_api::object_ptr<telegram_api::account_webAuthorizations>> r_authorizations) mutable {
+        send_closure(actor_id, &ExportManager::on_get_web_authorizations, generation, std::move(r_authorizations));
+      });
+  send_export_query(telegram_api::account_getWebAuthorizations(), -1, std::move(promise));
+}
+
+void ExportManager::on_get_web_authorizations(
+    uint64 generation, Result<telegram_api::object_ptr<telegram_api::account_webAuthorizations>> r_authorizations) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_authorizations.is_error()) {
+    return on_api_error(r_authorizations.move_as_error());
+  }
+  auto authorizations = r_authorizations.move_as_ok();
+  td_->user_manager_->on_get_users(std::move(authorizations->users_), "on_get_web_authorizations");
+  for (auto &authorization : authorizations->authorizations_) {
+    ExportWebSession session;
+    UserId bot_user_id(authorization->bot_id_);
+    if (td_->user_manager_->is_user_bot(bot_user_id)) {
+      session.bot_username = td_->user_manager_->get_user_first_username(bot_user_id).str();
+    }
+    session.domain = std::move(authorization->domain_);
+    session.browser = std::move(authorization->browser_);
+    session.platform = std::move(authorization->platform_);
+    session.ip = std::move(authorization->ip_);
+    session.region = std::move(authorization->region_);
+    session.created = authorization->date_created_;
+    session.last_active = authorization->date_active_;
+    export_->sessions.web_sessions.push_back(std::move(session));
+  }
+
+  auto result = std::move(export_->sessions);
+  if (!on_io_result(export_->writer->write_sessions(result))) {
+    return;
+  }
+  export_next();
+}
+
+void ExportManager::export_other_data() {
+  set_step_state(Step::OtherData);
+  auto relative_path = get_unique_relative_path("lists/other_data.json");
+  auto file = td::make_unique<FileProcess>(get_file_path(relative_path), &export_->stats);
+  file->id = ++export_->last_file_id;
+  file->target = &export_->other_data;
+  file->relative_path = std::move(relative_path);
+  file->dc_id = DcId::main();
+  file->query = telegram_api::make_object<telegram_api::upload_getFile>(
+      0, false, false, telegram_api::make_object<telegram_api::inputTakeoutFileLocation>(), 0, FILE_PART_SIZE);
+  export_->file = std::move(file);
+  load_file_part();
+}
+
+void ExportManager::on_other_data_loaded() {
+  if (!on_io_result(export_->writer->write_other_data(export_->other_data))) {
+    return;
+  }
   export_next();
 }
 
@@ -1794,6 +2085,7 @@ bool ExportManager::process_message_file(MessageFileWork &work) {
 
   auto file = td::make_unique<FileProcess>(get_file_path(relative_path), &export_->stats);
   file->id = ++export_->last_file_id;
+  file->target = work.target;
   file->key = key;
   file->relative_path = std::move(relative_path);
   file->dc_id = remote_location->get_dc_id();
@@ -1805,7 +2097,7 @@ bool ExportManager::process_message_file(MessageFileWork &work) {
   file->custom_emoji_id = work.custom_emoji_id;
   LOG(INFO) << "Load file " << file->relative_path << " of size " << file->size;
   export_->file = std::move(file);
-  set_dialogs_state();
+  set_file_state();
   load_file_part();
   return false;
 }
@@ -1870,6 +2162,13 @@ void ExportManager::on_get_file_part(uint64 generation, int64 file_id, int64 off
     if (error.code() == 400 && begins_with(error.message(), "FILE_REFERENCE_")) {
       return refresh_file_reference();
     }
+    if (error.message() == "TAKEOUT_FILE_EMPTY" && export_->steps[export_->step_index] == Step::OtherData) {
+      // the server has no other data
+      if (!on_io_result(file.output.write(Slice()))) {
+        return;
+      }
+      return finish_file(true);
+    }
     return on_api_error(std::move(error));
   }
 
@@ -1897,7 +2196,7 @@ void ExportManager::on_get_file_part(uint64 generation, int64 file_id, int64 off
   if (file.size > 0 && file.offset >= file.size) {
     return finish_file(true);
   }
-  set_dialogs_state();
+  set_file_state();
   load_file_part();
 }
 
@@ -1920,6 +2219,10 @@ void ExportManager::refresh_file_reference() {
                              std::move(promise));
   }
 
+  if (export_->dialog == nullptr || !file.message_id.is_valid()) {
+    LOG(INFO) << "File reference of " << file.relative_path << " can't be refreshed";
+    return finish_file(false);
+  }
   const auto &dialog = *export_->dialog;
   auto split = dialog.splits[dialog.split_index];
   auto dialog_id = split >= 0 ? dialog.info.dialog_id : dialog.migrated_from_dialog_id;
@@ -1988,11 +2291,12 @@ void ExportManager::finish_file(bool is_loaded) {
   CHECK(export_ != nullptr);
   CHECK(export_->file != nullptr);
   auto file = std::move(export_->file);
-  auto &dialog = *export_->dialog;
-  CHECK(dialog.file_work_index < dialog.file_works.size());
-  auto &target = *dialog.file_works[dialog.file_work_index].target;
+  CHECK(file->target != nullptr);
+  auto &target = *file->target;
   if (is_loaded) {
-    save_loaded_file(file->key, file->relative_path);
+    if (file->key != 0) {
+      save_loaded_file(file->key, file->relative_path);
+    }
     target.relative_path = std::move(file->relative_path);
     target.skip_reason = ExportFile::SkipReason::None;
   } else {
@@ -2000,6 +2304,11 @@ void ExportManager::finish_file(bool is_loaded) {
     target.skip_reason = ExportFile::SkipReason::Unavailable;
   }
   file = nullptr;
+  if (export_->steps[export_->step_index] == Step::OtherData) {
+    return on_other_data_loaded();
+  }
+  auto &dialog = *export_->dialog;
+  CHECK(dialog.file_work_index < dialog.file_works.size());
   dialog.file_work_index++;
   load_next_message_file();
 }
@@ -2054,6 +2363,13 @@ void ExportManager::finish_messages() {
   }
   export_->dialog_index++;
   export_next_dialog();
+}
+
+void ExportManager::set_file_state() {
+  // the progress of loading of other files isn't shown
+  if (export_->dialog != nullptr) {
+    set_dialogs_state();
+  }
 }
 
 void ExportManager::set_dialogs_state() {

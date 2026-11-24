@@ -37,6 +37,7 @@ static constexpr int32 REACTION_USERPIC_SIZE = 20;
 static constexpr int32 JOIN_WITHIN_SECONDS = 900;
 static constexpr int32 STICKER_MAX_SIZE = 384;
 static constexpr int32 THUMBNAIL_MIN_SIZE = 80;
+static constexpr int32 PERSONAL_USERPIC_SIZE = 90;
 static constexpr int32 ENTRY_USERPIC_SIZE = 48;
 static constexpr int32 SAVED_MESSAGES_COLOR_INDEX = 3;
 static constexpr size_t MAX_LINK_TARGET_SIZE = 4096;
@@ -2848,6 +2849,237 @@ Status ExportHtmlWriter::write_sections() {
   }
   sections_.clear();
   return summary_->write(block);
+}
+
+static constexpr int32 CONTACTS_SECTION_PRIORITY = 2;
+static constexpr int32 FREQUENT_CONTACTS_SECTION_PRIORITY = 3;
+static constexpr int32 SESSIONS_SECTION_PRIORITY = 7;
+static constexpr int32 WEB_SESSIONS_SECTION_PRIORITY = 8;
+static constexpr int32 OTHER_DATA_SECTION_PRIORITY = 9;
+
+static string compose_name(Slice first_name, Slice last_name, Slice empty_name) {
+  if (first_name.empty() && last_name.empty()) {
+    return empty_name.str();
+  }
+  return PSTRING() << first_name << ' ' << last_name;
+}
+
+// a hash of the string, which chooses the color of an entry without an identifier
+static uint64 get_string_bare_id(Slice data) {
+  uint64 result = 0xFF;
+  for (auto c : data) {
+    result *= 239;
+    result += static_cast<unsigned char>(c);
+    result &= 0xFF;
+  }
+  return result;
+}
+
+static int32 get_application_color_index(int64 api_id) {
+  switch (api_id) {
+    case 1:
+    case 7:
+      return 0;
+    case 6:
+    case 21724:
+      return 1;
+    case 2834:
+      return 2;
+    case 2496:
+      return 3;
+    case 2040:
+      return 4;
+    case 1429:
+      return 5;
+    default:
+      return get_peer_color_index(static_cast<uint64>(api_id));
+  }
+}
+
+Status ExportHtmlWriter::write_personal_info(const ExportPersonalInfo &info) {
+  CHECK(summary_ != nullptr);
+  UserpicData userpic;
+  userpic.color_index = info.color >= 0 ? info.color : get_peer_color_index(static_cast<uint64>(info.user_id));
+  userpic.pixel_size = PERSONAL_USERPIC_SIZE;
+  userpic.first_name = info.first_name;
+  userpic.last_name = info.last_name;
+
+  string block;
+  auto &context = summary_->context();
+  context.push_div(block, "personal_info clearfix");
+  context.push_div(block, "pull_right userpic_wrap");
+  push_userpic(context, block, summary_->base(), userpic);
+  context.pop_tag(block);
+  struct Row {
+    Slice label;
+    Slice value;
+  };
+  auto push_rows = [&](Slice name, std::initializer_list<Row> rows) {
+    context.push_div(block, PSLICE() << "rows " << name);
+    for (const auto &row : rows) {
+      if (row.value.empty()) {
+        continue;
+      }
+      context.push_div(block, "row");
+      context.push_div(block, "label details");
+      append_html_escaped(block, row.label);
+      context.pop_tag(block);
+      context.push_div(block, "value bold");
+      append_html_escaped(block, row.value);
+      context.pop_tag(block);
+      context.pop_tag(block);
+    }
+    context.pop_tag(block);
+  };
+  push_rows("names", {{"First name", info.first_name}, {"Last name", info.last_name}});
+  auto phone_number = format_export_phone_number(info.phone_number);
+  string username;
+  if (!info.username.empty()) {
+    username = PSTRING() << '@' << info.username;
+  }
+  push_rows("info", {{"Phone number", phone_number}, {"Username", username}});
+  push_rows("bio", {{"Bio", info.bio}});
+  context.pop_tag(block);
+
+  summary_needs_divider_ = true;
+  return summary_->write(block);
+}
+
+unique_ptr<ExportHtmlPage> ExportHtmlWriter::create_list_page(Slice relative_path, Slice header, ExportAbout about,
+                                                              string &block) const {
+  auto page = create_page(relative_path);
+  page->push_header(block, header, SUMMARY_PAGE_PATH);
+  page->context().push_div(block, "page_body list_page");
+  page->push_about(block, get_export_about_text(about));
+  page->context().push_div(block, "entry_list");
+  return page;
+}
+
+static Status write_list_page(ExportHtmlPage &page, Slice block) {
+  TRY_STATUS(page.write(block));
+  return page.close();
+}
+
+Status ExportHtmlWriter::write_contacts(const ExportContactList &contacts) {
+  CHECK(summary_ != nullptr);
+  if (!contacts.contacts.empty()) {
+    static const char PATH[] = "lists/contacts.html";
+    string block;
+    auto page = create_list_page(PATH, "Contacts", ExportAbout::Contacts, block);
+    for (const auto &contact : contacts.contacts) {
+      UserpicData userpic;
+      userpic.color_index = get_peer_color_index(get_string_bare_id(contact.phone_number));
+      userpic.pixel_size = ENTRY_USERPIC_SIZE;
+      userpic.first_name = contact.first_name;
+      userpic.last_name = contact.last_name;
+      page->push_list_entry(block, Slice(), userpic,
+                            compose_name(contact.first_name, contact.last_name, "Deleted Account"), Slice(),
+                            {format_export_phone_number(contact.phone_number)},
+                            format_date_time(contact.date, settings_.utc_time_offset, false));
+    }
+    TRY_STATUS(write_list_page(*page, block));
+    add_section(CONTACTS_SECTION_PRIORITY, "Contacts", "contacts", narrow_cast<int32>(contacts.contacts.size()), PATH);
+  }
+
+  auto top_peer_count = contacts.correspondents.size() + contacts.inline_bots.size() + contacts.phone_calls.size();
+  if (top_peer_count == 0) {
+    return Status::OK();
+  }
+  static const char PATH[] = "lists/frequent.html";
+  string block;
+  auto page = create_list_page(PATH, "Frequent contacts", ExportAbout::FrequentContacts, block);
+  auto push_top_peers = [&](const vector<ExportTopPeer> &top_peers, Slice category) {
+    for (const auto &top_peer : top_peers) {
+      auto dialog_id = top_peer.dialog_id;
+      UserpicData userpic;
+      userpic.color_index = get_peer_color_index(static_cast<uint64>(get_export_dialog_bare_id(dialog_id)));
+      userpic.pixel_size = ENTRY_USERPIC_SIZE;
+      if (dialog_id.get_type() != DialogType::User) {
+        userpic.first_name = td_->dialog_manager_->get_dialog_title(dialog_id);
+      } else if (dialog_id.get_user_id() == td_->user_manager_->get_my_id()) {
+        userpic.first_name = "Saved messages";
+      } else {
+        userpic.first_name = td_->user_manager_->get_user_first_name(dialog_id.get_user_id()).str();
+        userpic.last_name = td_->user_manager_->get_user_last_name(dialog_id.get_user_id()).str();
+      }
+      auto rating = PSTRING() << "Rating: " << StringBuilder::FixedDouble(top_peer.rating, 6);
+      page->push_list_entry(block, Slice(), userpic,
+                            compose_name(userpic.first_name, userpic.last_name, "Deleted Account"), Slice(), {rating},
+                            category);
+    }
+  };
+  push_top_peers(contacts.correspondents, "people");
+  push_top_peers(contacts.inline_bots, "inline bots");
+  push_top_peers(contacts.phone_calls, "calls");
+  TRY_STATUS(write_list_page(*page, block));
+  add_section(FREQUENT_CONTACTS_SECTION_PRIORITY, "Frequent contacts", "frequent", narrow_cast<int32>(top_peer_count),
+              PATH);
+  return Status::OK();
+}
+
+Status ExportHtmlWriter::write_sessions(const ExportSessionList &sessions) {
+  CHECK(summary_ != nullptr);
+  auto utc_time_offset = settings_.utc_time_offset;
+  auto push_session = [](ExportHtmlPage &page, string &block, int64 api_id, Slice name, Slice subname,
+                         std::initializer_list<Slice> details, Slice info) {
+    UserpicData userpic;
+    userpic.color_index = get_application_color_index(api_id);
+    userpic.pixel_size = ENTRY_USERPIC_SIZE;
+    userpic.first_name = name.str();
+    page.push_list_entry(block, Slice(), userpic, name, subname, details, info);
+  };
+  // U+2013 EN DASH
+  static const char DASH[] = " \xE2\x80\x93 ";
+
+  if (!sessions.sessions.empty()) {
+    static const char PATH[] = "lists/sessions.html";
+    string block;
+    auto page = create_list_page(PATH, "Sessions", ExportAbout::Sessions, block);
+    for (const auto &session : sessions.sessions) {
+      auto name = PSTRING() << (session.application_name.empty() ? Slice("Unknown") : Slice(session.application_name))
+                            << ' ' << session.application_version;
+      auto subname = PSTRING() << session.device_model << ", " << session.platform << ' ' << session.system_version;
+      auto location = PSTRING() << session.ip << DASH << session.region
+                                << (session.region.empty() || session.country.empty() ? "" : ", ") << session.country;
+      auto last_active = PSTRING() << "Last active: " << format_date_time(session.last_active, utc_time_offset, false);
+      auto created = PSTRING() << "Created: " << format_date_time(session.created, utc_time_offset, false);
+      push_session(*page, block, session.api_id, name, subname, {location, last_active, created}, Slice());
+    }
+    TRY_STATUS(write_list_page(*page, block));
+    add_section(SESSIONS_SECTION_PRIORITY, "Sessions", "sessions", narrow_cast<int32>(sessions.sessions.size()), PATH);
+  }
+
+  if (sessions.web_sessions.empty()) {
+    return Status::OK();
+  }
+  static const char PATH[] = "lists/web_sessions.html";
+  string block;
+  auto page = create_list_page(PATH, "Web sessions", ExportAbout::WebSessions, block);
+  for (const auto &session : sessions.web_sessions) {
+    auto api_id = 0x1000 + static_cast<int64>(get_string_bare_id(session.domain));
+    auto subname = PSTRING() << session.platform << ", " << session.browser;
+    auto location = PSTRING() << session.ip << DASH << session.region;
+    auto last_active = PSTRING() << "Last active: " << format_date_time(session.last_active, utc_time_offset, false);
+    auto created = PSTRING() << "Created: " << format_date_time(session.created, utc_time_offset, false);
+    string bot_username;
+    if (!session.bot_username.empty()) {
+      bot_username = PSTRING() << '@' << session.bot_username;
+    }
+    push_session(*page, block, api_id, session.domain.empty() ? Slice("Unknown") : Slice(session.domain), subname,
+                 {location, last_active, created}, bot_username);
+  }
+  TRY_STATUS(write_list_page(*page, block));
+  add_section(WEB_SESSIONS_SECTION_PRIORITY, "Web sessions", "web", narrow_cast<int32>(sessions.web_sessions.size()),
+              PATH);
+  return Status::OK();
+}
+
+Status ExportHtmlWriter::write_other_data(const ExportFile &file) {
+  CHECK(summary_ != nullptr);
+  if (file.skip_reason == ExportFile::SkipReason::None) {
+    add_section(OTHER_DATA_SECTION_PRIORITY, "Other data", "other", 1, file.relative_path);
+  }
+  return Status::OK();
 }
 
 Status ExportHtmlWriter::write_dialogs_start(int32 dialog_count) {

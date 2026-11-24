@@ -39,6 +39,29 @@ Slice get_export_about_text(ExportAbout about) {
           "banned.\n\nNote that when you leave a channel or supergroup you've created, you have the option to either "
           "delete it, or simply leave (in case you want to rejoin later, or keep the community alive despite not "
           "being a member).");
+    case ExportAbout::Contacts:
+      return Slice(
+          "If you allow access, your contacts are continuously synced with Telegram. Thanks to this, you can easily "
+          "switch to Telegram and immediately connect with friends across all your devices. We use data about your "
+          "contacts to let you know when they join Telegram, and to display them by the name you set for them in "
+          "your phone.\n\nYou can disable contact syncing or delete your stored contacts in Settings > Privacy & "
+          "Security on Telegram's mobile apps.");
+    case ExportAbout::FrequentContacts:
+      return Slice(
+          "This rating shows which people you are likelier to message frequently. Telegram uses this data to "
+          "populate the 'People' box at the top of the Search section. This rating is also calculated for inline "
+          "bots so that the app can suggest the bots you are most likely to use in the attachment menu (or when you "
+          "start a new message with \"@\").\n\nTo delete this data, go to Settings > Privacy & Security and disable "
+          "'Suggest Frequent Contacts' (requires Telegram for iOS v.4.8.3 or Telegram for Android v.4.8.10 or "
+          "higher).");
+    case ExportAbout::Sessions:
+      return Slice(
+          "We store session info to display your connected devices in Settings > Privacy & Security > Active "
+          "Sessions.");
+    case ExportAbout::WebSessions:
+      return Slice(
+          "We store this to display the websites where you logged in using authentication via Telegram. This "
+          "information is shown in Settings > Privacy & Security > Active Sessions.");
     default:
       UNREACHABLE();
       return Slice();
@@ -679,6 +702,26 @@ class ExportCombinedWriter final : public ExportWriter {
   Status start(const ExportSettings &settings, ExportStats *stats) final {
     TRY_STATUS(first_->start(settings, stats));
     return second_->start(settings, stats);
+  }
+
+  Status write_personal_info(const ExportPersonalInfo &info) final {
+    TRY_STATUS(first_->write_personal_info(info));
+    return second_->write_personal_info(info);
+  }
+
+  Status write_contacts(const ExportContactList &contacts) final {
+    TRY_STATUS(first_->write_contacts(contacts));
+    return second_->write_contacts(contacts);
+  }
+
+  Status write_sessions(const ExportSessionList &sessions) final {
+    TRY_STATUS(first_->write_sessions(sessions));
+    return second_->write_sessions(sessions);
+  }
+
+  Status write_other_data(const ExportFile &file) final {
+    TRY_STATUS(first_->write_other_data(file));
+    return second_->write_other_data(file);
   }
 
   Status write_dialogs_start(int32 dialog_count) final {

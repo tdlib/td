@@ -11,6 +11,7 @@
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -22,6 +23,14 @@ class ExportJsonWriter final : public ExportWriter {
   explicit ExportJsonWriter(Td *td);
 
   Status start(const ExportSettings &settings, ExportStats *stats) final;
+
+  Status write_personal_info(const ExportPersonalInfo &info) final;
+
+  Status write_contacts(const ExportContactList &contacts) final;
+
+  Status write_sessions(const ExportSessionList &sessions) final;
+
+  Status write_other_data(const ExportFile &file) final;
 
   Status write_dialogs_start(int32 dialog_count) final;
 
@@ -47,6 +56,10 @@ class ExportJsonWriter final : public ExportWriter {
   DialogsMode dialogs_mode_ = DialogsMode::None;
   bool has_dialogs_ = false;
   bool has_messages_ = false;
+
+  // writes an item of the root object after the about text
+  template <class T>
+  Status write_root_item(Slice key, const T &value);
 
   Status write_dialog_list_start(bool is_left_channel);
 

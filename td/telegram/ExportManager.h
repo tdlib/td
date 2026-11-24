@@ -83,6 +83,7 @@ class ExportManager final : public Actor {
   static constexpr int32 MAX_DIRECTORY_ATTEMPTS = 1000;
   static constexpr int32 MESSAGES_SLICE_LIMIT = 100;
   static constexpr int32 DIALOGS_SLICE_LIMIT = 100;
+  static constexpr int32 TOP_PEERS_SLICE_LIMIT = 100;
   static constexpr int32 FILE_PART_SIZE = 128 << 10;
   static constexpr size_t MAX_LOADED_FILES = 100000;
 
@@ -137,6 +138,35 @@ class ExportManager final : public Actor {
 
   void start_writer();
 
+  void set_step_state(Step step);
+
+  void export_personal_info();
+
+  void on_get_personal_info(uint64 generation,
+                            Result<telegram_api::object_ptr<telegram_api::users_userFull>> r_user_full);
+
+  void export_contacts();
+
+  void on_get_saved_contacts(uint64 generation,
+                             Result<vector<telegram_api::object_ptr<telegram_api::savedPhoneContact>>> r_contacts);
+
+  void request_top_peers();
+
+  void on_get_top_peers(uint64 generation,
+                        Result<telegram_api::object_ptr<telegram_api::contacts_TopPeers>> r_top_peers);
+
+  void export_sessions();
+
+  void on_get_authorizations(uint64 generation,
+                             Result<telegram_api::object_ptr<telegram_api::account_authorizations>> r_authorizations);
+
+  void on_get_web_authorizations(
+      uint64 generation, Result<telegram_api::object_ptr<telegram_api::account_webAuthorizations>> r_authorizations);
+
+  void export_other_data();
+
+  void on_other_data_loaded();
+
   void collect_dialogs_list();
 
   void request_dialogs_slice();
@@ -186,6 +216,8 @@ class ExportManager final : public Actor {
   string get_unique_relative_path(const string &suggested_path) const;
 
   string get_file_path(Slice relative_path) const;
+
+  void set_file_state();
 
   void load_file_part();
 

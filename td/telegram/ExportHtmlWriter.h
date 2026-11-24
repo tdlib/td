@@ -32,6 +32,14 @@ class ExportHtmlWriter final : public ExportWriter {
 
   Status start(const ExportSettings &settings, ExportStats *stats) final;
 
+  Status write_personal_info(const ExportPersonalInfo &info) final;
+
+  Status write_contacts(const ExportContactList &contacts) final;
+
+  Status write_sessions(const ExportSessionList &sessions) final;
+
+  Status write_other_data(const ExportFile &file) final;
+
   Status write_dialogs_start(int32 dialog_count) final;
 
   Status write_dialog_start(const ExportDialogInfo &dialog) final;
@@ -86,6 +94,10 @@ class ExportHtmlWriter final : public ExportWriter {
   unique_ptr<ExportHtmlPage> create_page(Slice relative_path) const;
 
   Status write_file(Slice relative_path, Slice data) TD_WARN_UNUSED_RESULT;
+
+  // returns a page with a list of entries, linking back to the summary; the block is the beginning of the page
+  unique_ptr<ExportHtmlPage> create_list_page(Slice relative_path, Slice header, ExportAbout about,
+                                              string &block) const;
 
   Status write_page_opening(int32 index);
 
