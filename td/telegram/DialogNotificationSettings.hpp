@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/DialogNotificationSettings.h"
-#include "td/telegram/Global.h"
 #include "td/telegram/NotificationSound.h"
 
 #include "td/utils/tl_helpers.h"
@@ -16,8 +15,7 @@ namespace td {
 
 template <class StorerT>
 void store(const DialogNotificationSettings &notification_settings, StorerT &storer) {
-  bool is_muted = !notification_settings.use_default_mute_until && notification_settings.mute_until != 0 &&
-                  notification_settings.mute_until > G()->unix_time();
+  bool is_muted = !notification_settings.use_default_mute_until && notification_settings.mute_until != 0;
   bool has_sound = notification_settings.sound != nullptr;
   bool has_ringtone_support = true;
   bool use_mute_stories = !notification_settings.use_default_mute_stories;

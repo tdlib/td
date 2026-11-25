@@ -2038,7 +2038,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
   bool has_flags2 = true;
   bool has_max_active_story_id = max_active_story_id.is_valid();
   bool has_max_read_story_id = max_read_story_id.is_valid();
-  bool has_max_active_story_id_next_reload_time = max_active_story_id_next_reload_time > Time::now();
+  bool has_max_active_story_id_next_reload_time = max_active_story_id_next_reload_time != 0;
   bool has_accent_color_id = accent_color_id.is_valid();
   bool has_background_custom_emoji_id = background_custom_emoji_id.is_valid();
   bool has_profile_accent_color_id = profile_accent_color_id.is_valid();
