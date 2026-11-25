@@ -7176,6 +7176,23 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
   td_->create_handler<LeaveGroupCallQuery>(std::move(query_promise))->send(input_group_call_id, audio_source);
 }
 
+void GroupCallManager::on_closing() {
+  for (auto &it : group_calls_) {
+    auto *group_call = it.second.get();
+    CHECK(group_call != nullptr);
+    bool need_update = group_call->is_inited && (get_group_call_is_joined(group_call) || group_call->need_rejoin);
+    cancel_join_group_call_request(it.first, group_call);
+    if (group_call->is_inited && group_call->is_joined) {
+      on_group_call_left_impl(group_call, false, "on_closing");
+      need_update = true;
+    }
+    group_call->need_rejoin = false;
+    if (need_update) {
+      send_update_group_call(group_call, "on_closing");
+    }
+  }
+}
+
 void GroupCallManager::clear_group_call(GroupCall *group_call) {
   if (group_call->is_conference) {
     tde2e_api::key_destroy(group_call->private_key_id);

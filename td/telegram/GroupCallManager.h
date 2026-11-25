@@ -199,6 +199,8 @@ class GroupCallManager final : public Actor {
 
   void leave_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
+  void on_closing();
+
   void discard_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
   void on_update_dialog_about(DialogId dialog_id, const string &about, bool from_server);
