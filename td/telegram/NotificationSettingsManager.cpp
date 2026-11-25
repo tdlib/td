@@ -1008,8 +1008,8 @@ void NotificationSettingsManager::save_reaction_notification_settings() const {
 
 void NotificationSettingsManager::schedule_scope_unmute(NotificationSettingsScope scope, int32 mute_until,
                                                         int32 unix_time) {
-  if (mute_until >= unix_time && mute_until < unix_time + 366 * 86400) {
-    scope_unmute_timeout_.set_timeout_in(static_cast<int64>(scope) + 1, mute_until - unix_time + 1);
+  if (mute_until != 0 && mute_until < unix_time + 366 * 86400) {
+    scope_unmute_timeout_.set_timeout_in(static_cast<int64>(scope) + 1, max(mute_until - unix_time + 1, 0));
   } else {
     scope_unmute_timeout_.cancel_timeout(static_cast<int64>(scope) + 1);
   }
