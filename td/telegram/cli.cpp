@@ -250,6 +250,7 @@ class CliClient final : public Actor {
     string first_name;
     string last_name;
     string username;
+    bool is_deleted = false;
   };
 
   FlatHashMap<int64, unique_ptr<User>> users_;
@@ -266,6 +267,7 @@ class CliClient final : public Actor {
     new_user.first_name = user.first_name_;
     new_user.last_name = user.last_name_;
     new_user.username = string();
+    new_user.is_deleted = user.type_ != nullptr && user.type_->get_id() == td_api::userTypeDeleted::ID;
     if (user.usernames_ != nullptr) {
       for (auto &username : user.usernames_->active_usernames_) {
         username_to_user_id_[to_lower(username)] = user.id_;
@@ -338,6 +340,46 @@ class CliClient final : public Actor {
         get_log_chat_id_ = 0;
       }
     }
+  }
+
+  int64 unban_deleted_supergroup_id_ = 0;
+  int32 unban_deleted_offset_ = 0;
+  vector<int64> unban_deleted_user_ids_;
+  void on_get_chat_members(const td_api::chatMembers &members) {
+    if (unban_deleted_supergroup_id_ == 0) {
+      return;
+    }
+    for (auto &member : members.members_) {
+      if (member->member_id_->get_id() != td_api::messageSenderUser::ID) {
+        continue;
+      }
+      auto user_id = static_cast<const td_api::messageSenderUser &>(*member->member_id_).user_id_;
+      auto it = users_.find(user_id);
+      if (it != users_.end() && it->second != nullptr && it->second->is_deleted) {
+        unban_deleted_user_ids_.push_back(user_id);
+      }
+    }
+
+    // load all banned users before unbanning to keep offsets valid
+    unban_deleted_offset_ += static_cast<int32>(members.members_.size());
+    if (!members.members_.empty() && unban_deleted_offset_ < members.total_count_) {
+      send_request(td_api::make_object<td_api::getSupergroupMembers>(
+          unban_deleted_supergroup_id_, td_api::make_object<td_api::supergroupMembersFilterBanned>(string()),
+          unban_deleted_offset_, 200));
+      return;
+    }
+
+    auto chat_id = static_cast<int64>(-1000000000000ll) - unban_deleted_supergroup_id_;
+    LOG(PLAIN) << "Unban " << unban_deleted_user_ids_.size() << " deleted users out of " << unban_deleted_offset_
+               << " banned users in chat " << chat_id;
+    for (auto user_id : unban_deleted_user_ids_) {
+      send_request(td_api::make_object<td_api::setChatMemberStatus>(
+          chat_id, td_api::make_object<td_api::messageSenderUser>(user_id),
+          td_api::make_object<td_api::chatMemberStatusLeft>()));
+    }
+    unban_deleted_supergroup_id_ = 0;
+    unban_deleted_offset_ = 0;
+    unban_deleted_user_ids_.clear();
   }
 
   int64 get_history_chat_id_ = 0;
@@ -1964,6 +2006,9 @@ class CliClient final : public Actor {
         break;
       case td_api::chatEvents::ID:
         on_get_chat_events(*static_cast<const td_api::chatEvents *>(result.get()));
+        break;
+      case td_api::chatMembers::ID:
+        on_get_chat_members(*static_cast<const td_api::chatMembers *>(result.get()));
         break;
       case td_api::updateFileGenerationStart::ID:
         on_file_generation_start(*static_cast<const td_api::updateFileGenerationStart *>(result.get()));
@@ -8146,6 +8191,14 @@ class CliClient final : public Actor {
       }
       send_request(
           td_api::make_object<td_api::setChatMemberStatus>(chat_id, as_message_sender(member_id), std::move(status)));
+    } else if (op == "ubdu") {
+      SupergroupId supergroup_id;
+      get_args(args, supergroup_id);
+      unban_deleted_supergroup_id_ = supergroup_id;
+      unban_deleted_offset_ = 0;
+      unban_deleted_user_ids_.clear();
+      send_request(td_api::make_object<td_api::getSupergroupMembers>(
+          supergroup_id, td_api::make_object<td_api::supergroupMembersFilterBanned>(string()), 0, 200));
     } else if (op == "sn") {
       string first_name;
       string last_name;
