@@ -230,6 +230,12 @@ void CallManager::discard_call(CallId call_id, bool is_disconnected, const strin
                std::move(safe_promise));
 }
 
+void CallManager::on_closing() {
+  for (auto &it : id_to_actor_) {
+    send_closure(it.second, &CallActor::on_closing);
+  }
+}
+
 void CallManager::fetch_input_phone_call(InputCallId call_id,
                                          Promise<telegram_api::object_ptr<telegram_api::inputPhoneCall>> &&promise) {
   switch (call_id.get_type()) {

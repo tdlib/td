@@ -44,6 +44,8 @@ class CallManager final : public Actor {
   void discard_call(CallId call_id, bool is_disconnected, const string &invite_link, int32 duration, bool is_video,
                     int64 connection_id, Promise<Unit> promise);
 
+  void on_closing();
+
   void rate_call(td_api::object_ptr<td_api::InputCall> &&input_call, int32 rating, string comment,
                  vector<td_api::object_ptr<td_api::CallProblem>> &&problems, Promise<Unit> promise);
 

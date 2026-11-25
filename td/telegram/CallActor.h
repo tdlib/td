@@ -123,6 +123,8 @@ class CallActor final : public NetQueryCallback {
 
   void update_call(tl_object_ptr<telegram_api::PhoneCall> call);
 
+  void on_closing();
+
  private:
   Td *td_;
   ActorShared<> parent_;
@@ -207,6 +209,8 @@ class CallActor final : public NetQueryCallback {
   void on_get_call_config_result(Result<NetQueryPtr> r_net_query);
 
   void flush_call_state();
+
+  void send_update_call();
 
   static vector<string> get_emojis_fingerprint(const string &key, const string &g_a);
 

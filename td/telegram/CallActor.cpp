@@ -868,17 +868,21 @@ void CallActor::flush_call_state() {
     }
     call_state_need_flush_ = false;
 
-    auto peer_id = is_outgoing_ ? user_id_ : call_admin_user_id_;
-    auto update = td_api::make_object<td_api::updateCall>(td_api::make_object<td_api::call>(
-        local_call_id_.get(), call_id_, 0, is_outgoing_, is_video_, call_state_.get_call_state_object()));
-    send_closure(G()->user_manager(), &UserManager::get_user_id_object_async, peer_id,
-                 [td_actor = G()->td(), update = std::move(update)](Result<int64> r_user_id) mutable {
-                   if (r_user_id.is_ok()) {
-                     update->call_->user_id_ = r_user_id.ok();
-                     send_closure(td_actor, &Td::send_update, std::move(update));
-                   }
-                 });
+    send_update_call();
   }
+}
+
+void CallActor::send_update_call() {
+  auto peer_id = is_outgoing_ ? user_id_ : call_admin_user_id_;
+  auto update = td_api::make_object<td_api::updateCall>(td_api::make_object<td_api::call>(
+      local_call_id_.get(), call_id_, 0, is_outgoing_, is_video_, call_state_.get_call_state_object()));
+  send_closure(G()->user_manager(), &UserManager::get_user_id_object_async, peer_id,
+               [td_actor = G()->td(), update = std::move(update)](Result<int64> r_user_id) mutable {
+                 if (r_user_id.is_ok()) {
+                   update->call_->user_id_ = r_user_id.ok();
+                   send_closure(td_actor, &Td::send_update, std::move(update));
+                 }
+               });
 }
 
 void CallActor::start_up() {
@@ -952,6 +956,22 @@ void CallActor::hangup() {
   container_.for_each(
       [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Global::request_aborted_error()); });
   stop();
+}
+
+void CallActor::on_closing() {
+  if (call_state_.type == CallState::Type::Empty) {
+    return;
+  }
+  if (call_state_.type != CallState::Type::Discarded && call_state_.type != CallState::Type::Error) {
+    call_state_.type = CallState::Type::Error;
+    call_state_.error = Global::request_aborted_error();
+    call_state_need_flush_ = true;
+  }
+  if (call_state_need_flush_) {
+    // flush_call_state does nothing after closing
+    call_state_need_flush_ = false;
+    send_update_call();
+  }
 }
 
 vector<string> CallActor::get_emojis_fingerprint(const string &key, const string &g_a) {
