@@ -35665,6 +35665,9 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
       postponed_channel_updates_.erase(postponed_updates_it);
     }
     LOG(INFO) << "Finish to apply postponed channel updates";
+    if (d == nullptr) {
+      d = get_dialog(dialog_id);  // the chat could have been loaded or created by the updates
+    }
   }
 
   if (d != nullptr) {
