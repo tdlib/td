@@ -74,7 +74,7 @@ class ExportManager final : public Actor {
     int64 file_downloaded_size = 0;
   };
 
-  enum class MessagesRequestType : int32 { Count, FirstDate, Slice };
+  enum class MessagesRequestType : int32 { Count, FirstDate, Slice, TopicRoot };
 
   struct MessageFileWork;
   struct FileCounters;
@@ -234,6 +234,10 @@ class ExportManager final : public Actor {
   void set_dialogs_list_state(int32 processed);
 
   void add_single_dialog();
+
+  void export_topic();
+
+  void on_get_topic(uint64 generation, Result<td_api::object_ptr<td_api::forumTopic>> r_topic);
 
   void export_dialogs();
 

@@ -21,6 +21,7 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/ForumTopicId.h"
+#include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
@@ -345,6 +346,8 @@ struct ExportManager::FileCounters {
 struct ExportManager::DialogProcess {
   ExportDialogInfo info;
   DialogId migrated_from_dialog_id;
+  // the forum topic, which is exported instead of the whole chat
+  MessageId top_thread_message_id;
 
   // indices of the message ranges to export; negative ones are of the basic group the chat was upgraded from
   vector<int32> splits;
@@ -528,19 +531,18 @@ Result<ExportSettings> ExportManager::get_export_settings(
       if (dialog_id.get_type() == DialogType::SecretChat) {
         return Status::Error(400, "Secret chats can't be exported");
       }
+      if (chat_source->min_date_ < 0 || chat_source->max_date_ < 0) {
+        return Status::Error(400, "Invalid date specified");
+      }
+      if (chat_source->max_date_ > 0 && chat_source->max_date_ <= chat_source->min_date_) {
+        return Status::Error(400, "Invalid date range specified");
+      }
       if (chat_source->topic_id_ != nullptr) {
         TRY_RESULT(message_topic, MessageTopic::get_message_topic(td_, dialog_id, chat_source->topic_id_));
         if (!message_topic.is_forum() || dialog_id.get_type() != DialogType::Channel) {
           return Status::Error(400, "Only topics of forum supergroups can be exported");
         }
         settings.single_topic_top_thread_message_id = message_topic.get_forum_topic_id().to_top_thread_message_id();
-        return Status::Error(400, "Topic export isn't supported yet");
-      }
-      if (chat_source->min_date_ < 0 || chat_source->max_date_ < 0) {
-        return Status::Error(400, "Invalid date specified");
-      }
-      if (chat_source->max_date_ > 0 && chat_source->max_date_ <= chat_source->min_date_) {
-        return Status::Error(400, "Invalid date range specified");
       }
       settings.single_dialog_id = dialog_id;
       settings.single_dialog_min_date = chat_source->min_date_;
@@ -782,7 +784,7 @@ void ExportManager::export_next() {
     case Step::ProfileMusic:
       return export_profile_audios();
     case Step::Topic:
-      return export_next();
+      return export_topic();
     default:
       UNREACHABLE();
   }
@@ -2024,6 +2026,39 @@ void ExportManager::add_single_dialog() {
   export_next();
 }
 
+void ExportManager::export_topic() {
+  set_step_state(Step::Topic);
+  const auto &settings = export_->settings;
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), generation = export_->generation](
+                                            Result<td_api::object_ptr<td_api::forumTopic>> r_topic) mutable {
+    send_closure(actor_id, &ExportManager::on_get_topic, generation, std::move(r_topic));
+  });
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  td_->forum_topic_manager_->get_forum_topic(
+      settings.single_dialog_id, ForumTopicId::from_top_thread_message_id(settings.single_topic_top_thread_message_id),
+      std::move(promise));
+}
+
+void ExportManager::on_get_topic(uint64 generation, Result<td_api::object_ptr<td_api::forumTopic>> r_topic) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_topic.is_error()) {
+    return on_api_error(r_topic.move_as_error());
+  }
+  const auto &settings = export_->settings;
+  auto dialog_id = settings.single_dialog_id;
+  auto dialog = make_unique<DialogProcess>();
+  dialog->info.dialog_id = dialog_id;
+  dialog->info.type = get_export_dialog_type(td_, dialog_id);
+  dialog->info.name = r_topic.ok()->info_->name_;
+  dialog->top_thread_message_id = settings.single_topic_top_thread_message_id;
+  // the only split of a topic isn't a message range, because replies are requested without one
+  dialog->splits.push_back(0);
+  export_->dialogs.push_back(std::move(dialog));
+  export_dialogs();
+}
+
 void ExportManager::export_dialogs() {
   if (!on_io_result(export_->writer->write_dialogs_start(narrow_cast<int32>(export_->dialogs.size())))) {
     return;
@@ -2059,7 +2094,10 @@ void ExportManager::request_chat_messages(MessagesRequestType type, size_t split
   CHECK(split_index < dialog.splits.size());
   auto split = dialog.splits[split_index];
   auto dialog_id = split >= 0 ? dialog.info.dialog_id : dialog.migrated_from_dialog_id;
-  auto real_split = split >= 0 ? split : narrow_cast<int32>(export_->splits.size()) + split;
+  auto top_thread_message_id = dialog.top_thread_message_id;
+  auto real_split = top_thread_message_id.is_valid() ? -1
+                    : split >= 0                     ? split
+                                                     : narrow_cast<int32>(export_->splits.size()) + split;
   // access to left channels and to basic groups, which were upgraded, is checked by the server
   auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
   if (input_peer == nullptr) {
@@ -2080,6 +2118,17 @@ void ExportManager::request_chat_messages(MessagesRequestType type, size_t split
         send_closure(actor_id, &ExportManager::on_get_chat_messages, generation, type, split_index, offset_id,
                      add_offset, limit, std::move(r_messages));
       });
+  if (type == MessagesRequestType::TopicRoot) {
+    auto input_channel = td_->chat_manager_->get_input_channel(dialog_id.get_channel_id());
+    if (input_channel == nullptr) {
+      return on_api_error(Status::Error(400, "Chat not found"));
+    }
+    vector<telegram_api::object_ptr<telegram_api::InputMessage>> message_ids;
+    message_ids.push_back(
+        telegram_api::make_object<telegram_api::inputMessageID>(top_thread_message_id.get_server_message_id().get()));
+    return send_export_query(telegram_api::channels_getMessages(std::move(input_channel), std::move(message_ids)), -1,
+                             std::move(promise));
+  }
   if (dialog.info.only_my_messages) {
     telegram_api::object_ptr<telegram_api::InputPeer> from;
     if (dialog_id.get_type() == DialogType::Channel &&
@@ -2091,10 +2140,20 @@ void ExportManager::request_chat_messages(MessagesRequestType type, size_t split
     if (from == nullptr) {
       from = telegram_api::make_object<telegram_api::inputPeerSelf>();
     }
-    send_export_query(telegram_api::messages_search(0, std::move(input_peer), string(), std::move(from), nullptr, {}, 0,
+    int32 flags = 0;
+    if (top_thread_message_id.is_valid()) {
+      flags |= telegram_api::messages_search::TOP_MSG_ID_MASK;
+    }
+    send_export_query(telegram_api::messages_search(flags, std::move(input_peer), string(), std::move(from), nullptr,
+                                                    {}, top_thread_message_id.get_server_message_id().get(),
                                                     telegram_api::make_object<telegram_api::inputMessagesFilterEmpty>(),
                                                     0, 0, offset_id, add_offset, limit, 0, 0, 0),
                       real_split, std::move(promise));
+  } else if (top_thread_message_id.is_valid()) {
+    send_export_query(
+        telegram_api::messages_getReplies(std::move(input_peer), top_thread_message_id.get_server_message_id().get(),
+                                          history_offset_id, history_offset_date, add_offset, limit, 0, 0, 0),
+        real_split, std::move(promise));
   } else {
     send_export_query(telegram_api::messages_getHistory(std::move(input_peer), history_offset_id, history_offset_date,
                                                         add_offset, limit, 0, 0, 0),
@@ -2156,7 +2215,8 @@ void ExportManager::on_get_chat_messages(uint64 generation, MessagesRequestType 
       auto is_skipped = date <= 0 || date >= max_date;
       return on_messages_count_loaded(split_index, is_skipped ? 0 : dialog.pending_count);
     }
-    case MessagesRequestType::Slice: {
+    case MessagesRequestType::Slice:
+    case MessagesRequestType::TopicRoot: {
       vector<telegram_api::object_ptr<telegram_api::Message>> message_list;
       switch (messages->get_id()) {
         case telegram_api::messages_messages::ID: {
@@ -2164,7 +2224,7 @@ void ExportManager::on_get_chat_messages(uint64 generation, MessagesRequestType 
           td_->user_manager_->on_get_users(std::move(result->users_), "on_get_chat_messages");
           td_->chat_manager_->on_get_chats(std::move(result->chats_), "on_get_chat_messages");
           message_list = std::move(result->messages_);
-          dialog.is_last_slice = true;
+          dialog.is_last_slice = type == MessagesRequestType::Slice;
           break;
         }
         case telegram_api::messages_messagesSlice::ID: {
@@ -2183,6 +2243,9 @@ void ExportManager::on_get_chat_messages(uint64 generation, MessagesRequestType 
         }
         default:
           UNREACHABLE();
+      }
+      if (type == MessagesRequestType::TopicRoot && message_list.empty()) {
+        return request_messages_slice();
       }
       return on_get_messages_slice(std::move(message_list));
     }
@@ -2215,6 +2278,10 @@ void ExportManager::on_messages_count_loaded(size_t split_index, int32 count) {
     dialog.message_count += split_count;
   }
   set_dialogs_state();
+  if (dialog.top_thread_message_id.is_valid()) {
+    // the first message of a topic isn't a reply to itself, so it is received separately
+    return request_chat_messages(MessagesRequestType::TopicRoot, 0, 0, 0, 1);
+  }
   request_messages_slice();
 }
 
@@ -3023,7 +3090,7 @@ void ExportManager::set_dialogs_state() {
   CHECK(export_->dialog != nullptr);
   const auto &dialog = *export_->dialog;
   ProcessingState state;
-  state.step = Step::Dialogs;
+  state.step = export_->steps[export_->step_index];
   state.entity_index = narrow_cast<int32>(export_->dialog_index);
   state.entity_count = narrow_cast<int32>(export_->dialogs.size());
   state.entity_name = dialog.info.name;
