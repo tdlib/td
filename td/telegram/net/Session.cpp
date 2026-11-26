@@ -155,7 +155,7 @@ class GenAuthKeyActor final : public Actor {
   Semaphore &get_handshake_semaphore() {
     auto old_context = set_context(std::make_shared<ActorContext>());
     auto old_tag = set_tag(string());
-    init_thread_local<Semaphore>(semaphore_, 50);
+    init_thread_local<Semaphore>(semaphore_, 200);
     set_context(std::move(old_context));
     set_tag(std::move(old_tag));
     return *semaphore_;
