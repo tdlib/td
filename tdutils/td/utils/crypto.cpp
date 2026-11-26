@@ -61,34 +61,29 @@ static uint64 pq_gcd(uint64 a, uint64 b) {
   if (a == 0) {
     return b;
   }
-  while ((a & 1) == 0) {
-    a >>= 1;
-  }
+  a >>= count_trailing_zeroes_non_zero64(a);
   DCHECK((b & 1) != 0);
 
-  while (true) {
+  while (a != b) {
     if (a > b) {
-      a = (a - b) >> 1;
-      while ((a & 1) == 0) {
-        a >>= 1;
-      }
-    } else if (b > a) {
-      b = (b - a) >> 1;
-      while ((b & 1) == 0) {
-        b >>= 1;
-      }
+      a -= b;
+      a >>= count_trailing_zeroes_non_zero64(a);
     } else {
-      return a;
+      b -= a;
+      b >>= count_trailing_zeroes_non_zero64(b);
     }
   }
+  return a;
 }
 
-// returns (a * b / 2^64) % pq for a, b < pq < 2^63, where pq * pq_inv == -1 modulo 2^64
+// returns (a * b / 2^64) % pq for a * b < 2^64 * pq, where pq * pq_inv == 1 modulo 2^64
 static uint64 pq_mul_montgomery(uint64 a, uint64 b, uint64 pq, uint64 pq_inv) {
   auto ab = uint128::from_unsigned(a).mult(uint128::from_unsigned(b));
   auto m = ab.lo() * pq_inv;
-  auto res = ab.add(uint128::from_unsigned(m).mult(uint128::from_unsigned(pq))).hi();
-  return res >= pq ? res - pq : res;
+  // a * b - m * pq is divisible by 2^64, so it is enough to subtract the higher halves
+  auto hi = ab.hi();
+  auto m_pq_hi = uint128::from_unsigned(m).mult(uint128::from_unsigned(pq)).hi();
+  return hi < m_pq_hi ? hi - m_pq_hi + pq : hi - m_pq_hi;
 }
 
 uint64 pq_factorize(uint64 pq) {
@@ -104,15 +99,14 @@ uint64 pq_factorize(uint64 pq) {
   for (int i = 0; i < 5; i++) {
     pq_inv *= 2 - pq * pq_inv;  // each Newton iteration doubles the number of correct lower bits
   }
-  pq_inv = 0 - pq_inv;
 
-  constexpr int MAX_BATCH_SIZE = 128;
+  constexpr int MAX_BATCH_SIZE = 512;
   constexpr int MAX_R = 1 << 20;
   for (int i = 0, iter = 0; i < 3 || iter < 1000; i++) {
-    uint64 c = Random::fast_uint64() % (pq - 1) + 1;
+    uint64 c = Random::fast_uint64() % (pq / 4 + 1) + 1;
     auto next = [c, pq, pq_inv](uint64 x) {
-      x = pq_mul_montgomery(x, x, pq, pq_inv) + c;
-      return x >= pq ? x - pq : x;
+      // the result isn't reduced modulo pq, but it is at most 5 * pq / 4, which is enough for pq_mul_montgomery
+      return pq_mul_montgomery(x, x, pq, pq_inv) + c;
     };
 
     uint64 x = 0;
