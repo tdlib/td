@@ -196,6 +196,11 @@ class OrderedMessages {
     return messages_ == nullptr;
   }
 
+  bool has_only_message(MessageId message_id) const {
+    return messages_ != nullptr && messages_->message_id_ == message_id && messages_->left_ == nullptr &&
+           messages_->right_ == nullptr;
+  }
+
  private:
   class Iterator final : public IteratorBase {
    public:
