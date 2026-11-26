@@ -639,7 +639,7 @@ class MessageQueryManager final : public Actor {
 
   struct CallsDbState {
     std::array<MessageId, 2> first_calls_database_message_id_by_index;
-    std::array<int32, 2> message_count_by_index;
+    std::array<int32, 2> message_count_by_index{{-1, -1}};
 
     template <class StorerT>
     void store(StorerT &storer) const;

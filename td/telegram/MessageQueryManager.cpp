@@ -79,7 +79,6 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 
-#include <algorithm>
 #include <limits>
 #include <map>
 #include <type_traits>
@@ -2597,7 +2596,9 @@ void MessageQueryManager::start_up() {
 }
 
 void MessageQueryManager::init() {
-  load_calls_db_state();
+  if (!td_->auth_manager_->is_bot()) {
+    load_calls_db_state();
+  }
 }
 
 void MessageQueryManager::tear_down() {
@@ -3629,7 +3630,6 @@ void MessageQueryManager::load_calls_db_state() {
   if (!G()->use_message_database()) {
     return;
   }
-  std::fill(calls_db_state_.message_count_by_index.begin(), calls_db_state_.message_count_by_index.end(), -1);
   auto value = G()->td_db()->get_sqlite_sync_pmc()->get("calls_db_state");
   if (value.empty()) {
     return;

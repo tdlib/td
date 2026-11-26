@@ -7,6 +7,7 @@
 #include "td/telegram/SuggestedActionManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/DialogManager.h"
@@ -108,6 +109,10 @@ SuggestedActionManager::SuggestedActionManager(Td *td, ActorShared<> parent) : t
 }
 
 void SuggestedActionManager::start_up() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   auto log_event_string = G()->td_db()->get_binlog_pmc()->get(get_suggested_actions_database_key());
   if (!log_event_string.empty()) {
     vector<SuggestedAction> suggested_actions;

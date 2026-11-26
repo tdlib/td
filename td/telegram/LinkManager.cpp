@@ -7,6 +7,7 @@
 #include "td/telegram/LinkManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundType.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
@@ -2124,6 +2125,10 @@ LinkManager::LinkManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::m
 LinkManager::~LinkManager() = default;
 
 void LinkManager::start_up() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   autologin_update_time_ = Time::now() - 365 * 86400;
 
   autologin_domains_ = full_split(G()->td_db()->get_binlog_pmc()->get("autologin_domains"), '\xFF');

@@ -611,7 +611,7 @@ void TopDialogManager::tear_down() {
 }
 
 void TopDialogManager::init() {
-  if (td_->auth_manager_ == nullptr || !td_->auth_manager_->is_authorized()) {
+  if (td_->auth_manager_ == nullptr || !td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
     return;
   }
 

@@ -924,6 +924,10 @@ AccountManager::AccountManager(Td *td, ActorShared<> parent) : td_(td), parent_(
 AccountManager::~AccountManager() = default;
 
 void AccountManager::start_up() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   auto unconfirmed_authorizations_log_event_string =
       G()->td_db()->get_binlog_pmc()->get(get_unconfirmed_authorizations_key());
   if (!unconfirmed_authorizations_log_event_string.empty()) {

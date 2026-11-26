@@ -10457,7 +10457,8 @@ void MessagesManager::init() {
   }
   is_inited_ = true;
 
-  bool was_authorized_user = td_->auth_manager_->was_authorized() && !td_->auth_manager_->is_bot();
+  bool is_bot = td_->auth_manager_->is_bot();
+  bool was_authorized_user = td_->auth_manager_->was_authorized() && !is_bot;
   if (was_authorized_user) {
     create_folders(10);  // ensure that Main and Archive dialog lists are created
   }
@@ -10467,10 +10468,13 @@ void MessagesManager::init() {
   td_->dialog_filter_manager_->init();  // load dialog filters
   init_state_ = 2;
 
-  td_->notification_settings_manager_->init();  // load scope notification settings
-  init_state_ = 3;
-  td_->reaction_manager_->init();  // load active reactions
-  init_state_ = 4;
+  if (!is_bot) {
+    td_->notification_settings_manager_->init();  // load scope notification settings
+    init_state_ = 3;
+
+    td_->reaction_manager_->init();  // load active reactions
+    init_state_ = 4;
+  }
 
   start_time_ = Time::now();
   last_channel_pts_jump_warning_time_ = start_time_ - 3600;
@@ -10644,7 +10648,7 @@ void MessagesManager::init() {
     }
 
     load_active_live_location_messages(Promise<Unit>());
-  } else if (!td_->auth_manager_->is_bot()) {
+  } else if (!is_bot) {
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("pinned_dialog_ids");
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("last_server_dialog_date");
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("unread_message_count");
@@ -10652,7 +10656,9 @@ void MessagesManager::init() {
     G()->td_db()->get_binlog_pmc()->erase("sponsored_dialog_id");
     G()->td_db()->get_binlog_pmc()->erase("fetched_marks_as_unread");
   }
-  G()->td_db()->get_binlog_pmc()->erase("dialog_pinned_current_order");
+  if (!is_bot) {
+    G()->td_db()->get_binlog_pmc()->erase("dialog_pinned_current_order");
+  }
   init_state_ = 5;
 
   if (G()->use_message_database()) {
@@ -10660,27 +10666,29 @@ void MessagesManager::init() {
   }
   init_state_ = 6;
 
-  auto auth_notification_ids_string = G()->td_db()->get_binlog_pmc()->get("auth_notification_ids");
-  if (!auth_notification_ids_string.empty()) {
-    VLOG(notifications) << "Loaded auth_notification_ids = " << auth_notification_ids_string;
-    auto stored_ids = full_split(auth_notification_ids_string, ',');
-    CHECK(stored_ids.size() % 2 == 0);
-    bool is_changed = false;
-    auto min_date = G()->unix_time() - AUTH_NOTIFICATION_ID_CACHE_TIME;
-    for (size_t i = 0; i < stored_ids.size(); i += 2) {
-      auto date = to_integer_safe<int32>(stored_ids[i + 1]).ok();
-      if (date < min_date || stored_ids[i].empty()) {
-        is_changed = true;
-        continue;
+  if (!is_bot) {
+    auto auth_notification_ids_string = G()->td_db()->get_binlog_pmc()->get("auth_notification_ids");
+    if (!auth_notification_ids_string.empty()) {
+      VLOG(notifications) << "Loaded auth_notification_ids = " << auth_notification_ids_string;
+      auto stored_ids = full_split(auth_notification_ids_string, ',');
+      CHECK(stored_ids.size() % 2 == 0);
+      bool is_changed = false;
+      auto min_date = G()->unix_time() - AUTH_NOTIFICATION_ID_CACHE_TIME;
+      for (size_t i = 0; i < stored_ids.size(); i += 2) {
+        auto date = to_integer_safe<int32>(stored_ids[i + 1]).ok();
+        if (date < min_date || stored_ids[i].empty()) {
+          is_changed = true;
+          continue;
+        }
+        if (auth_notification_id_date_.size() == MAX_SAVED_AUTH_NOTIFICATION_IDS) {
+          is_changed = true;
+          break;
+        }
+        auth_notification_id_date_.emplace(std::move(stored_ids[i]), date);
       }
-      if (auth_notification_id_date_.size() == MAX_SAVED_AUTH_NOTIFICATION_IDS) {
-        is_changed = true;
-        break;
+      if (is_changed) {
+        save_auth_notification_ids();
       }
-      auth_notification_id_date_.emplace(std::move(stored_ids[i]), date);
-    }
-    if (is_changed) {
-      save_auth_notification_ids();
     }
   }
   init_state_ = 7;

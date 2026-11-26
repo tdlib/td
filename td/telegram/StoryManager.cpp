@@ -2093,6 +2093,12 @@ void StoryManager::start_up() {
   }
   td_->messages_manager_->init();
 
+  load_expired_database_stories();
+
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   auto stealth_mode_str = G()->td_db()->get_binlog_pmc()->get(get_story_stealth_mode_key());
   if (!stealth_mode_str.empty()) {
     log_event_parse(stealth_mode_, stealth_mode_str).ensure();
@@ -2107,7 +2113,6 @@ void StoryManager::start_up() {
   send_update_story_stealth_mode();
 
   try_synchronize_archive_all_stories();
-  load_expired_database_stories();
 
   for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {
     update_story_list_sent_total_count(story_list_id, "start_up");

@@ -362,6 +362,10 @@ WebAppManager::WebAppManager(Td *td, ActorShared<> parent) : td_(td), parent_(st
 }
 
 void WebAppManager::start_up() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   class StateCallback final : public StateManager::Callback {
    public:
     explicit StateCallback(ActorId<WebAppManager> parent) : parent_(std::move(parent)) {
