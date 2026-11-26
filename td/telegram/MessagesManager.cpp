@@ -983,57 +983,6 @@ class SearchMessagesQuery final : public Td::ResultHandler {
   }
 };
 
-class SearchCallMessagesQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::foundMessages>> promise_;
-  MessageId from_message_id_;
-  int32 limit_;
-  MessageSearchFilter filter_;
-
- public:
-  explicit SearchCallMessagesQuery(Promise<td_api::object_ptr<td_api::foundMessages>> &&promise)
-      : promise_(std::move(promise)) {
-  }
-
-  void send(MessageId from_message_id, int32 limit, MessageSearchFilter filter) {
-    from_message_id_ = from_message_id;
-    limit_ = limit;
-    filter_ = filter;
-
-    auto offset_id = from_message_id.get_server_message_id().get();
-    send_query(G()->net_query_creator().create(telegram_api::messages_search(
-        0, telegram_api::make_object<telegram_api::inputPeerEmpty>(), string(), nullptr, nullptr,
-        vector<telegram_api::object_ptr<telegram_api::Reaction>>(), 0, get_input_messages_filter(filter), 0,
-        std::numeric_limits<int32>::max(), offset_id, 0, limit, std::numeric_limits<int32>::max(), 0, 0)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_search>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto info = get_messages_info(td_, DialogId(), result_ptr.move_as_ok(), "SearchCallMessagesQuery");
-    td_->messages_manager_->get_channel_differences_if_needed(
-        std::move(info),
-        PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), from_message_id = from_message_id_,
-                                limit = limit_, filter = filter_,
-                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
-          if (result.is_error()) {
-            promise.set_error(result.move_as_error());
-          } else {
-            auto info = result.move_as_ok();
-            send_closure(actor_id, &MessagesManager::on_get_call_messages, from_message_id, limit, filter,
-                         info.total_count, std::move(info.messages), std::move(promise));
-          }
-        }),
-        "SearchCallMessagesQuery");
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetSearchResultPositionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::messagePositions>> promise_;
   DialogId dialog_id_;
@@ -3589,67 +3538,6 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
 }
 
-template <class StorerT>
-void MessagesManager::CallsDbState::store(StorerT &storer) const {
-  using td::store;
-  store(static_cast<int32>(first_calls_database_message_id_by_index.size()), storer);
-  for (auto first_message_id : first_calls_database_message_id_by_index) {
-    store(first_message_id, storer);
-  }
-  store(static_cast<int32>(message_count_by_index.size()), storer);
-  for (auto message_count : message_count_by_index) {
-    store(message_count, storer);
-  }
-}
-
-template <class ParserT>
-void MessagesManager::CallsDbState::parse(ParserT &parser) {
-  using td::parse;
-  int32 size;
-  parse(size, parser);
-  if (static_cast<size_t>(size) > first_calls_database_message_id_by_index.size()) {
-    return parser.set_error("Wrong first_calls_database_message_id_by_index table size");
-  }
-  for (int32 i = 0; i < size; i++) {
-    parse(first_calls_database_message_id_by_index[i], parser);
-  }
-  parse(size, parser);
-  if (static_cast<size_t>(size) > message_count_by_index.size()) {
-    return parser.set_error("Wrong message_count_by_index table size");
-  }
-  for (int32 i = 0; i < size; i++) {
-    parse(message_count_by_index[i], parser);
-  }
-}
-
-void MessagesManager::load_calls_db_state() {
-  if (!G()->use_message_database()) {
-    return;
-  }
-  std::fill(calls_db_state_.message_count_by_index.begin(), calls_db_state_.message_count_by_index.end(), -1);
-  auto value = G()->td_db()->get_sqlite_sync_pmc()->get("calls_db_state");
-  if (value.empty()) {
-    return;
-  }
-  log_event_parse(calls_db_state_, value).ensure();
-  LOG(INFO) << "Save calls database state " << calls_db_state_.first_calls_database_message_id_by_index[0] << " ("
-            << calls_db_state_.message_count_by_index[0] << ") "
-            << calls_db_state_.first_calls_database_message_id_by_index[1] << " ("
-            << calls_db_state_.message_count_by_index[1] << ")";
-}
-
-void MessagesManager::save_calls_db_state() {
-  if (!G()->use_message_database()) {
-    return;
-  }
-
-  LOG(INFO) << "Save calls database state " << calls_db_state_.first_calls_database_message_id_by_index[0] << " ("
-            << calls_db_state_.message_count_by_index[0] << ") "
-            << calls_db_state_.first_calls_database_message_id_by_index[1] << " ("
-            << calls_db_state_.message_count_by_index[1] << ")";
-  G()->td_db()->get_sqlite_pmc()->set("calls_db_state", log_event_store(calls_db_state_).as_slice().str(), Auto());
-}
-
 MessagesManager::Message::~Message() = default;
 
 MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -3984,21 +3872,7 @@ void MessagesManager::update_message_count_by_index(Dialog *d, int diff, int32 i
     i++;
   }
 
-  i = static_cast<int>(MessageSearchFilter::Call) - 1;
-  for (auto &message_count : calls_db_state_.message_count_by_index) {
-    if (((index_mask >> i) & 1) != 0 && message_count != -1) {
-      message_count += diff;
-      if (message_count < 0) {
-        if (d->dialog_id.get_type() == DialogType::SecretChat) {
-          message_count = 0;
-        } else {
-          message_count = -1;
-        }
-      }
-      save_calls_db_state();
-    }
-    i++;
-  }
+  td_->message_query_manager_->update_call_message_count_by_index(d->dialog_id, diff, index_mask);
 }
 
 int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message *m) const {
@@ -7687,78 +7561,6 @@ void MessagesManager::on_get_message_search_result_calendar(
   promise.set_value(td_api::make_object<td_api::messageCalendar>(total_count, std::move(days)));
 }
 
-void MessagesManager::on_get_call_messages(MessageId from_message_id, int32 limit, MessageSearchFilter filter,
-                                           int32 total_count,
-                                           vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
-                                           Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-
-  LOG(INFO) << "Receive " << messages.size() << " found call messages";
-  if (!MessageId::is_message_id_order_descending(messages, "on_get_call_messages")) {
-    messages.clear();
-  }
-  MessageId first_added_message_id;
-  if (messages.empty()) {
-    // messages may be empty because there are no more messages or they can't be found due to global limit
-    // anyway, pretend that there are no more messages
-    first_added_message_id = MessageId::min();
-  }
-  FoundMessages found_messages;
-  auto &result = found_messages.message_full_ids;
-  int32 added_message_count = 0;
-  MessageId next_offset_message_id;
-  for (auto &message : messages) {
-    auto message_id = MessageId::get_message_id(message, false);
-    next_offset_message_id = message_id;
-    auto new_message_full_id = on_get_message(DialogId(), std::move(message), false, false, "on_get_call_messages");
-    if (new_message_full_id == MessageFullId()) {
-      continue;
-    }
-
-    result.push_back(new_message_full_id);
-    added_message_count++;
-
-    CHECK(message_id == new_message_full_id.get_message_id());
-    CHECK(message_id.is_valid());
-    first_added_message_id = message_id;
-  }
-  if (total_count < added_message_count) {
-    LOG(ERROR) << "Receive total_count = " << total_count << ", but added " << added_message_count
-               << " messages out of " << messages.size();
-    total_count = added_message_count;
-  }
-  if (G()->use_message_database()) {
-    bool update_state = false;
-
-    auto &old_message_count = calls_db_state_.message_count_by_index[call_message_search_filter_index(filter)];
-    if (old_message_count != total_count) {
-      LOG(INFO) << "Update calls database message count to " << total_count;
-      old_message_count = total_count;
-      update_state = true;
-    }
-
-    auto &old_first_db_message_id =
-        calls_db_state_.first_calls_database_message_id_by_index[call_message_search_filter_index(filter)];
-    bool from_the_end = !from_message_id.is_valid() || from_message_id >= MessageId::max();
-    LOG(INFO) << "Have from_the_end = " << from_the_end << ", old_first_db_message_id = " << old_first_db_message_id
-              << ", first_added_message_id = " << first_added_message_id << ", from_message_id = " << from_message_id;
-    if ((from_the_end || (old_first_db_message_id.is_valid() && old_first_db_message_id <= from_message_id)) &&
-        (!old_first_db_message_id.is_valid() || first_added_message_id < old_first_db_message_id)) {
-      LOG(INFO) << "Update calls database first message to " << first_added_message_id;
-      old_first_db_message_id = first_added_message_id;
-      update_state = true;
-    }
-    if (update_state) {
-      save_calls_db_state();
-    }
-  }
-  found_messages.total_count = total_count;
-  if (next_offset_message_id.is_valid()) {
-    found_messages.next_offset = PSTRING() << next_offset_message_id.get_server_message_id().get();
-  }
-  promise.set_value(get_found_messages_object(found_messages, "on_get_call_messages"));
-}
-
 void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, MessageTopic message_topic,
                                                            const string &query, DialogId sender_dialog_id,
                                                            MessageId from_message_id, int32 offset, int32 limit,
@@ -10858,9 +10660,6 @@ void MessagesManager::init() {
   }
   init_state_ = 6;
 
-  load_calls_db_state();
-  init_state_ = 7;
-
   auto auth_notification_ids_string = G()->td_db()->get_binlog_pmc()->get("auth_notification_ids");
   if (!auth_notification_ids_string.empty()) {
     VLOG(notifications) << "Loaded auth_notification_ids = " << auth_notification_ids_string;
@@ -10884,7 +10683,7 @@ void MessagesManager::init() {
       save_auth_notification_ids();
     }
   }
-  init_state_ = 8;
+  init_state_ = 7;
   if (was_authorized_user) {
     init_state_ += 10;
   }
@@ -18624,59 +18423,6 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
   return result;
 }
 
-void MessagesManager::search_call_messages(const string &offset, int32 limit, bool only_missed,
-                                           Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
-  if (limit <= 0) {
-    return promise.set_error(400, "Parameter limit must be positive");
-  }
-  if (limit > MAX_SEARCH_MESSAGES) {
-    limit = MAX_SEARCH_MESSAGES;
-  }
-
-  MessageId offset_message_id;
-  if (!offset.empty()) {
-    auto r_offset_server_message_id = to_integer_safe<int32>(offset);
-    if (r_offset_server_message_id.is_error()) {
-      return promise.set_error(400, "Invalid offset specified");
-    }
-
-    offset_message_id = MessageId(ServerMessageId(r_offset_server_message_id.ok()));
-  }
-
-  auto filter = only_missed ? MessageSearchFilter::MissedCall : MessageSearchFilter::Call;
-  if (G()->use_message_database()) {
-    // try to use database
-    MessageId first_db_message_id =
-        calls_db_state_.first_calls_database_message_id_by_index[call_message_search_filter_index(filter)];
-    int32 message_count = calls_db_state_.message_count_by_index[call_message_search_filter_index(filter)];
-    auto fixed_from_message_id = offset_message_id;
-    if (fixed_from_message_id == MessageId()) {
-      fixed_from_message_id = MessageId::max();
-    }
-    CHECK(fixed_from_message_id.is_server());
-    LOG(INFO) << "Search call messages from " << fixed_from_message_id << ", have up to " << first_db_message_id
-              << ", message_count = " << message_count;
-    if (first_db_message_id < fixed_from_message_id && message_count != -1) {
-      LOG(INFO) << "Search messages in database from " << fixed_from_message_id << " and with limit " << limit;
-
-      MessageDbCallsQuery db_query;
-      db_query.filter = filter;
-      db_query.from_unique_message_id = fixed_from_message_id.get_server_message_id().get();
-      db_query.limit = limit;
-      G()->td_db()->get_message_db_async()->get_calls(
-          db_query,
-          PromiseCreator::lambda([first_db_message_id, offset_message_id, limit, filter,
-                                  promise = std::move(promise)](Result<MessageDbCallsResult> calls_result) mutable {
-            send_closure(G()->messages_manager(), &MessagesManager::on_message_db_calls_result, std::move(calls_result),
-                         first_db_message_id, offset_message_id, limit, filter, std::move(promise));
-          }));
-      return;
-    }
-  }
-
-  td_->create_handler<SearchCallMessagesQuery>(std::move(promise))->send(offset_message_id, limit, filter);
-}
-
 void MessagesManager::load_active_live_location_messages(Promise<Unit> &&promise) {
   if (!G()->use_message_database() || td_->auth_manager_->is_bot()) {
     are_active_live_location_messages_loaded_ = true;
@@ -19232,40 +18978,6 @@ void MessagesManager::on_message_db_fts_result(Result<MessageDbFtsResult> result
                                    : -1;
 
   promise.set_value(get_found_messages_object(found_messages, "on_message_db_fts_result"));
-}
-
-void MessagesManager::on_message_db_calls_result(Result<MessageDbCallsResult> result, MessageId first_db_message_id,
-                                                 MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
-                                                 Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-  TRY_RESULT_PROMISE(promise, calls_result, std::move(result));
-
-  FoundMessages found_messages;
-  auto &res = found_messages.message_full_ids;
-
-  CHECK(!first_db_message_id.is_scheduled());
-  res.reserve(calls_result.messages.size());
-  MessageId next_offset_message_id;
-  for (auto &message : calls_result.messages) {
-    auto m = on_get_message_from_database(message, false, "on_message_db_calls_result");
-    if (m != nullptr && first_db_message_id <= m->message_id) {
-      if (!next_offset_message_id.is_valid() || m->message_id < next_offset_message_id) {
-        next_offset_message_id = m->message_id;
-      }
-      res.emplace_back(message.dialog_id, m->message_id);
-    }
-  }
-  found_messages.total_count = calls_db_state_.message_count_by_index[call_message_search_filter_index(filter)];
-  if (next_offset_message_id.is_valid()) {
-    found_messages.next_offset = PSTRING() << next_offset_message_id.get_server_message_id().get();
-  }
-
-  if (res.empty() && first_db_message_id != MessageId::min()) {
-    LOG(INFO) << "No messages found in database";
-    return td_->create_handler<SearchCallMessagesQuery>(std::move(promise))->send(offset_message_id, limit, filter);
-  }
-
-  promise.set_value(get_found_messages_object(found_messages, "on_message_db_calls_result"));
 }
 
 void MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date,
@@ -30809,6 +30521,14 @@ MessagesManager::Message *MessagesManager::get_message_force(Dialog *d, MessageI
     return nullptr;
   }
   return on_get_message_from_database(d, r_value.ok(), message_id.is_scheduled(), source);
+}
+
+MessageFullId MessagesManager::on_get_message_from_database(const MessageDbMessage &message, const char *source) {
+  auto m = on_get_message_from_database(message, false, source);
+  if (m == nullptr) {
+    return MessageFullId();
+  }
+  return {message.dialog_id, m->message_id};
 }
 
 MessagesManager::Message *MessagesManager::on_get_message_from_database(const MessageDbMessage &message,

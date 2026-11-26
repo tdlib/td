@@ -3871,8 +3871,8 @@ void Requests::on_request(uint64 id, td_api::searchSavedMessages &request) {
 void Requests::on_request(uint64 id, const td_api::searchCallMessages &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->messages_manager_->search_call_messages(request.offset_, request.limit_, request.only_missed_,
-                                               std::move(promise));
+  td_->message_query_manager_->search_call_messages(request.offset_, request.limit_, request.only_missed_,
+                                                    std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::searchOutgoingDocumentMessages &request) {

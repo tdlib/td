@@ -202,10 +202,6 @@ class MessagesManager final : public Actor {
                                              vector<tl_object_ptr<telegram_api::searchResultsCalendarPeriod>> &&periods,
                                              Promise<td_api::object_ptr<td_api::messageCalendar>> &&promise);
 
-  void on_get_call_messages(MessageId from_message_id, int32 limit, MessageSearchFilter filter, int32 total_count,
-                            vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
-                            Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
-
   void on_get_dialog_messages_search_result(DialogId dialog_id, MessageTopic message_topic, const string &query,
                                             DialogId sender_dialog_id, MessageId from_message_id, int32 offset,
                                             int32 limit, MessageSearchFilter filter, const ReactionType &tag,
@@ -222,6 +218,8 @@ class MessagesManager final : public Actor {
 
   MessageFullId on_get_message(DialogId dialog_id, telegram_api::object_ptr<telegram_api::Message> message_ptr,
                                bool from_update, bool is_scheduled, const char *source);
+
+  MessageFullId on_get_message_from_database(const MessageDbMessage &message, const char *source);
 
   void open_secret_message(SecretChatId secret_chat_id, int64 random_id, Promise<Unit> &&promise);
 
@@ -810,9 +808,6 @@ class MessagesManager final : public Actor {
   void offline_search_messages(DialogId dialog_id, const string &query, string offset, int32 limit,
                                MessageSearchFilter filter,
                                Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
-
-  void search_call_messages(const string &offset, int32 limit, bool only_missed,
-                            Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void load_active_live_location_messages(Promise<Unit> &&promise);
 
@@ -2998,10 +2993,6 @@ class MessagesManager final : public Actor {
   void on_message_db_fts_result(Result<MessageDbFtsResult> result, string offset, int32 limit,
                                 Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
-  void on_message_db_calls_result(Result<MessageDbCallsResult> result, MessageId first_db_message_id,
-                                  MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
-                                  Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
-
   void process_viewed_message(Dialog *d, const vector<MessageId> &viewed_message_ids, bool is_first);
 
   void on_load_active_live_location_message_full_ids_from_database(string value);
@@ -3240,9 +3231,6 @@ class MessagesManager final : public Actor {
                                     bool is_scheduled);
 
   unique_ptr<Dialog> parse_dialog(DialogId dialog_id, const BufferSlice &value, const char *source);
-
-  void load_calls_db_state();
-  void save_calls_db_state();
 
   void add_message_dependencies(Dependencies &dependencies, const Message *m) const;
 
@@ -3547,19 +3535,6 @@ class MessagesManager final : public Actor {
     FlatHashSet<MessageId, MessageIdHash> message_ids;
   };
   FlatHashMap<DialogId, MessageIds, DialogIdHash> dialog_bot_command_message_ids_;
-
-  struct CallsDbState {
-    std::array<MessageId, 2> first_calls_database_message_id_by_index;
-    std::array<int32, 2> message_count_by_index;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-
-  CallsDbState calls_db_state_;
 
   int64 viewed_live_location_task_id_ = 0;
   FlatHashMap<int64, MessageFullId> viewed_live_location_tasks_;  // task_id -> task

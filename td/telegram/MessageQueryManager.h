@@ -43,6 +43,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
 
+#include <array>
 #include <functional>
 #include <memory>
 
@@ -52,6 +53,7 @@ struct BinlogEvent;
 struct FormattedText;
 struct InputMedia;
 class MessageContent;
+struct MessageDbCallsResult;
 struct MessageSearchOffset;
 struct ReplyMarkup;
 class RichMessage;
@@ -162,6 +164,15 @@ class MessageQueryManager final : public Actor {
 
   void on_get_outgoing_document_messages(vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
                                          Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+
+  void search_call_messages(const string &offset, int32 limit, bool only_missed,
+                            Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+
+  void on_get_call_messages(MessageId from_message_id, int32 limit, MessageSearchFilter filter, int32 total_count,
+                            vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
+                            Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+
+  void update_call_message_count_by_index(DialogId dialog_id, int diff, int32 index_mask);
 
   void check_search_posts_flood(const string &query,
                                 Promise<td_api::object_ptr<td_api::publicPostSearchLimits>> promise);
@@ -397,6 +408,10 @@ class MessageQueryManager final : public Actor {
     std::shared_ptr<UploadMessageContentCallback> callback_;
   };
 
+  void start_up() final;
+
+  void init();
+
   void tear_down() final;
 
   static void on_send_message_view_metrics_timeout_callback(void *message_query_manager_ptr, int64 dialog_id_int);
@@ -470,6 +485,14 @@ class MessageQueryManager final : public Actor {
 
   void on_get_emoji_game_info(telegram_api::object_ptr<telegram_api::messages_EmojiGameInfo> &&result,
                               Promise<td_api::object_ptr<td_api::stakeDiceState>> &&promise);
+
+  void on_message_db_calls_result(Result<MessageDbCallsResult> result, MessageId first_db_message_id,
+                                  MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
+                                  Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+
+  void load_calls_db_state();
+
+  void save_calls_db_state();
 
   void erase_delete_messages_log_event(uint64 log_event_id);
 
@@ -613,6 +636,19 @@ class MessageQueryManager final : public Actor {
       edit_ephemeral_message_queries_;
 
   std::shared_ptr<UploadEphemeralMessageContentCallback> upload_ephemeral_message_content_callback_;
+
+  struct CallsDbState {
+    std::array<MessageId, 2> first_calls_database_message_id_by_index;
+    std::array<int32, 2> message_count_by_index;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  CallsDbState calls_db_state_;
 
   Td *td_;
   ActorShared<> parent_;
