@@ -77,6 +77,13 @@ class uint128_emulated {
   }
 
   uint128 mult(uint128 other) const {
+#if TD_MSVC && defined(_M_X64)
+    uint64 res_hi;
+    uint64 res_lo = _umul128(lo(), other.lo(), &res_hi);
+    return uint128(res_hi + lo() * other.hi() + hi() * other.lo(), res_lo);
+#elif TD_MSVC && defined(_M_ARM64)
+    return uint128(__umulh(lo(), other.lo()) + lo() * other.hi() + hi() * other.lo(), lo() * other.lo());
+#else
     uint64 a_lo = lo() & 0xffffffff;
     uint64 a_hi = lo() >> 32;
     uint64 b_lo = other.lo() & 0xffffffff;
@@ -85,6 +92,7 @@ class uint128_emulated {
     uint128 add1(0, a_lo * b_hi);
     uint128 add2(0, a_hi * b_lo);
     return res.add(add1.shl(32)).add(add2.shl(32));
+#endif
   }
   uint128 mult(uint64 other) const {
     return mult(uint128(0, other));
