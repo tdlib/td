@@ -449,6 +449,47 @@ BENCH(Pbkdf2, "pbkdf2") {
   td::pbkdf2_sha256(password, salt, n, key);
 }
 
+static bool is_prime(td::uint64 x) {
+  if (x < 2) {
+    return false;
+  }
+  for (td::uint64 d = 2; d * d <= x; d++) {
+    if (x % d == 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+class PqFactorizeBench final : public td::Benchmark {
+ public:
+  std::vector<td::uint64> primes;
+
+  PqFactorizeBench() {
+    while (primes.size() < 100) {
+      auto x = static_cast<td::uint64>(td::Random::fast(990000000, 1010000000));
+      if (is_prime(x)) {
+        primes.push_back(x);
+      }
+    }
+  }
+
+  std::string get_description() const final {
+    return "pq_factorize";
+  }
+
+  void run(int n) final {
+    td::uint64 res = 0;
+    auto max_index = static_cast<int>(primes.size()) - 1;
+    for (int i = 0; i < n; i++) {
+      auto p = primes[td::Random::fast(0, max_index)];
+      auto q = primes[td::Random::fast(0, max_index)];
+      res += td::pq_factorize(p * q);
+    }
+    td::do_not_optimize_away(res);
+  }
+};
+
 class Crc32Bench final : public td::Benchmark {
  public:
   alignas(64) unsigned char data[DATA_SIZE];
@@ -507,6 +548,7 @@ int main() {
   td::bench(AesEcbBench());
 
   td::bench(Pbkdf2Bench());
+  td::bench(PqFactorizeBench());
   td::bench(RandBench());
   td::bench(CppRandBench());
   td::bench(TdRand32Bench());
