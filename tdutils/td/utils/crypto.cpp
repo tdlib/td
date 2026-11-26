@@ -20,6 +20,7 @@
 #include "td/utils/SharedSlice.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/uint128.h"
 
 #if TD_HAVE_OPENSSL
 #include <openssl/aes.h>
@@ -82,22 +83,12 @@ static uint64 pq_gcd(uint64 a, uint64 b) {
   }
 }
 
-// returns (c + a * b) % pq
-static uint64 pq_add_mul(uint64 c, uint64 a, uint64 b, uint64 pq) {
-  while (b) {
-    if (b & 1) {
-      c += a;
-      if (c >= pq) {
-        c -= pq;
-      }
-    }
-    a += a;
-    if (a >= pq) {
-      a -= pq;
-    }
-    b >>= 1;
-  }
-  return c;
+// returns (a * b / 2^64) % pq for a, b < pq < 2^63, where pq * pq_inv == -1 modulo 2^64
+static uint64 pq_mul_montgomery(uint64 a, uint64 b, uint64 pq, uint64 pq_inv) {
+  auto ab = uint128::from_unsigned(a).mult(uint128::from_unsigned(b));
+  auto m = ab.lo() * pq_inv;
+  auto res = ab.add(uint128::from_unsigned(m).mult(uint128::from_unsigned(pq))).hi();
+  return res >= pq ? res - pq : res;
 }
 
 uint64 pq_factorize(uint64 pq) {
@@ -107,36 +98,57 @@ uint64 pq_factorize(uint64 pq) {
   if ((pq & 1) == 0) {
     return 2;
   }
-  uint64 g = 0;
-  for (int i = 0, iter = 0; i < 3 || iter < 1000; i++) {
-    uint64 q = Random::fast(17, 32) % (pq - 1);
-    uint64 x = Random::fast_uint64() % (pq - 1) + 1;
-    uint64 y = x;
-    int lim = 1 << (min(5, i) + 18);
-    for (int j = 1; j < lim; j++) {
-      iter++;
-      x = pq_add_mul(q, x, x, pq);
-      uint64 z = x < y ? pq + x - y : x - y;
-      g = pq_gcd(z, pq);
-      if (g != 1) {
-        break;
-      }
 
-      if (!(j & (j - 1))) {
-        y = x;
+  // Pollard's rho algorithm with Brent's cycle detection, batched GCD and Montgomery multiplication
+  uint64 pq_inv = pq;  // pq * pq == 1 modulo 8 for odd pq
+  for (int i = 0; i < 5; i++) {
+    pq_inv *= 2 - pq * pq_inv;  // each Newton iteration doubles the number of correct lower bits
+  }
+  pq_inv = 0 - pq_inv;
+
+  constexpr int MAX_BATCH_SIZE = 128;
+  constexpr int MAX_R = 1 << 20;
+  for (int i = 0, iter = 0; i < 3 || iter < 1000; i++) {
+    uint64 c = Random::fast_uint64() % (pq - 1) + 1;
+    auto next = [c, pq, pq_inv](uint64 x) {
+      x = pq_mul_montgomery(x, x, pq, pq_inv) + c;
+      return x >= pq ? x - pq : x;
+    };
+
+    uint64 x = 0;
+    uint64 y = Random::fast_uint64() % pq;
+    uint64 saved_y = y;
+    uint64 product = 1;
+    uint64 g = 1;
+    for (int r = 1; g == 1 && r <= MAX_R; r *= 2) {
+      x = y;
+      for (int j = 0; j < r; j++) {
+        y = next(y);
       }
+      for (int k = 0; k < r && g == 1; k += MAX_BATCH_SIZE) {
+        saved_y = y;
+        int batch_size = min(MAX_BATCH_SIZE, r - k);
+        for (int j = 0; j < batch_size; j++) {
+          y = next(y);
+          product = pq_mul_montgomery(product, x < y ? y - x : x - y, pq, pq_inv);
+        }
+        g = pq_gcd(product, pq);
+      }
+      iter += 2 * r;
     }
-    if (g > 1 && g < pq) {
-      break;
+    if (g == pq) {
+      // all prime factors were found in the same batch; recheck the batch step by step
+      do {
+        saved_y = next(saved_y);
+        g = pq_gcd(x < saved_y ? saved_y - x : x - saved_y, pq);
+      } while (g == 1);
+    }
+    if (g != 1 && g != pq) {
+      uint64 other = pq / g;
+      return other < g ? other : g;
     }
   }
-  if (g != 0) {
-    uint64 other = pq / g;
-    if (other < g) {
-      g = other;
-    }
-  }
-  return g;
+  return 1;
 }
 
 #if TD_HAVE_OPENSSL
