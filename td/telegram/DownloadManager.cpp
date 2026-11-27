@@ -551,21 +551,22 @@ class DownloadManagerImpl final : public DownloadManager {
     LOG(INFO) << "Adding to downloads file " << file_info->file_id << " of size " << file_info->size << '/'
               << file_info->expected_size << " with downloaded_size = " << file_info->downloaded_size
               << " and is_paused = " << file_info->is_paused;
-    auto it = files_.emplace(download_id, std::move(file_info)).first;
-    bool was_completed = is_completed(*it->second);
-    register_file_info(*it->second);  // must be called before start_file, which can call update_file_download_state
-    if (is_completed(*it->second)) {
-      bool is_inserted = completed_download_ids_.insert(it->second->download_id).second;
+    // register_file_info can remove other files, which moves elements of files_ and invalidates iterators
+    auto *file_info_ptr = files_.emplace(download_id, std::move(file_info)).first->second.get();
+    bool was_completed = is_completed(*file_info_ptr);
+    register_file_info(*file_info_ptr);  // must be called before start_file, which can call update_file_download_state
+    if (is_completed(*file_info_ptr)) {
+      bool is_inserted = completed_download_ids_.insert(file_info_ptr->download_id).second;
       CHECK(is_inserted == was_completed);
     } else {
-      if (!it->second->is_paused) {
-        callback_->start_file(it->second->file_id, it->second->internal_download_id, it->second->priority,
-                              actor_shared(this, it->second->link_token));
+      if (!file_info_ptr->is_paused) {
+        callback_->start_file(file_info_ptr->file_id, file_info_ptr->internal_download_id, file_info_ptr->priority,
+                              actor_shared(this, file_info_ptr->link_token));
       }
     }
     if (is_search_inited_) {
-      callback_->update_file_added(it->second->file_id, it->second->file_source_id, it->second->created_at,
-                                   it->second->completed_at, it->second->is_paused, file_counters_);
+      callback_->update_file_added(file_info_ptr->file_id, file_info_ptr->file_source_id, file_info_ptr->created_at,
+                                   file_info_ptr->completed_at, file_info_ptr->is_paused, file_counters_);
     }
   }
 
