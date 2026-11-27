@@ -39,27 +39,41 @@ NetQueryPtr NetQueryCreator::create_with_prefix(const telegram_api::object_ptr<t
   return create(UniqueId::next(), prefix, function, std::move(chain_ids), dc_id, type, NetQuery::AuthFlag::On);
 }
 
+NetQueryPtr NetQueryCreator::create_with_prefixes(
+    const vector<telegram_api::object_ptr<telegram_api::Function>> &prefixes, const telegram_api::Function &function,
+    DcId dc_id, vector<ChainId> chain_ids, NetQuery::Type type) {
+  return create_impl(UniqueId::next(), prefixes, function, std::move(chain_ids), dc_id, type, NetQuery::AuthFlag::On);
+}
+
 NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::object_ptr<telegram_api::Function> &prefix,
                                     const telegram_api::Function &function, vector<ChainId> &&chain_ids, DcId dc_id,
                                     NetQuery::Type type, NetQuery::AuthFlag auth_flag) {
-  LOG(INFO) << "Create query " << (prefix != nullptr ? "with a prefix " : "") << to_string(function);
-  string prefix_str;
+  Span<telegram_api::object_ptr<telegram_api::Function>> prefixes;
   if (prefix != nullptr) {
-    auto storer = DefaultStorer<telegram_api::Function>(*prefix);
-    prefix_str.resize(storer.size());
-    auto real_size = storer.store(MutableSlice(prefix_str).ubegin());
-    CHECK(real_size == prefix_str.size());
+    prefixes = Span<telegram_api::object_ptr<telegram_api::Function>>(prefix);
+  }
+  return create_impl(id, prefixes, function, std::move(chain_ids), dc_id, type, auth_flag);
+}
+
+NetQueryPtr NetQueryCreator::create_impl(uint64 id, Span<telegram_api::object_ptr<telegram_api::Function>> prefixes,
+                                         const telegram_api::Function &function, vector<ChainId> &&chain_ids,
+                                         DcId dc_id, NetQuery::Type type, NetQuery::AuthFlag auth_flag) {
+  LOG(INFO) << "Create query " << (prefixes.empty() ? "" : "with a prefix ") << to_string(function);
+  size_t prefix_size = 0;
+  for (auto &prefix : prefixes) {
+    CHECK(prefix != nullptr);
+    prefix_size += DefaultStorer<telegram_api::Function>(*prefix).size();
   }
 
   auto storer = DefaultStorer<telegram_api::Function>(function);
-  BufferSlice slice(prefix_str.size() + storer.size());
-  auto real_size = storer.store(slice.as_mutable_slice().ubegin() + prefix_str.size());
-  LOG_CHECK(prefix_str.size() + real_size == slice.size())
-      << prefix_str.size() << ' ' << real_size << ' ' << slice.size() << ' '
-      << format::as_hex_dump<4>(slice.as_slice());
-  if (prefix != nullptr) {
-    slice.as_mutable_slice().copy_from(prefix_str);
+  BufferSlice slice(prefix_size + storer.size());
+  auto *ptr = slice.as_mutable_slice().ubegin();
+  for (auto &prefix : prefixes) {
+    ptr += DefaultStorer<telegram_api::Function>(*prefix).store(ptr);
   }
+  auto real_size = storer.store(ptr);
+  LOG_CHECK(prefix_size + real_size == slice.size())
+      << prefix_size << ' ' << real_size << ' ' << slice.size() << ' ' << format::as_hex_dump<4>(slice.as_slice());
 
   size_t min_gzipped_size = 128;
   int32 tl_constructor = function.get_id();

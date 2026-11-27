@@ -20421,6 +20421,72 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       m->summary_from_language, std::move(content), nullptr, std::move(reply_markup), 0, m->chat_instance);
 }
 
+td_api::object_ptr<td_api::message> MessagesManager::get_export_message_object(
+    DialogId dialog_id, telegram_api::object_ptr<telegram_api::Message> &&message) {
+  auto dialog_message = create_message(
+      td_, parse_telegram_api_message(td_, std::move(message), false, false, "get_export_message_object"), false,
+      "get_export_message_object");
+  Message *m = dialog_message.second.get();
+  if (m == nullptr || dialog_message.first != dialog_id) {
+    return nullptr;
+  }
+  // the basic group a supergroup was migrated from is exported too, and may be unknown
+  force_create_dialog(dialog_id, "get_export_message_object", true);
+  Dependencies dependencies;
+  add_message_dependencies(dependencies, m);
+  for (auto dependent_dialog_id : dependencies.get_dialog_ids()) {
+    if (dependent_dialog_id != dialog_id) {
+      force_create_dialog(dependent_dialog_id, "get_export_message_object dependency", true);
+    }
+  }
+
+  // the message isn't added to the chat, so the reaction generation set when a message is added is set here
+  auto dialog_type = dialog_id.get_type();
+  if (dialog_type == DialogType::Chat || dialog_type == DialogType::Channel) {
+    const Dialog *d = get_dialog(dialog_id);
+    CHECK(d != nullptr);
+    m->available_reactions_generation = d->available_reactions_generation;
+  }
+
+  auto sender =
+      get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id, "get_export_message_object");
+  auto forward_info =
+      m->forward_info == nullptr ? nullptr : m->forward_info->get_message_forward_info_object(td_, false);
+  auto import_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_import_info_object();
+  auto interaction_info = get_message_interaction_info_object(dialog_id, m);
+  auto via_bot_user_id =
+      td_->user_manager_->get_user_id_object(m->via_bot_user_id, "get_export_message_object via_bot_user_id");
+  auto reply_to = [&]() -> td_api::object_ptr<td_api::MessageReplyTo> {
+    if (!m->replied_message_info.is_empty()) {
+      if (!m->replied_message_info.is_external() &&
+          m->replied_message_info.get_same_chat_reply_to_message_id(false) == MessageId()) {
+        return nullptr;
+      }
+      return m->replied_message_info.get_message_reply_to_message_object(td_, dialog_id, m->message_id);
+    }
+    if (m->reply_to_story_full_id.is_valid()) {
+      return td_api::make_object<td_api::messageReplyToStory>(
+          get_chat_id_object(m->reply_to_story_full_id.get_dialog_id(),
+                             "get_export_message_object messageReplyToStory"),
+          m->reply_to_story_full_id.get_story_id().get());
+    }
+    return nullptr;
+  }();
+  auto reply_markup = get_reply_markup_object(td_->user_manager_.get(), m->reply_markup);
+  auto content = get_message_message_content_object(dialog_id, m);
+  auto edit_date = get_message_shown_edit_date(m);
+
+  return td_api::make_object<td_api::message>(
+      m->message_id.get(), std::move(sender), nullptr, get_chat_id_object(dialog_id, "get_export_message_object"),
+      nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, false, false, m->is_channel_post,
+      m->is_paid_suggested_post_stars, m->is_paid_suggested_post_ton, false, false, m->date, edit_date,
+      std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr, nullptr,
+      std::move(reply_to), nullptr, m->ttl.get_message_self_destruct_type_object(), 0.0, 0.0, via_bot_user_id,
+      get_message_guest_sender_object(m), 0, m->sender_boost_count, m->sender_rank, m->paid_message_star_count,
+      m->author_signature, m->media_album_id, m->effect_id.get(), get_restriction_info_object(m->restriction_reasons),
+      m->summary_from_language, std::move(content), nullptr, std::move(reply_markup), 0, m->chat_instance);
+}
+
 td_api::object_ptr<td_api::businessMessage> MessagesManager::get_business_message_object(
     telegram_api::object_ptr<telegram_api::Message> &&message,
     telegram_api::object_ptr<telegram_api::Message> &&reply_to_message) {

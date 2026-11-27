@@ -149,6 +149,39 @@ message(STATUS "Git state: ${TD_GIT_COMMIT_HASH}")
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/td/telegram/GitCommitHash.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/GitCommitHash.cpp" @ONLY)
 
+set(TD_EXPORT_HTML_ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/td/generate/export_html")
+if (CMAKE_VERSION VERSION_LESS 3.12)
+  file(GLOB_RECURSE TD_EXPORT_HTML_ASSETS RELATIVE "${TD_EXPORT_HTML_ASSETS_DIR}" "${TD_EXPORT_HTML_ASSETS_DIR}/*")
+else()
+  # an added or a removed asset reruns CMake too
+  file(GLOB_RECURSE TD_EXPORT_HTML_ASSETS RELATIVE "${TD_EXPORT_HTML_ASSETS_DIR}" CONFIGURE_DEPENDS "${TD_EXPORT_HTML_ASSETS_DIR}/*")
+endif()
+list(SORT TD_EXPORT_HTML_ASSETS)
+set(TD_EXPORT_HTML_ASSET_DATA "")
+set(TD_EXPORT_HTML_ASSET_LIST "")
+set(TD_EXPORT_HTML_ASSET_INDEX 0)
+foreach (TD_EXPORT_HTML_ASSET ${TD_EXPORT_HTML_ASSETS})
+  set(TD_EXPORT_HTML_ASSET_PATH "${TD_EXPORT_HTML_ASSETS_DIR}/${TD_EXPORT_HTML_ASSET}")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${TD_EXPORT_HTML_ASSET_PATH}")
+  file(READ "${TD_EXPORT_HTML_ASSET_PATH}" TD_EXPORT_HTML_ASSET_BYTES HEX)
+  string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," TD_EXPORT_HTML_ASSET_BYTES "${TD_EXPORT_HTML_ASSET_BYTES}")
+  if (NOT TD_EXPORT_HTML_ASSET MATCHES "\\.png$")
+    # text assets are checked out with native line endings, but must be the same in every build
+    string(REPLACE "0x0d,0x0a," "0x0a," TD_EXPORT_HTML_ASSET_BYTES "${TD_EXPORT_HTML_ASSET_BYTES}")
+  endif()
+  string(REGEX REPLACE "(0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,)" "\\1\n  " TD_EXPORT_HTML_ASSET_BYTES "${TD_EXPORT_HTML_ASSET_BYTES}")
+  set(TD_EXPORT_HTML_ASSET_SIZE "sizeof(export_html_asset_${TD_EXPORT_HTML_ASSET_INDEX})")
+  if (TD_EXPORT_HTML_ASSET_BYTES STREQUAL "")
+    # an array can't be empty
+    set(TD_EXPORT_HTML_ASSET_BYTES "0x00,")
+    set(TD_EXPORT_HTML_ASSET_SIZE "0")
+  endif()
+  string(APPEND TD_EXPORT_HTML_ASSET_DATA "static const unsigned char export_html_asset_${TD_EXPORT_HTML_ASSET_INDEX}[] = {\n  ${TD_EXPORT_HTML_ASSET_BYTES}};\n\n")
+  string(APPEND TD_EXPORT_HTML_ASSET_LIST "    {\"${TD_EXPORT_HTML_ASSET}\", export_html_asset_${TD_EXPORT_HTML_ASSET_INDEX}, ${TD_EXPORT_HTML_ASSET_SIZE}},\n")
+  math(EXPR TD_EXPORT_HTML_ASSET_INDEX "${TD_EXPORT_HTML_ASSET_INDEX} + 1")
+endforeach()
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/td/telegram/ExportHtmlAssets.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/ExportHtmlAssets.cpp" @ONLY)
+
 add_subdirectory(tdtl)
 
 if (TD_GENERATE_SOURCE_FILES)
@@ -445,6 +478,11 @@ set(TDLIB_SOURCE_PART1
   td/telegram/EmojiGroup.cpp
   td/telegram/EmojiGroupType.cpp
   td/telegram/EmojiStatus.cpp
+  td/telegram/ExportHtmlWriter.cpp
+  td/telegram/ExportJsonWriter.cpp
+  td/telegram/ExportManager.cpp
+  td/telegram/ExportRichMessage.cpp
+  td/telegram/ExportWriter.cpp
   td/telegram/FactCheck.cpp
   td/telegram/FileReferenceManager.cpp
   td/telegram/files/FileBitmask.cpp
@@ -849,6 +887,13 @@ set(TDLIB_SOURCE_PART2
   td/telegram/EncryptedFile.h
   td/telegram/EphemeralMessageFullId.h
   td/telegram/EphemeralMessageId.h
+  td/telegram/ExportHtmlAssets.h
+  td/telegram/ExportHtmlWriter.h
+  td/telegram/ExportJsonWriter.h
+  td/telegram/ExportManager.h
+  td/telegram/ExportRichMessage.h
+  td/telegram/ExportSettings.h
+  td/telegram/ExportWriter.h
   td/telegram/FactCheck.h
   td/telegram/FileReferenceManager.h
   td/telegram/files/FileBitmask.h
@@ -1332,6 +1377,7 @@ set(TDLIB_SOURCE_PART2
   td/tl/tl_object_parse.h
   td/tl/tl_object_store.h
 
+  ${CMAKE_CURRENT_BINARY_DIR}/td/telegram/ExportHtmlAssets.cpp
   ${CMAKE_CURRENT_BINARY_DIR}/td/telegram/GitCommitHash.cpp
 )
 set(TDLIB_SOURCE

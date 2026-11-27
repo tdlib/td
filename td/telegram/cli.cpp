@@ -2581,6 +2581,25 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
+  static vector<td_api::object_ptr<td_api::ExportFormat>> as_export_formats(Slice formats) {
+    vector<td_api::object_ptr<td_api::ExportFormat>> result;
+    if (formats.find('h') != Slice::npos) {
+      result.push_back(td_api::make_object<td_api::exportFormatHtml>(string()));
+    }
+    if (formats.find('j') != Slice::npos) {
+      result.push_back(td_api::make_object<td_api::exportFormatJson>());
+    }
+    return result;
+  }
+
+  static td_api::object_ptr<td_api::exportMediaSettings> as_export_media_settings(bool with_media) {
+    if (!with_media) {
+      return nullptr;
+    }
+    return td_api::make_object<td_api::exportMediaSettings>(true, true, true, true, true, true, true,
+                                                            static_cast<int64>(4000) << 20);
+  }
+
   td_api::object_ptr<td_api::ChatMembersFilter> as_chat_members_filter(MutableSlice filter) const {
     filter = trim(filter);
     to_lower_inplace(filter);
@@ -6996,6 +7015,30 @@ class CliClient final : public Actor {
       attached_files = full_split(args);
       send_request(td_api::make_object<td_api::importMessages>(chat_id, as_input_file(message_file),
                                                                transform(attached_files, as_input_file)));
+    } else if (op == "sec" || op == "secm") {
+      ChatId chat_id;
+      string formats;
+      int32 min_date;
+      int32 max_date;
+      string directory;
+      get_args(args, chat_id, formats, min_date, max_date, directory);
+      send_request(td_api::make_object<td_api::startExport>(
+          td_api::make_object<td_api::exportSourceChat>(chat_id, get_message_topic_id(), min_date, max_date),
+          as_export_formats(formats), as_export_media_settings(op == "secm"), directory));
+    } else if (op == "sea" || op == "seam") {
+      string formats;
+      string directory;
+      get_args(args, formats, directory);
+      send_request(td_api::make_object<td_api::startExport>(
+          td_api::make_object<td_api::exportSourceAccount>(td_api::make_object<td_api::exportedAccountData>(
+              true, true, true, true, true, true, true, true, true, true, false, true, true, false, true)),
+          as_export_formats(formats), as_export_media_settings(op == "seam"), directory));
+    } else if (op == "sef") {
+      int64 file_id;
+      get_args(args, file_id);
+      send_request(td_api::make_object<td_api::skipExportFile>(file_id));
+    } else if (op == "cex") {
+      send_request(td_api::make_object<td_api::cancelExport>());
     } else if (op == "em" || op == "emrm") {
       ChatId chat_id;
       MessageId message_id;

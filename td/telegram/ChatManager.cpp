@@ -6791,6 +6791,14 @@ void ChatManager::remove_linked_channel_id(ChannelId channel_id) {
   }
 }
 
+ChatId ChatManager::get_channel_migrated_from_chat_id(ChannelId channel_id) const {
+  auto channel_full = get_channel_full_const(channel_id);
+  if (channel_full == nullptr) {
+    return ChatId();
+  }
+  return channel_full->migrated_from_chat_id;
+}
+
 ChannelId ChatManager::get_linked_channel_id(ChannelId channel_id) const {
   auto channel_full = get_channel_full_const(channel_id);
   if (channel_full != nullptr) {

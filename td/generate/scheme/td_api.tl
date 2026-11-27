@@ -9763,6 +9763,135 @@ messageFileTypeGroup title:string = MessageFileType;
 messageFileTypeUnknown = MessageFileType;
 
 
+//@description Describes the data to export from the current user's account
+//@personal_information Pass true to export the user's name, phone number, username and bio
+//@profile_photos Pass true to export the user's profile photos
+//@stories Pass true to export the user's stories
+//@profile_audios Pass true to export the audio files added to the user's profile
+//@contacts Pass true to export the user's contacts and frequent contacts
+//@sessions Pass true to export the list of active sessions and connected websites
+//@other_data Pass true to export miscellaneous data, stored on the server
+//@private_chats Pass true to export private chats with other users
+//@bot_chats Pass true to export private chats with bots
+//@private_groups Pass true to export basic groups and supergroups without a username
+//@only_own_private_group_messages Pass true to export only messages sent by the current user in basic groups and supergroups without a username
+//@public_groups Pass true to export messages sent by the current user in supergroups with a username
+//@private_channels Pass true to export channels without a username
+//@only_own_private_channel_messages Pass true to export only messages sent by the current user in channels without a username
+//@public_channels Pass true to export messages sent by the current user in channels with a username
+exportedAccountData personal_information:Bool profile_photos:Bool stories:Bool profile_audios:Bool contacts:Bool sessions:Bool other_data:Bool private_chats:Bool bot_chats:Bool private_groups:Bool only_own_private_group_messages:Bool public_groups:Bool private_channels:Bool only_own_private_channel_messages:Bool public_channels:Bool = ExportedAccountData;
+
+
+//@class ExportSource @description Describes what is exported
+
+//@description The data of the current user's account @data The data to export
+exportSourceAccount data:exportedAccountData = ExportSource;
+
+//@description Messages of a chat
+//@chat_id Chat identifier
+//@topic_id Identifier of the topic in the chat to export; pass null to export the whole chat
+//@min_date Point in time (Unix timestamp) from which messages are exported; pass 0 to export messages from the beginning of the chat
+//@max_date Point in time (Unix timestamp) until which messages are exported; pass 0 to export messages up to the end of the chat
+exportSourceChat chat_id:int53 topic_id:MessageTopic min_date:int32 max_date:int32 = ExportSource;
+
+
+//@class ExportFormat @description Describes a format of exported data
+
+//@description Data is exported as HTML pages, readable in any browser
+//@stylesheet Style sheet applied to the pages after the default one; it can override any rule of the default style sheet, including the images. Pass an empty string to use only the default style sheet
+exportFormatHtml stylesheet:string = ExportFormat;
+
+//@description Data is exported in a machine-readable JSON file
+exportFormatJson = ExportFormat;
+
+
+//@description Describes which files are exported with messages
+//@photos Pass true to export photos
+//@videos Pass true to export videos
+//@voice_notes Pass true to export voice notes
+//@video_notes Pass true to export video notes
+//@stickers Pass true to export stickers
+//@animations Pass true to export animations
+//@documents Pass true to export other files
+//@max_file_size The maximum size of an exported file, in bytes; 1-4000 * 1024 * 1024
+exportMediaSettings photos:Bool videos:Bool voice_notes:Bool video_notes:Bool stickers:Bool animations:Bool documents:Bool max_file_size:int53 = ExportMediaSettings;
+
+
+//@class ExportStep @description Describes a step of data export
+
+//@description The export is being initialized
+exportStepInitializing = ExportStep;
+
+//@description The list of chats to export is being collected
+exportStepChatList = ExportStep;
+
+//@description The user's personal information is being exported
+exportStepPersonalInformation = ExportStep;
+
+//@description The user's profile photos are being exported
+exportStepProfilePhotos = ExportStep;
+
+//@description The user's stories are being exported
+exportStepStories = ExportStep;
+
+//@description The audio files added to the user's profile are being exported
+exportStepProfileAudios = ExportStep;
+
+//@description The user's contacts are being exported
+exportStepContacts = ExportStep;
+
+//@description The list of active sessions is being exported
+exportStepSessions = ExportStep;
+
+//@description Miscellaneous data is being exported
+exportStepOtherData = ExportStep;
+
+//@description Messages of chats are being exported
+exportStepChats = ExportStep;
+
+//@description Messages of a topic are being exported
+exportStepTopic = ExportStep;
+
+
+//@description Describes a file being downloaded by data export
+//@id Unique identifier of the file within the export
+//@name Name of the file
+//@size Size of the file, in bytes
+//@downloaded_size Downloaded size of the file, in bytes
+exportFile id:int64 name:string size:int53 downloaded_size:int53 = ExportFile;
+
+
+//@class ExportState @description Describes state of data export
+
+//@description The export is in progress
+//@step The current step of the export
+//@progress Approximate progress of the whole export, from 0 to 1
+//@entity_name Name of the chat or another entity being exported; may be empty
+//@entity_index 0-based index of the entity being exported among entity_count entities; 0 if unknown
+//@entity_count Number of entities to export in the current step; 0 if unknown
+//@item_index 0-based index of the item being exported among item_count items; 0 if unknown
+//@item_count Number of items to export in the current entity; 0 if unknown
+//@file The file being downloaded; may be null
+exportStateInProgress step:ExportStep progress:double entity_name:string entity_index:int32 entity_count:int32 item_index:int32 item_count:int32 file:exportFile = ExportState;
+
+//@description The export can't be started yet, because it must be confirmed from another device or the user must wait.
+//-Call startExport again after the confirmation or at the specified time
+//@retry_date Point in time (Unix timestamp) after which the export can be started without a confirmation
+exportStateWaitingForConfirmation retry_date:int32 = ExportState;
+
+//@description The export has finished successfully
+//@directory Path to the directory with the exported data
+//@file_count Number of files written
+//@total_size Total size of the written files, in bytes
+exportStateFinished directory:string file_count:int32 total_size:int53 = ExportState;
+
+//@description The export has failed @error The error
+exportStateFailed error:error = ExportState;
+
+//@description The export was cancelled
+exportStateCancelled = ExportState;
+
+
 //@class PushMessageContent @description Contains content of a push message notification
 
 //@description A general message with hidden content @is_pinned True, if the message is a pinned message with the specified content
@@ -12435,6 +12564,9 @@ updateTextCompositionStyles styles:vector<textCompositionStyle> = Update;
 
 //@description The list of actions suggested to the user has changed @added_actions Added suggested actions @removed_actions Removed suggested actions
 updateSuggestedActions added_actions:vector<SuggestedAction> removed_actions:vector<SuggestedAction> = Update;
+
+//@description The state of data export has changed @state The new state of the export
+updateExportState state:ExportState = Update;
 
 //@description Download or upload file speed for the user was limited, but it can be restored by subscription to Telegram Premium.
 //-The notification can be postponed until a file being downloaded or uploaded is visible to the user.
@@ -15863,6 +15995,20 @@ getMessageImportConfirmationText chat_id:int53 = Text;
 //@message_file File with messages to import. Only inputFileLocal and inputFileGenerated are supported. The file must not be previously uploaded
 //@attached_files Files used in the imported messages. Only inputFileLocal and inputFileGenerated are supported. The files must not be previously uploaded
 importMessages chat_id:int53 message_file:InputFile attached_files:vector<InputFile> = Ok;
+
+
+//@description Starts export of data to a directory. Only one export can run at a time; its progress is reported through updateExportState
+//@source The data to export
+//@formats Formats of the exported data; at least one format must be specified, and each format can be specified only once
+//@media_settings Files to export with messages; pass null to export no files
+//@directory Path to an existing directory in which a subdirectory with the exported data will be created
+startExport source:ExportSource formats:vector<ExportFormat> media_settings:exportMediaSettings directory:string = Ok;
+
+//@description Skips the file being downloaded by the current data export @file_id Identifier of the file, received in exportStateInProgress
+skipExportFile file_id:int64 = Ok;
+
+//@description Cancels the current data export
+cancelExport = Ok;
 
 
 //@description Replaces the current primary invite link for a chat with a new primary invite link. Available in basic groups, supergroups, and channels.

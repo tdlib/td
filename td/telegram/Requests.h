@@ -1354,6 +1354,12 @@ class Requests {
 
   void on_request(uint64 id, const td_api::importMessages &request);
 
+  void on_request(uint64 id, td_api::startExport &request);
+
+  void on_request(uint64 id, const td_api::skipExportFile &request);
+
+  void on_request(uint64 id, const td_api::cancelExport &request);
+
   void on_request(uint64 id, const td_api::blockMessageSenderFromReplies &request);
 
   void on_request(uint64 id, const td_api::getBlockedMessageSenders &request);
