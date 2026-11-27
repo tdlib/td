@@ -10,22 +10,27 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/ExportHtmlAssets.h"
+#include "td/telegram/ExportRichMessage.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/unicode.h"
 #include "td/utils/utf8.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <initializer_list>
 #include <locale>
+#include <map>
 #include <sstream>
 #include <utility>
 
@@ -556,6 +561,9 @@ struct MediaData {
   string link;
 };
 
+// the attributes of a tag, sorted by name like the attributes of push_tag
+using HtmlAttributes = std::map<string, string>;
+
 // the stack of the open tags of a page, which decides the indentation
 class HtmlContext {
  public:
@@ -576,21 +584,14 @@ class HtmlContext {
       sorted[position] = attribute;
     }
 
-    Tag data{tag, true};
-    bool is_empty = false;
-    if (data.is_block) {
-      for (size_t i = 0; i < count; i++) {
-        if (sorted[i].name == "inline") {
-          data.is_block = false;
-        }
+    bool is_block = true;
+    for (size_t i = 0; i < count; i++) {
+      if (sorted[i].name == "inline") {
+        is_block = false;
       }
     }
-    if (data.is_block) {
-      result += '\n';
-      append_indent(result);
-    }
-    result += '<';
-    result.append(tag.data(), tag.size());
+    open_tag(result, tag, is_block);
+    bool is_empty = false;
     for (size_t i = 0; i < count; i++) {
       if (sorted[i].name == "inline") {
         continue;
@@ -599,22 +600,26 @@ class HtmlContext {
         is_empty = true;
         continue;
       }
-      result += ' ';
-      result.append(sorted[i].name.data(), sorted[i].name.size());
-      result += "=\"";
-      append_html_escaped(result, sorted[i].value);
-      result += '"';
+      append_attribute(result, sorted[i].name, sorted[i].value);
     }
-    if (is_empty) {
-      result += '/';
+    close_tag(result, tag, is_block, is_empty);
+  }
+
+  void push_tag(string &result, Slice tag, const HtmlAttributes &attributes) {
+    bool is_block = attributes.count("inline") == 0;
+    open_tag(result, tag, is_block);
+    bool is_empty = false;
+    for (const auto &attribute : attributes) {
+      if (attribute.first.empty() || attribute.first == "inline") {
+        continue;
+      }
+      if (attribute.first == "empty") {
+        is_empty = true;
+        continue;
+      }
+      append_attribute(result, attribute.first, attribute.second);
     }
-    result += '>';
-    if (data.is_block) {
-      result += '\n';
-    }
-    if (!is_empty) {
-      tags_.push_back(data);
-    }
+    close_tag(result, tag, is_block, is_empty);
   }
 
   void pop_tag(string &result) {
@@ -654,6 +659,37 @@ class HtmlContext {
 
   void append_indent(string &result) const {
     result.append(tags_.size(), ' ');
+  }
+
+  void open_tag(string &result, Slice tag, bool is_block) const {
+    if (is_block) {
+      result += '\n';
+      append_indent(result);
+    }
+    result += '<';
+    result.append(tag.data(), tag.size());
+  }
+
+  static void append_attribute(string &result, Slice name, Slice value) {
+    result += ' ';
+    result.append(name.data(), name.size());
+    result += "=\"";
+    append_html_escaped(result, value);
+    result += '"';
+  }
+
+  // the name of the tag isn't copied, so it must stay valid until the tag is popped
+  void close_tag(string &result, Slice tag, bool is_block, bool is_empty) {
+    if (is_empty) {
+      result += '/';
+    }
+    result += '>';
+    if (is_block) {
+      result += '\n';
+    }
+    if (!is_empty) {
+      tags_.push_back(Tag{tag, is_block});
+    }
   }
 };
 
@@ -962,7 +998,931 @@ static void push_service_message(HtmlContext &context, string &result, Slice bas
   context.pop_tag(result);
 }
 
+static constexpr int32 MEDIA_GROUP_MAX_WIDTH = 430;
+static constexpr int32 MEDIA_GROUP_MIN_WIDTH = 100;
+static constexpr int32 MEDIA_GROUP_SPACING = 4;
+
+static constexpr size_t RICH_ANCHOR_DIRECT_SIZE = 72;
+static constexpr size_t RICH_ANCHOR_PREFIX_SIZE = 48;
+static constexpr int32 RICH_TABLE_SPAN_MAX = 1000;
+static constexpr size_t RICH_HASHTAG_MIN_LENGTH = 2;
+static constexpr size_t RICH_HASHTAG_MAX_LENGTH = 64;
+static constexpr size_t RICH_COMMAND_MAX_LENGTH = 64;
+static constexpr size_t RICH_CASHTAG_MAX_LENGTH = 8;
+static constexpr size_t RICH_USERNAME_MIN_LENGTH = 5;
+static constexpr size_t RICH_USERNAME_MAX_LENGTH = 32;
+
 namespace {
+
+struct MediaGroupRect {
+  int32 x;
+  int32 y;
+  int32 width;
+  int32 height;
+};
+
+class MediaGroupComplexLayouter {
+ public:
+  MediaGroupComplexLayouter(const vector<double> &ratios, double average_ratio, int32 max_width, int32 min_width,
+                            int32 spacing)
+      : ratios_(crop_ratios(ratios, average_ratio))
+      , count_(static_cast<int32>(ratios_.size()))
+      , max_width_(max_width)
+      , max_height_(max_width * 4 / 3)
+      , min_width_(min_width)
+      , spacing_(spacing)
+      , average_ratio_(average_ratio) {
+  }
+
+  // returns an empty vector if the items can't be placed in at most 4 lines of at most 3 items
+  vector<MediaGroupRect> layout() const {
+    vector<Attempt> attempts;
+    for (int32 first = 1; first < count_; first++) {
+      auto second = count_ - first;
+      if (first > 3 || second > 3) {
+        continue;
+      }
+      push_attempt(attempts, {first, second});
+    }
+    for (int32 first = 1; first < count_ - 1; first++) {
+      for (int32 second = 1; second < count_ - first; second++) {
+        auto third = count_ - first - second;
+        if (first > 3 || second > (average_ratio_ < 0.85 ? 4 : 3) || third > 3) {
+          continue;
+        }
+        push_attempt(attempts, {first, second, third});
+      }
+    }
+    for (int32 first = 1; first < count_ - 1; first++) {
+      for (int32 second = 1; second < count_ - first; second++) {
+        for (int32 third = 1; third < count_ - first - second; third++) {
+          auto fourth = count_ - first - second - third;
+          if (first > 3 || second > 3 || third > 3 || fourth > 3) {
+            continue;
+          }
+          push_attempt(attempts, {first, second, third, fourth});
+        }
+      }
+    }
+
+    const Attempt *optimal_attempt = nullptr;
+    double optimal_diff = 0.0;
+    for (const auto &attempt : attempts) {
+      const auto &heights = attempt.heights;
+      const auto &counts = attempt.line_counts;
+      auto line_count = static_cast<int32>(counts.size());
+      double total_height = 0.0;
+      for (auto height : heights) {
+        total_height += height;
+      }
+      total_height += spacing_ * (line_count - 1);
+      auto min_line_height = *std::min_element(heights.begin(), heights.end());
+      auto bad1 = min_line_height < min_width_ ? 1.5 : 1.0;
+      auto bad2 = 1.0;
+      for (int32 line = 1; line < line_count; line++) {
+        if (counts[line - 1] > counts[line]) {
+          bad2 = 1.5;
+          break;
+        }
+      }
+      auto diff = std::abs(total_height - max_height_) * bad1 * bad2;
+      if (optimal_attempt == nullptr || diff < optimal_diff) {
+        optimal_attempt = &attempt;
+        optimal_diff = diff;
+      }
+    }
+    if (optimal_attempt == nullptr) {
+      return {};
+    }
+
+    vector<MediaGroupRect> result(count_);
+    const auto &optimal_counts = optimal_attempt->line_counts;
+    const auto &optimal_heights = optimal_attempt->heights;
+    auto row_count = static_cast<int32>(optimal_counts.size());
+    int32 index = 0;
+    int32 y = 0;
+    for (int32 row = 0; row < row_count; row++) {
+      auto column_count = optimal_counts[row];
+      auto line_height = optimal_heights[row];
+      auto height = round_value(line_height);
+      int32 x = 0;
+      for (int32 column = 0; column < column_count; column++) {
+        auto width = column == column_count - 1 ? max_width_ - x : round_value(ratios_[index] * line_height);
+        result[index] = MediaGroupRect{x, y, width, height};
+        x += width + spacing_;
+        index++;
+      }
+      y += height + spacing_;
+    }
+    return result;
+  }
+
+  static int32 round_value(double value) {
+    return static_cast<int32>(std::round(value));
+  }
+
+ private:
+  struct Attempt {
+    vector<int32> line_counts;
+    vector<double> heights;
+  };
+
+  vector<double> ratios_;
+  int32 count_;
+  int32 max_width_;
+  int32 max_height_;
+  int32 min_width_;
+  int32 spacing_;
+  double average_ratio_;
+
+  static vector<double> crop_ratios(const vector<double> &ratios, double average_ratio) {
+    vector<double> result;
+    result.reserve(ratios.size());
+    for (auto ratio : ratios) {
+      if (average_ratio > 1.1) {
+        result.push_back(clamp(ratio, 1.0, 2.75));
+      } else {
+        result.push_back(clamp(ratio, 0.6667, 1.0));
+      }
+    }
+    return result;
+  }
+
+  double get_line_height(int32 offset, int32 count) const {
+    double sum = 0.0;
+    for (int32 i = 0; i < count; i++) {
+      sum += ratios_[offset + i];
+    }
+    return (max_width_ - (count - 1) * spacing_) / sum;
+  }
+
+  void push_attempt(vector<Attempt> &attempts, vector<int32> line_counts) const {
+    Attempt attempt;
+    int32 offset = 0;
+    for (auto count : line_counts) {
+      attempt.heights.push_back(get_line_height(offset, count));
+      offset += count;
+    }
+    attempt.line_counts = std::move(line_counts);
+    attempts.push_back(std::move(attempt));
+  }
+};
+
+// places the items of an album in a box of the maximum width
+class MediaGroupLayouter {
+ public:
+  MediaGroupLayouter(const vector<ExportHtmlImageSize> &sizes, int32 max_width, int32 min_width, int32 spacing)
+      : sizes_(sizes)
+      , ratios_(get_ratios(sizes))
+      , proportions_(get_proportions(ratios_))
+      , count_(static_cast<int32>(ratios_.size()))
+      , max_width_(max_width)
+      , max_height_(max_width)
+      , min_width_(min_width)
+      , spacing_(spacing)
+      , average_ratio_(get_average_ratio(ratios_))
+      , max_size_ratio_(max_width_ / static_cast<double>(max_height_)) {
+  }
+
+  vector<MediaGroupRect> layout() const {
+    if (count_ == 0) {
+      return {};
+    }
+    if (count_ == 1) {
+      return layout_one();
+    }
+    if (count_ >= 5 || std::any_of(ratios_.begin(), ratios_.end(), [](double ratio) { return ratio > 2; })) {
+      return MediaGroupComplexLayouter(ratios_, average_ratio_, max_width_, min_width_, spacing_).layout();
+    }
+    if (count_ == 2) {
+      return layout_two();
+    }
+    if (count_ == 3) {
+      return layout_three();
+    }
+    return layout_four();
+  }
+
+ private:
+  const vector<ExportHtmlImageSize> &sizes_;
+  vector<double> ratios_;
+  string proportions_;
+  int32 count_;
+  int32 max_width_;
+  int32 max_height_;
+  int32 min_width_;
+  int32 spacing_;
+  double average_ratio_;
+  double max_size_ratio_;
+
+  static int32 round_value(double value) {
+    return MediaGroupComplexLayouter::round_value(value);
+  }
+
+  static vector<double> get_ratios(const vector<ExportHtmlImageSize> &sizes) {
+    vector<double> result;
+    result.reserve(sizes.size());
+    for (const auto &size : sizes) {
+      result.push_back(size.width / static_cast<double>(size.height));
+    }
+    return result;
+  }
+
+  static string get_proportions(const vector<double> &ratios) {
+    string result;
+    for (auto ratio : ratios) {
+      result += ratio > 1.2 ? 'w' : (ratio < 0.8 ? 'n' : 'q');
+    }
+    return result;
+  }
+
+  static double get_average_ratio(const vector<double> &ratios) {
+    if (ratios.empty()) {
+      return 1.0;
+    }
+    // the sum starts from 1, and the choice of the layout depends on it
+    double sum = 1.0;
+    for (auto ratio : ratios) {
+      sum += ratio;
+    }
+    return sum / static_cast<double>(ratios.size());
+  }
+
+  vector<MediaGroupRect> layout_one() const {
+    auto width = max_width_;
+    auto height = static_cast<int32>(static_cast<int64>(sizes_[0].height) * width / sizes_[0].width);
+    return {MediaGroupRect{0, 0, width, height}};
+  }
+
+  vector<MediaGroupRect> layout_two() const {
+    if (proportions_ == "ww" && average_ratio_ > 1.4 * max_size_ratio_ && ratios_[1] - ratios_[0] < 0.2) {
+      return layout_two_top_bottom();
+    }
+    if (proportions_ == "ww" || proportions_ == "qq") {
+      return layout_two_left_right_equal();
+    }
+    return layout_two_left_right();
+  }
+
+  vector<MediaGroupRect> layout_three() const {
+    if (proportions_[0] == 'n') {
+      return layout_three_left_and_other();
+    }
+    return layout_three_top_and_other();
+  }
+
+  vector<MediaGroupRect> layout_four() const {
+    if (proportions_[0] == 'w') {
+      return layout_four_top_and_other();
+    }
+    return layout_four_left_and_other();
+  }
+
+  vector<MediaGroupRect> layout_two_top_bottom() const {
+    auto width = max_width_;
+    auto height = round_value(min(width / ratios_[0], min(width / ratios_[1], (max_height_ - spacing_) / 2.0)));
+    return {MediaGroupRect{0, 0, width, height}, MediaGroupRect{0, height + spacing_, width, height}};
+  }
+
+  vector<MediaGroupRect> layout_two_left_right_equal() const {
+    auto width = (max_width_ - spacing_) / 2;
+    auto height = round_value(min(width / ratios_[0], min(width / ratios_[1], max_height_ * 1.0)));
+    return {MediaGroupRect{0, 0, width, height}, MediaGroupRect{width + spacing_, 0, width, height}};
+  }
+
+  vector<MediaGroupRect> layout_two_left_right() const {
+    auto minimal_width = round_value(min_width_ * 1.5);
+    auto second_width = min(round_value(max(0.4 * (max_width_ - spacing_), (max_width_ - spacing_) / ratios_[0] /
+                                                                               (1.0 / ratios_[0] + 1.0 / ratios_[1]))),
+                            max_width_ - spacing_ - minimal_width);
+    auto first_width = max_width_ - second_width - spacing_;
+    auto height = min(max_height_, round_value(min(first_width / ratios_[0], second_width / ratios_[1])));
+    return {MediaGroupRect{0, 0, first_width, height}, MediaGroupRect{first_width + spacing_, 0, second_width, height}};
+  }
+
+  vector<MediaGroupRect> layout_three_left_and_other() const {
+    auto first_height = max_height_;
+    auto third_height = round_value(
+        min((max_height_ - spacing_) / 2.0, ratios_[1] * (max_width_ - spacing_) / (ratios_[2] + ratios_[1])));
+    auto second_height = first_height - third_height - spacing_;
+    auto right_width = max(min_width_, round_value(min((max_width_ - spacing_) / 2.0,
+                                                       min(third_height * ratios_[2], second_height * ratios_[1]))));
+    auto left_width = min(round_value(first_height * ratios_[0]), max_width_ - spacing_ - right_width);
+    return {MediaGroupRect{0, 0, left_width, first_height},
+            MediaGroupRect{left_width + spacing_, 0, right_width, second_height},
+            MediaGroupRect{left_width + spacing_, second_height + spacing_, right_width, third_height}};
+  }
+
+  vector<MediaGroupRect> layout_three_top_and_other() const {
+    auto first_width = max_width_;
+    auto first_height = round_value(min(first_width / ratios_[0], (max_height_ - spacing_) * 0.66));
+    auto second_width = (max_width_ - spacing_) / 2;
+    auto second_height = min(max_height_ - first_height - spacing_,
+                             round_value(min(second_width / ratios_[1], second_width / ratios_[2])));
+    auto third_width = first_width - second_width - spacing_;
+    return {MediaGroupRect{0, 0, first_width, first_height},
+            MediaGroupRect{0, first_height + spacing_, second_width, second_height},
+            MediaGroupRect{second_width + spacing_, first_height + spacing_, third_width, second_height}};
+  }
+
+  vector<MediaGroupRect> layout_four_top_and_other() const {
+    auto w = max_width_;
+    auto h0 = round_value(min(w / ratios_[0], (max_height_ - spacing_) * 0.66));
+    auto h = round_value((max_width_ - 2 * spacing_) / (ratios_[1] + ratios_[2] + ratios_[3]));
+    auto w0 = max(min_width_, round_value(min((max_width_ - 2 * spacing_) * 0.4, h * ratios_[1])));
+    auto w2 = round_value(max(max(min_width_ * 1.0, (max_width_ - 2 * spacing_) * 0.33), h * ratios_[3]));
+    auto w1 = w - w0 - w2 - 2 * spacing_;
+    auto h1 = min(max_height_ - h0 - spacing_, h);
+    return {MediaGroupRect{0, 0, w, h0}, MediaGroupRect{0, h0 + spacing_, w0, h1},
+            MediaGroupRect{w0 + spacing_, h0 + spacing_, w1, h1},
+            MediaGroupRect{w0 + spacing_ + w1 + spacing_, h0 + spacing_, w2, h1}};
+  }
+
+  vector<MediaGroupRect> layout_four_left_and_other() const {
+    auto h = max_height_;
+    auto w0 = round_value(min(h * ratios_[0], (max_width_ - spacing_) * 0.6));
+    auto w = round_value((max_height_ - 2 * spacing_) / (1.0 / ratios_[1] + 1.0 / ratios_[2] + 1.0 / ratios_[3]));
+    auto h0 = round_value(w / ratios_[1]);
+    auto h1 = round_value(w / ratios_[2]);
+    auto h2 = h - h0 - h1 - 2 * spacing_;
+    auto w1 = max(min_width_, min(max_width_ - w0 - spacing_, w));
+    return {MediaGroupRect{0, 0, w0, h}, MediaGroupRect{w0 + spacing_, 0, w1, h0},
+            MediaGroupRect{w0 + spacing_, h0 + spacing_, w1, h1},
+            MediaGroupRect{w0 + spacing_, h0 + h1 + 2 * spacing_, w1, h2}};
+  }
+};
+
+// a rectangle with inclusive edges, which are swapped for a negative size when rectangles are united
+struct MediaGroupBounds {
+  int32 left = 0;
+  int32 top = 0;
+  int32 right = -1;
+  int32 bottom = -1;
+
+  bool is_null() const {
+    return right == left - 1 && bottom == top - 1;
+  }
+
+  bool is_empty() const {
+    return left > right || top > bottom;
+  }
+
+  int32 get_width() const {
+    return right - left + 1;
+  }
+
+  int32 get_height() const {
+    return bottom - top + 1;
+  }
+};
+
+static MediaGroupBounds get_media_group_bounds(const MediaGroupRect &rect) {
+  MediaGroupBounds result;
+  result.left = rect.x;
+  result.top = rect.y;
+  result.right = rect.x + rect.width - 1;
+  result.bottom = rect.y + rect.height - 1;
+  return result;
+}
+
+static MediaGroupBounds unite_media_group_bounds(const MediaGroupBounds &lhs, const MediaGroupBounds &rhs) {
+  if (lhs.is_null()) {
+    return rhs;
+  }
+  if (rhs.is_null()) {
+    return lhs;
+  }
+  auto get_min = [](int32 from, int32 to) {
+    return to - from + 1 < 0 ? to : from;
+  };
+  auto get_max = [](int32 from, int32 to) {
+    return to - from + 1 < 0 ? from : to;
+  };
+  MediaGroupBounds result;
+  result.left = min(get_min(lhs.left, lhs.right), get_min(rhs.left, rhs.right));
+  result.right = max(get_max(lhs.left, lhs.right), get_max(rhs.left, rhs.right));
+  result.top = min(get_min(lhs.top, lhs.bottom), get_min(rhs.top, rhs.bottom));
+  result.bottom = max(get_max(lhs.top, lhs.bottom), get_max(rhs.top, rhs.bottom));
+  return result;
+}
+
+enum class RichTailState : int32 { Empty, Media, Other };
+
+enum class RichSourceMetaKind : int32 { Source, EmbedPost };
+
+}  // namespace
+
+static Slice get_rich_bool(bool value) {
+  return value ? Slice("true") : Slice("false");
+}
+
+// identifiers are unsigned in the HTML pages
+static string get_rich_id(int64 id) {
+  return to_string(static_cast<uint64>(id));
+}
+
+static HtmlAttributes get_rich_block_attributes(Slice classes, Slice kind) {
+  HtmlAttributes result;
+  result.emplace("class", PSTRING() << "rich_block " << classes);
+  result.emplace("data-rich-kind", kind.str());
+  return result;
+}
+
+static Slice get_rich_heading_tag(int32 level) {
+  switch (level) {
+    case 1:
+      return Slice("h1");
+    case 2:
+      return Slice("h2");
+    case 3:
+      return Slice("h3");
+    case 4:
+      return Slice("h4");
+    case 5:
+      return Slice("h5");
+    default:
+      return Slice("h6");
+  }
+}
+
+static string get_rich_button_peer_types(const vector<ExportInlineButtonAction::PeerType> &types) {
+  string result = "[";
+  for (size_t i = 0; i < types.size(); i++) {
+    if (i > 0) {
+      result += ',';
+    }
+    result += '"';
+    result += get_export_inline_button_peer_type_string(types[i]).str();
+    result += '"';
+  }
+  result += ']';
+  return url_encode(result);
+}
+
+static HtmlAttributes get_rich_button_attributes(const ExportInlineButtonAction &action, bool has_style,
+                                                 ExportRichButtonStyle style, bool is_inline) {
+  using Type = ExportInlineButtonAction::Type;
+  auto style_name = get_export_rich_button_style_string(has_style ? style : ExportRichButtonStyle::Default);
+  auto type_name = get_export_inline_button_action_type_string(action.type);
+  HtmlAttributes result;
+  result.emplace("class", PSTRING() << "rich_button " << (is_inline ? "rich_button_inline" : "rich_button_block")
+                                    << " rich_button_style_" << style_name << " rich_button_action_" << type_name);
+  result.emplace("data-button-type", type_name.str());
+  result.emplace("inline", string());
+  if (has_style) {
+    result.emplace("data-button-style", style_name.str());
+  }
+  switch (action.type) {
+    case Type::Url:
+    case Type::Auth:
+    case Type::WebView:
+      result.emplace("data-button-url", url_encode(action.url));
+      if (action.type == Type::Auth) {
+        if (action.has_forward_text) {
+          result.emplace("data-button-forward-text", url_encode(action.forward_text));
+        }
+        result.emplace("data-button-id", to_string(action.button_id));
+      }
+      break;
+    case Type::Callback:
+    case Type::CallbackWithPassword:
+      result.emplace("data-callback-data-base64", base64url_encode(action.callback_data));
+      result.emplace("data-button-requires-password", get_rich_bool(action.requires_password).str());
+      break;
+    case Type::Game:
+    case Type::Buy:
+    case Type::Disabled:
+      break;
+    case Type::SwitchInline:
+    case Type::SwitchInlineSame:
+      result.emplace("data-button-query", url_encode(action.query));
+      result.emplace("data-button-same-peer", get_rich_bool(action.same_peer).str());
+      if (action.has_peer_types) {
+        result.emplace("data-button-peer-types", get_rich_button_peer_types(action.peer_types));
+      }
+      break;
+    case Type::UserProfile:
+      result.emplace("data-button-user-id", get_rich_id(action.user_id));
+      break;
+    case Type::CopyText:
+      result.emplace("data-copy-text", url_encode(action.copy_text));
+      break;
+    default:
+      UNREACHABLE();
+  }
+  if (action.type == Type::Disabled) {
+    result.emplace("aria-disabled", "true");
+  }
+  return result;
+}
+
+static string get_rich_percent_value(int32 value, int32 total) {
+  return PSTRING() << StringBuilder::FixedDouble(value * 100.0 / total, 3) << '%';
+}
+
+static string get_rich_aspect_ratio_style(int32 width, int32 height) {
+  return PSTRING() << "aspect-ratio: " << width << " / " << height;
+}
+
+static bool rich_text_has_output(const ExportRichText &text) {
+  switch (text.type) {
+    case ExportRichText::Type::Empty:
+      return false;
+    case ExportRichText::Type::Plain:
+      return !text.text.empty();
+    case ExportRichText::Type::Concat:
+      for (const auto &child : text.children) {
+        if (rich_text_has_output(child)) {
+          return true;
+        }
+      }
+      return false;
+    default:
+      return true;
+  }
+}
+
+static bool rich_caption_has_output(const ExportRichCaption &caption) {
+  return rich_text_has_output(caption.text) || rich_text_has_output(caption.credit);
+}
+
+static ExportFile get_rich_file_presentation(const ExportFile *file) {
+  ExportFile result;
+  if (file == nullptr) {
+    result.skip_reason = ExportFile::SkipReason::Unavailable;
+    return result;
+  }
+  result = *file;
+  if (!result.relative_path.empty()) {
+    result.skip_reason = ExportFile::SkipReason::None;
+  } else if (result.skip_reason == ExportFile::SkipReason::None) {
+    result.skip_reason = ExportFile::SkipReason::Unavailable;
+  }
+  return result;
+}
+
+static Slice get_rich_file_description(const ExportFile *file) {
+  return get_no_file_description(get_rich_file_presentation(file).skip_reason);
+}
+
+// returns the scheme of the link in lowercase, or an empty string if the link has none
+static string get_link_scheme(Slice link) {
+  for (size_t i = 0; i < link.size(); i++) {
+    auto c = link[i];
+    if (c == ':') {
+      return to_lower(link.substr(0, i));
+    }
+    if (!is_alpha(c) && (i == 0 || (!is_digit(c) && c != '+' && c != '-' && c != '.'))) {
+      return string();
+    }
+  }
+  return string();
+}
+
+// returns the link of a button, which is opened as an HTTPS link if it has no scheme, or an empty string
+static string get_safe_message_link(Slice value) {
+  if (!is_strict_link_target(value) || begins_with(value, "//") || has_encoded_control(value)) {
+    return string();
+  }
+  auto scheme = get_link_scheme(value);
+  if (scheme.empty()) {
+    return get_safe_link(PSLICE() << "https://" << value);
+  }
+  if (scheme != "http" && scheme != "https" && scheme != "mailto" && scheme != "tel" && scheme != "tg") {
+    return string();
+  }
+  return get_safe_link(value);
+}
+
+// returns the HTTP or HTTPS link if it can be safely opened from the exported page, or an empty string otherwise
+static string get_safe_http_link(Slice value) {
+  if (!is_strict_link_target(value) || begins_with(value, "//") || has_encoded_control(value)) {
+    return string();
+  }
+  auto scheme = get_link_scheme(value);
+  if (scheme != "http" && scheme != "https") {
+    return string();
+  }
+  auto r_link = LinkManager::check_link(value, true);
+  if (r_link.is_error()) {
+    return string();
+  }
+  auto link = r_link.move_as_ok();
+  if (!is_strict_link_target(link) || has_encoded_control(link)) {
+    return string();
+  }
+  return link;
+}
+
+static bool is_unicode_space(uint32 code) {
+  return get_unicode_simple_category(code) == UnicodeSimpleCategory::Separator;
+}
+
+static string get_safe_email_link(Slice address) {
+  if (!is_strict_link_target(address)) {
+    return string();
+  }
+  auto separator = address.find('@');
+  if (separator == 0 || separator == Slice::npos || separator != address.rfind('@') ||
+      separator + 1 == address.size()) {
+    return string();
+  }
+  const auto *ptr = address.ubegin();
+  const auto *end = address.uend();
+  while (ptr != end) {
+    uint32 code = 0;
+    ptr = next_utf8_unsafe(ptr, &code);
+    if (is_unicode_space(code)) {
+      return string();
+    }
+  }
+  for (auto c : Slice("/\\:%?#&=")) {
+    if (address.find(c) != Slice::npos) {
+      return string();
+    }
+  }
+  string result = PSTRING() << "mailto:" << address;
+  return is_strict_link_target(result) ? result : string();
+}
+
+static string get_safe_phone_link(Slice phone) {
+  if (!is_strict_link_target(phone)) {
+    return string();
+  }
+  bool has_digit = false;
+  for (auto c : phone) {
+    if (is_digit(c)) {
+      has_digit = true;
+    } else if (c != '+' && c != '-' && c != ' ' && c != '.' && c != '(' && c != ')') {
+      return string();
+    }
+  }
+  string result = PSTRING() << "tel:" << phone;
+  return has_digit && is_strict_link_target(result) ? result : string();
+}
+
+static bool is_ascii_word(Slice value, size_t min_length, size_t max_length) {
+  if (value.size() < min_length || value.size() > max_length) {
+    return false;
+  }
+  for (auto c : value) {
+    if (!is_alnum(c) && c != '_') {
+      return false;
+    }
+  }
+  return true;
+}
+
+static string get_safe_mention_link(Slice mention) {
+  if (!is_strict_link_target(mention) || mention.size() < 2 || mention[0] != '@') {
+    return string();
+  }
+  auto username = mention.substr(1);
+  for (auto c : username) {
+    if (!is_alnum(c) && c != '_') {
+      return string();
+    }
+  }
+  return get_safe_http_link(PSLICE() << LinkManager::get_t_me_url() << username);
+}
+
+static Slice get_rich_channel_source_name(ExportRichChannel::Source source) {
+  using Source = ExportRichChannel::Source;
+  switch (source) {
+    case Source::ChatEmpty:
+      return Slice("chat_empty");
+    case Source::Chat:
+      return Slice("chat");
+    case Source::ChatForbidden:
+      return Slice("chat_forbidden");
+    case Source::Channel:
+      return Slice("channel");
+    case Source::ChannelForbidden:
+      return Slice("channel_forbidden");
+    case Source::Community:
+      return Slice("community");
+    case Source::CommunityForbidden:
+      return Slice("community_forbidden");
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
+static string get_rich_channel_status(const ExportRichChannel &channel) {
+  using Source = ExportRichChannel::Source;
+  Slice label;
+  switch (channel.source) {
+    case Source::ChatEmpty:
+    case Source::Chat:
+      label = Slice("Chat");
+      break;
+    case Source::ChatForbidden:
+      label = Slice("Chat unavailable");
+      break;
+    case Source::Channel:
+      label = Slice("Channel");
+      break;
+    case Source::ChannelForbidden:
+      label = Slice("Channel unavailable");
+      break;
+    case Source::Community:
+      label = Slice("Community");
+      break;
+    case Source::CommunityForbidden:
+      label = Slice("Community unavailable");
+      break;
+    default:
+      UNREACHABLE();
+  }
+  if (channel.has_username && !channel.username.empty()) {
+    return PSTRING() << '@' << channel.username << ", " << label;
+  }
+  return label.str();
+}
+
+static Slice get_rich_map_point_source_name(ExportRichMapPoint::Source source) {
+  using Source = ExportRichMapPoint::Source;
+  switch (source) {
+    case Source::GeoPointEmpty:
+      return Slice("geo_point_empty");
+    case Source::GeoPoint:
+      return Slice("geo_point");
+    case Source::InputGeoPointEmpty:
+      return Slice("input_geo_point_empty");
+    case Source::InputGeoPoint:
+      return Slice("input_geo_point");
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
+static bool has_rich_map_coordinates(const ExportRichMapPoint &point) {
+  if (point.source != ExportRichMapPoint::Source::GeoPoint &&
+      point.source != ExportRichMapPoint::Source::InputGeoPoint) {
+    return false;
+  }
+  return std::isfinite(point.latitude) && std::isfinite(point.longitude) && point.latitude >= -90.0 &&
+         point.latitude <= 90.0 && point.longitude >= -180.0 && point.longitude <= 180.0;
+}
+
+static bool is_connector_punctuation(uint32 code) {
+  return code == 0x5F || code == 0x203F || code == 0x2040 || code == 0x2054 || code == 0xFE33 || code == 0xFE34 ||
+         (0xFE4D <= code && code <= 0xFE4F) || code == 0xFF3F;
+}
+
+static bool is_unicode_hashtag_word(Slice value) {
+  size_t length = 0;
+  bool all_decimal_digits = true;
+  const auto *ptr = value.ubegin();
+  const auto *end = value.uend();
+  while (ptr != end) {
+    uint32 code = 0;
+    ptr = next_utf8_unsafe(ptr, &code);
+    length++;
+    auto category = get_unicode_simple_category(code);
+    if (category != UnicodeSimpleCategory::Letter && category != UnicodeSimpleCategory::DecimalNumber &&
+        category != UnicodeSimpleCategory::Number && !is_connector_punctuation(code)) {
+      return false;
+    }
+    if (category != UnicodeSimpleCategory::DecimalNumber) {
+      all_decimal_digits = false;
+    }
+  }
+  return RICH_HASHTAG_MIN_LENGTH <= length && length <= RICH_HASHTAG_MAX_LENGTH && !all_decimal_digits;
+}
+
+static bool is_rich_hashtag_action(Slice value) {
+  auto separator = value.find('@');
+  if (separator == Slice::npos) {
+    return is_unicode_hashtag_word(value);
+  }
+  return is_unicode_hashtag_word(value.substr(0, separator)) && separator == value.rfind('@') &&
+         is_ascii_word(value.substr(separator + 1), 1, RICH_USERNAME_MAX_LENGTH);
+}
+
+static bool is_rich_bot_command_action(Slice value) {
+  auto separator = value.find('@');
+  if (separator == Slice::npos) {
+    return is_ascii_word(value, 1, RICH_COMMAND_MAX_LENGTH);
+  }
+  return is_ascii_word(value.substr(0, separator), 1, RICH_COMMAND_MAX_LENGTH) && separator == value.rfind('@') &&
+         is_ascii_word(value.substr(separator + 1), RICH_USERNAME_MIN_LENGTH, RICH_USERNAME_MAX_LENGTH);
+}
+
+static bool is_rich_cashtag_action(Slice value) {
+  if (value.empty() || value.size() > RICH_CASHTAG_MAX_LENGTH) {
+    return false;
+  }
+  for (auto c : value) {
+    if (c < 'A' || c > 'Z') {
+      return false;
+    }
+  }
+  return true;
+}
+
+// returns the hashtag, the bot command or the cashtag without the prefix, or an empty string if it is invalid
+static string get_safe_rich_action_data(Slice target, char prefix) {
+  if (!is_strict_link_target(target) || target[0] != prefix || target.size() < 2) {
+    return string();
+  }
+  auto result = target.substr(1);
+  bool is_valid = false;
+  switch (prefix) {
+    case '#':
+      is_valid = is_rich_hashtag_action(result);
+      break;
+    case '/':
+      is_valid = is_rich_bot_command_action(result);
+      break;
+    case '$':
+      is_valid = is_rich_cashtag_action(result);
+      break;
+    default:
+      UNREACHABLE();
+  }
+  return is_valid && is_strict_link_target(result) ? result.str() : string();
+}
+
+static bool is_ascii_decimal(Slice value) {
+  if (value.empty()) {
+    return false;
+  }
+  for (auto c : value) {
+    if (!is_digit(c)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static string get_safe_relative_emoji_link(Slice path, Slice base) {
+  if (!is_strict_link_target(path) || path[0] == '/' || path.find('\\') != Slice::npos ||
+      path.find(':') != Slice::npos || path.find('%') != Slice::npos || path.find('?') != Slice::npos ||
+      path.find('#') != Slice::npos || path == Slice(UNAVAILABLE_CUSTOM_EMOJI) || is_ascii_decimal(path)) {
+    return string();
+  }
+  for (auto component : full_split(path, '/')) {
+    if (component.empty() || component == "." || component == "..") {
+      return string();
+    }
+  }
+  string result = PSTRING() << base << path;
+  return is_strict_link_target(result) ? result : string();
+}
+
+static bool append_rich_plain_target(string &result, Slice value) {
+  if (result.size() > MAX_LINK_TARGET_SIZE || value.size() > MAX_LINK_TARGET_SIZE - result.size()) {
+    return false;
+  }
+  result.append(value.data(), value.size());
+  return true;
+}
+
+static bool append_rich_plain_target(string &result, const vector<ExportRichText> &texts);
+
+static bool append_rich_plain_target(string &result, const ExportRichText &text) {
+  using Type = ExportRichText::Type;
+  switch (text.type) {
+    case Type::Empty:
+      return true;
+    case Type::Plain:
+    case Type::CustomEmoji:
+      return append_rich_plain_target(result, Slice(text.text));
+    case Type::Button:
+    case Type::Math:
+    case Type::InlineImage:
+      return false;
+    default:
+      return append_rich_plain_target(result, text.children);
+  }
+}
+
+static bool append_rich_plain_target(string &result, const vector<ExportRichText> &texts) {
+  for (const auto &text : texts) {
+    if (!append_rich_plain_target(result, text)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static string get_rich_anchor_token(Slice name) {
+  if (name.empty()) {
+    return "empty";
+  }
+  if (name.size() <= RICH_ANCHOR_DIRECT_SIZE) {
+    return base64url_encode(name);
+  }
+  return PSTRING() << base64url_encode(name.substr(0, RICH_ANCHOR_PREFIX_SIZE)) << '-'
+                   << hex_encode(sha256(name)).substr(0, 16);
+}
+
+namespace {
+
+class RichHtmlRenderer;
 
 class ExportHtmlMessage {
  public:
@@ -979,6 +1939,7 @@ class ExportHtmlMessage {
       , message_(*export_message.message)
       , file_(export_message.file)
       , thumbnail_(export_message.thumbnail)
+      , rich_message_(export_message.rich_message.get())
       , is_history_cleared_(export_message.is_history_cleared)
       , is_migrated_(is_migrated)
       , custom_emoji_files_(custom_emoji_files)
@@ -988,6 +1949,8 @@ class ExportHtmlMessage {
   ExportHtmlMessageInfo push(string &result, const ExportHtmlMessageInfo *previous);
 
  private:
+  friend class RichHtmlRenderer;
+
   Td *td_;
   const ExportSettings &settings_;
   const ExportDialogInfo &dialog_;
@@ -998,6 +1961,7 @@ class ExportHtmlMessage {
   const td_api::message &message_;
   const ExportFile &file_;
   const ExportFile &thumbnail_;
+  const ExportRichMessage *rich_message_;
   bool is_history_cleared_;
   bool is_migrated_;
   const ExportCustomEmojiFiles &custom_emoji_files_;
@@ -1102,13 +2066,25 @@ class ExportHtmlMessage {
 
   void push_generic_media(string &result, const MediaData &data);
 
-  void push_photo_media(string &result, const td_api::photoSize *size);
+  void push_photo_media(string &result, const td_api::photoSize *size, const ExportFile &file,
+                        const ExportFile &thumbnail);
 
   void push_sticker_media(string &result, const td_api::sticker *sticker);
 
   void push_animated_media(string &result, const td_api::animation *animation);
 
-  void push_video_file_media(string &result, const td_api::video *video);
+  void push_video_file_media(string &result, int32 width, int32 height, int32 duration, int64 file_size,
+                             const ExportFile &file, const ExportFile &thumbnail);
+
+  void push_rich_photo_media(string &result, const ExportRichPhoto *photo);
+
+  void push_rich_video_media(string &result, const ExportRichDocument *document);
+
+  void push_rich_audio_media(string &result, const ExportRichDocument *document);
+
+  void push_rich_file_media(string &result, const ExportRichDocument *document);
+
+  void push_rich_reference_media(string &result, MediaData data, const ExportRichPhoto *photo);
 
   void push_poll(string &result, const td_api::poll *poll);
 
@@ -1818,19 +2794,20 @@ bool ExportHtmlMessage::forwarded_needs_wrap(const ExportHtmlMessageInfo &info,
   return std::abs(info.forwarded_date - previous->forwarded_date) > JOIN_WITHIN_SECONDS;
 }
 
-static MediaData get_audio_media_data(const td_api::audio *audio, const ExportFile &file) {
+static MediaData get_audio_media_data(Slice performer, Slice title, Slice file_name, int32 duration, int64 file_size,
+                                      const ExportFile &file) {
   MediaData result;
-  if (!audio->performer_.empty() && !audio->title_.empty()) {
-    result.title = PSTRING() << audio->performer_ << " \xE2\x80\x93 " << audio->title_;
-  } else if (!audio->file_name_.empty()) {
-    result.title = audio->file_name_;
+  if (!performer.empty() && !title.empty()) {
+    result.title = PSTRING() << performer << " \xE2\x80\x93 " << title;
+  } else if (!file_name.empty()) {
+    result.title = file_name.str();
   } else {
     result.title = "Audio file";
   }
-  result.status = format_duration(audio->duration_);
+  result.status = format_duration(duration);
   if (file.relative_path.empty()) {
     result.status += ", ";
-    result.status += format_file_size(get_export_file_size(audio->audio_.get()));
+    result.status += format_file_size(file_size);
   }
   result.classes = "media_audio_file";
   result.link = file.relative_path;
@@ -1942,9 +2919,12 @@ MediaData ExportHtmlMessage::prepare_media_data(const td_api::MessageContent *co
     case td_api::messageExpiredVoiceNote::ID:
       set_self_destructing("Self-destructing video", true, "media_video");
       break;
-    case td_api::messageAudio::ID:
-      result = get_audio_media_data(static_cast<const td_api::messageAudio *>(content)->audio_.get(), file_);
+    case td_api::messageAudio::ID: {
+      const auto *audio = static_cast<const td_api::messageAudio *>(content)->audio_.get();
+      result = get_audio_media_data(audio->performer_, audio->title_, audio->file_name_, audio->duration_,
+                                    get_export_file_size(audio->audio_.get()), file_);
       break;
+    }
     case td_api::messageDocument::ID: {
       const auto *document = static_cast<const td_api::messageDocument *>(content)->document_.get();
       result = get_file_media_data(document->file_name_, document->document_.get(), file_);
@@ -2045,14 +3025,18 @@ void ExportHtmlMessage::push_media(string &result, const td_api::MessageContent 
   }
   switch (content->get_id()) {
     case td_api::messagePhoto::ID:
-      return push_photo_media(
-          result, get_export_photo_size(static_cast<const td_api::messagePhoto *>(content)->photo_->sizes_));
+      return push_photo_media(result,
+                              get_export_photo_size(static_cast<const td_api::messagePhoto *>(content)->photo_->sizes_),
+                              file_, thumbnail_);
     case td_api::messageSticker::ID:
       return push_sticker_media(result, static_cast<const td_api::messageSticker *>(content)->sticker_.get());
     case td_api::messageAnimation::ID:
       return push_animated_media(result, static_cast<const td_api::messageAnimation *>(content)->animation_.get());
-    case td_api::messageVideo::ID:
-      return push_video_file_media(result, static_cast<const td_api::messageVideo *>(content)->video_.get());
+    case td_api::messageVideo::ID: {
+      const auto *video = static_cast<const td_api::messageVideo *>(content)->video_.get();
+      return push_video_file_media(result, video->width_, video->height_, video->duration_,
+                                   get_export_file_size(video->video_.get()), file_, thumbnail_);
+    }
     case td_api::messagePoll::ID:
       return push_poll(result, static_cast<const td_api::messagePoll *>(content)->poll_.get());
     case td_api::messageChecklist::ID:
@@ -2103,8 +3087,9 @@ void ExportHtmlMessage::push_generic_media(string &result, const MediaData &data
   context_.pop_tag(result);
 }
 
-void ExportHtmlMessage::push_photo_media(string &result, const td_api::photoSize *size) {
-  auto thumbnail_size = file_.relative_path.empty() || size == nullptr
+void ExportHtmlMessage::push_photo_media(string &result, const td_api::photoSize *size, const ExportFile &file,
+                                         const ExportFile &thumbnail) {
+  auto thumbnail_size = file.relative_path.empty() || size == nullptr
                             ? ExportHtmlImageSize()
                             : get_thumbnail_size(size->width_, size->height_, EXPORT_HTML_PHOTO_SIZE, false);
   if (thumbnail_size.empty()) {
@@ -2113,21 +3098,21 @@ void ExportHtmlMessage::push_photo_media(string &result, const td_api::photoSize
     if (size != nullptr) {
       generic.status = PSTRING() << size->width_ << "\xC3\x97" << size->height_;
     }
-    if (file_.relative_path.empty()) {
+    if (file.relative_path.empty()) {
       generic.status += ", ";
       generic.status += format_file_size(size == nullptr ? 0 : get_export_file_size(size->photo_.get()));
     } else {
-      generic.link = file_.relative_path;
+      generic.link = file.relative_path;
     }
-    generic.description = get_no_file_description(file_.skip_reason).str();
+    generic.description = get_no_file_description(file.skip_reason).str();
     generic.classes = "media_photo";
     return push_generic_media(result, generic);
   }
   // the downloaded smaller photo is used as the thumbnail, or the photo itself if there is none
-  const auto &image = thumbnail_.relative_path.empty() ? file_.relative_path : thumbnail_.relative_path;
+  const auto &image = thumbnail.relative_path.empty() ? file.relative_path : thumbnail.relative_path;
   context_.push_div(result, "media_wrap clearfix");
   context_.push_tag(result, "a",
-                    {{"class", "photo_wrap clearfix pull_left"}, {"href", PSLICE() << base_ << file_.relative_path}});
+                    {{"class", "photo_wrap clearfix pull_left"}, {"href", PSLICE() << base_ << file.relative_path}});
   context_.push_tag(result, "img",
                     {{"class", "photo"},
                      {"style", get_size_style(thumbnail_size.width / 2, thumbnail_size.height / 2)},
@@ -2199,40 +3184,91 @@ void ExportHtmlMessage::push_animated_media(string &result, const td_api::animat
   context_.pop_tag(result);
 }
 
-void ExportHtmlMessage::push_video_file_media(string &result, const td_api::video *video) {
-  auto thumbnail_size = get_thumbnail_size(video->width_, video->height_, EXPORT_HTML_PHOTO_SIZE, true);
-  if (thumbnail_.relative_path.empty() || file_.relative_path.empty() || thumbnail_size.empty()) {
+void ExportHtmlMessage::push_video_file_media(string &result, int32 width, int32 height, int32 duration,
+                                              int64 file_size, const ExportFile &file, const ExportFile &thumbnail) {
+  auto thumbnail_size = get_thumbnail_size(width, height, EXPORT_HTML_PHOTO_SIZE, true);
+  if (thumbnail.relative_path.empty() || file.relative_path.empty() || thumbnail_size.empty()) {
     MediaData generic;
     generic.title = "Video file";
-    generic.status = format_duration(video->duration_);
-    if (file_.relative_path.empty()) {
+    generic.status = format_duration(duration);
+    if (file.relative_path.empty()) {
       generic.status += ", ";
-      generic.status += format_file_size(get_export_file_size(video->video_.get()));
+      generic.status += format_file_size(file_size);
     } else {
-      generic.link = file_.relative_path;
+      generic.link = file.relative_path;
     }
-    generic.description = get_no_file_description(file_.skip_reason).str();
+    generic.description = get_no_file_description(file.skip_reason).str();
     generic.classes = "media_video";
     return push_generic_media(result, generic);
   }
   context_.push_div(result, "media_wrap clearfix");
   context_.push_tag(
       result, "a",
-      {{"class", "video_file_wrap clearfix pull_left"}, {"href", PSLICE() << base_ << file_.relative_path}});
+      {{"class", "video_file_wrap clearfix pull_left"}, {"href", PSLICE() << base_ << file.relative_path}});
   context_.push_div(result, "video_play_bg");
   context_.push_div(result, "video_play");
   context_.pop_tag(result);
   context_.pop_tag(result);
   context_.push_div(result, "video_duration");
-  result += format_duration(video->duration_);
+  result += format_duration(duration);
   context_.pop_tag(result);
   context_.push_tag(result, "img",
                     {{"class", "video_file"},
                      {"style", get_size_style(thumbnail_size.width / 2, thumbnail_size.height / 2)},
-                     {"src", PSLICE() << base_ << thumbnail_.relative_path},
+                     {"src", PSLICE() << base_ << thumbnail.relative_path},
                      {"empty", ""}});
   context_.pop_tag(result);
   context_.pop_tag(result);
+}
+
+void ExportHtmlMessage::push_rich_photo_media(string &result, const ExportRichPhoto *photo) {
+  // a missing photo is shown like an unavailable photo with zero width and height
+  td_api::photoSize empty_size;
+  const td_api::photoSize *size = &empty_size;
+  if (photo != nullptr && photo->photo != nullptr) {
+    const auto *largest_size = get_export_photo_size(photo->photo->sizes_);
+    if (largest_size != nullptr) {
+      size = largest_size;
+    }
+  }
+  auto file = get_rich_file_presentation(photo == nullptr ? nullptr : &photo->file);
+  push_photo_media(result, size, file, photo == nullptr ? file : photo->thumbnail);
+}
+
+void ExportHtmlMessage::push_rich_video_media(string &result, const ExportRichDocument *document) {
+  if (document == nullptr) {
+    auto file = get_rich_file_presentation(nullptr);
+    return push_video_file_media(result, 0, 0, 0, 0, file, file);
+  }
+  push_video_file_media(result, document->width, document->height, document->duration,
+                        get_export_file_size(document->document.get()), get_rich_file_presentation(&document->file),
+                        get_rich_file_presentation(&document->thumbnail_file));
+}
+
+void ExportHtmlMessage::push_rich_audio_media(string &result, const ExportRichDocument *document) {
+  if (document == nullptr) {
+    return push_generic_media(
+        result, get_audio_media_data(Slice(), Slice(), Slice(), 0, 0, get_rich_file_presentation(nullptr)));
+  }
+  push_generic_media(result, get_audio_media_data(document->performer, document->title, document->file_name,
+                                                  document->duration, get_export_file_size(document->document.get()),
+                                                  get_rich_file_presentation(&document->file)));
+}
+
+void ExportHtmlMessage::push_rich_file_media(string &result, const ExportRichDocument *document) {
+  if (document == nullptr) {
+    return push_generic_media(result, get_file_media_data(Slice(), nullptr, get_rich_file_presentation(nullptr)));
+  }
+  push_generic_media(result, get_file_media_data(document->file_name, document->document.get(),
+                                                 get_rich_file_presentation(&document->file)));
+}
+
+void ExportHtmlMessage::push_rich_reference_media(string &result, MediaData data, const ExportRichPhoto *photo) {
+  data.link = get_rich_file_presentation(photo == nullptr ? nullptr : &photo->file).relative_path;
+  if (!data.link.empty()) {
+    data.thumbnail = photo->card_thumbnail.relative_path.empty() ? data.link : photo->card_thumbnail.relative_path;
+  }
+  push_generic_media(result, data);
 }
 
 static string format_vote_count(int32 count) {
@@ -2657,10 +3693,1366 @@ void ExportHtmlMessage::push_reactions(string &result) {
   context_.pop_tag(result);
 }
 
+class RichHtmlRenderer {
+ public:
+  RichHtmlRenderer(ExportHtmlMessage &message, const ExportRichMessage &rich_message)
+      : message_(message), context_(message.context_), rich_message_(rich_message) {
+  }
+
+  void render_message(string &result) {
+    collect_anchors();
+    context_.push_tag(result, "div",
+                      {{"class", "text rich_message"},
+                       {"data-rich-message", PSLICE() << message_.get_message_id()},
+                       {"data-rich-part", get_rich_bool(rich_message_.part)},
+                       {"dir", rich_message_.rtl ? Slice("rtl") : Slice("auto")},
+                       {"inline", ""}});
+    render_blocks(result, rich_message_.blocks);
+    context_.pop_tag(result);
+  }
+
+ private:
+  ExportHtmlMessage &message_;
+  HtmlContext &context_;
+  const ExportRichMessage &rich_message_;
+  bool is_link_active_ = false;
+  std::map<string, string> first_anchor_ids_;
+  std::map<string, int32> anchor_occurrences_;
+  std::map<const ExportRichText *, string> text_anchor_ids_;
+  std::map<const ExportRichBlock *, string> block_anchor_ids_;
+
+  // sets is_link_active_ until the end of the scope, because links can't be nested
+  class LinkGuard {
+   public:
+    explicit LinkGuard(bool &is_link_active) : is_link_active_(is_link_active), previous_(is_link_active) {
+      is_link_active_ = true;
+    }
+    LinkGuard(const LinkGuard &) = delete;
+    LinkGuard &operator=(const LinkGuard &) = delete;
+    ~LinkGuard() {
+      is_link_active_ = previous_;
+    }
+
+   private:
+    bool &is_link_active_;
+    bool previous_;
+  };
+
+  string format_date_time(int32 date) const {
+    return td::format_date_time(date, message_.settings_.utc_time_offset, false);
+  }
+
+  string get_iso_date_time(int32 date) const {
+    return get_export_date_time_string(get_export_local_time(date, message_.settings_.utc_time_offset));
+  }
+
+  const ExportRichPhoto *find_photo(int64 photo_id) const {
+    return photo_id == 0 ? nullptr : rich_message_.get_photo(photo_id);
+  }
+
+  const ExportRichDocument *find_document(int64 document_id) const {
+    return document_id == 0 ? nullptr : rich_message_.get_document(document_id);
+  }
+
+  bool get_media_item_size(const ExportRichBlock &block, ExportHtmlImageSize &size) const {
+    if (block.kind == ExportRichBlock::Kind::Photo) {
+      const auto *photo = find_photo(block.photo_id);
+      if (photo == nullptr || photo->file.relative_path.empty() || photo->photo == nullptr) {
+        return false;
+      }
+      const auto *photo_size = get_export_photo_size(photo->photo->sizes_);
+      if (photo_size == nullptr) {
+        return false;
+      }
+      size = ExportHtmlImageSize{photo_size->width_, photo_size->height_};
+    } else if (block.kind == ExportRichBlock::Kind::Video) {
+      const auto *document = find_document(block.document_id);
+      if (document == nullptr || document->file.relative_path.empty() ||
+          document->thumbnail_file.relative_path.empty()) {
+        return false;
+      }
+      size = ExportHtmlImageSize{document->width, document->height};
+    } else {
+      return false;
+    }
+    return size.width > 0 && size.height > 0;
+  }
+
+  // returns an empty vector unless all the blocks are media, which can be laid out as an album
+  vector<ExportHtmlImageSize> get_media_group_sizes(const vector<ExportRichBlock> &blocks) const {
+    vector<ExportHtmlImageSize> result;
+    result.reserve(blocks.size());
+    for (const auto &block : blocks) {
+      ExportHtmlImageSize size;
+      if (!get_media_item_size(block, size) || rich_caption_has_output(block.caption) ||
+          (block.has_optional_url && !block.optional_url.empty())) {
+        return {};
+      }
+      result.push_back(size);
+    }
+    return result;
+  }
+
+  RichTailState get_tail_state(const vector<ExportRichBlock> &blocks) const {
+    for (auto it = blocks.rbegin(); it != blocks.rend(); ++it) {
+      auto state = get_tail_state(*it);
+      if (state != RichTailState::Empty) {
+        return state;
+      }
+    }
+    return RichTailState::Empty;
+  }
+
+  RichTailState get_tail_state(const ExportRichBlock &block) const {
+    using Kind = ExportRichBlock::Kind;
+    auto get_media_state = [](bool has_other) {
+      return has_other ? RichTailState::Other : RichTailState::Media;
+    };
+    switch (block.kind) {
+      case Kind::Unsupported:
+      case Kind::Heading:
+      case Kind::Paragraph:
+      case Kind::Footer:
+      case Kind::Thinking:
+      case Kind::AuthorDate:
+      case Kind::Code:
+      case Kind::Divider:
+      case Kind::Math:
+      case Kind::Table:
+      case Kind::ButtonRow:
+        return RichTailState::Other;
+      case Kind::Anchor:
+        return RichTailState::Empty;
+      case Kind::List: {
+        if (block.list_items.empty()) {
+          return RichTailState::Empty;
+        }
+        const auto &item = block.list_items.back();
+        if (item.content == ExportRichContent::Blocks) {
+          auto state = get_tail_state(item.blocks);
+          if (state != RichTailState::Empty) {
+            return state;
+          }
+        }
+        return RichTailState::Other;
+      }
+      case Kind::Quote:
+        if (rich_text_has_output(block.quote_caption)) {
+          return RichTailState::Other;
+        }
+        if (block.quote_content == ExportRichContent::Blocks) {
+          auto state = get_tail_state(block.blocks);
+          if (state != RichTailState::Empty) {
+            return state;
+          }
+        }
+        return RichTailState::Other;
+      case Kind::Photo:
+        return get_media_state(rich_caption_has_output(block.caption) ||
+                               (block.has_optional_url && !block.optional_url.empty()));
+      case Kind::Video:
+      case Kind::Audio:
+      case Kind::File:
+      case Kind::Map:
+      case Kind::InputMap:
+        return get_media_state(rich_caption_has_output(block.caption));
+      case Kind::Cover:
+        return get_tail_state(block.blocks);
+      case Kind::Embed:
+        return get_media_state(rich_caption_has_output(block.caption) ||
+                               (block.has_poster_photo_id && block.has_optional_url && !block.optional_url.empty()));
+      case Kind::EmbedPost: {
+        if (rich_caption_has_output(block.caption)) {
+          return RichTailState::Other;
+        }
+        auto state = get_tail_state(block.blocks);
+        if (state != RichTailState::Empty) {
+          return state;
+        }
+        return get_media_state(!block.url.empty());
+      }
+      case Kind::Collage:
+      case Kind::Slideshow:
+        return rich_caption_has_output(block.caption) ? RichTailState::Other : get_tail_state(block.blocks);
+      case Kind::Channel:
+        return RichTailState::Media;
+      case Kind::Details:
+        if (block.open) {
+          auto state = get_tail_state(block.blocks);
+          if (state != RichTailState::Empty) {
+            return state;
+          }
+        }
+        return RichTailState::Other;
+      case Kind::RelatedArticles: {
+        if (block.related_articles.empty()) {
+          return rich_text_has_output(block.text) ? RichTailState::Other : RichTailState::Empty;
+        }
+        const auto &article = block.related_articles.back();
+        if (!article.url.empty()) {
+          return RichTailState::Other;
+        }
+        if (article.has_photo_id && article.has_description && !article.description.empty()) {
+          const auto *photo = find_photo(article.photo_id);
+          if (!get_rich_file_description(photo == nullptr ? nullptr : &photo->file).empty()) {
+            return RichTailState::Other;
+          }
+        }
+        return RichTailState::Media;
+      }
+      default:
+        UNREACHABLE();
+        return RichTailState::Other;
+    }
+  }
+
+  void render_caption(string &result, const ExportRichCaption &caption) {
+    string text;
+    render_text(text, caption.text);
+    string credit;
+    render_text(credit, caption.credit);
+    if (text.empty() && credit.empty()) {
+      return;
+    }
+    context_.push_tag(result, "figcaption", {{"class", "rich_media_caption"}, {"dir", "auto"}});
+    if (!text.empty()) {
+      context_.push_div(result, "rich_caption_text");
+      result += text;
+      context_.pop_tag(result);
+    }
+    if (!credit.empty()) {
+      context_.push_tag(result, "cite", {{"class", "rich_caption_credit"}});
+      result += credit;
+      context_.pop_tag(result);
+    }
+    context_.pop_tag(result);
+  }
+
+  void render_source_meta(string &result, Slice source, RichSourceMetaKind kind) {
+    if (source.empty()) {
+      return;
+    }
+    context_.push_div(result,
+                      kind == RichSourceMetaKind::Source ? Slice("rich_source_meta") : Slice("rich_embed_post_meta"));
+    auto href = get_safe_http_link(source);
+    if (!href.empty() && !is_link_active_) {
+      context_.push_tag(result, "a", {{"class", "rich_source_link"}, {"href", href}, {"inline", ""}});
+      LinkGuard guard(is_link_active_);
+      append_html_escaped(result, source);
+      context_.pop_tag(result);
+    } else {
+      context_.push_tag(result, "span", {{"class", "rich_source_text"}, {"inline", ""}});
+      append_html_escaped(result, source);
+      context_.pop_tag(result);
+    }
+    context_.pop_tag(result);
+  }
+
+  void render_photo(string &result, const ExportRichBlock &block) {
+    auto attributes = get_rich_block_attributes("rich_media_item", "photo");
+    attributes.emplace("data-photo-id", get_rich_id(block.photo_id));
+    attributes.emplace("data-spoiler", get_rich_bool(block.spoiler).str());
+    if (block.has_optional_webpage_id) {
+      attributes.emplace("data-webpage-id", get_rich_id(block.optional_webpage_id));
+    }
+    context_.push_tag(result, "figure", attributes);
+    message_.push_rich_photo_media(result, find_photo(block.photo_id));
+    if (block.has_optional_url) {
+      render_source_meta(result, block.optional_url, RichSourceMetaKind::Source);
+    }
+    render_caption(result, block.caption);
+    context_.pop_tag(result);
+  }
+
+  void render_video(string &result, const ExportRichBlock &block) {
+    auto attributes = get_rich_block_attributes("rich_media_item", "video");
+    attributes.emplace("data-document-id", get_rich_id(block.document_id));
+    attributes.emplace("data-autoplay", get_rich_bool(block.autoplay).str());
+    attributes.emplace("data-loop", get_rich_bool(block.loop).str());
+    attributes.emplace("data-spoiler", get_rich_bool(block.spoiler).str());
+    context_.push_tag(result, "figure", attributes);
+    message_.push_rich_video_media(result, find_document(block.document_id));
+    render_caption(result, block.caption);
+    context_.pop_tag(result);
+  }
+
+  void render_audio(string &result, const ExportRichBlock &block) {
+    auto attributes = get_rich_block_attributes("rich_media_item", "audio");
+    attributes.emplace("data-document-id", get_rich_id(block.document_id));
+    context_.push_tag(result, "figure", attributes);
+    message_.push_rich_audio_media(result, find_document(block.document_id));
+    render_caption(result, block.caption);
+    context_.pop_tag(result);
+  }
+
+  void render_file(string &result, const ExportRichBlock &block) {
+    auto attributes = get_rich_block_attributes("rich_media_item", "file");
+    attributes.emplace("data-document-id", get_rich_id(block.document_id));
+    context_.push_tag(result, "figure", attributes);
+    message_.push_rich_file_media(result, find_document(block.document_id));
+    render_caption(result, block.caption);
+    context_.pop_tag(result);
+  }
+
+  void render_media_group(string &result, const ExportRichBlock &block, Slice kind, bool render_group_caption) {
+    auto attributes = get_rich_block_attributes("rich_media_group", kind);
+    attributes.emplace("data-rich-has-items", get_rich_bool(!block.blocks.empty()).str());
+    attributes.emplace("data-rich-items-end-media",
+                       get_rich_bool(get_tail_state(block.blocks) == RichTailState::Media).str());
+    context_.push_tag(result, "section", attributes);
+    context_.push_div(result, "rich_media_group_items");
+    render_blocks(result, block.blocks);
+    context_.pop_tag(result);
+    if (render_group_caption) {
+      render_caption(result, block.caption);
+    }
+    context_.pop_tag(result);
+  }
+
+  void render_collage(string &result, const ExportRichBlock &block) {
+    auto sizes = get_media_group_sizes(block.blocks);
+    if (sizes.empty()) {
+      return render_media_group(result, block, "collage", true);
+    }
+    auto layout = MediaGroupLayouter(sizes, MEDIA_GROUP_MAX_WIDTH, MEDIA_GROUP_MIN_WIDTH, MEDIA_GROUP_SPACING).layout();
+    MediaGroupBounds full;
+    for (const auto &part : layout) {
+      full = unite_media_group_bounds(full, get_media_group_bounds(part));
+    }
+    if (layout.size() != sizes.size() || full.is_empty()) {
+      return render_media_group(result, block, "collage", true);
+    }
+    auto full_width = full.get_width();
+    auto full_height = full.get_height();
+    auto attributes = get_rich_block_attributes("rich_media_group", "collage");
+    attributes.emplace("data-rich-has-items", "true");
+    attributes.emplace("data-rich-items-end-media", "true");
+    context_.push_tag(result, "section", attributes);
+    context_.push_div(result, "rich_collage_box", get_rich_aspect_ratio_style(full_width, full_height));
+    for (size_t i = 0; i < block.blocks.size(); i++) {
+      const auto &geometry = layout[i];
+      context_.push_div(result, "rich_collage_item",
+                        PSLICE() << "left: " << get_rich_percent_value(geometry.x - full.left, full_width)
+                                 << "; top: " << get_rich_percent_value(geometry.y - full.top, full_height)
+                                 << "; width: " << get_rich_percent_value(geometry.width, full_width)
+                                 << "; height: " << get_rich_percent_value(geometry.height, full_height));
+      render_block(result, block.blocks[i]);
+      context_.pop_tag(result);
+    }
+    context_.pop_tag(result);
+    render_caption(result, block.caption);
+    context_.pop_tag(result);
+  }
+
+  void render_slideshow(string &result, const ExportRichBlock &block) {
+    auto sizes = get_media_group_sizes(block.blocks);
+    if (sizes.empty()) {
+      return render_media_group(result, block, "slideshow", true);
+    }
+    auto widest = sizes[0];
+    for (const auto &size : sizes) {
+      if (static_cast<int64>(size.width) * widest.height > static_cast<int64>(widest.width) * size.height) {
+        widest = size;
+      }
+    }
+    auto has_controls = block.blocks.size() > 1;
+    auto attributes = get_rich_block_attributes("rich_media_group", "slideshow");
+    attributes.emplace("data-rich-has-items", "true");
+    attributes.emplace("data-rich-items-end-media", "true");
+    context_.push_tag(result, "section", attributes);
+    context_.push_div(result, "rich_slideshow_box", get_rich_aspect_ratio_style(widest.width, widest.height));
+    context_.push_div(result, "rich_slideshow_track");
+    for (const auto &item : block.blocks) {
+      context_.push_div(result, "rich_slide");
+      render_block(result, item);
+      context_.pop_tag(result);
+    }
+    context_.pop_tag(result);
+    if (has_controls) {
+      context_.push_tag(result, "button", {{"class", "rich_slideshow_prev"}, {"type", "button"}, {"inline", ""}});
+      result += "&#8592;";
+      context_.pop_tag(result);
+      context_.push_tag(result, "button", {{"class", "rich_slideshow_next"}, {"type", "button"}, {"inline", ""}});
+      result += "&#8594;";
+      context_.pop_tag(result);
+      context_.push_div(result, "rich_slideshow_dots");
+      for (size_t i = 0; i < block.blocks.size(); i++) {
+        context_.push_tag(result, "button", {{"class", "rich_slideshow_dot"}, {"type", "button"}, {"inline", ""}});
+        context_.pop_tag(result);
+      }
+      context_.pop_tag(result);
+    }
+    context_.pop_tag(result);
+    render_caption(result, block.caption);
+    context_.pop_tag(result);
+  }
+
+  void render_embed(string &result, const ExportRichBlock &block) {
+    auto has_poster = block.has_poster_photo_id;
+    auto has_meta = has_poster && block.has_optional_url && !block.optional_url.empty();
+    auto attributes = get_rich_block_attributes("rich_media_item rich_embed", "embed");
+    attributes.emplace("data-full-width", get_rich_bool(block.full_width).str());
+    attributes.emplace("data-allow-scrolling", get_rich_bool(block.allow_scrolling).str());
+    attributes.emplace("data-rich-has-meta", get_rich_bool(has_meta).str());
+    if (block.has_poster_photo_id) {
+      attributes.emplace("data-poster-photo-id", get_rich_id(block.poster_photo_id));
+    }
+    if (block.has_size) {
+      attributes.emplace("data-source-width", to_string(block.width));
+      attributes.emplace("data-source-height", to_string(block.height));
+    }
+    context_.push_tag(result, "figure", attributes);
+    if (has_poster) {
+      message_.push_rich_photo_media(result, find_photo(block.poster_photo_id));
+      if (block.has_optional_url) {
+        render_source_meta(result, block.optional_url, RichSourceMetaKind::Source);
+      }
+    } else {
+      MediaData media;
+      media.title = "Embed";
+      media.classes = "media_file";
+      if (block.has_optional_url) {
+        media.status = block.optional_url;
+        media.link = get_safe_http_link(block.optional_url);
+      }
+      message_.push_generic_media(result, media);
+    }
+    render_caption(result, block.caption);
+    context_.pop_tag(result);
+  }
+
+  void render_embed_post(string &result, const ExportRichBlock &block) {
+    const auto *photo = find_photo(block.author_photo_id);
+    auto attributes = get_rich_block_attributes("rich_embed_post", "embed-post");
+    attributes.emplace("data-webpage-id", get_rich_id(block.webpage_id));
+    attributes.emplace("data-author-photo-id", get_rich_id(block.author_photo_id));
+    attributes.emplace("data-date", to_string(block.date));
+    attributes.emplace("data-rich-has-meta", get_rich_bool(!block.url.empty()).str());
+    attributes.emplace("data-rich-has-items", get_rich_bool(!block.blocks.empty()).str());
+    attributes.emplace("data-rich-items-end-media",
+                       get_rich_bool(get_tail_state(block.blocks) == RichTailState::Media).str());
+    context_.push_tag(result, "section", attributes);
+    context_.push_div(result, "rich_embed_post_author");
+    MediaData media;
+    media.title = block.author.empty() ? string("Embed post") : block.author;
+    media.description = get_rich_file_description(photo == nullptr ? nullptr : &photo->file).str();
+    media.status = format_date_time(block.date);
+    media.classes = "media_contact";
+    message_.push_rich_reference_media(result, std::move(media), photo);
+    context_.pop_tag(result);
+    render_source_meta(result, block.url, RichSourceMetaKind::EmbedPost);
+    context_.push_div(result, "rich_embed_post_blocks");
+    render_blocks(result, block.blocks);
+    context_.pop_tag(result);
+    render_caption(result, block.caption);
+    context_.pop_tag(result);
+  }
+
+  void render_channel(string &result, const ExportRichBlock &block) {
+    const auto &channel = block.channel;
+    auto attributes = get_rich_block_attributes("rich_reference_block", "channel");
+    attributes.emplace("data-channel-source", get_rich_channel_source_name(channel.source).str());
+    attributes.emplace("data-channel-id", get_rich_id(channel.id));
+    attributes.emplace("data-broadcast", get_rich_bool(channel.broadcast).str());
+    attributes.emplace("data-megagroup", get_rich_bool(channel.megagroup).str());
+    attributes.emplace("data-monoforum", get_rich_bool(channel.monoforum).str());
+    if (channel.has_access_hash) {
+      attributes.emplace("data-access-hash", to_string(channel.access_hash));
+    }
+    context_.push_tag(result, "section", attributes);
+    MediaData media;
+    media.title = channel.has_title && !channel.title.empty() ? channel.title : string("Channel");
+    media.status = get_rich_channel_status(channel);
+    media.classes = "media_contact";
+    if (channel.has_username && is_ascii_word(channel.username, RICH_USERNAME_MIN_LENGTH, RICH_USERNAME_MAX_LENGTH)) {
+      media.link = get_safe_http_link(PSLICE() << LinkManager::get_t_me_url() << channel.username);
+    }
+    message_.push_generic_media(result, media);
+    context_.pop_tag(result);
+  }
+
+  void render_map(string &result, const ExportRichBlock &block, Slice kind) {
+    const auto &point = block.map_point;
+    auto attributes = get_rich_block_attributes("rich_reference_block", kind);
+    attributes.emplace("data-point-source", get_rich_map_point_source_name(point.source).str());
+    attributes.emplace("data-zoom", to_string(block.zoom));
+    attributes.emplace("data-source-width", to_string(block.map_width));
+    attributes.emplace("data-source-height", to_string(block.map_height));
+    if (point.has_access_hash) {
+      attributes.emplace("data-access-hash", to_string(point.access_hash));
+    }
+    if (point.has_accuracy_radius) {
+      attributes.emplace("data-accuracy-radius", to_string(point.accuracy_radius));
+    }
+    context_.push_tag(result, "figure", attributes);
+    MediaData media;
+    media.title = "Location";
+    media.classes = "media_location";
+    if (has_rich_map_coordinates(point)) {
+      auto latitude = format_coordinate(point.latitude);
+      auto longitude = format_coordinate(point.longitude);
+      media.status = PSTRING() << latitude << ", " << longitude;
+      auto coordinates = PSTRING() << latitude << ',' << longitude;
+      media.link = get_safe_http_link(PSLICE() << "https://maps.google.com/maps?q=" << coordinates
+                                               << "&ll=" << coordinates << "&z=16");
+    }
+    message_.push_generic_media(result, media);
+    render_caption(result, block.caption);
+    context_.pop_tag(result);
+  }
+
+  void render_related_article(string &result, const ExportRichRelatedArticle &article, int32 index) {
+    HtmlAttributes attributes;
+    attributes.emplace("class", "rich_related_article");
+    attributes.emplace("data-rich-article-index", to_string(index));
+    attributes.emplace("data-webpage-id", get_rich_id(article.webpage_id));
+    if (article.has_photo_id) {
+      attributes.emplace("data-photo-id", get_rich_id(article.photo_id));
+    }
+    if (article.has_published_date) {
+      attributes.emplace("data-published-date", to_string(article.published_date));
+    }
+    context_.push_tag(result, "article", attributes);
+    MediaData media;
+    media.title = article.has_title && !article.title.empty() ? article.title : string("Related article");
+    if (article.has_author) {
+      media.status = article.author;
+    }
+    auto published_date = article.has_published_date ? format_date_time(article.published_date) : string();
+    if (!published_date.empty()) {
+      if (!media.status.empty()) {
+        media.status += ", ";
+      }
+      media.status += published_date;
+    }
+    auto description = article.has_description ? article.description : string();
+    bool is_description_displaced = false;
+    if (article.has_photo_id) {
+      const auto *photo = find_photo(article.photo_id);
+      auto file_description = get_rich_file_description(photo == nullptr ? nullptr : &photo->file);
+      media.classes = "media_photo";
+      media.description = file_description.empty() ? description : file_description.str();
+      is_description_displaced = !file_description.empty() && !description.empty();
+      message_.push_rich_reference_media(result, std::move(media), photo);
+    } else {
+      media.classes = "media_file";
+      media.description = description;
+      message_.push_generic_media(result, media);
+    }
+    if (is_description_displaced) {
+      context_.push_div(result, "rich_article_description");
+      append_html_escaped(result, description);
+      context_.pop_tag(result);
+    }
+    render_source_meta(result, article.url, RichSourceMetaKind::Source);
+    context_.pop_tag(result);
+  }
+
+  void render_related_articles(string &result, const ExportRichBlock &block) {
+    string title;
+    render_text(title, block.text);
+    context_.push_tag(result, "section", get_rich_block_attributes("rich_related_articles", "related-articles"));
+    if (!title.empty()) {
+      context_.push_tag(result, "div", {{"class", "rich_related_title"}, {"dir", "auto"}});
+      result += title;
+      context_.pop_tag(result);
+    }
+    context_.push_div(result, "rich_related_items");
+    int32 index = 0;
+    for (const auto &article : block.related_articles) {
+      render_related_article(result, article, index++);
+    }
+    context_.pop_tag(result);
+    context_.pop_tag(result);
+  }
+
+  void collect_anchors() {
+    first_anchor_ids_.clear();
+    anchor_occurrences_.clear();
+    text_anchor_ids_.clear();
+    block_anchor_ids_.clear();
+    collect_block_anchors(rich_message_.blocks);
+  }
+
+  string register_anchor(const string &name) {
+    string base = PSTRING() << "rich-message-" << message_.get_message_id() << "-anchor-"
+                            << get_rich_anchor_token(name);
+    auto occurrence = ++anchor_occurrences_[base];
+    auto result = occurrence > 1 ? PSTRING() << base << '-' << occurrence : base;
+    first_anchor_ids_.emplace(name, result);
+    return result;
+  }
+
+  void collect_text_anchors(const ExportRichText &text) {
+    using Type = ExportRichText::Type;
+    switch (text.type) {
+      case Type::Anchor:
+        text_anchor_ids_.emplace(&text, register_anchor(text.data));
+        collect_text_anchors(text.children);
+        break;
+      case Type::Diff:
+        collect_text_anchors(text.children);
+        collect_text_anchors(text.old_children);
+        break;
+      case Type::Empty:
+      case Type::Plain:
+      case Type::Math:
+      case Type::CustomEmoji:
+      case Type::InlineImage:
+        break;
+      default:
+        collect_text_anchors(text.children);
+        break;
+    }
+  }
+
+  void collect_text_anchors(const vector<ExportRichText> &texts) {
+    for (const auto &text : texts) {
+      collect_text_anchors(text);
+    }
+  }
+
+  void collect_caption_anchors(const ExportRichCaption &caption) {
+    collect_text_anchors(caption.text);
+    collect_text_anchors(caption.credit);
+  }
+
+  void collect_block_anchors(const vector<ExportRichBlock> &blocks) {
+    for (const auto &block : blocks) {
+      collect_block_anchors(block);
+    }
+  }
+
+  void collect_block_anchors(const ExportRichBlock &block) {
+    using Kind = ExportRichBlock::Kind;
+    switch (block.kind) {
+      case Kind::Heading:
+      case Kind::Paragraph:
+      case Kind::Footer:
+      case Kind::Thinking:
+      case Kind::AuthorDate:
+      case Kind::Code:
+        collect_text_anchors(block.text);
+        break;
+      case Kind::Anchor:
+        block_anchor_ids_.emplace(&block, register_anchor(block.name));
+        break;
+      case Kind::List:
+        for (const auto &item : block.list_items) {
+          if (item.content == ExportRichContent::Text) {
+            collect_text_anchors(item.text);
+          } else {
+            collect_block_anchors(item.blocks);
+          }
+        }
+        break;
+      case Kind::Quote:
+        if (block.quote_content == ExportRichContent::Text) {
+          collect_text_anchors(block.text);
+        } else {
+          collect_block_anchors(block.blocks);
+        }
+        collect_text_anchors(block.quote_caption);
+        break;
+      case Kind::Photo:
+      case Kind::Video:
+      case Kind::Audio:
+      case Kind::File:
+      case Kind::Embed:
+      case Kind::Map:
+      case Kind::InputMap:
+        collect_caption_anchors(block.caption);
+        break;
+      case Kind::EmbedPost:
+      case Kind::Collage:
+      case Kind::Slideshow:
+        collect_block_anchors(block.blocks);
+        collect_caption_anchors(block.caption);
+        break;
+      case Kind::Cover:
+        collect_block_anchors(block.blocks);
+        break;
+      case Kind::Table:
+        collect_text_anchors(block.text);
+        for (const auto &row : block.table_rows) {
+          for (const auto &cell : row.cells) {
+            if (cell.has_text) {
+              collect_text_anchors(cell.text);
+            }
+          }
+        }
+        break;
+      case Kind::Details:
+        collect_text_anchors(block.text);
+        collect_block_anchors(block.blocks);
+        break;
+      case Kind::RelatedArticles:
+        collect_text_anchors(block.text);
+        break;
+      case Kind::ButtonRow:
+        collect_text_anchors(block.buttons);
+        break;
+      case Kind::Unsupported:
+      case Kind::Divider:
+      case Kind::Channel:
+      case Kind::Math:
+        break;
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  // returns an empty string if there is no such anchor
+  string get_fragment_link(Slice target) const {
+    if (!is_strict_link_target(target) || target[0] != '#') {
+      return string();
+    }
+    auto it = first_anchor_ids_.find(target.substr(1).str());
+    return it == first_anchor_ids_.end() ? string() : PSTRING() << '#' << it->second;
+  }
+
+  template <class T>
+  static string get_anchor_id(const std::map<const T *, string> &anchor_ids, const T &object) {
+    auto it = anchor_ids.find(&object);
+    return it == anchor_ids.end() ? string() : it->second;
+  }
+
+  void render_texts(string &result, const vector<ExportRichText> &texts) {
+    for (const auto &text : texts) {
+      render_text(result, text);
+    }
+  }
+
+  void render_unsupported_text(string &result) {
+    context_.push_tag(result, "span",
+                      {{"class", "rich_inline_fallback"}, {"data-rich-kind", "unsupported-text"}, {"inline", ""}});
+    result += "Unsupported rich text";
+    context_.pop_tag(result);
+  }
+
+  void render_text_children(string &result, const ExportRichText &text) {
+    if (!text.children.empty()) {
+      return render_texts(result, text.children);
+    }
+    render_unsupported_text(result);
+  }
+
+  void render_text_link(string &result, const ExportRichText &text, bool has_href, Slice href,
+                        HtmlAttributes attributes) {
+    attributes.emplace("inline", string());
+    if (!has_href || is_link_active_) {
+      attributes.erase("href");
+      attributes.erase("onclick");
+      attributes.emplace("class", "rich_inert_link");
+      context_.push_tag(result, "span", attributes);
+      render_text_children(result, text);
+      context_.pop_tag(result);
+      return;
+    }
+    attributes.emplace("href", href.str());
+    context_.push_tag(result, "a", attributes);
+    LinkGuard guard(is_link_active_);
+    render_text_children(result, text);
+    context_.pop_tag(result);
+  }
+
+  void render_text_link(string &result, const ExportRichText &text, const string &href) {
+    render_text_link(result, text, !href.empty(), href, HtmlAttributes());
+  }
+
+  void render_button(string &result, const ExportRichText &button, bool is_inline) {
+    using Type = ExportInlineButtonAction::Type;
+    if (button.button == nullptr) {
+      return render_text_children(result, button);
+    }
+    const auto &action = button.button->action;
+    auto attributes = get_rich_button_attributes(action, button.button->has_style, button.button->style, is_inline);
+    Slice tag("span");
+    auto url = action.type == Type::Url ? get_safe_message_link(action.url) : string();
+    if (!is_link_active_ && !url.empty()) {
+      tag = Slice("a");
+      attributes.emplace("href", url);
+    } else if (!is_link_active_ && action.type == Type::CopyText) {
+      tag = Slice("button");
+      attributes.emplace("type", "button");
+      attributes.emplace("onclick", "return ShowTextCopied(decodeURIComponent(this.dataset.copyText))");
+    }
+    context_.push_tag(result, tag, attributes);
+    LinkGuard guard(is_link_active_);
+    render_texts(result, button.children);
+    context_.pop_tag(result);
+  }
+
+  void render_button_row(string &result, const ExportRichBlock &block) {
+    auto alignment = get_export_rich_button_alignment_string(block.button_alignment);
+    auto attributes =
+        get_rich_block_attributes(PSLICE() << "rich_button_row rich_button_align_" << alignment, "button-row");
+    attributes.emplace("data-button-alignment", alignment.str());
+    context_.push_tag(result, "div", attributes);
+    context_.push_div(result, "rich_button_group");
+    for (const auto &button : block.buttons) {
+      render_button(result, button, false);
+    }
+    context_.pop_tag(result);
+    context_.pop_tag(result);
+  }
+
+  void render_custom_emoji_link(string &result, Slice alt, HtmlAttributes attributes) {
+    attributes.emplace("inline", string());
+    if (is_link_active_) {
+      attributes.erase("href");
+      attributes.erase("onclick");
+      attributes.emplace("class", "rich_inert_link");
+      context_.push_tag(result, "span", attributes);
+      result.append(alt.data(), alt.size());
+      context_.pop_tag(result);
+      return;
+    }
+    context_.push_tag(result, "a", attributes);
+    LinkGuard guard(is_link_active_);
+    result.append(alt.data(), alt.size());
+    context_.pop_tag(result);
+  }
+
+  void render_custom_emoji(string &result, const ExportRichText &text) {
+    context_.push_tag(result, "span",
+                      {{"class", "rich_custom_emoji"}, {"data-document-id", get_rich_id(text.id)}, {"inline", ""}});
+    auto alt = html_escape(text.text);
+    auto path = get_export_custom_emoji_path(&message_.custom_emoji_files_, text.id);
+    auto is_unavailable = path == UNAVAILABLE_CUSTOM_EMOJI;
+    auto is_not_loaded = path.empty() || is_ascii_decimal(path);
+    auto href = is_unavailable || is_not_loaded ? string() : get_safe_relative_emoji_link(path, message_.base_);
+    if (!href.empty()) {
+      HtmlAttributes attributes;
+      attributes.emplace("href", std::move(href));
+      render_custom_emoji_link(result, alt, std::move(attributes));
+    } else if (is_unavailable || is_not_loaded) {
+      HtmlAttributes attributes;
+      attributes.emplace("href", string());
+      attributes.emplace("onclick", is_unavailable ? "return ShowNotAvailableEmoji()" : "return ShowNotLoadedEmoji()");
+      render_custom_emoji_link(result, alt, std::move(attributes));
+    } else {
+      result += alt;
+    }
+    context_.pop_tag(result);
+  }
+
+  void render_wrapped_text(string &result, const ExportRichText &text, Slice tag, Slice class_name = Slice()) {
+    if (class_name.empty()) {
+      context_.push_tag(result, tag, {{"inline", ""}});
+    } else {
+      context_.push_tag(result, tag, {{"class", class_name}, {"inline", ""}});
+    }
+    render_text_children(result, text);
+    context_.pop_tag(result);
+  }
+
+  void render_text(string &result, const ExportRichText &text) {
+    using Type = ExportRichText::Type;
+    switch (text.type) {
+      case Type::Empty:
+        return;
+      case Type::Plain:
+        return append_html_escaped(result, text.text);
+      case Type::Concat:
+        return render_texts(result, text.children);
+      case Type::Bold:
+        return render_wrapped_text(result, text, "strong");
+      case Type::Italic:
+        return render_wrapped_text(result, text, "em");
+      case Type::Underline:
+        return render_wrapped_text(result, text, "u");
+      case Type::Strike:
+        return render_wrapped_text(result, text, "s");
+      case Type::Fixed:
+        return render_wrapped_text(result, text, "code", "rich_inline_code");
+      case Type::Url: {
+        auto href = text.data[0] == '#' ? get_fragment_link(text.data) : get_safe_http_link(text.data);
+        HtmlAttributes attributes;
+        if (text.id != 0) {
+          attributes.emplace("data-webpage-id", get_rich_id(text.id));
+        }
+        return render_text_link(result, text, !href.empty(), href, std::move(attributes));
+      }
+      case Type::Email:
+        return render_text_link(result, text, get_safe_email_link(text.data));
+      case Type::Phone:
+        return render_text_link(result, text, get_safe_phone_link(text.data));
+      case Type::Subscript:
+        return render_wrapped_text(result, text, "sub");
+      case Type::Superscript:
+        return render_wrapped_text(result, text, "sup");
+      case Type::Marked:
+        return render_wrapped_text(result, text, "mark");
+      case Type::Anchor: {
+        auto id = get_anchor_id(text_anchor_ids_, text);
+        if (id.empty()) {
+          context_.push_tag(result, "span", {{"class", "rich_reference"}, {"inline", ""}});
+        } else {
+          context_.push_tag(result, "span", {{"class", "rich_reference"}, {"id", id}, {"inline", ""}});
+        }
+        render_texts(result, text.children);
+        context_.pop_tag(result);
+        return;
+      }
+      case Type::Math:
+        context_.push_tag(
+            result, "span",
+            {{"class", "rich_math_inline"}, {"data-rich-kind", "inline-math"}, {"dir", "ltr"}, {"inline", ""}});
+        append_html_escaped(result, text.data);
+        context_.pop_tag(result);
+        return;
+      case Type::CustomEmoji:
+        return render_custom_emoji(result, text);
+      case Type::Spoiler:
+        context_.push_tag(result, "span",
+                          {{"class", "spoiler hidden"}, {"inline", ""}, {"onclick", "ShowSpoiler(this)"}});
+        context_.push_tag(result, "span", {{"aria-hidden", "true"}, {"inline", ""}});
+        render_text_children(result, text);
+        context_.pop_tag(result);
+        context_.pop_tag(result);
+        return;
+      case Type::Mention: {
+        string target;
+        auto href = append_rich_plain_target(target, text) ? get_safe_mention_link(target) : string();
+        return render_text_link(result, text, href);
+      }
+      case Type::Hashtag:
+      case Type::BotCommand:
+      case Type::Cashtag: {
+        auto prefix = text.type == Type::Hashtag ? '#' : (text.type == Type::BotCommand ? '/' : '$');
+        string target;
+        auto action = append_rich_plain_target(target, text) ? get_safe_rich_action_data(target, prefix) : string();
+        if (action.empty()) {
+          return render_text_link(result, text, false, Slice(), HtmlAttributes());
+        }
+        HtmlAttributes attributes;
+        attributes.emplace(text.type == Type::BotCommand ? "data-command" : "data-tag", std::move(action));
+        attributes.emplace("onclick", text.type == Type::Hashtag ? "return ShowHashtag(this.dataset.tag)"
+                                                                 : (text.type == Type::BotCommand
+                                                                        ? "return ShowBotCommand(this.dataset.command)"
+                                                                        : "return ShowCashtag(this.dataset.tag)"));
+        return render_text_link(result, text, true, Slice(), std::move(attributes));
+      }
+      case Type::AutoUrl: {
+        string target;
+        auto href = append_rich_plain_target(target, text) ? get_safe_http_link(target) : string();
+        return render_text_link(result, text, href);
+      }
+      case Type::AutoEmail: {
+        string target;
+        auto href = append_rich_plain_target(target, text) ? get_safe_email_link(target) : string();
+        return render_text_link(result, text, href);
+      }
+      case Type::AutoPhone: {
+        string target;
+        auto href = append_rich_plain_target(target, text) ? get_safe_phone_link(target) : string();
+        return render_text_link(result, text, href);
+      }
+      case Type::BankCard:
+        return render_wrapped_text(result, text, "span", "rich_bank_card");
+      case Type::TonAddress:
+        return render_wrapped_text(result, text, "span", "rich_ton_address");
+      case Type::MentionName: {
+        HtmlAttributes attributes;
+        attributes.emplace("data-user-id", get_rich_id(text.id));
+        attributes.emplace("onclick", "return ShowMentionName()");
+        return render_text_link(result, text, true, Slice(), std::move(attributes));
+      }
+      case Type::FormattedDate: {
+        HtmlAttributes attributes;
+        attributes.emplace("class", "rich_formatted_date");
+        attributes.emplace("data-date", to_string(text.date));
+        attributes.emplace("data-day-of-week", get_rich_bool(text.day_of_week).str());
+        attributes.emplace("data-long-date", get_rich_bool(text.long_date).str());
+        attributes.emplace("data-long-time", get_rich_bool(text.long_time).str());
+        attributes.emplace("data-relative", get_rich_bool(text.relative).str());
+        attributes.emplace("data-short-date", get_rich_bool(text.short_date).str());
+        attributes.emplace("data-short-time", get_rich_bool(text.short_time).str());
+        attributes.emplace("datetime", get_iso_date_time(text.date));
+        attributes.emplace("dir", "ltr");
+        attributes.emplace("inline", string());
+        attributes.emplace("title", format_date_time(text.date));
+        context_.push_tag(result, "time", attributes);
+        render_text_children(result, text);
+        context_.pop_tag(result);
+        return;
+      }
+      case Type::InlineImage:
+        context_.push_tag(result, "span",
+                          {{"class", "rich_inline_fallback"},
+                           {"data-document-id", get_rich_id(text.id)},
+                           {"data-rich-kind", "inline-image"},
+                           {"data-source-height", PSLICE() << text.height},
+                           {"data-source-width", PSLICE() << text.width},
+                           {"inline", ""}});
+        result += "Inline image";
+        context_.pop_tag(result);
+        return;
+      case Type::Diff:
+        context_.push_tag(result, "span", {{"class", "rich_diff"}, {"data-rich-kind", "diff"}, {"inline", ""}});
+        render_text_children(result, text);
+        context_.push_tag(result, "del", {{"class", "rich_diff_previous"}, {"inline", ""}});
+        result += "Previous: ";
+        if (text.old_children.empty()) {
+          render_unsupported_text(result);
+        } else {
+          render_texts(result, text.old_children);
+        }
+        context_.pop_tag(result);
+        context_.pop_tag(result);
+        return;
+      case Type::Button:
+        return render_button(result, text, true);
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void render_blocks(string &result, const vector<ExportRichBlock> &blocks) {
+    for (const auto &block : blocks) {
+      render_block(result, block);
+    }
+  }
+
+  void render_text_block(string &result, Slice tag, const HtmlAttributes &attributes, const ExportRichText &text) {
+    context_.push_tag(result, tag, attributes);
+    render_text(result, text);
+    context_.pop_tag(result);
+  }
+
+  void render_author_date(string &result, const ExportRichBlock &block) {
+    auto attributes = get_rich_block_attributes("rich_author_date", "author-date");
+    attributes.emplace("dir", "auto");
+    context_.push_tag(result, "address", attributes);
+    render_text(result, block.text);
+    if (block.date != 0) {
+      result += " \xE2\x80\xA2 ";
+      context_.push_tag(result, "time",
+                        {{"data-date", PSLICE() << block.date},
+                         {"datetime", get_iso_date_time(block.date)},
+                         {"dir", "ltr"},
+                         {"inline", ""}});
+      append_html_escaped(result, format_date_time(block.date));
+      context_.pop_tag(result);
+    }
+    context_.pop_tag(result);
+  }
+
+  void render_code(string &result, const ExportRichBlock &block) {
+    auto attributes = get_rich_block_attributes("rich_code", "code");
+    attributes.emplace("dir", "auto");
+    attributes.emplace("inline", string());
+    if (!block.language.empty()) {
+      attributes.emplace("data-language", block.language);
+    }
+    context_.push_tag(result, "pre", attributes);
+    context_.push_tag(result, "code", {{"class", "rich_code_content"}, {"inline", ""}});
+    render_text(result, block.text);
+    context_.pop_tag(result);
+    context_.pop_tag(result);
+  }
+
+  void render_list(string &result, const ExportRichBlock &block) {
+    auto is_ordered = block.list_kind == ExportRichListKind::Ordered;
+    auto attributes = get_rich_block_attributes("rich_list", is_ordered ? Slice("ordered-list") : Slice("list"));
+    if (is_ordered) {
+      if (block.reversed) {
+        attributes.emplace("reversed", string());
+      }
+      if (block.has_start) {
+        attributes.emplace("start", to_string(block.start));
+      }
+      if (block.has_list_type) {
+        const auto &type = block.list_type;
+        auto is_native = type == "1" || type == "a" || type == "A" || type == "i" || type == "I";
+        attributes.emplace(is_native ? "type" : "data-list-type", type);
+      }
+    }
+    context_.push_tag(result, is_ordered ? Slice("ol") : Slice("ul"), attributes);
+    for (const auto &item : block.list_items) {
+      render_list_item(result, item, is_ordered);
+    }
+    context_.pop_tag(result);
+  }
+
+  void render_list_item(string &result, const ExportRichListItem &item, bool is_ordered) {
+    auto is_task = item.task_state != ExportRichTaskState::None;
+    auto is_checked = item.task_state == ExportRichTaskState::Checked;
+    auto has_custom_marker = is_ordered && !is_task && item.has_num && !item.num.empty();
+    auto has_blocks = item.content == ExportRichContent::Blocks;
+    string classes = "rich_list_item";
+    if (is_task) {
+      classes += " rich_task_item";
+    } else if (has_custom_marker) {
+      classes += " rich_order_item";
+    }
+    HtmlAttributes attributes;
+    attributes.emplace("class", std::move(classes));
+    attributes.emplace("data-rich-content", has_blocks ? "blocks" : "text");
+    if (item.has_num) {
+      attributes.emplace("data-num", item.num);
+    }
+    if (item.has_type) {
+      attributes.emplace("data-item-type", item.type);
+    }
+    if (item.has_value) {
+      attributes.emplace("value", to_string(item.value));
+    }
+    context_.push_tag(result, "li", attributes);
+    if (is_task) {
+      context_.push_tag(result, "span",
+                        {{"aria-checked", get_rich_bool(is_checked)},
+                         {"class", "rich_task_marker"},
+                         {"inline", ""},
+                         {"role", "checkbox"}});
+      result += is_checked ? "\xE2\x98\x91" : "\xE2\x98\x90";
+      context_.pop_tag(result);
+    } else if (has_custom_marker) {
+      context_.push_tag(result, "span", {{"class", "rich_order_marker"}, {"inline", ""}});
+      append_html_escaped(result, item.num);
+      context_.pop_tag(result);
+    }
+    context_.push_tag(result, has_blocks ? Slice("div") : Slice("span"),
+                      {{"class", "rich_list_content"}, {"inline", ""}});
+    if (has_blocks) {
+      render_blocks(result, item.blocks);
+    } else {
+      render_text(result, item.text);
+    }
+    context_.pop_tag(result);
+    context_.pop_tag(result);
+  }
+
+  void render_quote(string &result, const ExportRichBlock &block) {
+    auto has_blocks = block.quote_content == ExportRichContent::Blocks;
+    auto kind = block.pullquote ? Slice("pullquote") : (has_blocks ? Slice("quote-blocks") : Slice("quote"));
+    auto classes = block.pullquote ? Slice("rich_quote rich_pullquote") : Slice("rich_quote");
+    context_.push_tag(result, block.pullquote ? Slice("aside") : Slice("blockquote"),
+                      get_rich_block_attributes(classes, kind));
+    context_.push_div(result, "rich_quote_body");
+    if (has_blocks) {
+      render_blocks(result, block.blocks);
+    } else {
+      render_text(result, block.text);
+    }
+    context_.pop_tag(result);
+    string caption;
+    render_text(caption, block.quote_caption);
+    if (!caption.empty()) {
+      context_.push_tag(result, "cite", {{"class", "rich_quote_caption"}});
+      result += caption;
+      context_.pop_tag(result);
+    }
+    context_.pop_tag(result);
+  }
+
+  void render_details(string &result, const ExportRichBlock &block) {
+    auto attributes = get_rich_block_attributes("rich_details", "details");
+    if (block.open) {
+      attributes.emplace("open", string());
+    }
+    context_.push_tag(result, "details", attributes);
+    context_.push_tag(result, "summary");
+    render_text(result, block.text);
+    context_.pop_tag(result);
+    context_.push_div(result, "rich_details_body");
+    render_blocks(result, block.blocks);
+    context_.pop_tag(result);
+    context_.pop_tag(result);
+  }
+
+  void render_table(string &result, const ExportRichBlock &block) {
+    auto attributes = get_rich_block_attributes("rich_table_wrap", "table");
+    attributes.emplace("tabindex", "0");
+    context_.push_tag(result, "div", attributes);
+    string classes = "rich_table";
+    if (block.bordered) {
+      classes += " bordered";
+    }
+    if (block.striped) {
+      classes += " striped";
+    }
+    if (block.compact) {
+      classes += " compact";
+    }
+    context_.push_tag(result, "table", {{"class", classes}});
+    string caption;
+    render_text(caption, block.text);
+    if (!caption.empty()) {
+      context_.push_tag(result, "caption");
+      result += caption;
+      context_.pop_tag(result);
+    }
+    context_.push_tag(result, "tbody");
+    for (const auto &row : block.table_rows) {
+      context_.push_tag(result, "tr");
+      for (const auto &cell : row.cells) {
+        render_table_cell(result, cell);
+      }
+      context_.pop_tag(result);
+    }
+    context_.pop_tag(result);
+    context_.pop_tag(result);
+    context_.pop_tag(result);
+  }
+
+  static void add_table_span(HtmlAttributes &attributes, Slice name, Slice source_name, bool has_span, int32 span) {
+    if (!has_span || span <= 0) {
+      return;
+    }
+    auto clamped_span = min(span, RICH_TABLE_SPAN_MAX);
+    attributes.emplace(name.str(), to_string(clamped_span));
+    if (clamped_span != span) {
+      attributes.emplace(source_name.str(), to_string(span));
+    }
+  }
+
+  void render_table_cell(string &result, const ExportRichTableCell &cell) {
+    Slice horizontal_class("rich_align_left");
+    switch (cell.alignment) {
+      case ExportRichTableAlignment::Center:
+        horizontal_class = Slice("rich_align_center");
+        break;
+      case ExportRichTableAlignment::Right:
+        horizontal_class = Slice("rich_align_right");
+        break;
+      default:
+        break;
+    }
+    Slice vertical_class("rich_valign_top");
+    switch (cell.vertical_alignment) {
+      case ExportRichTableVerticalAlignment::Middle:
+        vertical_class = Slice("rich_valign_middle");
+        break;
+      case ExportRichTableVerticalAlignment::Bottom:
+        vertical_class = Slice("rich_valign_bottom");
+        break;
+      default:
+        break;
+    }
+    HtmlAttributes attributes;
+    attributes.emplace("class", PSTRING() << horizontal_class << ' ' << vertical_class);
+    add_table_span(attributes, "colspan", "data-source-colspan", cell.has_colspan, cell.colspan);
+    add_table_span(attributes, "rowspan", "data-source-rowspan", cell.has_rowspan, cell.rowspan);
+    context_.push_tag(result, cell.header ? Slice("th") : Slice("td"), attributes);
+    if (cell.has_text) {
+      render_text(result, cell.text);
+    }
+    context_.pop_tag(result);
+  }
+
+  void render_fallback(string &result, Slice kind, Slice label) {
+    context_.push_tag(result, "div", get_rich_block_attributes("rich_fallback", kind));
+    append_html_escaped(result, label);
+    context_.pop_tag(result);
+  }
+
+  void render_block(string &result, const ExportRichBlock &block) {
+    using Kind = ExportRichBlock::Kind;
+    switch (block.kind) {
+      case Kind::Unsupported:
+        return render_fallback(result, "unsupported", "Unsupported rich content");
+      case Kind::Heading: {
+        auto attributes = get_rich_block_attributes("rich_heading", "heading");
+        attributes.emplace("data-level", to_string(block.heading_level));
+        return render_text_block(result, get_rich_heading_tag(block.heading_level), attributes, block.text);
+      }
+      case Kind::Paragraph: {
+        auto attributes = get_rich_block_attributes("rich_paragraph", "paragraph");
+        attributes.emplace("dir", "auto");
+        return render_text_block(result, "p", attributes, block.text);
+      }
+      case Kind::Footer: {
+        auto attributes = get_rich_block_attributes("rich_footer", "footer");
+        attributes.emplace("dir", "auto");
+        return render_text_block(result, "footer", attributes, block.text);
+      }
+      case Kind::Thinking: {
+        auto attributes = get_rich_block_attributes("rich_thinking", "thinking");
+        attributes.emplace("dir", "auto");
+        return render_text_block(result, "p", attributes, block.text);
+      }
+      case Kind::AuthorDate:
+        return render_author_date(result, block);
+      case Kind::Code:
+        return render_code(result, block);
+      case Kind::Divider: {
+        auto attributes = get_rich_block_attributes("rich_divider", "divider");
+        attributes.emplace("empty", string());
+        return context_.push_tag(result, "hr", attributes);
+      }
+      case Kind::Anchor: {
+        auto id = get_anchor_id(block_anchor_ids_, block);
+        if (id.empty()) {
+          return render_fallback(result, "malformed", "Malformed rich content");
+        }
+        auto attributes = get_rich_block_attributes("rich_anchor", "anchor");
+        attributes.emplace("id", std::move(id));
+        attributes.emplace("inline", string());
+        context_.push_tag(result, "span", attributes);
+        context_.pop_tag(result);
+        return;
+      }
+      case Kind::List:
+        return render_list(result, block);
+      case Kind::Quote:
+        return render_quote(result, block);
+      case Kind::Photo:
+        return render_photo(result, block);
+      case Kind::Video:
+        return render_video(result, block);
+      case Kind::Cover:
+        return render_media_group(result, block, "cover", false);
+      case Kind::Embed:
+        return render_embed(result, block);
+      case Kind::EmbedPost:
+        return render_embed_post(result, block);
+      case Kind::Collage:
+        return render_collage(result, block);
+      case Kind::Slideshow:
+        return render_slideshow(result, block);
+      case Kind::Channel:
+        return render_channel(result, block);
+      case Kind::Audio:
+        return render_audio(result, block);
+      case Kind::File:
+        return render_file(result, block);
+      case Kind::Math: {
+        auto attributes = get_rich_block_attributes("rich_math_display", "math");
+        attributes.emplace("dir", "ltr");
+        attributes.emplace("inline", string());
+        context_.push_tag(result, "div", attributes);
+        append_html_escaped(result, block.formula);
+        context_.pop_tag(result);
+        return;
+      }
+      case Kind::Table:
+        return render_table(result, block);
+      case Kind::Details:
+        return render_details(result, block);
+      case Kind::RelatedArticles:
+        return render_related_articles(result, block);
+      case Kind::Map:
+        return render_map(result, block, "map");
+      case Kind::InputMap:
+        return render_map(result, block, "input-map");
+      case Kind::ButtonRow:
+        return render_button_row(result, block);
+      default:
+        UNREACHABLE();
+    }
+  }
+};
+
 ExportHtmlMessageInfo ExportHtmlMessage::push(string &result, const ExportHtmlMessageInfo *previous) {
   auto info = get_message_info();
   const auto *content = message_.content_.get();
   auto kind = is_history_cleared_ ? ExportContentKind::Service : get_export_content_kind(content);
+  if (kind == ExportContentKind::Ordinary && content->get_id() == td_api::messageRichMessage::ID &&
+      rich_message_ == nullptr) {
+    kind = ExportContentKind::Unsupported;
+  }
   if (kind == ExportContentKind::Unsupported) {
     push_service_message(context_, result, base_, info.id,
                          "This message is not supported by this version of Telegram. Please update the application.",
@@ -2785,16 +5177,20 @@ ExportHtmlMessageInfo ExportHtmlMessage::push(string &result, const ExportHtmlMe
 
   push_media(result, content);
 
-  string text;
-  if (content->get_id() == td_api::messageAnimatedEmoji::ID) {
-    text = html_escape(static_cast<const td_api::messageAnimatedEmoji *>(content)->emoji_);
+  if (rich_message_ != nullptr) {
+    RichHtmlRenderer(*this, *rich_message_).render_message(result);
   } else {
-    text = format_text(get_export_message_text(content));
-  }
-  if (!text.empty()) {
-    context_.push_div(result, "text");
-    result += text;
-    context_.pop_tag(result);
+    string text;
+    if (content->get_id() == td_api::messageAnimatedEmoji::ID) {
+      text = html_escape(static_cast<const td_api::messageAnimatedEmoji *>(content)->emoji_);
+    } else {
+      text = format_text(get_export_message_text(content));
+    }
+    if (!text.empty()) {
+      context_.push_div(result, "text");
+      result += text;
+      context_.pop_tag(result);
+    }
   }
   push_inline_buttons(result);
   if (!message_.author_signature_.empty()) {

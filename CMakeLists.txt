@@ -481,6 +481,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/ExportHtmlWriter.cpp
   td/telegram/ExportJsonWriter.cpp
   td/telegram/ExportManager.cpp
+  td/telegram/ExportRichMessage.cpp
   td/telegram/ExportWriter.cpp
   td/telegram/FactCheck.cpp
   td/telegram/FileReferenceManager.cpp
@@ -890,6 +891,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ExportHtmlWriter.h
   td/telegram/ExportJsonWriter.h
   td/telegram/ExportManager.h
+  td/telegram/ExportRichMessage.h
   td/telegram/ExportSettings.h
   td/telegram/ExportWriter.h
   td/telegram/FactCheck.h

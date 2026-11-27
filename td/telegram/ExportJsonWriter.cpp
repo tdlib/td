@@ -9,6 +9,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/ExportRichMessage.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/StickerFormat.h"
@@ -485,6 +486,839 @@ class ExportJsonInlineButton final : public Jsonable {
   const td_api::inlineKeyboardButton *button_;
 };
 
+static void store_export_rich_id(JsonObjectScope &object, Slice key, int64 id) {
+  object(key, JsonRawString(to_string(static_cast<uint64>(id))));
+}
+
+static void store_export_rich_file(JsonObjectScope &object, const ExportFile *file, Slice path_key, Slice reason_key) {
+  if (file != nullptr) {
+    switch (file->skip_reason) {
+      case ExportFile::SkipReason::None:
+        if (!file->relative_path.empty()) {
+          object(path_key, JsonRawString(file->relative_path));
+          return;
+        }
+        break;
+      case ExportFile::SkipReason::Unavailable:
+        break;
+      case ExportFile::SkipReason::FileType:
+        object(reason_key, "file_type");
+        return;
+      case ExportFile::SkipReason::FileSize:
+        object(reason_key, "file_size");
+        return;
+      default:
+        UNREACHABLE();
+    }
+  }
+  object(reason_key, "unavailable");
+}
+
+static Slice get_export_rich_text_type_string(ExportRichText::Type type) {
+  using Type = ExportRichText::Type;
+  switch (type) {
+    case Type::Empty:
+      return Slice("empty");
+    case Type::Plain:
+      return Slice("plain");
+    case Type::Concat:
+      return Slice("concat");
+    case Type::Bold:
+      return Slice("bold");
+    case Type::Italic:
+      return Slice("italic");
+    case Type::Underline:
+      return Slice("underline");
+    case Type::Strike:
+      return Slice("strikethrough");
+    case Type::Fixed:
+      return Slice("code");
+    case Type::Url:
+      return Slice("text_link");
+    case Type::Email:
+      return Slice("email");
+    case Type::Phone:
+      return Slice("phone");
+    case Type::Subscript:
+      return Slice("subscript");
+    case Type::Superscript:
+      return Slice("superscript");
+    case Type::Marked:
+      return Slice("marked");
+    case Type::Anchor:
+      return Slice("anchor");
+    case Type::Math:
+      return Slice("math");
+    case Type::CustomEmoji:
+      return Slice("custom_emoji");
+    case Type::Spoiler:
+      return Slice("spoiler");
+    case Type::Mention:
+      return Slice("mention");
+    case Type::Hashtag:
+      return Slice("hashtag");
+    case Type::BotCommand:
+      return Slice("bot_command");
+    case Type::Cashtag:
+      return Slice("cashtag");
+    case Type::AutoUrl:
+      return Slice("link");
+    case Type::AutoEmail:
+      return Slice("email");
+    case Type::AutoPhone:
+      return Slice("phone");
+    case Type::BankCard:
+      return Slice("bank_card");
+    case Type::TonAddress:
+      return Slice("ton_address");
+    case Type::MentionName:
+      return Slice("mention_name");
+    case Type::FormattedDate:
+      return Slice("formatted_date");
+    case Type::InlineImage:
+      return Slice("inline_image");
+    case Type::Diff:
+      return Slice("diff");
+    case Type::Button:
+      return Slice("button");
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
+static Slice get_export_rich_block_kind_string(ExportRichBlock::Kind kind) {
+  using Kind = ExportRichBlock::Kind;
+  switch (kind) {
+    case Kind::Unsupported:
+      return Slice("unsupported");
+    case Kind::Heading:
+      return Slice("heading");
+    case Kind::Paragraph:
+      return Slice("paragraph");
+    case Kind::Footer:
+      return Slice("footer");
+    case Kind::Thinking:
+      return Slice("thinking");
+    case Kind::AuthorDate:
+      return Slice("author_date");
+    case Kind::Code:
+      return Slice("code");
+    case Kind::Divider:
+      return Slice("divider");
+    case Kind::Anchor:
+      return Slice("anchor");
+    case Kind::List:
+      return Slice("list");
+    case Kind::Quote:
+      return Slice("quote");
+    case Kind::Photo:
+      return Slice("photo");
+    case Kind::Video:
+      return Slice("video");
+    case Kind::Cover:
+      return Slice("cover");
+    case Kind::Embed:
+      return Slice("embed");
+    case Kind::EmbedPost:
+      return Slice("embed_post");
+    case Kind::Collage:
+      return Slice("collage");
+    case Kind::Slideshow:
+      return Slice("slideshow");
+    case Kind::Channel:
+      return Slice("channel");
+    case Kind::Audio:
+      return Slice("audio");
+    case Kind::File:
+      return Slice("file");
+    case Kind::Math:
+      return Slice("math");
+    case Kind::Table:
+      return Slice("table");
+    case Kind::Details:
+      return Slice("details");
+    case Kind::RelatedArticles:
+      return Slice("related_articles");
+    case Kind::Map:
+      return Slice("map");
+    case Kind::InputMap:
+      return Slice("input_map");
+    case Kind::ButtonRow:
+      return Slice("button_row");
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
+static Slice get_export_rich_task_state_string(ExportRichTaskState state) {
+  switch (state) {
+    case ExportRichTaskState::None:
+      return Slice("none");
+    case ExportRichTaskState::Unchecked:
+      return Slice("unchecked");
+    case ExportRichTaskState::Checked:
+      return Slice("checked");
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
+static Slice get_export_rich_content_string(ExportRichContent content) {
+  return content == ExportRichContent::Text ? Slice("text") : Slice("blocks");
+}
+
+static Slice get_export_rich_table_alignment_string(ExportRichTableAlignment alignment) {
+  switch (alignment) {
+    case ExportRichTableAlignment::Left:
+      return Slice("left");
+    case ExportRichTableAlignment::Center:
+      return Slice("center");
+    case ExportRichTableAlignment::Right:
+      return Slice("right");
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
+static Slice get_export_rich_table_vertical_alignment_string(ExportRichTableVerticalAlignment alignment) {
+  switch (alignment) {
+    case ExportRichTableVerticalAlignment::Top:
+      return Slice("top");
+    case ExportRichTableVerticalAlignment::Middle:
+      return Slice("middle");
+    case ExportRichTableVerticalAlignment::Bottom:
+      return Slice("bottom");
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
+static Slice get_export_rich_channel_source_string(ExportRichChannel::Source source) {
+  using Source = ExportRichChannel::Source;
+  switch (source) {
+    case Source::ChatEmpty:
+      return Slice("chat_empty");
+    case Source::Chat:
+      return Slice("chat");
+    case Source::ChatForbidden:
+      return Slice("chat_forbidden");
+    case Source::Channel:
+      return Slice("channel");
+    case Source::ChannelForbidden:
+      return Slice("channel_forbidden");
+    case Source::Community:
+      return Slice("community");
+    case Source::CommunityForbidden:
+      return Slice("community_forbidden");
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
+static Slice get_export_rich_map_point_source_string(ExportRichMapPoint::Source source) {
+  using Source = ExportRichMapPoint::Source;
+  switch (source) {
+    case Source::GeoPointEmpty:
+      return Slice("geo_point_empty");
+    case Source::GeoPoint:
+      return Slice("geo_point");
+    case Source::InputGeoPointEmpty:
+      return Slice("input_geo_point_empty");
+    case Source::InputGeoPoint:
+      return Slice("input_geo_point");
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
+static void store_export_rich_button_action(JsonObjectScope &object, const ExportInlineButtonAction &action) {
+  using Type = ExportInlineButtonAction::Type;
+  object("type", JsonRawString(get_export_inline_button_action_type_string(action.type)));
+  switch (action.type) {
+    case Type::Url:
+    case Type::WebView:
+      object("url", JsonRawString(action.url));
+      break;
+    case Type::Auth:
+      object("url", JsonRawString(action.url));
+      if (action.has_forward_text) {
+        object("forward_text", JsonRawString(action.forward_text));
+      }
+      object("button_id", JsonInt(action.button_id));
+      break;
+    case Type::Callback:
+    case Type::CallbackWithPassword:
+      object("requires_password", JsonBool(action.requires_password));
+      object("dataBase64", JsonRawString(base64url_encode(action.callback_data)));
+      object("data", JsonRawString(Slice()));
+      break;
+    case Type::Game:
+    case Type::Buy:
+    case Type::Disabled:
+      break;
+    case Type::SwitchInline:
+    case Type::SwitchInlineSame:
+      object("query", JsonRawString(action.query));
+      object("same_peer", JsonBool(action.same_peer));
+      if (action.has_peer_types) {
+        object("peer_types", json_array(action.peer_types, [](ExportInlineButtonAction::PeerType type) {
+                 return JsonRawString(get_export_inline_button_peer_type_string(type));
+               }));
+      }
+      break;
+    case Type::UserProfile:
+      store_export_rich_id(object, "user_id", action.user_id);
+      break;
+    case Type::CopyText:
+      object("copy_text", JsonRawString(action.copy_text));
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
+static void store_export_rich_channel(JsonObjectScope &object, const ExportRichChannel &channel) {
+  object("source_type", JsonRawString(get_export_rich_channel_source_string(channel.source)));
+  store_export_rich_id(object, "id", channel.id);
+  if (channel.has_access_hash) {
+    object("access_hash", JsonRawString(to_string(channel.access_hash)));
+  }
+  if (channel.has_title) {
+    object("title", JsonRawString(channel.title));
+  }
+  if (channel.has_username) {
+    object("username", JsonRawString(channel.username));
+  }
+  if (channel.source == ExportRichChannel::Source::Channel ||
+      channel.source == ExportRichChannel::Source::ChannelForbidden) {
+    object("broadcast", JsonBool(channel.broadcast));
+    object("megagroup", JsonBool(channel.megagroup));
+    object("monoforum", JsonBool(channel.monoforum));
+  }
+}
+
+static void store_export_rich_map_point(JsonObjectScope &object, const ExportRichMapPoint &point) {
+  object("source_type", JsonRawString(get_export_rich_map_point_source_string(point.source)));
+  if (point.source == ExportRichMapPoint::Source::GeoPoint ||
+      point.source == ExportRichMapPoint::Source::InputGeoPoint) {
+    object("latitude", JsonFloat(point.latitude));
+    object("longitude", JsonFloat(point.longitude));
+  }
+  if (point.has_access_hash) {
+    object("access_hash", JsonRawString(to_string(point.access_hash)));
+  }
+  if (point.has_accuracy_radius) {
+    object("accuracy_radius", JsonInt(point.accuracy_radius));
+  }
+}
+
+class ExportJsonRichMessage;
+
+template <class T>
+class ExportJsonRichValue final : public Jsonable {
+ public:
+  ExportJsonRichValue(const ExportJsonRichMessage &writer, const T &value) : writer_(writer), value_(value) {
+  }
+
+  void store(JsonValueScope *scope) const;
+
+ private:
+  const ExportJsonRichMessage &writer_;
+  const T &value_;
+};
+
+class ExportJsonRichMessage final : public Jsonable {
+ public:
+  ExportJsonRichMessage(const ExportRichMessage &message, const ExportCustomEmojiFiles *custom_emoji_files,
+                        int32 utc_time_offset)
+      : message_(message), custom_emoji_files_(custom_emoji_files), utc_time_offset_(utc_time_offset) {
+  }
+
+  void store(JsonValueScope *scope) const;
+
+  void store(JsonValueScope *scope, const ExportRichText &text) const;
+
+  void store(JsonValueScope *scope, const ExportRichCaption &caption) const;
+
+  void store(JsonValueScope *scope, const ExportRichListItem &item) const;
+
+  void store(JsonValueScope *scope, const ExportRichTableCell &cell) const;
+
+  void store(JsonValueScope *scope, const ExportRichTableRow &row) const;
+
+  void store(JsonValueScope *scope, const ExportRichRelatedArticle &article) const;
+
+  void store(JsonValueScope *scope, const ExportRichBlock &block) const;
+
+  template <class T>
+  void store(JsonValueScope *scope, const vector<T> &values) const {
+    auto array = scope->enter_array();
+    for (const auto &value : values) {
+      array(get_json(value));
+    }
+  }
+
+ private:
+  const ExportRichMessage &message_;
+  const ExportCustomEmojiFiles *custom_emoji_files_;
+  int32 utc_time_offset_;
+
+  template <class T>
+  ExportJsonRichValue<T> get_json(const T &value) const {
+    return ExportJsonRichValue<T>(*this, value);
+  }
+
+  string format_date(int32 date) const {
+    return get_export_date_time_string(get_export_local_time(date, utc_time_offset_));
+  }
+
+  void store_date(JsonObjectScope &object, Slice key, Slice unixtime_key, int32 date) const {
+    object(key, JsonRawString(format_date(date)));
+    object(unixtime_key, JsonRawString(to_string(date)));
+  }
+
+  // the wrapping texts have exactly one child
+  void store_child(JsonObjectScope &object, Slice key, const vector<ExportRichText> &children) const {
+    if (children.empty()) {
+      object(key, json_object([](auto &o) { o("type", "empty"); }));
+    } else {
+      object(key, get_json(children[0]));
+    }
+  }
+
+  void store_button_fields(JsonObjectScope &object, const ExportRichText &button) const;
+
+  void store_photo(JsonObjectScope &object, int64 photo_id, Slice path_key, Slice reason_key, Slice size_key,
+                   Slice width_key, Slice height_key) const;
+
+  void store_document(JsonObjectScope &object, int64 document_id, bool include_dimensions) const;
+};
+
+template <class T>
+void ExportJsonRichValue<T>::store(JsonValueScope *scope) const {
+  writer_.store(scope, value_);
+}
+
+void ExportJsonRichMessage::store(JsonValueScope *scope) const {
+  auto object = scope->enter_object();
+  object("rtl", JsonBool(message_.rtl));
+  object("part", JsonBool(message_.part));
+  object("blocks", get_json(message_.blocks));
+}
+
+void ExportJsonRichMessage::store(JsonValueScope *scope, const ExportRichText &text) const {
+  using Type = ExportRichText::Type;
+  auto object = scope->enter_object();
+  object("type", JsonRawString(get_export_rich_text_type_string(text.type)));
+  switch (text.type) {
+    case Type::Empty:
+      break;
+    case Type::Plain:
+      object("text", JsonRawString(text.text));
+      break;
+    case Type::Concat:
+      object("text", get_json(text.children));
+      break;
+    case Type::Bold:
+    case Type::Italic:
+    case Type::Underline:
+    case Type::Strike:
+    case Type::Fixed:
+    case Type::Subscript:
+    case Type::Superscript:
+    case Type::Marked:
+    case Type::Spoiler:
+    case Type::Mention:
+    case Type::Hashtag:
+    case Type::BotCommand:
+    case Type::Cashtag:
+    case Type::AutoUrl:
+    case Type::AutoEmail:
+    case Type::AutoPhone:
+    case Type::BankCard:
+    case Type::TonAddress:
+      store_child(object, "text", text.children);
+      break;
+    case Type::Url:
+      object("href", JsonRawString(text.data));
+      if (text.id != 0) {
+        store_export_rich_id(object, "webpage_id", text.id);
+      }
+      store_child(object, "text", text.children);
+      break;
+    case Type::Email:
+      object("email", JsonRawString(text.data));
+      store_child(object, "text", text.children);
+      break;
+    case Type::Phone:
+      object("phone", JsonRawString(text.data));
+      store_child(object, "text", text.children);
+      break;
+    case Type::Anchor:
+      object("name", JsonRawString(text.data));
+      store_child(object, "text", text.children);
+      break;
+    case Type::Math:
+      object("source", JsonRawString(text.data));
+      break;
+    case Type::CustomEmoji:
+      object("text", JsonRawString(text.text));
+      object("document_id", JsonRawString(get_export_custom_emoji_path(custom_emoji_files_, text.id)));
+      break;
+    case Type::MentionName:
+      store_export_rich_id(object, "user_id", text.id);
+      store_child(object, "text", text.children);
+      break;
+    case Type::FormattedDate:
+      store_child(object, "text", text.children);
+      store_date(object, "date", "date_unixtime", text.date);
+      object("relative", JsonBool(text.relative));
+      object("short_time", JsonBool(text.short_time));
+      object("long_time", JsonBool(text.long_time));
+      object("short_date", JsonBool(text.short_date));
+      object("long_date", JsonBool(text.long_date));
+      object("day_of_week", JsonBool(text.day_of_week));
+      break;
+    case Type::InlineImage:
+      store_export_rich_id(object, "document_id", text.id);
+      store_document(object, text.id, false);
+      object("width", JsonInt(text.width));
+      object("height", JsonInt(text.height));
+      break;
+    case Type::Diff:
+      object("unsupported", JsonTrue());
+      store_child(object, "text", text.children);
+      store_child(object, "old_text", text.old_children);
+      break;
+    case Type::Button:
+      store_button_fields(object, text);
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
+void ExportJsonRichMessage::store_button_fields(JsonObjectScope &object, const ExportRichText &button) const {
+  store_child(object, "text", button.children);
+  if (button.button == nullptr) {
+    return;
+  }
+  const auto &action = button.button->action;
+  object("button", json_object([&action](auto &o) { store_export_rich_button_action(o, action); }));
+  if (button.button->has_style) {
+    object("style", JsonRawString(get_export_rich_button_style_string(button.button->style)));
+  }
+}
+
+void ExportJsonRichMessage::store(JsonValueScope *scope, const ExportRichCaption &caption) const {
+  auto object = scope->enter_object();
+  object("text", get_json(caption.text));
+  object("credit", get_json(caption.credit));
+}
+
+void ExportJsonRichMessage::store(JsonValueScope *scope, const ExportRichListItem &item) const {
+  auto object = scope->enter_object();
+  object("task_state", JsonRawString(get_export_rich_task_state_string(item.task_state)));
+  object("content", JsonRawString(get_export_rich_content_string(item.content)));
+  if (item.content == ExportRichContent::Text) {
+    object("text", get_json(item.text));
+  } else {
+    object("blocks", get_json(item.blocks));
+  }
+  if (item.has_num) {
+    object("num", JsonRawString(item.num));
+  }
+  if (item.has_value) {
+    object("value", JsonInt(item.value));
+  }
+  if (item.has_type) {
+    object("item_type", JsonRawString(item.type));
+  }
+}
+
+void ExportJsonRichMessage::store(JsonValueScope *scope, const ExportRichTableCell &cell) const {
+  auto object = scope->enter_object();
+  if (cell.has_text) {
+    object("text", get_json(cell.text));
+  }
+  if (cell.has_colspan) {
+    object("colspan", JsonInt(cell.colspan));
+  }
+  if (cell.has_rowspan) {
+    object("rowspan", JsonInt(cell.rowspan));
+  }
+  object("header", JsonBool(cell.header));
+  object("align", JsonRawString(get_export_rich_table_alignment_string(cell.alignment)));
+  object("vertical_align", JsonRawString(get_export_rich_table_vertical_alignment_string(cell.vertical_alignment)));
+}
+
+void ExportJsonRichMessage::store(JsonValueScope *scope, const ExportRichTableRow &row) const {
+  auto object = scope->enter_object();
+  object("cells", get_json(row.cells));
+}
+
+void ExportJsonRichMessage::store(JsonValueScope *scope, const ExportRichRelatedArticle &article) const {
+  auto object = scope->enter_object();
+  object("url", JsonRawString(article.url));
+  store_export_rich_id(object, "webpage_id", article.webpage_id);
+  if (article.has_title) {
+    object("title", JsonRawString(article.title));
+  }
+  if (article.has_description) {
+    object("description", JsonRawString(article.description));
+  }
+  if (article.has_photo_id) {
+    store_export_rich_id(object, "photo_id", article.photo_id);
+    store_photo(object, article.photo_id, "photo", "photo_skip_reason", "photo_file_size", "photo_width",
+                "photo_height");
+  }
+  if (article.has_author) {
+    object("author", JsonRawString(article.author));
+  }
+  if (article.has_published_date) {
+    store_date(object, "published_date", "published_date_unixtime", article.published_date);
+  }
+}
+
+void ExportJsonRichMessage::store_photo(JsonObjectScope &object, int64 photo_id, Slice path_key, Slice reason_key,
+                                        Slice size_key, Slice width_key, Slice height_key) const {
+  const auto *photo = message_.get_photo(photo_id);
+  store_export_rich_file(object, photo == nullptr ? nullptr : &photo->file, path_key, reason_key);
+  if (photo == nullptr) {
+    return;
+  }
+  const auto *size = photo->photo == nullptr ? nullptr : get_export_photo_size(photo->photo->sizes_);
+  object(size_key, JsonLong(size == nullptr ? 0 : get_export_file_size(size->photo_.get())));
+  if (size != nullptr && size->width_ != 0 && size->height_ != 0) {
+    object(width_key, JsonInt(size->width_));
+    object(height_key, JsonInt(size->height_));
+  }
+}
+
+void ExportJsonRichMessage::store_document(JsonObjectScope &object, int64 document_id, bool include_dimensions) const {
+  using Type = ExportRichDocument::Type;
+  const auto *document = message_.get_document(document_id);
+  store_export_rich_file(object, document == nullptr ? nullptr : &document->file, "file", "file_skip_reason");
+  if (document == nullptr) {
+    return;
+  }
+  store_string(object, "file_name", document->file_name);
+  object("file_size", JsonLong(get_export_file_size(document->document.get())));
+  const auto *thumbnail = document->thumbnail.get();
+  if (thumbnail != nullptr && thumbnail->width_ > 0) {
+    store_export_rich_file(object, &document->thumbnail_file, "thumbnail", "thumbnail_skip_reason");
+    object("thumbnail_file_size", JsonLong(get_export_file_size(thumbnail->file_.get())));
+  }
+  switch (document->type) {
+    case Type::Sticker:
+      object("media_type", "sticker");
+      store_string(object, "sticker_emoji", document->sticker_emoji);
+      break;
+    case Type::VideoNote:
+      object("media_type", "video_message");
+      break;
+    case Type::VoiceNote:
+      object("media_type", "voice_message");
+      break;
+    case Type::Animation:
+      object("media_type", "animation");
+      break;
+    case Type::Video:
+      object("media_type", "video_file");
+      break;
+    case Type::Audio:
+      object("media_type", "audio_file");
+      store_string(object, "performer", document->performer);
+      store_string(object, "title", document->title);
+      break;
+    case Type::File:
+      break;
+    default:
+      UNREACHABLE();
+  }
+  store_string(object, "mime_type", document->mime_type);
+  if (document->duration != 0) {
+    object("duration_seconds", JsonInt(document->duration));
+  }
+  if (include_dimensions && document->width != 0 && document->height != 0) {
+    object("width", JsonInt(document->width));
+    object("height", JsonInt(document->height));
+  }
+}
+
+void ExportJsonRichMessage::store(JsonValueScope *scope, const ExportRichBlock &block) const {
+  using Kind = ExportRichBlock::Kind;
+  auto object = scope->enter_object();
+  object("type", JsonRawString(get_export_rich_block_kind_string(block.kind)));
+  switch (block.kind) {
+    case Kind::Unsupported:
+      object("source_type", "page_block_unsupported");
+      object("unsupported", JsonTrue());
+      break;
+    case Kind::Heading:
+      object("level", JsonInt(block.heading_level));
+      object("text", get_json(block.text));
+      break;
+    case Kind::Paragraph:
+    case Kind::Footer:
+    case Kind::Thinking:
+      object("text", get_json(block.text));
+      break;
+    case Kind::AuthorDate:
+      object("author", get_json(block.text));
+      store_date(object, "date", "date_unixtime", block.date);
+      break;
+    case Kind::Code:
+      object("text", get_json(block.text));
+      object("language", JsonRawString(block.language));
+      break;
+    case Kind::Divider:
+      break;
+    case Kind::Anchor:
+      object("name", JsonRawString(block.name));
+      break;
+    case Kind::List:
+      object("kind", block.list_kind == ExportRichListKind::Ordered ? "ordered" : "bullet");
+      if (block.list_kind == ExportRichListKind::Ordered) {
+        object("reversed", JsonBool(block.reversed));
+        if (block.has_start) {
+          object("start", JsonInt(block.start));
+        }
+        if (block.has_list_type) {
+          object("list_type", JsonRawString(block.list_type));
+        }
+      }
+      object("items", get_json(block.list_items));
+      break;
+    case Kind::Quote:
+      object("content", JsonRawString(get_export_rich_content_string(block.quote_content)));
+      object("pullquote", JsonBool(block.pullquote));
+      if (block.quote_content == ExportRichContent::Text) {
+        object("text", get_json(block.text));
+      } else {
+        object("blocks", get_json(block.blocks));
+      }
+      object("caption", get_json(block.quote_caption));
+      break;
+    case Kind::Photo:
+      store_export_rich_id(object, "photo_id", block.photo_id);
+      store_photo(object, block.photo_id, "photo", "photo_skip_reason", "photo_file_size", "width", "height");
+      object("spoiler", JsonBool(block.spoiler));
+      if (block.has_optional_url) {
+        object("url", JsonRawString(block.optional_url));
+      }
+      if (block.has_optional_webpage_id) {
+        store_export_rich_id(object, "webpage_id", block.optional_webpage_id);
+      }
+      object("caption", get_json(block.caption));
+      break;
+    case Kind::Video:
+      store_export_rich_id(object, "document_id", block.document_id);
+      store_document(object, block.document_id, true);
+      object("autoplay", JsonBool(block.autoplay));
+      object("loop", JsonBool(block.loop));
+      object("spoiler", JsonBool(block.spoiler));
+      object("caption", get_json(block.caption));
+      break;
+    case Kind::Cover:
+      if (!block.blocks.empty()) {
+        object("block", get_json(block.blocks[0]));
+      }
+      break;
+    case Kind::Embed:
+      if (block.has_optional_url) {
+        object("url", JsonRawString(block.optional_url));
+      }
+      if (block.has_html) {
+        object("html", JsonRawString(block.html));
+      }
+      if (block.has_poster_photo_id) {
+        store_export_rich_id(object, "poster_photo_id", block.poster_photo_id);
+        store_photo(object, block.poster_photo_id, "poster_photo", "poster_photo_skip_reason", "poster_photo_file_size",
+                    "poster_photo_width", "poster_photo_height");
+      }
+      if (block.has_size) {
+        object("width", JsonInt(block.width));
+        object("height", JsonInt(block.height));
+      }
+      object("full_width", JsonBool(block.full_width));
+      object("allow_scrolling", JsonBool(block.allow_scrolling));
+      object("caption", get_json(block.caption));
+      break;
+    case Kind::EmbedPost:
+      object("url", JsonRawString(block.url));
+      store_export_rich_id(object, "webpage_id", block.webpage_id);
+      store_export_rich_id(object, "author_photo_id", block.author_photo_id);
+      store_photo(object, block.author_photo_id, "author_photo", "author_photo_skip_reason", "author_photo_file_size",
+                  "author_photo_width", "author_photo_height");
+      object("author", JsonRawString(block.author));
+      store_date(object, "date", "date_unixtime", block.date);
+      object("blocks", get_json(block.blocks));
+      object("caption", get_json(block.caption));
+      break;
+    case Kind::Collage:
+    case Kind::Slideshow:
+      object("items", get_json(block.blocks));
+      object("caption", get_json(block.caption));
+      break;
+    case Kind::Channel: {
+      const auto &channel = block.channel;
+      object("channel", json_object([&channel](auto &o) { store_export_rich_channel(o, channel); }));
+      break;
+    }
+    case Kind::Audio:
+    case Kind::File:
+      store_export_rich_id(object, "document_id", block.document_id);
+      store_document(object, block.document_id, true);
+      object("caption", get_json(block.caption));
+      break;
+    case Kind::Math:
+      object("formula", JsonRawString(block.formula));
+      break;
+    case Kind::Table:
+      object("title", get_json(block.text));
+      object("bordered", JsonBool(block.bordered));
+      object("striped", JsonBool(block.striped));
+      object("compact", JsonBool(block.compact));
+      object("rows", get_json(block.table_rows));
+      break;
+    case Kind::Details:
+      object("title", get_json(block.text));
+      object("open", JsonBool(block.open));
+      object("blocks", get_json(block.blocks));
+      break;
+    case Kind::RelatedArticles:
+      object("title", get_json(block.text));
+      object("articles", get_json(block.related_articles));
+      break;
+    case Kind::Map:
+    case Kind::InputMap: {
+      const auto &point = block.map_point;
+      object("geo", json_object([&point](auto &o) { store_export_rich_map_point(o, point); }));
+      object("zoom", JsonInt(block.zoom));
+      object("width", JsonInt(block.map_width));
+      object("height", JsonInt(block.map_height));
+      object("caption", get_json(block.caption));
+      break;
+    }
+    case Kind::ButtonRow:
+      object("alignment", JsonRawString(get_export_rich_button_alignment_string(block.button_alignment)));
+      object("buttons", json_array(block.buttons, [this](const ExportRichText &button) {
+               return json_object([this, &button](auto &o) { this->store_button_fields(o, button); });
+             }));
+      break;
+    default:
+      UNREACHABLE();
+  }
+}
+
 class ExportJsonMessage final : public Jsonable {
  public:
   ExportJsonMessage(Td *td, const ExportMessage &export_message, bool is_migrated,
@@ -493,6 +1327,7 @@ class ExportJsonMessage final : public Jsonable {
       , message_(*export_message.message)
       , file_(export_message.file)
       , thumbnail_(export_message.thumbnail)
+      , rich_message_(export_message.rich_message.get())
       , custom_emoji_files_(custom_emoji_files)
       , is_history_cleared_(export_message.is_history_cleared)
       , is_migrated_(is_migrated)
@@ -507,6 +1342,7 @@ class ExportJsonMessage final : public Jsonable {
   const td_api::message &message_;
   const ExportFile &file_;
   const ExportFile &thumbnail_;
+  const ExportRichMessage *rich_message_;
   const ExportCustomEmojiFiles &custom_emoji_files_;
   bool is_history_cleared_;
   bool is_migrated_;
@@ -753,6 +1589,7 @@ void ExportJsonMessage::store_media_content(JsonObjectScope &object, const td_ap
     case td_api::messageStakeDice::ID:
     case td_api::messageStory::ID:
     case td_api::messageWidget::ID:
+    case td_api::messageRichMessage::ID:
       break;
     case td_api::messageAnimation::ID: {
       const auto *m = static_cast<const td_api::messageAnimation *>(content);
@@ -1664,7 +2501,9 @@ void ExportJsonMessage::store(JsonValueScope *scope) const {
 
   const auto *content = message_.content_.get();
   auto kind = is_history_cleared_ ? ExportContentKind::Service : get_export_content_kind(content);
-  if (kind == ExportContentKind::Unsupported) {
+  // a message with a rich message is exported even if its media is unsupported
+  if ((kind == ExportContentKind::Unsupported || content->get_id() == td_api::messageRichMessage::ID) &&
+      rich_message_ == nullptr) {
     object("type", "unsupported");
     return;
   }
@@ -1684,10 +2523,16 @@ void ExportJsonMessage::store(JsonValueScope *scope) const {
     store_service_content(object, content);
   } else {
     store_message_header(object);
-    store_media_content(object, content);
+    if (kind != ExportContentKind::Unsupported) {
+      store_media_content(object, content);
+    }
   }
 
-  store_text(object, content);
+  if (rich_message_ != nullptr) {
+    object("rich_message", ExportJsonRichMessage(*rich_message_, &custom_emoji_files_, utc_time_offset_));
+  } else {
+    store_text(object, content);
+  }
   store_inline_buttons(object);
   store_reactions(object);
 }

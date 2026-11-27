@@ -7,6 +7,7 @@
 #include "td/telegram/ExportManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
@@ -16,6 +17,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/ExportRichMessage.h"
 #include "td/telegram/ExportWriter.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileLocation.h"
@@ -32,6 +34,7 @@
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/PhotoFormat.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
@@ -40,6 +43,9 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
+#include "td/telegram/VideoNotesManager.h"
+#include "td/telegram/VideosManager.h"
+#include "td/telegram/VoiceNotesManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -51,6 +57,8 @@
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/tl_parsers.h"
+#include "td/utils/tl_storers.h"
 #include "td/utils/utf8.h"
 #include "td/utils/VectorQueue.h"
 
@@ -296,6 +304,235 @@ static bool update_file_reference(telegram_api::InputFileLocation *location, con
   }
 }
 
+static telegram_api::object_ptr<telegram_api::richMessage> copy_rich_message(
+    const telegram_api::richMessage &rich_message) {
+  TlStorerCalcLength storer_calc_length;
+  rich_message.store(storer_calc_length);
+  BufferSlice buffer(storer_calc_length.get_length());
+  TlStorerUnsafe storer(buffer.as_mutable_slice().ubegin());
+  rich_message.store(storer);
+  TlBufferParser parser(&buffer);
+  auto result = telegram_api::richMessage::fetch(parser);
+  parser.fetch_end();
+  if (parser.get_error() != nullptr) {
+    LOG(ERROR) << "Failed to copy a rich message: " << parser.get_error();
+    return nullptr;
+  }
+  return result;
+}
+
+// the complete rich message of the message, if the response has exactly one message with the identifier
+static const telegram_api::richMessage *get_full_rich_message(const telegram_api::messages_Messages *messages,
+                                                              MessageId message_id) {
+  const auto *message_list = get_message_list(messages);
+  if (message_list == nullptr) {
+    return nullptr;
+  }
+  const telegram_api::richMessage *result = nullptr;
+  size_t match_count = 0;
+  for (const auto &message : *message_list) {
+    if (MessageId::get_message_id(message, false) != message_id) {
+      continue;
+    }
+    match_count++;
+    if (message->get_id() == telegram_api::message::ID) {
+      const auto *rich_message = static_cast<const telegram_api::message *>(message.get())->rich_message_.get();
+      if (rich_message != nullptr && !rich_message->part_) {
+        result = rich_message;
+      }
+    }
+  }
+  return match_count == 1 ? result : nullptr;
+}
+
+static int32 get_rich_document_media_type(ExportRichDocument::Type type) {
+  switch (type) {
+    case ExportRichDocument::Type::File:
+    case ExportRichDocument::Type::Audio:
+      return ExportSettings::File;
+    case ExportRichDocument::Type::Animation:
+      return ExportSettings::Gif;
+    case ExportRichDocument::Type::Sticker:
+      return ExportSettings::Sticker;
+    case ExportRichDocument::Type::Video:
+      return ExportSettings::Video;
+    case ExportRichDocument::Type::VideoNote:
+      return ExportSettings::VideoMessage;
+    case ExportRichDocument::Type::VoiceNote:
+      return ExportSettings::VoiceMessage;
+    default:
+      UNREACHABLE();
+      return ExportSettings::File;
+  }
+}
+
+namespace {
+
+// visits the photos and the documents in the order in which they are shown, and every text
+template <class OnTextT, class OnPhotoT, class OnDocumentT>
+class ExportRichMessageVisitor {
+  const ExportRichMessage &message_;
+  OnTextT &on_text_;
+  OnPhotoT &on_photo_;
+  OnDocumentT &on_document_;
+
+  void visit_photo(int64 photo_id, bool is_card) {
+    const auto *photo = message_.get_photo(photo_id);
+    if (photo != nullptr) {
+      on_photo_(*photo, is_card);
+    }
+  }
+
+  void visit_document(int64 document_id) {
+    const auto *document = message_.get_document(document_id);
+    if (document != nullptr) {
+      on_document_(*document);
+    }
+  }
+
+  void visit_text(const ExportRichText &text) {
+    on_text_(text);
+    if (text.type == ExportRichText::Type::InlineImage) {
+      visit_document(text.id);
+    }
+    for (const auto &child : text.children) {
+      visit_text(child);
+    }
+    for (const auto &child : text.old_children) {
+      visit_text(child);
+    }
+  }
+
+  void visit_caption(const ExportRichCaption &caption) {
+    visit_text(caption.text);
+    visit_text(caption.credit);
+  }
+
+  void visit_block(const ExportRichBlock &block) {
+    using Kind = ExportRichBlock::Kind;
+    switch (block.kind) {
+      case Kind::Heading:
+      case Kind::Paragraph:
+      case Kind::Footer:
+      case Kind::Thinking:
+      case Kind::AuthorDate:
+      case Kind::Code:
+        visit_text(block.text);
+        break;
+      case Kind::List:
+        for (const auto &item : block.list_items) {
+          if (item.content == ExportRichContent::Text) {
+            visit_text(item.text);
+          } else {
+            visit_blocks(item.blocks);
+          }
+        }
+        break;
+      case Kind::Quote:
+        if (block.quote_content == ExportRichContent::Text) {
+          visit_text(block.text);
+        } else {
+          visit_blocks(block.blocks);
+        }
+        visit_text(block.quote_caption);
+        break;
+      case Kind::Photo:
+        visit_photo(block.photo_id, false);
+        visit_caption(block.caption);
+        break;
+      case Kind::Video:
+      case Kind::Audio:
+      case Kind::File:
+        visit_document(block.document_id);
+        visit_caption(block.caption);
+        break;
+      case Kind::Cover:
+        visit_blocks(block.blocks);
+        break;
+      case Kind::Embed:
+        if (block.has_poster_photo_id) {
+          visit_photo(block.poster_photo_id, false);
+        }
+        visit_caption(block.caption);
+        break;
+      case Kind::EmbedPost:
+        visit_photo(block.author_photo_id, true);
+        visit_blocks(block.blocks);
+        visit_caption(block.caption);
+        break;
+      case Kind::Collage:
+      case Kind::Slideshow:
+        visit_blocks(block.blocks);
+        visit_caption(block.caption);
+        break;
+      case Kind::Table:
+        visit_text(block.text);
+        for (const auto &row : block.table_rows) {
+          for (const auto &cell : row.cells) {
+            if (cell.has_text) {
+              visit_text(cell.text);
+            }
+          }
+        }
+        break;
+      case Kind::Details:
+        visit_text(block.text);
+        visit_blocks(block.blocks);
+        break;
+      case Kind::RelatedArticles:
+        visit_text(block.text);
+        for (const auto &article : block.related_articles) {
+          if (article.has_photo_id) {
+            visit_photo(article.photo_id, true);
+          }
+        }
+        break;
+      case Kind::Map:
+      case Kind::InputMap:
+        visit_caption(block.caption);
+        break;
+      case Kind::ButtonRow:
+        for (const auto &button : block.buttons) {
+          visit_text(button);
+        }
+        break;
+      case Kind::Unsupported:
+      case Kind::Divider:
+      case Kind::Anchor:
+      case Kind::Channel:
+      case Kind::Math:
+        break;
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void visit_blocks(const vector<ExportRichBlock> &blocks) {
+    for (const auto &block : blocks) {
+      visit_block(block);
+    }
+  }
+
+ public:
+  ExportRichMessageVisitor(const ExportRichMessage &message, OnTextT &on_text, OnPhotoT &on_photo,
+                           OnDocumentT &on_document)
+      : message_(message), on_text_(on_text), on_photo_(on_photo), on_document_(on_document) {
+  }
+
+  void visit() {
+    visit_blocks(message_.blocks);
+  }
+};
+
+// the photo callback receives whether the photo is shown on a card, which needs its own thumbnail
+template <class OnTextT, class OnPhotoT, class OnDocumentT>
+void visit_export_rich_message(const ExportRichMessage &message, OnTextT &&on_text, OnPhotoT &&on_photo,
+                               OnDocumentT &&on_document) {
+  ExportRichMessageVisitor<OnTextT, OnPhotoT, OnDocumentT>(message, on_text, on_photo, on_document).visit();
+}
+
+}  // namespace
+
 struct ExportManager::MessageFileWork {
   ExportFile *target = nullptr;
   const td_api::file *file = nullptr;
@@ -311,6 +548,8 @@ struct ExportManager::MessageFileWork {
   StoryId story_id;
   // the index of the item of a list, to which the file belongs
   int32 item_index = 0;
+  // whether the file belongs to the rich message of the message, whose file reference is refreshed separately
+  bool is_rich = false;
 };
 
 struct ExportManager::FileProcess {
@@ -331,6 +570,7 @@ struct ExportManager::FileProcess {
   MessageId message_id;
   CustomEmojiId custom_emoji_id;
   StoryId story_id;
+  bool is_rich = false;
   bool is_file_reference_refreshed = false;
 };
 
@@ -365,6 +605,9 @@ struct ExportManager::DialogProcess {
 
   // the received slice, which is written after its files are loaded
   vector<ExportMessage> slice;
+  // the rich messages of the slice, which are converted after the partial ones are replaced with the complete ones
+  vector<telegram_api::object_ptr<telegram_api::richMessage>> rich_messages;
+  size_t rich_message_index = 0;
   int32 slice_message_count = 0;
   vector<MessageFileWork> file_works;
   size_t file_work_index = 0;
@@ -2321,17 +2564,88 @@ void ExportManager::on_get_messages_slice(vector<telegram_api::object_ptr<telegr
         (*it)->get_id() == telegram_api::messageService::ID &&
         static_cast<const telegram_api::messageService *>(it->get())->action_->get_id() ==
             telegram_api::messageActionHistoryClear::ID;
+    // the message content loses the identifiers of the rich message's media, and the conversion consumes the message
+    telegram_api::object_ptr<telegram_api::richMessage> rich_message;
+    if ((*it)->get_id() == telegram_api::message::ID) {
+      const auto *server_message = static_cast<const telegram_api::message *>(it->get());
+      if (server_message->rich_message_ != nullptr) {
+        rich_message = copy_rich_message(*server_message->rich_message_);
+      }
+    }
     export_message.message = td_->messages_manager_->get_export_message_object(dialog_id, std::move(*it));
     if (export_message.message != nullptr) {
       dialog.slice.push_back(std::move(export_message));
+      dialog.rich_messages.push_back(std::move(rich_message));
     }
   }
   dialog.slice_message_count = narrow_cast<int32>(messages.size());
+  dialog.rich_message_index = 0;
+  load_next_full_rich_message();
+}
 
-  // the work points to the messages of the slice, so it is added after the slice is complete
-  for (auto &export_message : dialog.slice) {
-    add_message_file_work(export_message);
+void ExportManager::load_next_full_rich_message() {
+  auto &dialog = *export_->dialog;
+  while (dialog.rich_message_index < dialog.slice.size()) {
+    const auto &rich_message = dialog.rich_messages[dialog.rich_message_index];
+    const auto &message = *dialog.slice[dialog.rich_message_index].message;
+    MessageId message_id(message.id_);
+    if (rich_message == nullptr || !rich_message->part_ || !message_id.is_server() ||
+        !export_->settings.is_inside_date_range(message.date_)) {
+      dialog.rich_message_index++;
+      continue;
+    }
+    auto dialog_id = dialog.splits[dialog.split_index] < 0 ? dialog.migrated_from_dialog_id : dialog.info.dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
+    if (input_peer == nullptr) {
+      return on_api_error(Status::Error(400, "Chat not found"));
+    }
+    auto promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), generation = export_->generation, index = dialog.rich_message_index](
+            Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages) mutable {
+          send_closure(actor_id, &ExportManager::on_get_full_rich_message, generation, index, std::move(r_messages));
+        });
+    return send_export_query(
+        telegram_api::messages_getRichMessage(std::move(input_peer), message_id.get_server_message_id().get()), -1,
+        std::move(promise));
   }
+  on_messages_slice_loaded();
+}
+
+void ExportManager::on_get_full_rich_message(
+    uint64 generation, size_t index, Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages) {
+  if (!is_current_export(generation)) {
+    return;
+  }
+  if (r_messages.is_error()) {
+    return on_api_error(r_messages.move_as_error());
+  }
+  auto &dialog = *export_->dialog;
+  CHECK(index == dialog.rich_message_index);
+  const auto *rich_message = get_full_rich_message(r_messages.ok().get(), MessageId(dialog.slice[index].message->id_));
+  if (rich_message == nullptr) {
+    return on_api_error(Status::Error(500, "Receive invalid complete rich message"));
+  }
+  auto full_rich_message = copy_rich_message(*rich_message);
+  if (full_rich_message == nullptr) {
+    return on_api_error(Status::Error(500, "Receive invalid complete rich message"));
+  }
+  dialog.rich_messages[index] = std::move(full_rich_message);
+  dialog.rich_message_index++;
+  load_next_full_rich_message();
+}
+
+void ExportManager::on_messages_slice_loaded() {
+  auto &dialog = *export_->dialog;
+  auto dialog_id = dialog.splits[dialog.split_index] < 0 ? dialog.migrated_from_dialog_id : dialog.info.dialog_id;
+  CHECK(dialog.rich_messages.size() == dialog.slice.size());
+  // the work points to the messages of the slice, so it is added after the slice is complete
+  for (size_t i = 0; i < dialog.slice.size(); i++) {
+    add_message_file_work(dialog.slice[i]);
+    if (dialog.rich_messages[i] != nullptr) {
+      add_rich_message_file_work(dialog.slice[i], std::move(dialog.rich_messages[i]), dialog_id);
+    }
+  }
+  dialog.rich_messages.clear();
   dialog.file_work_index = 0;
 
   vector<CustomEmojiId> custom_emoji_ids;
@@ -2381,6 +2695,16 @@ void ExportManager::on_get_messages_slice(vector<telegram_api::object_ptr<telegr
       }
       default:
         break;
+    }
+    if (export_message.rich_message != nullptr) {
+      visit_export_rich_message(
+          *export_message.rich_message,
+          [&](const ExportRichText &text) {
+            if (text.type == ExportRichText::Type::CustomEmoji) {
+              add_custom_emoji(text.id);
+            }
+          },
+          [](const ExportRichPhoto &, bool) {}, [](const ExportRichDocument &) {});
     }
     if (message.interaction_info_ != nullptr && message.interaction_info_->reactions_ != nullptr) {
       for (const auto &reaction : message.interaction_info_->reactions_->reactions_) {
@@ -2566,6 +2890,191 @@ void ExportManager::add_message_file_work(ExportMessage &export_message) {
   }
 }
 
+void ExportManager::add_rich_message_file_work(ExportMessage &export_message,
+                                               telegram_api::object_ptr<telegram_api::richMessage> &&rich_message,
+                                               DialogId dialog_id) {
+  const auto &settings = export_->settings;
+  const auto &message = *export_message.message;
+  auto &dialog = *export_->dialog;
+  auto date_part = get_file_date_part(message.date_);
+  export_message.rich_message = get_export_rich_message(*rich_message);
+  auto &result = *export_message.rich_message;
+
+  // the media are numbered in the order in which the server sends them, after the media of the message itself
+  vector<string> photo_paths;
+  for (auto &photo_ptr : rich_message->photos_) {
+    string path = PSTRING() << dialog.info.relative_path << "photos/photo_" << ++dialog.file_counters.photo_count
+                            << date_part;
+    auto photo = get_photo(td_, std::move(photo_ptr), dialog_id);
+    if (photo.is_empty()) {
+      continue;
+    }
+    ExportRichPhoto rich_photo;
+    rich_photo.id = photo.id.get();
+    rich_photo.photo = get_photo_object(td_->file_manager_.get(), photo);
+    result.photos.push_back(std::move(rich_photo));
+    photo_paths.push_back(std::move(path));
+  }
+
+  vector<string> document_paths;
+  for (auto &document_ptr : rich_message->documents_) {
+    if (document_ptr->get_id() != telegram_api::document::ID) {
+      continue;
+    }
+    auto server_document = telegram_api::move_object_as<telegram_api::document>(document_ptr);
+    ExportRichDocument rich_document;
+    rich_document.id = server_document->id_;
+    auto document = td_->documents_manager_->on_get_document(std::move(server_document), dialog_id, false, false);
+    using Type = ExportRichDocument::Type;
+    switch (document.type) {
+      case Document::Type::Animation: {
+        auto animation = td_->animations_manager_->get_animation_object(document.file_id);
+        rich_document.type = Type::Animation;
+        rich_document.document = std::move(animation->animation_);
+        rich_document.thumbnail = std::move(animation->thumbnail_);
+        rich_document.file_name = std::move(animation->file_name_);
+        rich_document.mime_type = std::move(animation->mime_type_);
+        rich_document.duration = animation->duration_;
+        rich_document.width = animation->width_;
+        rich_document.height = animation->height_;
+        break;
+      }
+      case Document::Type::Audio: {
+        auto audio = td_->audios_manager_->get_audio_object(document.file_id);
+        rich_document.type = Type::Audio;
+        rich_document.document = std::move(audio->audio_);
+        rich_document.thumbnail = std::move(audio->album_cover_thumbnail_);
+        rich_document.file_name = std::move(audio->file_name_);
+        rich_document.mime_type = std::move(audio->mime_type_);
+        rich_document.performer = std::move(audio->performer_);
+        rich_document.title = std::move(audio->title_);
+        rich_document.duration = audio->duration_;
+        break;
+      }
+      case Document::Type::General: {
+        auto general = td_->documents_manager_->get_document_object(document.file_id, PhotoFormat::Jpeg);
+        rich_document.type = Type::File;
+        rich_document.document = std::move(general->document_);
+        rich_document.thumbnail = std::move(general->thumbnail_);
+        rich_document.file_name = std::move(general->file_name_);
+        rich_document.mime_type = std::move(general->mime_type_);
+        break;
+      }
+      case Document::Type::Sticker: {
+        auto sticker = td_->stickers_manager_->get_sticker_object(document.file_id);
+        rich_document.type = Type::Sticker;
+        rich_document.mime_type = get_sticker_format_mime_type(get_sticker_format(sticker->format_));
+        rich_document.document = std::move(sticker->sticker_);
+        rich_document.thumbnail = std::move(sticker->thumbnail_);
+        rich_document.sticker_emoji = std::move(sticker->emoji_);
+        rich_document.width = sticker->width_;
+        rich_document.height = sticker->height_;
+        break;
+      }
+      case Document::Type::Video: {
+        auto video = td_->videos_manager_->get_video_object(document.file_id);
+        rich_document.type = Type::Video;
+        rich_document.document = std::move(video->video_);
+        rich_document.thumbnail = std::move(video->thumbnail_);
+        rich_document.file_name = std::move(video->file_name_);
+        rich_document.mime_type = std::move(video->mime_type_);
+        rich_document.duration = video->duration_;
+        rich_document.width = video->width_;
+        rich_document.height = video->height_;
+        break;
+      }
+      case Document::Type::VideoNote: {
+        auto video_note = td_->video_notes_manager_->get_video_note_object(document.file_id);
+        rich_document.type = Type::VideoNote;
+        rich_document.document = std::move(video_note->video_);
+        rich_document.thumbnail = std::move(video_note->thumbnail_);
+        rich_document.mime_type = "video/mp4";
+        rich_document.duration = video_note->duration_;
+        rich_document.width = video_note->length_;
+        rich_document.height = video_note->length_;
+        break;
+      }
+      case Document::Type::VoiceNote: {
+        auto voice_note = td_->voice_notes_manager_->get_voice_note_object(document.file_id);
+        rich_document.type = Type::VoiceNote;
+        rich_document.document = std::move(voice_note->voice_);
+        rich_document.mime_type = std::move(voice_note->mime_type_);
+        rich_document.duration = voice_note->duration_;
+        break;
+      }
+      default:
+        continue;
+    }
+    auto path = get_document_path(dialog.info.relative_path, dialog.file_counters,
+                                  get_rich_document_media_type(rich_document.type), rich_document.file_name,
+                                  rich_document.mime_type, date_part);
+    result.documents.push_back(std::move(rich_document));
+    document_paths.push_back(std::move(path));
+  }
+
+  if (!settings.is_inside_date_range(message.date_)) {
+    return;
+  }
+  // the works point to the photos and the documents, so they are added after both lists are complete
+  vector<const ExportFile *> added_targets;
+  auto add_work = [&](ExportFile &target, const td_api::file *file, string suggested_path, int32 media_type,
+                      int64 controlling_size) {
+    if (file == nullptr || td::contains(added_targets, &target)) {
+      return;
+    }
+    added_targets.push_back(&target);
+    MessageFileWork work;
+    work.target = &target;
+    work.file = file;
+    work.suggested_path = std::move(suggested_path);
+    work.media_type = media_type;
+    work.controlling_size = controlling_size;
+    work.message_id = MessageId(message.id_);
+    work.is_rich = true;
+    dialog.file_works.push_back(std::move(work));
+  };
+  visit_export_rich_message(
+      result, [](const ExportRichText &) {},
+      [&](const ExportRichPhoto &visited_photo, bool is_card) {
+        auto index = static_cast<size_t>(&visited_photo - result.photos.data());
+        auto &photo = result.photos[index];
+        const auto &path = photo_paths[index];
+        const auto &sizes = photo.photo->sizes_;
+        const auto *size = get_export_photo_size(sizes);
+        const auto *file = size == nullptr ? nullptr : size->photo_.get();
+        auto file_size = get_export_file_size(file);
+        add_work(photo.file, file, path + ".jpg", ExportSettings::Photo, file_size);
+        if (settings.format == ExportFormat::Json || file == nullptr) {
+          return;
+        }
+        // HTML pages show a smaller size instead of scaling the photo
+        if (is_card) {
+          const auto *thumbnail_size = get_export_photo_thumbnail_size(sizes, 2 * EXPORT_HTML_ENTRY_USERPIC_SIZE);
+          if (thumbnail_size != nullptr) {
+            add_work(photo.card_thumbnail, thumbnail_size->photo_.get(), path + "_rich_card_thumb.jpg",
+                     ExportSettings::Photo, file_size);
+          }
+        } else {
+          const auto *thumbnail_size = get_export_photo_thumbnail_size(sizes, EXPORT_HTML_PHOTO_SIZE);
+          if (thumbnail_size != nullptr) {
+            add_work(photo.thumbnail, thumbnail_size->photo_.get(), path + "_thumb.jpg", ExportSettings::Photo,
+                     file_size);
+          }
+        }
+      },
+      [&](const ExportRichDocument &visited_document) {
+        auto index = static_cast<size_t>(&visited_document - result.documents.data());
+        auto &document = result.documents[index];
+        const auto &path = document_paths[index];
+        auto media_type = get_rich_document_media_type(document.type);
+        auto size = get_export_file_size(document.document.get());
+        add_work(document.file, document.document.get(), path, media_type, size);
+        if (document.thumbnail != nullptr && document.thumbnail->width_ > 0) {
+          add_work(document.thumbnail_file, document.thumbnail->file_.get(), path + "_thumb.jpg", media_type, size);
+        }
+      });
+}
+
 string ExportManager::get_file_date_part(int32 date) const {
   if (date <= 0) {
     return string();
@@ -2691,6 +3200,7 @@ bool ExportManager::process_message_file(MessageFileWork &work) {
   file->message_id = work.message_id;
   file->custom_emoji_id = work.custom_emoji_id;
   file->story_id = work.story_id;
+  file->is_rich = work.is_rich;
   LOG(INFO) << "Load file " << file->relative_path << " of size " << file->size;
   export_->file = std::move(file);
   set_file_state();
@@ -2844,6 +3354,21 @@ void ExportManager::refresh_file_reference() {
   const auto &dialog = *export_->dialog;
   auto split = dialog.splits[dialog.split_index];
   auto dialog_id = split >= 0 ? dialog.info.dialog_id : dialog.migrated_from_dialog_id;
+  if (file.is_rich) {
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
+    if (input_peer == nullptr) {
+      return finish_file(false);
+    }
+    auto promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), generation = export_->generation,
+         file_id = file.id](Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages) mutable {
+          send_closure(actor_id, &ExportManager::on_refresh_rich_file_reference, generation, file_id,
+                       std::move(r_messages));
+        });
+    return send_export_query(
+        telegram_api::messages_getRichMessage(std::move(input_peer), file.message_id.get_server_message_id().get()), -1,
+        std::move(promise));
+  }
   vector<telegram_api::object_ptr<telegram_api::InputMessage>> message_ids;
   message_ids.push_back(
       telegram_api::make_object<telegram_api::inputMessageID>(file.message_id.get_server_message_id().get()));
@@ -2973,6 +3498,32 @@ void ExportManager::on_refresh_file_reference(
     }
   }
   LOG(INFO) << "Failed to find file reference of " << file.relative_path;
+  finish_file(false);
+}
+
+void ExportManager::on_refresh_rich_file_reference(
+    uint64 generation, int64 file_id, Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages) {
+  if (!is_current_export(generation) || export_->file == nullptr || export_->file->id != file_id) {
+    return;
+  }
+  auto &file = *export_->file;
+  if (r_messages.is_ok()) {
+    const auto *rich_message = get_full_rich_message(r_messages.ok().get(), file.message_id);
+    if (rich_message != nullptr) {
+      auto *location = file.query->location_.get();
+      for (const auto &photo : rich_message->photos_) {
+        if (update_file_reference(location, photo.get())) {
+          return load_file_part();
+        }
+      }
+      for (const auto &document : rich_message->documents_) {
+        if (update_file_reference(location, document.get())) {
+          return load_file_part();
+        }
+      }
+    }
+  }
+  LOG(INFO) << "Failed to refresh file reference of " << file.relative_path;
   finish_file(false);
 }
 

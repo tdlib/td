@@ -289,6 +289,7 @@ ExportContentKind get_export_content_kind(const td_api::MessageContent *content)
     case td_api::messageGiveaway::ID:
     case td_api::messageGiveawayWinners::ID:
     case td_api::messageWidget::ID:
+    case td_api::messageRichMessage::ID:
       return ExportContentKind::Ordinary;
     case td_api::messageCall::ID:
     case td_api::messageGroupCall::ID:

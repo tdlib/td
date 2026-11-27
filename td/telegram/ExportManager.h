@@ -260,7 +260,18 @@ class ExportManager final : public Actor {
 
   void on_get_messages_slice(vector<telegram_api::object_ptr<telegram_api::Message>> &&messages);
 
+  void load_next_full_rich_message();
+
+  void on_get_full_rich_message(uint64 generation, size_t index,
+                                Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages);
+
+  void on_messages_slice_loaded();
+
   void add_message_file_work(ExportMessage &export_message);
+
+  void add_rich_message_file_work(ExportMessage &export_message,
+                                  telegram_api::object_ptr<telegram_api::richMessage> &&rich_message,
+                                  DialogId dialog_id);
 
   string get_file_date_part(int32 date) const;
 
@@ -289,6 +300,9 @@ class ExportManager final : public Actor {
 
   void on_refresh_file_reference(uint64 generation, int64 file_id,
                                  Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages);
+
+  void on_refresh_rich_file_reference(uint64 generation, int64 file_id,
+                                      Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages);
 
   void on_refresh_custom_emoji_file_reference(
       uint64 generation, int64 file_id, Result<vector<telegram_api::object_ptr<telegram_api::Document>>> r_documents);

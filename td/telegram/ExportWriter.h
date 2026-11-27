@@ -8,6 +8,7 @@
 
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/ExportRichMessage.h"
 #include "td/telegram/ExportSettings.h"
 #include "td/telegram/td_api.h"
 
@@ -133,14 +134,6 @@ string format_export_money_amount(int64 amount, Slice currency);
 
 string format_export_phone_number(const string &phone_number);
 
-struct ExportFile {
-  enum class SkipReason : int32 { None, Unavailable, FileType, FileSize };
-
-  // the path relative to the export directory with '/' as the separator; empty if the file is skipped
-  string relative_path;
-  SkipReason skip_reason = SkipReason::FileType;
-};
-
 struct ExportMessage {
   td_api::object_ptr<td_api::message> message;
   // td_api has no content for cleared history, so such a message has messageUnsupported content
@@ -148,6 +141,8 @@ struct ExportMessage {
   // the photo, the document or the contact's vCard
   ExportFile file;
   ExportFile thumbnail;
+  // non-null if the message has a rich message, whatever its content is
+  unique_ptr<ExportRichMessage> rich_message;
 };
 
 // the files of custom emoji, which are used in texts of messages and in reactions
